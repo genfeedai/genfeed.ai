@@ -8,10 +8,15 @@
  * before that route becomes interactive. That is the number a reviewer needs
  * when a pull request statically imports a heavy library onto a hot route.
  *
- * It reads Next's own manifests rather than an analyzer plugin report:
+ * It reads Next's own manifest rather than an analyzer plugin report:
  * `@next/bundle-analyzer` is a webpack plugin, and `apps/app` builds with
- * `--turbopack`, so the plugin never runs there. `app-build-manifest.json` and
- * `build-manifest.json` are emitted by both bundlers.
+ * `--turbopack`, so the plugin never runs there. Next.js 16 removed the
+ * standalone `app-build-manifest.json` and folded App Router entries into
+ * `build-manifest.json`'s `pages` map (both bundlers write that file), so
+ * this reads `build-manifest.json` alone and keeps only the `/page` and
+ * `/route` entries — the Pages Router keys (`/_app`, `/_error`, ...) sort
+ * before them and are filtered out the same way app-build-manifest.json's
+ * entries used to be.
  *
  * First-load for a route is the union of that route's own chunks with the
  * chunks every route pays for (`rootMainFiles` plus `polyfillFiles`), matching
@@ -26,11 +31,8 @@ import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-interface AppBuildManifest {
-  pages: Record<string, string[]>;
-}
-
 interface BuildManifest {
+  pages: Record<string, string[]>;
   polyfillFiles?: string[];
   rootMainFiles?: string[];
 }
@@ -154,20 +156,15 @@ function toRoute(entry: string): string {
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
-  const appManifest = await readJson<AppBuildManifest>(
-    path.join(args.dist, 'app-build-manifest.json'),
+  const buildManifest = await readJson<BuildManifest>(
+    path.join(args.dist, 'build-manifest.json'),
   );
 
-  if (!appManifest) {
+  if (!buildManifest) {
     throw new Error(
-      `No app-build-manifest.json under ${args.dist}. Run \`next build\` first.`,
+      `No build-manifest.json under ${args.dist}. Run \`next build\` first.`,
     );
   }
-
-  const buildManifest =
-    (await readJson<BuildManifest>(
-      path.join(args.dist, 'build-manifest.json'),
-    )) ?? {};
 
   const shared = [
     ...(buildManifest.rootMainFiles ?? []),
@@ -177,7 +174,7 @@ async function main(): Promise<void> {
 
   const routes: RouteSummary[] = [];
 
-  for (const [entry, chunks] of Object.entries(appManifest.pages)) {
+  for (const [entry, chunks] of Object.entries(buildManifest.pages)) {
     if (!entry.endsWith('/page') && !entry.endsWith('/route')) {
       continue;
     }
