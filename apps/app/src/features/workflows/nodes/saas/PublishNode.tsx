@@ -48,10 +48,9 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
   const handlePlatformToggle = useCallback(
     (platform: PublishPlatform) => {
       updateNodeData(id, {
-        platforms: {
-          ...data.platforms,
-          [platform]: !data.platforms[platform],
-        },
+        platforms: data.platforms.includes(platform)
+          ? data.platforms.filter((enabled) => enabled !== platform)
+          : [...data.platforms, platform],
       });
     },
     [id, data.platforms, updateNodeData],
@@ -99,9 +98,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
     [id, updateNodeData],
   );
 
-  const enabledPlatformCount = Object.values(data.platforms).filter(
-    Boolean,
-  ).length;
+  const enabledPlatformCount = data.platforms.length;
 
   const hasPublished = data.publishedUrls.length > 0;
 
@@ -120,7 +117,7 @@ function PublishNodeComponent(props: NodeProps): React.JSX.Element {
           {PLATFORM_CONFIG.map((platform) => (
             <SelectableButton
               key={platform.key}
-              selected={data.platforms[platform.key]}
+              selected={data.platforms.includes(platform.key)}
               onClick={() => handlePlatformToggle(platform.key)}
             >
               {platform.label}
@@ -217,12 +214,7 @@ const publishNodeDefaults: Partial<PublishNodeData> = {
   inputCaption: null,
   inputMediaId: null,
   label: 'Publish',
-  platforms: {
-    instagram: false,
-    linkedin: false,
-    tiktok: false,
-    twitter: false,
-  },
+  platforms: [],
   publishedUrls: [],
   schedule: {
     type: 'immediate',

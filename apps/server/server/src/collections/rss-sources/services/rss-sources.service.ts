@@ -209,11 +209,10 @@ export class RssSourcesService {
   ): Promise<RssItemClaim> {
     const { channels, item, signatures, source } = request;
     const existing = await this.prisma.rssFeedItem.findFirst({
-      where: {
+      where: scopedWhere(source.organizationId, {
         guid: item.guid,
-        isDeleted: false,
         rssSourceId: source.id,
-      },
+      }),
     });
 
     if (existing?.status === RssFeedItemStatus.IMPORTED) {
@@ -258,7 +257,7 @@ export class RssSourcesService {
           error: 'No valid target channels.',
           status: RssFeedItemStatus.SKIPPED,
         },
-        where: { id: itemRow.id },
+        where: scopedWhere(source.organizationId, { id: itemRow.id }),
       });
       return {
         ...request,
@@ -327,11 +326,10 @@ export class RssSourcesService {
       (
         await this.prisma.rssFeedItem.findFirst({
           select: { id: true },
-          where: {
+          where: scopedWhere(request.source.organizationId, {
             guid: request.item.guid,
-            isDeleted: false,
             rssSourceId: request.source.id,
-          },
+          }),
         })
       )?.id;
     if (!itemRowId) throw new Error('RSS feed item claim is missing');
@@ -341,7 +339,7 @@ export class RssSourcesService {
           error: errorMessage(failure),
           status: RssFeedItemStatus.FAILED,
         },
-        where: { id: itemRowId },
+        where: scopedWhere(request.source.organizationId, { id: itemRowId }),
       });
       return { outcome: 'failed' };
     }
@@ -358,7 +356,7 @@ export class RssSourcesService {
         postGroupId: releaseId,
         status: RssFeedItemStatus.IMPORTED,
       },
-      where: { id: itemRowId },
+      where: scopedWhere(request.source.organizationId, { id: itemRowId }),
     });
     return { outcome: 'imported' };
   }

@@ -244,6 +244,7 @@ describe('RssSourcesService', () => {
           postGroupId: 'release-1',
           status: RssFeedItemStatus.IMPORTED,
         }),
+        where: scopedWhere('org-1', { id: 'item-1' }),
       }),
     );
   });
