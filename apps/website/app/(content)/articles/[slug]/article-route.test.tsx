@@ -46,6 +46,29 @@ function article(overrides: Partial<Article> = {}): Article {
   } as Article;
 }
 
+/**
+ * The public and preview routes now delegate their body to the shared
+ * `ArticleView` server component (`<ArticleView slug={slug} />`) instead of
+ * rendering JSON-LD inline. Next's RSC renderer awaits a nested async
+ * component like that automatically; a plain unit test does not, so a route
+ * call alone only returns the unresolved element referencing it. Invoking
+ * the element's own function type is the one-level-deeper equivalent of what
+ * the real renderer does, and it is what actually runs the fetch/notFound
+ * logic the tests below assert on.
+ */
+async function resolveAsyncElement(element: ReactNode): Promise<ReactNode> {
+  if (!isValidElement(element)) {
+    return element;
+  }
+  const { type, props } = element as ReactElement<Record<string, unknown>>;
+  if (typeof type === 'function') {
+    return (type as (elementProps: unknown) => ReactNode | Promise<ReactNode>)(
+      props,
+    );
+  }
+  return element;
+}
+
 function readJsonLdScripts(element: ReactNode): unknown[] {
   if (!isValidElement(element)) {
     throw new Error('Expected the route to return a React element');
@@ -182,9 +205,11 @@ describe('ArticleDetailRoute', () => {
   it('renders article and breadcrumb JSON-LD for a published article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article());
 
-    const element = await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-published' }),
-    });
+    const element = await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-published' }),
+      }),
+    );
 
     const [articleJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [
       {
@@ -223,9 +248,11 @@ describe('ArticleDetailRoute', () => {
       }),
     );
 
-    const element = await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-anonymous' }),
-    });
+    const element = await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-anonymous' }),
+      }),
+    );
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
       {
@@ -256,9 +283,11 @@ describe('ArticleDetailRoute', () => {
       }),
     );
 
-    const element = (await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'numeric-author' }),
-    })) as ReactElement<{ children?: ReactNode }>;
+    const element = (await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'numeric-author' }),
+      }),
+    )) as ReactElement<{ children?: ReactNode }>;
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
       { author: { name: string } },
@@ -274,9 +303,11 @@ describe('ArticleDetailRoute', () => {
   it('never forwards a preview token from the public route', async () => {
     getPublicArticleBySlug.mockResolvedValue(article());
 
-    await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-public' }),
-    });
+    await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-public' }),
+      }),
+    );
 
     expect(getPublicArticleBySlug).toHaveBeenCalledWith(
       'route-public',
@@ -290,7 +321,7 @@ describe('ArticleDetailRoute', () => {
     await expect(
       ArticleDetailRoute({
         params: Promise.resolve({ slug: 'gone' }),
-      }),
+      }).then(resolveAsyncElement),
     ).rejects.toThrow();
   });
 
@@ -300,7 +331,7 @@ describe('ArticleDetailRoute', () => {
     await expect(
       ArticleDetailRoute({
         params: Promise.resolve({ slug: 'sentinel' }),
-      }),
+      }).then(resolveAsyncElement),
     ).rejects.toThrow();
   });
 });
@@ -309,10 +340,12 @@ describe('ArticlePreviewRoute', () => {
   it('passes the preview token through and flags an unpublished article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    const element = (await ArticlePreviewRoute({
-      params: Promise.resolve({ slug: 'route-preview' }),
-      searchParams: Promise.resolve({ previewToken: 'token-123' }),
-    })) as ReactElement<{ children?: ReactNode }>;
+    const element = (await resolveAsyncElement(
+      await ArticlePreviewRoute({
+        params: Promise.resolve({ slug: 'route-preview' }),
+        searchParams: Promise.resolve({ previewToken: 'token-123' }),
+      }),
+    )) as ReactElement<{ children?: ReactNode }>;
 
     expect(getPublicArticleBySlug).toHaveBeenCalledWith(
       'route-preview',
