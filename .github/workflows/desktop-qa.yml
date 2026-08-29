@@ -1,35 +1,17 @@
 name: Desktop QA
 
 on:
-  # The desktop shell now boots the canonical `apps/app` bundle (#2371), so the
-  # blast radius of a desktop regression is everything that build inlines — not
-  # just `apps/desktop/**`. A path filter narrower than the bundle would let a
-  # change to the app, its auth client, or its deployment config ship a broken
-  # desktop binary with a green PR.
-  pull_request:
-    paths:
-      - "apps/app/**"
-      - "apps/desktop/**"
-      - "packages/desktop-contracts/**"
-      - "packages/desktop-core/**"
-      - "packages/desktop-prisma/**"
-      # Every workspace package `apps/app` bundles: a change to any of them
-      # lands inside the standalone build the shell serves.
-      - "packages/agent/**"
-      - "packages/auth-client/**"
-      - "packages/client/**"
-      - "packages/config/**"
-      - "packages/constants/**"
-      - "packages/enums/**"
-      - "packages/helpers/**"
-      - "packages/interfaces/**"
-      - "packages/next-config/**"
-      - "packages/props/**"
-      - "packages/types/**"
-      - "packages/ui/**"
-      - "packages/workflows/**"
-      - ".github/workflows/desktop-qa.yml"
-      - ".github/workflows/desktop-release.yml"
+  # The desktop shell boots the canonical `apps/app` bundle (#2371), so the
+  # honest blast radius of a desktop regression is nearly every frontend
+  # change — the old pull_request path filter matched apps/app/** plus 13
+  # bundled packages, i.e. effectively every PR, each paying a ~30 min
+  # macos-latest (10× Linux billing) run while the desktop surface is dormant
+  # (its heavy CI lanes are already disabled behind ENABLE_DESKTOP_CI). A
+  # nightly run keeps the binary honest with at most one day of drift; the
+  # desktop release path still runs this via workflow_call, and any PR that
+  # needs the signal can dispatch it manually.
+  schedule:
+    - cron: '17 3 * * *' # nightly, 03:17 UTC — off the top-of-hour rush
   workflow_dispatch:
   workflow_call:
 
@@ -37,10 +19,9 @@ permissions:
   contents: read
 
 concurrency:
-  # PR numbers are repository-unique; head branch names are not (two forks can
-  # both open `fix/desktop`). Non-PR callers fall back to the complete ref so
-  # distinct tags and branches cannot cancel each other.
-  group: desktop-qa-${{ github.event.pull_request.number || github.ref }}
+  # Nightly/dispatch/call runs key on the complete ref so distinct tags and
+  # branches cannot cancel each other; a fresh nightly supersedes a stale one.
+  group: desktop-qa-${{ github.ref }}
   cancel-in-progress: true
 
 env:

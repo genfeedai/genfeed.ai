@@ -15,7 +15,6 @@ const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
   'curated-action-catalog.yml',
-  'desktop-qa.yml',
   'link-check.yml',
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
@@ -410,21 +409,20 @@ test('reports curated action catalog changes on catalog pull requests', () => {
   assert.match(workflow, /--summary="\$GITHUB_STEP_SUMMARY"/m);
 });
 
-test('runs desktop QA for affected pull requests and release callers', () => {
+test('runs desktop QA nightly and for release callers', () => {
   const workflow = readWorkflow('desktop-qa.yml');
 
-  assert.match(workflow, /^ {2}pull_request:\n {4}paths:/m);
-  for (const pathFilter of [
-    'apps/app/**',
-    'apps/desktop/**',
-    'packages/agent/**',
-    '.github/workflows/desktop-release.yml',
-  ]) {
-    assert.ok(
-      workflow.includes(`      - "${pathFilter}"\n`),
-      `desktop-qa.yml must stay reachable for ${pathFilter}`,
-    );
-  }
+  // The desktop shell boots the apps/app bundle, so an honest PR path filter
+  // matched effectively every frontend PR — each paying a ~30 min
+  // macos-latest run while the desktop surface is dormant. Nightly bounds
+  // drift to one day; the release path keeps its mandatory run via
+  // workflow_call from desktop-release.yml.
+  assert.doesNotMatch(
+    workflow,
+    /^ {2}pull_request:/m,
+    'desktop-qa.yml must not run per pull request while the surface is dormant',
+  );
+  assert.match(workflow, /^ {2}schedule:\n {4}- cron: /m);
   assert.match(workflow, /^ {2}workflow_dispatch:$/m);
   assert.match(workflow, /^ {2}workflow_call:$/m);
 });
@@ -434,14 +432,22 @@ test('server image PR validation bounds cache export without changing reachabili
 
   assert.match(workflow, /^ {2}pull_request:\n/m);
   for (const pathFilter of [
-    'apps/server/**',
-    'packages/**',
     'docker/Dockerfile.server',
+    'webpack.base.config.js',
+    'bun.lock',
     '.github/workflows/server-image-pr.yml',
   ]) {
     assert.ok(
       workflow.includes(`      - '${pathFilter}'\n`),
       `server-image-pr.yml must stay reachable for ${pathFilter}`,
+    );
+  }
+  // Source paths are validated by normal CI and by build-server-image.yml on
+  // every master push; the PR docker build is scoped to the image definition.
+  for (const droppedPath of ['apps/server/**', 'packages/**']) {
+    assert.ok(
+      !workflow.includes(`      - '${droppedPath}'\n`),
+      `server-image-pr.yml must not rebuild the image for ${droppedPath}`,
     );
   }
   assert.match(
