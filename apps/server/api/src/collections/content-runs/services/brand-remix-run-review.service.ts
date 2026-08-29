@@ -57,6 +57,7 @@ type ReviewPreparedState = ReviewProjectionState & {
   brandId: string;
   needsHandoff: boolean;
   organizationId: string;
+  recordTrendLineage: boolean;
   runId: string;
   selected: BrandRemixExecution['variants'];
   selectedAssetIds: string[];

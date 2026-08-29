@@ -180,7 +180,9 @@ export class ReplyPostWatchService implements OnModuleInit {
   private async finalizeAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyPostWatchWorkflowResult> {
-    const state = this.readRecord(action.input.state) as WatchFetchResult;
+    const state = this.readRecord(
+      action.input.state,
+    ) as unknown as WatchFetchResult;
     const batch = this.readRecord(action.input.batch);
     return {
       attempt: state.attempt,

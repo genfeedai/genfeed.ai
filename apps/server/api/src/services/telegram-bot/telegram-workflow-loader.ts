@@ -48,6 +48,10 @@ function readString(
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function readRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
 function readBoolean(
   source: Record<string, unknown> | undefined,
   key: string,

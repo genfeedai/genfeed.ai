@@ -379,13 +379,12 @@ export class AgentCampaignWorkflowService implements OnModuleInit {
     if (!Array.isArray(record.results)) {
       throw new Error('Agent campaign workflow requires batch results');
     }
-    return record.results
-      .map((entry) =>
+    return [
+      ...record.results.map((entry) =>
         this.readState<Record<string, unknown>>(entry, 'batch result'),
-      )
-      .toSorted(
-        (left, right) => Number(left.index ?? 0) - Number(right.index ?? 0),
-      )
+      ),
+    ]
+      .sort((left, right) => Number(left.index ?? 0) - Number(right.index ?? 0))
       .map((entry) => entry.result);
   }
 }

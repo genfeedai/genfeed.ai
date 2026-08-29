@@ -199,8 +199,8 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
       );
 
       return {
-        items: decomposition.subtasks
-          .toSorted((left, right) => left.order - right.order)
+        items: [...decomposition.subtasks]
+          .sort((left, right) => left.order - right.order)
           .map((subtask) => ({ ...input, subtask })),
       };
     });
@@ -241,8 +241,8 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   ): Promise<{ executionIds: string[]; taskId: string }> {
     const input = this.readRequest(request);
     const batch = this.readForEachResult(request.input.batch);
-    const executionIds = batch.results
-      .toSorted((left, right) => left.index - right.index)
+    const executionIds = [...batch.results]
+      .sort((left, right) => left.index - right.index)
       .map((entry) => this.readAgentExecutionState(entry.result).executionId);
 
     return this.withTaskFailure(input, async () => {

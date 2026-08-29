@@ -332,7 +332,10 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     expect(controller).toContain("Post('promote-winners')");
-    expect(controller).toContain('promoteTopPerformers');
+    expect(controller).toContain(
+      'AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS_BRAND',
+    );
+    expect(controller).toContain('runWorkflow');
   });
 
   it('uses Postgres pgvector as brand content memory (no separate vector product)', () => {

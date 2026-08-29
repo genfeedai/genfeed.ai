@@ -76,10 +76,15 @@ export class WinnerPromotionWorkflowService {
     const service = this.resolveHarnessWinnerPromotionService();
     if (!service)
       throw new Error('HarnessWinnerPromotionService is unavailable');
+    const platform =
+      typeof input.platform === 'string' && input.platform.trim()
+        ? input.platform
+        : undefined;
     const discovery = await service.discoverTopPerformers({
       brandId,
-      limit: WINNERS_PER_BRAND,
+      limit: typeof input.limit === 'number' ? input.limit : WINNERS_PER_BRAND,
       organizationId,
+      ...(platform ? { platform } : {}),
     });
     return {
       baseInput: {

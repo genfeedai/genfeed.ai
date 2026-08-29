@@ -130,9 +130,7 @@ export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SOUNDS,
-      async () => ({
-        count: (await this.trendsService.fetchAndCacheSounds()).length,
-      }),
+      () => this.countResult(this.trendsService.fetchAndCacheSounds()),
     );
     this.workflowRunner.registerAction(
       TRENDS_MAINTENANCE_ACTION_IDS.PRECOMPUTE_PREVIEW,
@@ -162,12 +160,12 @@ export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
     if (!task || !['hashtags', 'videos'].includes(task.dataset)) {
       throw new Error('Trend dataset task is invalid');
     }
-    const rows =
+    const count =
       task.dataset === 'videos'
         ? await this.trendsService.fetchAndCacheViralVideos(task.platform)
         : await this.trendsService.fetchAndCacheHashtags(task.platform);
     return {
-      count: rows.length,
+      count,
       dataset: task.dataset,
       platform: task.platform,
     };

@@ -592,8 +592,7 @@ export function useAgentChatStream(
           response = await startTurn();
         }
 
-        const acceptedAt =
-          response.queuedAt ?? response.startedAt ?? new Date().toISOString();
+        const acceptedAt = response.queuedAt;
 
         streamRuntime.activeStreamThreadRef.current = response.threadId;
         streamRuntime.pendingCompletionRef.current = {

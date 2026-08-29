@@ -48,6 +48,7 @@ export class ContentExecutionService {
       planId: string;
       userId: string;
     };
+    brandId: string;
     items: Array<{ id: string }>;
     planId: string;
   }> {
@@ -62,7 +63,10 @@ export class ContentExecutionService {
       planId,
     );
     return {
+      // `brandId` is duplicated at the top level because the finalize node
+      // receives this whole object as its `state` input.
       baseInput: { brandId, organizationId, planId, userId },
+      brandId,
       items: items.map((item) => ({ id: String(item.id) })),
       planId,
     };

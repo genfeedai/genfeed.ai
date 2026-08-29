@@ -11,6 +11,7 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -81,15 +82,18 @@ type ResolvedYoutubeSource = {
   youtubeUrl: string;
 };
 
+/** Persisted wire shape stored on the source `WorkflowArtifact.metadata`. */
+type SourceArtifactMetadata = {
+  resolvedUrl: string;
+  sourceTitle: string;
+  videoId: string;
+  youtubeUrl: string;
+};
+
 type ExtractedYoutubeMedia = ResolvedYoutubeSource & {
   audioStorageKey: string;
   audioUrl: string;
-  sourceArtifactMetadata: {
-    resolvedUrl: string;
-    sourceTitle: string;
-    videoId: string;
-    youtubeUrl: string;
-  };
+  sourceArtifactMetadata: SourceArtifactMetadata;
   sourceStorageKey: string;
 };
 
@@ -748,7 +752,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
           },
           { state: 'PROMOTED' },
         ],
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (!artifact || artifact.execution.userId !== request.context.userId) {
       throw new Error('YouTube source artifact was not found');
@@ -791,7 +795,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         promotionTargetId: ingredientId,
         promotionTargetType: 'ingredient',
         state: 'PROMOTED',
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (!artifact || artifact.execution.userId !== request.context.userId) {
       throw new Error('Promoted YouTube source artifact was not found');
@@ -979,7 +983,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       ...this.readSource(record),
       audioStorageKey: this.requiredString(record, 'audioStorageKey'),
       audioUrl: this.requiredString(record, 'audioUrl'),
-      sourceArtifactMetadata: this.readSourceArtifactMetadata(
+      sourceArtifactMetadata: this.readSourceArtifactMetadataRecord(
         record.sourceArtifactMetadata,
       ),
       sourceStorageKey: this.requiredString(record, 'sourceStorageKey'),
@@ -1018,15 +1022,27 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     return this.requiredString(this.readRecord(value), 'artifactId');
   }
 
+  private readSourceArtifactMetadataRecord(
+    value: unknown,
+  ): SourceArtifactMetadata {
+    const record = this.readRecord(value);
+    return {
+      resolvedUrl: this.requiredString(record, 'resolvedUrl'),
+      sourceTitle: this.requiredString(record, 'sourceTitle'),
+      videoId: this.requiredString(record, 'videoId'),
+      youtubeUrl: this.requiredString(record, 'youtubeUrl'),
+    };
+  }
+
   private readSourceArtifactMetadata(
     value: unknown,
   ): ResolvedYoutubeSource & { url: string } {
-    const record = this.readRecord(value);
+    const metadata = this.readSourceArtifactMetadataRecord(value);
     return {
-      title: this.requiredString(record, 'sourceTitle'),
-      url: this.requiredString(record, 'resolvedUrl'),
-      videoId: this.requiredString(record, 'videoId'),
-      youtubeUrl: this.requiredString(record, 'youtubeUrl'),
+      title: metadata.sourceTitle,
+      url: metadata.resolvedUrl,
+      videoId: metadata.videoId,
+      youtubeUrl: metadata.youtubeUrl,
     };
   }
 

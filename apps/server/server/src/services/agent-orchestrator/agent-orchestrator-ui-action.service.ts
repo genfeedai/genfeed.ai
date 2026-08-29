@@ -146,7 +146,7 @@ export class AgentOrchestratorUiActionService {
             error instanceof Error
               ? error.message
               : `Thread UI action failed: ${request.action}`,
-          runId: scopedContext.runId,
+          runId: scopedContext.executionId,
           threadId,
         });
         rethrowUiActionError(error);

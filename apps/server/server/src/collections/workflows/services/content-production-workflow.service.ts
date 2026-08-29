@@ -195,12 +195,13 @@ export class ContentProductionWorkflowService {
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const item = this.readRecord(input.item);
-    return this.contentExecutionService.executeSingleItem(
+    const result = await this.contentExecutionService.executeSingleItem(
       organizationId,
       this.requiredString(input.brandId, 'brandId'),
       this.requiredString(input.userId, 'userId'),
       this.requiredString(item.id, 'item.id'),
     );
+    return { ...result };
   }
 
   async finalizeContentEnginePlan(

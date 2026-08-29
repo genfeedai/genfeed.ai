@@ -1,8 +1,8 @@
-import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
-import { AgentSpawnService } from '@server/services/agent-spawn/agent-spawn.service';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentSpawnService } from '@server/services/agent-spawn/agent-spawn.service';
 import { describe, expect, it, vi } from 'vitest';
 
 const { mockedAgentOrchestratorToken } = vi.hoisted(() => ({
@@ -44,14 +44,13 @@ describe('AgentSpawnService', () => {
 
   it('returns the spawned sub-agent threadId in tool result data', async () => {
     const chat = vi.fn().mockResolvedValue({
-      creditsUsed: 7,
-      message: {
-        content: 'Spawned agent response',
-        metadata: {},
-        role: 'assistant',
-      },
+      clientRequestId: 'client-request-1',
+      contextId: 'context-1',
+      contextVersion: 1,
+      executionId: 'execution-123',
+      queuedAt: '2026-08-29T00:00:00.000Z',
+      status: 'queued',
       threadId: 'thread-123',
-      toolCalls: [{ status: 'completed', toolName: 'generate_content' }],
     });
 
     const service = new AgentSpawnService(
@@ -100,12 +99,12 @@ describe('AgentSpawnService', () => {
       }),
     );
     expect(result).toEqual({
-      creditsUsed: 7,
+      creditsUsed: 0,
       data: {
         agentType: AgentType.X_CONTENT,
-        content: 'Spawned agent response',
+        executionId: 'execution-123',
+        status: 'queued',
         threadId: 'thread-123',
-        toolCallCount: 1,
       },
       success: true,
     });
@@ -113,14 +112,13 @@ describe('AgentSpawnService', () => {
 
   it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
     const chat = vi.fn().mockResolvedValue({
-      creditsUsed: 0,
-      message: {
-        content: 'done',
-        metadata: {},
-        role: 'assistant',
-      },
+      clientRequestId: 'client-request-1',
+      contextId: 'context-1',
+      contextVersion: 1,
+      executionId: 'execution-123',
+      queuedAt: '2026-08-29T00:00:00.000Z',
+      status: 'queued',
       threadId: 'thread-123',
-      toolCalls: [],
     });
     const assembleContext = vi.fn().mockResolvedValue({
       brandId: 'brand-1',
@@ -175,14 +173,13 @@ describe('AgentSpawnService', () => {
 
   it('uses the brand default model when the brand context provides one', async () => {
     const chat = vi.fn().mockResolvedValue({
-      creditsUsed: 0,
-      message: {
-        content: 'done',
-        metadata: {},
-        role: 'assistant',
-      },
+      clientRequestId: 'client-request-1',
+      contextId: 'context-1',
+      contextVersion: 1,
+      executionId: 'execution-123',
+      queuedAt: '2026-08-29T00:00:00.000Z',
+      status: 'queued',
       threadId: 'thread-123',
-      toolCalls: [],
     });
 
     const service = new AgentSpawnService(

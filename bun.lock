@@ -168,6 +168,7 @@
       "name": "@genfeedai/app",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/actions": "*",
         "@genfeedai/agent": "*",
         "@genfeedai/auth-client": "*",
         "@genfeedai/client": "*",

@@ -125,7 +125,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AD_BULK_UPLOAD_ACTION_IDS.BUILD_MEDIA_ITEMS,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.buildMediaItems(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -138,7 +138,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AD_BULK_UPLOAD_ACTION_IDS.BUILD_PERMUTATIONS,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.buildPermutations(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -262,7 +262,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.FINALIZE_COLLECTION,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.finalizeCollection(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -438,7 +438,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.REPLY_PREPARE,
-      (node, inputs, context) =>
+      async (node, inputs, context) =>
         service.prepareReplyBotTarget(
           context.organizationId,
           actionInputs(node.config, inputs),
@@ -446,7 +446,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.REPLY_FINALIZE_TARGET,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.finalizeReplyBotTarget(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -573,7 +573,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.TRENDS_FINALIZE,
-      (node, inputs, context) =>
+      async (node, inputs, context) =>
         service.finalizeTrendSummaryNotifications(
           context.organizationId,
           actionInputs(node.config, inputs),
@@ -612,7 +612,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_DISCOVER_TARGETS,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.discoverActiveSessionTargets(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -625,7 +625,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_FINALIZE,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.finalizeActiveSession(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -659,7 +659,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.RESTREAM_FINALIZE,
-      (node, inputs, context) =>
+      async (node, inputs, context) =>
         service.finalizeRestreamChat(
           context.organizationId,
           actionInputs(node.config, inputs),
@@ -701,7 +701,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.HARNESS_FINALIZE_BRAND,
-      (node, inputs) =>
+      async (node, inputs) =>
         service.finalizeBrandWinners(actionInputs(node.config, inputs)),
     );
     engine.registerExecutor(
@@ -727,7 +727,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     if (!service) return;
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.PAID_CREATIVE_PREPARE,
-      (_node, _inputs, context) =>
+      async (_node, _inputs, context) =>
         service.preparePaidCreativeResearch(context.organizationId),
     );
     engine.registerExecutor(
@@ -748,7 +748,7 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       AUTOMATION_ACTION_IDS.PAID_CREATIVE_FINALIZE,
-      (node, inputs, context) =>
+      async (node, inputs, context) =>
         service.finalizePaidCreativeResearch(
           context.organizationId,
           actionInputs(node.config, inputs),

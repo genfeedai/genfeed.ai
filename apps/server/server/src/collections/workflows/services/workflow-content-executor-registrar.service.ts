@@ -367,7 +367,9 @@ export class WorkflowContentExecutorRegistrarService {
         node.config,
         'instructions',
       );
-      const newsletter = await newslettersService.executeGenerateDraftAction(
+      // `generateDraft` is the single entry: it runs the immutable
+      // `newsletter.draft-generation` child workflow and returns the document.
+      const newsletter = await newslettersService.generateDraft(
         {
           instructions,
           topic: prompt,

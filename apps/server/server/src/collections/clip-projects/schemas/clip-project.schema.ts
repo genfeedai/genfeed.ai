@@ -50,6 +50,7 @@ export interface ClipProjectSettings {
 
 type ClipProjectRecord = Omit<
   PrismaClipProject,
+  | 'continuityWorkflowExecutionId'
   | 'error'
   | 'failedClipCount'
   | 'pendingClipCount'
@@ -58,6 +59,7 @@ type ClipProjectRecord = Omit<
   | 'readyClipCount'
   | 'status'
   | 'terminalAt'
+  | 'workflowExecutionId'
 >;
 
 export interface ClipProjectDocument extends ClipProjectRecord {

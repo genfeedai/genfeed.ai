@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/actions": "*",
     "@genfeedai/agent": "*",
     "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",

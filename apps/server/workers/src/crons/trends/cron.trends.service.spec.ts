@@ -37,10 +37,10 @@ describe('CronTrendsService', () => {
       set: vi.fn().mockResolvedValue(true),
     };
     trends = {
-      fetchAndCacheHashtags: vi.fn().mockResolvedValue([]),
-      fetchAndCacheSounds: vi.fn().mockResolvedValue([]),
+      fetchAndCacheHashtags: vi.fn().mockResolvedValue(0),
+      fetchAndCacheSounds: vi.fn().mockResolvedValue(0),
       fetchAndCacheTrends: vi.fn().mockResolvedValue([{ id: 'trend-1' }]),
-      fetchAndCacheViralVideos: vi.fn().mockResolvedValue([]),
+      fetchAndCacheViralVideos: vi.fn().mockResolvedValue(0),
       getGlobalCorpusStats: vi
         .fn()
         .mockResolvedValue({ activeTrends: 0, referenceRecords: 0 }),

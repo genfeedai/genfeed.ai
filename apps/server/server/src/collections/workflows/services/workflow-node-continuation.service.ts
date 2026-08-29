@@ -6,7 +6,10 @@ import {
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
   WorkflowNodeContinuationStatus,
 } from '@genfeedai/prisma';
-import { compileActionContract } from '@genfeedai/workflows/engine';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -878,8 +881,8 @@ export class WorkflowNodeContinuationService {
       throw new Error(`Unknown Genfeed action ${actionId}`);
     }
     compileActionContract(actionId, {
-      inputSchema: action.inputSchema,
-      outputSchema: action.outputSchema,
+      inputSchema: action.inputSchema as ActionContractJsonSchema,
+      outputSchema: action.outputSchema as ActionContractJsonSchema,
     }).validateOutput(output, {
       nodeId: 'provider-callback',
       runId: 'provider-callback',

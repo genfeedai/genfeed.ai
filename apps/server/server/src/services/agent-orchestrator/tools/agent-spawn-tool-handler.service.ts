@@ -1,9 +1,9 @@
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentSpawnService } from '@server/services/agent-spawn/agent-spawn.service';
 import { AgentType } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentSpawnService } from '@server/services/agent-spawn/agent-spawn.service';
 
 /**
  * Sub-agent spawn and asset request tools.
@@ -107,9 +107,9 @@ export class AgentSpawnToolHandler {
         agentType,
         parentContext: {
           authToken: ctx.authToken,
+          executionId: ctx.runId,
           generationPriority: ctx.generationPriority,
           organizationId: ctx.organizationId,
-          runId: ctx.runId,
           strategyId: targetAgentId,
           userId: ctx.userId,
         },

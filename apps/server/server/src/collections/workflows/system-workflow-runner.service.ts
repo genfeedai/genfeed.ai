@@ -67,9 +67,11 @@ export type SystemWorkflowActionRequest = {
   runtimeContext?: unknown;
 };
 
+// Action handlers are either pure state transforms or async I/O. `registerAction`
+// wraps every executor in an async node executor, so both shapes are awaited.
 export type SystemWorkflowActionExecutor = (
   request: SystemWorkflowActionRequest,
-) => Promise<unknown>;
+) => unknown;
 
 export type {
   RunSystemWorkflowInput,
@@ -271,7 +273,7 @@ export class SystemWorkflowRunnerService
           isSystemAction: true,
           source: input.source,
         },
-        totalNodes: definition.definition.nodes.length,
+        totalNodes: definition.definition.nodes?.length ?? 0,
         trigger,
         workflowId: workflow.id,
         workflowVersionId: workflow.currentVersion.id,
@@ -486,7 +488,9 @@ export class SystemWorkflowRunnerService
             isDeleted: false,
             isScheduleEnabled: false,
             label: definition.label,
-            metadata: this.buildHiddenMirrorMetadata(definition),
+            metadata: this.buildHiddenMirrorMetadata(
+              definition,
+            ) as Prisma.InputJsonValue,
             organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
             progress: 0,
             schedule: definition.schedule,

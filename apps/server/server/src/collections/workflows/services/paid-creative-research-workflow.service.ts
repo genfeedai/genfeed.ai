@@ -68,11 +68,12 @@ export class PaidCreativeResearchWorkflowService {
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const advertiser = this.readRecord(input.item) as WatchedAdvertiserScope;
-    return this.paidCreativeResearchIngestionService.ingestOne(
+    const result = await this.paidCreativeResearchIngestionService.ingestOne(
       organizationId,
       advertiser,
       {},
     );
+    return { ...result };
   }
 
   finalizePaidCreativeResearch(

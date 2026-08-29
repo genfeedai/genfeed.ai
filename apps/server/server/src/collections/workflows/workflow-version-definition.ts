@@ -76,6 +76,7 @@ function assertValidWorkflowGraph(graph: WorkflowVersionGraph): void {
       })),
       organizationId: 'workflow-version-validation',
       userId: 'workflow-version-validation',
+      versionId: 'workflow-version-validation',
     },
     {
       checkDisconnected: false,

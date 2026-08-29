@@ -8,7 +8,7 @@ import type {
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CaptionsService } from '@server/collections/captions/services/captions.service';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
@@ -116,16 +116,12 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly cacheService?: CacheService,
     @Optional() private readonly prismaService?: PrismaService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
-    @Inject(AdAutomationWorkflowService)
-    private readonly adAutomationWorkflowService:
-      | AdAutomationWorkflowService
-      | undefined,
+    @Optional()
+    private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
     @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
-    @Inject(AnalyticsSyncWorkflowService)
-    private readonly analyticsSyncWorkflowService:
-      | AnalyticsSyncWorkflowService
-      | undefined,
+    @Optional()
+    private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
     @Optional()
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
     @Optional()
@@ -152,10 +148,8 @@ export class WorkflowEngineAdapterService {
     private readonly postAccountFanoutService?: PostAccountFanoutService,
     @Optional()
     private readonly videoQaContinuityResolver?: VideoQaContinuityResolverService,
-    @Inject(AdBulkUploadWorkflowService)
-    private readonly adBulkUploadWorkflowService:
-      | AdBulkUploadWorkflowService
-      | undefined,
+    @Optional()
+    private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
     @Optional()
     private readonly workflowNodeContinuationService?: WorkflowNodeContinuationService,
   ) {

@@ -282,8 +282,8 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       imageUrl: state.imageUrl as string,
       ingredientId: state.ingredientId as string,
       personaSlug: state.personaSlug,
-      publishResults: publishBatch.results
-        .toSorted((left, right) => left.index - right.index)
+      publishResults: [...publishBatch.results]
+        .sort((left, right) => left.index - right.index)
         .map((entry) => entry.result as PlatformPublishResult),
       ...(state.videoResult ? { videoResult: state.videoResult } : {}),
       ...(state.voiceResult ? { voiceResult: state.voiceResult } : {}),
@@ -337,8 +337,8 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
     const batch = this.readForEachResult(request.input.batch);
     return {
       generated: batch.count,
-      results: batch.results
-        .toSorted((left, right) => left.index - right.index)
+      results: [...batch.results]
+        .sort((left, right) => left.index - right.index)
         .map((entry) => entry.result as GeneratePostResult),
     };
   }

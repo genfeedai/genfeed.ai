@@ -57,7 +57,6 @@ import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/to
 import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
 import { Effect } from 'effect';
 import { of } from 'rxjs';
 
@@ -1021,18 +1020,10 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
+        { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
         batchGenerationService as never,
         credentialsService as never,
-        streamPublisher as never,
         creditsUtilsService as never,
-        undefined,
-        // Real, not mocked: the async batch path only streams into the thread
-        // when this builder hands back callbacks, so stubbing it would assert
-        // nothing about whether progress actually reaches the user.
-        new BatchGenerationStreamService(
-          loggerService,
-          streamPublisher as never,
-        ),
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -5436,6 +5427,7 @@ describe('AgentToolExecutorService', () => {
         new AgentMediaBatchGenerationService(
           loggerService,
           brandsService as never,
+          { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
           {} as never,
           credentialsService as never,
         ),

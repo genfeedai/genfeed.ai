@@ -427,9 +427,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       botConfig.type === ReplyBotType.COMMENT_RESPONDER
         ? resolveReplyIntent(request.content.text)
         : 'default';
+    const activityId = activity.id.toString();
     const state: ReplyBotContentState = {
       ...request,
-      activityId: activity.id.toString(),
+      activityId,
       dmDelayMs: Math.max(0, botConfig.dmConfig?.delaySeconds ?? 60) * 1000,
       dmItems: [],
       intent,
@@ -441,7 +442,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       getReplyIntentPersona(intent).shouldSkipAuto
     ) {
       await this.botActivitiesService.updateStatus(
-        state.activityId,
+        activityId,
         request.organizationId,
         {
           completedAt: new Date(),

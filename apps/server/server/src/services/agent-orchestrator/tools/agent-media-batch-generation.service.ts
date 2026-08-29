@@ -101,6 +101,7 @@ export class AgentMediaBatchGenerationService {
     private readonly loggerService: LoggerService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
     @Optional()
@@ -109,7 +110,6 @@ export class AgentMediaBatchGenerationService {
     private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
     private readonly batchCreditsService?: BatchGenerationCreditsService,
-    private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
   ) {}
 
   async generateContentBatch(

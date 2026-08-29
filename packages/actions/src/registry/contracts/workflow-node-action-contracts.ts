@@ -200,7 +200,7 @@ const GENERATED_MEDIA_OUTPUT = objectOutput(
   },
   ['id', 'model', 'provider', 'status'],
 );
-const VIDEO_QA_REPORT = objectOutput({
+const VIDEO_QA_REPORT_PROPERTIES: Readonly<Record<string, ActionJsonSchema>> = {
   blackSegments: arraySchema(JSON_DOCUMENT_SCHEMA),
   contactSheetUrl: nullableSchema(STRING_SCHEMA),
   decodeOk: BOOLEAN_SCHEMA,
@@ -215,7 +215,8 @@ const VIDEO_QA_REPORT = objectOutput({
   passed: BOOLEAN_SCHEMA,
   streams: arraySchema(JSON_DOCUMENT_SCHEMA),
   width: nullableSchema(NUMBER_SCHEMA),
-});
+};
+const VIDEO_QA_REPORT = objectOutput(VIDEO_QA_REPORT_PROPERTIES);
 
 const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
   {
@@ -894,7 +895,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     videoQa: {
       inputSchema: inputSchema(['references', 'video', 'videoUrl']),
       outputSchema: objectOutput({
-        ...VIDEO_QA_REPORT.properties,
+        ...VIDEO_QA_REPORT_PROPERTIES,
         continuityQa: nullableSchema(JSON_DOCUMENT_SCHEMA),
         report: VIDEO_QA_REPORT,
         video: nullableSchema(STRING_SCHEMA),

@@ -74,7 +74,7 @@ export interface ToolExecutionContext {
   };
   brandId?: string;
   platform?: string;
-  /** Agent run ID for content attribution */
+  /** Owning workflow execution id, used for content attribution */
   runId?: string;
   /** Durable identity of the confirmed conversation action. */
   sourceActionId?: string;

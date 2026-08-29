@@ -382,7 +382,7 @@ export class BotsLivestreamService {
         this.loggerService.warn('Restream chat sync skipped for session', {
           botId: bot.id,
           error,
-          sessionId: session.id,
+          sessionId: input.sessionId,
         });
       }
     }

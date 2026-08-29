@@ -226,9 +226,12 @@ export class TriggerEvaluatorService {
     };
   }
 
-  planPostingRecommendations(
-    state: TriggerEvaluationState,
-  ): TriggerEvaluationState & { items: PostingRecommendationItem[] } {
+  planPostingRecommendations(state: TriggerEvaluationState): Omit<
+    TriggerEvaluationState,
+    'items'
+  > & {
+    items: PostingRecommendationItem[];
+  } {
     if (state.skippedReason) return { ...state, items: [] };
     const items = state.strategies.flatMap((strategy) => {
       const platforms = strategy.platforms ?? [];

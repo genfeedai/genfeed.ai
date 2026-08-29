@@ -246,7 +246,7 @@ export class AdBulkUploadWorkflowService {
     private readonly mappings: AdCreativeMappingsService,
     private readonly credentials: CredentialsService,
     private readonly metaAds: MetaAdsService,
-    private readonly queue: WorkflowExecutionQueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -255,7 +255,7 @@ export class AdBulkUploadWorkflowService {
     userId?: string,
   ): Promise<{ jobId: string; workflowJobId: string }> {
     const definition = buildAdBulkUploadWorkflowDefinition();
-    const workflowJobId = await this.queue.queueSystemWorkflow(
+    const workflowJobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

@@ -695,6 +695,7 @@ config.turbopack = {
 config.transpilePackages = [
   ...(config.transpilePackages ?? []),
   'fullcalendar',
+  '@genfeedai/actions',
   '@genfeedai/desktop-contracts',
   '@genfeedai/hooks',
   '@genfeedai/serializers',

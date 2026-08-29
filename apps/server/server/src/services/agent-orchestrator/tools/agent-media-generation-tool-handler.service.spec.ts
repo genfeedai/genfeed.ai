@@ -32,7 +32,11 @@ function createHandler() {
       internalApi as never,
       onboardingHandler as never,
     ),
-    new AgentMediaBatchGenerationService(logger as never, {} as never),
+    new AgentMediaBatchGenerationService(
+      logger as never,
+      {} as never,
+      { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
+    ),
   );
 
   return {
@@ -854,13 +858,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
+      batchGenerationQueueService as never,
       batchGenerationService as never,
-      undefined,
       undefined,
       creditsUtilsService as never,
       batchCreditsService as never,
-      undefined,
-      batchGenerationQueueService as never,
     );
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
@@ -1054,13 +1056,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       {} as never,
+      queue as never,
       batchGenerationService as never,
       credentialsService as never,
-      undefined,
       { deductCreditsFromOrganization: vi.fn() } as never,
       { recordUpfrontCharge: vi.fn() } as never,
-      undefined,
-      queue as never,
     );
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
@@ -1093,13 +1093,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       { findOne: vi.fn().mockResolvedValue({ id: 'brand-selected' }) } as never,
+      { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
       { cancelBatch: vi.fn(), createBatch } as never,
       { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,
-      undefined,
       { deductCreditsFromOrganization: vi.fn() } as never,
       { recordUpfrontCharge: vi.fn() } as never,
-      undefined,
-      { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
     );
 
     await batchOwner.generateContentBatch(
@@ -1136,16 +1134,14 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       { error: vi.fn(), warn: vi.fn() } as never,
       {} as never,
+      { queueBatch: vi.fn().mockResolvedValue(undefined) } as never,
       batchGenerationService as never,
-      undefined,
       undefined,
       { deductCreditsFromOrganization: vi.fn() } as never,
       {
         recordUpfrontCharge: vi.fn(),
         settleBatchCredits,
       } as never,
-      undefined,
-      { queueBatch: vi.fn().mockResolvedValue(undefined) } as never,
     );
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,

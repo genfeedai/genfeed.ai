@@ -10,8 +10,8 @@ import type {
   IBulkScheduleResult,
   IScheduleOptimizationRequest,
   ISmartSchedule,
-  IWorkflowExecution,
 } from '@genfeedai/interfaces/automation/smart-scheduler.interface';
+import type { IWorkflowExecution } from '@genfeedai/interfaces/automation/workflow-execution.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeResource,

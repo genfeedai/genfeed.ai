@@ -224,7 +224,7 @@ export class AgentOrchestratorSyncLoopService {
           context.organizationId,
           {
             brandId: context.scope?.brandId,
-            executionId: context.executionId,
+            runId: context.executionId,
             threadId,
             userId: context.userId,
           },
@@ -234,8 +234,8 @@ export class AgentOrchestratorSyncLoopService {
             actualModels: Array.from(actualModels),
             context,
             requestedModel: model,
+            executionId: context.executionId,
             responseModel: response.model,
-            runId: context.executionId,
             source: request.source,
             threadId,
           },

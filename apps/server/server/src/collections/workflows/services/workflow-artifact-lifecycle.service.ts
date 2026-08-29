@@ -202,7 +202,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         id: input.artifactId,
         expiresAt: { gt: new Date() },
         state: { in: ['ACTIVE', 'CLEANUP_FAILED'] },
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (promoted.count !== 1) {
       throw new Error(
@@ -238,7 +238,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           },
           { state: 'PROMOTED' },
         ],
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (!artifact) {
       throw new Error(`Workflow artifact ${artifactId} was not found`);
@@ -266,7 +266,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           { state: { in: ['ACTIVE', 'CLEANUP_FAILED'] } },
           { cleanupClaimedAt: { lte: staleClaim }, state: 'DELETING' },
         ],
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
 
     let deleted = 0;
@@ -289,7 +289,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
             { state: { in: ['ACTIVE', 'CLEANUP_FAILED'] } },
             { cleanupClaimedAt: { lte: staleClaim }, state: 'DELETING' },
           ],
-        }),
+        } satisfies Prisma.WorkflowArtifactWhereInput),
       });
       if (claimed.count !== 1) {
         skipped += 1;
@@ -313,7 +313,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           where: scopedWhere(input.organizationId, {
             id: artifact.id,
             state: 'DELETING',
-          }),
+          } satisfies Prisma.WorkflowArtifactWhereInput),
         });
         deleted += 1;
       } catch (error: unknown) {
@@ -327,7 +327,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
           where: scopedWhere(input.organizationId, {
             id: artifact.id,
             state: 'DELETING',
-          }),
+          } satisfies Prisma.WorkflowArtifactWhereInput),
         });
         this.logger.error('Workflow artifact storage deletion failed', {
           artifactId: artifact.id,
@@ -479,7 +479,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         executionId: input.executionId,
         retentionPolicy: 'terminal',
         state: { in: ['ACTIVE', 'CLEANUP_FAILED'] },
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (pending === 0) {
       return false;
@@ -614,7 +614,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       where: scopedWhere(organizationId, {
         executionId,
         state: { in: ['ACTIVE', 'CLEANUP_FAILED', 'DELETING', 'PROMOTED'] },
-      }),
+      } satisfies Prisma.WorkflowArtifactWhereInput),
     });
     if (retainedArtifacts > 0) {
       return false;

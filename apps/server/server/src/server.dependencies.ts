@@ -155,6 +155,7 @@ export interface ServerBrandMemorySync {
 export interface ServerPostAnalyticsRecord {
   brandId: string | null;
   date: Date | string | number;
+  id: string;
   engagementRate: number | null;
   platform: string | null;
   postId: string | null;

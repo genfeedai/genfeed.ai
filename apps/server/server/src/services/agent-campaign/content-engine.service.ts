@@ -997,7 +997,7 @@ export class ContentEngineService {
     await this.agentCampaignsService.patch(String(campaign.id), {
       lastOrchestratedAt: now,
       lastOrchestrationSummary: input.summary,
-      nextOrchestratedAt: input.nextOrchestratedAt?.toISOString() ?? null,
+      nextOrchestratedAt: input.nextOrchestratedAt ?? null,
       organizationId: requireRelationId(
         campaign.organizationId,
         'organization',
