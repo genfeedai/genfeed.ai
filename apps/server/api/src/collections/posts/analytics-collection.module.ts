@@ -1,6 +1,7 @@
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -61,6 +62,7 @@ const ANALYTICS_COLLECTION_SERVICES = [
     ThreadsModule,
     TiktokModule,
     TwitterModule,
+    WorkflowsCoreModule,
     YoutubeModule,
   ],
   providers: [

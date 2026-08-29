@@ -221,7 +221,7 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/actions/src'),
       },
       {
-        find: /^@genfeedai\/tools\/(.*)$/,
+        find: /^@genfeedai\/actions\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
           '../../../packages/actions/src/$1',

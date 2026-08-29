@@ -402,7 +402,7 @@ test('reports curated action catalog changes on catalog pull requests', () => {
   assert.match(workflow, /^ {10}fetch-depth: 0$/m);
   assert.match(
     workflow,
-    /run: \|\n {10}bun run --filter=@genfeedai\/tools catalog:changes \\/m,
+    /run: \|\n {10}bun run --filter=@genfeedai\/actions catalog:changes \\/m,
     'the report job must invoke the reporter through its package script',
   );
   // Without --summary the report exists only in raw job logs.
