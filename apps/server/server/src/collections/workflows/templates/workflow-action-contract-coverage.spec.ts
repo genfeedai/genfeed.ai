@@ -34,6 +34,12 @@ type ContractGap = {
   field: string;
 };
 
+type DanglingEdge = {
+  edgeId: string;
+  endpoint: string;
+  side: 'source' | 'target';
+};
+
 const SHIPPED_GRAPH_SOURCES: readonly unknown[] = [
   WORKFLOW_TEMPLATES,
   AD_AUTOMATION_WORKFLOW_TEMPLATES,
@@ -89,6 +95,27 @@ function collectActionEnvelopes(
     collectActionEnvelopes(item, envelopes);
 }
 
+/**
+ * A graph is any record carrying both a node list and an edge list — the shape
+ * every template, child workflow, and parent workflow shares.
+ */
+function collectGraphs(
+  value: unknown,
+  graphs: Array<{ edges: unknown[]; nodes: unknown[] }>,
+): void {
+  if (Array.isArray(value)) {
+    for (const item of value) collectGraphs(item, graphs);
+    return;
+  }
+  if (!isRecord(value)) return;
+
+  if (Array.isArray(value.nodes) && Array.isArray(value.edges)) {
+    graphs.push({ edges: value.edges, nodes: value.nodes });
+  }
+
+  for (const item of Object.values(value)) collectGraphs(item, graphs);
+}
+
 function declaredInputFields(actionId: string): Set<string> | undefined {
   const schema = getActionDefinition(actionId)?.inputSchema;
   if (!isRecord(schema)) return undefined;
@@ -120,6 +147,36 @@ describe('shipped workflow graphs honour published action input contracts', () =
     ].sort();
 
     expect(unknownActionIds).toEqual([]);
+  });
+
+  it('wires every edge to a node that exists in the same graph', () => {
+    const graphs: Array<{ edges: unknown[]; nodes: unknown[] }> = [];
+    for (const source of SHIPPED_GRAPH_SOURCES) {
+      collectGraphs(source, graphs);
+    }
+    expect(graphs.length).toBeGreaterThan(0);
+
+    const dangling: DanglingEdge[] = [];
+    for (const graph of graphs) {
+      const nodeIds = new Set(
+        graph.nodes
+          .filter(isRecord)
+          .map((node) => node.id)
+          .filter((id): id is string => typeof id === 'string'),
+      );
+
+      for (const edge of graph.edges) {
+        if (!isRecord(edge)) continue;
+        const edgeId = typeof edge.id === 'string' ? edge.id : '(unnamed)';
+        for (const side of ['source', 'target'] as const) {
+          const endpoint = edge[side];
+          if (typeof endpoint !== 'string' || nodeIds.has(endpoint)) continue;
+          dangling.push({ edgeId, endpoint, side });
+        }
+      }
+    }
+
+    expect(dangling).toEqual([]);
   });
 
   it('authors no parameter the action input contract would reject', () => {
