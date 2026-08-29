@@ -2,7 +2,7 @@ import type { AgentPublishDecision } from '@genfeedai/enums';
 import type { IBaseEntity, IBrand, IOrganization, IUser } from '../index';
 
 export interface CreateAgentPublishAuditInput {
-  agentRunId?: string | null;
+  workflowExecutionId?: string | null;
   agentStrategyId?: string | null;
   agentThreadId?: string | null;
   autonomyMode: string;
@@ -15,7 +15,7 @@ export interface CreateAgentPublishAuditInput {
 }
 
 export interface UpdateAgentPublishAuditInput {
-  agentRunId?: string | null;
+  workflowExecutionId?: string | null;
   agentStrategyId?: string | null;
   agentThreadId?: string | null;
   autonomyMode?: string;
@@ -28,7 +28,7 @@ export interface UpdateAgentPublishAuditInput {
 }
 
 export interface IAgentPublishAudit extends IBaseEntity {
-  agentRunId?: string | null;
+  workflowExecutionId?: string | null;
   agentStrategyId?: string | null;
   agentThreadId?: string | null;
   autonomyMode: string;
@@ -46,7 +46,7 @@ export interface IAgentPublishAudit extends IBaseEntity {
 }
 
 export interface IAgentPublishAuditDocument {
-  agentRunId: string | null;
+  workflowExecutionId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
   autonomyMode: string;

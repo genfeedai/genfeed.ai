@@ -1,4 +1,4 @@
-import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import { isAllowedReplicateOutputUrl } from '@server/endpoints/webhooks/replicate/webhooks.replicate.constants';
 
 describe('isAllowedReplicateOutputUrl', () => {
   it.each([

@@ -340,8 +340,8 @@ export class PostGroupsService {
               ...(provenance?.agentContextVersion !== undefined && {
                 agentContextVersion: provenance.agentContextVersion,
               }),
-              ...(provenance?.agentRunId && {
-                agentRunId: provenance.agentRunId,
+              ...(provenance?.workflowExecutionId && {
+                workflowExecutionId: provenance.workflowExecutionId,
               }),
               ...(provenance?.agentStrategyId && {
                 agentStrategyId: provenance.agentStrategyId,

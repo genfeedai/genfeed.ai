@@ -169,7 +169,6 @@ describe('handleSocialMessagesTool — authoring', () => {
     const client = buildClient();
 
     const result = await call(client, 'create_social_reply_draft', {
-      agentRunId: 'run-1',
       conversationId: 'conversation-1',
       idempotencyKey: 'key-1',
       messageType: 'reply',
@@ -181,7 +180,6 @@ describe('handleSocialMessagesTool — authoring', () => {
     expect(client.createSocialReplyDraft).toHaveBeenCalledWith(
       'conversation-1',
       {
-        agentRunId: 'run-1',
         idempotencyKey: 'key-1',
         messageType: 'reply',
         recipientId: 'recipient-1',

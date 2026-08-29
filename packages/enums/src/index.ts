@@ -5,7 +5,6 @@ export * from './activity-keys.tree';
 export * from './agent-conversation.enum';
 export * from './agent-publish-policy.enum';
 export * from './agent-reply-style.enum';
-export * from './agent-run.enum';
 export * from './agent-strategy.enum';
 export * from './agent-thread.enum';
 export * from './agent-transfer.enum';

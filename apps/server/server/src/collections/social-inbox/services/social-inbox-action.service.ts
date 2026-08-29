@@ -46,7 +46,6 @@ type JsonRecord = Record<string, unknown>;
 
 export type SocialInboxOutboundWorkflowState = {
   action: OutboundAction;
-  agentRunId?: string;
   body: string;
   conversationId: string;
   error?: string;
@@ -127,7 +126,6 @@ export class SocialInboxActionService implements OnModuleInit {
             scope,
             status: 'draft',
           }) as Prisma.InputJsonValue,
-          agentRunId: input.agentRunId,
           body,
           brandId: conversation.brandId,
           conversationId: conversation.id,
@@ -198,7 +196,6 @@ export class SocialInboxActionService implements OnModuleInit {
         ? draftMetadata.draftRecipientId
         : undefined;
     const input: SocialActionInput = {
-      ...(draft.agentRunId ? { agentRunId: draft.agentRunId } : {}),
       idempotencyKey: `draft:${draft.id}:approve`,
       ...(recipientId === undefined ? {} : { recipientId }),
       text: draft.body,
@@ -346,7 +343,6 @@ export class SocialInboxActionService implements OnModuleInit {
           inputValues: {
             request: {
               action: messageType === 'dm' ? 'send_dm' : 'post_reply',
-              ...(input.agentRunId ? { agentRunId: input.agentRunId } : {}),
               body: input.text,
               conversationId,
               ...(input.idempotencyKey
@@ -545,7 +541,6 @@ export class SocialInboxActionService implements OnModuleInit {
     state: SocialInboxOutboundWorkflowState,
   ): SocialActionInput {
     return {
-      agentRunId: state.agentRunId,
       idempotencyKey: state.idempotencyKey,
       messageType: state.messageType,
       recipientId: state.recipientId,
@@ -702,8 +697,7 @@ export class SocialInboxActionService implements OnModuleInit {
 
     await this.prisma.socialConversation.update({
       data: {
-        automationState:
-          state.workflowRunId || state.agentRunId ? 'automated' : 'manual',
+        automationState: state.workflowRunId ? 'automated' : 'manual',
         latestMessageAt: now,
         latestMessageText: clamp(state.body, 500),
         lastOutboundAt: now,
@@ -793,7 +787,6 @@ export class SocialInboxActionService implements OnModuleInit {
             scope,
             status: 'pending',
           }) as Prisma.InputJsonValue,
-          agentRunId: input.agentRunId,
           body,
           brandId: conversation.brandId,
           conversationId: conversation.id,
@@ -998,17 +991,14 @@ export class SocialInboxActionService implements OnModuleInit {
     scope: SocialInboxScope;
     status: string;
   }): JsonRecord {
-    const actorType = input.agentRunId
-      ? 'agent'
-      : input.workflowRunId
-        ? 'workflow'
-        : scope.userId
-          ? 'user'
-          : 'system';
+    const actorType = input.workflowRunId
+      ? 'workflow'
+      : scope.userId
+        ? 'user'
+        : 'system';
 
     return {
       action,
-      agentRunId: input.agentRunId,
       actedAt: new Date().toISOString(),
       actorType,
       platform: conversation.platform,

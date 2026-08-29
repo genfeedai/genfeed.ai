@@ -152,7 +152,6 @@ function socialActionParams(args: Record<string, unknown>): SocialActionParams {
   const normalizedMessageType = messageType as 'dm' | 'reply' | undefined;
 
   return {
-    agentRunId: optionalString(args, 'agentRunId'),
     idempotencyKey: optionalString(args, 'idempotencyKey'),
     messageType: normalizedMessageType,
     recipientId: optionalString(args, 'recipientId'),

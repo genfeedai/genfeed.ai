@@ -381,7 +381,8 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
         runId: `run-${input.postId}`,
         userId: input.userId,
         workflowId: 'scheduled-post.publish',
-      } as never,
+        workflowVersionId: `version-${input.postId}`,
+      },
       input: actionInput,
       provenance: {
         executionId: `execution-${input.postId}`,

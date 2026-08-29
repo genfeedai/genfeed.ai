@@ -1,13 +1,3 @@
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import type {
-  SchedulerPostGroup,
-  SchedulerPostTarget,
-} from '@server/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -20,6 +10,16 @@ import {
 } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException } from '@nestjs/common';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import type {
+  SchedulerPostGroup,
+  SchedulerPostTarget,
+} from '@server/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Setup signals are not what these tests exercise, so every provider reads as
@@ -463,7 +463,11 @@ describe('PostGroupPersistenceService', () => {
       makeGroup({ id: 'group-workflow' }),
     ]);
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ agentRunId: 'run-1', groupId: 'group-agent', id: 'agent' }),
+      makeTarget({
+        workflowExecutionId: 'run-1',
+        groupId: 'group-agent',
+        id: 'agent',
+      }),
       makeTarget({ groupId: 'group-manual', id: 'manual' }),
       makeTarget({
         groupId: 'group-workflow',
@@ -491,7 +495,6 @@ describe('PostGroupPersistenceService', () => {
     ]);
     prisma.post.findMany.mockResolvedValue([
       makeTarget({
-        agentRunId: 'run-1',
         groupId: 'group-target',
         workflowExecutionId: 'execution-1',
       }),
@@ -732,7 +735,6 @@ function makeTarget(
   return {
     agentContextSource: null,
     agentContextVersion: null,
-    agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
     analyticsCollectedAt: null,

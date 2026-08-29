@@ -16,6 +16,24 @@ const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
 
+/**
+ * Deterministic idempotency key for an agent-turn workflow execution.
+ *
+ * Callers that need to recover the execution a turn produced — without holding
+ * the acknowledgement — resolve it through the
+ * `[organizationId, idempotencyKey]` unique index rather than reconstructing an
+ * id. Execution ids are cuids and carry no derivable structure.
+ */
+export function buildAgentTurnIdempotencyKey(
+  organizationId: string,
+  userId: string,
+  clientRequestId: string,
+): string {
+  return [AGENT_TURN_WORKFLOW_ID, organizationId, userId, clientRequestId].join(
+    ':',
+  );
+}
+
 function stableUuid(...parts: string[]): string {
   const hex = createHash('sha256').update(parts.join('\u001f')).digest('hex');
   return [
@@ -64,12 +82,11 @@ export class AgentTurnAcceptanceService {
     const { executionId } = await this.workflowRunner.enqueueWorkflow({
       actionType: AGENT_TURN_WORKFLOW_ID,
       canonicalId: AGENT_TURN_WORKFLOW_ID,
-      idempotencyKey: [
-        AGENT_TURN_WORKFLOW_ID,
+      idempotencyKey: buildAgentTurnIdempotencyKey(
         context.organizationId,
         context.userId,
         request.clientRequestId,
-      ].join(':'),
+      ),
       inputValues: {
         request: {
           content: request.content,

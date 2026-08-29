@@ -1,5 +1,6 @@
 import type { AgentType } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';

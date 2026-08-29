@@ -30,7 +30,10 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
 // Issue #2643 removed the orphaned ContentDraft serializer triplet.
 // Issue #2665 removes the unreachable ContentSchedule serializer triplet.
 // The legacy cron hard cut removes the CronJob and CronRun serializer triplets.
-const SERIALIZER_MATCH_FLOOR = 100;
+// The workflow-execution hard cut (#3924) deletes the AgentRun, Run, and
+// Transcript models outright, so their three serializer triplets have no schema
+// left to pair with.
+const SERIALIZER_MATCH_FLOOR = 98;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -400,16 +403,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'totalSources',
     'trigger',
   ],
-  'transcript:Transcript': [
-    'audioFileUrl',
-    'error',
-    'status',
-    'transcriptText',
-    'videoDuration',
-    'videoTitle',
-    'youtubeId',
-    'youtubeUrl',
-  ],
   'trend:Trend': ['growthRate', 'mentions', 'metadata'],
   'voice:Ingredient': [
     'accent',
@@ -549,7 +542,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
   'sound:ElementSound': ['category', 'isActive', 'isDefault', 'organization'],
   'style:ElementStyle': ['category', 'isFavorite', 'models'],
-  'agent-run:AgentRun': [],
   'asset:Asset': ['cdnUrl'],
   'bookmark:Bookmark': [],
   'brand-memory:BrandMemory': [],
@@ -569,13 +561,12 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'profile:Profile': [],
   'project:Project': [],
   'role:Role': [],
-  'run:Run': [],
   'setting:Setting': [],
   'social-source:SocialSource': [],
   'tag:Tag': [],
   'tracked-link:TrackedLink': [],
   'user:User': [],
-  'workflow-execution:WorkflowExecution': ['idempotencyKey'],
+  'workflow-execution:WorkflowExecution': [],
   'api-key:ApiKey': [],
   'avatar:Ingredient': [
     'age',
@@ -705,6 +696,7 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'agent-thread-event:AgentThreadEvent': OPERATIONAL_MODEL_REASON,
   'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,
   'agent-workflow:AgentWorkflow': INTERNAL_MODEL_REASON,
+  'workflow-version:WorkflowVersion': INTERNAL_MODEL_REASON,
   'article-analytics:ArticleAnalytics': ANALYTICS_MODEL_REASON,
   'campaign-target:CampaignTarget': INTERNAL_MODEL_REASON,
   'content-pattern:ContentPattern': ANALYTICS_MODEL_REASON,

@@ -314,10 +314,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private async hasActivated(userId: string): Promise<boolean> {
-    // tenant-scope-ignore: activation is a per-person lifecycle signal, not a
-    // per-tenant one. A user can belong to several organizations and this asks
-    // whether they have ever published anywhere, so scoping it to one
-    // organization would under-report and re-send activation email.
+    // tenant-scope-ignore: activation is a per-person lifecycle signal, not a per-tenant one; a user can belong to several organizations and this asks whether they have ever published anywhere, so scoping it to one organization would under-report and re-send activation email
     const publishedPost = await this.prisma.post.findFirst({
       select: { id: true },
       where: {

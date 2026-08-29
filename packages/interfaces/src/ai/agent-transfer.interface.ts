@@ -22,7 +22,7 @@ export interface AgentTransferPresentation {
   retryCount: number;
   artifactReferences?: AgentArtifactReference[];
   outputArtifactReferences?: AgentArtifactReference[];
-  destinationRunId?: string | null;
+  destinationExecutionId?: string | null;
   createdAt: string;
   completedAt?: string | null;
 }

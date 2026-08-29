@@ -376,6 +376,7 @@
         "@aws-sdk/client-cloudfront": "3.1118.0",
         "@aws-sdk/client-ec2": "3.1118.0",
         "@better-auth/infra": "0.4.3",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/agent": "workspace:*",
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
@@ -390,7 +391,6 @@
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/server": "workspace:*",
-        "@genfeedai/actions": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
@@ -485,11 +485,11 @@
       "name": "@genfeedai/mcp",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/actions": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@posthog/mcp": "0.11.7",
         "posthog-node": "5.51.2",
@@ -515,6 +515,7 @@
       "dependencies": {
         "@anthropic-ai/sdk": "0.120.0",
         "@aws-sdk/client-ec2": "3.1118.0",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/agent": "workspace:*",
         "@genfeedai/api-types": "workspace:*",
         "@genfeedai/config": "workspace:*",
@@ -528,7 +529,6 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/actions": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
@@ -608,6 +608,7 @@
       "dependencies": {
         "@aws-sdk/client-cloudwatch": "3.1118.0",
         "@aws-sdk/client-ec2": "3.1118.0",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -617,7 +618,6 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/server": "workspace:*",
-        "@genfeedai/actions": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/axios": "4.0.1",
         "@nestjs/bullmq": "11.0.5",
@@ -672,6 +672,13 @@
         "@types/react-dom": "19.2.5",
         "@typescript/native": "npm:typescript@7.0.2",
         "typescript": "6.0.3",
+      },
+    },
+    "packages/actions": {
+      "name": "@genfeedai/actions",
+      "version": "0.1.4",
+      "devDependencies": {
+        "@typescript/native": "npm:typescript@7.0.2",
       },
     },
     "packages/agent": {
@@ -777,12 +784,12 @@
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.10",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/errors": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/actions": "workspace:*",
         "@types/bun": "1.4.0",
         "@types/node": "22.20.1",
         "@typescript/native": "npm:typescript@7.0.2",
@@ -1175,13 +1182,6 @@
         "@tailwindcss/typography": "0.5.20",
       },
     },
-    "packages/actions": {
-      "name": "@genfeedai/actions",
-      "version": "0.1.4",
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
-      },
-    },
     "packages/tsconfig": {
       "name": "@genfeedai/tsconfig",
       "version": "1.0.0",
@@ -1323,6 +1323,7 @@
       "version": "0.3.3",
       "dependencies": {
         "@dagrejs/dagre": "3.1.1",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
@@ -1333,6 +1334,8 @@
         "@radix-ui/react-select": "2.3.7",
         "@radix-ui/react-slider": "1.4.7",
         "@radix-ui/react-slot": "1.3.3",
+        "ajv": "8.20.0",
+        "ajv-formats": "3.0.1",
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",
         "lucide-react": "1.34.0",
@@ -1955,6 +1958,8 @@
 
     "@fullcalendar/core": ["@fullcalendar/core@7.0.2", "", { "peerDependencies": { "@full-ui/headless-calendar": "7.0.2", "temporal-polyfill": "^1.0.1" } }, "sha512-EkhE1wkPttp5kKNmUNLsMwl8nUuQmLdj30SPKagOEWMJUE4AHETAu/F/SbYoRq+nksm2GWPe9cQs1kbQP2H9pA=="],
 
+    "@genfeedai/actions": ["@genfeedai/actions@workspace:packages/actions"],
+
     "@genfeedai/agent": ["@genfeedai/agent@workspace:packages/agent"],
 
     "@genfeedai/api": ["@genfeedai/api@workspace:apps/server/api"],
@@ -2046,8 +2051,6 @@
     "@genfeedai/styles": ["@genfeedai/styles@workspace:packages/styles"],
 
     "@genfeedai/telegram": ["@genfeedai/telegram@workspace:apps/server/telegram"],
-
-    "@genfeedai/actions": ["@genfeedai/actions@workspace:packages/actions"],
 
     "@genfeedai/tsconfig": ["@genfeedai/tsconfig@workspace:packages/tsconfig"],
 

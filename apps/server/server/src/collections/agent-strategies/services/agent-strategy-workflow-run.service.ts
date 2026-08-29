@@ -1,3 +1,14 @@
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+  type Type,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { getAgentTypeWorkflowDefault } from '@server/collections/agent-strategies/constants/agent-type-workflow-defaults.constant';
 import type {
   AgentStrategyWorkflowBindingPreview,
@@ -13,17 +24,6 @@ import { WorkflowsService } from '@server/collections/workflows/services/workflo
 import { WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/workflow-templates';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  Optional,
-  ServiceUnavailableException,
-  type Type,
-} from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 type WorkflowInputVariableLike = {
   defaultValue?: unknown;
@@ -335,8 +335,6 @@ export class AgentStrategyWorkflowRunService {
       select: {
         brandId: true,
         id: true,
-        inputVariables: true,
-        label: true,
         metadata: true,
       },
       take: 50,
@@ -359,14 +357,11 @@ export class AgentStrategyWorkflowRunService {
       return null;
     }
 
-    return {
-      id: match.id,
-      inputVariables: Array.isArray(match.inputVariables)
-        ? (match.inputVariables as WorkflowInputVariableLike[])
-        : [],
-      label: match.label ?? null,
-      templateId,
-    };
+    // `inputVariables` is not a `workflows` column: it is hydrated from the
+    // pinned current version's definition, so the matched row is reloaded
+    // through the service that performs that hydration.
+    const resolved = await this.loadWorkflowById(match.id, organizationId);
+    return resolved ? { ...resolved, templateId } : null;
   }
 
   private buildFilledInputs(

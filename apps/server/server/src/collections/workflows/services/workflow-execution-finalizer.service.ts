@@ -124,9 +124,7 @@ export class WorkflowExecutionFinalizerService {
       return;
     }
 
-    // tenant-scope-ignore: the tenant-owned execution row already proves
-    // authorization. Hidden executions reference a global workflow mirror, so
-    // label lookup must use that pinned identity instead of the run tenant.
+    // tenant-scope-ignore: the tenant-owned execution row already proves authorization; hidden executions reference a global workflow mirror, so label lookup must use that pinned identity instead of the run tenant
     const workflow = await this.prisma.workflow.findUnique({
       select: { label: true },
       where: { id: input.workflowId },

@@ -1,10 +1,11 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
-import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
@@ -24,10 +25,10 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 @Module({
   imports: [
     ConfigModule,
+    LibsConfigModule,
     LoggerModule,
     WorkflowsModule,
     IngredientsModule,
-    ReplicateModule,
     WebhooksModule,
     BullModule.registerQueue({
       defaultJobOptions: {
@@ -49,6 +50,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronYoutubeModule,
   ],
   providers: [
+    ReplicateService,
     SystemSweepSchedulerService,
     SystemSweepsProcessor,
     WorkflowContinuationReconcileService,

@@ -8,43 +8,43 @@ import { logger } from '@services/core/logger.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  getEmptyLinkedExecutionSummary,
   getEmptyLinkedIssueSummary,
   getEmptyLinkedOutputSummary,
-  getEmptyLinkedRunSummary,
   isNonEmptyString,
+  type WorkspaceTaskLinkedExecutionSummary,
   type WorkspaceTaskLinkedIssueSummary,
   type WorkspaceTaskLinkedOutputSummary,
-  type WorkspaceTaskLinkedRunSummary,
 } from './workspace-task-inspector-helpers';
 
 // ─── Private hooks ────────────────────────────────────────────────────────────
 
-export function useWorkspaceTaskLinkedRunSummary(
+export function useWorkspaceTaskLinkedExecutionSummary(
   task: Task | null,
-): WorkspaceTaskLinkedRunSummary & { isLoading: boolean } {
+): WorkspaceTaskLinkedExecutionSummary & { isLoading: boolean } {
   const { getToken } = useAuthIdentity();
-  const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(() =>
-    getEmptyLinkedRunSummary(),
+  const [summary, setSummary] = useState<WorkspaceTaskLinkedExecutionSummary>(
+    () => getEmptyLinkedExecutionSummary(),
   );
   const [isLoading, setIsLoading] = useState(false);
-  const _linkedRunIdsKey = useMemo(
-    () => task?.linkedRunIds?.join('|') ?? '',
-    [task?.linkedRunIds],
+  const _linkedExecutionIdsKey = useMemo(
+    () => task?.linkedExecutionIds?.join('|') ?? '',
+    [task?.linkedExecutionIds],
   );
 
   useEffect(() => {
-    if (!task || (task.linkedRunIds?.length ?? 0) === 0) {
-      setSummary(getEmptyLinkedRunSummary());
+    if (!task || (task.linkedExecutionIds?.length ?? 0) === 0) {
+      setSummary(getEmptyLinkedExecutionSummary());
       setIsLoading(false);
       return;
     }
 
     const capturedTask = task;
-    const linkedRunIds = capturedTask.linkedRunIds ?? [];
+    const linkedExecutionIds = capturedTask.linkedExecutionIds ?? [];
 
     let isCancelled = false;
 
-    async function loadLinkedRunSummary() {
+    async function loadLinkedExecutionSummary() {
       try {
         setIsLoading(true);
         const token = await resolveAuthToken(getToken);
@@ -53,14 +53,14 @@ export function useWorkspaceTaskLinkedRunSummary(
         }
 
         if (!token) {
-          setSummary(getEmptyLinkedRunSummary());
+          setSummary(getEmptyLinkedExecutionSummary());
           setIsLoading(false);
           return;
         }
 
         const service = WorkflowExecutionsService.getInstance(token);
         const batchResults = await Promise.all(
-          linkedRunIds.map((executionId) => service.getById(executionId)),
+          linkedExecutionIds.map((executionId) => service.getById(executionId)),
         );
 
         if (isCancelled) {
@@ -95,7 +95,7 @@ export function useWorkspaceTaskLinkedRunSummary(
           reportToSentry: false,
           taskId: capturedTask.id,
         });
-        setSummary(getEmptyLinkedRunSummary());
+        setSummary(getEmptyLinkedExecutionSummary());
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -103,7 +103,7 @@ export function useWorkspaceTaskLinkedRunSummary(
       }
     }
 
-    void loadLinkedRunSummary();
+    void loadLinkedExecutionSummary();
 
     return () => {
       isCancelled = true;

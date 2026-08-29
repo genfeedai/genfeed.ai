@@ -1,7 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
-import { AgentThreadStatus, WorkflowExecutionStatus } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  AgentThreadStatus,
+  IngredientCategory,
+  WorkflowExecutionStatus,
+} from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -39,12 +43,34 @@ type ThreadGeneratedAsset = {
 };
 
 type WorkflowExecutionRecord = {
-  completedAt?: Date | null;
-  createdAt: Date;
-  metadata?: Prisma.JsonValue | null;
-  startedAt?: Date | null;
-  status: WorkflowExecutionStatus;
+  id: string;
+  status: WorkflowExecutionStatus | string;
 };
+
+/**
+ * One row of the thread -> execution join. `threadId` is not a column: agent
+ * turns store it inside the execution `result` JSON at `metadata.threadId`
+ * (written by `AgentOrchestratorService`), so it is projected out in SQL.
+ */
+type ThreadExecutionRow = {
+  id: string;
+  status: string;
+  threadId: string;
+};
+
+const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
+  IngredientCategory.AVATAR,
+  IngredientCategory.GIF,
+  IngredientCategory.IMAGE,
+  IngredientCategory.IMAGE_EDIT,
+];
+
+/**
+ * Upper bound on the thread -> execution scan. Rows arrive newest-first, so
+ * both consumers (latest run status, latest generated thumbnail) stay correct
+ * under the bound; only very old executions of very chatty threads fall out.
+ */
+const THREAD_EXECUTION_SCAN_LIMIT = 500;
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
@@ -280,12 +306,23 @@ export class AgentThreadsService extends BaseService<
         this.normalizeSnapshot(snapshot as unknown as Record<string, unknown>),
       ]),
     );
-    const latestExecutionsByThreadId =
-      await this.findLatestExecutionsByThreadIds(organizationId, threadIds);
+    const executionRows = await this.findExecutionsByThreadIds(
+      organizationId,
+      threadIds,
+    );
+    // Rows arrive newest-first, so the first row per thread is that thread's
+    // latest execution.
+    const latestExecutionsByThreadId = new Map<string, WorkflowExecutionRecord>(
+      executionRows
+        .map(
+          (row) => [row.threadId, { id: row.id, status: row.status }] as const,
+        )
+        .reverse(),
+    );
     const latestAssetsByThreadId =
       await this.findLatestGeneratedAssetsByThreadIds(
         organizationId,
-        threadIds,
+        new Map(executionRows.map((row) => [row.id, row.threadId])),
       );
     const brandLabelsById = await this.findBrandLabelsByIds(
       organizationId,
@@ -375,59 +412,80 @@ export class AgentThreadsService extends BaseService<
     };
   }
 
-  private async findLatestExecutionsByThreadIds(
+  /**
+   * Latest workflow executions for the listed threads. Agent turns record the
+   * originating thread in the execution `result` JSON (`metadata.threadId`),
+   * not in a column, so the join is projected in SQL rather than scanned in
+   * memory over every execution in the organization.
+   */
+  private async findExecutionsByThreadIds(
     organizationId: string,
     threadIds: string[],
-  ): Promise<Map<string, WorkflowExecutionRecord>> {
-    const executions = await this.prisma.workflowExecution.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        completedAt: true,
-        createdAt: true,
-        metadata: true,
-        startedAt: true,
-        status: true,
-      },
-      where: scopedWhere(organizationId),
-    });
-
-    const threadIdSet = new Set(threadIds);
-    const latestExecutionsByThreadId = new Map<
-      string,
-      WorkflowExecutionRecord
-    >();
-
-    for (const execution of executions) {
-      const threadId = this.readString(
-        this.asRecord(execution.metadata),
-        'threadId',
-      );
-
-      if (
-        !threadId ||
-        !threadIdSet.has(threadId) ||
-        latestExecutionsByThreadId.has(threadId)
-      ) {
-        continue;
-      }
-
-      latestExecutionsByThreadId.set(threadId, execution);
+  ): Promise<ThreadExecutionRow[]> {
+    if (threadIds.length === 0) {
+      return [];
     }
 
-    return latestExecutionsByThreadId;
+    return this.prisma.$queryRaw<ThreadExecutionRow[]>`
+      SELECT
+        execution.id AS "id",
+        execution.status::text AS "status",
+        execution.result -> 'metadata' ->> 'threadId' AS "threadId"
+      FROM workflow_executions AS execution
+      WHERE execution."organizationId" = ${organizationId}
+        AND execution."isDeleted" = false
+        AND execution.result -> 'metadata' ->> 'threadId' IN (${Prisma.join(
+          threadIds,
+        )})
+      ORDER BY execution."createdAt" DESC
+      LIMIT ${THREAD_EXECUTION_SCAN_LIMIT}
+    `;
   }
 
   private async findLatestGeneratedAssetsByThreadIds(
     organizationId: string,
-    threadIds: string[],
+    threadIdByExecutionId: Map<string, string>,
   ): Promise<Map<string, ThreadGeneratedAsset>> {
-    if (threadIds.length === 0) {
+    const executionIds = [...threadIdByExecutionId.keys()];
+    if (executionIds.length === 0) {
       return new Map();
     }
 
-    void organizationId;
-    void threadIds;
-    return new Map();
+    const ingredients = await this.prisma.ingredient.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        cdnUrl: true,
+        createdAt: true,
+        workflowExecutionId: true,
+      },
+      where: scopedWhere(organizationId, {
+        category: { in: LIST_THUMB_INGREDIENT_CATEGORIES },
+        cdnUrl: { not: null },
+        workflowExecutionId: { in: executionIds },
+      }),
+    });
+
+    const latestByThreadId = new Map<string, ThreadGeneratedAsset>();
+
+    for (const ingredient of ingredients) {
+      const threadId = ingredient.workflowExecutionId
+        ? threadIdByExecutionId.get(ingredient.workflowExecutionId)
+        : undefined;
+      const url = ingredient.cdnUrl;
+      if (!threadId || !url || latestByThreadId.has(threadId)) {
+        continue;
+      }
+
+      latestByThreadId.set(threadId, {
+        createdAt:
+          ingredient.createdAt instanceof Date
+            ? ingredient.createdAt.toISOString()
+            : String(ingredient.createdAt),
+        url,
+      });
+    }
+
+    return latestByThreadId;
   }
 
   private async findBrandLabelsByIds(

@@ -31,7 +31,7 @@ type MockDelegate = {
 // `organization`/`approvedByUser`, or pre-reconciliation columns like `title`)
 // threw PrismaClientValidationError in production.
 const NEWSLETTER_WRITE_FIELDS = new Set([
-  'agentRunId',
+  'workflowExecutionId',
   'angle',
   'approvedAt',
   'approvedByUserId',

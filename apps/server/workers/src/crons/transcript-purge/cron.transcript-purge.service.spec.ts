@@ -53,23 +53,11 @@ const EXPIRED_MESSAGE_WIPE = {
   toolResults: Prisma.DbNull,
 };
 
-const EXPIRED_RUN_WIPE = {
-  config: {},
-  error: null,
-  metadata: {},
-  objective: null,
-  result: Prisma.DbNull,
-  steps: [],
-  summary: null,
-  toolCalls: [],
-};
-
 describe('CronTranscriptPurgeService', () => {
   let service: CronTranscriptPurgeService;
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     agentMessage: DelegateMocks;
-    agentRun: DelegateMocks;
     agentThread: DelegateMocks;
     agentThreadEvent: DelegateMocks;
     agentThreadSnapshot: DelegateMocks;
@@ -86,7 +74,6 @@ describe('CronTranscriptPurgeService', () => {
         callback(prisma),
       ),
       agentMessage: createDelegate(),
-      agentRun: createDelegate(),
       agentThread: createDelegate(),
       agentThreadEvent: createDelegate(),
       agentThreadSnapshot: createDelegate(),
@@ -115,7 +102,6 @@ describe('CronTranscriptPurgeService', () => {
 
     expect(totals).toEqual({
       agentMessages: 0,
-      agentRuns: 0,
       agentThreadEvents: 0,
       agentThreadSnapshots: 0,
       agentThreads: 0,
@@ -136,9 +122,6 @@ describe('CronTranscriptPurgeService', () => {
     prisma.agentThreadEvent.updateMany
       .mockResolvedValueOnce({ count: 3 })
       .mockResolvedValueOnce({ count: 0 });
-    prisma.agentRun.updateMany
-      .mockResolvedValueOnce({ count: 1 })
-      .mockResolvedValueOnce({ count: 0 });
     prisma.agentThreadSnapshot.updateMany
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 0 });
@@ -151,7 +134,6 @@ describe('CronTranscriptPurgeService', () => {
 
     expect(totals).toEqual({
       agentMessages: 3,
-      agentRuns: 1,
       agentThreadEvents: 3,
       agentThreadSnapshots: 1,
       agentThreads: 1,
@@ -170,10 +152,6 @@ describe('CronTranscriptPurgeService', () => {
     });
     expect(prisma.agentThreadEvent.updateMany).toHaveBeenCalledWith({
       data: { data: Prisma.DbNull },
-      where: expiredTombstoneWhere('org-1'),
-    });
-    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
-      data: EXPIRED_RUN_WIPE,
       where: expiredTombstoneWhere('org-1'),
     });
     expect(prisma.agentThreadSnapshot.updateMany).toHaveBeenCalledWith({
@@ -200,7 +178,6 @@ describe('CronTranscriptPurgeService', () => {
     const tombstoneCalls = [
       ...prisma.agentMessage.updateMany.mock.calls,
       ...prisma.agentThreadEvent.updateMany.mock.calls,
-      ...prisma.agentRun.updateMany.mock.calls,
       ...prisma.agentThreadSnapshot.updateMany.mock.calls,
       ...prisma.threadContextState.updateMany.mock.calls,
       ...prisma.agentThread.updateMany.mock.calls,
@@ -229,17 +206,21 @@ describe('CronTranscriptPurgeService', () => {
     const recentDelete = new Date(NOW.getTime() - 10 * MS_PER_DAY);
     expect(recentDelete.getTime()).toBeGreaterThan(CUTOFF.getTime());
 
-    prisma.agentRun.findMany.mockResolvedValue([{ organizationId: 'org-1' }]);
+    prisma.agentThreadSnapshot.findMany.mockResolvedValue([
+      { organizationId: 'org-1' },
+    ]);
 
     await service.purgeExpiredTranscripts(NOW);
 
-    const runTombstoneWhere = prisma.agentRun.updateMany.mock.calls[0]?.[0]
-      ?.where as { isDeleted: boolean; updatedAt: { lt: Date } };
+    const snapshotTombstoneWhere = prisma.agentThreadSnapshot.updateMany.mock
+      .calls[0]?.[0]?.where as { isDeleted: boolean; updatedAt: { lt: Date } };
 
-    expect(runTombstoneWhere.isDeleted).toBe(true);
-    expect(runTombstoneWhere.updatedAt.lt.getTime()).toBe(CUTOFF.getTime());
+    expect(snapshotTombstoneWhere.isDeleted).toBe(true);
+    expect(snapshotTombstoneWhere.updatedAt.lt.getTime()).toBe(
+      CUTOFF.getTime(),
+    );
     expect(
-      recentDelete.getTime() >= runTombstoneWhere.updatedAt.lt.getTime(),
+      recentDelete.getTime() >= snapshotTombstoneWhere.updatedAt.lt.getTime(),
     ).toBe(true);
   });
 
@@ -258,7 +239,6 @@ describe('CronTranscriptPurgeService', () => {
     const writeCalls = [
       ...prisma.agentMessage.updateMany.mock.calls,
       ...prisma.agentThreadEvent.updateMany.mock.calls,
-      ...prisma.agentRun.updateMany.mock.calls,
       ...prisma.agentThreadSnapshot.updateMany.mock.calls,
       ...prisma.threadContextState.updateMany.mock.calls,
       ...prisma.agentThread.updateMany.mock.calls,

@@ -2226,7 +2226,7 @@ describe('AgentToolExecutorService', () => {
       }),
       expect.stringMatching(/^agent-publish:[a-f0-9]{64}$/),
       expect.objectContaining({
-        agentRunId: testId('run'),
+        workflowExecutionId: testId('run'),
         agentStrategyId: testId('strategy'),
         agentThreadId: testId('thread'),
         source: 'agent',

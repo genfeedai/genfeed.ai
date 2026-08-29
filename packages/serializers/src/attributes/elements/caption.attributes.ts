@@ -6,5 +6,5 @@ export const captionAttributes = createEntityAttributes([
   'content',
   'format',
   'language',
-  'agentRunId',
+  'workflowExecutionId',
 ]);

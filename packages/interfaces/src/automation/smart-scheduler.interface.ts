@@ -45,24 +45,6 @@ export interface IAIScheduleRecommendation {
   }>;
 }
 
-export interface IWorkflowExecution {
-  completedAt?: Date;
-  creditsUsed: number;
-  durationMs?: number;
-  error?: string;
-  failedNodeId?: string;
-  id: string;
-  organizationId: string;
-  progress: number;
-  result?: unknown;
-  startedAt?: Date;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
-  trigger?: string;
-  userId: string;
-  workflowId: string;
-  workflowVersionId: string;
-}
-
 export interface IScheduleOptimizationRequest {
   contentId: string;
   contentType: 'video' | 'image' | 'article' | 'post';

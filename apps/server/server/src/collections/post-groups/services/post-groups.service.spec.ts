@@ -77,7 +77,6 @@ type MockCredential = {
 type MockPostTarget = {
   agentContextSource: string | null;
   agentContextVersion: number | null;
-  agentRunId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
   brandId: string | null;
@@ -471,7 +470,7 @@ describe('PostGroupsService', () => {
       {
         agentContextSource: 'explicit',
         agentContextVersion: 3,
-        agentRunId: 'run-1',
+        workflowExecutionId: 'run-1',
         agentStrategyId: 'strategy-1',
         agentThreadId: 'thread-1',
         source: 'agent',
@@ -492,7 +491,7 @@ describe('PostGroupsService', () => {
         data: expect.objectContaining({
           agentContextSource: 'explicit',
           agentContextVersion: 3,
-          agentRunId: 'run-1',
+          workflowExecutionId: 'run-1',
           agentStrategyId: 'strategy-1',
           agentThreadId: 'thread-1',
           groupId: 'group-1',
@@ -2027,7 +2026,6 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
   return {
     agentContextSource: null,
     agentContextVersion: null,
-    agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
     brandId: 'brand-1',

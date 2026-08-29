@@ -12,5 +12,5 @@ export class AgentPublishAuditsQueryDto extends BaseQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  agentRunId?: string;
+  workflowExecutionId?: string;
 }

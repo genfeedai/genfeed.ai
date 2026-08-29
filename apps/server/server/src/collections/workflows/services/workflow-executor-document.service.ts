@@ -53,9 +53,7 @@ export class WorkflowExecutorDocumentService {
     organizationId: string,
     actorUserId: string,
   ): Promise<WorkflowDocument | null> {
-    // tenant-scope-ignore: immutable version/workflow IDs are globally unique;
-    // the loaded owner tuple is checked below before tenant projection, and
-    // only the fixed-principal hidden mirror may cross the tenant boundary.
+    // tenant-scope-ignore: immutable version/workflow IDs are globally unique; the loaded owner tuple is checked below before tenant projection, and only the fixed-principal hidden mirror may cross the tenant boundary
     const version = await this.prisma.workflowVersion.findFirst({
       select: {
         graph: true,

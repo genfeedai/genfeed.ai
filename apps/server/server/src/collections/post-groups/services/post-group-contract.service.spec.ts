@@ -1,9 +1,3 @@
-import type {
-  SchedulerPostAnalytics,
-  SchedulerPostGroup,
-  SchedulerPostTarget,
-} from '@server/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -17,6 +11,12 @@ import {
   TargetValidationState,
 } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import type {
+  SchedulerPostAnalytics,
+  SchedulerPostGroup,
+  SchedulerPostTarget,
+} from '@server/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 
 describe('PostGroupContractService', () => {
   const service = new PostGroupContractService();
@@ -420,7 +420,7 @@ describe('PostGroupContractService', () => {
     {
       expected: ReleaseTargetSource.AGENT,
       name: 'a target carrying only agent provenance',
-      overrides: { agentRunId: 'run-1' },
+      overrides: { agentThreadId: 'thread-1' },
     },
     {
       expected: ReleaseTargetSource.AGENT,
@@ -430,7 +430,10 @@ describe('PostGroupContractService', () => {
     {
       expected: ReleaseTargetSource.WORKFLOW,
       name: 'a target executed by a workflow despite agent provenance',
-      overrides: { agentRunId: 'run-1', workflowExecutionId: 'execution-1' },
+      overrides: {
+        agentThreadId: 'thread-1',
+        workflowExecutionId: 'execution-1',
+      },
     },
   ])('derives $expected for $name', ({ expected, overrides }) => {
     const release = service.toReleaseGroup(makeGroup(), [
@@ -528,7 +531,6 @@ function makeTarget(
   return {
     agentContextSource: null,
     agentContextVersion: null,
-    agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
     analyticsCollectedAt: null,

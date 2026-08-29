@@ -44,7 +44,6 @@ export enum SocialMessageType {
 }
 
 export enum SocialActionActorType {
-  AGENT = 'agent',
   SYSTEM = 'system',
   USER = 'user',
   WORKFLOW = 'workflow',

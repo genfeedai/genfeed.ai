@@ -161,7 +161,7 @@ export class Task {
   skillsUsed?: string[];
   skillVariantIds?: string[];
   reviewTriggered?: boolean;
-  linkedRunIds?: string[];
+  linkedExecutionIds?: string[];
   linkedOutputIds?: string[];
   approvedOutputIds?: string[];
   linkedApprovalIds?: string[];

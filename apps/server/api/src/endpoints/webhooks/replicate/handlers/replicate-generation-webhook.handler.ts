@@ -1,4 +1,3 @@
-import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
 import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
@@ -9,6 +8,7 @@ import { AssetsService } from '@server/collections/assets/services/assets.servic
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { isAllowedReplicateOutputUrl } from '@server/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 

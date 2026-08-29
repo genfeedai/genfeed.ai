@@ -3,7 +3,7 @@ import type { TaskEvent } from '@services/management/tasks.service';
 
 // ─── Private types ────────────────────────────────────────────────────────────
 
-export interface WorkspaceTaskLinkedRunSummary {
+export interface WorkspaceTaskLinkedExecutionSummary {
   generatedContentCount: number;
   reportThreadCount: number;
   reportThreadId: string | null;
@@ -34,7 +34,7 @@ export function isNonEmptyString(
   return typeof value === 'string' && value.length > 0;
 }
 
-export function getEmptyLinkedRunSummary(): WorkspaceTaskLinkedRunSummary {
+export function getEmptyLinkedExecutionSummary(): WorkspaceTaskLinkedExecutionSummary {
   return {
     generatedContentCount: 0,
     reportThreadCount: 0,

@@ -60,7 +60,7 @@ export const ingredientAttributes = createEntityAttributes([
   'totalChildren',
   'hasVoted',
   'evaluation',
-  'agentRunId',
+  'workflowExecutionId',
   'agentStrategyId',
   'cdnUrl',
   's3Key',

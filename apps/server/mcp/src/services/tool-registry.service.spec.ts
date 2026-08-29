@@ -12,32 +12,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 const MOCK_TOOLS = [
   { name: 'generate_video', requiredRole: undefined, surfaces: { mcp: true } },
   {
-    name: 'cancel_agent_run',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
-  {
-    name: 'get_agent_run',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
-  {
-    name: 'get_agent_run_content',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
-  {
     name: 'get_video_status',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
-  {
-    name: 'list_agent_runs',
-    requiredRole: undefined,
-    surfaces: { mcp: true },
-  },
-  {
-    name: 'retry_agent_run',
     requiredRole: undefined,
     surfaces: { mcp: true },
   },
@@ -173,13 +148,9 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('ToolRegistryService', () => {
   let service: ToolRegistryService;
   let clientService: {
-    cancelAgentRun: ReturnType<typeof vi.fn>;
     executeAgentTool: ReturnType<typeof vi.fn>;
-    getAgentRun: ReturnType<typeof vi.fn>;
-    getAgentRunContent: ReturnType<typeof vi.fn>;
     getVideoStatus: ReturnType<typeof vi.fn>;
     listVideos: ReturnType<typeof vi.fn>;
-    listAgentRuns: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
@@ -199,7 +170,6 @@ describe('ToolRegistryService', () => {
     markSocialConversationResolved: ReturnType<typeof vi.fn>;
     postSocialReply: ReturnType<typeof vi.fn>;
     rejectSocialDraft: ReturnType<typeof vi.fn>;
-    retryAgentRun: ReturnType<typeof vi.fn>;
     sendSocialDm: ReturnType<typeof vi.fn>;
     setBearerToken: ReturnType<typeof vi.fn>;
     updateSocialTags: ReturnType<typeof vi.fn>;
@@ -216,10 +186,6 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
-            cancelAgentRun: vi.fn().mockResolvedValue({
-              id: 'run-1',
-              status: 'CANCELLED',
-            }),
             approveSocialDraft: vi
               .fn()
               .mockResolvedValue({ id: 'msg-approved', status: 'sent' }),
@@ -255,14 +221,6 @@ describe('ToolRegistryService', () => {
             getSocialConversation: vi.fn().mockResolvedValue({
               conversation: { id: 'conv-1', status: 'open' },
               messages: [{ id: 'msg-1', status: 'received' }],
-            }),
-            getAgentRun: vi.fn().mockResolvedValue({
-              id: 'run-1',
-              label: 'Agent run',
-              status: 'RUNNING',
-            }),
-            getAgentRunContent: vi.fn().mockResolvedValue({
-              posts: [{ id: 'post-1' }],
             }),
             getVideoAnalytics: vi.fn().mockResolvedValue({ views: 1000 }),
             getVideoStatus: vi
@@ -301,9 +259,6 @@ describe('ToolRegistryService', () => {
               status: 'completed',
             }),
             listImages: vi.fn().mockResolvedValue([]),
-            listAgentRuns: vi
-              .fn()
-              .mockResolvedValue([{ id: 'run-1', status: 'RUNNING' }]),
             listSocialConversations: vi.fn().mockResolvedValue({
               conversations: [{ id: 'conv-1', status: 'open' }],
               meta: { page: 1 },
@@ -320,10 +275,6 @@ describe('ToolRegistryService', () => {
             rejectSocialDraft: vi
               .fn()
               .mockResolvedValue({ id: 'msg-draft', status: 'rejected' }),
-            retryAgentRun: vi.fn().mockResolvedValue({
-              runId: 'run-2',
-              threadId: 'thread-1',
-            }),
             sendSocialDm: vi
               .fn()
               .mockResolvedValue({ id: 'msg-dm', status: 'sent' }),
@@ -506,76 +457,6 @@ describe('ToolRegistryService', () => {
     ).toContain('vid-1');
   });
 
-  it('handleToolCall list_agent_runs returns bounded agent runs', async () => {
-    const result = await service.handleToolCall({
-      arguments: { active: true, limit: 5 },
-      name: 'list_agent_runs',
-    });
-
-    expect(clientService.listAgentRuns).toHaveBeenCalledWith({
-      active: true,
-      cursor: undefined,
-      historyOnly: undefined,
-      limit: 5,
-      q: undefined,
-      status: undefined,
-    });
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('run-1');
-  });
-
-  it('handleToolCall get_agent_run inspects one run', async () => {
-    const result = await service.handleToolCall({
-      arguments: { runId: 'run-1' },
-      name: 'get_agent_run',
-    });
-
-    expect(clientService.getAgentRun).toHaveBeenCalledWith('run-1');
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('Agent run');
-  });
-
-  it('handleToolCall get_agent_run_content returns produced content', async () => {
-    const result = await service.handleToolCall({
-      arguments: { runId: 'run-1' },
-      name: 'get_agent_run_content',
-    });
-
-    expect(clientService.getAgentRunContent).toHaveBeenCalledWith('run-1');
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('post-1');
-  });
-
-  it('handleToolCall cancel_agent_run cancels through the API client', async () => {
-    const result = await service.handleToolCall({
-      arguments: { runId: 'run-1' },
-      name: 'cancel_agent_run',
-    });
-
-    expect(clientService.cancelAgentRun).toHaveBeenCalledWith('run-1');
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('CANCELLED');
-  });
-
-  it('handleToolCall retry_agent_run continues the persisted thread', async () => {
-    const result = await service.handleToolCall({
-      arguments: { message: 'Try again with less scope', runId: 'run-1' },
-      name: 'retry_agent_run',
-    });
-
-    expect(clientService.retryAgentRun).toHaveBeenCalledWith(
-      'run-1',
-      'Try again with less scope',
-    );
-    expect(
-      (result as { content: { text: string }[] }).content[0].text,
-    ).toContain('run-2');
-  });
-
   it('handleToolCall inspect_workflow uses bounded workflow client inspect', async () => {
     const result = await service.handleToolCall({
       arguments: { workflowId: 'wf-1' },
@@ -696,7 +577,6 @@ describe('ToolRegistryService', () => {
   it('handleToolCall create_social_reply_draft records provenance without external send approval', async () => {
     const result = await service.handleToolCall({
       arguments: {
-        agentRunId: 'agent-run-1',
         conversationId: 'conv-1',
         text: 'Thanks for the comment',
         workflowRunId: 'workflow-run-1',
@@ -707,7 +587,6 @@ describe('ToolRegistryService', () => {
     expect(clientService.createSocialReplyDraft).toHaveBeenCalledWith(
       'conv-1',
       {
-        agentRunId: 'agent-run-1',
         idempotencyKey: undefined,
         messageType: undefined,
         recipientId: undefined,

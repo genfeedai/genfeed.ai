@@ -41,30 +41,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-runs/controllers/agent-runs-operations.controller.spec.ts",
-      "fingerprint": "aa755940f053c0fec064",
-      "message": "Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-runs/controllers/agent-runs.controller.spec.ts",
-      "fingerprint": "d19637373d777aac03f0",
-      "message": "Type '\"manual\"' is not assignable to type 'AgentExecutionTrigger | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-runs/controllers/agent-runs.controller.spec.ts",
-      "fingerprint": "b580cae4fcc68eb52a69",
-      "message": "Argument of type '{ brandId: string; label: string; organizationId: string; trigger: \"manual\"; userId: string; }' is not assignable to parameter of type 'Partial<CreateAgentRunDto>'.   Types of property 'trigger' are incompatible.     Type '\"manual\"' is not assignable to type 'AgentExecutionTrigger | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 18,
       "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
@@ -2793,14 +2769,6 @@
       "workspace": "server"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/server/src/collections/agent-runs/services/agent-runs.service.spec.ts",
-      "fingerprint": "e39c54b2a2db0c088f14",
-      "message": "Type '{ error: string; status: string; }' is not assignable to type 'AgentRunUpdateManyMutationInput'.   Types of property 'status' are incompatible.     Type 'string' is not assignable to type 'AgentRunStatus | EnumAgentRunStatusFieldUpdateOperationsInput | undefined'.",
-      "workspace": "server"
-    },
-    {
       "code": 2345,
       "count": 5,
       "file": "apps/server/server/src/collections/brands/services/brand-generation.service.spec.ts",
@@ -3217,14 +3185,6 @@
       "workspace": "server"
     },
     {
-      "code": 2459,
-      "count": 1,
-      "file": "apps/server/server/src/queues/agent-run/agent-run-queue.service.spec.ts",
-      "fingerprint": "0a95724f302de186cb1c",
-      "message": "Module '\"./agent-run-queue.service\"' declares 'AgentRunJobData' locally, but it is not exported.",
-      "workspace": "server"
-    },
-    {
       "code": 2503,
       "count": 1,
       "file": "apps/server/server/src/queues/agent-run/agent-run-queue.service.spec.ts",
@@ -3286,14 +3246,6 @@
       "file": "apps/server/server/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "cf607b802631fcf325f8",
       "message": "Parameter '_channel' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/server/src/services/agent-campaign/content-rotation.service.spec.ts",
-      "fingerprint": "bc8811f49d75581311e9",
-      "message": "Conversion of type '{ id: string; isDeleted: false; metadata: { contentRotationTargetKey: string; }; organization: string; organizationId: string; user: string; userId: string; }' to type 'AgentRunDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; isDeleted: false; metadata: { contentRotationTargetKey: string; }; organization: string; organizationId: string; user: string; userId: string; }' is missing the following properties from type 'AgentRunDocument': status, error, progress, retryCount, and 19 more.",
       "workspace": "server"
     },
     {

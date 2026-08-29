@@ -124,7 +124,7 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
   },
   {
-    file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
+    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',
     reason: 'Platform global trend corpus warmup.',
@@ -219,13 +219,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
  */
 export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
   {
-    file: 'apps/server/workers/src/crons/agent-turn/cron.agent-turn-reconcile.service.ts',
-    id: 'agent-turn-reconcile-sweep',
-    methodName: 'reconcileStrandedTurns',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; re-enqueues accepted agent turns stranded before BullMQ reservation.',
-  },
-  {
     file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
     id: 'batch-generation-reconcile-sweep',
     methodName: 'reconcileSettlementShortfalls',
@@ -287,6 +280,13 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'checkScheduledYoutubeVideos',
     reason:
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/workflow-artifacts/cron.workflow-artifacts.service.ts',
+    id: 'workflow-artifacts-cleanup-sweep',
+    methodName: 'queueExpiredArtifactCleanup',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
   },
   {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',

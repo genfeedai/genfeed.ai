@@ -43,14 +43,6 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/agent-threads/controllers/agent-threads.controller.ts',
     prefix: 'agent/threads',
   },
-  agentRuns: {
-    file: 'collections/agent-runs/controllers/agent-runs.controller.ts',
-    prefix: 'runs',
-  },
-  agentRunOperations: {
-    file: 'collections/agent-runs/controllers/agent-runs-operations.controller.ts',
-    prefix: 'runs',
-  },
   approvals: {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
@@ -194,7 +186,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_content_analytics'],
   },
 
-  // ── Agent chat + runs ──
+  // ── Agent chat ──
   {
     method: 'Post',
     sub: '',
@@ -205,39 +197,8 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     method: 'Post',
     sub: ':threadId/messages',
     controller: 'agentThreads',
-    tools: ['send_chat_message', 'retry_agent_run'],
+    tools: ['send_chat_message'],
   },
-  {
-    method: 'Get',
-    sub: '',
-    controller: 'agentRuns',
-    tools: ['list_agent_runs'],
-  },
-  {
-    method: 'Get',
-    sub: 'active',
-    controller: 'agentRuns',
-    tools: ['list_agent_runs'],
-  },
-  {
-    method: 'Get',
-    sub: ':id',
-    controller: 'agentRuns',
-    tools: ['get_agent_run', 'retry_agent_run'],
-  },
-  {
-    method: 'Get',
-    sub: ':id/content',
-    controller: 'agentRuns',
-    tools: ['get_agent_run_content'],
-  },
-  {
-    method: 'Patch',
-    sub: ':id',
-    controller: 'agentRuns',
-    tools: ['cancel_agent_run'],
-  },
-
   // ── Approvals (createApproval + resolve_approval) ──
   { method: 'Post', sub: '', controller: 'approvals', tools: [] },
   { method: 'Get', sub: ':id', controller: 'approvals', tools: [] },

@@ -5,7 +5,7 @@ export class AgentPublishAudit
   extends BaseEntity
   implements IAgentPublishAudit
 {
-  public declare agentRunId?: string | null;
+  public declare workflowExecutionId?: string | null;
   public declare agentStrategyId?: string | null;
   public declare agentThreadId?: string | null;
   public declare autonomyMode: string;

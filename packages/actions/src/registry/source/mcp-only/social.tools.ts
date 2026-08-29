@@ -145,10 +145,6 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
     name: 'create_social_reply_draft',
     parameters: {
       properties: {
-        agentRunId: {
-          description: 'Optional agent run id for provenance',
-          type: 'string',
-        },
         conversationId: {
           description: 'Social conversation id',
           type: 'string',
@@ -238,10 +234,6 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
     name: 'post_social_reply',
     parameters: {
       properties: {
-        agentRunId: {
-          description: 'Optional agent run id for provenance',
-          type: 'string',
-        },
         conversationId: {
           description: 'Social conversation id',
           type: 'string',
@@ -273,10 +265,6 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
     name: 'send_social_dm',
     parameters: {
       properties: {
-        agentRunId: {
-          description: 'Optional agent run id for provenance',
-          type: 'string',
-        },
         conversationId: {
           description: 'Social conversation id',
           type: 'string',

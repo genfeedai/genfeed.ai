@@ -98,7 +98,7 @@ type ContentMentionPostRecord = {
 export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentContextSource?: string;
   agentContextVersion?: number;
-  agentRunId?: string;
+  workflowExecutionId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
   brandId?: string;
@@ -137,7 +137,6 @@ type PostUpdateInput = Partial<UpdatePostDto> & {
 const POST_SCALAR_FIELDS = [
   'agentContextSource',
   'agentContextVersion',
-  'agentRunId',
   'agentStrategyId',
   'agentThreadId',
   'analyticsCollectedAt',

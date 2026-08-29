@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AgentRunStatus } from '../src/agent-strategy.enum';
+import { AgentStrategyRunStatus } from '../src/agent-strategy.enum';
 import { ArticleStatus } from '../src/article.enum';
 import { BatchStatus } from '../src/batch.enum';
 import { BotStatus } from '../src/bot.enum';
@@ -15,7 +15,7 @@ import { WorkflowExecutionStatus } from '../src/workflow.enum';
  * A new member that reads badly as a label fails here, not in production.
  */
 const RENDERED_SCREAMING_ENUMS: Readonly<Record<string, object>> = {
-  AgentRunStatus,
+  AgentStrategyRunStatus,
   ArticleStatus,
   BatchStatus,
   BotStatus,

@@ -1,5 +1,6 @@
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import type { BotDocument } from '@server/collections/bots/schemas/bot.schema';
 import type { LivestreamBotSessionDocument } from '@server/collections/bots/schemas/livestream-bot-session.schema';
 import { BotsService } from '@server/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
@@ -228,7 +229,9 @@ export class LivestreamBotWorkflowService {
       BotsRestreamChatService,
     );
     if (!service) throw new Error('BotsRestreamChatService is unavailable');
-    const result = await service.syncActiveSessionChat(state.bot as never);
+    const result = await service.syncActiveSessionChat(
+      state.bot as BotDocument,
+    );
     return {
       ...state,
       ...result,

@@ -188,12 +188,16 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     null,
   );
 
-  const recentExecutions = useMemo(
+  const strategyExecutions = useMemo(
     () =>
-      executions
-        .filter((execution) => execution.metadata?.strategyId === agentId)
-        .slice(0, 20),
+      executions.filter(
+        (execution) => execution.metadata?.strategyId === agentId,
+      ),
     [agentId, executions],
+  );
+  const recentExecutions = useMemo(
+    () => strategyExecutions.slice(0, 20),
+    [strategyExecutions],
   );
   const selectedOpportunity = useMemo(
     () =>
@@ -328,9 +332,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
               value: strategy.creditsUsedThisWeek,
             },
             {
-              description: 'All time runs',
-              label: 'Total Runs',
-              value: runs.length,
+              description: 'All time executions',
+              label: 'Total Executions',
+              value: strategyExecutions.length,
             },
             {
               description: 'Consecutive errors',

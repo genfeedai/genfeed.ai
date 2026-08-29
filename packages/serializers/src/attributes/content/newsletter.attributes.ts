@@ -13,7 +13,7 @@ export const newsletterAttributes = createEntityAttributes([
   'sourceRefs',
   'contextNewsletterIds',
   'generationPrompt',
-  'agentRunId',
+  'workflowExecutionId',
   'approvedByUser',
   'approvedVersionPinId',
   'publishedByUser',

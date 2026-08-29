@@ -72,7 +72,6 @@ type StoreMessage = {
   sourceUrl: string | null;
   idempotencyKey: string | null;
   workflowRunId: string | null;
-  agentRunId: string | null;
   workflowTriggerStatus: string | null;
   workflowTriggerJobId: string | null;
   workflowTriggerError: string | null;
@@ -333,7 +332,6 @@ function createContext(): TestContext {
         const now = new Date();
         const message: StoreMessage = {
           actionProvenance: data.actionProvenance ?? {},
-          agentRunId: data.agentRunId ?? null,
           authorRole: data.authorRole ?? null,
           body: data.body,
           brandId: data.brandId ?? null,
@@ -1229,7 +1227,6 @@ describe('SocialInboxService', () => {
     });
 
     const draft = await service.createDraft(scope, inbound.conversationId, {
-      agentRunId: 'agent-run-1',
       messageType: 'reply',
       text: '<strong>Try this answer</strong>',
       workflowRunId: 'workflow-run-1',
@@ -1238,8 +1235,7 @@ describe('SocialInboxService', () => {
       actionProvenance: {
         action: 'draft',
         actedAt: expect.any(String),
-        actorType: 'agent',
-        agentRunId: 'agent-run-1',
+        actorType: 'workflow',
         platform: 'youtube',
         status: 'draft',
         userId: 'user-1',
@@ -1275,8 +1271,7 @@ describe('SocialInboxService', () => {
       actionProvenance: {
         action: 'post_reply',
         actedAt: expect.any(String),
-        actorType: 'agent',
-        agentRunId: 'agent-run-1',
+        actorType: 'workflow',
         platform: 'youtube',
         status: 'sent',
         userId: 'user-1',

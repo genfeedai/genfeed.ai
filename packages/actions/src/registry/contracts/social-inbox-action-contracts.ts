@@ -9,7 +9,6 @@ import {
 } from './schema-builders.js';
 
 const OUTBOUND_PROPERTIES = {
-  agentRunId: STRING_SCHEMA,
   body: STRING_SCHEMA,
   conversationId: STRING_SCHEMA,
   error: STRING_SCHEMA,

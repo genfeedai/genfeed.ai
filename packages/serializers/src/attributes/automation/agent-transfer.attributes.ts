@@ -12,7 +12,7 @@ export const agentTransferAttributes = createEntityAttributes([
   'depth',
   'destinationBrandId',
   'destinationMessageId',
-  'destinationRunId',
+  'destinationExecutionId',
   'destinationThreadId',
   'destinationThreadTitle',
   'failureReason',

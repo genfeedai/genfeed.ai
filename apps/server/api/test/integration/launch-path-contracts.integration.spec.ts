@@ -72,20 +72,6 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain("by: ['status', 'reviewDecision']");
   });
 
-  it('aggregates agent-run stats with groupBy instead of four counts', () => {
-    const source = readSourceOf('AgentRunsService', { root: API_SRC });
-    expect(source).toContain('this.prisma.agentRun.groupBy({');
-    expect(source).toContain("by: ['status']");
-    // Guard against reintroducing the four-count fan-out on the bootstrap path.
-    const countCalls = source.match(/this\.delegate\.count\(/g) ?? [];
-    // getStats must not use count; other methods may still use count elsewhere
-    // in the file — assert the comment that documents the two-groupBy path.
-    expect(source).toContain(
-      'Two groupBy queries replace four separate COUNTs',
-    );
-    expect(countCalls.length).toBeLessThan(20);
-  });
-
   it('fails closed when Replicate webhook signing secret is missing', () => {
     const source = readSourceOf('ReplicateWebhookController', {
       root: API_SRC,
