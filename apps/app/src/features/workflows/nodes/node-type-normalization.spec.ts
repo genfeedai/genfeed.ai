@@ -307,15 +307,19 @@ describe('node type normalization', () => {
       },
     ] as WorkflowNodeLike[]);
 
+    // The prompt node is a source node, not an action: it persists as the
+    // engine's text `workflowInput`, the same way the media input nodes do.
     expect(restored[0]).toMatchObject({
       data: {
         config: {
-          actionId: 'prompt',
-          parameters: { prompt: 'Write a FUD News brief' },
+          defaultValue: 'Write a FUD News brief',
+          inputName: 'PyHRz6uB',
+          inputType: 'text',
+          required: false,
         },
         label: 'Prompt',
       },
-      type: 'genfeedAction',
+      type: 'workflowInput',
     });
     expect(restored[0]?.data).not.toHaveProperty('prompt');
     expect(restored[1]).toMatchObject({
@@ -337,18 +341,6 @@ describe('node type normalization', () => {
         {
           data: {
             config: {
-              actionId: 'prompt',
-              parameters: { prompt: 'Write a FUD News brief' },
-            },
-            label: 'Prompt',
-          },
-          id: 'PyHRz6uB',
-          position: { x: 0, y: 0 },
-          type: 'genfeedAction',
-        },
-        {
-          data: {
-            config: {
               actionId: 'promptConstructor',
               parameters: { template: 'Hello {{topic}}' },
             },
@@ -359,14 +351,10 @@ describe('node type normalization', () => {
           type: 'genfeedAction',
         },
       ] as WorkflowNodeLike[],
-      new Set(['prompt', 'promptConstructor']),
+      new Set(['promptConstructor']),
     );
 
     expect(normalized[0]?.data).toMatchObject({
-      label: 'Prompt',
-      prompt: 'Write a FUD News brief',
-    });
-    expect(normalized[1]?.data).toMatchObject({
       label: 'Constructor',
       template: 'Hello {{topic}}',
     });

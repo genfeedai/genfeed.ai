@@ -482,6 +482,9 @@ describe('WorkflowApiService', () => {
             progress: 100,
             status: 'COMPLETED',
             trigger: 'api',
+            // The batch controller serializes through `serializeSingle`, so the
+            // wire shape is a JSON:API resource document, not a bare envelope.
+            type: 'execution',
             updatedAt: '2026-08-29T08:01:00.000Z',
             workflowId: 'hidden-batch-workflow',
           },

@@ -33,11 +33,19 @@ const ENGINE_NATIVE_EDITOR_NODE_TYPES = new Set([
   'workflowInput',
 ]);
 
-const MEDIA_INPUT_NODE_TYPES = {
-  audioInput: 'audio',
-  imageInput: 'image',
-  videoInput: 'video',
-} as const satisfies Readonly<Record<string, string>>;
+/**
+ * Editor source nodes that persist as engine `workflowInput` nodes. `dataKey`
+ * is where the editor keeps the authored default; `inputType` is the engine
+ * input kind, matching `WorkflowFormatConverterService.WORKFLOW_INPUT_TYPES`.
+ */
+const INPUT_NODE_TYPES = {
+  audioInput: { dataKey: 'audio', inputType: 'audio' },
+  imageInput: { dataKey: 'image', inputType: 'image' },
+  prompt: { dataKey: 'prompt', inputType: 'text' },
+  videoInput: { dataKey: 'video', inputType: 'video' },
+} as const satisfies Readonly<
+  Record<string, { dataKey: string; inputType: string }>
+>;
 
 /**
  * Editor-only chrome that must not be treated as executable node config.
@@ -178,14 +186,14 @@ function toPersistedActionNodeData(
   };
 }
 
-function toPersistedMediaInputNode(
+function toPersistedInputNode(
   node: WorkflowNodeLike,
-  inputType: string,
+  { dataKey, inputType }: { dataKey: string; inputType: string },
 ): WorkflowNodeLike {
   const record = isNodeDataRecord(node.data) ? node.data : {};
   const configured = readRecord(record.config);
   const defaultValue =
-    record[inputType] ?? configured.defaultValue ?? configured.value;
+    record[dataKey] ?? configured.defaultValue ?? configured.value;
 
   return {
     ...node,
@@ -442,11 +450,13 @@ export function restoreWorkflowNodeTypes(
     if (node.type !== FALLBACK_WORKFLOW_NODE_TYPE) {
       const nodeType = node.type;
       if (typeof nodeType === 'string') {
-        const mediaInputType = (
-          MEDIA_INPUT_NODE_TYPES as Readonly<Record<string, string>>
+        const inputNodeType = (
+          INPUT_NODE_TYPES as Readonly<
+            Record<string, { dataKey: string; inputType: string }>
+          >
         )[nodeType];
-        if (mediaInputType) {
-          return toPersistedMediaInputNode(node, mediaInputType);
+        if (inputNodeType) {
+          return toPersistedInputNode(node, inputNodeType);
         }
 
         const record = isNodeDataRecord(node.data) ? node.data : {};
