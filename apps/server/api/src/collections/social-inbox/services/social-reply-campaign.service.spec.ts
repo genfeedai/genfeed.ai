@@ -380,7 +380,6 @@ describe('SocialReplyCampaignService', () => {
       expect(started.dispatchCursor).toBe(1);
       expect(started.startedAt).toBeInstanceOf(Date);
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
-        expect.anything(),
         expect.objectContaining({
           inputValues: {
             request: {
@@ -391,7 +390,6 @@ describe('SocialReplyCampaignService', () => {
           },
         }),
         `social-reply-campaign-${campaign.id}-1`,
-        undefined,
         { replaceTerminalJob: true },
       );
     });
@@ -455,7 +453,6 @@ describe('SocialReplyCampaignService', () => {
       expect(
         context.workflowQueue.queueSystemWorkflow,
       ).toHaveBeenLastCalledWith(
-        expect.anything(),
         expect.objectContaining({
           inputValues: {
             request: {
@@ -466,7 +463,6 @@ describe('SocialReplyCampaignService', () => {
           },
         }),
         `social-reply-campaign-${campaign.id}-2`,
-        undefined,
         { replaceTerminalJob: true },
       );
     });

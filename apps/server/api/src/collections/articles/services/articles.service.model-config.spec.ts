@@ -85,6 +85,7 @@ describe('ArticlesService article cycle model config', () => {
         registerAction: (id: string, action: CapturedWorkflowAction) => {
           actions.set(id, action);
         },
+        registerWorkflow: vi.fn(),
       }),
     } as unknown as ModuleRef;
 

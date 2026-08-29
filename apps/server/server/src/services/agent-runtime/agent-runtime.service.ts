@@ -56,6 +56,7 @@ export class AgentRuntimeService {
       },
       metadata: {
         ...(input.metadata ?? {}),
+        ...(input.campaignId ? { campaignId: input.campaignId } : {}),
         label: input.label,
         source: input.campaignId ? 'campaign' : 'runtime',
         threadId,

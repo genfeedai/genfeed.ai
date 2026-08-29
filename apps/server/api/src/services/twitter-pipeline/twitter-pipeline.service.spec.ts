@@ -33,8 +33,6 @@ describe('TwitterPipelineService workflow boundary', () => {
     expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'twitter.pipeline.search',
-      }),
-      expect.objectContaining({
         inputValues: {
           request: {
             brandId: 'brand-1',

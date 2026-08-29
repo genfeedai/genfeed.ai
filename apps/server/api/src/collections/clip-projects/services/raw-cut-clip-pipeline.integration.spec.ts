@@ -1,4 +1,4 @@
-import { Status } from '@genfeedai/enums';
+import { Status, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
@@ -13,10 +13,7 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@server/collections/clip-results/dto/create-clip-result.dto';
 import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
-import type {
-  SystemWorkflowActionExecutor,
-  SystemWorkflowGraphDefinition,
-} from '@server/collections/workflows/system-workflow-runner.service';
+import type { SystemWorkflowActionExecutor } from '@server/collections/workflows/system-workflow-runner.service';
 import type { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -166,10 +163,7 @@ function createWorkflowHarness() {
       actions.set(actionId, executor);
     },
     registerWorkflow(): void {},
-    async startWorkflow(
-      definition: SystemWorkflowGraphDefinition,
-      input: { inputValues?: Record<string, unknown> },
-    ) {
+    async startWorkflow(input: { inputValues?: Record<string, unknown> }) {
       const request = input.inputValues?.request as
         | ClipGenerationInput
         | undefined;
@@ -203,10 +197,13 @@ function createWorkflowHarness() {
       return {
         execution: {
           executionId: 'execution-1',
+          // Matches `buildClipGenerationWorkflowDefinition().resultNodeId` —
+          // a single-highlight batch never trips the hook-review branch, so
+          // `collectForEachResults` only ever reads `generate-remaining`.
           nodeResults: [
             {
               creditsUsed: 0,
-              nodeId: definition.resultNodeId,
+              nodeId: 'generate-remaining',
               nodeType: 'genfeedAction',
               output: { count: results.length, results },
               retryCount: 0,
@@ -214,7 +211,7 @@ function createWorkflowHarness() {
             },
           ],
           startedAt: new Date(),
-          status: 'COMPLETED',
+          status: WorkflowExecutionStatus.COMPLETED,
           totalCreditsUsed: 0,
           workflowId: 'workflow-1',
         },
@@ -223,6 +220,7 @@ function createWorkflowHarness() {
           workflowId: 'workflow-1',
           workflowLabel: 'Clip Generation',
         },
+        userId: request.userId,
       };
     },
   };

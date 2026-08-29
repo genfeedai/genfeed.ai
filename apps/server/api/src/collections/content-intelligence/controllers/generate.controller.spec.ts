@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import type { Request } from 'express';
 
 describe('GenerateController', () => {
@@ -34,7 +34,9 @@ describe('GenerateController', () => {
 
   describe('generate', () => {
     let controller: GenerateController;
-    let contentGeneratorService: { generateContent: ReturnType<typeof vi.fn> };
+    let contentGeneratorService: {
+      generateContentWorkflow: ReturnType<typeof vi.fn>;
+    };
 
     const mockUser = {
       id: 'user_123',
@@ -44,7 +46,7 @@ describe('GenerateController', () => {
 
     beforeEach(async () => {
       contentGeneratorService = {
-        generateContent: vi.fn().mockResolvedValue([
+        generateContentWorkflow: vi.fn().mockResolvedValue([
           {
             body: 'Generated body',
             content: 'Full content',
@@ -98,7 +100,10 @@ describe('GenerateController', () => {
         brandId: 'b1',
       } as never);
 
-      expect(contentGeneratorService.generateContent).toHaveBeenCalledWith(
+      expect(
+        contentGeneratorService.generateContentWorkflow,
+      ).toHaveBeenCalledWith(
+        expect.any(String),
         expect.any(String),
         expect.any(Object),
       );

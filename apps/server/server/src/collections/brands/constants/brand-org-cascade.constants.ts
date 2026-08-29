@@ -563,12 +563,6 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     brandField: 'brandId',
     orgField: 'organizationId',
   },
-  {
-    delegate: 'run',
-    table: 'runs',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
 ];
 
 /**

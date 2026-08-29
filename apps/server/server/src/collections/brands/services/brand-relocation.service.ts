@@ -204,7 +204,6 @@ const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'reply bot config',
     plural: 'reply bot configs',
   },
-  run: { singular: 'run', plural: 'runs' },
   schedule: { singular: 'schedule', plural: 'schedules' },
   socialConversation: {
     singular: 'social conversation',

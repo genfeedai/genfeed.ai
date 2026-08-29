@@ -1,11 +1,14 @@
+import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ModuleRef } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
-import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
-import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
-import { testId } from '@helpers/testing/test-id.helper';
-import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,10 +36,10 @@ describe('ContentEngineController', () => {
     listByPlan: ReturnType<typeof vi.fn>;
     softDeleteByPlan: ReturnType<typeof vi.fn>;
   };
-  let contentExecutionService: {
-    executePlan: ReturnType<typeof vi.fn>;
-    executeSingleItem: ReturnType<typeof vi.fn>;
+  let systemWorkflowRunner: {
+    runWorkflow: ReturnType<typeof vi.fn>;
   };
+  let moduleRefGet: ReturnType<typeof vi.fn>;
 
   const orgId = testId('org');
   const userId = testId('user');
@@ -53,9 +56,21 @@ describe('ContentEngineController', () => {
   } as unknown as Request;
 
   beforeEach(async () => {
+    systemWorkflowRunner = {
+      runWorkflow: vi.fn().mockResolvedValue({
+        provenance: {},
+        result: { jobId: 'job-1', status: 'queued' },
+      }),
+    };
+    moduleRefGet = vi.fn().mockReturnValue(systemWorkflowRunner);
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContentEngineController],
       providers: [
+        {
+          provide: ModuleRef,
+          useValue: { get: moduleRefGet },
+        },
         {
           provide: ContentPlannerService,
           useValue: {
@@ -88,17 +103,6 @@ describe('ContentEngineController', () => {
             softDeleteByPlan: vi.fn().mockResolvedValue({ acknowledged: true }),
           },
         },
-        {
-          provide: ContentExecutionService,
-          useValue: {
-            executePlan: vi
-              .fn()
-              .mockResolvedValue({ jobId: 'job-1', status: 'queued' }),
-            executeSingleItem: vi
-              .fn()
-              .mockResolvedValue({ jobId: 'job-2', status: 'queued' }),
-          },
-        },
       ],
     }).compile();
 
@@ -106,7 +110,6 @@ describe('ContentEngineController', () => {
     contentPlannerService = module.get(ContentPlannerService);
     contentPlansService = module.get(ContentPlansService);
     contentPlanItemsService = module.get(ContentPlanItemsService);
-    contentExecutionService = module.get(ContentExecutionService);
   });
 
   afterEach(() => {
@@ -208,30 +211,52 @@ describe('ContentEngineController', () => {
   // ── Execution ──────────────────────────────────────────────────────
 
   describe('executePlan', () => {
-    it('should execute a plan with org, brand, plan, and user ids', () => {
-      const result = controller.executePlan(mockUser, 'brand-1', 'plan-1');
-
-      expect(contentExecutionService.executePlan).toHaveBeenCalledWith(
-        orgId,
+    it('should execute a plan with org, brand, plan, and user ids', async () => {
+      const result = await controller.executePlan(
+        mockUser,
         'brand-1',
         'plan-1',
-        userId,
       );
-      expect(result).toBeDefined();
+
+      expect(moduleRefGet).toHaveBeenCalledWith(SystemWorkflowRunnerService, {
+        strict: false,
+      });
+      expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+        actionType: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_PLAN,
+        canonicalId: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_PLAN,
+        inputValues: {
+          request: { brandId: 'brand-1', planId: 'plan-1', userId },
+        },
+        organizationId: orgId,
+        source: 'api:content-engine.execute-plan',
+        trigger: WorkflowExecutionTrigger.API,
+        userId,
+      });
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
     });
   });
 
   describe('executeItem', () => {
-    it('should execute a single item with org, brand, user, and item ids', () => {
-      const result = controller.executeItem(mockUser, 'brand-1', 'item-1');
-
-      expect(contentExecutionService.executeSingleItem).toHaveBeenCalledWith(
-        orgId,
+    it('should execute a single item with org, brand, user, and item ids', async () => {
+      const result = await controller.executeItem(
+        mockUser,
         'brand-1',
-        userId,
         'item-1',
       );
-      expect(result).toBeDefined();
+
+      expect(moduleRefGet).toHaveBeenCalledWith(SystemWorkflowRunnerService, {
+        strict: false,
+      });
+      expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+        actionType: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
+        canonicalId: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
+        inputValues: { brandId: 'brand-1', item: { id: 'item-1' }, userId },
+        organizationId: orgId,
+        source: 'api:content-engine.execute-plan-item',
+        trigger: WorkflowExecutionTrigger.API,
+        userId,
+      });
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
     });
   });
 

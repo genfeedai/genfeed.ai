@@ -4,9 +4,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test } from '@nestjs/testing';
 import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
+import { EmailDigestWorkflowService } from '@server/collections/content-performance/services/email-digest-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { QueueService } from '@server/queues/core/queue.service';
 import { vi } from 'vitest';
 
 describe('AnalyticsSyncController', () => {
@@ -15,8 +14,10 @@ describe('AnalyticsSyncController', () => {
     getLastSyncDate: ReturnType<typeof vi.fn>;
   };
   let mockAnalyticsWorkflow: { queueGenericSync: ReturnType<typeof vi.fn> };
-  let mockEmailDigestService: { sendDigest: ReturnType<typeof vi.fn> };
-  let mockQueueService: { add: ReturnType<typeof vi.fn> };
+  let mockEmailDigestWorkflow: {
+    enqueue: ReturnType<typeof vi.fn>;
+    run: ReturnType<typeof vi.fn>;
+  };
 
   const mockUser = {
     organizationId: 'org-123',
@@ -35,16 +36,13 @@ describe('AnalyticsSyncController', () => {
       }),
     };
 
-    mockEmailDigestService = {
-      sendDigest: vi.fn().mockResolvedValue({
+    mockEmailDigestWorkflow = {
+      enqueue: vi.fn().mockResolvedValue('job-1'),
+      run: vi.fn().mockResolvedValue({
         errors: 0,
         sent: 1,
         skipped: 0,
       }),
-    };
-
-    mockQueueService = {
-      add: vi.fn().mockResolvedValue({ id: 'job-1' }),
     };
 
     const module = await Test.createTestingModule({
@@ -55,8 +53,10 @@ describe('AnalyticsSyncController', () => {
           provide: AnalyticsSyncWorkflowService,
           useValue: mockAnalyticsWorkflow,
         },
-        { provide: EmailDigestService, useValue: mockEmailDigestService },
-        { provide: QueueService, useValue: mockQueueService },
+        {
+          provide: EmailDigestWorkflowService,
+          useValue: mockEmailDigestWorkflow,
+        },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -121,8 +121,8 @@ describe('AnalyticsSyncController', () => {
       );
 
       expect(result.status).toBe('queued');
-      expect(mockQueueService.add).toHaveBeenCalledWith(
-        'email-digest',
+      expect(result.jobId).toBe('job-1');
+      expect(mockEmailDigestWorkflow.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: 'brand-1',
           organizationId: 'org-123',
@@ -139,7 +139,7 @@ describe('AnalyticsSyncController', () => {
       );
 
       expect(result.sent).toBe(1);
-      expect(mockEmailDigestService.sendDigest).toHaveBeenCalled();
+      expect(mockEmailDigestWorkflow.run).toHaveBeenCalled();
     });
   });
 });
