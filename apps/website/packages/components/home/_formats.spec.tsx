@@ -1,14 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import HomeFormats from '@web-components/home/_formats';
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@services/core/environment.service', () => ({
-  EnvironmentService: {
-    apps: {
-      app: 'https://app.genfeed.ai',
-    },
-  },
-}));
+import { describe, expect, it } from 'vitest';
 
 describe('HomeFormats', () => {
   it('renders the section heading and primary CTA', () => {
@@ -17,12 +9,13 @@ describe('HomeFormats', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /every format your channels need\./i,
+        name: /every format you post\./i,
       }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /generate an asset/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /see pricing/i })).toHaveAttribute(
+      'href',
+      '/pricing',
+    );
   });
 
   it('lists every output format', () => {
@@ -42,11 +35,10 @@ describe('HomeFormats', () => {
     }
   });
 
-  it('shows per-output credit pricing derived from the pricing helper', () => {
+  it('leaves credit pricing to the pricing page', () => {
     render(<HomeFormats />);
 
-    // Each tile surfaces a "from N credits" label and a "≈ $X" PAYG estimate.
-    expect(screen.getAllByText(/from [\d,]+ credits/i).length).toBe(6);
-    expect(screen.getAllByText(/≈ \$\d/).length).toBe(6);
+    expect(screen.queryByText(/from [\d,]+ credits/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/≈ \$\d/)).not.toBeInTheDocument();
   });
 });

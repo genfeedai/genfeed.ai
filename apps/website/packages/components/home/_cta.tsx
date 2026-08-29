@@ -1,11 +1,7 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
-import { Text } from '@ui/typography/text';
-import { ArrowRight } from 'lucide-react';
 
 export default function HomeCTA(): React.ReactElement {
   return (
@@ -16,27 +12,18 @@ export default function HomeCTA(): React.ReactElement {
             as="h2"
             className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl"
           >
-            Ship on-brand content, faster.
+            Start with one brief.
           </Heading>
-
-          <Text
-            as="p"
-            className="text-lg md:text-xl gen-text-muted max-w-xl leading-relaxed"
-          >
-            One workspace, a human in the approval seat. Book a demo if
-            you&apos;re rolling this out across a team or client roster.
-          </Text>
 
           <div className="flex flex-row items-center flex-wrap justify-center gap-3">
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'start_free_bottom_cta' }}
+              trackingData={{ action: 'start_creating_bottom_cta' }}
               trackingName="cta_final_click"
             >
               <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                Start for free
-                <ArrowRight className="size-4" />
+                Start creating
               </a>
             </ButtonTracked>
 
@@ -52,7 +39,7 @@ export default function HomeCTA(): React.ReactElement {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Book a Demo
+                Book a demo
               </a>
             </ButtonTracked>
           </div>

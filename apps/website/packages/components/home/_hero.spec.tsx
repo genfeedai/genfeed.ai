@@ -7,7 +7,7 @@ import HomeHero from './_hero';
 vi.mock('next/image', () => ({
   default: ({
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
@@ -15,6 +15,7 @@ vi.mock('next/image', () => ({
   }) => (
     <span
       aria-label={props.alt ?? ''}
+      data-priority={priority ? 'true' : 'false'}
       data-src={typeof props.src === 'string' ? props.src : undefined}
       role="img"
     />
@@ -39,19 +40,43 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /every post, image, and video\. one studio\./i,
+        name: /one brief\. every channel\./i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/the ai content studio/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/generate, review, schedule, publish\./i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/one brief in\. platform-native content out/i),
+      screen.getByText(
+        /drafts the posts, makes the images and video, and publishes on your schedule/i,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Start for free', 'Book a Demo']);
+    ).toEqual(['Start creating', 'Use the Agent']);
+  });
+
+  it('states the mechanism instead of an adjective', () => {
+    render(<HomeHero />);
+
+    expect(
+      screen.queryByText(/generate, review, schedule, publish\./i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/platform-native content out/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('preloads exactly one output-wall image for the LCP', () => {
+    render(<HomeHero />);
+
+    const preloaded = screen
+      .getAllByRole('img')
+      .filter((image) => image.getAttribute('data-priority') === 'true');
+
+    expect(preloaded).toHaveLength(1);
+    expect(preloaded[0]).toHaveAttribute(
+      'data-src',
+      HOME_OUTPUT_WALL_ASSETS[0].src,
+    );
   });
 
   it('never shows fabricated studio metrics', () => {
@@ -63,27 +88,30 @@ describe('HomeHero', () => {
     expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
-  it('points the primary CTA at the app sign-up flow', () => {
+  it('sends each CTA to its own destination', () => {
     render(<HomeHero />);
 
     expect(
-      screen.getByRole('link', { name: /start for free/i }),
+      screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    expect(
+      screen.getByRole('link', { name: /use the agent/i }),
+    ).toHaveAttribute('href', '/mcp');
   });
 
-  it('tracks Start for free separately from Book a Demo', () => {
+  it('tracks Start creating separately from Use the Agent', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
 
-    fireEvent.click(screen.getByRole('link', { name: /start for free/i }));
-    fireEvent.click(screen.getByRole('link', { name: /book a demo/i }));
+    fireEvent.click(screen.getByRole('link', { name: /start creating/i }));
+    fireEvent.click(screen.getByRole('link', { name: /use the agent/i }));
 
     expect(listener).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'start_free_hero' },
+          trackingData: { action: 'start_creating_hero' },
           trackingName: 'hero_cta_click',
         },
       }),
@@ -92,7 +120,7 @@ describe('HomeHero', () => {
       2,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'book_demo_hero' },
+          trackingData: { action: 'use_agent_hero' },
           trackingName: 'hero_cta_click',
         },
       }),
