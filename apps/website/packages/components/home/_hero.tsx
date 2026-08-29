@@ -7,11 +7,7 @@ import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import Link from 'next/link';
 
-/**
- * The Genfeed Agent (CLI, MCP server, Claude skills) has no landing page yet, so
- * this points at the closest route. Re-point it when that page ships.
- */
-const AGENT_HREF = '/mcp';
+const AGENT_HREF = '/agent';
 
 const HERO_WALL_ITEMS = [
   {
@@ -94,7 +90,7 @@ export default function HomeHero(): React.ReactElement {
                 size={ButtonSize.PUBLIC}
                 className="hero-cta"
                 trackingData={{ action: 'start_creating_hero' }}
-                trackingName="hero_cta_click"
+                trackingName="home_hero_click"
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
                   Start creating
@@ -106,7 +102,7 @@ export default function HomeHero(): React.ReactElement {
                 className="hero-cta"
                 size={ButtonSize.PUBLIC}
                 trackingData={{ action: 'use_agent_hero' }}
-                trackingName="hero_cta_click"
+                trackingName="home_hero_click"
                 variant={ButtonVariant.SECONDARY}
               >
                 <Link href={AGENT_HREF}>Use the Agent</Link>

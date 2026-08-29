@@ -20,7 +20,7 @@ export default function HomeCTA(): React.ReactElement {
               asChild
               size={ButtonSize.PUBLIC}
               trackingData={{ action: 'start_creating_bottom_cta' }}
-              trackingName="cta_final_click"
+              trackingName="home_cta_click"
             >
               <a href={`${EnvironmentService.apps.app}/sign-up`}>
                 Start creating
@@ -31,7 +31,7 @@ export default function HomeCTA(): React.ReactElement {
               asChild
               size={ButtonSize.PUBLIC}
               trackingData={{ action: 'book_demo_bottom_cta' }}
-              trackingName="cta_final_click"
+              trackingName="home_cta_click"
               variant={ButtonVariant.SECONDARY}
             >
               <a

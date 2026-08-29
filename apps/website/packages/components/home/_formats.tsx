@@ -65,7 +65,7 @@ export default function HomeFormats(): React.ReactElement {
               asChild
               size={ButtonSize.PUBLIC}
               trackingData={{ action: 'see_pricing_formats' }}
-              trackingName="formats_cta_click"
+              trackingName="home_formats_click"
               variant={ButtonVariant.SECONDARY}
             >
               <Link href="/pricing">See pricing</Link>

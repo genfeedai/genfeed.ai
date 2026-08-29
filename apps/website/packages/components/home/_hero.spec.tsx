@@ -96,7 +96,7 @@ describe('HomeHero', () => {
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(
       screen.getByRole('link', { name: /use the agent/i }),
-    ).toHaveAttribute('href', '/mcp');
+    ).toHaveAttribute('href', '/agent');
   });
 
   it('tracks Start creating separately from Use the Agent', () => {
@@ -112,7 +112,7 @@ describe('HomeHero', () => {
       expect.objectContaining({
         detail: {
           trackingData: { action: 'start_creating_hero' },
-          trackingName: 'hero_cta_click',
+          trackingName: 'home_hero_click',
         },
       }),
     );
@@ -121,7 +121,7 @@ describe('HomeHero', () => {
       expect.objectContaining({
         detail: {
           trackingData: { action: 'use_agent_hero' },
-          trackingName: 'hero_cta_click',
+          trackingName: 'home_hero_click',
         },
       }),
     );

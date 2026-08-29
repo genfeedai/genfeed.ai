@@ -44,12 +44,15 @@ describe('generateStaticParams', () => {
 
 describe('buildProductPageJsonLd', () => {
   it('describes the product as a WebPage that is part of the site', async () => {
-    const product = await getProductBySlugCached('agents');
+    const product = await getProductBySlugCached('hire-agents');
     if (!product) {
-      throw new Error('Expected fixture product "agents" to exist');
+      throw new Error('Expected fixture product "hire-agents" to exist');
     }
 
-    const jsonLd = buildProductPageJsonLd(product, 'https://genfeed.ai/agents');
+    const jsonLd = buildProductPageJsonLd(
+      product,
+      'https://genfeed.ai/hire-agents',
+    );
 
     expect(jsonLd).toMatchObject({
       '@type': 'WebPage',
@@ -60,25 +63,25 @@ describe('buildProductPageJsonLd', () => {
       },
       isPartOf: { '@type': 'WebSite', name: 'Genfeed' },
       name: product.name,
-      url: 'https://genfeed.ai/agents',
+      url: 'https://genfeed.ai/hire-agents',
     });
   });
 });
 
 describe('generateMetadata', () => {
   it('builds canonical, OpenGraph and Twitter metadata for a known product', async () => {
-    const product = await getProductBySlugCached('agents');
+    const product = await getProductBySlugCached('hire-agents');
     if (!product) {
-      throw new Error('Expected fixture product "agents" to exist');
+      throw new Error('Expected fixture product "hire-agents" to exist');
     }
 
     const meta = await generateMetadata(
-      { params: Promise.resolve({ slug: 'agents' }) },
+      { params: Promise.resolve({ slug: 'hire-agents' }) },
       EMPTY_PARENT,
     );
 
     expect(meta.description).toBe(product.description);
-    expect(meta.alternates?.canonical).toContain('/agents');
+    expect(meta.alternates?.canonical).toContain('/hire-agents');
     expect(String(meta.title)).toContain(product.name);
     expect(meta.keywords).toEqual(
       expect.arrayContaining([product.name, product.category, 'AI content']),
@@ -93,7 +96,7 @@ describe('generateMetadata', () => {
     }) as unknown as Parameters<typeof generateMetadata>[1];
 
     const meta = await generateMetadata(
-      { params: Promise.resolve({ slug: 'agents' }) },
+      { params: Promise.resolve({ slug: 'hire-agents' }) },
       parent,
     );
 
@@ -116,7 +119,7 @@ describe('generateMetadata', () => {
 describe('ProductPageRoute', () => {
   it('renders product and breadcrumb JSON-LD alongside the product page', async () => {
     const element = await ProductPageRoute({
-      params: Promise.resolve({ slug: 'agents' }),
+      params: Promise.resolve({ slug: 'hire-agents' }),
     });
 
     const [productJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [

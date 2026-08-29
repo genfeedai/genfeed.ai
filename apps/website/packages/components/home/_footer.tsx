@@ -12,7 +12,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/publisher', label: 'Publisher' },
       { href: '/workflows', label: 'Workflows' },
       { href: '/analytics', label: 'Analytics' },
-      { href: '/agents', label: 'Agents' },
+      { href: '/hire-agents', label: 'Hire Agents' },
       { href: '/integrations', label: 'Integrations' },
     ],
     title: 'Product',
@@ -30,6 +30,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/docs', label: 'Docs' },
+      { href: '/agent', label: 'Genfeed Agent' },
       { href: '/mcp', label: 'MCP Server' },
       { href: '/self-hosted', label: 'Self-host' },
       { href: '/articles', label: 'Blog' },
