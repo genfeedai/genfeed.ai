@@ -95,9 +95,15 @@ describe('ContentExecutionService', () => {
       targetPlanId,
       targetUserId,
     );
+    // `preparePlanExecution` projects the pending items down to bare ids, so
+    // the per-item action reloads each full record the way its node does.
+    const pendingItems = (await mockContentPlanItemsService.listPendingByPlan
+      .mock.results[0]?.value) as Array<Record<string, unknown>>;
     const results = [];
-    for (const item of prepared.items) {
-      mockContentPlanItemsService.getByIdOrFail.mockResolvedValueOnce(item);
+    for (const [index, item] of prepared.items.entries()) {
+      mockContentPlanItemsService.getByIdOrFail.mockResolvedValueOnce(
+        pendingItems[index],
+      );
       results.push(
         await service.executeSingleItem(
           organizationId,
