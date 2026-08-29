@@ -40,6 +40,84 @@ const LLM_JSON_RESPONSE = JSON.stringify({
   hook: 'Did you know AI can 10x output?',
 });
 
+// The generation graph branches on a condition node and fans patterns out to a
+// child workflow, so the double walks that shape explicitly instead of
+// replaying a generic node list.
+function createContentGenerationRunnerFake(
+  actionExecutors: Map<string, (request: never) => unknown>,
+) {
+  return {
+    registerAction: vi.fn(
+      (actionId: string, executor: (request: never) => unknown) => {
+        actionExecutors.set(actionId, executor);
+      },
+    ),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(
+      async (request: {
+        canonicalId: string;
+        inputValues: { dto: unknown };
+        organizationId: string;
+        userId?: string;
+      }) => {
+        const context = {
+          organizationId: request.organizationId,
+          userId: request.userId ?? 'workflow-owner',
+        };
+        const invoke = (actionId: string, input: Record<string, unknown>) => {
+          const executor = actionExecutors.get(actionId);
+          if (!executor)
+            throw new Error(`Missing action executor: ${actionId}`);
+          return executor({ context, input } as never);
+        };
+        const loadedContext = await invoke(
+          'content-intelligence.load-context',
+          {
+            dto: request.inputValues.dto,
+          },
+        );
+        const patterns = await invoke('content-intelligence.load-patterns', {
+          dto: request.inputValues.dto,
+        });
+        const plan = (await invoke('content-intelligence.plan', {
+          context: loadedContext,
+          dto: request.inputValues.dto,
+          patterns,
+        })) as { hasPatterns: boolean; items: unknown[] };
+        if (!plan.hasPatterns) {
+          const freeformResults = await invoke(
+            'content-intelligence.generate-freeform',
+            { state: loadedContext },
+          );
+          return {
+            result: await invoke('content-intelligence.finalize', {
+              freeformResults,
+            }),
+          };
+        }
+        const generationAction =
+          request.canonicalId === 'linkedin-content.generation'
+            ? 'content-intelligence.generate-linkedin-pattern'
+            : 'content-intelligence.generate';
+        const results = [];
+        for (const item of plan.items) {
+          const state = await invoke(generationAction, { item });
+          results.push({
+            result: await invoke('content-intelligence.track-pattern', {
+              state,
+            }),
+          });
+        }
+        return {
+          result: await invoke('content-intelligence.finalize', {
+            patternResults: { results },
+          }),
+        };
+      },
+    ),
+  };
+}
+
 describe('ContentGeneratorService', () => {
   let service: ContentGeneratorService;
   let contextAssemblyService: {
@@ -86,76 +164,7 @@ describe('ContentGeneratorService', () => {
     };
     mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     actionExecutors = new Map();
-    const workflowRunner = {
-      registerAction: vi.fn(
-        (actionId: string, executor: (request: never) => unknown) => {
-          actionExecutors.set(actionId, executor);
-        },
-      ),
-      registerWorkflow: vi.fn(),
-      runWorkflow: vi.fn(
-        async (request: {
-          canonicalId: string;
-          inputValues: { dto: unknown };
-          organizationId: string;
-          userId?: string;
-        }) => {
-          const context = {
-            organizationId: request.organizationId,
-            userId: request.userId ?? 'workflow-owner',
-          };
-          const invoke = (actionId: string, input: Record<string, unknown>) => {
-            const executor = actionExecutors.get(actionId);
-            if (!executor)
-              throw new Error(`Missing action executor: ${actionId}`);
-            return executor({ context, input } as never);
-          };
-          const loadedContext = await invoke(
-            'content-intelligence.load-context',
-            {
-              dto: request.inputValues.dto,
-            },
-          );
-          const patterns = await invoke('content-intelligence.load-patterns', {
-            dto: request.inputValues.dto,
-          });
-          const plan = (await invoke('content-intelligence.plan', {
-            context: loadedContext,
-            dto: request.inputValues.dto,
-            patterns,
-          })) as { hasPatterns: boolean; items: unknown[] };
-          if (!plan.hasPatterns) {
-            const freeformResults = await invoke(
-              'content-intelligence.generate-freeform',
-              { state: loadedContext },
-            );
-            return {
-              result: await invoke('content-intelligence.finalize', {
-                freeformResults,
-              }),
-            };
-          }
-          const generationAction =
-            request.canonicalId === 'linkedin-content.generation'
-              ? 'content-intelligence.generate-linkedin-pattern'
-              : 'content-intelligence.generate';
-          const results = [];
-          for (const item of plan.items) {
-            const state = await invoke(generationAction, { item });
-            results.push({
-              result: await invoke('content-intelligence.track-pattern', {
-                state,
-              }),
-            });
-          }
-          return {
-            result: await invoke('content-intelligence.finalize', {
-              patternResults: { results },
-            }),
-          };
-        },
-      ),
-    };
+    const workflowRunner = createContentGenerationRunnerFake(actionExecutors);
 
     const module = await Test.createTestingModule({
       providers: [
@@ -447,8 +456,10 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
     formatBrief: ReturnType<typeof vi.fn>;
   };
   let openRouterService: { chatCompletion: ReturnType<typeof vi.fn> };
+  let actionExecutors: Map<string, (request: never) => unknown>;
 
   beforeEach(async () => {
+    actionExecutors = new Map();
     personasService = {
       findOne: vi.fn().mockResolvedValue(MOCK_PERSONA),
     };
@@ -510,10 +521,15 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
           provide: HarnessGenerationService,
           useValue: harnessGenerationService,
         },
+        {
+          provide: SystemWorkflowRunnerService,
+          useValue: createContentGenerationRunnerFake(actionExecutors),
+        },
       ],
     }).compile();
 
     service = module.get(ContentGeneratorService);
+    service.onModuleInit();
   });
 
   afterEach(() => {
