@@ -7,6 +7,7 @@ import { SocialInboxActionService } from '@server/collections/social-inbox/servi
 import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 
 type StoreConversation = {
   id: string;
@@ -437,76 +438,7 @@ function createContext(): TestContext {
   const realtimeService = new SocialInboxRealtimeService(
     notificationsPublisher as never,
   );
-  const actionExecutors = new Map<
-    string,
-    (request: { input: Record<string, unknown> }) => Promise<unknown>
-  >();
-  const systemWorkflowRunner = {
-    registerAction: vi.fn(
-      (
-        actionId: string,
-        executor: (request: {
-          input: Record<string, unknown>;
-        }) => Promise<unknown>,
-      ) => actionExecutors.set(actionId, executor),
-    ),
-    registerWorkflow: vi.fn(),
-    runWorkflow: vi.fn(
-      async (
-        definition: {
-          definition: {
-            edges: Array<{
-              source: string;
-              sourceHandle?: string;
-              target: string;
-              targetHandle?: string;
-            }>;
-            nodes: Array<{
-              data: { config: Record<string, unknown> };
-              id: string;
-            }>;
-          };
-          resultNodeId: string;
-        },
-        input: { inputValues?: Record<string, unknown> },
-      ) => {
-        const outputs = new Map<string, unknown>();
-        for (const node of definition.definition.nodes) {
-          const actionId = String(node.data.config.actionId);
-          const executor = actionExecutors.get(actionId);
-          if (!executor)
-            throw new Error(`Missing action executor: ${actionId}`);
-          const actionInput: Record<string, unknown> = {
-            ...input.inputValues,
-          };
-          for (const edge of definition.definition.edges.filter(
-            (candidate) => candidate.target === node.id,
-          )) {
-            const source = outputs.get(edge.source);
-            const value =
-              edge.sourceHandle &&
-              source &&
-              typeof source === 'object' &&
-              edge.sourceHandle in source
-                ? (source as Record<string, unknown>)[edge.sourceHandle]
-                : source;
-            actionInput[edge.targetHandle ?? edge.source] = value;
-          }
-          outputs.set(
-            node.id,
-            await executor({
-              input: actionInput,
-              provenance: {
-                executionId: 'execution-1',
-                workflowId: 'workflow-1',
-              },
-            } as never),
-          );
-        }
-        return { result: outputs.get(definition.resultNodeId) };
-      },
-    ),
-  };
+  const systemWorkflowRunner = createSystemWorkflowRunnerMock();
   const ingestionService = new SocialInboxIngestionService(
     prisma as never,
     youtubeService as never,
