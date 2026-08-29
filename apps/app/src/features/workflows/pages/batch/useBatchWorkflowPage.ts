@@ -352,7 +352,7 @@ export function useBatchWorkflowPage() {
     intervalMs: BATCH_POLL_INTERVAL_MS,
     isEnabled:
       Boolean(activeBatchId) &&
-      Boolean(activeBatchLifecycleStatus) &&
+      activeBatchLifecycleStatus !== undefined &&
       !isTerminalBatchStatus(activeBatchLifecycleStatus),
   });
 
