@@ -40,12 +40,16 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/serializers$/,
         replacement: path.resolve(__dirname, '../helpers/src/deserializer/index.ts'),
       },
       {
-        find: /^@genfeedai\/tools$/,
-        replacement: path.resolve(__dirname, '../tools/src/index.ts'),
+        find: /^@genfeedai\/actions$/,
+        replacement: path.resolve(__dirname, '../actions/src/index.ts'),
       },
       {
         find: '@',

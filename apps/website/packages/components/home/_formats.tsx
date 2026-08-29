@@ -1,60 +1,39 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import {
-  AVATAR_CREDIT_COSTS,
-  BYOK_CREDIT_VALUE_DOLLARS,
-  INTERNAL_CREDIT_COSTS,
-  VIDEO_CREDIT_COSTS,
-} from '@genfeedai/pricing';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { OutputFormat } from '@props/website/home.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_ASSETS } from '@web-components/home/_assets';
-import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
-
-function formatCreditsPrice(credits: number): string {
-  return `$${(credits * BYOK_CREDIT_VALUE_DOLLARS).toFixed(2)}`;
-}
+import Link from 'next/link';
 
 const OUTPUT_FORMATS: OutputFormat[] = [
   {
-    credits: INTERNAL_CREDIT_COSTS.image,
     description: 'On-brand stills for every feed and story.',
     image: HOME_ASSETS.formats.images,
     title: 'Images & posts',
   },
   {
-    credits: VIDEO_CREDIT_COSTS.video8s,
     description: 'Hook-first video for TikTok, Reels, and Shorts.',
     image: HOME_ASSETS.formats.reels,
     title: 'Reels & short video',
   },
   {
-    credits: INTERNAL_CREDIT_COSTS.image,
     description: 'Ad creatives in every ratio, with copy variants.',
     image: HOME_ASSETS.formats.ads,
     title: 'Ad creatives',
   },
   {
-    credits: AVATAR_CREDIT_COSTS.avatar4s,
     description: 'Lip-synced avatar clips. No camera needed.',
     image: HOME_ASSETS.formats.avatars,
     title: 'Avatar clips',
   },
   {
-    credits: INTERNAL_CREDIT_COSTS.voicePerMinute,
     description: 'Natural voiceovers for clips and podcasts.',
     image: HOME_ASSETS.formats.voice,
-    priceSuffix: '/min',
     title: 'Voiceovers',
   },
   {
-    credits: INTERNAL_CREDIT_COSTS.articlePerPost,
     description: 'Long-form articles and SEO posts, captions included.',
     image: HOME_ASSETS.formats.articles,
     title: 'Articles & SEO',
@@ -62,8 +41,6 @@ const OUTPUT_FORMATS: OutputFormat[] = [
 ];
 
 export default function HomeFormats(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
-
   return (
     <section
       id="formats"
@@ -76,11 +53,10 @@ export default function HomeFormats(): React.ReactElement {
               as="h2"
               className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
             >
-              Every format your channels need.
+              Every format you post.
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              Images, video, ads, avatars, voice, long-form. Price up front on
-              every one.
+              Six formats, one workspace.
             </Text>
           </div>
 
@@ -88,14 +64,11 @@ export default function HomeFormats(): React.ReactElement {
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'signup_formats' }}
-              trackingName="formats_cta_click"
+              trackingData={{ action: 'see_pricing_formats' }}
+              trackingName="home_formats_click"
               variant={ButtonVariant.SECONDARY}
             >
-              <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                Generate an asset
-                <ArrowRight className="size-3" />
-              </a>
+              <Link href="/pricing">See pricing</Link>
             </ButtonTracked>
           </div>
         </div>
@@ -117,23 +90,14 @@ export default function HomeFormats(): React.ReactElement {
               </div>
 
               <div className="flex flex-col flex-1 gap-2 p-6">
-                <div className="flex items-baseline justify-between gap-4">
-                  <Heading
-                    as="h3"
-                    className="text-lg font-semibold tracking-[-0.02em] text-surface"
-                  >
-                    {format.title}
-                  </Heading>
-                  <Text className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-surface/55">
-                    from {formatNumberWithCommas(format.credits)} credits
-                  </Text>
-                </div>
-                <Text className="text-sm leading-6 text-surface/55">
+                <Heading
+                  as="h3"
+                  className="text-lg font-semibold tracking-[-0.02em] text-surface"
+                >
+                  {format.title}
+                </Heading>
+                <Text className="text-sm leading-6 text-surface/72">
                   {format.description}
-                </Text>
-                <Text className="mt-auto pt-2 text-xs text-surface/55">
-                  ≈ {formatCreditsPrice(format.credits)}
-                  {format.priceSuffix ?? ''} at the pay-as-you-go rate
                 </Text>
               </div>
             </div>

@@ -45,6 +45,8 @@ interface SiteFooterProps {
   brandTagline?: string;
   /** Footer background variant */
   variant?: FooterVariant;
+  /** Bottom-bar sitemap directory link label */
+  sitemapLabel?: string;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -80,8 +82,9 @@ export default function SiteFooter({
   socialLinks = DEFAULT_SOCIAL_LINKS,
   showNewsletter = false,
   showBookCall = false,
-  brandTagline = 'The premier destination for high-performance creative assets. Redefining the boundaries of content generation.',
+  brandTagline = 'Genfeed drafts the posts, makes the images and video, and publishes on your schedule.',
   variant = 'default',
+  sitemapLabel = 'Sitemap',
 }: SiteFooterProps): React.ReactElement {
   return (
     <footer className={cn(VARIANT_CLASSES[variant], 'relative z-20 pt-14')}>
@@ -124,9 +127,9 @@ export default function SiteFooter({
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             {sections.map((section) => (
               <div key={section.title}>
-                <h4 className="mb-4 text-xs font-semibold text-foreground">
+                <h3 className="mb-4 text-xs font-semibold text-foreground">
                   {section.title}
-                </h4>
+                </h3>
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link.href}>
@@ -149,10 +152,10 @@ export default function SiteFooter({
             {/* Newsletter Column */}
             {showNewsletter && (
               <div>
-                <h4 className="mb-4 flex items-center gap-2 text-xs font-semibold text-foreground">
+                <h3 className="mb-4 flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Mail className="size-4" />
                   Newsletter
-                </h4>
+                </h3>
                 <p className="mb-4 text-sm leading-6 text-muted-foreground">
                   AI content tips and product updates delivered weekly.
                 </p>
@@ -180,9 +183,9 @@ export default function SiteFooter({
                 </div>
 
                 <div>
-                  <h4 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
+                  <h3 className="mb-1 text-xl font-semibold uppercase tracking-wide text-foreground">
                     Want to chat?
-                  </h4>
+                  </h3>
 
                   <p className="text-sm font-medium text-muted-foreground">
                     Schedule a 30-minute call to discuss your content needs.
@@ -228,6 +231,13 @@ export default function SiteFooter({
               className="transition-colors hover:text-foreground"
             >
               Privacy
+            </Link>
+
+            <Link
+              href="/sitemap"
+              className="transition-colors hover:text-foreground"
+            >
+              {sitemapLabel}
             </Link>
           </div>
         </div>

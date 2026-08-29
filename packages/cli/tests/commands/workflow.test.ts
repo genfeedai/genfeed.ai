@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { workflowCommand } from '../../src/commands/workflow';
-import { GenfeedError } from '../../src/utils/errors';
+import { workflowCommand } from '@/commands/workflow';
+import { GenfeedError } from '@/utils/errors';
 
 const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -12,21 +12,21 @@ const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = v
   mockRequireAuth: vi.fn(),
 }));
 
-vi.mock('../../src/api/client', () => ({
+vi.mock('@/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
   post: (...args: unknown[]) => mockPost(...args),
   requireAuth: () => mockRequireAuth(),
 }));
 
-vi.mock('../../src/ui/theme', () => ({
+vi.mock('@/ui/theme', () => ({
   formatHeader: (value: string) => value,
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   print: vi.fn(),
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
+vi.mock('@/utils/errors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => mockHandleError(error),
@@ -37,6 +37,29 @@ describe('workflow command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRequireAuth.mockResolvedValue('api-key');
+    mockGet.mockImplementation((path: string) => {
+      if (path === '/workflows/workflow-1') {
+        return Promise.resolve({
+          data: {
+            attributes: { key: 'weekly-content', label: 'Weekly Content' },
+            id: 'workflow-1',
+            type: 'workflow',
+          },
+        });
+      }
+      if (path.startsWith('/workflows?')) {
+        return Promise.resolve({
+          data: [
+            {
+              attributes: { key: 'weekly-content', label: 'Weekly Content' },
+              id: 'workflow-1',
+              type: 'workflow',
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
     mockPost.mockResolvedValue({
       data: {
         attributes: {},
@@ -85,6 +108,45 @@ describe('workflow command', () => {
     await workflowCommand.parseAsync(['list', '--json'], { from: 'user' });
 
     expect(mockPrintJson).toHaveBeenCalledWith([]);
+  });
+
+  it('parses workflow limits as decimal values', async () => {
+    await workflowCommand.parseAsync(['list', '--limit', '25', '--json'], { from: 'user' });
+
+    expect(mockGet).toHaveBeenCalledWith('/workflows?limit=25');
+  });
+
+  it('rejects non-numeric workflow limits before making an API request', async () => {
+    await expect(
+      workflowCommand.parseAsync(['list', '--limit', 'abc', '--json'], { from: 'user' })
+    ).rejects.toThrow('Invalid positive integer');
+
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
+  it('normalizes workflow run statuses to the API enum spelling', async () => {
+    await workflowCommand.parseAsync(['runs', '--status', 'completed', '--json'], {
+      from: 'user',
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/workflow-executions?limit=20&status=COMPLETED');
+  });
+
+  it('normalizes and validates workflow execution triggers', async () => {
+    await workflowCommand.parseAsync(['run', 'workflow-1', '--trigger', 'MANUAL', '--json'], {
+      from: 'user',
+    });
+
+    expect(mockPost).toHaveBeenCalledWith('/workflow-executions', {
+      trigger: 'manual',
+      workflowId: 'workflow-1',
+    });
+
+    await expect(
+      workflowCommand.parseAsync(['run', 'workflow-1', '--trigger', 'typo', '--json'], {
+        from: 'user',
+      })
+    ).rejects.toThrow('Unknown workflow trigger');
   });
 
   it('posts object inputs for workflow execution', async () => {

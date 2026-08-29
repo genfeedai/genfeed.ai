@@ -14,11 +14,12 @@ import {
   printJson,
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { wantsJson } from '@/utils/options';
 
 export const organizationsCommand = new Command('organizations')
   .description('Manage organizations')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
       await requireAuth();
 
@@ -26,7 +27,7 @@ export const organizationsCommand = new Command('organizations')
       const organizations = await listMyOrganizations();
       spinner.stop();
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(organizations);
         return;
       }
@@ -108,7 +109,7 @@ organizationsCommand
   .command('current')
   .description('Show current active organization')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
       await requireAuth();
 
@@ -117,7 +118,7 @@ organizationsCommand
       spinner.stop();
 
       const active = organizations.find((org) => org.isActive) ?? null;
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson({ activeOrganization: active });
         return;
       }

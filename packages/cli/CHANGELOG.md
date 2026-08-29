@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- An Ink terminal workspace now opens for interactive `gf` sessions, with persistent agent threads,
+  input history, streamed responses, context status, and direct `/` commands for authentication,
+  credits, brands, workflows, generation, assets, and jobs.
+- `gf signup` starts the secure browser PKCE flow at account creation, while `gf login` remains the
+  returning-user entry point.
+- `gf balance`, server-priced `gf credits buy`, credit packs/history, workflow run history/status,
+  and `gf job status` complete the terminal operating loop.
+- Image generation exposes references, seeds, multiple outputs, creative direction, negative
+  prompts, automatic routing, brand fidelity, tags, and prompt-template controls.
+
+### Changed
+
+- The canonical concise namespaces are `gf gen`, `gf brand`, and `gf asset`; `generate`, `brands`,
+  and `library` remain aliases for compatibility.
+- `gf workflow run` resolves a unique exact ID, key, or label before creating the execution.
+
 ## [0.6.0] - 2026-08-09
 
 0.5.0 was tagged in the changelog but never published to npm; its removals ship here.

@@ -11,6 +11,7 @@ import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
+  sanitizeSystemEmailUrl,
 } from '../email/system-email.helper';
 
 export type TrendDigestItemType = 'video' | 'hashtag' | 'sound' | 'topic';
@@ -157,14 +158,33 @@ export function buildTrendDigestHtml(
   });
 }
 
+/** Row links are web sources only — narrower than the system-email allowlist. */
+function sanitizeTrendSourceUrl(value: string): string | null {
+  const safe = sanitizeSystemEmailUrl(value);
+  if (!safe) {
+    return null;
+  }
+  return /^https?:\/\//i.test(safe) ? safe : null;
+}
+
 function buildTrendRow(trend: TrendDigestItem, usageLabel: string): string {
   const usage = trend.usageCount
     ? `<span style="color:#949494;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
     : '';
 
+  // A trend the reader cannot open is a dead end, so the topic carries the
+  // link. Scraped URLs are caller-supplied, so they go through the shared
+  // scheme allowlist, narrowed further here: a trend's source is a web page,
+  // never a `mailto:` target, so only http(s) survives.
+  const topic = escapeTrendHtml(trend.topic);
+  const url = trend.url ? sanitizeTrendSourceUrl(trend.url) : null;
+  const title = url
+    ? `<a href="${escapeTrendHtml(url)}" style="color:#EDEDED;text-decoration:none;">${topic}</a>`
+    : topic;
+
   return `
     <div style="border-bottom:1px solid #333333;padding:10px 0;">
-      <div style="color:#EDEDED;font-size:14px;font-weight:700;line-height:20px;">${escapeTrendHtml(trend.topic)}</div>
+      <div style="color:#EDEDED;font-size:14px;font-weight:700;line-height:20px;">${title}</div>
       <div style="font-size:12px;line-height:18px;margin-top:4px;">
         <span style="background:#10b981;border-radius:4px;color:#0A0A0A;display:inline-block;font-weight:700;padding:2px 6px;">Score: ${trend.viralScore}</span>
         <span style="background:#2A2A2A;border-radius:4px;color:#A1A1A1;display:inline-block;margin-left:4px;padding:2px 6px;">${escapeTrendHtml(trend.platform)}</span>${usage}

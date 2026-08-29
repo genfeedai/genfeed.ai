@@ -29,16 +29,40 @@ export interface CreateImageRequest {
   // global ValidationPipe validates with `whitelist: true`, which silently
   // strips any property the DTO does not declare.
   brandId: string;
+  autoSelectModel?: boolean;
+  blacklist?: string[];
+  brandingMode?: 'brand' | 'off';
+  camera?: string;
+  fidelityMode?: 'guided' | 'off' | 'strict';
+  fontFamily?: string;
+  format?: string;
   model?: string;
-  width?: number;
   height?: number;
+  isBrandingEnabled?: boolean;
+  lens?: string;
+  lighting?: string;
+  mood?: string;
+  negativePrompt?: string;
+  outputs?: number;
+  prioritize?: 'balanced' | 'cost' | 'quality' | 'speed';
+  promptTemplate?: string;
+  references?: string[];
+  scene?: string;
+  seed?: number;
+  style?: string;
+  tags?: string[];
+  useTemplate?: boolean;
+  width?: number;
 }
 
-export async function createImage(request: CreateImageRequest): Promise<Image> {
-  const response = await post<JsonApiSingleResponse>(
-    '/images',
-    request as unknown as Record<string, unknown>
-  );
+export async function createImage(
+  request: CreateImageRequest,
+  signal?: AbortSignal
+): Promise<Image> {
+  const body = request as unknown as Record<string, unknown>;
+  const response = signal
+    ? await post<JsonApiSingleResponse>('/images', body, { signal })
+    : await post<JsonApiSingleResponse>('/images', body);
   return flattenSingle<Image>(response);
 }
 

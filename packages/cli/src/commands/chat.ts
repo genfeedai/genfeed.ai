@@ -6,6 +6,7 @@ import { runAgentShell } from '@/shell/agent-shell';
 import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer';
 import { formatHeader, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 async function readPromptFromStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -60,7 +61,7 @@ chatCommand.addCommand(
     )
     .option('--stdin', 'Read the prompt from stdin')
     .option('--json', 'Output as JSON')
-    .option('--timeout <ms>', 'Wait timeout in milliseconds', Number.parseInt, 120000)
+    .option('--timeout <ms>', 'Wait timeout in milliseconds', parsePositiveInteger, 120000)
     .action(async (prompt, options) => {
       try {
         const stdinPrompt = options.stdin ? await readPromptFromStdin() : '';

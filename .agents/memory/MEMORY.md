@@ -127,6 +127,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 ## Specs and decisions (per issue)
 
+- [terminal-content-workspace](spec-terminal-content-workspace.md) · [decisions](decisions-terminal-content-workspace.md) — #52 shared `gf` CLI/TUI, browser auth, credits, generation, brands, workflows, assets
 - [agentic-workflow-email-notifications](spec-agentic-workflow-email-notifications.md) · [decisions](decisions-agentic-workflow-email-notifications.md) — durable preferences + transactional outbox + Resend workflow-owner delivery across every run source
 - [multi-account-per-platform](spec-multi-account-per-platform.md) · [decisions](decisions-multi-account-per-platform.md) — credential identity is `(brandId, platform, externalId)`; connect provisions a pending row and reconciles after the callback
 - [prefilled-brand-remix-runs](spec-prefilled-brand-remix-runs.md) · [decisions](decisions-prefilled-brand-remix-runs.md) — #3338 Discover/Ads → Studio → Library/Review → Publish/paused campaign

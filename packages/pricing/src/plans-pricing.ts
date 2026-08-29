@@ -726,6 +726,7 @@ export const PAYG_CREDIT_PACKS: CreditPackTier[] = [
 ];
 
 /** Custom PAYG top-up bounds in whole dollars (1 credit = $0.01). */
+export const PAYG_CREDITS_PER_USD = 100;
 export const PAYG_MIN_PURCHASE_USD = 10;
 export const PAYG_MAX_PURCHASE_USD = 10_000;
 

@@ -4,6 +4,7 @@ import { requireAuth } from '@/api/client';
 import { createImage, getImage, type Image } from '@/api/images';
 import { getActiveProfile } from '@/config/store';
 import { handleError } from '@/utils/errors';
+import { parseInteger, parsePositiveInteger } from '@/utils/options';
 import {
   downloadGeneratedFile,
   printGeneratedResult,
@@ -16,8 +17,29 @@ export const imageCommand = new Command('image')
   .description('Generate an AI image')
   .argument('<prompt>', 'The prompt describing the image to generate')
   .option('-m, --model <model>', 'Model to use for generation')
-  .option('-w, --width <width>', 'Image width in pixels', Number.parseInt)
-  .option('-h, --height <height>', 'Image height in pixels', Number.parseInt)
+  .option('-w, --width <width>', 'Image width in pixels', parsePositiveInteger)
+  .option('-h, --height <height>', 'Image height in pixels', parsePositiveInteger)
+  .option('--seed <seed>', 'Deterministic generation seed', parseInteger)
+  .option('--outputs <count>', 'Number of outputs', parsePositiveInteger)
+  .option('--reference <id...>', 'Source image ingredient IDs')
+  .option('--style <style>', 'Artistic or visual style')
+  .option('--format <format>', 'Output composition format')
+  .option('--mood <mood>', 'Mood direction')
+  .option('--camera <camera>', 'Camera angle')
+  .option('--lens <lens>', 'Lens direction')
+  .option('--scene <scene>', 'Scene direction')
+  .option('--lighting <lighting>', 'Lighting direction')
+  .option('--font-family <family>', 'Font family for generated text')
+  .option('--negative-prompt <prompt>', 'Elements to avoid')
+  .option('--blacklist <key...>', 'Blacklist element keys')
+  .option('--tag <id...>', 'Tag IDs to attach')
+  .option('--auto-model', 'Let Genfeed select the generation model')
+  .option('--prioritize <priority>', 'Auto-model priority: quality, speed, cost, balanced')
+  .option('--branding <mode>', 'Brand context: off or brand')
+  .option('--fidelity <mode>', 'Generation brief fidelity: off, guided, strict')
+  .option('--no-brand-assets', 'Disable brand asset inclusion')
+  .option('--prompt-template <key>', 'Prompt template key')
+  .option('--no-template', 'Disable prompt templates')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
   .option('-o, --output <path>', 'Download image to file')
   .option('--no-wait', 'Do not wait for generation to complete')
@@ -33,10 +55,31 @@ export const imageCommand = new Command('image')
       const spinner = ora('Creating image...').start();
 
       const image = await createImage({
+        autoSelectModel: options.autoModel,
+        blacklist: options.blacklist,
         brandId,
+        brandingMode: options.branding,
+        camera: options.camera,
+        fidelityMode: options.fidelity,
+        fontFamily: options.fontFamily,
+        format: options.format,
         height: options.height,
+        isBrandingEnabled: options.brandAssets,
+        lens: options.lens,
+        lighting: options.lighting,
         model,
+        mood: options.mood,
+        negativePrompt: options.negativePrompt,
+        outputs: options.outputs,
+        prioritize: options.prioritize,
+        promptTemplate: options.promptTemplate,
+        references: options.reference,
+        scene: options.scene,
+        seed: options.seed,
+        style: options.style,
+        tags: options.tag,
         text: prompt,
+        useTemplate: options.template,
         width: options.width,
       });
 

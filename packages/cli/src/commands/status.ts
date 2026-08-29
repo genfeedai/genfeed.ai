@@ -95,68 +95,35 @@ function formatStatus(result: StatusResult): string {
     : formatIngredientStatus(result.status);
 }
 
-export const statusCommand = new Command('status')
-  .description('Check the status of a generation job')
-  .argument('<id>', 'The ID of the image, video, or article')
-  .option('-t, --type <type>', 'Content type (image, video, or article)', 'image')
-  .option('--json', 'Output as JSON')
-  .action(async (id, options) => {
-    try {
-      await requireAuth();
-
-      const spinner = ora('Fetching status...').start();
-
-      let result: StatusResult;
-
+export function createStatusCommand(name = 'status'): Command {
+  return new Command(name)
+    .description('Check the status of a generation job')
+    .argument('<id>', 'The ID of the image, video, or article')
+    .option('-t, --type <type>', 'Content type (image, video, or article)', 'image')
+    .option('--json', 'Output as JSON')
+    .action(async (id, options) => {
       try {
-        if (options.type === 'article') {
-          const article = await getArticle(id);
-          result = {
-            category: article.category,
-            createdAt: article.createdAt,
-            id: article.id,
-            // The article serializer exposes no generation model; the headline
-            // is `label`, not `title`.
-            slug: article.slug,
-            status: article.status,
-            title: article.label,
-            type: 'article',
-          };
-        } else if (options.type === 'video') {
-          const video = await getVideo(id);
-          result = {
-            completedAt: video.completedAt,
-            createdAt: video.createdAt,
-            duration: video.duration,
-            error: video.error,
-            id: video.id,
-            model: video.model,
-            resolution: video.resolution,
-            status: video.status,
-            type: 'video',
-            url: video.url,
-          };
-        } else {
-          const image = await getImage(id);
-          result = {
-            completedAt: image.completedAt,
-            createdAt: image.createdAt,
-            dimensions:
-              image.width && image.height
-                ? { height: image.height, width: image.width }
-                : undefined,
-            error: image.error,
-            id: image.id,
-            model: image.model,
-            status: image.status,
-            type: 'image',
-            url: image.url,
-          };
-        }
-      } catch (err) {
-        // If image lookup fails, try video (auto-detect type)
-        if (options.type === 'image' && err instanceof ApiError && err.statusCode === 404) {
-          try {
+        await requireAuth();
+
+        const spinner = ora('Fetching status...').start();
+
+        let result: StatusResult;
+
+        try {
+          if (options.type === 'article') {
+            const article = await getArticle(id);
+            result = {
+              category: article.category,
+              createdAt: article.createdAt,
+              id: article.id,
+              // The article serializer exposes no generation model; the headline
+              // is `label`, not `title`.
+              slug: article.slug,
+              status: article.status,
+              title: article.label,
+              type: 'article',
+            };
+          } else if (options.type === 'video') {
             const video = await getVideo(id);
             result = {
               completedAt: video.completedAt,
@@ -170,74 +137,114 @@ export const statusCommand = new Command('status')
               type: 'video',
               url: video.url,
             };
-          } catch {
-            throw err; // Re-throw original error
+          } else {
+            const image = await getImage(id);
+            result = {
+              completedAt: image.completedAt,
+              createdAt: image.createdAt,
+              dimensions:
+                image.width && image.height
+                  ? { height: image.height, width: image.width }
+                  : undefined,
+              error: image.error,
+              id: image.id,
+              model: image.model,
+              status: image.status,
+              type: 'image',
+              url: image.url,
+            };
           }
-        } else {
-          throw err;
-        }
-      }
-
-      spinner.stop();
-
-      if (options.json) {
-        printJson(result);
-        return;
-      }
-
-      print(formatLabel('ID', result.id));
-      print(formatLabel('Type', result.type));
-      print(formatLabel('Status', formatStatus(result)));
-
-      if (result.type !== 'article') {
-        print(formatLabel('Model', result.model));
-
-        if (SUCCESS_STATUSES.has(result.status) && result.url) {
-          print(formatLabel('URL', result.url));
-
-          if (result.dimensions) {
-            print(
-              formatLabel('Dimensions', `${result.dimensions.width} × ${result.dimensions.height}`)
-            );
-          }
-
-          if (result.duration) {
-            print(formatLabel('Duration', `${result.duration}s`));
-          }
-
-          if (result.resolution) {
-            print(formatLabel('Resolution', result.resolution));
-          }
-
-          if (result.completedAt) {
-            const completedDate = new Date(result.completedAt);
-            print(formatLabel('Completed', completedDate.toLocaleString()));
+        } catch (err) {
+          // If image lookup fails, try video (auto-detect type)
+          if (options.type === 'image' && err instanceof ApiError && err.statusCode === 404) {
+            try {
+              const video = await getVideo(id);
+              result = {
+                completedAt: video.completedAt,
+                createdAt: video.createdAt,
+                duration: video.duration,
+                error: video.error,
+                id: video.id,
+                model: video.model,
+                resolution: video.resolution,
+                status: video.status,
+                type: 'video',
+                url: video.url,
+              };
+            } catch {
+              throw err; // Re-throw original error
+            }
+          } else {
+            throw err;
           }
         }
 
-        if (result.status === IngredientStatus.FAILED && result.error) {
+        spinner.stop();
+
+        if (options.json) {
+          printJson(result);
+          return;
+        }
+
+        print(formatLabel('ID', result.id));
+        print(formatLabel('Type', result.type));
+        print(formatLabel('Status', formatStatus(result)));
+
+        if (result.type !== 'article') {
+          print(formatLabel('Model', result.model));
+
+          if (SUCCESS_STATUSES.has(result.status) && result.url) {
+            print(formatLabel('URL', result.url));
+
+            if (result.dimensions) {
+              print(
+                formatLabel(
+                  'Dimensions',
+                  `${result.dimensions.width} × ${result.dimensions.height}`
+                )
+              );
+            }
+
+            if (result.duration) {
+              print(formatLabel('Duration', `${result.duration}s`));
+            }
+
+            if (result.resolution) {
+              print(formatLabel('Resolution', result.resolution));
+            }
+
+            if (result.completedAt) {
+              const completedDate = new Date(result.completedAt);
+              print(formatLabel('Completed', completedDate.toLocaleString()));
+            }
+          }
+
+          if (result.status === IngredientStatus.FAILED && result.error) {
+            print();
+            print(formatError(`Error: ${result.error}`));
+          }
+        }
+
+        if (result.type === 'article') {
+          if (result.title) {
+            print(formatLabel('Title', result.title));
+          }
+          if (result.category) {
+            print(formatLabel('Category', result.category));
+          }
+          if (result.slug) {
+            print(formatLabel('Slug', result.slug));
+          }
+        }
+
+        if (result.type !== 'article' && IN_PROGRESS_STATUSES.has(result.status)) {
           print();
-          print(formatError(`Error: ${result.error}`));
+          print(chalk.dim('Generation is still in progress. Check again later.'));
         }
+      } catch (error) {
+        handleError(error);
       }
+    });
+}
 
-      if (result.type === 'article') {
-        if (result.title) {
-          print(formatLabel('Title', result.title));
-        }
-        if (result.category) {
-          print(formatLabel('Category', result.category));
-        }
-        if (result.slug) {
-          print(formatLabel('Slug', result.slug));
-        }
-      }
-
-      if (IN_PROGRESS_STATUSES.has(result.status)) {
-        print();
-        print(chalk.dim('Generation is still in progress. Check again later.'));
-      }
-    } catch (error) {
-      handleError(error);
-    }
-  });
+export const statusCommand = createStatusCommand();

@@ -1,31 +1,61 @@
+import { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { get, post, requireAuth } from '@/api/client';
+import { requireAuth } from '@/api/client';
 import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from '@/api/json-api';
+  getWorkflow,
+  getWorkflowExecution,
+  listWorkflowExecutions,
+  listWorkflows,
+  type Workflow,
+  type WorkflowExecution,
+} from '@/api/workflows';
+import { runWorkflow } from '@/operations/workflows';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
-interface Workflow {
-  id: string;
-  label?: string;
-  description?: string;
-  key?: string;
-  nodes?: Array<{ id: string; type: string; data?: { label?: string } }>;
-  status?: string;
-  version?: number;
-  versionId?: string;
-  createdAt?: string;
-  updatedAt?: string;
+interface ListOptions {
+  json?: boolean;
+  limit: number;
 }
 
-interface WorkflowExecution {
-  id: string;
+interface RunListOptions extends ListOptions {
+  status?: WorkflowExecutionStatus;
+  workflow?: string;
+}
+
+interface RunOptions {
+  inputs?: string;
+  json?: boolean;
+  trigger: WorkflowExecutionTrigger;
+}
+
+interface JsonOutputOptions {
+  json?: boolean;
+}
+
+function parseExecutionStatus(value: string): WorkflowExecutionStatus {
+  const normalized = value.trim().toUpperCase();
+  if (!Object.values(WorkflowExecutionStatus).includes(normalized as WorkflowExecutionStatus)) {
+    throw new GenfeedError(
+      `Unknown workflow run status "${value}"`,
+      `Use one of: ${Object.values(WorkflowExecutionStatus).join(', ')}`
+    );
+  }
+  return normalized as WorkflowExecutionStatus;
+}
+
+function parseExecutionTrigger(value: string): WorkflowExecutionTrigger {
+  const normalized = value.trim().toLowerCase();
+  if (!Object.values(WorkflowExecutionTrigger).includes(normalized as WorkflowExecutionTrigger)) {
+    throw new GenfeedError(
+      `Unknown workflow trigger "${value}"`,
+      `Use one of: ${Object.values(WorkflowExecutionTrigger).join(', ')}`
+    );
+  }
+  return normalized as WorkflowExecutionTrigger;
 }
 
 function parseInputsOption(value: string): Record<string, unknown> {
@@ -35,164 +65,157 @@ function parseInputsOption(value: string): Record<string, unknown> {
   } catch {
     throw new GenfeedError('--inputs must be a JSON object');
   }
-
   if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
     throw new GenfeedError('--inputs must be a JSON object');
   }
-
   return parsed as Record<string, unknown>;
 }
 
+function printWorkflow(workflow: Workflow): void {
+  const status = workflow.status
+    ? workflow.status === 'active'
+      ? chalk.green(workflow.status)
+      : chalk.dim(workflow.status)
+    : '';
+  print(
+    `  ${chalk.cyan(workflow.label ?? workflow.key ?? workflow.id)} ${chalk.dim(`(${workflow.id})`)} ${status}`
+  );
+  if (workflow.description) print(`  ${chalk.dim(workflow.description)}`);
+  print();
+}
+
+function printExecution(execution: WorkflowExecution): void {
+  print(
+    `  ${chalk.cyan(execution.workflow?.label ?? execution.workflowId ?? 'Workflow')} ${chalk.dim(`(${execution.id})`)} ${execution.status ?? ''}`
+  );
+}
+
+async function withCommandError(action: () => Promise<void>): Promise<void> {
+  try {
+    await requireAuth();
+    await action();
+  } catch (error) {
+    handleError(error);
+  }
+}
+
 export const workflowCommand = new Command('workflow')
-  .description('Manage and execute workflows')
+  .description('List and run workflows')
   .addCommand(
     new Command('list')
       .description('List available workflows')
-      .option('--status <status>', 'Filter by status (draft, active, paused, completed, failed)')
-      .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
+      .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
       .option('--json', 'Output as JSON')
-      .action(async (options) => {
-        try {
-          await requireAuth();
-
+      .action((options: ListOptions) =>
+        withCommandError(async () => {
           const spinner = ora('Fetching workflows...').start();
           try {
-            const query = new URLSearchParams();
-            if (options.status) query.set('status', options.status);
-            if (options.limit) query.set('limit', String(options.limit));
-            const qs = query.toString();
-            const path = qs ? `/workflows?${qs}` : '/workflows';
-
-            const response = await get<JsonApiCollectionResponse>(path);
-            const workflows = flattenCollection<Workflow>(response);
+            const workflows = await listWorkflows(options);
             spinner.stop();
-
-            if (options.json) {
-              printJson(workflows);
-              return;
-            }
-
-            if (workflows.length === 0) {
-              print(chalk.dim('No workflows found.'));
-              return;
-            }
-
+            if (options.json) return printJson(workflows);
+            if (workflows.length === 0) return print(chalk.dim('No workflows found.'));
             print(formatHeader('\nWorkflows:\n'));
-            for (const wf of workflows) {
-              const status = wf.status
-                ? wf.status === 'active'
-                  ? chalk.green(wf.status)
-                  : chalk.dim(wf.status)
-                : '';
-              print(
-                `  ${chalk.cyan(wf.label ?? wf.key ?? wf.id)} ${chalk.dim(`(${wf.id})`)} ${status}`
-              );
-              if (wf.description) {
-                print(`  ${chalk.dim(wf.description)}`);
-              }
-              print();
-            }
+            workflows.forEach(printWorkflow);
           } catch (error) {
             spinner.fail('Failed to fetch workflows');
             throw error;
           }
-        } catch (error) {
-          handleError(error);
-        }
-      })
+        })
+      )
   )
   .addCommand(
     new Command('run')
-      .description('Execute a workflow')
-      .argument('<id>', 'Workflow ID to execute')
-      .option('--inputs <json>', 'JSON object of input variables for the workflow')
-      .option('-t, --trigger <trigger>', 'Execution trigger', 'manual')
+      .description('Execute a workflow by ID, key, or exact label')
+      .argument('<workflow>', 'Workflow ID, key, or exact label')
+      .option('--inputs <json>', 'JSON object of workflow input variables')
+      .option(
+        '-t, --trigger <trigger>',
+        'Execution trigger',
+        parseExecutionTrigger,
+        WorkflowExecutionTrigger.MANUAL
+      )
       .option('--json', 'Output as JSON')
-      .action(async (id, options) => {
-        try {
-          await requireAuth();
-
-          let inputs: Record<string, unknown> | undefined;
-          if (options.inputs) {
-            inputs = parseInputsOption(options.inputs);
-          }
-
+      .action((reference: string, options: RunOptions) =>
+        withCommandError(async () => {
+          const inputs = options.inputs ? parseInputsOption(options.inputs) : undefined;
           const spinner = ora('Executing workflow...').start();
           try {
-            const body: Record<string, unknown> = {
-              trigger: options.trigger,
-              workflowId: id,
-            };
-            if (inputs) {
-              body.inputValues = inputs;
-            }
-
-            const response = await post<JsonApiSingleResponse>('/workflow-executions', body);
-            const execution = flattenSingle<WorkflowExecution>(response);
+            const result = await runWorkflow(reference, inputs, options.trigger);
             spinner.succeed('Workflow execution started');
-
             if (options.json) {
-              printJson({ executionId: execution.id, workflowId: id });
-            } else {
-              print(chalk.dim(`Execution ID: ${execution.id}`));
+              return printJson({
+                executionId: result.execution.id,
+                workflowId: result.workflow.id,
+              });
             }
+            print(formatLabel('Workflow', result.workflow.label ?? result.workflow.id));
+            print(formatLabel('Execution ID', result.execution.id));
           } catch (error) {
             spinner.fail('Failed to execute workflow');
             throw error;
           }
-        } catch (error) {
-          handleError(error);
-        }
-      })
+        })
+      )
+  )
+  .addCommand(
+    new Command('runs')
+      .description('List workflow runs')
+      .option('--workflow <id>', 'Filter by workflow ID')
+      .option('--status <status>', 'Filter by run status', parseExecutionStatus)
+      .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
+      .option('--json', 'Output as JSON')
+      .action((options: RunListOptions) =>
+        withCommandError(async () => {
+          const runs = await listWorkflowExecutions({
+            limit: options.limit,
+            status: options.status,
+            workflowId: options.workflow,
+          });
+          if (options.json) return printJson(runs);
+          if (runs.length === 0) return print(chalk.dim('No workflow runs found.'));
+          print(formatHeader('\nWorkflow runs:\n'));
+          runs.forEach(printExecution);
+        })
+      )
+  )
+  .addCommand(
+    new Command('status')
+      .description('Show one workflow run')
+      .argument('<execution-id>', 'Workflow execution ID')
+      .option('--json', 'Output as JSON')
+      .action((id: string, options: JsonOutputOptions) =>
+        withCommandError(async () => {
+          const execution = await getWorkflowExecution(id);
+          if (options.json) return printJson(execution);
+          print(formatHeader('\nWorkflow run:\n'));
+          print(formatLabel('ID', execution.id));
+          print(formatLabel('Workflow', execution.workflow?.label ?? execution.workflowId ?? '-'));
+          print(formatLabel('Status', execution.status ?? '-'));
+          if (execution.error) print(formatLabel('Error', execution.error));
+        })
+      )
   )
   .addCommand(
     new Command('show')
       .description('Show workflow details')
       .argument('<id>', 'Workflow ID')
       .option('--json', 'Output as JSON')
-      .action(async (id, options) => {
-        try {
-          await requireAuth();
-
-          const spinner = ora('Fetching workflow...').start();
-          try {
-            const response = await get<JsonApiSingleResponse>(`/workflows/${id}`);
-            const workflow = flattenSingle<Workflow>(response);
-            spinner.stop();
-
-            if (options.json) {
-              printJson(workflow);
-              return;
+      .action((id: string, options: JsonOutputOptions) =>
+        withCommandError(async () => {
+          const workflow = await getWorkflow(id);
+          if (options.json) return printJson(workflow);
+          print(formatHeader('\nWorkflow details:\n'));
+          print(formatLabel('ID', workflow.id));
+          if (workflow.label) print(formatLabel('Label', workflow.label));
+          if (workflow.key) print(formatLabel('Key', workflow.key));
+          if (workflow.description) print(formatLabel('Description', workflow.description));
+          if (workflow.status) print(formatLabel('Status', workflow.status));
+          if (workflow.nodes?.length) {
+            print(formatHeader('\nNodes:\n'));
+            for (const node of workflow.nodes) {
+              print(`  ${node.data?.label ?? node.id} ${chalk.blue(`[${node.type}]`)}`);
             }
-
-            print(formatHeader('\nWorkflow Details:\n'));
-            print(formatLabel('ID', workflow.id));
-            if (workflow.label) {
-              print(formatLabel('Label', workflow.label));
-            }
-            if (workflow.key) {
-              print(formatLabel('Key', workflow.key));
-            }
-            if (workflow.description) {
-              print(formatLabel('Description', workflow.description));
-            }
-            if (workflow.status) {
-              print(formatLabel('Status', workflow.status));
-            }
-
-            if (workflow.nodes?.length) {
-              print();
-              print(formatHeader('Nodes:\n'));
-              for (const node of workflow.nodes) {
-                print(`  ${node.data?.label ?? node.id} ${chalk.blue(`[${node.type}]`)}`);
-              }
-            }
-          } catch (error) {
-            spinner.fail('Failed to fetch workflow');
-            throw error;
           }
-        } catch (error) {
-          handleError(error);
-        }
-      })
+        })
+      )
   );

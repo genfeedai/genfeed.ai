@@ -194,11 +194,13 @@ function CliAuthPageContent() {
   const desktopState = searchParams.get('state');
   const codeChallenge = searchParams.get('code_challenge');
   const codeChallengeMethod = searchParams.get('code_challenge_method');
+  const authIntent =
+    searchParams.get('intent') === 'signup' ? 'signup' : 'login';
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
   const callbackPath = `/oauth/cli${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-  const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
+  const authHref = `/${authIntent === 'signup' ? 'sign-up' : 'login'}?callbackUrl=${encodeURIComponent(callbackPath)}`;
 
   const requestTokenAndRedirect = useCallback(
     async (signal: AbortSignal) => {
@@ -551,11 +553,23 @@ function CliAuthPageContent() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Terminal className="size-8 text-muted-foreground" />}
-                  title="Sign in required"
-                  description="Sign in to authorize this device."
+                  title={
+                    authIntent === 'signup'
+                      ? 'Create an account'
+                      : 'Sign in required'
+                  }
+                  description={
+                    authIntent === 'signup'
+                      ? 'Create an account to authorize this device.'
+                      : 'Sign in to authorize this device.'
+                  }
                 />
                 <Button asChild className="w-full" withWrapper={false}>
-                  <Link href={loginHref}>Sign in to continue</Link>
+                  <Link href={authHref}>
+                    {authIntent === 'signup'
+                      ? 'Create account to continue'
+                      : 'Sign in to continue'}
+                  </Link>
                 </Button>
               </div>
             )}

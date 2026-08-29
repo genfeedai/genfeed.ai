@@ -17,6 +17,7 @@ import {
   printJson,
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 type Spinner = ReturnType<typeof ora>;
 
@@ -38,11 +39,11 @@ function parseCsv(value?: string): string[] | undefined {
 }
 
 function parseRateLimit(value: string): number {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) {
+  try {
+    return parsePositiveInteger(value);
+  } catch {
     throw new GenfeedError('Invalid rate limit', 'Use a positive integer');
   }
-  return parsed;
 }
 
 function parseExpiry(value?: string): string | undefined {
