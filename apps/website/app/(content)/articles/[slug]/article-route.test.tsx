@@ -358,6 +358,26 @@ describe('ArticlePreviewRoute', () => {
     expect(detail.props.isPreview).toBe(true);
   });
 
+  // Next resolves a repeated query key to an array, which must never reach a
+  // lookup that expects a single token.
+  it('ignores a repeated preview token', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
+
+    await resolveAsyncElement(
+      await ArticlePreviewRoute({
+        params: Promise.resolve({ slug: 'route-preview' }),
+        searchParams: Promise.resolve({
+          previewToken: ['token-123', 'token-456'],
+        }),
+      }),
+    );
+
+    expect(getPublicArticleBySlug).toHaveBeenCalledWith(
+      'route-preview',
+      undefined,
+    );
+  });
+
   // A draft URL that leaks into a crawl must not be indexed under the slug the
   // published article will own.
   it('keeps drafts out of the index', async () => {
