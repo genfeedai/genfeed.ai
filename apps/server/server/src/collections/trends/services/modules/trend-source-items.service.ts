@@ -1,3 +1,5 @@
+import { Platform } from '@genfeedai/enums';
+import { Injectable } from '@nestjs/common';
 import { TrendEntity } from '@server/collections/trends/entities/trend.entity';
 import type {
   TrendSourceClassification,
@@ -13,8 +15,6 @@ import type {
   ApifyYouTubeVideo,
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
-import { Platform } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Owns the trend "source item" subsystem: live Apify fetch + per-platform
@@ -312,9 +312,9 @@ export class TrendSourceItemsService {
         ? new Date(video.createTime * 1000).toISOString()
         : undefined,
       sourceUrl: video.webVideoUrl,
-      text: video.desc,
+      text: video.text,
       thumbnailUrl: video.authorMeta?.avatar || video.musicMeta?.coverUrl,
-      title: this.truncateText(video.desc, 100),
+      title: this.truncateText(video.text, 100),
     };
   }
 
