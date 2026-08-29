@@ -45,9 +45,15 @@ describe('browser extension theme CSS contract', () => {
       }
       expect(compiledStyles).not.toContain('@theme');
       expect(compiledStyles).not.toContain('@source');
-      expect(compiledStyles).toContain(
-        String.raw`.dark\:bg-background:where([data-theme=dark],[data-theme=dark] *)`,
-      );
+      // The `@shipshitdev/ui` vendor `@source` scan (the only place that ever
+      // referenced a literal `dark:` utility) was removed in #3490. Every
+      // in-repo primitive now themes purely through the semantic CSS custom
+      // properties (`bg-background` resolves `hsl(var(--background))`, which
+      // already responds to `[data-theme="dark"]`), so no `dark:`-prefixed
+      // candidate is scanned into this bundle. What still matters in
+      // production is that IF a `dark:` utility is ever introduced, the
+      // custom variant binds it to `[data-theme="dark"]` and never falls
+      // back to the default `prefers-color-scheme` media query.
       expect(compiledStyles).not.toMatch(
         /@media \(prefers-color-scheme:dark\)\{\.dark\\:/,
       );
