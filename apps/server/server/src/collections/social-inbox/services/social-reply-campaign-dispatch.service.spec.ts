@@ -5,11 +5,13 @@ import {
 } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { SOCIAL_INBOX_OUTBOUND_ACTION_IDS } from '@server/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
+import { buildSocialReplyCampaignWorkflowDefinition } from '@server/collections/social-inbox/services/social-reply-campaign-workflow-definition';
 import {
   SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS,
   SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
   SocialReplyCampaignDispatchService,
 } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 
 type StoreCampaign = Record<string, unknown> & {
   dispatchCursor: number;
@@ -69,7 +71,15 @@ function matchesWhere<T extends Record<string, unknown>>(
       }
     }
 
-    return item[key] === value;
+    // Prisma compares timestamp columns by value; the dispatch graph carries
+    // `dispatchedAt` across actions as an ISO string, so the claim instant
+    // arrives back here as a fresh Date object.
+    const current = item[key];
+    if (current instanceof Date && value instanceof Date) {
+      return current.getTime() === value.getTime();
+    }
+
+    return current === value;
   });
 }
 
@@ -328,73 +338,12 @@ function createContext(options: {
         unknown
       >,
   );
-  const provenanceService = {
-    registerAction: vi.fn(
-      (
-        actionId: string,
-        executor: (request: Record<string, unknown>) => Promise<unknown>,
-      ) => actionExecutors.set(actionId, executor),
-    ),
-    runWorkflow: vi.fn(
-      async (
-        definition: {
-          definition: {
-            edges: Array<{
-              source: string;
-              sourceHandle?: string;
-              target: string;
-              targetHandle?: string;
-            }>;
-            nodes: Array<{
-              data: { config: Record<string, unknown> };
-              id: string;
-            }>;
-          };
-          resultNodeId: string;
-        },
-        input: {
-          inputValues?: Record<string, unknown>;
-          organizationId: string;
-        },
-      ) => {
-        const outputs = new Map<string, unknown>();
-        for (const node of definition.definition.nodes) {
-          const actionId = String(node.data.config.actionId);
-          const executor = actionExecutors.get(actionId);
-          if (!executor) throw new Error(`Missing action ${actionId}`);
-          const actionInput: Record<string, unknown> = {
-            ...input.inputValues,
-          };
-          for (const edge of definition.definition.edges.filter(
-            (candidate) => candidate.target === node.id,
-          )) {
-            const source = outputs.get(edge.source);
-            const value =
-              edge.sourceHandle &&
-              source &&
-              typeof source === 'object' &&
-              edge.sourceHandle in source
-                ? (source as Record<string, unknown>)[edge.sourceHandle]
-                : source;
-            actionInput[edge.targetHandle ?? edge.source] = value;
-          }
-          outputs.set(
-            node.id,
-            await executor({
-              context: { organizationId: input.organizationId },
-              input: actionInput,
-              provenance: {
-                executionId: 'execution-1',
-                workflowId: 'workflow-1',
-                workflowLabel: 'Inbox Reply Campaign Dispatch',
-              },
-            }),
-          );
-        }
-        return { result: outputs.get(definition.resultNodeId) };
-      },
-    ),
-  };
+  const provenanceService = createSystemWorkflowRunnerMock({
+    definitions: [buildSocialReplyCampaignWorkflowDefinition()],
+  });
+  for (const [actionId, executor] of actionExecutors) {
+    provenanceService.registerAction(actionId, executor as never);
+  }
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
@@ -497,8 +446,8 @@ describe('SocialReplyCampaignDispatchService', () => {
         sentCount: 1,
       });
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
-        expect.anything(),
         expect.objectContaining({
+          canonicalId: 'social.reply-campaign.dispatch-tick',
           inputValues: {
             request: {
               campaignId: 'campaign-1',
@@ -508,7 +457,6 @@ describe('SocialReplyCampaignDispatchService', () => {
           },
         }),
         'social-reply-campaign-campaign-1-2',
-        undefined,
         expect.objectContaining({ delayMs: 60_000 }),
       );
     });
@@ -530,10 +478,6 @@ describe('SocialReplyCampaignDispatchService', () => {
       await context.service.dispatchTick(TICK);
 
       expect(context.provenanceService.runWorkflow).toHaveBeenCalledWith(
-        expect.objectContaining({
-          canonicalId: 'social.reply-campaign.dispatch-tick',
-          resultNodeId: 'finalize-tick',
-        }),
         expect.objectContaining({
           canonicalId: 'social.reply-campaign.dispatch-tick',
           inputValues: { request: TICK },
@@ -593,9 +537,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.actionService.postReply).not.toHaveBeenCalled();
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
-        expect.anything(),
         'social-reply-campaign-campaign-1-2',
-        undefined,
         expect.objectContaining({
           delayMs: (result.nextRunInSeconds ?? 0) * 1000,
         }),
@@ -671,9 +613,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       // No cooldown for a skip — nothing was actually sent.
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
-        expect.anything(),
         'social-reply-campaign-campaign-1-2',
-        undefined,
         expect.objectContaining({ delayMs: 0 }),
       );
     });
@@ -702,9 +642,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       });
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
-        expect.anything(),
         'social-reply-campaign-campaign-1-2',
-        undefined,
         expect.objectContaining({ delayMs: 60_000 }),
       );
     });
@@ -745,7 +683,9 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       const result = await context.service.dispatchTick(TICK);
 
+      // Nothing was sent, so the successor tick keeps draining immediately.
       expect(result).toEqual({
+        nextRunInSeconds: 0,
         outcome: 'recipient-skipped',
         recipientId: 'recipient-1',
       });
@@ -833,9 +773,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       ).toBe(true);
       expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
-        expect.anything(),
         'social-reply-campaign-campaign-1-2',
-        undefined,
         expect.objectContaining({ delayMs: 0 }),
       );
     });

@@ -1,4 +1,9 @@
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import {
+  buildAuthorReplyDraftWorkflowDefinition,
+  buildAuthorReplySendWorkflowDefinition,
+} from '@server/services/reply-bot/author-reply-workflow-definition';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AuthorReplyLoopService', () => {
@@ -19,76 +24,12 @@ describe('AuthorReplyLoopService', () => {
   const replyGenerationService = {
     generateReply: vi.fn().mockResolvedValue('Solid take — here is why.'),
   };
-  const actionExecutors = new Map<
-    string,
-    (request: Record<string, unknown>) => Promise<unknown>
-  >();
-  const systemWorkflowRunner = {
-    registerAction: vi.fn(
-      (
-        actionId: string,
-        executor: (request: Record<string, unknown>) => Promise<unknown>,
-      ) => actionExecutors.set(actionId, executor),
-    ),
-    runWorkflow: vi.fn(
-      async (
-        definition: {
-          definition: {
-            edges: Array<{
-              source: string;
-              sourceHandle?: string;
-              target: string;
-              targetHandle?: string;
-            }>;
-            nodes: Array<{
-              data: { config: Record<string, unknown> };
-              id: string;
-            }>;
-          };
-          resultNodeId: string;
-        },
-        input: { inputValues?: Record<string, unknown> },
-      ) => {
-        const outputs = new Map<string, unknown>();
-        for (const node of definition.definition.nodes) {
-          const executor = actionExecutors.get(
-            String(node.data.config.actionId),
-          );
-          if (!executor) {
-            throw new Error(
-              `Missing action executor: ${String(node.data.config.actionId)}`,
-            );
-          }
-          const actionInput: Record<string, unknown> = {
-            ...input.inputValues,
-          };
-          for (const edge of definition.definition.edges.filter(
-            (candidate) => candidate.target === node.id,
-          )) {
-            const source = outputs.get(edge.source);
-            actionInput[edge.targetHandle ?? edge.source] =
-              edge.sourceHandle &&
-              source &&
-              typeof source === 'object' &&
-              edge.sourceHandle in source
-                ? (source as Record<string, unknown>)[edge.sourceHandle]
-                : source;
-          }
-          outputs.set(
-            node.id,
-            await executor({
-              input: actionInput,
-              provenance: { executionId: 'execution-1' },
-            }),
-          );
-        }
-        return {
-          provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
-          result: outputs.get(definition.resultNodeId),
-        };
-      },
-    ),
-  };
+  const systemWorkflowRunner = createSystemWorkflowRunnerMock({
+    definitions: [
+      buildAuthorReplyDraftWorkflowDefinition(),
+      buildAuthorReplySendWorkflowDefinition(),
+    ],
+  });
   const executeWorkflowDefinition =
     systemWorkflowRunner.runWorkflow.getMockImplementation();
   const replyBotConfigsService = {
@@ -294,12 +235,16 @@ describe('AuthorReplyLoopService', () => {
       id: 'x-cred',
       username: 'brandx',
     });
+    // `sendReply` returns the workflow result verbatim, so the stub carries the
+    // public `AuthorReplySendResult` contract, not the internal send state.
     systemWorkflowRunner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
       result: {
-        replyContentId: 'x-reply-1',
-        replyContentUrl: 'https://x.com/brandx/status/x-reply-1',
-        replySent: true,
+        commentId: 'c1',
+        contentId: 'x-reply-1',
+        contentUrl: 'https://x.com/brandx/status/x-reply-1',
+        replyText: 'Thanks!',
+        success: true,
       },
     });
 
@@ -348,7 +293,12 @@ describe('AuthorReplyLoopService', () => {
     });
     systemWorkflowRunner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
-      result: { replyContentId: 'yt-reply-1', replySent: true },
+      result: {
+        commentId: 'c1',
+        contentId: 'yt-reply-1',
+        replyText: 'Thanks for watching!',
+        success: true,
+      },
     });
 
     const result = await service.sendReply({
