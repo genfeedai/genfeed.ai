@@ -1,55 +1,57 @@
 #!/usr/bin/env bun
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+/**
+ * Per-route first-load JavaScript collector.
+ *
+ * Reads a finished `next build` output directory and reports, for every App
+ * Router route, the gzipped size of the JavaScript a browser must download
+ * before that route becomes interactive. That is the number a reviewer needs
+ * when a pull request statically imports a heavy library onto a hot route.
+ *
+ * It reads Next's own manifests rather than an analyzer plugin report:
+ * `@next/bundle-analyzer` is a webpack plugin, and `apps/app` builds with
+ * `--turbopack`, so the plugin never runs there. `app-build-manifest.json` and
+ * `build-manifest.json` are emitted by both bundlers.
+ *
+ * First-load for a route is the union of that route's own chunks with the
+ * chunks every route pays for (`rootMainFiles` plus `polyfillFiles`), matching
+ * how Next's build summary attributes shared chunks.
+ *
+ * Usage:
+ *     bun run scripts/collect-bundle-manifest.ts \
+ *       --app app --dist apps/app/.next --out bundle-head.json
+ */
+
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 
-const KNOWN_APPS = [
-  'admin',
-  'app',
-  'chatgpt',
-  'marketplace',
-  'website',
-] as const;
-const RUNTIMES = ['client', 'nodejs', 'edge'] as const;
-
-type AppName = (typeof KNOWN_APPS)[number];
-type RuntimeName = (typeof RUNTIMES)[number];
-
-interface AnalyzerAsset {
-  gzipSize?: number;
-  isInitialByEntrypoint?: Record<string, boolean>;
-  label: string;
-  parsedSize?: number;
-  statSize: number;
+interface AppBuildManifest {
+  pages: Record<string, string[]>;
 }
 
-interface RuntimeSummary {
-  assetCount: number;
-  initialAssetCount: number;
-  initialGzipSize: number | null;
-  initialParsedSize: number | null;
-  initialStatSize: number;
-  runtime: RuntimeName;
-  totalGzipSize: number | null;
-  totalParsedSize: number | null;
-  totalStatSize: number;
+interface BuildManifest {
+  polyfillFiles?: string[];
+  rootMainFiles?: string[];
 }
 
-interface AppManifest {
-  app: AppName;
-  runtimes: Partial<Record<RuntimeName, RuntimeSummary>>;
+interface RouteSummary {
+  chunkCount: number;
+  firstLoadGzipBytes: number;
+  route: string;
 }
 
 interface BundleManifest {
-  apps: AppManifest[];
+  app: string;
   generatedAt: string;
-  workspace: string;
+  routes: RouteSummary[];
+  sharedGzipBytes: number;
 }
 
 interface CliArgs {
-  apps: AppName[];
+  app: string;
+  dist: string;
   out: string;
-  workspace: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -59,8 +61,14 @@ function parseArgs(argv: string[]): CliArgs {
     const current = argv[index];
     const next = argv[index + 1];
 
-    if (current === '--workspace' && next) {
-      args.workspace = next;
+    if (current === '--app' && next) {
+      args.app = next;
+      index += 1;
+      continue;
+    }
+
+    if (current === '--dist' && next) {
+      args.dist = next;
       index += 1;
       continue;
     }
@@ -68,103 +76,29 @@ function parseArgs(argv: string[]): CliArgs {
     if (current === '--out' && next) {
       args.out = next;
       index += 1;
-      continue;
-    }
-
-    if (current === '--apps' && next) {
-      args.apps = next
-        .split(',')
-        .map((value) => value.trim())
-        .filter((value): value is AppName =>
-          KNOWN_APPS.includes(value as AppName),
-        );
-      index += 1;
     }
   }
 
-  if (!args.workspace) {
-    throw new Error('Missing required argument: --workspace <path>');
+  if (!args.app) {
+    throw new Error('Missing required argument: --app <name>');
+  }
+
+  if (!args.dist) {
+    throw new Error('Missing required argument: --dist <path>');
   }
 
   if (!args.out) {
     throw new Error('Missing required argument: --out <path>');
   }
 
-  return {
-    apps: args.apps?.length ? args.apps : [...KNOWN_APPS],
-    out: args.out,
-    workspace: args.workspace,
-  };
+  return { app: args.app, dist: args.dist, out: args.out };
 }
 
-function isInitialAsset(asset: AnalyzerAsset): boolean {
-  return Object.values(asset.isInitialByEntrypoint ?? {}).some(Boolean);
-}
-
-function sumMetric(
-  assets: AnalyzerAsset[],
-  key: 'gzipSize' | 'parsedSize' | 'statSize',
-): number {
-  return assets.reduce((total, asset) => total + (asset[key] ?? 0), 0);
-}
-
-function summarizeOptionalMetric(
-  assets: AnalyzerAsset[],
-  key: 'gzipSize' | 'parsedSize',
-): number | null {
-  if (
-    !assets.length ||
-    !assets.some((asset) => typeof asset[key] === 'number')
-  ) {
-    return null;
-  }
-
-  return sumMetric(assets, key);
-}
-
-function summarizeRuntime(
-  assets: AnalyzerAsset[],
-  runtime: RuntimeName,
-): RuntimeSummary {
-  const initialAssets = assets.filter(isInitialAsset);
-
-  return {
-    assetCount: assets.length,
-    initialAssetCount: initialAssets.length,
-    initialGzipSize: summarizeOptionalMetric(initialAssets, 'gzipSize'),
-    initialParsedSize: summarizeOptionalMetric(initialAssets, 'parsedSize'),
-    initialStatSize: sumMetric(initialAssets, 'statSize'),
-    runtime,
-    totalGzipSize: summarizeOptionalMetric(assets, 'gzipSize'),
-    totalParsedSize: summarizeOptionalMetric(assets, 'parsedSize'),
-    totalStatSize: sumMetric(assets, 'statSize'),
-  };
-}
-
-async function readRuntimeReport(
-  workspace: string,
-  app: AppName,
-  runtime: RuntimeName,
-): Promise<RuntimeSummary | null> {
-  const reportPath = path.join(
-    workspace,
-    'apps',
-    'web',
-    app,
-    '.next',
-    'analyze',
-    `${runtime}.json`,
-  );
-
+async function readJson<T>(filePath: string): Promise<T | null> {
   try {
-    const report = JSON.parse(
-      await readFile(reportPath, 'utf8'),
-    ) as AnalyzerAsset[];
-
-    return summarizeRuntime(report, runtime);
+    return JSON.parse(await readFile(filePath, 'utf8')) as T;
   } catch (error) {
-    const nodeError = error as NodeJS.ErrnoException;
-    if (nodeError.code === 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return null;
     }
 
@@ -172,32 +106,98 @@ async function readRuntimeReport(
   }
 }
 
+/**
+ * Gzipped size is what crosses the wire. Cached per chunk because shared
+ * chunks appear in most routes and gzipping the framework bundle repeatedly
+ * dominates the runtime otherwise.
+ */
+const gzipCache = new Map<string, number>();
+
+async function gzipBytes(dist: string, chunk: string): Promise<number> {
+  const cached = gzipCache.get(chunk);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const chunkPath = path.join(dist, chunk);
+  let size = 0;
+
+  try {
+    const info = await stat(chunkPath);
+    if (info.isFile()) {
+      size = gzipSync(await readFile(chunkPath)).byteLength;
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  gzipCache.set(chunk, size);
+  return size;
+}
+
+async function sumGzip(dist: string, chunks: string[]): Promise<number> {
+  const sizes = await Promise.all(
+    chunks.map((chunk) => gzipBytes(dist, chunk)),
+  );
+
+  return sizes.reduce((total, size) => total + size, 0);
+}
+
+/** `/dashboard/page` and `/dashboard/route` both address the route `/dashboard`. */
+function toRoute(entry: string): string {
+  const route = entry.replace(/\/(page|route)$/, '');
+  return route === '' ? '/' : route;
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
-  const apps = await Promise.all(
-    args.apps.map(async (app) => {
-      const runtimes = Object.fromEntries(
-        (
-          await Promise.all(
-            RUNTIMES.map(async (runtime) => [
-              runtime,
-              await readRuntimeReport(args.workspace, app, runtime),
-            ]),
-          )
-        ).filter(
-          (entry): entry is [RuntimeName, RuntimeSummary] => entry[1] !== null,
-        ),
-      ) as Partial<Record<RuntimeName, RuntimeSummary>>;
-
-      return { app, runtimes };
-    }),
+  const appManifest = await readJson<AppBuildManifest>(
+    path.join(args.dist, 'app-build-manifest.json'),
   );
 
+  if (!appManifest) {
+    throw new Error(
+      `No app-build-manifest.json under ${args.dist}. Run \`next build\` first.`,
+    );
+  }
+
+  const buildManifest =
+    (await readJson<BuildManifest>(
+      path.join(args.dist, 'build-manifest.json'),
+    )) ?? {};
+
+  const shared = [
+    ...(buildManifest.rootMainFiles ?? []),
+    ...(buildManifest.polyfillFiles ?? []),
+  ];
+  const sharedGzipBytes = await sumGzip(args.dist, shared);
+
+  const routes: RouteSummary[] = [];
+
+  for (const [entry, chunks] of Object.entries(appManifest.pages)) {
+    if (!entry.endsWith('/page') && !entry.endsWith('/route')) {
+      continue;
+    }
+
+    const unique = [...new Set([...shared, ...chunks])];
+
+    routes.push({
+      chunkCount: unique.length,
+      firstLoadGzipBytes: await sumGzip(args.dist, unique),
+      route: toRoute(entry),
+    });
+  }
+
+  routes.sort((left, right) => left.route.localeCompare(right.route));
+
   const manifest: BundleManifest = {
-    apps,
+    app: args.app,
     generatedAt: new Date().toISOString(),
-    workspace: path.resolve(args.workspace),
+    routes,
+    sharedGzipBytes,
   };
 
   await mkdir(path.dirname(args.out), { recursive: true });

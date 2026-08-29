@@ -1,0 +1,162 @@
+# Bundle Size
+#
+# Reports the per-route first-load JavaScript delta of a pull request as a
+# sticky comment, so a static import of a heavy library onto a hot route is
+# visible in review instead of in field vitals a week later.
+#
+# Advisory by design: `continue-on-error` keeps a bundler quirk or a missing
+# baseline from blocking the merge queue. The number is the signal, not a gate.
+#
+# The baseline comes from an `actions/cache` entry written by pushes to master.
+# The first run on a new app — or any run whose baseline has been evicted —
+# degrades to reporting absolute sizes for the heaviest routes.
+
+name: Bundle Size
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TZ: UTC
+
+jobs:
+  detect:
+    name: Detect Frontend Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: changes
+        with:
+          filters: |
+            frontend:
+              - 'apps/app/**'
+              - 'apps/website/**'
+              - 'packages/**'
+              - 'bun.lock'
+              - '.github/workflows/bundle-size.yml'
+              - 'scripts/collect-bundle-manifest.ts'
+              - 'scripts/compare-bundle-manifests.ts'
+
+  measure:
+    name: First-Load JS (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    needs: detect
+    if: github.event_name == 'push' || needs.detect.outputs.frontend == 'true'
+    continue-on-error: true
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [app, website]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+
+      - name: Build ${{ matrix.app }}
+        run: bunx turbo run build --filter=@genfeedai/${{ matrix.app }}
+
+      - name: Collect first-load JS manifest
+        run: |
+          bun run scripts/collect-bundle-manifest.ts \
+            --app ${{ matrix.app }} \
+            --dist apps/${{ matrix.app }}/.next \
+            --out .bundle-size/head.json
+
+      # A push to master publishes the baseline the next pull request compares
+      # against. Keyed by SHA because cache entries are immutable; the prefix
+      # restore-key on the pull-request side picks up whichever master build ran
+      # most recently. The baseline lives under its own filename so restoring it
+      # can never overwrite the manifest this run just built.
+      - name: Publish baseline
+        if: github.event_name == 'push'
+        run: cp .bundle-size/head.json .bundle-size/baseline.json
+
+      - name: Cache baseline
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bundle-size/baseline.json
+          key: bundle-baseline-${{ matrix.app }}-${{ github.sha }}
+
+      - name: Restore baseline
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .bundle-size/baseline.json
+          key: bundle-baseline-${{ matrix.app }}-${{ github.event.pull_request.base.sha }}
+          restore-keys: |
+            bundle-baseline-${{ matrix.app }}-
+
+      - name: Render report
+        if: github.event_name != 'push'
+        run: |
+          bun run scripts/compare-bundle-manifests.ts \
+            --base .bundle-size/baseline.json \
+            --head .bundle-size/head.json \
+            --out .bundle-size/report.md
+
+      # Fork pull requests get a read-only token, so the comment is skipped
+      # rather than failing the step.
+      - name: Comment on pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = `<!-- bundle-size:${{ matrix.app }} -->`;
+            const body = `${marker}\n${fs.readFileSync('.bundle-size/report.md', 'utf8')}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              per_page: 100,
+              repo: context.repo.repo,
+            });
+
+            const existing = comments.find((comment) => comment.body?.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                body,
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              body,
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
