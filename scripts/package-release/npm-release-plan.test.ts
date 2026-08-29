@@ -25,7 +25,7 @@ describe('npm release plan', () => {
 
   it('requires every publishable package to be enrolled or excluded explicitly', () => {
     writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
-    writePackage('tools', publicManifest('@genfeedai/actions', '0.1.4'));
+    writePackage('actions', publicManifest('@genfeedai/actions', '0.1.4'));
     writeEnrollment({ enrolled: ['packages/enums'], excluded: {} });
 
     expect(validate().violations).toEqual([
