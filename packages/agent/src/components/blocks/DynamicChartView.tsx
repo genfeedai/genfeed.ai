@@ -1,6 +1,7 @@
 'use client';
 
 import type { ChartBlock, ChartSeriesConfig } from '@genfeedai/interfaces';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 import {
   Area,
@@ -55,6 +56,7 @@ function getSeriesLabel(key: string, series?: ChartSeriesConfig[]): string {
 }
 
 function DynamicChartView({ block }: DynamicChartProps): ReactElement {
+  const translate = useTranslations('agent.dynamicChart');
   const hydratableBlock = block as HydratableChartBlock;
   const { chartType, data, xAxis, series, height, showLegend, showGrid } =
     block;
@@ -96,7 +98,7 @@ function DynamicChartView({ block }: DynamicChartProps): ReactElement {
         className="flex items-center justify-center text-sm text-muted-foreground"
         style={{ height: chartHeight }}
       >
-        No chart data available
+        {translate('noData')}
       </div>
     );
   }

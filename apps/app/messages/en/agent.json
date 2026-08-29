@@ -171,5 +171,8 @@
     "saveFailed": "Failed to save settings",
     "saved": "Settings saved",
     "saving": "Saving..."
+  },
+  "dynamicChart": {
+    "noData": "No chart data available"
   }
 }
