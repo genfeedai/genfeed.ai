@@ -8,24 +8,16 @@ import {
   formatCompactNumber,
   formatNumberWithCommas,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
-  ITopbarBalanceSegment,
 } from '@genfeedai/interfaces';
-import { CreditsService } from '@genfeedai/services/billing/credits.service';
-import { logger } from '@genfeedai/services/core/logger.service';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CreditsBarTrigger from './CreditsBarTrigger';
-
-interface OptionalBalanceRequestError {
-  isCancelled?: boolean;
-  silent?: boolean;
-}
 
 /** Infinity from OSS stub can serialize as null/non-finite — never treat as wallet. */
 function coerceFiniteBalance(value: unknown): number {
@@ -37,83 +29,28 @@ function TopbarCreditsBarContent() {
   const { orgHref } = useOrgUrl();
   const showCredits = shouldShowCreditsNav();
 
-  const getCreditsService = useAuthedService((token: string) =>
-    CreditsService.getInstance(token),
-  );
-
   const { creditsBreakdown, refreshCreditsBreakdown } = useSubscription();
+
+  // Shared with LowCreditsBanner, which mounts alongside this chip on every
+  // protected page. One query key means one request per navigation, and the
+  // live balances published below reach the banner through the same cache.
+  const {
+    genfeedBalance,
+    isLoaded,
+    isLoading: isBalanceLoading,
+    publishGenfeedBalance,
+    refresh: refreshTopbarBalances,
+    segments,
+  } = useTopbarBalances();
 
   // null = not loaded yet. Do not default to 0 or the chip flashes red
   // critical styling before the wallet response lands.
-  const [balance, setBalance] = useState<number | null>(null);
-  const [segments, setSegments] = useState<ITopbarBalanceSegment[]>([]);
-  const [isBalanceLoading, setIsBalanceLoading] = useState(true);
+  const balance = isLoaded ? coerceFiniteBalance(genfeedBalance) : null;
+
   const refreshBreakdownRef = useRef(refreshCreditsBreakdown);
-  const balanceRefreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const latestBalanceRequestRef = useRef(0);
   refreshBreakdownRef.current = refreshCreditsBreakdown;
+
   const { isReady: isSocketReady, subscribe, unsubscribe } = useSocketManager();
-
-  const clearTopbarBalanceRefreshTimeout = useCallback(() => {
-    const timeout = balanceRefreshTimeoutRef.current;
-    if (timeout) {
-      clearTimeout(timeout);
-      balanceRefreshTimeoutRef.current = null;
-    }
-  }, []);
-
-  const findTopbarBalances = useCallback(async () => {
-    if (!showCredits || !organizationId) {
-      return;
-    }
-
-    const requestId = latestBalanceRequestRef.current + 1;
-    latestBalanceRequestRef.current = requestId;
-    setIsBalanceLoading(true);
-
-    try {
-      const service = await getCreditsService();
-      const data = await service.getTopbarBalances();
-
-      if (requestId !== latestBalanceRequestRef.current) {
-        return;
-      }
-
-      const nextSegments = data.segments ?? [];
-      const genfeedSegment = nextSegments.find(
-        (segment) => segment.provider === 'genfeed',
-      );
-      setSegments(nextSegments);
-      setBalance(coerceFiniteBalance(genfeedSegment?.balance));
-    } catch (error: unknown) {
-      if (requestId !== latestBalanceRequestRef.current) {
-        return;
-      }
-
-      const requestError = error as OptionalBalanceRequestError;
-      if (!requestError.isCancelled && !requestError.silent) {
-        logger.warn('TopbarCreditsBar: failed to fetch balances', {
-          error,
-          reportToSentry: false,
-        });
-      }
-    } finally {
-      if (requestId === latestBalanceRequestRef.current) {
-        setIsBalanceLoading(false);
-      }
-    }
-  }, [organizationId, getCreditsService, showCredits]);
-
-  const scheduleTopbarBalanceRefresh = useCallback(() => {
-    clearTopbarBalanceRefreshTimeout();
-
-    balanceRefreshTimeoutRef.current = setTimeout(() => {
-      balanceRefreshTimeoutRef.current = null;
-      void findTopbarBalances();
-    }, 1500);
-  }, [clearTopbarBalanceRefreshTimeout, findTopbarBalances]);
 
   useEffect(() => {
     // `subscribe` is a silent no-op until the socket manager exists; without
@@ -129,22 +66,16 @@ function TopbarCreditsBarContent() {
     const orgHandler = (data: unknown) => {
       const orgData = data as IOrganizationEventData & { balance?: number };
       if (orgData?.balance !== undefined) {
-        latestBalanceRequestRef.current += 1;
-        setBalance(coerceFiniteBalance(orgData.balance));
-        setIsBalanceLoading(false);
+        publishGenfeedBalance(coerceFiniteBalance(orgData.balance));
         refreshBreakdownRef.current();
-        scheduleTopbarBalanceRefresh();
       }
     };
 
     const creditsHandler = (data: unknown) => {
       const creditsData = data as ICreditsEventData;
       if (creditsData?.balance !== undefined) {
-        latestBalanceRequestRef.current += 1;
-        setBalance(coerceFiniteBalance(creditsData.balance));
-        setIsBalanceLoading(false);
+        publishGenfeedBalance(coerceFiniteBalance(creditsData.balance));
         refreshBreakdownRef.current();
-        scheduleTopbarBalanceRefresh();
       }
     };
 
@@ -158,51 +89,11 @@ function TopbarCreditsBarContent() {
   }, [
     isSocketReady,
     organizationId,
+    publishGenfeedBalance,
     showCredits,
     subscribe,
     unsubscribe,
-    scheduleTopbarBalanceRefresh,
   ]);
-
-  useEffect(
-    () => clearTopbarBalanceRefreshTimeout,
-    [clearTopbarBalanceRefreshTimeout],
-  );
-
-  useEffect(() => {
-    const requestRef = latestBalanceRequestRef;
-
-    return () => {
-      requestRef.current += 1;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!showCredits || !organizationId) {
-      latestBalanceRequestRef.current += 1;
-      setBalance(null);
-      setSegments([]);
-      setIsBalanceLoading(false);
-      return;
-    }
-
-    void findTopbarBalances();
-  }, [organizationId, findTopbarBalances, showCredits]);
-
-  useEffect(() => {
-    const handleRefresh = () => {
-      void findTopbarBalances();
-    };
-
-    window.addEventListener('genfeed:topbar-balances:refresh', handleRefresh);
-
-    return () => {
-      window.removeEventListener(
-        'genfeed:topbar-balances:refresh',
-        handleRefresh,
-      );
-    };
-  }, [findTopbarBalances]);
 
   const { planLimit, planBalance, extraBalance, planUsagePercent } =
     useMemo(() => {
@@ -239,9 +130,9 @@ function TopbarCreditsBarContent() {
     }, [balance, creditsBreakdown]);
 
   const handleRefresh = useCallback(async () => {
-    await findTopbarBalances();
+    await refreshTopbarBalances();
     await refreshCreditsBreakdown();
-  }, [findTopbarBalances, refreshCreditsBreakdown]);
+  }, [refreshCreditsBreakdown, refreshTopbarBalances]);
 
   if (!showCredits) {
     return null;

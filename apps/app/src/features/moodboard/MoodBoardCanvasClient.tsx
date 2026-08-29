@@ -31,6 +31,7 @@ export default function MoodBoardCanvasClient(): React.JSX.Element {
   const {
     assets,
     isLoading: isAssetsLoading,
+    isLoadingMore,
     isTruncated,
   } = useBrandMediaAssets();
   const { board, isLoading: isBoardLoading, save } = useMoodBoard();
@@ -86,6 +87,7 @@ export default function MoodBoardCanvasClient(): React.JSX.Element {
         onNodesChange={onNodesChange}
         onNodeDragStop={onNodeDragStop}
         onClose={handleClose}
+        isLoadingMore={isLoadingMore}
         isTruncated={isTruncated}
       />
     </div>

@@ -2,6 +2,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import {
   clearAllServiceInstances,
   clearRequestOrganizationId,
+  HTTP_REQUEST_TIMEOUT_MS,
   HTTPBaseService,
   setRequestOrganizationId,
 } from '@services/core/interceptor.service';
@@ -72,8 +73,12 @@ describe('HTTPBaseService (InterceptorService)', () => {
       expect(axios.create).toHaveBeenCalledWith({
         baseURL: mockBaseURL,
         paramsSerializer: expect.any(Function),
-        timeout: 30_000,
+        timeout: HTTP_REQUEST_TIMEOUT_MS,
       });
+    });
+
+    it('bounds every request with the documented thirty-second timeout', () => {
+      expect(HTTP_REQUEST_TIMEOUT_MS).toBe(30_000);
     });
 
     it('serializes array params as repeated query keys', () => {

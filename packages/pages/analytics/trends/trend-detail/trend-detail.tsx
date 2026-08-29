@@ -226,7 +226,10 @@ export default function TrendDetail({
       {/* Cross-Platform Trends */}
       <TrendDetailRelatedTable
         relatedTrends={relatedTrends}
-        onRowClick={(item) => router.push(`/discover/${item.id}`)}
+        getRowLink={(item) => ({
+          href: `/discover/${item.id}`,
+          label: `Open ${item.topic}`,
+        })}
       />
     </Container>
   );

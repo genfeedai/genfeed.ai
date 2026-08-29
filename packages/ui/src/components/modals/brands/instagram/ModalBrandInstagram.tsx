@@ -5,6 +5,7 @@ import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import {
   closeModal,
   isModalOpen,
+  subscribeModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
@@ -18,7 +19,13 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 function closeAccountInstagramModal(): void {
   closeModal(ModalEnum.BRAND_INSTAGRAM);
@@ -49,60 +56,81 @@ export default function ModalBrandInstagram({
 
   const [error, setError] = useState<string | null>(null);
 
-  const modalWasOpenRef = useRef(false);
+  const subscribeToModal = useCallback(
+    (listener: () => void) =>
+      subscribeModal(ModalEnum.BRAND_INSTAGRAM, listener),
+    [],
+  );
+  const getIsModalOpen = useCallback(
+    () => isModalOpen(ModalEnum.BRAND_INSTAGRAM),
+    [],
+  );
+  const isOpen = useSyncExternalStore(
+    subscribeToModal,
+    getIsModalOpen,
+    () => false,
+  );
 
   const canConnectEnabled = useMemo(
     () => !!brand && !credential,
     [brand, credential],
   );
 
-  // Load Instagram pages when modal opens
+  // Load Instagram pages when the modal opens, and drop them when it closes.
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      const modalIsOpen = isModalOpen(ModalEnum.BRAND_INSTAGRAM);
+    if (!isOpen) {
+      setAvailableHandles([]);
+      setSelectedHandle(null);
+      setError(null);
+      setIsLoading(false);
+      return undefined;
+    }
 
-      // Modal just opened
-      if (modalIsOpen && !modalWasOpenRef.current) {
-        modalWasOpenRef.current = true;
+    if (!credential) {
+      return undefined;
+    }
 
-        if (credential) {
-          (async () => {
-            setError(null);
-            setIsLoading(true);
+    const controller = new AbortController();
+    const url = `GET /credentials/${credential.id}/pages`;
 
-            const url = `GET /credentials/${credential.id}/pages`;
+    setError(null);
+    setIsLoading(true);
 
-            try {
-              const service = await getCredentialsService();
-              const data = await service.findCredentialInstagramPages(
-                credential.id,
-              );
+    void (async () => {
+      try {
+        const service = await getCredentialsService();
+        const data = await service.findCredentialInstagramPages(
+          credential.id,
+          controller.signal,
+        );
 
-              setAvailableHandles(data);
+        if (controller.signal.aborted) {
+          return;
+        }
 
-              logger.info(`${url} success`, data);
-            } catch (error) {
-              logger.error(`${url} failed`, error);
-            } finally {
-              setIsLoading(false);
-            }
-          })();
+        setAvailableHandles(data);
+        logger.info(`${url} success`, data);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        logger.error(`${url} failed`, error);
+        // Without this the effect leaves an empty handle list behind, and the
+        // modal reports "No Instagram Business Brands Found" for what is
+        // actually a failed request.
+        setError('Failed to load Instagram accounts. Please try again.');
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
         }
       }
+    })();
 
-      // Modal just closed
-      if (!modalIsOpen && modalWasOpenRef.current) {
-        modalWasOpenRef.current = false;
-        // Reset state on close
-        setAvailableHandles([]);
-        setSelectedHandle(null);
-        setError(null);
-        setIsLoading(false);
-      }
-    }, 100); // Check every 100ms
-
-    return () => clearInterval(intervalId);
-  }, [credential, getCredentialsService]);
+    return () => {
+      controller.abort();
+    };
+  }, [credential, getCredentialsService, isOpen]);
 
   const initiateOAuthFlow = async () => {
     if (!brand || isConnecting) {
@@ -214,7 +242,7 @@ export default function ModalBrandInstagram({
           </Alert>
         )}
 
-        {!isLoading && availableHandles.length === 0 && (
+        {!isLoading && !error && availableHandles.length === 0 && (
           <div className="text-center py-8">
             <div className="size-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
               <InstagramIcon className="text-muted-foreground text-xl" />

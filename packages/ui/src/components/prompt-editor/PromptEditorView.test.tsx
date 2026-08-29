@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PromptEditor from '@ui/prompt-editor/PromptEditor';
+import PromptEditorView from '@ui/prompt-editor/PromptEditorView';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 function emptyRect(): DOMRect {
@@ -32,11 +32,11 @@ beforeAll(() => {
   }
 });
 
-describe('PromptEditor', () => {
+describe('PromptEditorView', () => {
   it('serializes typed content to plain text', async () => {
     const onValueChange = vi.fn();
 
-    render(<PromptEditor onValueChange={onValueChange} value="" />);
+    render(<PromptEditorView onValueChange={onValueChange} value="" />);
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
     editor.focus();
 
@@ -57,10 +57,10 @@ describe('PromptEditor', () => {
   });
 
   it('applies an external form write without duplicating content', async () => {
-    const { rerender } = render(<PromptEditor value="first" />);
+    const { rerender } = render(<PromptEditorView value="first" />);
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
 
-    rerender(<PromptEditor value="enhanced prompt" />);
+    rerender(<PromptEditorView value="enhanced prompt" />);
 
     await waitFor(() => {
       expect(editor).toHaveTextContent('enhanced prompt');
@@ -74,7 +74,7 @@ describe('PromptEditor', () => {
     const onValueChange = vi.fn();
 
     render(
-      <PromptEditor
+      <PromptEditorView
         onSubmit={onSubmit}
         onValueChange={onValueChange}
         value=""
@@ -91,14 +91,14 @@ describe('PromptEditor', () => {
   });
 
   it('propagates disabled as a read-only editor', async () => {
-    render(<PromptEditor isDisabled value="locked" />);
+    render(<PromptEditorView isDisabled value="locked" />);
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
     expect(editor).toHaveAttribute('contenteditable', 'false');
   });
 
   it('pastes plain text only', async () => {
     const onValueChange = vi.fn();
-    render(<PromptEditor onValueChange={onValueChange} value="" />);
+    render(<PromptEditorView onValueChange={onValueChange} value="" />);
     const editor = await screen.findByRole('textbox', { name: 'Prompt' });
     editor.focus();
 

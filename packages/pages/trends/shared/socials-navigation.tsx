@@ -120,6 +120,7 @@ function SocialsNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-label={label}
       data-state={isActive ? 'active' : 'inactive'}
+      prefetch={false}
       onFocus={prefetchHref}
       onMouseEnter={prefetchHref}
       title={label}

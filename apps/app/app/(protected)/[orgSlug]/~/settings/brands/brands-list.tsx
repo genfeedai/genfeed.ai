@@ -7,6 +7,7 @@ import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
+import type { TableRowLink } from '@props/ui/display/table.props';
 import {
   useBrandOverlay,
   useConfirmModal,
@@ -59,6 +60,23 @@ function BrandsListContent() {
       push(createBrandAppRoute(orgSlug, brand.slug, APP_ROUTES.SETTINGS.ROOT));
     },
     [notificationsService, orgSlug, push],
+  );
+
+  // A brand missing an org or its own slug has no settings URL; that row stays
+  // non-navigable and the row action reports why.
+  const getBrandLink = useCallback(
+    (brand: Brand): TableRowLink | undefined =>
+      orgSlug && brand.slug
+        ? {
+            href: createBrandAppRoute(
+              orgSlug,
+              brand.slug,
+              APP_ROUTES.SETTINGS.ROOT,
+            ),
+            label: `Open ${brand.label} settings`,
+          }
+        : undefined,
+    [orgSlug],
   );
 
   const getBrandsService = useAuthedService((token: string) =>
@@ -236,7 +254,7 @@ function BrandsListContent() {
         getRowKey={(brand) => brand.id}
         isLoading={isLoading}
         items={brands || []}
-        onRowClick={openBrandSettings}
+        getRowLink={getBrandLink}
       />
 
       <AutoPagination showTotal totalLabel="brands" />

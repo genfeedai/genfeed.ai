@@ -49,7 +49,11 @@ describe('docs PostHog client', () => {
       capture_dead_clicks: false,
       capture_pageleave: true,
       capture_pageview: 'history_change',
-      capture_performance: false,
+      capture_performance: {
+        network_timing: false,
+        web_vitals: true,
+        web_vitals_attribution: false,
+      },
       cookieless_mode: 'always',
       defaults: '2026-05-30',
       disable_session_recording: true,

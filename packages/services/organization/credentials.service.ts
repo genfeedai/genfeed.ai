@@ -32,9 +32,10 @@ export class CredentialsService extends BaseService<Credential> {
 
   public async findCredentialInstagramPages(
     id: string,
+    signal?: AbortSignal,
   ): Promise<CredentialInstagram[]> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/instagram/pages`)
+      .get<JsonApiResponseDocument>(`/${id}/instagram/pages`, { signal })
       .then((res) =>
         this.extractCollection<Partial<CredentialInstagram>>(res.data).map(
           (item) => new CredentialInstagram(item),

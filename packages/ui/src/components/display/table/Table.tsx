@@ -9,6 +9,7 @@ import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useCallback, useRef } from 'react';
 
@@ -64,6 +65,7 @@ export default function AppTable<T>({
   selectedIds = EMPTY_ARRAY,
   onSelectionChange,
   getItemId,
+  getRowLink,
   onRowClick,
   hideHeader = false,
   sortKey,
@@ -298,6 +300,7 @@ export default function AppTable<T>({
             {items.map((item: T, index: number) => {
               const itemId = getItemId ? getItemId(item) : '';
               const isSelected = selectedIds.includes(itemId);
+              const rowLink = getRowLink?.(item);
 
               return (
                 <tr
@@ -305,20 +308,26 @@ export default function AppTable<T>({
                   className={cn(
                     'group transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
                     isSelected && 'bg-accent',
-                    onRowClick &&
+                    // A linked row positions the overlay anchor below; the
+                    // click affordance comes from the anchor, not the row.
+                    rowLink && 'relative cursor-pointer',
+                    !rowLink &&
+                      onRowClick &&
                       'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                     getRowClassName?.(item),
                   )}
-                  onClick={(event) => handleRowClick(item, event)}
+                  onClick={
+                    rowLink ? undefined : (event) => handleRowClick(item, event)
+                  }
                   onKeyDown={
-                    onRowClick
+                    !rowLink && onRowClick
                       ? (event) => handleRowKeyDown(item, event)
                       : undefined
                   }
-                  tabIndex={onRowClick ? 0 : undefined}
+                  tabIndex={!rowLink && onRowClick ? 0 : undefined}
                 >
                   {selectable && (
-                    <td className="p-4 w-12 align-middle">
+                    <td className="relative p-4 w-12 align-middle">
                       <Checkbox
                         name={`select-${getItemId ? getItemId(item) : index}`}
                         isChecked={isSelected}
@@ -326,7 +335,7 @@ export default function AppTable<T>({
                       />
                     </td>
                   )}
-                  {columns.map((column) => (
+                  {columns.map((column, columnIndex) => (
                     <td
                       key={String(column.key)}
                       className={cn(
@@ -334,9 +343,28 @@ export default function AppTable<T>({
                         column.className,
                       )}
                     >
-                      {column.render
-                        ? column.render(item)
-                        : String(item[column.key as keyof T])}
+                      {rowLink && columnIndex === 0 ? (
+                        <>
+                          {/* The anchor covers the whole row (the `tr` is the
+                              positioned ancestor), so ordinary cells must stay
+                              unpositioned — anything painted above it swallows
+                              the click, and a linked row has no `onClick`
+                              fallback. Only the checkbox and action cells are
+                              raised, and they are positioned on their own `td`. */}
+                          <Link
+                            aria-label={rowLink.label}
+                            className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                            href={rowLink.href}
+                          />
+                          {column.render
+                            ? column.render(item)
+                            : String(item[column.key as keyof T])}
+                        </>
+                      ) : column.render ? (
+                        column.render(item)
+                      ) : (
+                        String(item[column.key as keyof T])
+                      )}
                     </td>
                   ))}
 

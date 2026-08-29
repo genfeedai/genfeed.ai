@@ -9,7 +9,7 @@ import {
 import type { IActivity, IIngredient } from '@genfeedai/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import type { ActivitiesListProps } from '@props/content/activities.props';
-import type { TableAction } from '@props/ui/display/table.props';
+import type { TableAction, TableRowLink } from '@props/ui/display/table.props';
 import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -18,7 +18,7 @@ import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { ClipboardList, Mail, MailOpen } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
@@ -38,7 +38,6 @@ export default function ActivitiesList({
   activityMessageFormatter = formatActivityMessage,
   scope,
 }: ActivitiesListProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
 
@@ -265,16 +264,21 @@ export default function ActivitiesList({
     ? `Mark ${selectedActivityIds.length} as Read`
     : 'Mark All Read';
 
-  const handleRowClick = useCallback(
-    (activity: IActivity) => {
+  const getRowLink = useCallback(
+    (activity: IActivity): TableRowLink | undefined => {
       const parsed = parseActivityValue(activity.value);
       const href = typeof parsed?.href === 'string' ? parsed.href : undefined;
 
-      if (href) {
-        router.push(href);
-      }
+      // Most activities are log lines with nowhere to go; only the ones
+      // carrying a destination become links.
+      return href
+        ? {
+            href,
+            label: getActivityDescription(activity, activityMessageFormatter),
+          }
+        : undefined;
     },
-    [router],
+    [activityMessageFormatter],
   );
 
   const getRowKey = useCallback((a: IActivity) => a.id, []);
@@ -328,7 +332,7 @@ export default function ActivitiesList({
         selectedIds={selectedActivityIds}
         onSelectionChange={setSelectedActivityIds}
         getItemId={getItemId}
-        onRowClick={handleRowClick}
+        getRowLink={getRowLink}
       />
 
       <div className="mt-4">

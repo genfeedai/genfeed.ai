@@ -8,6 +8,7 @@ import {
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
+import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
@@ -213,6 +214,9 @@ function ExecutionItem({
   );
 }
 
+/** Cadence for re-reading run progress while the panel is open and in front. */
+const EXECUTION_POLL_INTERVAL_MS = 10_000;
+
 export default function ExecutionHistoryPanel({
   workflowId,
   isCollapsed = false,
@@ -242,10 +246,11 @@ export default function ExecutionHistoryPanel({
 
   useEffect(() => {
     fetchExecutions();
-    // Poll for updates every 10 seconds when panel is open
-    const interval = setInterval(fetchExecutions, 10000);
-    return () => clearInterval(interval);
   }, [fetchExecutions]);
+
+  useVisiblePolling(fetchExecutions, {
+    intervalMs: EXECUTION_POLL_INTERVAL_MS,
+  });
 
   const handleCancel = useCallback(
     async (executionId: string) => {

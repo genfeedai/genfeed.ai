@@ -13,6 +13,7 @@ import './scheduled-failure-tracker.test.mjs';
 const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
+  'bundle-size.yml',
   'ci.yml',
   'curated-action-catalog.yml',
   'link-check.yml',

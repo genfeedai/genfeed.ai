@@ -9,6 +9,14 @@ import Link from 'next/link';
 
 const AGENT_HREF = '/agent';
 
+/**
+ * Exactly one wall tile is `priority`. `priority` emits a preload link and a
+ * high fetch priority, so marking three of them made the browser race three
+ * full-size images against each other and against the hero's own font and CSS.
+ * The largest tile is the LCP candidate; the rest are in-viewport lazy images,
+ * which browsers still fetch immediately, just behind the element that decides
+ * the score.
+ */
 const HERO_WALL_ITEMS = [
   {
     ...HOME_OUTPUT_WALL_ASSETS[0],

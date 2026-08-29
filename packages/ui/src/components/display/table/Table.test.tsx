@@ -156,4 +156,37 @@ describe('Table', () => {
     fireEvent.keyDown(action, { key: 'Enter' });
     expect(onRowClick).not.toHaveBeenCalled();
   });
+
+  it('navigates linked rows through a real anchor', () => {
+    render(
+      <Table
+        items={[
+          { id: 'item-1', name: 'First item' },
+          { id: 'item-2', name: 'Second item' },
+        ]}
+        columns={[{ header: 'Name', key: 'name' }]}
+        getRowKey={(item) => item.id}
+        getRowLink={(item) =>
+          item.id === 'item-1'
+            ? { href: `/items/${item.id}`, label: `Open ${item.name}` }
+            : undefined
+        }
+      />,
+    );
+
+    // The overlay anchor carries no text, so the explicit label is the only
+    // accessible name a screen reader can announce for the row.
+    const link = screen.getByRole('link', { name: 'Open First item' });
+    expect(link).toHaveAttribute('href', '/items/item-1');
+    expect(link).toHaveClass('absolute', 'inset-0');
+
+    // The anchor owns activation and keyboard focus; the row must not also be
+    // a tab stop, or every row would be reachable twice.
+    const linkedRow = screen.getByText('First item').closest('tr');
+    expect(linkedRow).toHaveClass('relative');
+    expect(linkedRow).not.toHaveAttribute('tabindex');
+
+    // A row with nowhere to go stays plain markup.
+    expect(screen.queryByRole('link', { name: /second item/i })).toBeNull();
+  });
 });

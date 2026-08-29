@@ -2,6 +2,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { CircleAlert, Mic } from 'lucide-react';
 import {
@@ -27,6 +28,8 @@ type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
 const MAX_VOICE_RECONCILIATION_FAILURES = 10;
 const MAX_VOICE_RECONCILIATION_ATTEMPTS = 360;
+/** Fallback cadence while the websocket is the primary progress channel. */
+const VOICE_RECONCILIATION_INTERVAL_MS = 5000;
 
 export function VoiceCloneCard({
   action,
@@ -88,79 +91,121 @@ export function VoiceCloneCard({
     };
   }, [activeVoiceId, isReady, subscribe]);
 
+  const reconciliationAbortRef = useRef<AbortController | null>(null);
+  const reconciliationVoiceIdRef = useRef<string | null>(null);
+  const reconciliationFailuresRef = useRef(0);
+  const reconciliationAttemptsRef = useRef(0);
+
+  // Each cloned voice gets its own attempt budget, and switching voices aborts
+  // the request still in flight for the previous one.
   useEffect(() => {
-    if (status !== 'cloning' || !activeVoiceId) {
-      return;
-    }
-
     const controller = new AbortController();
-    let consecutiveFailures = 0;
-    let totalAttempts = 0;
-    const interval = window.setInterval(() => {
-      if (action.voiceoverText) {
-        totalAttempts += 1;
-        runAgentApiEffect(
-          apiService.getGeneratedAssetEffect(activeVoiceId, controller.signal),
-        )
-          .then((asset) => {
-            consecutiveFailures = 0;
-            const nextStatus = asset.status.toUpperCase();
-            if (nextStatus === 'GENERATED' || nextStatus === 'VALIDATED') {
-              setProgress(100);
-              setStatus('done');
-            } else if (
-              ['ARCHIVED', 'CANCELLED', 'FAILED', 'REJECTED'].includes(
-                nextStatus,
-              )
-            ) {
-              setStatus('error');
-              setError('Voice generation failed. Please try again.');
-            } else if (totalAttempts >= MAX_VOICE_RECONCILIATION_ATTEMPTS) {
-              setStatus('error');
-              setError(
-                'Voice generation is taking longer than expected. Please try again.',
-              );
-            }
-          })
-          .catch(() => {
-            consecutiveFailures += 1;
-            if (consecutiveFailures >= MAX_VOICE_RECONCILIATION_FAILURES) {
-              setStatus('error');
-              setError(
-                'Unable to reconcile voice generation. Please try again.',
-              );
-            }
-          });
-        return;
-      }
-      runAgentApiEffect(apiService.getClonedVoicesEffect())
-        .then((voices) => {
-          const voice = voices.find((item) => item.id === activeVoiceId);
-          if (!voice?.cloneStatus) {
-            return;
-          }
 
-          if (voice.cloneStatus === VoiceCloneStatus.READY) {
-            setProgress(100);
-            setStatus('done');
-            return;
-          }
-
-          if (voice.cloneStatus === VoiceCloneStatus.FAILED) {
-            setStatus('error');
-            setError('Voice clone failed. Please try again.');
-          }
-        })
-        .catch(() => {
-          // Intentionally ignored — websocket updates are primary, polling is fallback.
-        });
-    }, 5000);
+    reconciliationAbortRef.current = controller;
+    reconciliationVoiceIdRef.current = activeVoiceId;
+    reconciliationFailuresRef.current = 0;
+    reconciliationAttemptsRef.current = 0;
 
     return () => {
       controller.abort();
-      window.clearInterval(interval);
     };
-  }, [action.voiceoverText, activeVoiceId, apiService, status]);
+  }, [activeVoiceId]);
+
+  const reconcileVoiceClone = useCallback(async () => {
+    const signal = reconciliationAbortRef.current?.signal;
+
+    if (!activeVoiceId) {
+      return;
+    }
+
+    // A response for a voice the card has moved on from must not resolve the
+    // one on screen; the abort signal only covers the request that carries it.
+    const isStillReconciling = (): boolean =>
+      reconciliationVoiceIdRef.current === activeVoiceId;
+
+    if (action.voiceoverText) {
+      reconciliationAttemptsRef.current += 1;
+
+      try {
+        const asset = await runAgentApiEffect(
+          apiService.getGeneratedAssetEffect(activeVoiceId, signal),
+        );
+
+        if (!isStillReconciling()) {
+          return;
+        }
+
+        reconciliationFailuresRef.current = 0;
+        const nextStatus = asset.status.toUpperCase();
+
+        if (nextStatus === 'GENERATED' || nextStatus === 'VALIDATED') {
+          setProgress(100);
+          setStatus('done');
+        } else if (
+          ['ARCHIVED', 'CANCELLED', 'FAILED', 'REJECTED'].includes(nextStatus)
+        ) {
+          setStatus('error');
+          setError('Voice generation failed. Please try again.');
+        } else if (
+          reconciliationAttemptsRef.current >= MAX_VOICE_RECONCILIATION_ATTEMPTS
+        ) {
+          setStatus('error');
+          setError(
+            'Voice generation is taking longer than expected. Please try again.',
+          );
+        }
+      } catch {
+        if (!isStillReconciling()) {
+          return;
+        }
+
+        reconciliationFailuresRef.current += 1;
+
+        if (
+          reconciliationFailuresRef.current >= MAX_VOICE_RECONCILIATION_FAILURES
+        ) {
+          setStatus('error');
+          setError('Unable to reconcile voice generation. Please try again.');
+        }
+      }
+
+      return;
+    }
+
+    try {
+      const voices = await runAgentApiEffect(
+        apiService.getClonedVoicesEffect(),
+      );
+
+      if (!isStillReconciling()) {
+        return;
+      }
+
+      const voice = voices.find((item) => item.id === activeVoiceId);
+
+      if (!voice?.cloneStatus) {
+        return;
+      }
+
+      if (voice.cloneStatus === VoiceCloneStatus.READY) {
+        setProgress(100);
+        setStatus('done');
+        return;
+      }
+
+      if (voice.cloneStatus === VoiceCloneStatus.FAILED) {
+        setStatus('error');
+        setError('Voice clone failed. Please try again.');
+      }
+    } catch {
+      // Intentionally ignored — websocket updates are primary, polling is fallback.
+    }
+  }, [action.voiceoverText, activeVoiceId, apiService]);
+
+  useVisiblePolling(reconcileVoiceClone, {
+    intervalMs: VOICE_RECONCILIATION_INTERVAL_MS,
+    isEnabled: status === 'cloning' && Boolean(activeVoiceId),
+  });
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

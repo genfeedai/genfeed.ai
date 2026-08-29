@@ -30,6 +30,17 @@ function createInterceptorError(
   return error;
 }
 
+/**
+ * Ceiling on a single API request before it is aborted as a timeout.
+ *
+ * Thirty seconds, not ten: the slowest reads behind this client are
+ * collection endpoints that page through generated media, and a ten-second
+ * ceiling turns those into spurious timeout modals for the operator. Calls
+ * that legitimately run longer — asset uploads are the only ones today — pass
+ * a per-request `timeout` and are not bound by this default.
+ */
+export const HTTP_REQUEST_TIMEOUT_MS = 30_000;
+
 const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
 let requestOrganizationId: string | null = null;
 
@@ -93,7 +104,7 @@ export abstract class HTTPBaseService {
 
         return searchParams.toString();
       },
-      timeout: 30_000, // 10 second timeout - fail fast if API is unreachable
+      timeout: HTTP_REQUEST_TIMEOUT_MS,
     });
 
     this.token = token;

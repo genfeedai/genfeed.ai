@@ -35,7 +35,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ArrowUp, Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 
@@ -212,17 +212,8 @@ const PostsGrid = memo(
     onOpenPostDetail,
     secondaryActions = [],
   }: PostsGridProps) {
-    const router = useRouter();
     const { href } = useOrgUrl();
     const browserTimezone = useMemo(() => getBrowserTimezone(), []);
-    const handleOpenPost = (post: IPost) => {
-      if (onOpenPostDetail) {
-        onOpenPostDetail(post);
-        return;
-      }
-
-      router.push(href(getPublisherPostHref(post.id)));
-    };
 
     if (posts.length === 0) {
       return (
@@ -243,6 +234,21 @@ const PostsGrid = memo(
             ? getPostsPlatformLabel(post.platform)
             : 'Post';
           const title = getPostTitle(post);
+          const heading = (
+            <>
+              <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
+                <PlatformIcon className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="line-clamp-2 text-base font-semibold text-foreground">
+                  {title}
+                </h3>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
+                  {platformLabel}
+                </p>
+              </div>
+            </>
+          );
           const preview = getPostPreview(post);
           const mediaUrls = getPostMediaUrls(post);
           const statusPresentation = getStatusPresentation(post.status);
@@ -274,26 +280,24 @@ const PostsGrid = memo(
               bodyClassName="gap-0 p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <Button
-                  className="flex min-w-0 items-start gap-3 text-left"
-                  onClick={() => handleOpenPost(post)}
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                >
-                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
-                    <PlatformIcon className="size-4" />
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-base font-semibold text-foreground">
-                      {title}
-                    </h3>
-                    <p className="mt-1 text-xs uppercase tracking-[0.18em] text-foreground/35">
-                      {platformLabel}
-                    </p>
-                  </div>
-                </Button>
+                {onOpenPostDetail ? (
+                  <Button
+                    className="flex min-w-0 items-start gap-3 text-left"
+                    onClick={() => onOpenPostDetail(post)}
+                    type="button"
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  >
+                    {heading}
+                  </Button>
+                ) : (
+                  <Link
+                    className="flex min-w-0 items-start gap-3 text-left"
+                    href={href(getPublisherPostHref(post.id))}
+                  >
+                    {heading}
+                  </Link>
+                )}
 
                 {visibleSecondaryActions.length > 0 && (
                   <DropdownMenu>
@@ -492,6 +496,12 @@ const PostsGrid = memo(
       return false;
     }
     if (prevProps.onPostEvaluated !== nextProps.onPostEvaluated) {
+      return false;
+    }
+    // Each card renders either a Button bound to this callback or a Link when
+    // it is absent, so skipping the re-render keeps a stale handler — or the
+    // wrong element entirely.
+    if (prevProps.onOpenPostDetail !== nextProps.onOpenPostDetail) {
       return false;
     }
 

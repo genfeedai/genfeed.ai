@@ -226,16 +226,19 @@ export default function PublishContentLibrary() {
     [pathname, router, searchParamsString],
   );
 
-  const handleRowClick = useCallback(
+  const getRowLink = useCallback(
     (item: PublishContentLibraryItem) => {
       const editorRoute = createArtifactEditorRoute(item.type, item.id);
       const returnTo = searchParamsString
         ? `${pathname}?${searchParamsString}`
         : pathname;
 
-      router.push(withArtifactEditorReturn(href(editorRoute), returnTo));
+      return {
+        href: withArtifactEditorReturn(href(editorRoute), returnTo),
+        label: `Open ${item.title}`,
+      };
     },
-    [href, pathname, router, searchParamsString],
+    [href, pathname, searchParamsString],
   );
 
   const columns = useMemo<TableColumn<PublishContentLibraryItem>[]>(
@@ -369,7 +372,7 @@ export default function PublishContentLibrary() {
         getRowKey={(item) => `${item.type}:${item.id}`}
         isLoading={isLoading}
         items={pageItems}
-        onRowClick={handleRowClick}
+        getRowLink={getRowLink}
       />
 
       {totalPages > 1 ? (

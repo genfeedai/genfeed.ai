@@ -581,6 +581,81 @@ async function continueWithCurrentWorkspace(
   return response;
 }
 
+/**
+ * Either a bootstrap payload or the fact that the API did not give us one.
+ * Kept distinct so a successful response with a null body still falls through
+ * to the organizations lookup, as an unmemoised fetch did.
+ */
+type BootstrapRead =
+  | { bootstrap: BootstrapResponse | null; isAvailable: true }
+  | { isAvailable: false };
+
+const UNAVAILABLE_BOOTSTRAP: BootstrapRead = { isAvailable: false };
+
+/**
+ * One `/auth/bootstrap` read per proxy invocation.
+ *
+ * Onboarding gating and workspace-slug resolution both need the same payload,
+ * and a single protected navigation runs both, so every such request used to
+ * wait on that round trip twice before it could redirect. Memoising on the
+ * request object scopes the payload to one invocation without holding it past
+ * the request that fetched it; keying the inner map on the bearer token keeps
+ * a request that swaps tokens from reading another token's workspace.
+ */
+const bootstrapByRequest = new WeakMap<
+  NextRequest,
+  Map<string, Promise<BootstrapRead>>
+>();
+
+async function fetchBootstrap(token: string): Promise<BootstrapRead> {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return UNAVAILABLE_BOOTSTRAP;
+    }
+
+    return {
+      bootstrap: (await response.json()) as BootstrapResponse | null,
+      isAvailable: true,
+    };
+  } catch {
+    return UNAVAILABLE_BOOTSTRAP;
+  }
+}
+
+function readBootstrap(
+  token: string,
+  req?: NextRequest,
+): Promise<BootstrapRead> {
+  if (!req) {
+    return fetchBootstrap(token);
+  }
+
+  let byToken = bootstrapByRequest.get(req);
+
+  if (!byToken) {
+    byToken = new Map();
+    bootstrapByRequest.set(req, byToken);
+  }
+
+  const inFlight = byToken.get(token);
+
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const pending = fetchBootstrap(token);
+  byToken.set(token, pending);
+  return pending;
+}
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
@@ -624,28 +699,13 @@ async function resolveActiveWorkspaceSlugs(
     }
   }
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/json',
-  };
+  const bootstrapRead = await readBootstrap(token, req);
 
-  let bootstrapResponse: Response;
-
-  try {
-    bootstrapResponse = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers,
-    });
-  } catch {
+  if (!bootstrapRead.isAvailable) {
     return null;
   }
 
-  if (!bootstrapResponse.ok) {
-    return null;
-  }
-
-  const bootstrap =
-    (await bootstrapResponse.json()) as BootstrapResponse | null;
+  const bootstrap = bootstrapRead.bootstrap;
   const brands = bootstrap?.brands ?? [];
   const activeBrandId = bootstrap?.access?.brandId ?? '';
   const matchedBrand = activeBrandId
@@ -671,7 +731,10 @@ async function resolveActiveWorkspaceSlugs(
         `${getApiBaseUrl()}/organizations?mine=true`,
         {
           cache: 'no-store',
-          headers,
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
     } catch {
@@ -717,27 +780,15 @@ type OnboardingRedirectState = {
 
 async function readOnboardingRedirectState(
   token: string,
+  req?: NextRequest,
 ): Promise<OnboardingRedirectState> {
-  let bootstrapResponse: Response;
+  const bootstrapRead = await readBootstrap(token, req);
 
-  try {
-    bootstrapResponse = await fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
-      cache: 'no-store',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } catch {
+  if (!bootstrapRead.isAvailable) {
     return { completedSteps: [], shouldRedirect: false };
   }
 
-  if (!bootstrapResponse.ok) {
-    return { completedSteps: [], shouldRedirect: false };
-  }
-
-  const bootstrap =
-    (await bootstrapResponse.json()) as BootstrapResponse | null;
+  const bootstrap = bootstrapRead.bootstrap;
 
   const completedSteps = Array.isArray(
     bootstrap?.currentUser?.onboardingStepsCompleted,
@@ -850,7 +901,7 @@ async function redirectSignedInUserToAgentOnboarding(
   token: string,
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
-  const onboardingState = await readOnboardingRedirectState(token);
+  const onboardingState = await readOnboardingRedirectState(token, req);
   if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
     if (!onboardingState.shouldRedirect) {
       return null;
@@ -1071,7 +1122,7 @@ async function redirectSignedInUserToDefaultRoute(
     return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
   }
 
-  const onboardingState = await readOnboardingRedirectState(token);
+  const onboardingState = await readOnboardingRedirectState(token, req);
   if (onboardingState.shouldRedirect) {
     if (!isDesktopSurface && hasAgentFirstOnboarding()) {
       if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
@@ -1263,7 +1314,7 @@ async function routeBetterAuthRequest(
   // session gate above already protects. Skip the bootstrap fetch entirely
   // on desktop — do not pay it only to ignore shouldRedirect.
   if (options.isDesktopSurface !== true) {
-    const onboardingState = await readOnboardingRedirectState(token);
+    const onboardingState = await readOnboardingRedirectState(token, req);
     if (onboardingState.shouldRedirect) {
       if (!hasAgentFirstOnboarding()) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);

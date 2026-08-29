@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseSubscription = vi.fn();
@@ -56,6 +57,27 @@ describe('LowCreditsBanner', () => {
   const storage = new Map<string, string>();
   const originalLicenseKey = process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
 
+  // The banner reads the GEN wallet through the shared topbar-balances query,
+  // so every case needs a cache. One client per case keeps them isolated, and
+  // the rerender below reuses it so a re-render does not drop the cache.
+  let queryClient: QueryClient;
+
+  function renderBanner(ui: ReactElement) {
+    const utils = render(
+      <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    );
+
+    return {
+      ...utils,
+      rerender: (next: ReactElement) =>
+        utils.rerender(
+          <QueryClientProvider client={queryClient}>
+            {next}
+          </QueryClientProvider>,
+        ),
+    };
+  }
+
   beforeEach(() => {
     storage.clear();
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
@@ -70,6 +92,9 @@ describe('LowCreditsBanner', () => {
           storage.set(key, value);
         },
       },
+    });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { gcTime: 0, retry: false } },
     });
     mockUseSubscription.mockReset();
     mockGetTopbarBalances.mockReset();
@@ -98,7 +123,7 @@ describe('LowCreditsBanner', () => {
       creditsBreakdown: { total: 500 },
     });
 
-    const { rerender } = render(<LowCreditsBanner />);
+    const { rerender } = renderBanner(<LowCreditsBanner />);
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
@@ -119,7 +144,7 @@ describe('LowCreditsBanner', () => {
       creditsBreakdown: { total: 250 },
     });
 
-    render(<LowCreditsBanner />);
+    renderBanner(<LowCreditsBanner />);
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       "You're running low on credits",
@@ -131,7 +156,7 @@ describe('LowCreditsBanner', () => {
       creditsBreakdown: { total: 250 },
     });
 
-    render(<LowCreditsBanner variant="inline" />);
+    renderBanner(<LowCreditsBanner variant="inline" />);
 
     expect(screen.getByTestId('library-credit-notice')).toBeInTheDocument();
   });
@@ -141,7 +166,7 @@ describe('LowCreditsBanner', () => {
       creditsBreakdown: { total: 250 },
     });
 
-    render(<LowCreditsBanner />);
+    renderBanner(<LowCreditsBanner />);
 
     expect(screen.getByRole('link', { name: 'Buy credits' })).toHaveAttribute(
       'href',
@@ -157,7 +182,7 @@ describe('LowCreditsBanner', () => {
       segments: [{ balance: 0, provider: 'genfeed' }],
     });
 
-    render(<LowCreditsBanner />);
+    renderBanner(<LowCreditsBanner />);
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
@@ -172,7 +197,7 @@ describe('LowCreditsBanner', () => {
       creditsBreakdown: { total: 250 },
     });
 
-    render(<LowCreditsBanner />);
+    renderBanner(<LowCreditsBanner />);
 
     expect(
       screen.getByRole('link', { name: 'Top up credits' }),

@@ -7,8 +7,11 @@ runPageModuleTests(
   PageModule,
 );
 
-it('opts into dynamic rendering for preview query support', () => {
-  expect(PageModule.dynamic).toBe('force-dynamic');
+// Preview lives on `./preview`, so the public article carries no
+// `searchParams` and stays in the full route cache.
+it('serves the public article from the route cache', () => {
+  expect(PageModule.dynamic).toBeUndefined();
+  expect(PageModule.revalidate).toBe(300);
 });
 
 describe('article page titles', () => {

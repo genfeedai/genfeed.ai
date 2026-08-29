@@ -735,7 +735,8 @@
     "closeMoodboard": "Close moodboard",
     "first": "First {count}",
     "fit": "Fit",
-    "fitBoard": "Fit board"
+    "fitBoard": "Fit board",
+    "loadingMore": "Loading… {count} so far"
   },
   "newsletterEditor": {
     "content": "Newsletter content"

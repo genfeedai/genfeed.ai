@@ -7,7 +7,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
+import ContentCalendarView from '@ui/calendar/content-calendar/ContentCalendarView';
 import type { CalendarOptions, EventInput } from 'fullcalendar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -87,7 +87,7 @@ vi.mock('fullcalendar/themes/classic', () => {
   };
 });
 
-describe('ContentCalendar', () => {
+describe('ContentCalendarView', () => {
   beforeEach(() => {
     calendarMocks.instances.length = 0;
     calendarMocks.resetConstructFailure();
@@ -97,7 +97,7 @@ describe('ContentCalendar', () => {
     const onDatesChange = vi.fn();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         onEventClick={vi.fn()}
         onDatesChange={onDatesChange}
@@ -129,7 +129,7 @@ describe('ContentCalendar', () => {
 
   it('destroys the FullCalendar instance on unmount', async () => {
     const { unmount } = render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -149,7 +149,7 @@ describe('ContentCalendar', () => {
 
   it('offers the requested layouts in the header toolbar', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -170,7 +170,7 @@ describe('ContentCalendar', () => {
 
   it('hides the switcher when only one layout is offered', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         views={['week']}
         onEventClick={vi.fn()}
@@ -193,7 +193,7 @@ describe('ContentCalendar', () => {
   // range as the view it replaced.
   it('rebuilds the calendar on the layout the operator last chose', async () => {
     const { rerender } = render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem()]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -215,7 +215,7 @@ describe('ContentCalendar', () => {
     });
 
     rerender(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem({ id: 'item-2' })]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -231,7 +231,7 @@ describe('ContentCalendar', () => {
 
   it('paints each event with the color the host supplies', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem()]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -248,7 +248,7 @@ describe('ContentCalendar', () => {
 
   it('marks only eligible events as draggable', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem(), makeItem({ id: 'item-2', isDisabled: true })]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -272,7 +272,7 @@ describe('ContentCalendar', () => {
 
   it('leaves the calendar read-only when the host handles no drops', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem()]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -298,7 +298,7 @@ describe('ContentCalendar', () => {
     const start = new Date('2026-03-11T09:00:00.000Z');
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -329,7 +329,7 @@ describe('ContentCalendar', () => {
     const revert = vi.fn();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -358,7 +358,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -402,7 +402,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -438,7 +438,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -463,7 +463,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -487,7 +487,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -509,7 +509,7 @@ describe('ContentCalendar', () => {
 
   it('renders day-view rows from preferred times when no posts exist', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -545,7 +545,7 @@ describe('ContentCalendar', () => {
 
   it('adds occupied instants to day-view rows alongside preferred times', async () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem({ scheduledDate: '2026-03-10T13:07:00.000Z' })]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -579,7 +579,7 @@ describe('ContentCalendar', () => {
 
   it('does not mount FullCalendar while the host is still loading', () => {
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem()]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -596,7 +596,7 @@ describe('ContentCalendar', () => {
     calendarMocks.failNextConstruct();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[makeItem()]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -618,7 +618,7 @@ describe('ContentCalendar', () => {
     const item = makeItem();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -638,7 +638,7 @@ describe('ContentCalendar', () => {
     const onViewChange = vi.fn();
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}
@@ -671,7 +671,7 @@ describe('ContentCalendar', () => {
     document.body.append(eventElement);
 
     render(
-      <ContentCalendar
+      <ContentCalendarView
         items={[item]}
         onEventClick={vi.fn()}
         onDatesChange={vi.fn()}

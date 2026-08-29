@@ -148,10 +148,13 @@ export class OnboardingService extends HTTPBaseService {
     }
   }
 
-  async getProactiveWorkspace(): Promise<ProactiveWorkspaceResponse> {
+  async getProactiveWorkspace(
+    signal?: AbortSignal,
+  ): Promise<ProactiveWorkspaceResponse> {
     try {
       const response = await this.instance.get<ProactiveWorkspaceResponse>(
         'proactive-workspace',
+        { signal },
       );
       logger.info('GET /proactive-workspace success', response.data);
       return response.data;
@@ -161,10 +164,15 @@ export class OnboardingService extends HTTPBaseService {
     }
   }
 
-  async claimProactiveWorkspace(): Promise<ProactiveWorkspaceResponse> {
+  async claimProactiveWorkspace(
+    signal?: AbortSignal,
+  ): Promise<ProactiveWorkspaceResponse> {
     try {
-      const response =
-        await this.instance.post<ProactiveWorkspaceResponse>('proactive-claim');
+      const response = await this.instance.post<ProactiveWorkspaceResponse>(
+        'proactive-claim',
+        undefined,
+        { signal },
+      );
       logger.info('POST /proactive-claim success', response.data);
       return response.data;
     } catch (error) {

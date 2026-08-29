@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   OnboardingService,
@@ -9,7 +10,7 @@ import {
 } from '@services/onboarding/onboarding.service';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { toast } from 'sonner';
 import ProactiveErrorState from './proactive-error-state';
 import ProactiveHeroCard from './proactive-hero-card';
@@ -88,10 +89,22 @@ export default function ProactiveContent() {
     return `${workspace.prepPercent}% ready`;
   }, [workspace]);
 
-  useEffect(() => {
-    let isCancelled = false;
+  // The workspace is claimed once and then polled; both paths must stop
+  // dispatching once the wizard step unmounts.
+  const isMountedRef = useRef(true);
 
-    const loadWorkspace = async (mode: 'claim' | 'refresh') => {
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadWorkspace = useCallback(
+    async (mode: 'claim' | 'refresh', signal?: AbortSignal) => {
+      const isStale = (): boolean =>
+        !isMountedRef.current || signal?.aborted === true;
       const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
@@ -102,10 +115,10 @@ export default function ProactiveContent() {
       try {
         const result =
           mode === 'claim'
-            ? await service.claimProactiveWorkspace()
-            : await service.getProactiveWorkspace();
+            ? await service.claimProactiveWorkspace(signal)
+            : await service.getProactiveWorkspace(signal);
 
-        if (!isCancelled) {
+        if (!isStale()) {
           if (mode === 'claim') {
             dispatch({ type: 'LOAD_SUCCESS', payload: result });
           } else {
@@ -115,8 +128,8 @@ export default function ProactiveContent() {
       } catch (loadError) {
         if (mode === 'claim') {
           try {
-            const fallback = await service.getProactiveWorkspace();
-            if (!isCancelled) {
+            const fallback = await service.getProactiveWorkspace(signal);
+            if (!isStale()) {
               dispatch({ type: 'LOAD_SUCCESS', payload: fallback });
             }
             return;
@@ -125,7 +138,7 @@ export default function ProactiveContent() {
           }
         }
 
-        if (!isCancelled) {
+        if (!isStale()) {
           if (mode === 'claim') {
             dispatch({
               type: 'LOAD_ERROR',
@@ -136,32 +149,56 @@ export default function ProactiveContent() {
         }
         throw loadError;
       }
-    };
+    },
+    [getToken],
+  );
 
-    void loadWorkspace('claim')
+  // `loadWorkspace` changes whenever the auth token context does, which re-runs
+  // this effect. Without an effect-scoped signal the superseded claim stays in
+  // flight and its late result overwrites the newer workspace state.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void loadWorkspace('claim', controller.signal)
       .catch(() => undefined)
       .finally(() => {
-        if (!isCancelled) {
+        if (isMountedRef.current && !controller.signal.aborted) {
           dispatch({ type: 'LOAD_DONE' });
         }
       });
 
-    const intervalId = window.setInterval(() => {
-      dispatch({ type: 'REFRESH_START' });
-      void loadWorkspace('refresh')
-        .catch(() => undefined)
-        .finally(() => {
-          if (!isCancelled) {
-            dispatch({ type: 'REFRESH_DONE' });
-          }
-        });
-    }, POLL_INTERVAL_MS);
-
     return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
+      controller.abort();
     };
-  }, [getToken]);
+  }, [loadWorkspace]);
+
+  // One poll at a time: a tick that fires while the previous refresh is still
+  // in flight supersedes it, and unmount cancels whatever is left.
+  const refreshControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      refreshControllerRef.current?.abort();
+    };
+  }, []);
+
+  const refreshWorkspace = useCallback(() => {
+    refreshControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+
+    dispatch({ type: 'REFRESH_START' });
+    void loadWorkspace('refresh', controller.signal)
+      .catch(() => undefined)
+      .finally(() => {
+        if (isMountedRef.current && !controller.signal.aborted) {
+          dispatch({ type: 'REFRESH_DONE' });
+        }
+      });
+  }, [loadWorkspace]);
+
+  useVisiblePolling(refreshWorkspace, { intervalMs: POLL_INTERVAL_MS });
 
   if (isLoading) {
     return <PageLoadingState />;

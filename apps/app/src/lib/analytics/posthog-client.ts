@@ -682,9 +682,19 @@ function loadAnalyticsSdk(): void {
         // boundary keeps out of events anyway, and pulls a separate lazy bundle
         // from the PostHog asset CDN on first paint. Keep it off.
         capture_dead_clicks: false,
-        // Web-vitals/network-timing capture is another lazy CDN bundle for
-        // signal we already get from CrUX. Off keeps /login on one request.
-        capture_performance: false,
+        // CrUX cannot see an authenticated product surface and cannot be split
+        // by route, organization, or deploy, so field vitals have to come from
+        // here. Network timing stays off: it reports per-resource URLs, which
+        // sit outside the FR8 property boundary that before_send enforces.
+        // Attribution stays off for the same reason: it attaches the LCP
+        // element's URL (signed asset query strings included) and the
+        // interaction target's selector, which can carry tenant-defined
+        // workflow keys.
+        capture_performance: {
+          network_timing: false,
+          web_vitals: true,
+          web_vitals_attribution: false,
+        },
         // Route components capture pageviews only after auth and organization
         // scope is synchronized. SDK history capture runs inside pushState,
         // before React can apply the destination tenant scope.

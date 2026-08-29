@@ -196,6 +196,7 @@ vi.mock('@ui/display/table/Table', () => ({
   default: ({
     columns,
     getRowKey,
+    getRowLink,
     items,
     onRowClick,
   }: {
@@ -204,27 +205,43 @@ vi.mock('@ui/display/table/Table', () => ({
       render?: (item: Record<string, unknown>) => ReactNode;
     }>;
     getRowKey: (item: Record<string, unknown>) => string;
+    getRowLink?: (item: Record<string, unknown>) => {
+      href: string;
+      label: string;
+    };
     items: Array<Record<string, unknown>>;
     onRowClick?: (item: Record<string, unknown>) => void;
   }) => (
     <table>
       <tbody>
-        {items.map((item) => (
-          <tr key={getRowKey(item)}>
-            {columns.map((column) => (
-              <td key={column.key}>
-                {column.render ? column.render(item) : String(item[column.key])}
-              </td>
-            ))}
-            {onRowClick && (
-              <td>
-                <button type="button" onClick={() => onRowClick(item)}>
-                  Open {String(item.topic ?? item.title)}
-                </button>
-              </td>
-            )}
-          </tr>
-        ))}
+        {items.map((item) => {
+          const rowLink = getRowLink?.(item);
+          return (
+            <tr key={getRowKey(item)}>
+              {columns.map((column) => (
+                <td key={column.key}>
+                  {column.render
+                    ? column.render(item)
+                    : String(item[column.key])}
+                </td>
+              ))}
+              {rowLink && (
+                <td>
+                  <a aria-label={rowLink.label} href={rowLink.href}>
+                    {rowLink.label}
+                  </a>
+                </td>
+              )}
+              {onRowClick && (
+                <td>
+                  <button type="button" onClick={() => onRowClick(item)}>
+                    Open {String(item.topic ?? item.title)}
+                  </button>
+                </td>
+              )}
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   ),
@@ -393,8 +410,12 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open AI video' }));
-    expect(mocks.push).toHaveBeenCalledWith('/analytics/trends/detail/trend-1');
+    // A real anchor, not a click handler: the router prefetches the trend
+    // detail route before the click and cmd-click opens it in a new tab.
+    expect(screen.getByRole('link', { name: 'Open AI video' })).toHaveAttribute(
+      'href',
+      '/analytics/trends/detail/trend-1',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Last 7 Days' }));
     await waitFor(() => {

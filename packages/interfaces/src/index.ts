@@ -159,6 +159,8 @@ export * from './hook-performance.interface';
 export * from './hooks/hooks.interface';
 export * from './hooks/use-async-state.interface';
 export * from './hooks/use-publication-modal.interface';
+export * from './hooks/use-topbar-balances.interface';
+export * from './hooks/use-visible-polling.interface';
 export * from './ingredients/image-to-video.interface';
 export * from './ingredients/ingredient.interface';
 export * from './ingredients/library-summary.interface';
