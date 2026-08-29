@@ -17,12 +17,17 @@ export function buildDocsPosthogOptions(
       dom_event_allowlist: ['click'],
       element_allowlist: ['a', 'button'],
     },
-    // Dead-click and web-vitals autocapture each pull a separate lazy bundle
-    // from the PostHog asset CDN for signal we do not act on. Keep them off so
-    // docs pages stay on a single analytics request.
+    // Dead-click autocapture pulls a separate lazy bundle from the PostHog
+    // asset CDN for signal we do not act on. Keep it off.
     capture_dead_clicks: false,
     capture_pageleave: true,
-    capture_performance: false,
+    // Docs pages are the slowest public routes to render and CrUX cannot split
+    // them apart, so vitals are captured per route here. Network timing stays
+    // off: it reports every resource URL.
+    capture_performance: {
+      network_timing: false,
+      web_vitals: true,
+    },
     capture_pageview: 'history_change',
     cookieless_mode: 'always',
     defaults: '2026-05-30',
