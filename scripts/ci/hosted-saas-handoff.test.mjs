@@ -45,6 +45,25 @@ const ENGINE_SECRETS = [
   'TURBO_TOKEN',
 ];
 
+// A skipped verify-suite must only be accepted when validate-release proved the
+// release SHA already carries green Full Suite evidence. A failed or
+// evidence-less skip still blocks the deploy, so both lanes carry this clause
+// verbatim.
+const VERIFY_SUITE_ACCEPTANCE =
+  /\(needs\.verify-suite\.result == 'success' \|\|\n\s+\(needs\.verify-suite\.result == 'skipped' &&\n\s+needs\.validate-release\.outputs\.suite_verified == 'true'\)\)/;
+
+function assertDeployGate(jobYaml, laneCondition) {
+  for (const condition of [
+    /!cancelled\(\)/,
+    /inputs\.recovery_run_id == ''/,
+    laneCondition,
+    /needs\.validate-release\.result == 'success'/,
+    VERIFY_SUITE_ACCEPTANCE,
+  ]) {
+    assert.match(jobYaml, condition);
+  }
+}
+
 function jobBlock(jobId) {
   const match = releaseWorkflow.match(
     new RegExp(`^  ${jobId}:\\n((?:    .*?(?:\\n|$)|\\n)+)`, 'm'),
@@ -90,10 +109,7 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
   assert.match(releaseWorkflow, /saas_lane:/);
 
   const deploy = jobBlock('deploy-saas');
-  assert.match(
-    deploy,
-    /if: \$\{\{ inputs\.recovery_run_id == '' && inputs\.saas_lane != 'operations' \}\}/,
-  );
+  assertDeployGate(deploy, /inputs\.saas_lane != 'operations'/);
   assert.match(
     deploy,
     /uses: \.\/\.github\/workflows\/deploy-hosted-saas\.yml/,
@@ -110,10 +126,7 @@ test('defaults hosted SaaS compute to the public monorepo reusable workflow', ()
 test('keeps the private operations dispatch as an explicit fallback lane', () => {
   const deploy = jobBlock('deploy-saas-via-operations');
 
-  assert.match(
-    deploy,
-    /if: \$\{\{ inputs\.recovery_run_id == '' && inputs\.saas_lane == 'operations' \}\}/,
-  );
+  assertDeployGate(deploy, /inputs\.saas_lane == 'operations'/);
   assert.match(deploy, /CONSOLE_REPOSITORY: genfeedai\/console\.genfeed\.ai/);
   assert.match(deploy, /CONSOLE_WORKFLOW: deploy-hosted-saas\.yml/);
   assert.match(deploy, /GH_TOKEN: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/);
