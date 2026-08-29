@@ -82,6 +82,22 @@ vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
   useWebsocketPrompt: () => vi.fn(),
 }));
 
+vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => ({
+    cancelExecution: vi.fn(),
+    executions: [],
+    isLoading: false,
+    refresh: vi.fn(),
+    stats: {
+      active: 0,
+      completed: 0,
+      failed: 0,
+      total: 0,
+      totalCredits: 0,
+    },
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => '/workspace/inbox/unread',

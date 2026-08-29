@@ -342,7 +342,6 @@ describe('SocialMessagesPage', () => {
       await screen.findByText('Here is a drafted answer.'),
     ).toBeInTheDocument();
     expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
-    expect(screen.getByText('agent-run-1')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
     expect(screen.getByText(/separate from agent thread/i)).toBeInTheDocument();

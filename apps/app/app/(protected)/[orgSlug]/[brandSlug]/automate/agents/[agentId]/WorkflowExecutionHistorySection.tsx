@@ -43,6 +43,7 @@ export default function WorkflowExecutionHistorySection({
                 <TableHead>Status</TableHead>
                 <TableHead>Credits</TableHead>
                 <TableHead>Nodes</TableHead>
+                <TableHead>Model</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Started</TableHead>
               </TableRow>

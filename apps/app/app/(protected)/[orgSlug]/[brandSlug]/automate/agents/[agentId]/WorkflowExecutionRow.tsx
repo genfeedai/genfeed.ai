@@ -6,6 +6,33 @@ import { TableCell, TableRow } from '@ui/primitives/table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
+function getExecutionMetadataString(
+  metadata: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function getExecutionModelLabel(execution: IWorkflowExecution): string {
+  const actualModel = getExecutionMetadataString(
+    execution.metadata,
+    'actualModel',
+  );
+  const requestedModel = getExecutionMetadataString(
+    execution.metadata,
+    'requestedModel',
+  );
+
+  if (actualModel && requestedModel && actualModel !== requestedModel) {
+    return `${actualModel} via ${requestedModel}`;
+  }
+
+  return actualModel ?? requestedModel ?? 'Untracked';
+}
+
 interface WorkflowExecutionRowProps {
   execution: IWorkflowExecution;
   isExpanded: boolean;
@@ -41,6 +68,14 @@ export default function WorkflowExecutionRow({
         <TableCell className="p-4 align-middle text-sm text-foreground/60">
           {execution.nodeResults.length}
         </TableCell>
+        <TableCell
+          className="max-w-[18rem] p-4 align-middle text-sm text-foreground/60"
+          title={getExecutionModelLabel(execution)}
+        >
+          <span className="block truncate">
+            {getExecutionModelLabel(execution)}
+          </span>
+        </TableCell>
         <TableCell className="p-4 align-middle text-sm text-foreground/60">
           {execution.durationMs
             ? `${Math.round(execution.durationMs / 1000)}s`
@@ -57,7 +92,7 @@ export default function WorkflowExecutionRow({
         <TableRow>
           <TableCell
             className="border-b border-border bg-foreground/[0.02]"
-            colSpan={6}
+            colSpan={7}
           >
             <div className="space-y-2 p-4 text-xs text-foreground/65">
               {execution.nodeResults.length === 0 ? (
