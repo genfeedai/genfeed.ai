@@ -1,4 +1,4 @@
-import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
+import { ContentPerformanceCoreModule } from '@api/collections/content-performance/content-performance-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
@@ -48,7 +48,7 @@ const ANALYTICS_COLLECTION_SERVICES = [
 @Module({
   exports: [...ANALYTICS_COLLECTION_SERVICES],
   imports: [
-    ContentPerformanceModule,
+    ContentPerformanceCoreModule,
     CredentialsCoreModule,
     FacebookModule,
     InstagramModule,

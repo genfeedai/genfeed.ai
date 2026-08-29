@@ -6,7 +6,7 @@ import {
   PostCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
@@ -41,7 +41,7 @@ export type PipelineConfig = PipelineConfigV2;
 type WorkflowStepOutcome = StepOutcome & { timingMs: number };
 
 @Injectable()
-export class ContentOrchestrationService {
+export class ContentOrchestrationService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -56,7 +56,15 @@ export class ContentOrchestrationService {
     private readonly stepExecutorService: StepExecutorService,
     @Inject(SYSTEM_WORKFLOW_RUNNER)
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
-  ) {
+  ) {}
+
+  /**
+   * Register this service's workflow actions once the engine adapter exists.
+   * Registration cannot run in the constructor: the runner resolves the
+   * engine adapter lazily through `ModuleRef`, and during the provider
+   * instantiation phase that lookup still returns `null`.
+   */
+  onModuleInit(): void {
     this.registerWorkflowActions();
   }
 

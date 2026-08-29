@@ -219,6 +219,7 @@ describe('ContentOrchestrationService', () => {
     service = module.get<ContentOrchestrationService>(
       ContentOrchestrationService,
     );
+    service.onModuleInit();
   });
 
   describe('generateAndPublish', () => {
