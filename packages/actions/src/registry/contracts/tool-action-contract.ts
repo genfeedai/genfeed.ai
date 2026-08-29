@@ -1,4 +1,4 @@
-import type { ActionJsonSchema } from '../../interfaces/action-definition.interface.js';
+import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
 import {
   arraySchema,
   BOOLEAN_SCHEMA,
@@ -7,7 +7,7 @@ import {
   JSON_DOCUMENT_SCHEMA,
   NUMBER_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 /** Shared transport envelope returned by every Agent/MCP tool handler. */
 export const TOOL_ACTION_OUTPUT_SCHEMA: ActionJsonSchema = closedObjectSchema(

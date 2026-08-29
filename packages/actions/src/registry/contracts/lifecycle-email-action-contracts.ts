@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   closedObjectSchema,
@@ -8,7 +8,7 @@ import {
   nullableSchema,
   STRING_MAP_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const TRUE_FALSE = { type: 'boolean' } as const;
 const SEQUENCE = enumSchema([

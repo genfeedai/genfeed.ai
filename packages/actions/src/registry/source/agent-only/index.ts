@@ -1,21 +1,21 @@
-import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
-import { AGENT_ADS_TOOLS } from './ads.tools.js';
-import { AGENT_AGENT_CONTROL_TOOLS } from './agent-control.tools.js';
-import { AGENT_ANALYTICS_TOOLS } from './analytics.tools.js';
-import { AGENT_BRAND_PROFILE_TOOLS } from './brand-profile.tools.js';
-import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools.js';
-import { AGENT_CONTENT_TOOLS } from './content.tools.js';
-import { AGENT_CONVERSATION_TRANSFER_TOOLS } from './conversation-transfer.tools.js';
-import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools.js';
-import { AGENT_GENERATION_TOOLS } from './generation.tools.js';
-import { AGENT_IDENTITY_TOOLS } from './identity.tools.js';
-import { AGENT_ONBOARDING_TOOLS } from './onboarding.tools.js';
-import { AGENT_OPERATOR_TOOLS } from './operator.tools.js';
-import { AGENT_OTHER_TOOLS } from './other.tools.js';
-import { AGENT_PROACTIVE_TOOLS } from './proactive.tools.js';
-import { AGENT_SOCIAL_TOOLS } from './social.tools.js';
-import { AGENT_UI_TOOLS } from './ui.tools.js';
-import { AGENT_WORKFLOW_TOOLS } from './workflow.tools.js';
+import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import { AGENT_ADS_TOOLS } from './ads.tools';
+import { AGENT_AGENT_CONTROL_TOOLS } from './agent-control.tools';
+import { AGENT_ANALYTICS_TOOLS } from './analytics.tools';
+import { AGENT_BRAND_PROFILE_TOOLS } from './brand-profile.tools';
+import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools';
+import { AGENT_CONTENT_TOOLS } from './content.tools';
+import { AGENT_CONVERSATION_TRANSFER_TOOLS } from './conversation-transfer.tools';
+import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools';
+import { AGENT_GENERATION_TOOLS } from './generation.tools';
+import { AGENT_IDENTITY_TOOLS } from './identity.tools';
+import { AGENT_ONBOARDING_TOOLS } from './onboarding.tools';
+import { AGENT_OPERATOR_TOOLS } from './operator.tools';
+import { AGENT_OTHER_TOOLS } from './other.tools';
+import { AGENT_PROACTIVE_TOOLS } from './proactive.tools';
+import { AGENT_SOCIAL_TOOLS } from './social.tools';
+import { AGENT_UI_TOOLS } from './ui.tools';
+import { AGENT_WORKFLOW_TOOLS } from './workflow.tools';
 
 export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_GENERATION_TOOLS,

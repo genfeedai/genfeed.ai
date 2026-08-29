@@ -1,9 +1,9 @@
-import type { SourceTool } from '../../interfaces/source-tool.interface.js';
-import { AGENT_ONLY_TOOLS } from './agent-only/index.js';
-import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools.js';
-import { MCP_ONLY_TOOLS } from './mcp-only/index.js';
-import { OVERLAP_TOOLS } from './overlap.tools.js';
-import { OVERLAP_INSPIRATION_TOOLS } from './overlap-inspiration.tools.js';
+import type { SourceTool } from '../../interfaces/source-tool.interface';
+import { AGENT_ONLY_TOOLS } from './agent-only/index';
+import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools';
+import { MCP_ONLY_TOOLS } from './mcp-only/index';
+import { OVERLAP_TOOLS } from './overlap.tools';
+import { OVERLAP_INSPIRATION_TOOLS } from './overlap-inspiration.tools';
 
 /**
  * Hand-authored schemas and metadata for curated product actions. The shard

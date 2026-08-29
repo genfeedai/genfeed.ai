@@ -1,4 +1,4 @@
-import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
+import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 /**
  * `draft_brand_voice_profile` costs one generation credit. The API mirrors this

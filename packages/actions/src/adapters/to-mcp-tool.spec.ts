@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
-import { getToolsForSurface } from '../registry/tool-registry.js';
-import { MCP_CREDIT_COST_META_KEY, toMcpTools } from './to-mcp-tool.js';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import { getToolsForSurface } from '../registry/tool-registry';
+import { MCP_CREDIT_COST_META_KEY, toMcpTools } from './to-mcp-tool';
 
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},

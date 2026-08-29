@@ -1,4 +1,4 @@
-import type { SourceTool } from '../../interfaces/source-tool.interface.js';
+import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 export const OVERLAP_PUBLISHING_TOOLS: SourceTool[] = [
   {

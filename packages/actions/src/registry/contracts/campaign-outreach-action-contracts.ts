@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   closedObjectSchema,
@@ -6,7 +6,7 @@ import {
   INTEGER_SCHEMA,
   NUMBER_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const TRUE_SCHEMA = { const: true, type: 'boolean' } as const;
 const FALSE_SCHEMA = { const: false, type: 'boolean' } as const;

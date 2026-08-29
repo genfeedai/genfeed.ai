@@ -1,4 +1,4 @@
-import type { SourceTool } from '../../interfaces/source-tool.interface.js';
+import type { SourceTool } from '../../interfaces/source-tool.interface';
 
 /**
  * Batch-generation definition split out of `overlap.tools.ts` to keep that

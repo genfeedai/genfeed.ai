@@ -1,4 +1,4 @@
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 
 /**
  * `_meta` key carrying the minimum credit charge for one call of the tool.

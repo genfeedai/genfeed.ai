@@ -1,10 +1,10 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   closedObjectSchema,
   enumSchema,
   JSON_DOCUMENT_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const TRUE_SCHEMA = { const: true, type: 'boolean' } as const;
 const REQUEST = closedObjectSchema(

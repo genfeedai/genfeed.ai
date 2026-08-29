@@ -1,4 +1,4 @@
-import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
+import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
   {

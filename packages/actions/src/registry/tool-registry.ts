@@ -2,12 +2,12 @@ import type {
   CanonicalToolDefinition,
   ToolCategory,
   ToolRequiredRole,
-} from '../interfaces/tool-definition.interface.js';
+} from '../interfaces/tool-definition.interface';
 import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
-} from './curated-action-catalog.js';
-import { SOURCE_TOOLS } from './source/index.js';
+} from './curated-action-catalog';
+import { SOURCE_TOOLS } from './source/index';
 
 const UI_ACTION_MAP: Partial<
   Record<string, CanonicalToolDefinition['uiActionType']>

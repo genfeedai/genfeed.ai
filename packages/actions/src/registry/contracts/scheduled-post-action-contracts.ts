@@ -1,11 +1,11 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   BOOLEAN_SCHEMA,
   closedObjectSchema,
   enumSchema,
   nullableSchema,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const REQUEST = closedObjectSchema(
   {

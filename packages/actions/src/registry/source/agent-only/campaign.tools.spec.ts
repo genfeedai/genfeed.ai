@@ -3,7 +3,7 @@ import {
   listExecutableOutreachPlatforms,
 } from '@api-types/contracts/outreach-capabilities.contract';
 import { describe, expect, it } from 'vitest';
-import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools.js';
+import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools';
 
 const createCampaign = AGENT_CAMPAIGN_TOOLS.find(
   (tool) => tool.name === 'create_campaign',

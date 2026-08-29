@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   BOOLEAN_SCHEMA,
   closedObjectSchema,
@@ -6,7 +6,7 @@ import {
   INTEGER_SCHEMA,
   NUMBER_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const REQUEST = closedObjectSchema(
   {

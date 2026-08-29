@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MCP_SCHEDULER_TOOLS } from './scheduler.tools.js';
+import { MCP_SCHEDULER_TOOLS } from './scheduler.tools';
 
 const toolsByName = new Map(
   MCP_SCHEDULER_TOOLS.map((tool) => [tool.name, tool]),

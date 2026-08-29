@@ -1,12 +1,12 @@
-import type { ActionJsonSchema } from '../../interfaces/action-definition.interface.js';
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   closedObjectSchema,
   enumSchema,
   INTEGER_SCHEMA,
   NUMBER_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const OUTBOUND_PROPERTIES = {
   body: STRING_SCHEMA,

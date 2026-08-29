@@ -11,7 +11,7 @@ import {
   MCP_CREDIT_COST_META_KEY,
   toAgentTools,
   toMcpTools,
-} from './index.js';
+} from './index';
 
 describe('package entry point', () => {
   it('re-exports the registry, catalog, and adapter surface', () => {

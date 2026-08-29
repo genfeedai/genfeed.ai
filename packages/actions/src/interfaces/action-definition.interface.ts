@@ -1,4 +1,4 @@
-import type { ToolRequiredRole } from './tool-definition.interface.js';
+import type { ToolRequiredRole } from './tool-definition.interface';
 
 export type ActionApprovalPolicy = 'none' | 'required';
 export type ActionCompletionMode = 'provider-callback' | 'synchronous';

@@ -1,4 +1,4 @@
-import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
+import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
 /**
  * Shared source-ad selectors for agent-only ad remix actions. Ads research

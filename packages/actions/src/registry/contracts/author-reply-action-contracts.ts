@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   BOOLEAN_SCHEMA,
@@ -7,7 +7,7 @@ import {
   INTEGER_SCHEMA,
   JSON_DOCUMENT_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const REPLY_INTENT = enumSchema([
   'default',

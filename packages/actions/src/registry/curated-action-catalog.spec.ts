@@ -3,13 +3,9 @@ import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
   isPublishingApprovalRequired,
-} from './curated-action-catalog.js';
-import { SOURCE_TOOLS } from './source/index.js';
-import {
-  ALL_TOOLS,
-  getToolByName,
-  getToolsForSurface,
-} from './tool-registry.js';
+} from './curated-action-catalog';
+import { SOURCE_TOOLS } from './source/index';
+import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('curated action catalog', () => {
   it('is deterministically sorted with unique action names', () => {

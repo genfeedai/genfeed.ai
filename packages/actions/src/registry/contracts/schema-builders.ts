@@ -1,4 +1,4 @@
-import type { ActionJsonSchema } from '../../interfaces/action-definition.interface.js';
+import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
 
 export type ObjectSchemaProperties = Readonly<Record<string, ActionJsonSchema>>;
 

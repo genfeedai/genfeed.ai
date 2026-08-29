@@ -652,6 +652,7 @@ config.turbopack = {
       './packages/components/admin/modals/ModalSubscription.tsx',
     '@components/social/SocialLinks':
       './packages/components/admin/social/SocialLinks.tsx',
+    '@genfeedai/actions': '../../packages/actions/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',
     '@genfeedai/constants': '../../packages/constants/src/index.ts',

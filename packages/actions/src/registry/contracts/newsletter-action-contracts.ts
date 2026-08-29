@@ -1,11 +1,11 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   closedObjectSchema,
   INTEGER_SCHEMA,
   nullableSchema,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const SOURCE_REF = closedObjectSchema(
   {

@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { SourceTool } from '../interfaces/source-tool.interface.js';
-import type { ToolCategory } from '../interfaces/tool-definition.interface.js';
+import type { SourceTool } from '../interfaces/source-tool.interface';
+import type { ToolCategory } from '../interfaces/tool-definition.interface';
 import type {
   CuratedActionCatalogEntry,
   CuratedActionSurface,
-} from './curated-action-catalog.js';
+} from './curated-action-catalog';
 import {
   ALL_TOOLS,
   getToolByName,
   getToolsByCategory,
   getToolsForRole,
   getToolsForSurface,
-} from './tool-registry.js';
+} from './tool-registry';
 
 describe('tool registry', () => {
   it('sorts the canonical tool list by name', () => {
@@ -105,8 +105,8 @@ describe('tool registry', () => {
 
 describe('tool registry catalog validation', () => {
   afterEach(() => {
-    vi.doUnmock('./curated-action-catalog.js');
-    vi.doUnmock('./source/index.js');
+    vi.doUnmock('./curated-action-catalog');
+    vi.doUnmock('./source/index');
     vi.resetModules();
   });
 
@@ -126,14 +126,14 @@ describe('tool registry catalog validation', () => {
       { name: 'missing_action', surfaces: ['mcp'] },
     ];
 
-    vi.doMock('./curated-action-catalog.js', () => ({
+    vi.doMock('./curated-action-catalog', () => ({
       CURATED_ACTION_CATALOG: catalog,
       isActionOnSurface: (
         entry: CuratedActionCatalogEntry,
         surface: CuratedActionSurface,
       ) => entry.surfaces.some((candidate) => candidate === surface),
     }));
-    vi.doMock('./source/index.js', () => ({
+    vi.doMock('./source/index', () => ({
       SOURCE_TOOLS: [
         buildSourceTool('duplicated_action'),
         buildSourceTool('duplicated_action'),
@@ -142,7 +142,7 @@ describe('tool registry catalog validation', () => {
     }));
     vi.resetModules();
 
-    await expect(import('./tool-registry.js')).rejects.toThrow(
+    await expect(import('./tool-registry')).rejects.toThrow(
       /Invalid curated action catalog: duplicate definitions: duplicated_action; duplicate catalog entries: duplicated_action; missing definitions: missing_action; definitions absent from the curated catalog: unreviewed_action/,
     );
   });

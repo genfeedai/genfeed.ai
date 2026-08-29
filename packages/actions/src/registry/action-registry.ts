@@ -3,12 +3,12 @@ import type {
   CreateGenfeedActionNodeInput,
   GenfeedActionDefinition,
   GenfeedActionNodeDefinition,
-} from '../interfaces/action-definition.interface.js';
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
-import { getExplicitActionContract } from './contracts/explicit-action-contracts.js';
-import { closeObjectSchemas } from './contracts/schema-builders.js';
-import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract.js';
-import { ALL_TOOLS } from './tool-registry.js';
+} from '../interfaces/action-definition.interface';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import { getExplicitActionContract } from './contracts/explicit-action-contracts';
+import { closeObjectSchemas } from './contracts/schema-builders';
+import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract';
+import { ALL_TOOLS } from './tool-registry';
 
 const PROVIDER_CALLBACK_ACTION_IDS = new Set([
   'aiAvatarVideo',

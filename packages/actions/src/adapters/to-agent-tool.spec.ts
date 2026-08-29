@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
-import { getToolsForSurface } from '../registry/tool-registry.js';
-import { toAgentTools } from './to-agent-tool.js';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import { getToolsForSurface } from '../registry/tool-registry';
+import { toAgentTools } from './to-agent-tool';
 
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},

@@ -1,8 +1,8 @@
-import type { SourceTool } from '../../interfaces/source-tool.interface.js';
-import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools.js';
-import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools.js';
-import { OVERLAP_QUERY_TOOLS } from './overlap-query.tools.js';
-import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools.js';
+import type { SourceTool } from '../../interfaces/source-tool.interface';
+import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools';
+import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools';
+import { OVERLAP_QUERY_TOOLS } from './overlap-query.tools';
+import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
   {

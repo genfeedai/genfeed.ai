@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   closedObjectSchema,
@@ -8,7 +8,7 @@ import {
   NUMBER_SCHEMA,
   nullableSchema,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const EMPTY_TOOL_ITEMS = {
   items: JSON_DOCUMENT_SCHEMA,

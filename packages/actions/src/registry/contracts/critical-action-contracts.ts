@@ -1,4 +1,4 @@
-import type { ActionContractSchemas } from './action-contract.interface.js';
+import type { ActionContractSchemas } from './action-contract.interface';
 import {
   arraySchema,
   closedObjectSchema,
@@ -7,7 +7,7 @@ import {
   JSON_DOCUMENT_SCHEMA,
   NON_EMPTY_STRING_SCHEMA,
   STRING_SCHEMA,
-} from './schema-builders.js';
+} from './schema-builders';
 
 const OUTPUT_TYPE = enumSchema([
   'article',

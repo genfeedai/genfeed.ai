@@ -1,4 +1,4 @@
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 
 export interface AgentToolOutput {
   name: string;

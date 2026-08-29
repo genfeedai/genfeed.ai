@@ -3,12 +3,12 @@ import {
   ALL_ACTIONS,
   createGenfeedActionNode,
   getActionDefinition,
-} from './action-registry.js';
-import { countExplicitActionContracts } from './contracts/explicit-action-contracts.js';
+} from './action-registry';
+import { countExplicitActionContracts } from './contracts/explicit-action-contracts';
 import {
   JSON_DOCUMENT_SCHEMA,
   materializeJsonDocumentSchema,
-} from './contracts/schema-builders.js';
+} from './contracts/schema-builders';
 
 function expectConcreteClosedSchema(
   schema: unknown,
