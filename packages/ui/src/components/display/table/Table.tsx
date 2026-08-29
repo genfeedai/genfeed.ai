@@ -340,26 +340,25 @@ export default function AppTable<T>({
                       key={String(column.key)}
                       className={cn(
                         'px-4 py-3 align-middle text-foreground/80',
-                        // Every cell paints above the row overlay so links,
-                        // buttons, and menus inside a cell stay clickable. The
-                        // cell hosting the overlay must stay unpositioned, or
-                        // `inset-0` would size to the cell instead of the row.
-                        rowLink && columnIndex > 0 && 'relative',
                         column.className,
                       )}
                     >
                       {rowLink && columnIndex === 0 ? (
                         <>
+                          {/* The anchor covers the whole row (the `tr` is the
+                              positioned ancestor), so ordinary cells must stay
+                              unpositioned — anything painted above it swallows
+                              the click, and a linked row has no `onClick`
+                              fallback. Only the checkbox and action cells are
+                              raised, and they are positioned on their own `td`. */}
                           <Link
                             aria-label={rowLink.label}
                             className="absolute inset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                             href={rowLink.href}
                           />
-                          <span className="relative block">
-                            {column.render
-                              ? column.render(item)
-                              : String(item[column.key as keyof T])}
-                          </span>
+                          {column.render
+                            ? column.render(item)
+                            : String(item[column.key as keyof T])}
                         </>
                       ) : column.render ? (
                         column.render(item)
