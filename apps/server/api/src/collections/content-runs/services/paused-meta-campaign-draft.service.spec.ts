@@ -37,9 +37,9 @@ describe('PausedMetaCampaignDraftService', () => {
   };
   const actions = new Map<string, CapturedWorkflowAction>();
   const workflowRunner = {
-    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) =>
-      actions.set(id, action),
-    ),
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      actions.set(id, action);
+    }),
     registerWorkflow: vi.fn(),
     runWorkflow: vi.fn(),
   };

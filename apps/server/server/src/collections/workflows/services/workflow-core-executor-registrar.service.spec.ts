@@ -120,7 +120,11 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
       data: { postId: 'post-1' },
       delayMs: 120_000,
     });
-    expect(Date.parse(String(result?.resumeAt))).toBeGreaterThan(Date.now());
+    const resumeAt =
+      result && typeof result === 'object' && 'resumeAt' in result
+        ? result.resumeAt
+        : undefined;
+    expect(Date.parse(String(resumeAt))).toBeGreaterThan(Date.now());
     expect(engine.getRegisteredNodeTypes()).toContain('delay');
   });
 

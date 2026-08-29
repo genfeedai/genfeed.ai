@@ -45,7 +45,7 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
       commentText: 'Great video',
       organizationId: 'org-1',
       parentPostId: 'video-1',
-      platform: Platform.YOUTUBE,
+      platform: Platform.YOUTUBE as const,
       receivedAt: new Date().toISOString(),
       source: 'xaa' as const,
     };

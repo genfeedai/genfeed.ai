@@ -256,6 +256,7 @@ describe('WorkflowExecutorService', () => {
       ],
       organizationId: 'org-1',
       userId: 'user-1',
+      versionId: WORKFLOW_VERSION_ID,
     };
 
     prisma.workflow.findFirst.mockResolvedValue({
@@ -860,6 +861,7 @@ describe('WorkflowExecutorService', () => {
         ],
         organizationId: 'org-1',
         userId: 'user-1',
+        versionId: WORKFLOW_VERSION_ID,
       };
 
       executionsService.findOne.mockResolvedValue({
@@ -938,6 +940,7 @@ describe('WorkflowExecutorService', () => {
         ],
         organizationId: 'org-1',
         userId: 'user-1',
+        versionId: WORKFLOW_VERSION_ID,
       };
 
       executionsService.findOne.mockResolvedValue({

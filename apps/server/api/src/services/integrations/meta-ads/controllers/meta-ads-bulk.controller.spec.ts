@@ -5,6 +5,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { CreativeSource } from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 
 describe('MetaAdsBulkController workflow dispatch', () => {
@@ -25,13 +26,13 @@ describe('MetaAdsBulkController workflow dispatch', () => {
     adSetId: 'adset_1',
     bodyCopies: ['Body'],
     campaignId: 'camp_1',
-    creativeSource: 'manual-upload',
+    creativeSource: 'manual-upload' as CreativeSource,
     credentialId,
     headlines: ['Headline'],
     images: ['image-1'],
     linkUrl: 'https://example.com',
-    videos: [],
-  } as const;
+    videos: [] as string[],
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();

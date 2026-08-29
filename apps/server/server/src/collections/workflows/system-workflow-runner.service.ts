@@ -119,7 +119,7 @@ export class SystemWorkflowRunnerService
     const missingChildren = new Set<string>();
 
     for (const definition of this.workflowDefinitions.values()) {
-      for (const node of definition.definition.nodes ?? []) {
+      for (const node of definition.definition.nodes) {
         if (node.type !== 'genfeedAction') {
           continue;
         }
@@ -273,7 +273,7 @@ export class SystemWorkflowRunnerService
           isSystemAction: true,
           source: input.source,
         },
-        totalNodes: definition.definition.nodes?.length ?? 0,
+        totalNodes: definition.definition.nodes.length,
         trigger,
         workflowId: workflow.id,
         workflowVersionId: workflow.currentVersion.id,
@@ -552,17 +552,15 @@ export class SystemWorkflowRunnerService
     const registeredActionIds = new Set(
       this.getEngineAdapter().getRegisteredActionIds(),
     );
-    const missingActionIds = (definition.definition.nodes ?? []).flatMap(
-      (node) => {
-        if (node.type !== 'genfeedAction') {
-          return [];
-        }
-        const actionId = this.optionalString(
-          this.readRecord(node.data?.config).actionId,
-        );
-        return actionId && !registeredActionIds.has(actionId) ? [actionId] : [];
-      },
-    );
+    const missingActionIds = definition.definition.nodes.flatMap((node) => {
+      if (node.type !== 'genfeedAction') {
+        return [];
+      }
+      const actionId = this.optionalString(
+        this.readRecord(node.data?.config).actionId,
+      );
+      return actionId && !registeredActionIds.has(actionId) ? [actionId] : [];
+    });
     if (missingActionIds.length > 0) {
       throw new Error(
         `System workflow action executors missing: ${[

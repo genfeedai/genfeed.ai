@@ -51,7 +51,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-extended');
+        await args.runProvider('ingredient-extended', 'continuation-extended');
         return {
           ingredientId: 'ingredient-extended',
           metadataId: 'metadata-extended',
@@ -148,7 +148,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-1');
+        await args.runProvider('ingredient-1', 'continuation-1');
         return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
       },
     );
@@ -301,7 +301,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-1');
+        await args.runProvider('ingredient-1', 'continuation-1');
         return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
       },
     );

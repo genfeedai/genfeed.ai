@@ -8,7 +8,7 @@ describe('signup prefill workflow definition', () => {
   it('uses atomic enrichment actions and routes every mutable step failure', () => {
     const definition = buildSignupPrefillWorkflowDefinition();
     expect(
-      definition.definition.nodes.map((node) => node.data?.actionId),
+      definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
       SIGNUP_PREFILL_ACTION_IDS.PREPARE,
       SIGNUP_PREFILL_ACTION_IDS.SCRAPE,

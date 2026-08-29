@@ -85,12 +85,16 @@ describe('ContentOrchestrationService', () => {
         async (definition: SystemWorkflowGraphDefinition) => {
           const outputs = new Map<string, unknown>();
           for (const node of definition.definition.nodes ?? []) {
-            const actionId = node.data.config.actionId;
+            const actionId = String(node.data.config.actionId);
             const executor = workflowActionExecutors.get(actionId);
             if (!executor) {
               throw new Error(`Missing test action executor ${actionId}`);
             }
-            const input = { ...node.data.config.parameters };
+            const { parameters } = node.data.config;
+            const input: Record<string, unknown> =
+              parameters && typeof parameters === 'object'
+                ? { ...parameters }
+                : {};
             for (const edge of definition.definition.edges ?? []) {
               if (edge.target === node.id) {
                 input[edge.targetHandle ?? edge.source] = outputs.get(

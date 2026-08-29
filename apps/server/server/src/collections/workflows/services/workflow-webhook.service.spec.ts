@@ -1,6 +1,6 @@
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowWebhookService', () => {
@@ -17,9 +17,6 @@ describe('WorkflowWebhookService', () => {
   const workflowsService = {
     findOne: vi.fn(),
   };
-  const workflowStepRunner = {
-    executeWorkflow: vi.fn(),
-  };
   const workflowExecutorService = {
     executeManualWorkflow: vi.fn(),
   };
@@ -32,7 +29,6 @@ describe('WorkflowWebhookService', () => {
       prisma as never,
       configService as never,
       workflowsService as never,
-      workflowStepRunner as never,
       workflowExecutorService as never,
     );
   });
@@ -207,25 +203,33 @@ describe('WorkflowWebhookService', () => {
           organizationId: 'org-1',
         },
       });
-      expect(workflowStepRunner.executeWorkflow).not.toHaveBeenCalled();
     });
 
-    it('routes step-only workflows through the step runner', async () => {
+    // Every webhook trigger runs the workflow executor. There is no
+    // step-runner fallback for workflows that persist no builder nodes.
+    it('executes node-less workflows through the workflow executor', async () => {
       workflowsService.findOne.mockResolvedValue({
         ...nodeWorkflow,
         nodes: [],
       });
-      workflowStepRunner.executeWorkflow.mockResolvedValue(undefined);
+      workflowExecutorService.executeManualWorkflow.mockResolvedValue({
+        executionId: 'execution-1',
+        status: 'RUNNING',
+      });
 
       const result = await service.triggerViaWebhook('wh_1', {});
 
-      expect(result).toEqual({ runId: 'workflow-1', status: 'started' });
-      expect(workflowStepRunner.executeWorkflow).toHaveBeenCalledWith(
-        'workflow-1',
-      );
+      expect(result).toEqual({ runId: 'execution-1', status: 'RUNNING' });
       expect(
         workflowExecutorService.executeManualWorkflow,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith(
+        'workflow-1',
+        'user-1',
+        'org-1',
+        {},
+        { triggerSource: 'webhook', webhookId: 'wh_1' },
+        WorkflowExecutionTrigger.API,
+      );
     });
 
     it('rejects triggering workflows without an owner', async () => {

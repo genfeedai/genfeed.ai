@@ -289,14 +289,6 @@
       "workspace": "api"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-performance/controllers/analytics-sync.controller.spec.ts",
-      "fingerprint": "f0102e8cfc65bccae9f0",
-      "message": "Object literal may only specify known properties, and 'getLastSyncDate' does not exist in type '{ syncAnalytics: Mock<Procedure | Constructable>; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2820,
       "count": 1,
       "file": "apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts",
@@ -1029,30 +1021,6 @@
       "count": 1,
       "file": "apps/server/api/src/collections/trainings/entities/training.entity.spec.ts",
       "fingerprint": "de703aefd16658f0460c",
-      "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/transcripts/controllers/transcripts.controller.spec.ts",
-      "fingerprint": "b26997fdc5308a66c4f5",
-      "message": "Property 'transcriptText' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/transcripts/controllers/transcripts.controller.spec.ts",
-      "fingerprint": "5d2483a35814f9bfbdd1",
-      "message": "Argument of type 'AggregatePaginateResult<unknown>' is not assignable to parameter of type '{ docs: { isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; organizationId: string; content: string | null; articleId: string | null; language: string | null; }[]; totalDocs: number; limit: number; page: number; totalPages: number; }'.   Types of property 'docs' are incompatible.     Type 'unknown[]' is not assignable to type '{ isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; organizationId: string; content: string | null; articleId: string | null; language: string | null; }[]'.       Type 'unknown' is not assignable to type '{ isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; userId: string; organizationId: string; content: string | null; articleId: string | null; language: string | null; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2554,
-      "count": 1,
-      "file": "apps/server/api/src/collections/transcripts/entities/transcript.entity.spec.ts",
-      "fingerprint": "e580f9cc2fac96908ed6",
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "api"
     },
@@ -2761,43 +2729,11 @@
       "workspace": "server"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/server/src/collections/agent-memories/services/task-feedback-memory-adapter.service.spec.ts",
-      "fingerprint": "b6ce53fef4a91faa0801",
-      "message": "Conversion of type '{ id: string; approvedOutputIds: string[]; brandId: string; eventStream: never[]; identifier: string; linkedApprovalIds: never[]; linkedOutputIds: string[]; linkedRunIds: never[]; organizationId: string; ... 11 more ...; title: string; }' to type 'TaskDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; approvedOutputIds: string[]; brandId: string; eventStream: never[]; identifier: string; linkedApprovalIds: never[]; linkedOutputIds: string[]; linkedRunIds: never[]; organizationId: string; ... 11 more ...; title: string; }' is missing the following properties from type 'TaskDocument': linkedEntities, taskNumber, createdAt, updatedAt, and 11 more.",
-      "workspace": "server"
-    },
-    {
       "code": 2345,
       "count": 5,
       "file": "apps/server/server/src/collections/brands/services/brand-generation.service.spec.ts",
       "fingerprint": "3599dba544aec0b4ba9e",
       "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2769,
-      "count": 1,
-      "file": "apps/server/server/src/collections/brands/services/default-recurring-content.service.spec.ts",
-      "fingerprint": "7015128460bdd40dc890",
-      "message": "No overload matches this call.   Overload 1 of 2, '(arg: PrismaPromise<any>[], options?: { maxWait?: number | undefined; timeout?: number | undefined; isolationLevel?: TransactionIsolationLevel | undefined; } | undefined): Promise<...>', gave the following error.     Argument of type '(tx: FakeTxClient) => Promise<unknown>' is not assignable to parameter of type 'PrismaPromise<any>[]'.   Overload 2 of 2, '(fn: (prisma: Omit<PrismaClient<never, GlobalOmitConfig | undefined, DefaultArgs>, \"$connect\" | \"$disconnect\" | \"$on\" | \"$use\" | \"$extends\">) => Promise<...>, options?: { ...; } | undefined): Promise<...>', gave the following error.     Argument of type '(tx: FakeTxClient) => Promise<unknown>' is not assignable to parameter of type '(prisma: Omit<PrismaClient<never, GlobalOmitConfig | undefined, DefaultArgs>, \"$connect\" | \"$disconnect\" | \"$on\" | \"$use\" | \"$extends\">) => Promise<...>'.       Types of parameters 'tx' and 'prisma' are incompatible.         Type 'Omit<PrismaClient<never, GlobalOmitConfig | undefined, DefaultArgs>, \"$connect\" | \"$disconnect\" | \"$on\" | \"$use\" | \"$extends\">' is not assignable to type 'FakeTxClient'.           The types of 'workflow.create' are incompatible between these types.             Type '<T extends WorkflowCreateArgs>(args: SelectSubset<T, WorkflowCreateArgs<DefaultArgs>>) => Prisma__WorkflowClient<GetFindResult<$WorkflowPayload<DefaultArgs>, T, { ...; }>, never, DefaultArgs, { ...; }>' is not assignable to type '(args: CreateArgs) => Promise<StoredWorkflow>'.               Types of parameters 'args' and 'args' are incompatible.                 Type 'CreateArgs' is not assignable to type '{ select?: WorkflowSelect<DefaultArgs> | null | undefined; omit?: WorkflowOmit<DefaultArgs> | null | undefined; include?: WorkflowInclude<...> | ... 1 more ... | undefined; data: ((Without<...> & WorkflowUncheckedCreateInput) | (Without<...> & WorkflowCreateInput)) & object; }'.                   Types of property 'data' are incompatible.                     Type 'Record<string, unknown>' is not assignable to type '((Without<WorkflowCreateInput, WorkflowUncheckedCreateInput> & WorkflowUncheckedCreateInput) | (Without<...> & WorkflowCreateInput)) & object'.                       Type 'Record<string, unknown>' is not assignable to type 'Without<WorkflowUncheckedCreateInput, WorkflowCreateInput> & WorkflowCreateInput & object'.                         Type 'Record<string, unknown>' is missing the following properties from type 'WorkflowCreateInput': user, organization",
-      "workspace": "server"
-    },
-    {
-      "code": 2345,
-      "count": 12,
-      "file": "apps/server/server/src/collections/clip-projects/services/clip-generation.service.spec.ts",
-      "fingerprint": "2f0d04aa296c4796e6fc",
-      "message": "Argument of type '{ id: string; }' is not assignable to parameter of type 'ClipResultDocument'.   Type '{ id: string; }' is missing the following properties from type 'ClipResultDocument': isSelected, mode, readiness, status, and 9 more.",
-      "workspace": "server"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/server/src/collections/clip-projects/services/clip-generation.service.spec.ts",
-      "fingerprint": "9d0c14a6efc0ed27d79e",
-      "message": "Conversion of type 'ClipGenerationInput' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Index signature for type 'string' is missing in type 'ClipGenerationInput'.",
       "workspace": "server"
     },
     {
@@ -2886,14 +2822,6 @@
       "file": "apps/server/server/src/collections/posts/services/posts.service.spec.ts",
       "fingerprint": "27da6a16f4ca786ff62c",
       "message": "Object literal may only specify known properties, and 'reviewBatchId' does not exist in type 'PostCreateInput'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/server/src/collections/tasks/services/task-actions.service.spec.ts",
-      "fingerprint": "a9e8e487c31760f0ffc0",
-      "message": "Conversion of type '{ id: string; approvedOutputIds: never[]; assigneeUserId: string; brandId: string; eventStream: never[]; identifier: string; linkedApprovalIds: never[]; linkedOutputIds: string[]; linkedRunIds: never[]; ... 10 more ...; title: string; }' to type 'TaskDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: string; approvedOutputIds: never[]; assigneeUserId: string; brandId: string; eventStream: never[]; identifier: string; linkedApprovalIds: never[]; linkedOutputIds: string[]; linkedRunIds: never[]; ... 10 more ...; title: string; }' is missing the following properties from type 'TaskDocument': linkedEntities, taskNumber, createdAt, updatedAt, and 11 more.",
       "workspace": "server"
     },
     {
@@ -3187,14 +3115,6 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/queues/agent-run/agent-run-queue.service.spec.ts",
-      "fingerprint": "18983b09e4f2c0a30303",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2503,
-      "count": 1,
       "file": "apps/server/server/src/queues/core/queue.service.spec.ts",
       "fingerprint": "5c5e6453d9156465b797",
       "message": "Cannot find namespace 'vi'.",
@@ -3254,70 +3174,6 @@
       "file": "apps/server/server/src/services/agent-context-assembly/agent-context-assembly.service.spec.ts",
       "fingerprint": "089db533d6c3aa6b52b8",
       "message": "Expected 9 arguments, but got 8.",
-      "workspace": "server"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "9fc0f47a58f24ec573be",
-      "message": "Argument of type '{ answer: string; fieldId: string; organizationId: string; threadId: string; userId: string; }' is not assignable to parameter of type '{ answer: string; fieldId?: string | undefined; organizationId: string; runId?: string | undefined; scope: ValidatedAgentScope; threadId: string; userId: string; }'.   Property 'scope' is missing in type '{ answer: string; fieldId: string; organizationId: string; threadId: string; userId: string; }' but required in type '{ answer: string; fieldId?: string | undefined; organizationId: string; runId?: string | undefined; scope: ValidatedAgentScope; threadId: string; userId: string; }'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2503,
-      "count": 18,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "e4475f0e51f559a8c894",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "3f08e5cfd1710d320594",
-      "message": "Parameter '_threadId' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "4e70aae299d35e2a33d3",
-      "message": "Parameter '_organizationId' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 4,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "72b5e485e3774b32b324",
-      "message": "Parameter 'key' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 3,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "7446ae0cfe738c010f2e",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "c8cb36c2429b7dfde668",
-      "message": "Parameter 'message' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "eea931bed46719ee611c",
-      "message": "Parameter 'options' implicitly has an 'any' type.",
       "workspace": "server"
     },
     {
@@ -3582,22 +3438,6 @@
       "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "bba709dd19cea29495e6",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/server/src/services/content-optimization/content-optimization.service.spec.ts",
-      "fingerprint": "c5e73c43dc638ed8379d",
-      "message": "Argument of type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }' is not assignable to parameter of type 'LoggerService'.   Type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }' is missing the following properties from type 'LoggerService': constructorName, winston, normalizeContext, serializeError, and 26 more.",
-      "workspace": "server"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/server/src/services/content-optimization/content-optimization.service.spec.ts",
-      "fingerprint": "ee8c0f9018f8a7950404",
-      "message": "Property 'debug' is missing in type '{ error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<Procedure | Constructable>; }' but required in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
       "workspace": "server"
     },
     {
@@ -4081,14 +3921,6 @@
       "workspace": "server"
     },
     {
-      "code": 2345,
-      "count": 14,
-      "file": "apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.spec.ts",
-      "fingerprint": "2558374f64c249c360e3",
-      "message": "Argument of type '{ accessToken: string; platform: \"twitter\"; username: string; }' is not assignable to parameter of type 'IReplyBotCredentialData'.   Types of property 'platform' are incompatible.     Type '\"twitter\"' is not assignable to type 'ReplyBotPlatform | undefined'.",
-      "workspace": "server"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/server/src/services/reply-bot/reply-candidate-prefilter.service.spec.ts",
@@ -4118,14 +3950,6 @@
       "file": "apps/server/server/src/services/router/router.service.spec.ts",
       "fingerprint": "de3c429a284de083f4aa",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2769,
-      "count": 1,
-      "file": "apps/server/server/src/services/signup-prefill/signup-prefill.service.spec.ts",
-      "fingerprint": "a8a34894c0435deead7a",
-      "message": "No overload matches this call.   Overload 1 of 2, '(predicate: (value: any[], index: number, array: any[][]) => value is any[], thisArg?: any): any[][]', gave the following error.     Argument of type '([, update]: [string, Record<string, unknown>]) => boolean' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => value is any[]'.       Types of parameters '__0' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, Record<string, unknown>]'.           Target requires 2 element(s) but source may have fewer.   Overload 2 of 2, '(predicate: (value: any[], index: number, array: any[][]) => unknown, thisArg?: any): any[][]', gave the following error.     Argument of type '([, update]: [string, Record<string, unknown>]) => boolean' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => unknown'.       Types of parameters '__0' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, Record<string, unknown>]'.           Target requires 2 element(s) but source may have fewer.",
       "workspace": "server"
     },
     {
@@ -4325,78 +4149,6 @@
       "count": 4,
       "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
       "fingerprint": "b2e29e712c510012d3f8",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 2,
-      "file": "apps/server/workers/src/crons/posts/cron.posts.service.spec.ts",
-      "fingerprint": "1c672d532cfb6543ebc3",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 3,
-      "file": "apps/server/workers/src/crons/trends/cron.trends.service.spec.ts",
-      "fingerprint": "9cc549c9583c4e01cc56",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-meta/ad-sync-meta.processor.spec.ts",
-      "fingerprint": "4ba93b1c0def76c62a14",
-      "message": "Conversion of type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' to type 'LoggerService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 27 more.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
-      "fingerprint": "819569d658d0434369f9",
-      "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
-      "fingerprint": "cc3ce0799627874e430d",
-      "message": "Property 'mockImplementation' does not exist on type 'never'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2459,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
-      "fingerprint": "26864b757a96ec3c9363",
-      "message": "Module '\"./ad-sync-tiktok.processor\"' declares 'TikTokAdSyncJobData' locally, but it is not exported.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
-      "fingerprint": "17395e246ff23a451ee8",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2459,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/reply-bot/reply-bot-polling.processor.spec.ts",
-      "fingerprint": "d18d8bb332a94773e6fe",
-      "message": "Module '\"./reply-bot-polling.processor\"' declares 'ReplyBotPollingJobData' locally, but it is not exported.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 3,
-      "file": "apps/server/workers/src/processors/api/queues/reply-bot/reply-bot-polling.processor.spec.ts",
-      "fingerprint": "41a8be7ec1daa7c0ffbd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "workers"
     },

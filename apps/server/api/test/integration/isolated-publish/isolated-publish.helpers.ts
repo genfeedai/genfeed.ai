@@ -40,6 +40,7 @@ import {
 } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@server/collections/workflows/system-workflow.contract';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -379,7 +380,7 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
         executionId: `execution-${input.postId}`,
         organizationId: input.organizationId,
         runId: `run-${input.postId}`,
-        userId: input.userId,
+        userId: input.userId ?? SYSTEM_WORKFLOW_PRINCIPAL_ID,
         workflowId: 'scheduled-post.publish',
         workflowVersionId: `version-${input.postId}`,
       },

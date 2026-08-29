@@ -116,9 +116,9 @@ describe('BrandRemixRunsService', () => {
   };
   const workflowActions = new Map<string, CapturedWorkflowAction>();
   const systemWorkflowRunner = {
-    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) =>
-      workflowActions.set(id, action),
-    ),
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      workflowActions.set(id, action);
+    }),
     registerWorkflow: vi.fn(),
     runWorkflow: vi.fn(),
   };

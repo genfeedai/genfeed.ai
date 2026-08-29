@@ -82,7 +82,10 @@ describe('AuthorReplyLoopService', () => {
             }),
           );
         }
-        return { result: outputs.get(definition.resultNodeId) };
+        return {
+          provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+          result: outputs.get(definition.resultNodeId),
+        };
       },
     ),
   };

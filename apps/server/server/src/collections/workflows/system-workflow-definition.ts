@@ -1,5 +1,5 @@
 import type { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import type { WorkflowDefinitionInput } from '@server/collections/workflows/workflow-version-definition';
+import type { WorkflowGraphDefinitionInput } from '@server/collections/workflows/workflow-version-definition';
 
 export type SystemWorkflowGraphMetadata = {
   canonicalId: string;
@@ -11,7 +11,7 @@ export type SystemWorkflowGraphMetadata = {
 };
 
 export type SystemWorkflowGraphDefinition = SystemWorkflowGraphMetadata & {
-  definition: WorkflowDefinitionInput;
+  definition: WorkflowGraphDefinitionInput;
   resultNodeId: string;
 };
 

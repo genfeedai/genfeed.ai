@@ -10,7 +10,7 @@ describe('knowledge source workflow definitions', () => {
   it('models ingestion as atomic load-through-finalize actions', () => {
     const definition = buildKnowledgeSourceIngestWorkflowDefinition();
     expect(
-      definition.definition.nodes.map((node) => node.data?.actionId),
+      definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
       KNOWLEDGE_SOURCE_ACTION_IDS.LOAD,
       KNOWLEDGE_SOURCE_ACTION_IDS.MARK,
@@ -29,7 +29,7 @@ describe('knowledge source workflow definitions', () => {
   it('fans backfill discoveries into the registered ingest workflow', () => {
     const definition = buildKnowledgeSourceBackfillWorkflowDefinition();
     const fanOut = definition.definition.nodes.find(
-      (node) => node.data?.actionId === 'workflow.for-each',
+      (node) => node.data.config.actionId === 'workflow.for-each',
     );
     expect(fanOut?.data?.config).toMatchObject({
       childWorkflowId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,

@@ -10,7 +10,7 @@ describe('email digest workflow definitions', () => {
   it('prepares, discovers, renders, fans out, and finalizes', () => {
     const definition = buildEmailDigestWorkflowDefinition();
     expect(
-      definition.definition.nodes.map((node) => node.data?.actionId),
+      definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
       EMAIL_DIGEST_ACTION_IDS.PREPARE,
       EMAIL_DIGEST_ACTION_IDS.DISCOVER,
@@ -19,7 +19,7 @@ describe('email digest workflow definitions', () => {
       EMAIL_DIGEST_ACTION_IDS.FINALIZE,
     ]);
     const fanOut = definition.definition.nodes.find(
-      (node) => node.data?.actionId === 'workflow.for-each',
+      (node) => node.data.config.actionId === 'workflow.for-each',
     );
     expect(fanOut?.data?.config).toMatchObject({
       childWorkflowId: EMAIL_DIGEST_CHILD_WORKFLOW_ID,
@@ -31,7 +31,7 @@ describe('email digest workflow definitions', () => {
   it('keeps one recipient delivery as the child atomic action', () => {
     const child = buildEmailDigestChildWorkflowDefinition();
     expect(child.definition.nodes).toHaveLength(1);
-    expect(child.definition.nodes[0]?.data?.actionId).toBe(
+    expect(child.definition.nodes[0]?.data.config.actionId).toBe(
       EMAIL_DIGEST_ACTION_IDS.DELIVER,
     );
   });

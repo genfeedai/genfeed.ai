@@ -34,7 +34,7 @@ describe('TaskActionsService', () => {
     skillsUsed: [],
     status: 'in_review',
     title: 'Launch update',
-  } as TaskDocument;
+  } as unknown as TaskDocument;
 
   let currentTask: TaskDocument;
   let tasksService: {

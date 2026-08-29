@@ -842,10 +842,9 @@ describe('ClientService (MCP)', () => {
         data: {
           data: {
             attributes: {
-              currentStepIndex: 2,
               name: 'My Workflow',
+              nodeCount: 3,
               status: 'active',
-              steps: [{}, {}, {}],
             },
             id: 'workflow-123',
           },
@@ -860,7 +859,7 @@ describe('ClientService (MCP)', () => {
         '/workflows/workflow-123',
       );
       expect(result.status).toBe('active');
-      expect(result.currentStepIndex).toBe(2);
+      expect(result.nodeCount).toBe(3);
     });
   });
 

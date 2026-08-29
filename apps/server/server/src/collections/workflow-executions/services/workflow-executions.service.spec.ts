@@ -168,6 +168,7 @@ describe('WorkflowExecutionsService', () => {
         service.createExecution('user-1', 'org-1', {
           metadata: { origin: ActionOrigin.UI, surface: 'mcp-tool' },
           workflowId: 'workflow-1',
+          workflowVersionId: 'version-1',
         }),
     );
 
@@ -198,6 +199,7 @@ describe('WorkflowExecutionsService', () => {
         },
       },
       workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
     });
 
     expect(prisma.workflowExecution.create).toHaveBeenCalledWith(

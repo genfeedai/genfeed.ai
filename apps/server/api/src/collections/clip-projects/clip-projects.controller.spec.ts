@@ -1158,7 +1158,7 @@ describe('ClipProjectsController', () => {
       },
       {
         organizationId,
-        userId: currentUser.userId ?? currentUser.id,
+        userId: currentUser.userId,
       },
     );
     expect(result.payload).toEqual(

@@ -103,7 +103,7 @@ describe('ContentExecutionService', () => {
           organizationId,
           targetBrandId,
           targetUserId,
-          String(item.id ?? item._id),
+          String(item.id),
         ),
       );
     }

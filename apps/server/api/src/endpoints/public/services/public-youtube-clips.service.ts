@@ -211,6 +211,7 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     this.runner.registerWorkflow({
       canonicalId: PUBLIC_YOUTUBE_CLIP_READ_WORKFLOW_ID,
       definition: {
+        edges: [],
         inputVariables: [
           {
             key: 'previewToken',

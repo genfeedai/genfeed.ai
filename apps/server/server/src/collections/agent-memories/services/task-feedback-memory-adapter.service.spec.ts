@@ -30,7 +30,7 @@ describe('TaskFeedbackMemoryAdapterService', () => {
     skillsUsed: [],
     status: 'in_review',
     title: 'Draft launch post',
-  } as TaskDocument;
+  } as unknown as TaskDocument;
 
   let captureService: { capture: ReturnType<typeof vi.fn> };
   let logger: { warn: ReturnType<typeof vi.fn> };

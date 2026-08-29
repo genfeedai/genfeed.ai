@@ -31,9 +31,9 @@ describe('BrandRemixRunReviewService', () => {
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const actions = new Map<string, CapturedWorkflowAction>();
   const systemWorkflowRunner = {
-    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) =>
-      actions.set(id, action),
-    ),
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      actions.set(id, action);
+    }),
     registerWorkflow: vi.fn(),
     runWorkflow: vi.fn(),
   };

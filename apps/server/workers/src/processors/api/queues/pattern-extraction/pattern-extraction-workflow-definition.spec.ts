@@ -14,7 +14,7 @@ describe('pattern extraction workflow definitions', () => {
 
     expect(definition.canonicalId).toBe('patterns.extract-organization');
     expect(definition.definition.inputVariables).toEqual([]);
-    expect(fanOut?.data?.actionId).toBe('workflow.for-each');
+    expect(fanOut?.data.config.actionId).toBe('workflow.for-each');
     expect(fanOut?.data?.config).toMatchObject({
       childWorkflowId: PATTERN_EXTRACTION_ITEM_WORKFLOW_ID,
       mode: 'await',
@@ -25,7 +25,7 @@ describe('pattern extraction workflow definitions', () => {
     const definition = buildPatternCandidateWorkflowDefinition();
 
     expect(definition.definition.nodes).toHaveLength(1);
-    expect(definition.definition.nodes[0]?.data?.actionId).toBe(
+    expect(definition.definition.nodes[0]?.data.config.actionId).toBe(
       PATTERN_EXTRACTION_ACTION_IDS.PERSIST,
     );
   });

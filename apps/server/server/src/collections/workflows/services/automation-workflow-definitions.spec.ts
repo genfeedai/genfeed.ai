@@ -109,7 +109,13 @@ describe('automation workflow definitions', () => {
     const childWorkflowIds = definitions.flatMap((definition) =>
       definition.definition.nodes.flatMap((node) => {
         if (node.data.config.actionId !== 'workflow.for-each') return [];
-        const childWorkflowId = node.data.config.parameters.childWorkflowId;
+        const { parameters } = node.data.config;
+        const childWorkflowId =
+          parameters &&
+          typeof parameters === 'object' &&
+          'childWorkflowId' in parameters
+            ? parameters.childWorkflowId
+            : undefined;
         return typeof childWorkflowId === 'string' ? [childWorkflowId] : [];
       }),
     );

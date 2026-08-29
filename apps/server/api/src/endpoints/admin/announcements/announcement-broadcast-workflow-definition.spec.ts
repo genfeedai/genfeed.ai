@@ -11,7 +11,7 @@ describe('announcement broadcast workflow definition', () => {
 
     expect(definition.canonicalId).toBe(ANNOUNCEMENT_BROADCAST_WORKFLOW_ID);
     expect(
-      definition.definition.nodes.map((node) => node.data?.actionId),
+      definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
       ANNOUNCEMENT_BROADCAST_ACTION_IDS.PUBLISH_DISCORD,
       ANNOUNCEMENT_BROADCAST_ACTION_IDS.PUBLISH_TWITTER,

@@ -30,7 +30,7 @@ describe('ContentProductionWorkflowService atomic actions', () => {
   }
 
   it.each([
-    [PersonaContentFormat.IMAGE, 'imageItems'],
+    [PersonaContentFormat.PHOTO, 'imageItems'],
     [PersonaContentFormat.AUDIO, 'musicItems'],
     [PersonaContentFormat.VIDEO, 'videoItems'],
   ])(

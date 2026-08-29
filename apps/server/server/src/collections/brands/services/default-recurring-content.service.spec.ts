@@ -5,11 +5,11 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
 import type { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
 
 /**
  * Regression coverage for the duplicate-default-workflow race.
@@ -454,7 +454,11 @@ describe('DefaultRecurringContentService', () => {
     // Strategy: the spy throws P2034 on the first call and succeeds on the
     // second. We also need a real committed store so getStatus (called at the
     // end via includeStatus: undefined default) can observe the created row.
-    const { committed, prisma: basePrisma } = createFakePrisma({
+    const {
+      committed,
+      prisma: basePrisma,
+      transactionSpy: baseTransaction,
+    } = createFakePrisma({
       brand: buildBrand(),
     });
 
@@ -475,7 +479,7 @@ describe('DefaultRecurringContentService', () => {
           throw error;
         }
         // Subsequent calls: delegate to the real fake transaction logic.
-        return basePrisma.$transaction(fn, opts);
+        return baseTransaction(fn, opts);
       },
     );
 

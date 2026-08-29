@@ -24,6 +24,16 @@ export interface WorkflowDefinitionInput {
   nodes?: WorkflowVisualNode[];
 }
 
+/**
+ * Definition input for graphs that are authored in code (system workflows,
+ * templates). Those always ship a complete graph, so `nodes` and `edges` are
+ * required — callers never have to narrow them.
+ */
+export interface WorkflowGraphDefinitionInput extends WorkflowDefinitionInput {
+  edges: WorkflowEdge[];
+  nodes: WorkflowVisualNode[];
+}
+
 export function isPersistableWorkflowNodeType(nodeType: string): boolean {
   return (
     nodeType === GENFEED_ACTION_NODE_TYPE || isEngineNativeNodeType(nodeType)

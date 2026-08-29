@@ -14,6 +14,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
@@ -23,6 +24,13 @@ import type { OrganizationSettingsService } from '@server/collections/organizati
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
+const ARTICLE_LOAD_GENERATION_ACTION_ID = 'article.generation.load-context';
+
+type CapturedWorkflowAction = (request: {
+  context: { organizationId: string; userId: string };
+  input: Record<string, unknown>;
+}) => Promise<unknown> | unknown;
 
 /**
  * `GenerateArticlesDto.model` carries the agent's
@@ -68,9 +76,17 @@ describe('ArticlesService article cycle model config', () => {
     } as unknown as OrganizationSettingsService;
 
     const articlesContentService = {
-      generateArticles: vi.fn().mockResolvedValue([]),
-      generateLongFormArticle: vi.fn(),
+      prepareGeneration: vi.fn().mockResolvedValue({}),
     } as unknown as ArticlesContentService;
+
+    const actions = new Map<string, CapturedWorkflowAction>();
+    const moduleRef = {
+      get: vi.fn().mockReturnValue({
+        registerAction: (id: string, action: CapturedWorkflowAction) => {
+          actions.set(id, action);
+        },
+      }),
+    } as unknown as ModuleRef;
 
     const service = new ArticlesService(
       prisma,
@@ -86,9 +102,15 @@ describe('ArticlesService article cycle model config', () => {
       undefined, // usersService
       undefined, // organizationsService
       undefined, // cacheInvalidationService
+      moduleRef,
     );
 
-    return { articlesContentService, organizationSettingsService, service };
+    return {
+      actions,
+      articlesContentService,
+      organizationSettingsService,
+      service,
+    };
   }
 
   it('prefers the per-request generation model over the org default', async () => {
@@ -161,21 +183,29 @@ describe('ArticlesService article cycle model config', () => {
   });
 
   it('hands the per-request model to the content service', async () => {
-    const { articlesContentService, service } = buildService({
+    const { actions, articlesContentService, service } = buildService({
       defaultModel: MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET,
     });
 
-    await service.executeArticleGenerationAction(
-      {
-        model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
-        prompt: 'AI infrastructure trends',
-      },
-      'user_1',
-      organizationId,
-      'brand_1',
-    );
+    // Generation is workflow-backed: the model override travels through the
+    // load-context action, which resolves the cycle config before handing the
+    // dto to the content service.
+    service.onModuleInit();
+    const loadContext = actions.get(ARTICLE_LOAD_GENERATION_ACTION_ID);
+    expect(loadContext).toBeDefined();
 
-    expect(articlesContentService.generateArticles).toHaveBeenCalledWith(
+    await loadContext?.({
+      context: { organizationId, userId: 'user_1' },
+      input: {
+        brandId: 'brand_1',
+        dto: {
+          model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+          prompt: 'AI infrastructure trends',
+        },
+      },
+    });
+
+    expect(articlesContentService.prepareGeneration).toHaveBeenCalledWith(
       expect.objectContaining({
         model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       }),
@@ -185,8 +215,6 @@ describe('ArticlesService article cycle model config', () => {
       expect.objectContaining({
         generationModel: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       }),
-      expect.any(Function),
-      expect.any(Function),
     );
   });
 });
