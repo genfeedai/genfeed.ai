@@ -17,6 +17,7 @@ import {
   setRole,
 } from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
+import { openExternalUrl } from '@/utils/browser';
 import { GenfeedError, handleError } from '@/utils/errors';
 
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
@@ -37,24 +38,39 @@ interface ExchangeResponse {
 export interface LoginOptions {
   apiUrl?: string;
   appUrl?: string;
+  intent?: 'login' | 'signup';
   key?: string;
   interactive?: boolean;
+}
+
+interface AuthorizeUrlParams {
+  challenge: string;
+  intent?: 'login' | 'signup';
+  port: number;
+  state: string;
+}
+
+interface ExchangeAuthCodeParams {
+  code: string;
+  codeVerifier: string;
+  state: string;
 }
 
 /**
  * Build the authorization page URL the browser is sent to. The web app reads
  * `port` to know which localhost listener to redirect the one-time code back to.
  */
-export function buildAuthorizeUrl(
-  authUrl: string,
-  params: { challenge: string; port: number; state: string }
-): string {
+export function buildAuthorizeUrl(authUrl: string, params: AuthorizeUrlParams): string {
   const query = new URLSearchParams({
     code_challenge: params.challenge,
     code_challenge_method: 'S256',
     port: String(params.port),
     state: params.state,
   });
+
+  if (params.intent === 'signup') {
+    query.set('intent', 'signup');
+  }
 
   return `${authUrl}?${query.toString()}`;
 }
@@ -65,7 +81,7 @@ export function buildAuthorizeUrl(
  */
 export async function exchangeAuthCode(
   apiBaseUrl: string,
-  params: { code: string; codeVerifier: string; state: string }
+  params: ExchangeAuthCodeParams
 ): Promise<ExchangeResponse> {
   const response = await fetch(`${apiBaseUrl}/auth/desktop/exchange`, {
     body: JSON.stringify({
@@ -105,7 +121,10 @@ function generateState(): string {
  * Start a temporary localhost HTTP server to receive the PKCE OAuth callback.
  * Validates state, exchanges the code for a token, and returns the token.
  */
-function waitForOAuthCallback(endpoints: LoginEndpoints): Promise<string> {
+function waitForOAuthCallback(
+  endpoints: LoginEndpoints,
+  intent: 'login' | 'signup' = 'login'
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const pkce = generatePkce();
     const expectedState = generateState();
@@ -202,6 +221,7 @@ function waitForOAuthCallback(endpoints: LoginEndpoints): Promise<string> {
       if (addr && typeof addr === 'object') {
         const authUrl = buildAuthorizeUrl(endpoints.authUrl, {
           challenge: pkce.challenge,
+          intent,
           port: addr.port,
           state: expectedState,
         });
@@ -211,7 +231,7 @@ function waitForOAuthCallback(endpoints: LoginEndpoints): Promise<string> {
         print(chalk.dim(authUrl));
         print();
 
-        openBrowser(authUrl);
+        void openExternalUrl(authUrl);
       }
     });
 
@@ -220,19 +240,6 @@ function waitForOAuthCallback(endpoints: LoginEndpoints): Promise<string> {
       reject(new GenfeedError(`Failed to start auth server: ${err.message}`));
     });
   });
-}
-
-async function openBrowser(url: string): Promise<void> {
-  const { execFile } = await import('node:child_process');
-  const platform = process.platform;
-
-  if (platform === 'darwin') {
-    execFile('open', [url]);
-  } else if (platform === 'linux') {
-    execFile('xdg-open', [url]);
-  } else if (platform === 'win32') {
-    execFile('cmd', ['/c', 'start', '', url]);
-  }
 }
 
 function escapeHtml(str: string): string {
@@ -312,7 +319,7 @@ async function completeLogin(apiKey: string, endpoints: LoginEndpoints): Promise
         print(formatSuccess(`Active brand: ${chalk.bold(selectedBrand?.label)}`));
       }
     } catch {
-      print(formatWarning('Could not fetch brands. Set one later with `gf brands`'));
+      print(formatWarning('Could not fetch brands. Set one later with `gf brand use`'));
     }
   } catch (error) {
     spinner.fail('Invalid API key');
@@ -375,7 +382,7 @@ export async function runLogin(options: LoginOptions): Promise<void> {
     const spinner = ora('Waiting for authentication...').start();
 
     try {
-      const apiKey = await waitForOAuthCallback(endpoints);
+      const apiKey = await waitForOAuthCallback(endpoints, options.intent);
       spinner.succeed('Authenticated');
       await completeLogin(apiKey, endpoints);
     } catch (error) {
@@ -387,9 +394,13 @@ export async function runLogin(options: LoginOptions): Promise<void> {
   }
 }
 
-export function createLoginCommand(name = 'login'): Command {
+export function createLoginCommand(name = 'login', intent: 'login' | 'signup' = 'login'): Command {
   return new Command(name)
-    .description('Authenticate with Genfeed (opens browser)')
+    .description(
+      intent === 'signup'
+        ? 'Create a Genfeed account and authenticate (opens browser)'
+        : 'Authenticate with Genfeed (opens browser)'
+    )
     .option('-k, --key <key>', 'API key (skip browser, non-interactive)')
     .option('-i, --interactive', 'Paste API key manually instead of browser')
     .option(
@@ -400,7 +411,7 @@ export function createLoginCommand(name = 'login'): Command {
       '--app-url <url>',
       'Web app URL serving /oauth/cli (saved to the active profile; derived from --api-url when omitted)'
     )
-    .action(runLogin);
+    .action(async (options: LoginOptions) => await runLogin({ ...options, intent }));
 }
 
 export const loginCommand = createLoginCommand();

@@ -246,6 +246,7 @@ describe('attachAgentStreamSubscriptions', () => {
     expect(deps.finalizeStream).toHaveBeenCalledWith(
       expect.objectContaining({ content: 'All set.', role: 'assistant' }),
     );
+    expect(deps.setError).toHaveBeenCalledWith(null);
     expect(deps.setCreditsRemaining).toHaveBeenCalledWith(88);
     expect(deps.clearPendingInputRequest).toHaveBeenCalled();
     expect(deps.cleanupSubscriptions).toHaveBeenCalled();

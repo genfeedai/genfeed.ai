@@ -1,7 +1,8 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { AgentArtifactReferenceService } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentRunsService', () => {
@@ -586,6 +587,157 @@ describe('AgentRunsService', () => {
     });
   });
 
+  describe('atomic lifecycle transitions', () => {
+    const runningRun = {
+      artifactReferences: [],
+      artifactVersionPinIds: [],
+      id: 'run-1',
+      retryCount: 0,
+      startedAt: new Date('2026-08-28T10:00:00.000Z'),
+      status: AgentExecutionStatus.RUNNING,
+      summary: null,
+    };
+
+    it('claims completion only while the run is active', async () => {
+      agentRun.findFirst.mockResolvedValueOnce(runningRun);
+
+      const completed = await service.complete('run-1', 'org-1', 'Done');
+
+      expect(agentRun.updateMany).toHaveBeenCalledWith({
+        data: {
+          completedAt: expect.any(Date),
+          durationMs: expect.any(Number),
+          progress: 100,
+          status: AgentExecutionStatus.COMPLETED,
+          summary: 'Done',
+        },
+        where: {
+          id: 'run-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: {
+            in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
+          },
+        },
+      });
+      expect(completed?.status).toBe(AgentExecutionStatus.COMPLETED);
+      expect(agentTransfer.updateMany).toHaveBeenCalledOnce();
+    });
+
+    it('does not overwrite cancellation when completion loses the claim', async () => {
+      const cancelledRun = {
+        ...runningRun,
+        status: AgentExecutionStatus.CANCELLED,
+      };
+      agentRun.findFirst
+        .mockResolvedValueOnce(runningRun)
+        .mockResolvedValueOnce(cancelledRun);
+      agentRun.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.complete('run-1', 'org-1')).resolves.toBe(
+        cancelledRun,
+      );
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does not overwrite cancellation when failure loses the claim', async () => {
+      const cancelledRun = {
+        ...runningRun,
+        status: AgentExecutionStatus.CANCELLED,
+      };
+      agentRun.findFirst
+        .mockResolvedValueOnce(runningRun)
+        .mockResolvedValueOnce(cancelledRun);
+      agentRun.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.fail('run-1', 'org-1', 'late error')).resolves.toBe(
+        cancelledRun,
+      );
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects cancellation after a run has completed', async () => {
+      agentRun.findFirst.mockResolvedValueOnce({
+        ...runningRun,
+        status: AgentExecutionStatus.COMPLETED,
+      });
+
+      await expect(service.cancel('run-1', 'org-1')).rejects.toThrow(
+        'Agent run cannot be cancelled after reaching completed',
+      );
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects cancellation when completion wins the concurrent claim', async () => {
+      agentRun.findFirst
+        .mockResolvedValueOnce(runningRun)
+        .mockResolvedValueOnce({
+          ...runningRun,
+          status: AgentExecutionStatus.COMPLETED,
+        });
+      agentRun.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.cancel('run-1', 'org-1')).rejects.toThrow(
+        'Agent run cannot be cancelled after reaching completed',
+      );
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('treats repeated cancellation as idempotent', async () => {
+      const cancelledRun = {
+        ...runningRun,
+        status: AgentExecutionStatus.CANCELLED,
+      };
+      agentRun.findFirst.mockResolvedValueOnce(cancelledRun);
+
+      await expect(service.cancel('run-1', 'org-1')).resolves.toBe(
+        cancelledRun,
+      );
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('returns cancellation when it wins the active-run claim', async () => {
+      agentRun.findFirst.mockResolvedValueOnce(runningRun);
+
+      const cancelled = await service.cancel('run-1', 'org-1', 'brand-1');
+
+      expect(agentRun.updateMany).toHaveBeenCalledWith({
+        data: {
+          completedAt: expect.any(Date),
+          durationMs: expect.any(Number),
+          status: AgentExecutionStatus.CANCELLED,
+        },
+        where: {
+          brandId: 'brand-1',
+          id: 'run-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: {
+            in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
+          },
+        },
+      });
+      expect(cancelled?.status).toBe(AgentExecutionStatus.CANCELLED);
+      expect(agentTransfer.updateMany).toHaveBeenCalledOnce();
+    });
+
+    it('does not revive a run cancelled before the worker starts', async () => {
+      const cancelledRun = {
+        ...runningRun,
+        status: AgentExecutionStatus.CANCELLED,
+      };
+      agentRun.findFirst
+        .mockResolvedValueOnce(cancelledRun)
+        .mockResolvedValueOnce(cancelledRun);
+      agentRun.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(service.start('run-1', 'org-1')).resolves.toBe(cancelledRun);
+      expect(agentTransfer.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   // The DRY/slop audit (§2.J) lists these org-scoped `findFirst` sites as
   // candidates, but each degrades gracefully on a miss (returns null/void)
   // rather than throwing. They were intentionally NOT converted to
@@ -619,16 +771,19 @@ describe('AgentRunsService', () => {
     it('complete returns null and does not write when the run is missing', async () => {
       await expect(service.complete('run-x', 'org-1')).resolves.toBeNull();
       expect(agentRun.update).not.toHaveBeenCalled();
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
     });
 
     it('fail returns null and does not write when the run is missing', async () => {
       await expect(service.fail('run-x', 'org-1', 'boom')).resolves.toBeNull();
       expect(agentRun.update).not.toHaveBeenCalled();
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
     });
 
     it('cancel returns null and does not write when the run is missing', async () => {
       await expect(service.cancel('run-x', 'org-1')).resolves.toBeNull();
       expect(agentRun.update).not.toHaveBeenCalled();
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
     });
   });
 

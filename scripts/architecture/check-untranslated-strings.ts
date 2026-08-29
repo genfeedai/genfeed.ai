@@ -46,7 +46,7 @@ const BASELINE_PATH = path.join(
 
 const INCLUDE_GLOBS = ['apps/app/**/*.{jsx,tsx}', 'packages/**/*.{jsx,tsx}'];
 
-const IGNORE_GLOBS = [
+export const UNTRANSLATED_STRING_IGNORE_GLOBS = [
   '**/node_modules/**',
   '**/dist/**',
   '**/generated/**',
@@ -60,6 +60,9 @@ const IGNORE_GLOBS = [
   '**/tests/**',
   '**/__fixtures__/**',
   '**/fixtures/**',
+  // The published Ink terminal is not rendered by the Next.js host and cannot
+  // consume its next-intl catalogs. Terminal localization needs its own runtime.
+  'packages/cli/**',
 ];
 
 const JSX_ENTITY_PATTERN = /&(?:#\d+|#x[\da-f]+|[a-z][\da-z]+);/giu;
@@ -173,7 +176,7 @@ export function scanUntranslatedStrings(
   const files = globSync(options.includeGlobs ?? INCLUDE_GLOBS, {
     absolute: true,
     cwd: rootDir,
-    ignore: options.ignoreGlobs ?? IGNORE_GLOBS,
+    ignore: options.ignoreGlobs ?? UNTRANSLATED_STRING_IGNORE_GLOBS,
     nodir: true,
   }).sort((left, right) => left.localeCompare(right));
   const occurrences: UntranslatedStringOccurrence[] = [];

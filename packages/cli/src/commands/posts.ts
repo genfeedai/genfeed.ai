@@ -5,6 +5,7 @@ import { requireAuth } from '@/api/client';
 import { listPosts } from '@/api/posts';
 import { formatHeader, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 export const postsCommand = new Command('posts').description(
   'Manage published and scheduled posts'
@@ -15,7 +16,7 @@ postsCommand
   .description('List posts')
   .option('--platform <platform>', 'Filter by platform (twitter, instagram, linkedin, tiktok)')
   .option('--execution-state <state>', 'Filter by execution state (draft, scheduled, published)')
-  .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
+  .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {

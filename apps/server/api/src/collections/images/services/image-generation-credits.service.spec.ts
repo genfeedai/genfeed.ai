@@ -1,13 +1,16 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import type { IReserveCreditsInput } from '@genfeedai/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationCreditsService', () => {
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
+    reserveCredits: vi.fn(),
   };
   const modelsService = {
     findOne: vi.fn(),
@@ -30,6 +33,14 @@ describe('ImageGenerationCreditsService', () => {
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
+    );
+    creditsUtilsService.reserveCredits.mockImplementation(
+      (input: IReserveCreditsInput) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
     );
     service = new ImageGenerationCreditsService(
       creditsUtilsService as never,
@@ -97,6 +108,68 @@ describe('ImageGenerationCreditsService', () => {
         providerCostUsd: null,
       },
     });
+  });
+
+  it('reserves resolved generation credits before provider dispatch', async () => {
+    const request = {
+      body: { sourceActionId: 'image-action-1' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    await service.ensureDeferredCredits(
+      { outputs: 2, height: 1080, width: 1920 } as never,
+      'fal/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      amount: 20,
+      expiresAt: expect.any(Date),
+      idempotencyKey: 'generation:image-action-1',
+      organizationId: 'org-1',
+      workloadId: 'image-action-1',
+      workloadType: 'generation',
+    });
+    expect(request.creditsConfig).toMatchObject({
+      reservationId: 'reservation-1',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('returns 402 when the atomic source-action reservation cannot be covered', async () => {
+    creditsUtilsService.reserveCredits.mockRejectedValue(
+      new BusinessLogicException(
+        'insufficient credits',
+        undefined,
+        'INSUFFICIENT_CREDITS',
+      ),
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(4);
+    const request = {
+      body: { sourceActionId: 'image-action-insufficient' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    const error = await service
+      .ensureDeferredCredits(
+        { outputs: 2, height: 1080, width: 1920 } as never,
+        'fal/model',
+        'org-1',
+        request as never,
+      )
+      .catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(HttpException);
+    expect(error.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('records resolved-provider BYOK usage without requiring platform credits', async () => {

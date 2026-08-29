@@ -10,6 +10,10 @@ import {
   scaleCreditsForNonBatchOutputs,
   videoOutputCount,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
+import {
+  hasGenerationSourceActionId,
+  reserveGenerationRequestCredits,
+} from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
@@ -22,6 +26,7 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { baseModelKey } from '@server/collections/models/utils/model-key.util';
 import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { ByokService } from '@server/services/byok/byok.service';
 import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 
@@ -42,6 +47,25 @@ export class VideoGenerationCreditsService {
     organization: string,
     request: Request,
   ): Promise<void> {
+    await this.ensureDeferredCreditsResolved(
+      createVideoDto,
+      model,
+      organization,
+      request,
+      true,
+    );
+  }
+
+  private async ensureDeferredCreditsResolved(
+    createVideoDto: Pick<
+      CreateVideoDto,
+      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+    >,
+    model: string,
+    organization: string,
+    request: Request,
+    isReservationEnabled: boolean,
+  ): Promise<void> {
     const reqWithCredits = request as unknown as DeferredCreditsRequest;
     if (!isDeferredCreditsRequest(reqWithCredits)) {
       return;
@@ -56,6 +80,7 @@ export class VideoGenerationCreditsService {
     );
     if (
       !byokProvider &&
+      !hasGenerationSourceActionId(request) &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
         requiredCredits,
@@ -79,6 +104,10 @@ export class VideoGenerationCreditsService {
         isByokBypass: true,
         provider: byokProvider,
       };
+      return;
+    }
+    if (isReservationEnabled) {
+      await this.reserveResolvedCredits(requiredCredits, organization, request);
     }
   }
 
@@ -92,16 +121,13 @@ export class VideoGenerationCreditsService {
     request: Request,
     dispatchMode: 'fabricated' | 'native',
   ): Promise<void> {
-    await this.ensureDeferredCredits(
+    await this.ensureDeferredCreditsResolved(
       createVideoDto,
       model,
       organization,
       request,
+      false,
     );
-
-    if (dispatchMode !== 'fabricated') {
-      return;
-    }
 
     const reqWithCredits = request as unknown as DeferredCreditsRequest;
     const config = reqWithCredits.creditsConfig;
@@ -109,10 +135,16 @@ export class VideoGenerationCreditsService {
       return;
     }
 
+    if (dispatchMode !== 'fabricated') {
+      await this.reserveResolvedCredits(config.amount, organization, request);
+      return;
+    }
+
     const requiredCredits =
       config.amount + FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS;
     if (
       !config.isByokBypass &&
+      !hasGenerationSourceActionId(request) &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
         requiredCredits,
@@ -126,6 +158,34 @@ export class VideoGenerationCreditsService {
     }
 
     reqWithCredits.creditsConfig = { ...config, amount: requiredCredits };
+    await this.reserveResolvedCredits(requiredCredits, organization, request);
+  }
+
+  private async reserveResolvedCredits(
+    amount: number,
+    organizationId: string,
+    request: Request,
+  ): Promise<void> {
+    try {
+      await reserveGenerationRequestCredits({
+        amount,
+        creditsUtilsService: this.creditsUtilsService,
+        organizationId,
+        request,
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        const balance =
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organizationId,
+          );
+        throw createInsufficientCreditsException(amount, balance);
+      }
+      throw error;
+    }
   }
 
   private async resolveActiveByokProvider(

@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import {
   PAYG_CREDIT_PACKS,
+  PAYG_CREDITS_PER_USD,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
 } from '@genfeedai/pricing';
@@ -13,8 +14,6 @@ import { Input } from '@ui/primitives/input';
 import { CreditCard } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
-
-export const CREDITS_PER_USD = 100;
 
 function parseUsd(value: string): number | null {
   const normalized = value.trim();
@@ -62,7 +61,7 @@ export default function CreditTopUpPanel({
   const isBelowMin = usd !== null && usd < PAYG_MIN_PURCHASE_USD;
   const isAboveMax = usd !== null && usd > PAYG_MAX_PURCHASE_USD;
   const isValid = usd !== null && !isBelowMin && !isAboveMax;
-  const credits = usd !== null ? usd * CREDITS_PER_USD : 0;
+  const credits = usd !== null ? usd * PAYG_CREDITS_PER_USD : 0;
 
   const customError = (() => {
     if (!isCustom || customValue.trim() === '') {
@@ -107,7 +106,7 @@ export default function CreditTopUpPanel({
           <p className="text-sm font-medium text-foreground">Amount</p>
           <div className="flex flex-wrap items-center gap-2">
             {PAYG_CREDIT_PACKS.map((pack) => {
-              const amountUsd = pack.credits / CREDITS_PER_USD;
+              const amountUsd = pack.credits / PAYG_CREDITS_PER_USD;
               const isSelected = !isCustom && selectedUsd === amountUsd;
 
               return (

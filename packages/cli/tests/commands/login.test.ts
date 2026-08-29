@@ -108,6 +108,21 @@ describe('login command', () => {
       expect(url.searchParams.get('port')).toBe('4321');
       expect(url.searchParams.get('state')).toBe('state-123');
     });
+
+    it('selects account creation without changing the PKCE protocol', () => {
+      const url = new URL(
+        buildAuthorizeUrl(SELF_HOSTED_ENDPOINTS.authUrl, {
+          challenge: 'challenge-123',
+          intent: 'signup',
+          port: 4321,
+          state: 'state-123',
+        })
+      );
+
+      expect(url.searchParams.get('intent')).toBe('signup');
+      expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+      expect(url.searchParams.get('state')).toBe('state-123');
+    });
   });
 
   describe('exchangeAuthCode', () => {

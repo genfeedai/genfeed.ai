@@ -7,6 +7,7 @@ import {
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
+  readSnapshotRunError,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 
 export type RestoreThreadFromSnapshotDeps = {
@@ -97,5 +98,5 @@ export async function restoreThreadFromSnapshot(
     deps.clearPendingInputRequest();
   }
 
-  deps.setError(null);
+  deps.setError(readSnapshotRunError(snapshot));
 }

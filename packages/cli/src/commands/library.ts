@@ -2,87 +2,123 @@ import { IngredientStatus } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { get, requireAuth } from '@/api/client';
-import { flattenCollection, type JsonApiCollectionResponse } from '@/api/json-api';
-import { getOrganizationId } from '@/config/store';
-import { formatHeader, print, printJson } from '@/ui/theme';
+import { requireAuth } from '@/api/client';
+import { downloadGeneratedFile } from '@/commands/generate/helpers';
+import { readAsset, readAssets } from '@/operations/assets';
+import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { getCommandOptions, parsePositiveInteger, wantsJson } from '@/utils/options';
 
-interface Ingredient {
-  id: string;
-  category: string;
-  /**
-   * Prisma-backed, so the wire value is SCREAMING_SNAKE and a finished
-   * ingredient is `GENERATED`.
-   *
-   * @see .agents/memory/rules/enum_source_of_truth.md
-   */
-  status: IngredientStatus;
-  text?: string;
-  model?: string;
+interface AssetListOptions extends Record<string, unknown> {
+  json?: boolean;
+  limit: number;
+  type?: string;
 }
 
-export const libraryCommand = new Command('library')
-  .description('Browse content library')
-  .option('-t, --type <type>', 'Filter by type (image, video, music, avatar)')
-  .option('-l, --limit <limit>', 'Max items to show', '20')
-  .option('--json', 'Output as JSON')
-  .action(async (options) => {
-    try {
-      await requireAuth();
+interface AssetShowOptions {
+  json?: boolean;
+}
 
-      const orgId = await getOrganizationId();
-      if (!orgId) {
-        throw new GenfeedError(
-          'No organization found',
-          'Re-authenticate with `gf login` to link your organization'
-        );
-      }
+interface AssetDownloadOptions {
+  output: string;
+}
 
-      const spinner = ora('Fetching library...').start();
+async function runAssetList(options: AssetListOptions): Promise<void> {
+  await requireAuth();
+  const spinner = options.json ? undefined : ora('Fetching assets...').start();
+  try {
+    const assets = await readAssets({
+      category: options.type,
+      limit: options.limit,
+    });
+    spinner?.stop();
+    if (options.json) return printJson(assets);
+    if (assets.length === 0) return print(chalk.dim('No assets found.'));
 
-      try {
-        const params = new URLSearchParams();
-        if (options.type) params.set('category', options.type);
-        params.set('limit', options.limit);
-
-        const response = await get<JsonApiCollectionResponse>(
-          `/organizations/${orgId}/ingredients?${params.toString()}`
-        );
-        const items = flattenCollection<Ingredient>(response);
-        spinner.stop();
-
-        if (items.length === 0) {
-          print(chalk.dim('No items found.'));
-          return;
-        }
-
-        if (options.json) {
-          printJson(items);
-          return;
-        }
-
-        print(formatHeader(`\nLibrary (${items.length} items):\n`));
-
-        for (const item of items) {
-          const category = chalk.blue(`[${item.category}]`);
-          const status =
-            item.status === IngredientStatus.GENERATED
-              ? chalk.green(item.status)
-              : chalk.dim(item.status);
-          const id = chalk.dim(`(${item.id})`);
-
-          print(`  ${category} ${status} ${id}`);
-          if (item.text) {
-            print(`  ${chalk.dim(item.text.slice(0, 80))}...`);
-          }
-          print();
-        }
-      } catch (error) {
-        spinner.fail('Failed to fetch library');
-        throw error;
-      }
-    } catch (error) {
-      handleError(error);
+    print(formatHeader(`\nAssets (${assets.length}):\n`));
+    for (const asset of assets) {
+      const status =
+        asset.status === IngredientStatus.GENERATED
+          ? chalk.green(asset.status)
+          : chalk.dim(asset.status);
+      print(`  ${chalk.blue(`[${asset.category}]`)} ${status} ${chalk.dim(`(${asset.id})`)}`);
+      if (asset.text) print(`  ${chalk.dim(asset.text.slice(0, 80))}`);
+      if (asset.cdnUrl) print(`  ${chalk.dim(asset.cdnUrl)}`);
+      print();
     }
-  });
+  } catch (error) {
+    spinner?.fail('Failed to fetch assets');
+    throw error;
+  }
+}
+
+function addListOptions(command: Command): Command {
+  return command
+    .option('-t, --type <type>', 'Filter by type (image, video, music, avatar)')
+    .option('-l, --limit <limit>', 'Max items to show', parsePositiveInteger, 20)
+    .option('--json', 'Output as JSON');
+}
+
+export const libraryCommand = addListOptions(
+  new Command('asset').alias('library').description('Browse and download content assets')
+).action(async (options: AssetListOptions) => {
+  try {
+    await runAssetList(options);
+  } catch (error) {
+    handleError(error);
+  }
+});
+
+libraryCommand.addCommand(
+  addListOptions(new Command('list').description('List content assets')).action(
+    async (_options: AssetListOptions, command: Command) => {
+      try {
+        await runAssetList(getCommandOptions<AssetListOptions>(command));
+      } catch (error) {
+        handleError(error);
+      }
+    }
+  )
+);
+
+libraryCommand.addCommand(
+  new Command('show')
+    .description('Show one content asset')
+    .argument('<id>', 'Asset ID')
+    .option('--json', 'Output as JSON')
+    .action(async (id: string, _options: AssetShowOptions, command: Command) => {
+      try {
+        await requireAuth();
+        const asset = await readAsset(id);
+        if (wantsJson(command)) return printJson(asset);
+        print(formatHeader('Asset\n'));
+        print(formatLabel('ID', asset.id));
+        print(formatLabel('Type', asset.category));
+        print(formatLabel('Status', asset.status));
+        if (asset.cdnUrl) print(formatLabel('URL', asset.cdnUrl));
+        if (asset.model) print(formatLabel('Model', asset.model));
+        if (asset.text) print(formatLabel('Prompt', asset.text));
+      } catch (error) {
+        handleError(error);
+      }
+    })
+);
+
+libraryCommand.addCommand(
+  new Command('download')
+    .description('Download a generated asset')
+    .argument('<id>', 'Asset ID')
+    .requiredOption('-o, --output <path>', 'Destination path')
+    .action(async (id: string, options: AssetDownloadOptions) => {
+      try {
+        await requireAuth();
+        const asset = await readAsset(id);
+        if (!asset.cdnUrl) {
+          throw new GenfeedError(`Asset ${id} is not downloadable yet`);
+        }
+        await downloadGeneratedFile('asset', options.output, asset.cdnUrl);
+      } catch (error) {
+        handleError(error);
+      }
+    })
+);

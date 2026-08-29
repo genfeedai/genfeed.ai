@@ -1,3 +1,12 @@
+import {
+  chargeBatchGenerationCredits,
+  estimateBatchGenerationCredits,
+} from '@genfeedai/constants';
+import { ContentFormat, formatPlatformLabel } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
@@ -11,19 +20,6 @@ import {
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
-import {
-  chargeBatchGenerationCredits,
-  estimateBatchGenerationCredits,
-} from '@genfeedai/constants';
-import {
-  ActivitySource,
-  ContentFormat,
-  formatPlatformLabel,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 interface AgentBrandsServiceLike {
@@ -67,6 +63,8 @@ type BatchExecution = {
   platforms: string[];
   pricingOptions: { includeMedia: boolean; qualityTier?: string | null };
 };
+
+const BATCH_RESERVATION_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 
 const CONTENT_MIX_PERCENT_KEYS: Readonly<
   Record<ContentFormat, keyof ContentMixPercents>
@@ -166,14 +164,6 @@ export class AgentMediaBatchGenerationService {
       prepared,
     );
     if ('error' in execution) return execution.error;
-
-    // Pin pricing before work so settlement moves only the eventual delta.
-    await this.batchCreditsService?.recordUpfrontCharge({
-      batchId: execution.value.batchId,
-      credits: execution.value.estimatedCredits,
-      organizationId: ctx.organizationId,
-      pricingOptions: execution.value.pricingOptions,
-    });
 
     if (ctx.streamBatchToUser && ctx.threadId && ctx.userId) {
       return this.processStreamedBatch(execution.value, ctx);
@@ -317,12 +307,43 @@ export class AgentMediaBatchGenerationService {
 
     const batchId = String(batch.id);
     // Atomic reserve plus the batch reference claim prevents concurrent spend.
-    const reserveError = await this.reserveCreditsOrCancel({
+    const reservation = await this.reserveCreditsOrCancel({
       amount: prepared.estimatedCredits,
       batchId,
       ctx,
     });
-    if (reserveError) return { error: reserveError };
+    if ('error' in reservation) return reservation;
+
+    let recorded: boolean | undefined;
+    try {
+      recorded = await this.batchCreditsService?.recordUpfrontCharge({
+        batchId,
+        credits: prepared.estimatedCredits,
+        organizationId: ctx.organizationId,
+        pricingOptions: prepared.pricingOptions,
+        reservationId: reservation.reservationId,
+      });
+    } catch (recordError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to record a batch reservation`,
+        { batchId, organizationId: ctx.organizationId, recordError },
+      );
+      recorded = false;
+    }
+    if (recorded !== true) {
+      await this.compensateUnrecordedReservation({
+        batchId,
+        organizationId: ctx.organizationId,
+        reservationId: reservation.reservationId,
+      });
+      return {
+        error: {
+          creditsUsed: 0,
+          error: 'Batch credit reservation could not be recorded',
+          success: false,
+        },
+      };
+    }
 
     return {
       value: {
@@ -336,26 +357,57 @@ export class AgentMediaBatchGenerationService {
     };
   }
 
+  private async compensateUnrecordedReservation(params: {
+    batchId: string;
+    organizationId: string;
+    reservationId?: string;
+  }): Promise<void> {
+    if (params.reservationId) {
+      try {
+        await this.creditsUtilsService?.releaseReservation({
+          organizationId: params.organizationId,
+          reservationId: params.reservationId,
+        });
+      } catch (releaseError) {
+        this.loggerService.warn(
+          `${this.logContext} failed to release an unrecorded batch reservation`,
+          { ...params, releaseError },
+        );
+      }
+    }
+
+    try {
+      await this.batchGenerationService?.cancelBatch(
+        params.batchId,
+        params.organizationId,
+      );
+    } catch (cancelError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to cancel a batch with an unrecorded reservation`,
+        { ...params, cancelError },
+      );
+    }
+  }
+
   private async reserveCreditsOrCancel(params: {
     amount: number;
     batchId: string;
     ctx: ToolExecutionContext;
-  }): Promise<AgentToolResult | null> {
+  }): Promise<{ reservationId?: string } | { error: AgentToolResult }> {
     try {
       if (this.creditsUtilsService && params.amount > 0) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          params.ctx.organizationId,
-          params.ctx.userId,
-          params.amount,
-          `Batch generation ${params.batchId}`,
-          ActivitySource.SCRIPT,
-          {
-            referenceId: params.batchId,
-            referenceType: 'batch-generation:upfront',
-          },
-        );
+        const reservation = await this.creditsUtilsService.reserveCredits({
+          actorUserId: params.ctx.userId,
+          amount: params.amount,
+          expiresAt: new Date(Date.now() + BATCH_RESERVATION_TTL_MS),
+          idempotencyKey: `batch-generation:${params.batchId}`,
+          organizationId: params.ctx.organizationId,
+          workloadId: params.batchId,
+          workloadType: 'batch-generation',
+        });
+        return { reservationId: reservation.id };
       }
-      return null;
+      return {};
     } catch (error) {
       try {
         await this.batchGenerationService?.cancelBatch(
@@ -373,12 +425,14 @@ export class AgentMediaBatchGenerationService {
         );
       }
       return {
-        creditsUsed: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : `Insufficient credits. This batch needs about ${params.amount} credits.`,
-        success: false,
+        error: {
+          creditsUsed: 0,
+          error:
+            error instanceof Error
+              ? error.message
+              : `Insufficient credits. This batch needs about ${params.amount} credits.`,
+          success: false,
+        },
       };
     }
   }
@@ -399,11 +453,21 @@ export class AgentMediaBatchGenerationService {
     let streamedTranscript =
       `Creating ${execution.batch.totalCount} ${execution.platformLabel} post${execution.batch.totalCount === 1 ? '' : 's'}. ` +
       'I will stream each draft as soon as it is ready.';
-    await this.publishBatchStarted(
-      streamedTranscript,
-      execution.batch.totalCount,
-      streamContext,
-    );
+    try {
+      await this.publishBatchStarted(
+        streamedTranscript,
+        execution.batch.totalCount,
+        streamContext,
+      );
+    } catch (error: unknown) {
+      // Streaming failed before processing claimed the batch. Hand it to the
+      // durable queue so the recorded reservation still has an execution owner.
+      this.loggerService.warn(
+        `${this.logContext} batch stream unavailable; using durable execution`,
+        { batchId: execution.batchId, error },
+      );
+      return this.queueOrRunBatch(execution, ctx);
+    }
 
     const summary = await this.batchGenerationService.processBatch(
       execution.batchId,
@@ -688,13 +752,28 @@ export class AgentMediaBatchGenerationService {
     execution: BatchExecution,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const queuedJobId = await this.batchGenerationQueueService?.queueBatch({
-      batchId: execution.batchId,
-      organizationId: ctx.organizationId,
-      runId: ctx.runId,
-      threadId: ctx.threadId,
-      userId: ctx.userId,
-    });
+    let queuedJobId: string | null | undefined;
+    try {
+      queuedJobId = await this.batchGenerationQueueService?.queueBatch({
+        batchId: execution.batchId,
+        organizationId: ctx.organizationId,
+        runId: ctx.runId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
+    } catch (error: unknown) {
+      // BatchGenerationQueueService only rejects before it records durable
+      // ownership. No worker can race this compensation path.
+      await this.compensateFailedBatchHandoff(execution.batchId, ctx);
+      return {
+        creditsUsed: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Batch generation could not be started',
+        success: false,
+      };
+    }
     if (!queuedJobId) {
       // #2501: the queue owns durable execution. Only self-hosted deployments
       // without a queue fall back to the legacy in-process path.
@@ -718,6 +797,36 @@ export class AgentMediaBatchGenerationService {
       isBillingDelegated: true,
       success: true,
     };
+  }
+
+  private async compensateFailedBatchHandoff(
+    batchId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<void> {
+    try {
+      await this.batchGenerationService?.cancelBatch(
+        batchId,
+        ctx.organizationId,
+      );
+    } catch (cancelError: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} failed to cancel a batch without execution ownership`,
+        { batchId, cancelError, organizationId: ctx.organizationId },
+      );
+    }
+
+    try {
+      await this.batchCreditsService?.settleBatchCredits({
+        batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (settlementError: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} failed to release a batch reservation after hand-off failure`,
+        { batchId, organizationId: ctx.organizationId, settlementError },
+      );
+    }
   }
 
   private runBatchInProcess(context: {

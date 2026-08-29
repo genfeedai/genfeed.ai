@@ -3221,7 +3221,7 @@
       "count": 2,
       "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",
       "fingerprint": "f724cb270f1881193a0e",
-      "message": "Argument of type '(key: string) => string' is not assignable to parameter of type '(key: keyof IEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof IEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
+      "message": "Argument of type '(key: string) => string' is not assignable to parameter of type '(key: keyof NotificationsEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof NotificationsEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
       "workspace": "notifications"
     },
     {
@@ -4178,22 +4178,6 @@
     },
     {
       "code": 7006,
-      "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "26a391796adfd3c6c6cb",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 4,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "492ffc5fdaa38971bcfe",
-      "message": "Parameter 'key' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
       "count": 6,
       "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
       "fingerprint": "9dc5d02052d379abf13f",
@@ -4206,14 +4190,6 @@
       "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
       "fingerprint": "b78fb57d9d86dfd21419",
       "message": "Parameter 'message' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "f719b41c08c5b49f8c65",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
       "workspace": "server"
     },
     {

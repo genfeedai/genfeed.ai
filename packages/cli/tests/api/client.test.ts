@@ -79,6 +79,18 @@ describe('api/client', () => {
 
       expect(result.users).toHaveLength(1);
     });
+
+    it('forwards an abort signal', async () => {
+      const controller = new AbortController();
+      mockFetch.mockResolvedValue({ data: 'test' });
+
+      await get('/test', { signal: controller.signal });
+
+      expect(mockFetch).toHaveBeenCalledWith('/test', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+    });
   });
 
   describe('post', () => {

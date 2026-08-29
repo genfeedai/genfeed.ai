@@ -67,7 +67,7 @@ export async function createTemplate(request: CreateTemplateRequest): Promise<Te
   return flattenSingle<Template>(response);
 }
 
-export async function useTemplate(
+export async function fillTemplate(
   id: string,
   request: UseTemplateRequest
 ): Promise<{ content: string }> {

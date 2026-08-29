@@ -28,7 +28,24 @@ gf --version
 gf --help
 ```
 
-Node.js 18 or newer is required.
+Node.js 22.12 or newer is required.
+
+## Interactive workspace
+
+Run `gf` with no arguments in a terminal to open the Ink workspace. Plain text continues an agent
+thread; slash commands perform direct, discoverable operations without leaving the workspace.
+
+```text
+› Plan a launch week for our new product
+› /brand use Acme Studio
+› /image editorial product launch poster
+› /workflow run weekly-content
+› /balance
+```
+
+The slash is TUI syntax only. Shell commands remain conventional subcommands, so use
+`gf workflow list`, not `gf /workflow list`. A non-TTY invocation with no arguments prints help
+instead of trying to launch an interactive interface.
 
 ## Authenticate
 
@@ -40,6 +57,12 @@ port, exchanges the returned code for a key, and stores it:
 
 ```bash
 gf login
+```
+
+New users can enter the same PKCE flow at the sign-up screen:
+
+```bash
+gf signup
 ```
 
 `gf auth login` is the same command under the `auth` namespace.
@@ -69,16 +92,14 @@ gf login -i
 
 ### Self-hosted
 
-Point the CLI at your own API base URL, then authenticate with a key issued by
-that deployment:
+Point the CLI at your own deployment. The web app origin is derived from the API URL, or can be
+provided explicitly when the two origins do not follow the standard `api.` / `app.` convention:
 
 ```bash
-export GENFEED_API_URL=http://localhost:3010/v1
-gf login -k gf_live_xxx
+gf login --api-url https://api.example.com/v1 --app-url https://app.example.com
 ```
 
-The browser flow targets Genfeed Cloud, so self-hosted deployments use
-`gf login -k` or `gf login -i`.
+Headless self-hosted environments can still use `gf login -k gf_live_xxx` or `gf login -i`.
 
 You can persist the URL on a profile instead of exporting it each session:
 
@@ -160,17 +181,26 @@ explicit `--scopes` list, plus optional `--expires-at`, `--rate-limit`, and
 `--allow-ip` restrictions. The secret is printed once, on creation and on
 rotation.
 
-### Brands and credits
+### Brands, balance, and credits
 
 ```bash
-gf brands              # list brands
-gf brands select       # choose the active brand
-gf brands current      # show the active brand
-gf brands show <id>    # full brand details
+gf brand list                          # list brands
+gf brand use <id-or-slug-or-label>     # choose the active brand
+gf brand current                       # show the active brand
+gf brand show <id>                     # full brand details
 
-gf credits usage       # credit consumption
-gf credits summary     # billing summary
+gf balance                             # current available credits
+gf credits packs                       # available top-up sizes
+gf credits buy 5000                    # open server-priced Stripe Checkout
+gf credits buy 5000 --no-open --json   # return the URL in a headless session
+gf credits history --limit 20          # credit ledger
+gf credits usage                       # consumption details
+gf credits summary                     # billing summary
 ```
+
+`brands` remains an alias for compatibility. Stripe Checkout is hosted by Stripe: the CLI never
+collects card data and never chooses a price ID. Cryptocurrency checkout is not currently part of
+the supported surface.
 
 Most content commands accept `-b, --brand <id>` to override the active brand
 for a single call.
@@ -178,11 +208,16 @@ for a single call.
 ### Generate
 
 ```bash
-gf generate image "A futuristic cityscape at sunset" --model imagen-4 --width 1920 --height 1080
-gf generate video "A drone flying over mountains" --model google-veo-3 --duration 10 --resolution 1080p
-gf generate article "Write about AI marketing trends" --category marketing
-gf generate article-x "Write a founder update thread"
+gf gen image "A futuristic cityscape at sunset" --model imagen-4 --width 1920 --height 1080
+gf gen video "A drone flying over mountains" --model google-veo-3 --duration 10 --resolution 1080p
+gf gen article "Write about AI marketing trends" --category marketing
+gf gen article-x "Write a founder update thread"
 ```
+
+`generate` remains an alias. Image generation additionally supports references, multiple outputs,
+seed, creative direction (style, format, mood, camera, lens, scene, lighting), negative prompts,
+blacklists, tags, automatic model routing and priority, brand/fidelity modes, and prompt templates.
+Use `gf gen image --help` for the exact flags.
 
 Shared options: `-m, --model`, `-b, --brand`, `-o, --output <path>` to download
 the result, and `--no-wait` to return an ID immediately instead of blocking.
@@ -225,8 +260,14 @@ gf template delete <id>
 Browse generated assets:
 
 ```bash
-gf library --type image --limit 20
+gf asset --type image --limit 20
+gf asset list --type image --limit 20
+gf asset show <id>
+gf asset download <id> --output ./asset.jpg
+gf job status <id> --type image
 ```
+
+`library` remains an alias.
 
 ### Publish and schedule
 
@@ -271,7 +312,8 @@ gf performance prompts
 
 ### Agent, threads, and workflows
 
-Start the interactive agent shell — also what `gf` with no arguments opens:
+Start the compatibility readline agent shell (the richer Ink workspace is what `gf` with no
+arguments opens):
 
 ```bash
 gf chat
@@ -300,9 +342,11 @@ gf threads archive <threadId>
 Run workflows:
 
 ```bash
-gf workflow list --status active
+gf workflow list --limit 20
 gf workflow show <id>
-gf workflow run <id> --inputs '{"topic":"launch recap"}'
+gf workflow run <id-or-key-or-label> --inputs '{"topic":"launch recap"}'
+gf workflow runs --status completed
+gf workflow status <execution-id>
 ```
 
 List the canonical tool names available to the agent shell:
@@ -317,7 +361,7 @@ gf tools --json
 work and poll separately:
 
 ```bash
-ID=$(gf generate image "Studio product shot" --no-wait --json | jq -r '.id')
+ID=$(gf gen image "Studio product shot" --no-wait --json | jq -r '.id')
 gf status "$ID" --json | jq -r '.status'
 ```
 
@@ -325,7 +369,7 @@ A full headless sequence:
 
 ```bash
 gf login -k "$GENFEED_API_KEY"
-RESULT=$(gf generate image "Professional headshot, studio lighting" --json)
+RESULT=$(gf gen image "Professional headshot, studio lighting" --json)
 IMAGE_ID=$(echo "$RESULT" | jq -r '.id')
 gf publish "$IMAGE_ID" --platforms twitter,linkedin --json
 ```

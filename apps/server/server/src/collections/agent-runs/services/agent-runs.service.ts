@@ -1,21 +1,3 @@
-import { CreateAgentRunDto } from '@server/collections/agent-runs/dto/create-agent-run.dto';
-import { UpdateAgentRunDto } from '@server/collections/agent-runs/dto/update-agent-run.dto';
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PopulateInput,
-} from '@server/shared/services/base/base.service';
-import {
-  type AuthorizedAgentArtifactWrite,
-  authorizeAgentArtifactWrite,
-  hasAgentArtifactWriteInput,
-} from '@server/shared/utils/agent-artifact-reference-write.util';
-import { readRecordOrEmpty as readJsonRecord } from '@server/shared/utils/object/read-record-or-empty.util';
 import { AgentExecutionStatus, AgentTransferStatus } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
@@ -36,6 +18,24 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { CreateAgentRunDto } from '@server/collections/agent-runs/dto/create-agent-run.dto';
+import { UpdateAgentRunDto } from '@server/collections/agent-runs/dto/update-agent-run.dto';
+import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@server/shared/services/base/base.service';
+import {
+  type AuthorizedAgentArtifactWrite,
+  authorizeAgentArtifactWrite,
+  hasAgentArtifactWriteInput,
+} from '@server/shared/utils/agent-artifact-reference-write.util';
+import { readRecordOrEmpty as readJsonRecord } from '@server/shared/utils/object/read-record-or-empty.util';
 
 type AgentRunStatsSummary = Omit<
   AgentRunStats,
@@ -96,6 +96,10 @@ type AgentRunRetryRollback = {
 const RETRYABLE_AGENT_RUN_STATUSES: AgentExecutionStatus[] = [
   AgentExecutionStatus.FAILED,
   AgentExecutionStatus.CANCELLED,
+];
+const ACTIVE_AGENT_RUN_STATUSES: AgentExecutionStatus[] = [
+  AgentExecutionStatus.PENDING,
+  AgentExecutionStatus.RUNNING,
 ];
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -296,21 +300,37 @@ export class AgentRunsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
-    const run = (await this.delegate.update({
-      where: scopedWhere(organizationId, { id }),
+    const startedAt = new Date();
+    const run = await this.getById(id, organizationId);
+    if (!run) return null;
+
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and prior status form a single-run start claim.
+    const transition = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: AgentExecutionStatus.PENDING,
+      }),
       data: {
-        startedAt: new Date(),
+        startedAt,
         status: AgentExecutionStatus.RUNNING,
       },
-    })) as AgentRunDocument | null;
+    });
+    if (transition.count !== 1) {
+      return await this.getById(id, organizationId);
+    }
+
     await this.prisma.agentTransfer.updateMany({
       data: {
-        startedAt: new Date(),
+        startedAt,
         status: AgentTransferStatus.RUNNING,
       },
       where: scopedWhere(organizationId, { destinationRunId: id }),
     });
-    return run;
+    return {
+      ...run,
+      startedAt,
+      status: AgentExecutionStatus.RUNNING,
+    } as AgentRunDocument;
   }
 
   @HandleErrors('get agent run', 'agent-runs')
@@ -458,8 +478,12 @@ export class AgentRunsService extends BaseService<
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    const completed = (await this.delegate.update({
-      where: { id },
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and active statuses form a single-run terminal claim.
+    const transition = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: { in: ACTIVE_AGENT_RUN_STATUSES },
+      }),
       data: {
         completedAt,
         durationMs,
@@ -467,7 +491,11 @@ export class AgentRunsService extends BaseService<
         status: AgentExecutionStatus.COMPLETED,
         ...(summary && { summary }),
       },
-    })) as AgentRunDocument | null;
+    });
+    if (transition.count !== 1) {
+      return await this.getById(id, organizationId);
+    }
+
     await this.prisma.agentTransfer.updateMany({
       data: {
         completedAt,
@@ -480,7 +508,14 @@ export class AgentRunsService extends BaseService<
       },
       where: scopedWhere(organizationId, { destinationRunId: id }),
     });
-    return completed;
+    return {
+      ...run,
+      completedAt,
+      durationMs,
+      progress: 100,
+      status: AgentExecutionStatus.COMPLETED,
+      ...(summary && { summary }),
+    } as AgentRunDocument;
   }
 
   @HandleErrors('fail agent run', 'agent-runs')
@@ -500,8 +535,12 @@ export class AgentRunsService extends BaseService<
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    const failed = (await this.delegate.update({
-      where: { id },
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and active statuses form a single-run terminal claim.
+    const transition = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        status: { in: ACTIVE_AGENT_RUN_STATUSES },
+      }),
       data: {
         completedAt,
         durationMs,
@@ -509,7 +548,11 @@ export class AgentRunsService extends BaseService<
         retryCount: { increment: 1 },
         status: AgentExecutionStatus.FAILED,
       },
-    })) as AgentRunDocument | null;
+    });
+    if (transition.count !== 1) {
+      return await this.getById(id, organizationId);
+    }
+
     await this.prisma.agentTransfer.updateMany({
       data: {
         completedAt,
@@ -518,7 +561,14 @@ export class AgentRunsService extends BaseService<
       },
       where: scopedWhere(organizationId, { destinationRunId: id }),
     });
-    return failed;
+    return {
+      ...run,
+      completedAt,
+      durationMs,
+      error,
+      retryCount: (run.retryCount ?? 0) + 1,
+      status: AgentExecutionStatus.FAILED,
+    } as AgentRunDocument;
   }
 
   @HandleErrors('cancel agent run', 'agent-runs')
@@ -534,23 +584,58 @@ export class AgentRunsService extends BaseService<
 
     if (!run) return null;
 
+    if (run.status === AgentExecutionStatus.CANCELLED) {
+      return run;
+    }
+    if (
+      run.status !== AgentExecutionStatus.PENDING &&
+      run.status !== AgentExecutionStatus.RUNNING
+    ) {
+      throw new ConflictException(
+        `Agent run cannot be cancelled after reaching ${run.status.toLowerCase()}`,
+      );
+    }
+
     const durationMs = run.startedAt
       ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    const cancelled = (await this.delegate.update({
-      where: { id },
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id, brand scope, and active statuses form a single-run terminal claim.
+    const transition = await this.delegate.updateMany({
+      where: scopedWhere(organizationId, {
+        id,
+        ...brandScope(brandId),
+        status: { in: ACTIVE_AGENT_RUN_STATUSES },
+      }),
       data: {
         completedAt,
         durationMs,
         status: AgentExecutionStatus.CANCELLED,
       },
-    })) as AgentRunDocument | null;
+    });
+    if (transition.count !== 1) {
+      const current = await this.getById(id, organizationId, brandId);
+      if (current?.status === AgentExecutionStatus.CANCELLED) {
+        return current;
+      }
+      if (current) {
+        throw new ConflictException(
+          `Agent run cannot be cancelled after reaching ${current.status.toLowerCase()}`,
+        );
+      }
+      return null;
+    }
+
     await this.prisma.agentTransfer.updateMany({
       data: { completedAt, status: AgentTransferStatus.CANCELLED },
       where: scopedWhere(organizationId, { destinationRunId: id }),
     });
-    return cancelled;
+    return {
+      ...run,
+      completedAt,
+      durationMs,
+      status: AgentExecutionStatus.CANCELLED,
+    } as AgentRunDocument;
   }
 
   /**

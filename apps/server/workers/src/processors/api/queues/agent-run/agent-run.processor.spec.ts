@@ -236,6 +236,77 @@ describe('AgentRunProcessor', () => {
       threadId: 'thread-1',
       userId: 'user-1',
     });
+    expect(agentStreamPublisherService.publishRunComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: 'run-1', status: 'failed' }),
+    );
+  });
+
+  it('does not publish a late chat failure after cancellation wins', async () => {
+    agentOrchestratorService.chatStream.mockRejectedValue(
+      new Error('provider disconnected'),
+    );
+    agentRunsService.fail.mockResolvedValue({
+      status: AgentExecutionStatus.CANCELLED,
+    });
+    const job = {
+      attemptsMade: 2,
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Stop this run',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+    } as Job<AgentRunJobData>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(agentStreamPublisherService.publishError).not.toHaveBeenCalled();
+    expect(
+      agentStreamPublisherService.publishRunComplete,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('keeps a retryable accepted turn non-terminal before its final attempt', async () => {
+    agentRunsService.getById.mockResolvedValue({ status: 'RUNNING' });
+    agentOrchestratorService.chatStream.mockRejectedValue(
+      new Error('Request failed with status code 429'),
+    );
+    const job = {
+      attemptsMade: 1,
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Reply with hello',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+    } as Job<AgentRunJobData>;
+
+    await expect(processor.process(job)).rejects.toThrow(
+      'Request failed with status code 429',
+    );
+
+    expect(agentOrchestratorService.chatStream).toHaveBeenCalledOnce();
+    expect(agentRunsService.fail).not.toHaveBeenCalled();
+    expect(agentStreamPublisherService.publishError).not.toHaveBeenCalled();
+    expect(
+      agentStreamPublisherService.publishRunComplete,
+    ).not.toHaveBeenCalled();
   });
 
   it('redelivers queued voice rendering through the durable worker', async () => {
@@ -383,7 +454,9 @@ describe('AgentRunProcessor', () => {
       );
 
       agentRunsService.start.mockResolvedValue({ label: 'Run', metadata: {} });
-      agentRunsService.complete.mockResolvedValue(null);
+      agentRunsService.complete.mockResolvedValue({
+        status: AgentExecutionStatus.COMPLETED,
+      });
     });
 
     it('throws when the run record is missing', async () => {
@@ -415,6 +488,7 @@ describe('AgentRunProcessor', () => {
       agentRunsService.complete.mockResolvedValue({
         completedAt: new Date('2026-08-09T01:00:00Z'),
         startedAt: new Date('2026-08-09T00:00:00Z'),
+        status: AgentExecutionStatus.COMPLETED,
         toolCalls: [{ status: 'completed' }, { status: 'failed' }],
       });
 
@@ -448,6 +522,26 @@ describe('AgentRunProcessor', () => {
       );
     });
 
+    it('does not publish success after cancellation wins completion', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockResolvedValue({
+        summary: 'Late result',
+      });
+      agentRunsService.complete.mockResolvedValue({
+        status: AgentExecutionStatus.CANCELLED,
+      });
+
+      await strategyProcessor.process(job);
+
+      expect(strategiesService.recordRun).not.toHaveBeenCalled();
+      expect(strategiesService.resetFailures).not.toHaveBeenCalled();
+      expect(
+        agentStreamPublisherService.publishRunComplete,
+      ).not.toHaveBeenCalled();
+    });
+
     it('updates campaign credits and checks quota for campaign runs', async () => {
       const job = {
         data: { ...baseData, campaignId: 'campaign-1' },
@@ -455,7 +549,10 @@ describe('AgentRunProcessor', () => {
       agentOrchestratorService.chat.mockResolvedValue({
         content: 'Campaign content generated.',
       });
-      agentRunsService.complete.mockResolvedValue({ creditsUsed: 7 });
+      agentRunsService.complete.mockResolvedValue({
+        creditsUsed: 7,
+        status: AgentExecutionStatus.COMPLETED,
+      });
 
       await strategyProcessor.process(job);
 
@@ -475,7 +572,10 @@ describe('AgentRunProcessor', () => {
         data: { ...baseData, campaignId: 'campaign-1' },
       } as Job<AgentRunJobData>;
       agentOrchestratorService.chat.mockResolvedValue('not-an-object');
-      agentRunsService.complete.mockResolvedValue({ creditsUsed: 0 });
+      agentRunsService.complete.mockResolvedValue({
+        creditsUsed: 0,
+        status: AgentExecutionStatus.COMPLETED,
+      });
 
       await strategyProcessor.process(job);
 
@@ -507,6 +607,25 @@ describe('AgentRunProcessor', () => {
       expect(strategiesService.pauseStrategy).not.toHaveBeenCalled();
       expect(
         strategiesService.requireManualReactivation,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not publish failure after cancellation wins the error race', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockRejectedValue(
+        new Error('late provider error'),
+      );
+      agentRunsService.fail.mockResolvedValue({
+        status: AgentExecutionStatus.CANCELLED,
+      });
+
+      await expect(strategyProcessor.process(job)).resolves.toBeUndefined();
+
+      expect(strategiesService.incrementFailures).not.toHaveBeenCalled();
+      expect(
+        agentStreamPublisherService.publishRunComplete,
       ).not.toHaveBeenCalled();
     });
 
@@ -616,6 +735,7 @@ describe('AgentRunProcessor', () => {
       });
       agentRunsService.complete.mockResolvedValue({
         metadata: { workspaceTaskId: 'task-1' },
+        status: AgentExecutionStatus.COMPLETED,
       });
       const job = { data: { ...baseData } } as Job<AgentRunJobData>;
 
@@ -633,7 +753,10 @@ describe('AgentRunProcessor', () => {
 
     it('leaves the task orchestrator alone when the run is not workspace-backed', async () => {
       agentRunsService.start.mockResolvedValue({ label: 'Run', metadata: {} });
-      agentRunsService.complete.mockResolvedValue({ metadata: {} });
+      agentRunsService.complete.mockResolvedValue({
+        metadata: {},
+        status: AgentExecutionStatus.COMPLETED,
+      });
       const job = { data: { ...baseData } } as Job<AgentRunJobData>;
 
       await processor.process(job);
@@ -651,6 +774,7 @@ describe('AgentRunProcessor', () => {
       });
       agentRunsService.complete.mockResolvedValue({
         metadata: { workspaceTaskId: 'task-1' },
+        status: AgentExecutionStatus.COMPLETED,
       });
       taskOrchestratorService.handleRunStarted.mockRejectedValue(
         new Error('start rollup exploded'),

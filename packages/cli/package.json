@@ -8,8 +8,10 @@
     "@inquirer/prompts": "8.7.0",
     "chalk": "6.0.0",
     "commander": "15.0.0",
+    "ink": "7.1.1",
     "ofetch": "1.5.1",
     "ora": "9.4.1",
+    "react": "19.2.8",
     "socket.io-client": "4.8.3",
     "zod": "4.4.3"
   },
@@ -20,10 +22,12 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/errors": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@types/bun": "1.4.0",
     "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
     "@typescript/native": "npm:typescript@7.0.2",
     "@vitest/coverage-v8": "4.1.11",
     "vitest": "4.1.11"

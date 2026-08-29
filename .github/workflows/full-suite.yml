@@ -1,5 +1,5 @@
-# Full Suite — continuous master verification, and the caller for release
-# verification.
+# Full Suite — THE master-push pipeline (ci.yml has no push trigger of its
+# own), and the caller for release verification.
 #
 # Runs on every push to master, plus on demand: Actions → "Full Suite
 # (CI + Release Gates + E2E)" → Run workflow → pick the branch.
@@ -11,6 +11,12 @@
 # merges could land unvalidated at that tier and the release then paid for every
 # one of them at once — five attempts across roughly ten hours. Running on push
 # surfaces a red master within one Full Suite of the merge that caused it.
+#
+# The nested CI Gate also carries ci.yml's push-gated master jobs — the
+# tests-gate push arm, the master failure tracker (#2510), and the merge-queue
+# janitor (#1969) — because a reusable workflow inherits the caller's
+# originating `push` event. Removing this workflow's push trigger would
+# silently disable all three.
 #
 # Reuses existing workflows via workflow_call — no job logic is duplicated here;
 # this file only orders the public release-prep gates. Community self-hosted image

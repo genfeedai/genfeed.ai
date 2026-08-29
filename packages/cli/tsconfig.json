@@ -4,6 +4,7 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -19,6 +20,7 @@
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/pricing": ["../pricing/src/index.ts"],
       "@genfeedai/serializers": ["../helpers/src/deserializer/index.ts"],
       "@genfeedai/tools": ["../tools/src/index.ts"]
     },
@@ -27,7 +29,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "types": ["node"]
+    "types": ["node", "react"]
   },
   "exclude": ["node_modules", "dist", "tests"],
   "include": ["src/**/*"]
