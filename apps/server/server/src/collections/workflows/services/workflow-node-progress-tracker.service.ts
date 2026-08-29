@@ -1,8 +1,9 @@
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
-  NodeExecutionResult,
+import {
+  type ExecutableNode,
+  type ExecutableWorkflow,
+  getExecutableNodeOperationId,
+  type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
 import { EVENT_TYPE_TO_NODE_TYPE } from '@server/collections/workflows/services/workflow-executor.constants';
@@ -93,7 +94,7 @@ export class WorkflowNodeProgressTrackerService {
     const runningExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.node.id,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         startedAt: new Date(),
         status: WorkflowExecutionStatus.RUNNING,
@@ -104,7 +105,7 @@ export class WorkflowNodeProgressTrackerService {
       await this.progressService.emitEvent(input.workflow.id, 'node-started', {
         executionId: input.executionId,
         nodeId: input.node.id,
-        nodeType: input.node.type,
+        nodeType: getExecutableNodeOperationId(input.node),
       });
     }
 
@@ -135,7 +136,7 @@ export class WorkflowNodeProgressTrackerService {
     const completedExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.nodeId,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         completedAt: new Date(),
         output: input.nodeResult.output as Record<string, unknown> | undefined,
@@ -150,7 +151,7 @@ export class WorkflowNodeProgressTrackerService {
         {
           executionId: input.executionId,
           nodeId: input.nodeId,
-          nodeType: input.node.type,
+          nodeType: getExecutableNodeOperationId(input.node),
         },
       );
     }
@@ -182,7 +183,7 @@ export class WorkflowNodeProgressTrackerService {
     const failedExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.nodeId,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         completedAt: new Date(),
         error: input.errorMessage,
@@ -195,7 +196,7 @@ export class WorkflowNodeProgressTrackerService {
         error: input.errorMessage,
         executionId: input.executionId,
         nodeId: input.nodeId,
-        nodeType: input.node.type,
+        nodeType: getExecutableNodeOperationId(input.node),
       });
     }
 

@@ -2,9 +2,10 @@ import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type {
-  ExecutableWorkflow,
-  NodeExecutionResult,
+import {
+  createExecutableActionNode,
+  type ExecutableWorkflow,
+  type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
@@ -239,20 +240,16 @@ describe('WorkflowExecutorService', () => {
       id: 'workflow-1',
       lockedNodeIds: [],
       nodes: [
-        {
-          config: {},
+        createExecutableActionNode({
+          actionId: 'llm',
           id: 'draft-node',
-          inputs: [],
           label: 'Draft',
-          type: 'generate',
-        },
-        {
-          config: {},
+        }),
+        createExecutableActionNode({
+          actionId: 'publish',
           id: 'publish-node',
-          inputs: [],
           label: 'Publish',
-          type: 'publish',
-        },
+        }),
       ],
       organizationId: 'org-1',
       userId: 'user-1',
@@ -272,6 +269,8 @@ describe('WorkflowExecutorService', () => {
       userId: 'user-1',
     });
     prisma.workflow.update.mockResolvedValue({ id: 'workflow-1' });
+    // A fresh manual run has no prior execution to hydrate completed nodes from.
+    executionsService.findOne.mockResolvedValue(null);
     engineAdapter.convertToExecutableWorkflow.mockReturnValue(
       executableWorkflow,
     );
@@ -336,6 +335,7 @@ describe('WorkflowExecutorService', () => {
       { topic: 'launch' },
     );
 
+    expect(result.error).toBeUndefined();
     expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
     expect(result.totalCreditsUsed).toBe(3);
     expect(result.nodeResults).toEqual([
@@ -407,7 +407,7 @@ describe('WorkflowExecutorService', () => {
     expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(4);
   });
 
-  it('executes a 1-node prompt through the live Run path and records a node result', async () => {
+  it('executes a 1-node text generation through the live Run path and records a node result', async () => {
     const workflowDoc = {
       config: {},
       edges: [],
@@ -417,9 +417,15 @@ describe('WorkflowExecutorService', () => {
       metadata: {},
       nodes: [
         {
-          data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+          data: {
+            config: {
+              actionId: 'llm',
+              parameters: { prompt: 'Write a FUD News brief' },
+            },
+            label: 'Prompt',
+          },
           id: 'PyHRz6uB',
-          type: 'prompt',
+          type: 'genfeedAction',
         },
       ],
       organizationId: 'org-1',
@@ -488,7 +494,9 @@ describe('WorkflowExecutorService', () => {
           completedAt: new Date(),
           creditsUsed: 0,
           nodeId: node.id,
-          output: String(node.config.prompt ?? ''),
+          output: String(
+            (node.config.parameters as Record<string, unknown>).prompt ?? '',
+          ),
           retryCount: 0,
           startedAt: new Date(),
           status: 'completed',
@@ -523,9 +531,10 @@ describe('WorkflowExecutorService', () => {
     expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(1);
     expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
       'execution-prompt',
+      // Node results record the action id, not the shared envelope type.
       expect.objectContaining({
         nodeId: 'PyHRz6uB',
-        nodeType: 'prompt',
+        nodeType: 'llm',
       }),
     );
   });
@@ -533,11 +542,29 @@ describe('WorkflowExecutorService', () => {
   it('reuses the previous ETA duration when resuming after a delay', async () => {
     const startedAt = new Date();
     const executableWorkflow = {
-      edges: [{ source: 'completed-node', target: 'next-node' }],
+      edges: [
+        { source: 'completed-node', target: 'next-node' },
+        { source: 'next-node', target: 'pause-node' },
+      ],
       id: 'workflow-1',
       nodes: [
-        { id: 'completed-node', label: 'Completed node', type: 'trigger' },
-        { id: 'next-node', label: 'Next node', type: 'post' },
+        {
+          id: 'completed-node',
+          label: 'Completed node',
+          type: 'trigger-manual',
+        },
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'next-node',
+          label: 'Next node',
+        }),
+        {
+          config: { delayMs: 60_000 },
+          id: 'pause-node',
+          inputs: [],
+          label: 'Pause',
+          type: 'delay',
+        },
       ],
     };
 
@@ -570,33 +597,38 @@ describe('WorkflowExecutorService', () => {
     });
     executionsService.updateNodeResult.mockResolvedValue({ progress: 55 });
     engineAdapter.executeWorkflow.mockImplementation(
-      async (
-        _workflow: unknown,
-        options: {
-          onNodeStatusChange: (event: {
-            newStatus: string;
-            nodeId: string;
-          }) => Promise<void>;
-        },
-      ) => {
-        await options.onNodeStatusChange({
-          newStatus: 'running',
-          nodeId: 'next-node',
-        });
+      async (workflow: ExecutableWorkflow) => {
+        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
+        if (!node) {
+          throw new Error('Expected one executable node');
+        }
+
+        // The delay node suspends the run, so the execution stays RUNNING and
+        // is never completed on this pass.
+        const output =
+          node.id === 'pause-node'
+            ? {
+                delayMs: 60_000,
+                resumeAt: new Date(startedAt.getTime() + 60_000).toISOString(),
+              }
+            : { published: true };
 
         return {
           nodeResults: new Map([
             [
-              'next-node',
+              node.id,
               {
+                completedAt: new Date(),
                 creditsUsed: 0,
+                nodeId: node.id,
+                output,
                 retryCount: 0,
                 startedAt,
-                status: 'running',
+                status: 'completed',
               },
             ],
           ]),
-          status: 'running',
+          status: 'completed',
           totalCreditsUsed: 0,
         };
       },
@@ -607,7 +639,7 @@ describe('WorkflowExecutorService', () => {
       executionId: 'exec-1',
       nodeOutputCache: { 'completed-node': { value: 'done' } },
       organizationId: 'org-1',
-      remainingNodeIds: ['next-node'],
+      remainingNodeIds: ['next-node', 'pause-node'],
       triggerEvent: {
         data: { source: 'webhook' },
         organizationId: 'org-1',
@@ -619,14 +651,17 @@ describe('WorkflowExecutorService', () => {
       workflowId: 'workflow-1',
     });
 
+    // The version tuple is globally unique, so the pinned lookup is keyed on
+    // it alone and tenant ownership is asserted against the loaded row.
     expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith({
       select: expect.objectContaining({
         graph: true,
         id: true,
+        organizationId: true,
+        userId: true,
       }),
       where: {
         id: WORKFLOW_VERSION_ID,
-        organizationId: 'org-1',
         workflowId: 'workflow-1',
       },
     });
@@ -798,6 +833,7 @@ describe('WorkflowExecutorService', () => {
       executionsService.findOne.mockResolvedValue({
         completedAt: new Date('2026-08-12T10:00:00.000Z'),
         id: 'exec-1',
+        nodeResults: [],
         startedAt: new Date('2026-08-12T09:00:00.000Z'),
         status: WorkflowExecutionStatus.COMPLETED,
         workflowId: 'workflow-1',
@@ -823,6 +859,7 @@ describe('WorkflowExecutorService', () => {
       executionsService.findOne.mockResolvedValue({
         completedAt: new Date('2026-08-12T10:05:00.000Z'),
         id: 'exec-1',
+        nodeResults: [],
         startedAt: new Date('2026-08-12T09:00:00.000Z'),
         status: WorkflowExecutionStatus.CANCELLED,
         workflowId: 'workflow-1',
@@ -851,13 +888,11 @@ describe('WorkflowExecutorService', () => {
         id: 'workflow-1',
         lockedNodeIds: [],
         nodes: [
-          {
-            config: {},
+          createExecutableActionNode({
+            actionId: 'llm',
             id: 'action-node',
-            inputs: [],
             label: 'Action',
-            type: 'action',
-          },
+          }),
         ],
         organizationId: 'org-1',
         userId: 'user-1',
@@ -930,13 +965,11 @@ describe('WorkflowExecutorService', () => {
         id: 'workflow-1',
         lockedNodeIds: [],
         nodes: [
-          {
-            config: {},
+          createExecutableActionNode({
+            actionId: 'publish',
             id: 'publish-node',
-            inputs: [],
             label: 'Publish',
-            type: 'publish',
-          },
+          }),
         ],
         organizationId: 'org-1',
         userId: 'user-1',

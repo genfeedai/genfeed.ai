@@ -1,7 +1,8 @@
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  ExecutionRunResult,
+import {
+  type ExecutableEdge,
+  type ExecutableNode,
+  type ExecutionRunResult,
+  getExecutableNodeOperationId,
 } from '@genfeedai/workflows/engine';
 import type { NodeExecutionSummary } from '@server/collections/workflows/services/workflow-executor.types';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
@@ -284,7 +285,7 @@ export class WorkflowExecutionGraphService {
         creditsUsed: nodeResult.creditsUsed,
         error: nodeResult.error,
         nodeId,
-        nodeType: node?.type ?? 'unknown',
+        nodeType: this.resolveNodeType(node),
         output: nodeResult.output as Record<string, unknown> | undefined,
         retryCount: nodeResult.retryCount,
         startedAt: nodeResult.startedAt,
@@ -293,6 +294,15 @@ export class WorkflowExecutionGraphService {
     }
 
     return summaries;
+  }
+
+  /**
+   * Every product operation persists under the same `genfeedAction` envelope,
+   * so the wrapper type would stamp every node result identically — the action
+   * id is the operation's real identity.
+   */
+  private resolveNodeType(node: ExecutableNode | undefined): string {
+    return node ? getExecutableNodeOperationId(node) : 'unknown';
   }
 
   findFirstFailedNodeId(result: ExecutionRunResult): string | undefined {
