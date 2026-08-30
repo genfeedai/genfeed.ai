@@ -479,6 +479,7 @@ export class SubscriptionsService
         );
 
       const currentPrice = currentStripeSubscription.items.data[0]?.price;
+      const newPrice = await this.stripeService.getPrice(newPriceId);
       const prorationAmount = upcomingInvoice.lines.data.reduce(
         (amount, line) =>
           line.parent?.subscription_item_details?.proration
@@ -486,8 +487,10 @@ export class SubscriptionsService
             : amount,
         0,
       );
-      const isUpgrade = prorationAmount > 0;
-      const isDowngrade = prorationAmount < 0;
+      const priceDifference =
+        (newPrice.unit_amount ?? 0) - (currentPrice?.unit_amount ?? 0);
+      const isUpgrade = priceDifference > 0;
+      const isDowngrade = priceDifference < 0;
 
       this.logger.log(`${url} success`, {
         currentPriceId: currentPrice?.id,

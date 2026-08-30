@@ -842,6 +842,7 @@
       "listPrice": "was {price}",
       "prorationDowngrade": "Stripe estimates your next invoice at {amount}, including the downgrade credit.",
       "prorationNoChange": "Stripe estimates your next invoice at {amount}.",
+      "prorationUnavailable": "Stripe could not provide a next-invoice estimate. You can still review the final amount before confirming.",
       "prorationUpgrade": "Stripe estimates your next invoice at {amount}, including the prorated upgrade.",
       "salesContact": "Need higher limits, custom terms, or an enterprise deployment? Email {email}.",
       "switchTo": "Switch to {plan}",

@@ -160,7 +160,7 @@ describe('PlansCard', () => {
     });
   });
 
-  it('falls back to the proration amount for a partial preview response', async () => {
+  it('uses honest generic copy for a partial preview response', async () => {
     mockSubscription('sub_123');
     previewPlanChange.mockResolvedValue({
       isDowngrade: false,
@@ -174,8 +174,26 @@ describe('PlansCard', () => {
 
     expect(
       await screen.findByText(
-        /Stripe estimates your next invoice at \$150\.00/,
+        /Stripe could not provide a next-invoice estimate/,
       ),
+    ).toBeVisible();
+  });
+
+  it('shows the next invoice amount for a neutral preview', async () => {
+    mockSubscription('sub_123');
+    previewPlanChange.mockResolvedValue({
+      isDowngrade: false,
+      isUpgrade: false,
+      newPriceId: 'price_scale',
+      prorationAmount: 0,
+      upcomingInvoice: { amount_due: 4_900, currency: 'usd', lines: [] },
+    });
+
+    render(<PlansCard />);
+    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+
+    expect(
+      await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
     ).toBeVisible();
   });
 });

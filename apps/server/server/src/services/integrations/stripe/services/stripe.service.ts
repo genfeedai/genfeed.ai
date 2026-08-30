@@ -1109,7 +1109,11 @@ export class StripeService {
       if (!currentPriceId) {
         throw new Error('No price found for subscription item');
       }
-      const targetQuantity = quantity ?? subscriptionItem.quantity ?? undefined;
+      const targetPrice = await this.stripe.prices.retrieve(newPriceId);
+      const targetQuantity =
+        targetPrice.recurring?.usage_type === 'metered'
+          ? undefined
+          : (quantity ?? subscriptionItem.quantity ?? undefined);
 
       const upcomingInvoice = await this.stripe.invoices.createPreview({
         customer: customerId,
@@ -1137,6 +1141,7 @@ export class StripeService {
         quantity: targetQuantity,
         subscriptionId,
         subscriptionItemId: subscriptionItem.id,
+        targetUsageType: targetPrice.recurring?.usage_type,
       });
 
       return upcomingInvoice;

@@ -945,6 +945,10 @@ describe('SubscriptionsService', () => {
       stripeService.getSubscription.mockResolvedValue(
         buildStripeSubscription({ priceId: 'price_pro', unitAmount: 4_900 }),
       );
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_scale',
+        unit_amount: 49_900,
+      });
     });
 
     it('flags an upgrade and returns the Stripe-computed upcoming invoice', async () => {
@@ -971,6 +975,10 @@ describe('SubscriptionsService', () => {
     });
 
     it('flags a downgrade when the new price is cheaper', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_starter',
+        unit_amount: 900,
+      });
       stripeService.getUpcomingInvoice.mockResolvedValue({
         amount_due: 900,
         currency: 'usd',
@@ -1001,6 +1009,10 @@ describe('SubscriptionsService', () => {
     });
 
     it('ignores non-proration invoice lines when classifying the change', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_same',
+        unit_amount: 4_900,
+      });
       stripeService.getUpcomingInvoice.mockResolvedValue({
         amount_due: 49_900,
         currency: 'usd',
@@ -1027,6 +1039,27 @@ describe('SubscriptionsService', () => {
 
       expect(preview.prorationAmount).toBe(0);
       expect(preview.isUpgrade).toBe(false);
+      expect(preview.isDowngrade).toBe(false);
+    });
+
+    it('flags a trial upgrade even when Stripe returns no proration lines', async () => {
+      stripeService.getUpcomingInvoice.mockResolvedValue({
+        amount_due: 0,
+        currency: 'usd',
+        lines: { data: [] },
+      });
+
+      const preview = (await service.previewSubscriptionChange(
+        ORGANIZATION_ID,
+        'price_scale',
+      )) as {
+        isDowngrade: boolean;
+        isUpgrade: boolean;
+        prorationAmount: number;
+      };
+
+      expect(preview.prorationAmount).toBe(0);
+      expect(preview.isUpgrade).toBe(true);
       expect(preview.isDowngrade).toBe(false);
     });
 
