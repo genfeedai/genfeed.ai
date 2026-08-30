@@ -13,7 +13,8 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/config', () => ({
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
   hasOrganizationBilling: () => true,
 }));
 
