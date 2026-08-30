@@ -363,7 +363,16 @@ export const ENV_TARGETS: EnvTarget[] = [
       'SENTRY_AUTH_TOKEN',
       'SENTRY_ENVIRONMENT',
     ],
-    directKeys: ['GF_DEV_ENABLE_SCHEDULERS'],
+    directKeys: [
+      'AWS_ACCESS_KEY_ID',
+      'AWS_REGION',
+      'AWS_SECRET_ACCESS_KEY',
+      'FAL_API_KEY',
+      'GF_DEV_ENABLE_SCHEDULERS',
+      'GPU_LLM_INSTANCE_ID',
+      'OPENROUTER_API_KEY',
+      'REPLICATE_KEY',
+    ],
     mappedKeys: {
       WORKERS_PORT: 'PORT',
       WORKERS_SENTRY_DSN: 'SENTRY_DSN',
