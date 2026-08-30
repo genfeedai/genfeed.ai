@@ -6,6 +6,7 @@ import {
   type WorkflowInput,
   type WorkflowSession,
 } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -240,10 +241,17 @@ describe('TelegramBotManager handlers', () => {
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
     };
+    logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TelegramBotManager,
+        { provide: LoggerService, useValue: logger },
         { provide: ConfigService, useValue: configMock },
         { provide: HttpService, useValue: httpMock },
         { provide: RedisService, useValue: redisMock },
@@ -336,7 +344,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('Error in bot telegram-integration-1'),
-        expect.any(Error),
+        expect.objectContaining({ message: 'grammy blew up' }),
       );
     });
 
@@ -420,7 +428,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch workflows:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'list failed' }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Failed to load workflows. Please try again.',
@@ -919,7 +927,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to select workflow:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'not found' }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Failed to load workflow details. Please try again.',
@@ -1190,7 +1198,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to mirror Telegram file:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'mirror down' }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Failed to process the photo. Please try again.',
@@ -1221,7 +1229,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to handle photo:',
-        expect.any(Error),
+        expect.objectContaining({ message: expect.any(String) }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Failed to process the photo. Please try again.',
@@ -1479,7 +1487,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed while monitoring workflow execution:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'api down' }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
@@ -1499,7 +1507,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to execute workflow:',
-        expect.any(Error),
+        expect.objectContaining({ message: expect.any(String) }),
       );
       expect(ctx.reply).toHaveBeenCalledWith(
         'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
@@ -1605,7 +1613,7 @@ describe('TelegramBotManager handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to handle Redis integration event',
-        expect.any(Error),
+        expect.objectContaining({ message: 'handler blew up' }),
       );
     });
   });
@@ -1631,7 +1639,7 @@ describe('TelegramBotManager handlers', () => {
       await expect(service.initialize()).rejects.toThrow('redis down');
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to initialize Telegram Bot Manager:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'redis down' }),
       );
     });
 
