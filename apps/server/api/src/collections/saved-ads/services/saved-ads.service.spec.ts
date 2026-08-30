@@ -118,7 +118,7 @@ describe('SavedAdsService', () => {
         isConnected: true,
         isDeleted: false,
         organizationId: 'org-1',
-        platform: 'FACEBOOK',
+        platform: 'facebook',
       },
     });
     expect(adsResearch.getAdDetail).not.toHaveBeenCalled();
