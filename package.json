@@ -33,7 +33,7 @@
     "apps/extensions/ide/app",
     "packages/*"
   ],
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@latest",
   "engines": {
     "node": ">=24 <25"
   },

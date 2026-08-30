@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +13,35 @@ const executableAction = action
   .split('\n')
   .filter((line) => !line.trimStart().startsWith('#'))
   .join('\n');
+const bunVersion = readFileSync(
+  fileURLToPath(new URL('../../.bun-version', import.meta.url)),
+  'utf8',
+).trim();
+const workflowsDirectory = fileURLToPath(
+  new URL('../../.github/workflows/', import.meta.url),
+);
+
+test('centralizes the rolling Bun version without workflow overrides', () => {
+  assert.equal(bunVersion, 'latest');
+  assert.match(action, /bun-version-file: \.bun-version/);
+  assert.doesNotMatch(action, /inputs\.bun-version/);
+
+  for (const workflowName of readdirSync(workflowsDirectory)) {
+    if (!workflowName.endsWith('.yml') && !workflowName.endsWith('.yaml')) {
+      continue;
+    }
+
+    const workflow = readFileSync(
+      `${workflowsDirectory}/${workflowName}`,
+      'utf8',
+    );
+    assert.doesNotMatch(
+      workflow,
+      /^\s*bun-version:/m,
+      `${workflowName} must use the repository Bun policy`,
+    );
+  }
+});
 
 test('keeps the shared Bun setup action free of runner package installs', () => {
   assert.doesNotMatch(executableAction, /\bapt-get\b/);

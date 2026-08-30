@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" \
+    && curl -fsSL https://bun.sh/install | bash \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
     && cp /root/.bun/bin/bunx /usr/local/bin/bunx \
     && chmod +x /usr/local/bin/bun /usr/local/bin/bunx \
@@ -328,7 +328,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV FFMPEG_BIN=/usr/bin/ffmpeg
 
 # Install bun for running production scripts
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
+RUN curl -fsSL https://bun.sh/install | bash && \
     cp /root/.bun/bin/bun /usr/local/bin/bun && \
     chmod +x /usr/local/bin/bun
 ENV PATH="/usr/local/bin:${PATH}"

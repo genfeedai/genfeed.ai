@@ -49,7 +49,7 @@
   },
   "main": "expo-router/entry",
   "name": "@genfeedai/mobile",
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@latest",
   "private": true,
   "type": "module",
   "scripts": {
