@@ -27,3 +27,7 @@ a148c21c6aa16eae60af9ba885fff060edbe97b5:apps/app/app/(protected)/[orgSlug]/~/co
 # Historical blob of this file at the PR #2350 merge commit: an explanatory comment
 # quoting a model id was itself matched by generic-api-key. Comment text, not a secret.
 7150ddbdad9d7bac2e350173da76ec82f079f6ba:.gitleaksignore:generic-api-key:27
+
+# PR #4097 test-only opaque referral fixture. Generator-valid code, not a secret.
+876a302218851899416d3393f705ba2a244ca4c8:apps/app/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx:generic-api-key:409
+876a302218851899416d3393f705ba2a244ca4c8:apps/app/app/(onboarding)/onboarding/post-signup/page.behavior.test.tsx:generic-api-key:431
