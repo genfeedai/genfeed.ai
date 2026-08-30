@@ -39,19 +39,46 @@ function makeMockSubscription(
   id = 'sub_1',
   itemId = 'si_1',
   priceId = 'price_1',
+  customerId = 'cus_1',
+  quantity: number | null = 1,
 ): Stripe.Subscription {
   return {
+    customer: customerId,
     id,
     items: {
       data: [
         {
           id: itemId,
           price: { id: priceId },
+          quantity,
         },
       ],
     },
     status: 'active',
   } as unknown as Stripe.Subscription;
+}
+
+function makeMockInvoicePreview(
+  amountDue: number,
+  currency: string,
+  lines: Array<{ amount: number; proration: boolean }>,
+): Stripe.Invoice {
+  return {
+    amount_due: amountDue,
+    currency,
+    lines: {
+      data: lines.map((line, index) => ({
+        amount: line.amount,
+        id: `il_${index + 1}`,
+        parent: {
+          subscription_item_details: {
+            proration: line.proration,
+          },
+          type: 'subscription_item_details',
+        },
+      })),
+    },
+  } as unknown as Stripe.Invoice;
 }
 
 function makeMockPrice(
@@ -1205,32 +1232,228 @@ describe('StripeService — coverage spec', () => {
   // -----------------------------------------------------------------------
 
   describe('getUpcomingInvoice', () => {
-    it('retrieves subscription and invoice list and returns a static preview object', async () => {
+    beforeEach(() => {
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        id: 'price_target',
+        recurring: { usage_type: 'licensed' },
+      } as unknown as Stripe.Response<Stripe.Price>);
+    });
+
+    it('returns the Stripe upgrade preview with customer, subscription, item, price, and quantity scope', async () => {
       const mockSub = makeMockSubscription('sub_1');
       vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
         mockSub as unknown as Stripe.Response<Stripe.Subscription>,
       );
-      vi.spyOn(service.stripe.invoices, 'list').mockResolvedValue({
-        data: [],
-      } as unknown as Stripe.ApiList<Stripe.Invoice> &
-        Stripe.Response<Stripe.ApiList<Stripe.Invoice>>);
+      const preview = makeMockInvoicePreview(32_500, 'usd', [
+        { amount: 15_000, proration: true },
+      ]);
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          preview as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+      const createInvoice = vi.spyOn(service.stripe.invoices, 'create');
+      const updateSubscription = vi.spyOn(
+        service.stripe.subscriptions,
+        'update',
+      );
 
       const result = await service.getUpcomingInvoice(
         'cus_1',
         'sub_1',
-        'new_price',
+        'price_1',
+        'price_scale',
+        3,
       );
 
-      expect(result).toMatchObject({
-        amount_due: 0,
-        currency: 'usd',
-        lines: { data: [] },
+      expect(result).toBe(preview);
+      expect(createPreview).toHaveBeenCalledWith({
+        customer: 'cus_1',
+        subscription: 'sub_1',
+        subscription_details: {
+          items: [
+            {
+              id: 'si_1',
+              price: 'price_scale',
+              quantity: 3,
+            },
+          ],
+          proration_behavior: 'create_prorations',
+        },
       });
+      expect(createInvoice).not.toHaveBeenCalled();
+      expect(updateSubscription).not.toHaveBeenCalled();
       expect(loggerMock.log).toHaveBeenCalled();
+    });
+
+    it('returns Stripe downgrade credits without normalizing their amount', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const preview = makeMockInvoicePreview(900, 'eur', [
+        { amount: -1_200, proration: true },
+      ]);
+      vi.spyOn(service.stripe.invoices, 'createPreview').mockResolvedValue(
+        preview as unknown as Stripe.Response<Stripe.Invoice>,
+      );
+
+      const result = await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_starter',
+      );
+
+      expect(result.amount_due).toBe(900);
+      expect(result.currency).toBe('eur');
+      expect(result.lines.data[0]?.amount).toBe(-1_200);
+    });
+
+    it('preserves the current subscription item quantity by default', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_1',
+          3,
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_scale',
+      );
+
+      expect(createPreview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscription_details: expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                id: 'si_1',
+                price: 'price_scale',
+                quantity: 3,
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('omits quantity when the target price is metered', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_1',
+          3,
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        id: 'price_metered',
+        recurring: { usage_type: 'metered' },
+      } as unknown as Stripe.Response<Stripe.Price>);
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_metered',
+      );
+
+      const previewItem =
+        createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0];
+      expect(previewItem).toEqual({ id: 'si_1', price: 'price_metered' });
+    });
+
+    it('re-throws and logs target price lookup errors', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      vi.spyOn(service.stripe.prices, 'retrieve').mockRejectedValue(
+        new Error('price lookup failed'),
+      );
+      const createPreview = vi.spyOn(service.stripe.invoices, 'createPreview');
+
+      await expect(
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_1',
+          'price_missing',
+        ),
+      ).rejects.toThrow('price lookup failed');
+      expect(createPreview).not.toHaveBeenCalled();
+      expect(loggerMock.error).toHaveBeenCalled();
+    });
+
+    it('rejects a subscription owned by a different Stripe customer', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_other',
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const createPreview = vi.spyOn(service.stripe.invoices, 'createPreview');
+
+      await expect(
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', 'price_scale'),
+      ).rejects.toThrow(
+        'Stripe subscription does not belong to the requested customer',
+      );
+      expect(createPreview).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing target price before calling Stripe', async () => {
+      const retrieve = vi.spyOn(service.stripe.subscriptions, 'retrieve');
+
+      await expect(
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', ''),
+      ).rejects.toThrow('Invalid Stripe price ID');
+      expect(retrieve).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid target quantity before calling Stripe', async () => {
+      const retrieve = vi.spyOn(service.stripe.subscriptions, 'retrieve');
+
+      await expect(
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_1',
+          'price_scale',
+          0,
+        ),
+      ).rejects.toThrow('Subscription quantity must be a positive integer');
+      expect(retrieve).not.toHaveBeenCalled();
     });
 
     it('throws an error when subscription has no items', async () => {
       const emptyItemsSub = {
+        customer: 'cus_1',
         id: 'sub_empty',
         items: { data: [] },
       } as unknown as Stripe.Subscription;
@@ -1240,18 +1463,111 @@ describe('StripeService — coverage spec', () => {
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_empty', 'new_price'),
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_empty',
+          'price_1',
+          'price_new',
+        ),
       ).rejects.toThrow('No subscription items found');
       expect(loggerMock.error).toHaveBeenCalled();
     });
 
-    it('re-throws and logs on Stripe retrieve error', async () => {
+    it('throws an error when the subscription item has no price', async () => {
+      const missingPriceSub = {
+        customer: 'cus_1',
+        id: 'sub_missing_price',
+        items: { data: [{ id: 'si_1', price: null }] },
+      } as unknown as Stripe.Subscription;
+
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        missingPriceSub as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+
+      await expect(
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_missing_price',
+          'price_1',
+          'price_new',
+        ),
+      ).rejects.toThrow('No price found for subscription item');
+    });
+
+    it('selects the plan item by its current price on multi-item subscriptions', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue({
+        customer: 'cus_1',
+        id: 'sub_multi',
+        items: {
+          data: [
+            { id: 'si_addon', price: { id: 'price_addon' }, quantity: 10 },
+            { id: 'si_plan', price: { id: 'price_plan' }, quantity: 2 },
+          ],
+        },
+      } as unknown as Stripe.Response<Stripe.Subscription>);
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_multi',
+        'price_plan',
+        'price_scale',
+      );
+
+      expect(
+        createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0],
+      ).toEqual({
+        id: 'si_plan',
+        price: 'price_scale',
+        quantity: 2,
+      });
+    });
+
+    it('rejects a subscription without the expected current price item', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+
+      await expect(
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_other',
+          'price_scale',
+        ),
+      ).rejects.toThrow('No subscription item found for current Stripe price');
+      expect(service.stripe.prices.retrieve).not.toHaveBeenCalled();
+    });
+
+    it('re-throws and logs Stripe preview errors', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      vi.spyOn(service.stripe.invoices, 'createPreview').mockRejectedValue(
+        new Error('invoice preview failed'),
+      );
+
+      await expect(
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', 'price_new'),
+      ).rejects.toThrow('invoice preview failed');
+      expect(loggerMock.error).toHaveBeenCalled();
+    });
+
+    it('re-throws and logs Stripe subscription errors', async () => {
       vi.spyOn(service.stripe.subscriptions, 'retrieve').mockRejectedValue(
         new Error('invoice retrieve failed'),
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_x', 'new_price'),
+        service.getUpcomingInvoice('cus_1', 'sub_x', 'price_1', 'price_new'),
       ).rejects.toThrow('invoice retrieve failed');
       expect(loggerMock.error).toHaveBeenCalled();
     });
