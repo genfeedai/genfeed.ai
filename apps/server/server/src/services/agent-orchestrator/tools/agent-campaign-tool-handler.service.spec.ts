@@ -1,10 +1,10 @@
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { AgentCampaignToolHandler } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { AgentCampaignToolHandler } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentCampaignToolHandler', () => {
@@ -17,6 +17,8 @@ describe('AgentCampaignToolHandler', () => {
 
   const campaignsService = {
     createScoped: vi.fn(),
+    findOneById: vi.fn(),
+    pause: vi.fn(),
     start: vi.fn(),
   };
 
@@ -104,5 +106,84 @@ describe('AgentCampaignToolHandler', () => {
       }),
     });
     expect(campaignsService.createScoped).not.toHaveBeenCalled();
+  });
+
+  it('prepares an exact start intent without starting the campaign', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+
+    const result = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+
+    expect(campaignsService.start).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      data: {
+        campaignId: 'campaign-1',
+        currentStatus: 'draft',
+        intendedStatus: 'active',
+        label: 'Launch',
+        pendingConfirmation: true,
+        transition: 'start',
+      },
+      requiresConfirmation: true,
+      riskLevel: 'medium',
+      success: true,
+    });
+    expect(result.nextActions).toEqual([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          campaignId: 'campaign-1',
+          currentStatus: 'draft',
+          intendedStatus: 'active',
+          transition: 'start',
+        }),
+        requiresConfirmation: true,
+        type: 'campaign_control_card',
+      }),
+    ]);
+    expect(result.nextActions?.[0]?.ctas).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'send_prompt',
+          label: 'Confirm start',
+          payload: {
+            prompt: expect.stringContaining('campaign-1'),
+          },
+        }),
+      ]),
+    );
+  });
+
+  it('prepares an exact pause intent without pausing the campaign', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'active',
+    });
+
+    const result = await handler.pauseCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+
+    expect(campaignsService.pause).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      data: {
+        campaignId: 'campaign-1',
+        currentStatus: 'active',
+        intendedStatus: 'paused',
+        label: 'Launch',
+        pendingConfirmation: true,
+        transition: 'pause',
+      },
+      requiresConfirmation: true,
+      riskLevel: 'medium',
+      success: true,
+    });
   });
 });
