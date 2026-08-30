@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/enums';
 import type {
   AdsResearchPlatform,
   SaveAdInput,
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
 } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { CredentialPlatform, toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
