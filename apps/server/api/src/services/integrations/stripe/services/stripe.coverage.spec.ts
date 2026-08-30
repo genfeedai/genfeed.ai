@@ -1261,6 +1261,7 @@ describe('StripeService — coverage spec', () => {
       const result = await service.getUpcomingInvoice(
         'cus_1',
         'sub_1',
+        'price_1',
         'price_scale',
         3,
       );
@@ -1299,6 +1300,7 @@ describe('StripeService — coverage spec', () => {
       const result = await service.getUpcomingInvoice(
         'cus_1',
         'sub_1',
+        'price_1',
         'price_starter',
       );
 
@@ -1327,7 +1329,12 @@ describe('StripeService — coverage spec', () => {
           ) as unknown as Stripe.Response<Stripe.Invoice>,
         );
 
-      await service.getUpcomingInvoice('cus_1', 'sub_1', 'price_scale');
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_scale',
+      );
 
       expect(createPreview).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1368,7 +1375,12 @@ describe('StripeService — coverage spec', () => {
           ) as unknown as Stripe.Response<Stripe.Invoice>,
         );
 
-      await service.getUpcomingInvoice('cus_1', 'sub_1', 'price_metered');
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_metered',
+      );
 
       const previewItem =
         createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0];
@@ -1385,7 +1397,12 @@ describe('StripeService — coverage spec', () => {
       const createPreview = vi.spyOn(service.stripe.invoices, 'createPreview');
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_missing'),
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_1',
+          'price_missing',
+        ),
       ).rejects.toThrow('price lookup failed');
       expect(createPreview).not.toHaveBeenCalled();
       expect(loggerMock.error).toHaveBeenCalled();
@@ -1403,7 +1420,7 @@ describe('StripeService — coverage spec', () => {
       const createPreview = vi.spyOn(service.stripe.invoices, 'createPreview');
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_scale'),
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', 'price_scale'),
       ).rejects.toThrow(
         'Stripe subscription does not belong to the requested customer',
       );
@@ -1414,7 +1431,7 @@ describe('StripeService — coverage spec', () => {
       const retrieve = vi.spyOn(service.stripe.subscriptions, 'retrieve');
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_1', ''),
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', ''),
       ).rejects.toThrow('Invalid Stripe price ID');
       expect(retrieve).not.toHaveBeenCalled();
     });
@@ -1423,7 +1440,13 @@ describe('StripeService — coverage spec', () => {
       const retrieve = vi.spyOn(service.stripe.subscriptions, 'retrieve');
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_scale', 0),
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_1',
+          'price_scale',
+          0,
+        ),
       ).rejects.toThrow('Subscription quantity must be a positive integer');
       expect(retrieve).not.toHaveBeenCalled();
     });
@@ -1440,7 +1463,12 @@ describe('StripeService — coverage spec', () => {
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_empty', 'price_new'),
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_empty',
+          'price_1',
+          'price_new',
+        ),
       ).rejects.toThrow('No subscription items found');
       expect(loggerMock.error).toHaveBeenCalled();
     });
@@ -1457,8 +1485,66 @@ describe('StripeService — coverage spec', () => {
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_missing_price', 'price_new'),
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_missing_price',
+          'price_1',
+          'price_new',
+        ),
       ).rejects.toThrow('No price found for subscription item');
+    });
+
+    it('selects the plan item by its current price on multi-item subscriptions', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue({
+        customer: 'cus_1',
+        id: 'sub_multi',
+        items: {
+          data: [
+            { id: 'si_addon', price: { id: 'price_addon' }, quantity: 10 },
+            { id: 'si_plan', price: { id: 'price_plan' }, quantity: 2 },
+          ],
+        },
+      } as unknown as Stripe.Response<Stripe.Subscription>);
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_multi',
+        'price_plan',
+        'price_scale',
+      );
+
+      expect(
+        createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0],
+      ).toEqual({
+        id: 'si_plan',
+        price: 'price_scale',
+        quantity: 2,
+      });
+    });
+
+    it('rejects a subscription without the expected current price item', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+
+      await expect(
+        service.getUpcomingInvoice(
+          'cus_1',
+          'sub_1',
+          'price_other',
+          'price_scale',
+        ),
+      ).rejects.toThrow('No subscription item found for current Stripe price');
+      expect(service.stripe.prices.retrieve).not.toHaveBeenCalled();
     });
 
     it('re-throws and logs Stripe preview errors', async () => {
@@ -1470,7 +1556,7 @@ describe('StripeService — coverage spec', () => {
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_new'),
+        service.getUpcomingInvoice('cus_1', 'sub_1', 'price_1', 'price_new'),
       ).rejects.toThrow('invoice preview failed');
       expect(loggerMock.error).toHaveBeenCalled();
     });
@@ -1481,7 +1567,7 @@ describe('StripeService — coverage spec', () => {
       );
 
       await expect(
-        service.getUpcomingInvoice('cus_1', 'sub_x', 'price_new'),
+        service.getUpcomingInvoice('cus_1', 'sub_x', 'price_1', 'price_new'),
       ).rejects.toThrow('invoice retrieve failed');
       expect(loggerMock.error).toHaveBeenCalled();
     });

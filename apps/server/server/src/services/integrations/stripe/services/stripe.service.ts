@@ -1071,12 +1071,16 @@ export class StripeService {
   public async getUpcomingInvoice(
     customerId: string,
     subscriptionId: string,
+    currentPriceId: string,
     newPriceId: string,
     quantity?: number,
   ): Promise<UpcomingInvoicePreview> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      if (!this.isStripePriceId(currentPriceId)) {
+        throw new BadRequestException('Invalid current Stripe price ID');
+      }
       if (!this.isStripePriceId(newPriceId)) {
         throw new BadRequestException('Invalid Stripe price ID');
       }
@@ -1101,13 +1105,19 @@ export class StripeService {
         );
       }
 
-      const subscriptionItem = subscription.items.data[0];
-      if (!subscriptionItem?.id) {
-        throw new Error('No subscription items found');
+      if (subscription.items.data.length === 0) {
+        throw new BadRequestException('No subscription items found');
       }
-      const currentPriceId = subscriptionItem.price?.id;
-      if (!currentPriceId) {
-        throw new Error('No price found for subscription item');
+      if (subscription.items.data.every((item) => !item.price?.id)) {
+        throw new BadRequestException('No price found for subscription item');
+      }
+      const subscriptionItem = subscription.items.data.find(
+        (item) => item.price?.id === currentPriceId,
+      );
+      if (!subscriptionItem?.id) {
+        throw new BadRequestException(
+          'No subscription item found for current Stripe price',
+        );
       }
       const targetPrice = await this.stripe.prices.retrieve(newPriceId);
       const targetQuantity =

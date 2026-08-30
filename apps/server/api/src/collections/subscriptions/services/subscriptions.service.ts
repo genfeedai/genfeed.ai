@@ -459,6 +459,11 @@ export class SubscriptionsService
         throw new BadRequestException('No active Stripe subscription found');
       }
 
+      const currentPriceId = this.requireString(
+        subscription.stripePriceId,
+        'Subscription stripePriceId',
+      );
+
       // Get the upcoming invoice preview
       const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
         this.requireString(
@@ -469,17 +474,14 @@ export class SubscriptionsService
           'Subscription stripeCustomerId',
         ),
         subscription.stripeSubscriptionId,
+        currentPriceId,
         newPriceId,
       );
 
-      // Get current subscription details from Stripe
-      const currentStripeSubscription =
-        await this.stripeService.getSubscription(
-          subscription.stripeSubscriptionId,
-        );
-
-      const currentPrice = currentStripeSubscription.items.data[0]?.price;
-      const newPrice = await this.stripeService.getPrice(newPriceId);
+      const [currentPrice, newPrice] = await Promise.all([
+        this.stripeService.getPrice(currentPriceId),
+        this.stripeService.getPrice(newPriceId),
+      ]);
       const prorationAmount = upcomingInvoice.lines.data.reduce(
         (amount, line) =>
           line.parent?.subscription_item_details?.proration
@@ -487,16 +489,27 @@ export class SubscriptionsService
             : amount,
         0,
       );
-      const priceDifference =
-        (newPrice.unit_amount ?? 0) - (currentPrice?.unit_amount ?? 0);
-      const isUpgrade = priceDifference > 0;
-      const isDowngrade = priceDifference < 0;
+      const pricesComparable =
+        currentPrice.unit_amount !== null &&
+        newPrice.unit_amount !== null &&
+        currentPrice.currency === newPrice.currency &&
+        currentPrice.recurring !== null &&
+        newPrice.recurring !== null &&
+        currentPrice.recurring.interval === newPrice.recurring.interval &&
+        currentPrice.recurring.interval_count ===
+          newPrice.recurring.interval_count;
+      const priceDifference = pricesComparable
+        ? newPrice.unit_amount - currentPrice.unit_amount
+        : null;
+      const isUpgrade = priceDifference !== null && priceDifference > 0;
+      const isDowngrade = priceDifference !== null && priceDifference < 0;
 
       this.logger.log(`${url} success`, {
         currentPriceId: currentPrice?.id,
         isDowngrade,
         isUpgrade,
         newPriceId,
+        pricesComparable,
         prorationAmount,
         subscriptionId: subscription.id,
       });
