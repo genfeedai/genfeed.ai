@@ -781,9 +781,7 @@ export class PostsService extends BaseService<
     }
 
     const originalVisibility = resolvePostVisibility(post.visibility);
-    const postId: string = String(
-      (post.id as string | undefined) ?? (post as unknown as { id: string }).id,
-    );
+    const postId = String(post.id);
 
     await this.patch(postId, {
       targetExecutionState: TargetExecutionState.PUBLISHING,

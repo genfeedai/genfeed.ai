@@ -1,4 +1,8 @@
-import { RouterService } from '@services/ai/router.service';
+import { ModelCategory } from '@genfeedai/enums';
+import {
+  type ModelRecommendation,
+  RouterService,
+} from '@services/ai/router.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/interceptor.service', () => {
@@ -41,5 +45,42 @@ describe('RouterService', () => {
     expect(typeof service.selectImageModel).toBe('function');
     expect(typeof service.selectVideoModel).toBe('function');
     expect(typeof service.selectTextModel).toBe('function');
+  });
+
+  it('returns the model recommendation response data', async () => {
+    const recommendation = {
+      alternatives: [],
+      analysis: {
+        complexity: 'simple',
+        detectedFeatures: [],
+        estimatedLength: 4,
+        hasQualityIndicators: false,
+        hasSpecificStyle: false,
+        hasSpeedIndicators: false,
+        keywords: [],
+      },
+      modelDetails: {
+        category: 'image',
+        cost: 1,
+        id: 'model-1',
+        key: 'provider/model-1',
+        provider: 'provider',
+      },
+      reason: 'Best fit',
+      selectedModel: 'provider/model-1',
+    } satisfies ModelRecommendation;
+    const post = (
+      service as unknown as {
+        instance: { post: ReturnType<typeof vi.fn> };
+      }
+    ).instance.post;
+    post.mockResolvedValue({ data: recommendation });
+
+    await expect(
+      service.selectModel({
+        category: ModelCategory.IMAGE,
+        prompt: 'test',
+      }),
+    ).resolves.toBe(recommendation);
   });
 });

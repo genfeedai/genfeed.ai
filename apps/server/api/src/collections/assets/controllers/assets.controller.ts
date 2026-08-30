@@ -1,20 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
-import { UpdateAssetDto } from '@server/collections/assets/dto/update-asset.dto';
-import { type AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import {
-  getAssetParentId,
-  getAssetParentIdField,
-} from '@server/collections/assets/utils/asset-parent.util';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -22,9 +11,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -42,6 +28,20 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { UpdateAssetDto } from '@server/collections/assets/dto/update-asset.dto';
+import { type AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import {
+  getAssetParentId,
+  getAssetParentIdField,
+} from '@server/collections/assets/utils/asset-parent.util';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Request } from 'express';
 
 type AssetMatchConditions = Record<string, unknown>;
@@ -222,11 +222,7 @@ export class AssetsController {
       ]);
 
       if (updateAssetDto.parentId) {
-        try {
-          await this.cacheService.del(`brand:${updateAssetDto.parentId}`);
-        } catch (_error) {
-          // Ignore if key doesn't exist
-        }
+        await this.cacheService.del(`brand:${updateAssetDto.parentId}`);
       }
     }
 
