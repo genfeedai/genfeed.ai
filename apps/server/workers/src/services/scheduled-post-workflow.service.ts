@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/enums';
 import { PublishApprovalsService, type PublishResult } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
@@ -182,7 +183,7 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     try {
       await this.publishApprovalsService.completeExecution({
         approvalId: this.requiredString(request.approvalId, 'approvalId'),
-        error: error instanceof Error ? error.message : 'Publish claim failed',
+        error: getErrorMessage(error) || 'Publish claim failed',
         executionStartedAt,
         isSuccessful: false,
         operationId: this.requiredString(request.operationId, 'operationId'),
@@ -193,9 +194,8 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       this.logger.error('Failed to release rejected publish claim', {
         approvalId: request.approvalId,
         error:
-          completionError instanceof Error
-            ? completionError.message
-            : 'Unknown publish completion error',
+          getErrorMessage(completionError) ||
+          'Unknown publish completion error',
         postId: request.postId,
       });
     }

@@ -17,6 +17,7 @@ import type {
   YoutubeCredential,
 } from '@files/shared/interfaces/job.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   Body,
   Controller,
@@ -204,7 +205,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error('Failed to process video:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to process video',
+        getErrorMessage(error) || 'Failed to process video',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -263,7 +264,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error('Failed to process image:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to process image',
+        getErrorMessage(error) || 'Failed to process image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -331,7 +332,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error('Failed to process file:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to process file',
+        getErrorMessage(error) || 'Failed to process file',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -376,7 +377,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error('Failed to process YouTube upload:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to process YouTube upload',
+        getErrorMessage(error) || 'Failed to process YouTube upload',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -414,7 +415,7 @@ export class FilesController {
       }
 
       throw new HttpException(
-        (error as Error)?.message || 'Failed to process hook remix',
+        getErrorMessage(error) || 'Failed to process hook remix',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -451,7 +452,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error(`Failed to get job status for ${jobId}:`, error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to get job status',
+        getErrorMessage(error) || 'Failed to get job status',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -475,7 +476,7 @@ export class FilesController {
     } catch (error: unknown) {
       this.logger.error('Failed to get queue stats:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to get queue statistics',
+        getErrorMessage(error) || 'Failed to get queue statistics',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

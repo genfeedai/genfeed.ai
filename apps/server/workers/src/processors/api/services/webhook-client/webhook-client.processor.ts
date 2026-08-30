@@ -1,11 +1,4 @@
 import * as crypto from 'node:crypto';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import {
-  assertSafeWebhookEndpoint,
-  createPinnedWebhookAgent,
-  type ValidatedWebhookEndpoint,
-  WebhookEndpointValidationError,
-} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
@@ -13,8 +6,16 @@ import {
   WebhookJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import {
+  assertSafeWebhookEndpoint,
+  createPinnedWebhookAgent,
+  type ValidatedWebhookEndpoint,
+  WebhookEndpointValidationError,
+} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { Job, UnrecoverableError } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
@@ -51,7 +52,9 @@ export class WebhookClientProcessor extends WorkerHost {
         validatedEndpoint = await assertSafeWebhookEndpoint(endpoint);
       } catch (error: unknown) {
         if (error instanceof WebhookEndpointValidationError) {
-          throw new UnrecoverableError(redactPublishWebhookText(error.message));
+          throw new UnrecoverableError(
+            redactPublishWebhookText(getErrorMessage(error)),
+          );
         }
         throw error;
       }
@@ -124,7 +127,7 @@ export class WebhookClientProcessor extends WorkerHost {
       }
     } catch (error: unknown) {
       const errorMessage = redactPublishWebhookText(
-        readErrorMessage(error) || 'Webhook delivery failed',
+        getErrorMessage(error) || 'Webhook delivery failed',
       );
       const errorCode = readErrorCode(error);
 
@@ -171,7 +174,7 @@ export class WebhookClientProcessor extends WorkerHost {
       this.logger.warn(`${this.constructorName} failed to record status`, {
         deliveryId: status.deliveryId,
         error: redactPublishWebhookText(
-          readErrorMessage(error) || 'Failed to record webhook delivery status',
+          getErrorMessage(error) || 'Failed to record webhook delivery status',
         ),
         organizationId,
       });
@@ -183,11 +186,6 @@ function readHttpStatusCode(error: unknown): number | undefined {
   const status = (error as { response?: { status?: unknown } })?.response
     ?.status;
   return typeof status === 'number' ? status : undefined;
-}
-
-function readErrorMessage(error: unknown): string | undefined {
-  const message = (error as { message?: unknown })?.message;
-  return typeof message === 'string' ? message : undefined;
 }
 
 function readErrorCode(error: unknown): string | undefined {

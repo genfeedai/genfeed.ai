@@ -3,6 +3,7 @@ import path from 'node:path';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import {
   Body,
@@ -118,7 +119,7 @@ export class FilesMetadataController {
           }
 
           throw new HttpException(
-            `Failed to download file from URL: ${parsedError?.message || 'Unknown error'}`,
+            `Failed to download file from URL: ${getErrorMessage(error) || 'Unknown error'}`,
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -142,14 +143,15 @@ export class FilesMetadataController {
         }),
       };
     } catch (error: unknown) {
-      const parsedError = error as { name?: string; message?: string };
+      const parsedError = error as { name?: string };
+      const errorMessage = getErrorMessage(error);
       if (
         parsedError?.name === 'ValidationException' ||
-        (error instanceof Error && error.message.includes('does not exist'))
+        errorMessage.includes('does not exist')
       ) {
         this.logger.error(`File not accessible: ${filePath}`, parsedError);
         throw new HttpException(
-          `File not accessible: ${parsedError?.message || 'File does not exist or is not readable.'}`,
+          `File not accessible: ${errorMessage || 'File does not exist or is not readable.'}`,
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -160,7 +162,7 @@ export class FilesMetadataController {
 
       this.logger.error('Failed to get file metadata:', error);
       throw new HttpException(
-        parsedError?.message || 'Failed to get file metadata',
+        errorMessage || 'Failed to get file metadata',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
@@ -173,9 +175,7 @@ export class FilesMetadataController {
         } catch (cleanupError: unknown) {
           this.logger.warn(
             `Failed to cleanup temporary file: ${tempFilePath}`,
-            cleanupError instanceof Error
-              ? cleanupError.message
-              : String(cleanupError),
+            getErrorMessage(cleanupError),
           );
         }
       }
