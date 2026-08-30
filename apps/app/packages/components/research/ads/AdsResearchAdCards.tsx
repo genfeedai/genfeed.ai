@@ -147,6 +147,11 @@ export function AdGridCard({
             className={cn('size-4', item.savedAdId && 'fill-current')}
           />
         }
+        label={
+          <span className="sr-only">
+            {item.savedAdId ? 'Unsave' : 'Save'} {item.title}
+          </span>
+        }
       />
     </div>
   );
@@ -232,6 +237,11 @@ export function AdTableRow({
             <Bookmark
               className={cn('size-4', item.savedAdId && 'fill-current')}
             />
+          }
+          label={
+            <span className="sr-only">
+              {item.savedAdId ? 'Unsave' : 'Save'} {item.title}
+            </span>
           }
         />
       </TableCell>
