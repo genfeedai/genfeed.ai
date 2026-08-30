@@ -518,17 +518,15 @@ export const FREE_SKILL_COUNT = SKILL_CATEGORIES.reduce(
 /* ─── Premium registry types ─── */
 
 export interface SkillRegistryEntry {
-  slug: string;
-  name: string;
-  description: string;
-  version: string;
   category: string;
+  description: string;
+  name: string;
+  slug: string;
 }
 
 export interface SkillRegistry {
-  skills: SkillRegistryEntry[];
   bundlePrice: number;
-  updatedAt: string;
+  skills: SkillRegistryEntry[];
 }
 
 /* ─── Stats ─── */

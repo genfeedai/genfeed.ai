@@ -25,12 +25,24 @@ export interface SkillsProRegistryMeta extends JsonApiMeta {
   updatedAt: string;
 }
 
+export interface SkillsProRegistryCatalogDto extends SkillsProRegistryMeta {
+  skills: SkillsProRegistryEntryDto[];
+}
+
 export interface SkillsProRegistryResponse
   extends JsonApiCollectionResponse<SkillsProRegistryEntryAttributes> {
   meta: SkillsProRegistryMeta;
 }
 
-/** Public marketing catalogue; intentionally separate from the app registry. */
-export interface SkillsProStorefrontCatalogDto extends SkillsProRegistryMeta {
-  skills: SkillsProRegistryEntryDto[];
+export interface SkillsProStorefrontEntryDto {
+  category: string;
+  description: string;
+  name: string;
+  slug: string;
+}
+
+/** Public marketing projection; intentionally smaller than the app registry. */
+export interface SkillsProStorefrontCatalogDto {
+  bundlePrice: number;
+  skills: SkillsProStorefrontEntryDto[];
 }

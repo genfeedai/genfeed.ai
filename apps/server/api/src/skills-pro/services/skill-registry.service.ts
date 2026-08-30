@@ -1,6 +1,8 @@
 import type {
+  SkillsProRegistryCatalogDto,
   SkillsProRegistryEntryDto,
   SkillsProStorefrontCatalogDto,
+  SkillsProStorefrontEntryDto,
 } from '@api/skills-pro/contracts/skill-registry.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -86,7 +88,7 @@ export class SkillRegistryService {
     return registry;
   }
 
-  async getMetadataRegistry(): Promise<SkillsProStorefrontCatalogDto> {
+  async getMetadataRegistry(): Promise<SkillsProRegistryCatalogDto> {
     const registry = await this.getRegistry();
 
     return {
@@ -97,7 +99,12 @@ export class SkillRegistryService {
   }
 
   async getStorefrontCatalog(): Promise<SkillsProStorefrontCatalogDto> {
-    return this.getMetadataRegistry();
+    const registry = await this.getRegistry();
+
+    return {
+      bundlePrice: registry.bundlePrice,
+      skills: registry.skills.map((skill) => this.toStorefrontMetadata(skill)),
+    };
   }
 
   async getBundleStripePriceId(): Promise<string | undefined> {
@@ -154,6 +161,17 @@ export class SkillRegistryService {
       name: skill.name,
       slug: skill.slug,
       version: skill.version,
+    };
+  }
+
+  private toStorefrontMetadata(
+    skill: SkillRegistryEntry,
+  ): SkillsProStorefrontEntryDto {
+    return {
+      category: skill.category,
+      description: skill.description,
+      name: skill.name,
+      slug: skill.slug,
     };
   }
 }
