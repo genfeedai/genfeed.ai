@@ -93,7 +93,7 @@ describe('useAgentCliTerminal', () => {
     });
   });
 
-  it('attaches when the active thread gains a rehydrated terminal session', async () => {
+  it('attaches once when the active thread gains a rehydrated terminal session', async () => {
     const apiService = {
       getToken: vi.fn().mockResolvedValue('terminal-token'),
     } as unknown as AgentApiService;
@@ -116,5 +116,16 @@ describe('useAgentCliTerminal', () => {
         sessionId: SESSION.id,
       });
     });
+
+    await act(async () => {
+      useAgentChatStore.setState({
+        activeTerminalSessionByThread: {
+          'thread-active': SESSION.id,
+        },
+      });
+      await Promise.resolve();
+    });
+
+    expect(socketMocks.emit).toHaveBeenCalledOnce();
   });
 });
