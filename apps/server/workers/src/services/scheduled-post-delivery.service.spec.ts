@@ -870,4 +870,25 @@ describe('ScheduledPostDeliveryService', () => {
       }),
     );
   });
+
+  it.each([
+    { error: new Error(''), expectedMessage: '' },
+    {
+      error: 'validation failed',
+      expectedMessage: 'Publish validation failed',
+    },
+  ])(
+    'preserves terminal validation fallback behavior for $error',
+    async ({ error, expectedMessage }) => {
+      const post = createScheduledPost();
+
+      const result = await service.failTerminalValidation(post as never, error);
+
+      expect(result.error).toBe(expectedMessage);
+      expect(mocks.logger.error).toHaveBeenCalledWith(
+        'Durable validation rejected queued publishing',
+        expect.objectContaining({ error: expectedMessage }),
+      );
+    },
+  );
 });

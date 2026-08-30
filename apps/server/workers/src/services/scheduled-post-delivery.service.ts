@@ -24,6 +24,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
@@ -203,8 +204,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     post: PostEntity,
     error: unknown,
   ): Promise<PublishResult> {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Publish validation failed';
+    const errorMessage = getErrorMessage(error, {
+      fallback: () => 'Publish validation failed',
+      messageSource: 'error-instance',
+    });
 
     this.logger.error('Durable validation rejected queued publishing', {
       error: errorMessage,
@@ -223,10 +226,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   private readDeliveryIds(post: PostEntity): PostDeliveryIds {
     return {
-      brandId: readPostString(post, ['brandId', 'brand']),
-      credentialId: readPostString(post, ['credentialId', 'credential']),
-      organizationId: readPostString(post, ['organizationId', 'organization']),
-      userId: readPostString(post, ['userId', 'user']),
+      brandId: readPostString(post, ['brandId']),
+      credentialId: readPostString(post, ['credentialId']),
+      organizationId: readPostString(post, ['organizationId']),
+      userId: readPostString(post, ['userId']),
     };
   }
 
@@ -973,7 +976,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         this.logger.warn(
           `${this.constructorName} failed to schedule reply post-watch`,
           {
-            error: error instanceof Error ? error.message : 'unknown',
+            error: getErrorMessage(error, {
+              fallback: () => 'unknown',
+              messageSource: 'error-instance',
+            }),
             externalId: result.externalId,
             postId: post.id.toString(),
           },
@@ -1061,7 +1067,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       } catch (error: unknown) {
         this.logger.error(`${url} failed to mark child as failed`, {
           childPostId: child.id.toString(),
-          error: error instanceof Error ? error.message : undefined,
+          error: getErrorMessage(error, {
+            fallback: () => undefined,
+            messageSource: 'error-instance',
+          }),
           parentPostId: post.id.toString(),
         });
       }

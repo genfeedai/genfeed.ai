@@ -6,6 +6,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -230,8 +231,10 @@ export class CronYoutubeStatusService implements OnModuleInit {
       }
     } catch (error: unknown) {
       // If video not found on YouTube, mark post as deleted
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error, {
+        fallback: String,
+        messageSource: 'error-instance',
+      });
       if (
         errorMessage.includes('Video not found') ||
         errorMessage.includes('status not available')

@@ -8,6 +8,7 @@ import type { IChannelTargetError } from '@genfeedai/interfaces';
 import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -325,13 +326,13 @@ export class CronTiktokStatusService implements OnModuleInit {
         );
       }
     } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, { fallback: () => '' });
       this.logger.error(`${url} failed for post ${post.id}`, {
-        error: (error as Error)?.message,
+        error: getErrorMessage(error, { fallback: () => undefined }),
         publishId,
       });
 
       // Check if this is a TikTok moderation failure (thrown by getPublishStatus when status === 'FAILED')
-      const errorMessage = (error as TiktokError).message ?? '';
       if (errorMessage.startsWith('TikTok publish failed:')) {
         const failReason =
           errorMessage.replace('TikTok publish failed: ', '') ||

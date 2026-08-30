@@ -29,6 +29,7 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
  * Inventory — the ratchet flags every identity-shaped alias use it can prove
  * from syntax, then holds the count at or below the baseline:
  *   - coercing a relation alias to a string id
+ *   - passing a relation alias string through a helper key array for a row
  *   - feeding a relation alias into an id-shaped filter value
  *   - comparing a relation alias to an id (`post.organization !== orgId`)
  *   - using `_id` / `organization` / `user` as an object key for a scalar id
@@ -141,6 +142,7 @@ const COMPARISON_OPERATORS = new Set([
 
 export type RelationAliasRule =
   | 'filter-value'
+  | 'helper-key-array'
   | 'id-coercion'
   | 'identity-comparison'
   | 'identity-key';
@@ -632,6 +634,67 @@ function collectAliasValueBindings(
   );
 }
 
+type HelperKeyArrayRead = {
+  alias: string;
+  position: number;
+  receiver: string;
+  scalar: string;
+};
+
+/**
+ * `readPostString(post, ['organizationId', 'organization'])` hides the alias
+ * behind a string lookup, so there is no `post.organization` property access
+ * for the existing rules to inspect. A helper call is identity-shaped when a
+ * syntactically proven row argument is followed by an array containing a
+ * schema-derived relation alias. Array order is deliberately irrelevant.
+ */
+function collectHelperKeyArrayReads(
+  node: ts.CallExpression,
+  rowBindings: ReadonlySet<string>,
+  aliases: ReadonlyMap<string, string>,
+): HelperKeyArrayRead[] {
+  const rowArgumentIndex = node.arguments.findIndex((argument) => {
+    const value = unwrapInputExpression(argument);
+    return ts.isIdentifier(value) && rowBindings.has(value.text);
+  });
+  if (rowArgumentIndex === -1) {
+    return [];
+  }
+
+  const rowArgument = unwrapInputExpression(node.arguments[rowArgumentIndex]);
+  if (!ts.isIdentifier(rowArgument)) {
+    return [];
+  }
+
+  const reads: HelperKeyArrayRead[] = [];
+  for (const argument of node.arguments.slice(rowArgumentIndex + 1)) {
+    const value = unwrapInputExpression(argument);
+    if (!ts.isArrayLiteralExpression(value)) {
+      continue;
+    }
+
+    for (const element of value.elements) {
+      if (
+        !ts.isStringLiteral(element) &&
+        !ts.isNoSubstitutionTemplateLiteral(element)
+      ) {
+        continue;
+      }
+      const scalar = aliases.get(element.text);
+      if (scalar) {
+        reads.push({
+          alias: element.text,
+          position: element.getStart(),
+          receiver: rowArgument.text,
+          scalar,
+        });
+      }
+    }
+  }
+
+  return reads;
+}
+
 function isSuppressed(sourceFile: ts.SourceFile, position: number): boolean {
   const { line } = sourceFile.getLineAndCharacterOfPosition(position);
   const lines = sourceFile.getFullText().split('\n');
@@ -704,6 +767,28 @@ function checkFile(
           receiver: node.expression.text,
           rule,
           scalar,
+        });
+      }
+    }
+
+    if (ts.isCallExpression(node)) {
+      const callSuppressed = isSuppressed(sourceFile, node.getStart());
+      for (const read of collectHelperKeyArrayReads(
+        node,
+        rowBindings,
+        aliases,
+      )) {
+        if (callSuppressed || isSuppressed(sourceFile, read.position)) {
+          continue;
+        }
+        violations.push({
+          alias: read.alias,
+          file,
+          line:
+            sourceFile.getLineAndCharacterOfPosition(read.position).line + 1,
+          receiver: read.receiver,
+          rule: 'helper-key-array',
+          scalar: read.scalar,
         });
       }
     }
@@ -804,11 +889,13 @@ function describe(violation: RelationAliasViolation): string {
   const consequence =
     violation.rule === 'id-coercion'
       ? 'coerces a relation alias to a string id — that is "[object Object]" when populated and "undefined" when not'
-      : violation.rule === 'identity-comparison'
-        ? 'compares a relation alias to an id — undefined === undefined passes, so the tenant gate never runs'
-        : violation.rule === 'identity-key'
-          ? 'uses a Document identity alias as an object key for a scalar id — the server reads the scalar FK, so this key is dropped or never matches'
-          : 'feeds a relation alias into an id-shaped filter key — an undefined value is dropped by normalizeWhere, silently unscoping the query';
+      : violation.rule === 'helper-key-array'
+        ? 'passes a relation alias through a helper key array — the helper can read a populated relation object or undefined instead of the scalar foreign key'
+        : violation.rule === 'identity-comparison'
+          ? 'compares a relation alias to an id — undefined === undefined passes, so the tenant gate never runs'
+          : violation.rule === 'identity-key'
+            ? 'uses a Document identity alias as an object key for a scalar id — the server reads the scalar FK, so this key is dropped or never matches'
+            : 'feeds a relation alias into an id-shaped filter key — an undefined value is dropped by normalizeWhere, silently unscoping the query';
   return (
     `  ${violation.file}:${violation.line} — '${violation.receiver}.${violation.alias}' ${consequence}. ` +
     `Read '${violation.receiver}.${violation.scalar}' instead, or route it through ` +
