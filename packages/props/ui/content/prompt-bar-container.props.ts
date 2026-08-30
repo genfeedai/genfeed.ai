@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 
 /**
- * Props for the PromptBarContainer component
  * A reusable positioning wrapper for prompt bars across the application
  */
 export interface PromptBarContainerProps {

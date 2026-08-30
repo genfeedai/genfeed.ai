@@ -56,8 +56,6 @@ function initializePlatformIntegration(): void {
       return;
     }
 
-    // Find the submit button (reply/comment button)
-
     const submitButton = platform.selectors.submitButton
       ? document.querySelector(platform.selectors.submitButton)
       : null;
@@ -66,7 +64,6 @@ function initializePlatformIntegration(): void {
       return;
     }
 
-    // Use the actions container as a fallback target for platforms without a reply box
     const actionsContainer = platform.selectors.actionsContainer
       ? document.querySelector(platform.selectors.actionsContainer)
       : null;
@@ -77,30 +74,24 @@ function initializePlatformIntegration(): void {
       return;
     }
 
-    // Check if buttons are already injected
     const existingButtons = injectionTarget.querySelector('.genfeed-buttons');
     if (existingButtons) {
       return;
     }
 
-    // Get post ID
     const postId = currentPlatform.extractPostId();
     if (!postId) {
       return;
     }
 
-    // Construct post URL
     const postUrl = currentPlatform.constructPostUrl(postId);
 
-    // Create button container
     const buttonContainer = createButtonContainer();
 
-    // Create and add Genfeed dropdown
     const dropdown = createGenFeedDropdown(postId, platformName, { postUrl });
     dropdown.style.marginRight = '8px';
     buttonContainer.appendChild(dropdown);
 
-    // Insert button container before the submit button
     if (submitButton?.parentNode) {
       submitButton.parentNode.insertBefore(buttonContainer, submitButton);
     } else {

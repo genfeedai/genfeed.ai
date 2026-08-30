@@ -7,6 +7,5 @@ export interface ListingCardProps {
   listing: IListingPreview;
   /** Card variant */
   variant?: ListingCardVariant;
-  /** Additional CSS classes */
   className?: string;
 }

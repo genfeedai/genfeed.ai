@@ -11,9 +11,6 @@ import type { ComponentType, Dispatch, SetStateAction } from 'react';
  */
 export type GallerySelectItem = IImage | IMusic | IVideo;
 
-/**
- * Props for ModalGalleryHeader component
- */
 export interface ModalGalleryHeaderProps {
   category: IngredientCategory;
   activeTab: 'media' | 'references' | 'uploads' | 'creations';
@@ -27,9 +24,6 @@ export interface ModalGalleryHeaderProps {
   onReloadItems?: () => void;
 }
 
-/**
- * Props for ModalGalleryContent component
- */
 export interface ModalGalleryContentProps {
   category: IngredientCategory;
   activeTab: 'media' | 'references' | 'uploads' | 'creations';
@@ -53,9 +47,6 @@ export interface ModalGalleryContentProps {
   onMusicPlayPause: (musicId: string, musicUrl: string) => void;
 }
 
-/**
- * Props for ModalGalleryFooter component
- */
 export interface ModalGalleryFooterProps {
   category: IngredientCategory;
   activeTab: 'media' | 'references' | 'uploads' | 'creations';
@@ -72,17 +63,11 @@ export interface ModalGalleryFooterProps {
   onPageChange: (page: number) => void;
 }
 
-/**
- * Props for ModalGalleryItemVideo component
- */
 export interface ModalGalleryItemVideoProps {
   video: IVideo;
   onSelect: (video: IVideo) => void;
 }
 
-/**
- * Props for ModalGalleryItemImage component
- */
 export interface ModalGalleryItemImageProps {
   image: IImage;
   isSelected: boolean;
@@ -92,9 +77,6 @@ export interface ModalGalleryItemImageProps {
   getImageFormat: (image: IImage) => IngredientFormat | null;
 }
 
-/**
- * Props for ModalGalleryItemMusic component
- */
 export interface ModalGalleryItemMusicProps {
   music: IMusic;
   isSelected: boolean;
@@ -103,9 +85,6 @@ export interface ModalGalleryItemMusicProps {
   onPlayPause: (musicId: string, musicUrl: string) => void;
 }
 
-/**
- * Props for ModalGalleryItemReference component
- */
 export interface ModalGalleryItemReferenceProps {
   reference: IAsset;
   isSelected: boolean;
@@ -115,9 +94,6 @@ export interface ModalGalleryItemReferenceProps {
   selectedItems: string[];
 }
 
-/**
- * Props for ModalGalleryUploadsTab component
- */
 export interface ModalGalleryUploadsTabProps {
   uploads: IImage[];
   isLoading: boolean;
@@ -129,9 +105,6 @@ export interface ModalGalleryUploadsTabProps {
   onUploadClick: () => void;
 }
 
-/**
- * Props for ModalGalleryCreationsTab component
- */
 export interface ModalGalleryCreationsTabProps {
   creations: IImage[];
   isLoadingCreations: boolean;
@@ -142,9 +115,6 @@ export interface ModalGalleryCreationsTabProps {
   getImageFormat: (image: IImage) => IngredientFormat | null;
 }
 
-/**
- * Props for ModalGalleryReferencesTab component
- */
 export interface ModalGalleryReferencesTabProps {
   references: IAsset[];
   isLoadingReferences: boolean;
@@ -154,18 +124,12 @@ export interface ModalGalleryReferencesTabProps {
   selectionLimit: number;
 }
 
-/**
- * Props for ModalGalleryEmptyState component
- */
 export interface ModalGalleryEmptyStateProps {
   emptyIcon: ComponentType<{ className?: string }>;
   emptyMessage: string;
   category: IngredientCategory;
 }
 
-/**
- * Props for useModalGallery hook
- */
 export interface UseModalGalleryProps {
   category: IngredientCategory;
   isOpen: boolean;
@@ -176,11 +140,7 @@ export interface UseModalGalleryProps {
   filterReferenceId?: string;
 }
 
-/**
- * Return type for useModalGallery hook
- */
 export interface UseModalGalleryReturn {
-  // State
   items: (IVideo | IMusic | IImage)[];
   isLoading: boolean;
   selectedItem: string;
@@ -196,7 +156,6 @@ export interface UseModalGalleryReturn {
   isLoadingReferences: boolean;
   isLoadingCreations: boolean;
 
-  // Handlers
   setSelectedItem: (id: string) => void;
   setSelectedItems: Dispatch<SetStateAction<string[]>>;
   setSelectedItemsData: Dispatch<SetStateAction<(IVideo | IMusic | IImage)[]>>;
@@ -211,7 +170,6 @@ export interface UseModalGalleryReturn {
   handleMusicPlayPause: (musicId: string, musicUrl: string) => void;
   notifySelectionLimit: () => void;
 
-  // Computed
   selectionLimit: number;
   tabs: Array<{ id: string; label: string }>;
 }

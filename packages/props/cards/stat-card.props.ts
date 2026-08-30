@@ -18,7 +18,6 @@ export interface StatCardProps {
   size?: StatCardSize;
   /** Optional trend value (positive = up, negative = down) */
   trend?: number;
-  /** Additional CSS classes */
   className?: string;
   /** Show loading state for value */
   isLoading?: boolean;

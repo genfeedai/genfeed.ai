@@ -303,17 +303,11 @@ export interface UsePromptBarFormOptions {
   promptData?: Partial<PromptTextareaSchema> & { isValid: boolean };
 }
 
-/**
- * Return type for usePromptBarForm hook
- */
 export interface UsePromptBarFormReturn {
   form: UseFormReturn<PromptTextareaSchema>;
   currentFormat: IngredientFormat;
 }
 
-/**
- * Options for usePromptBarModels hook
- */
 export interface UsePromptBarModelsOptions {
   models: IModel[];
   trainings: ITraining[];
@@ -321,9 +315,6 @@ export interface UsePromptBarModelsOptions {
   watchedModel: string;
 }
 
-/**
- * Return type for usePromptBarModels hook
- */
 export interface UsePromptBarModelsReturn {
   trainingIds: Set<string>;
   selectedModels: IModel[];
@@ -345,9 +336,6 @@ export interface UsePromptBarModelsReturn {
   hasAnyResolutionOptions: boolean;
 }
 
-/**
- * Options for usePromptBarPricing hook
- */
 export interface UsePromptBarPricingOptions {
   selectedModels: IModel[];
   watchedWidth?: number;
@@ -356,9 +344,6 @@ export interface UsePromptBarPricingOptions {
   watchedOutputs?: number;
 }
 
-/**
- * Return type for usePromptBarPricing hook
- */
 export interface UsePromptBarPricingReturn {
   calculateModelCost: (
     model: IModel,
@@ -369,9 +354,6 @@ export interface UsePromptBarPricingReturn {
   selectedModelCost: number;
 }
 
-/**
- * Options for usePromptBarFilters hook
- */
 export interface UsePromptBarFiltersOptions {
   styles: IElementStyle[];
   moods: IElementMood[];
@@ -388,9 +370,6 @@ export interface UsePromptBarFiltersOptions {
   normalizedWatchedModels: string[];
 }
 
-/**
- * Return type for usePromptBarFilters hook
- */
 export interface UsePromptBarFiltersReturn {
   filteredStyles: IElementStyle[];
   filteredMoods: IElementMood[];
@@ -405,9 +384,6 @@ export interface UsePromptBarFiltersReturn {
   filteredSounds: ISound[];
 }
 
-/**
- * Options for usePromptBarReferences hook
- */
 export interface UsePromptBarReferencesOptions {
   form: UseFormReturn<PromptTextareaSchema>;
   selectedBrand?: { references?: Array<{ id: string }> } | null;
@@ -421,9 +397,6 @@ export interface UsePromptBarReferencesOptions {
   };
 }
 
-/**
- * Return type for usePromptBarReferences hook
- */
 export interface UsePromptBarReferencesReturn {
   references: (IAsset | IImage)[];
   setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
@@ -437,9 +410,6 @@ export interface UsePromptBarReferencesReturn {
   hasInitializedReferencesRef: RefObject<boolean>;
 }
 
-/**
- * Options for usePromptBarSync hook
- */
 export interface UsePromptBarSyncOptions {
   form: UseFormReturn<PromptTextareaSchema>;
   useSplitState: boolean;
@@ -468,9 +438,6 @@ export interface UsePromptBarSyncOptions {
   hasInitializedReferencesRef: RefObject<boolean>;
 }
 
-/**
- * Return type for usePromptBarSync hook
- */
 export interface UsePromptBarSyncReturn {
   handleTextChange: () => void;
   handleTextareaChange: () => void;
@@ -502,9 +469,6 @@ export interface UsePromptBarSyncReturn {
   setTextValue: Dispatch<SetStateAction<string>>;
 }
 
-/**
- * Options for usePromptBarEnhancement hook
- */
 export interface UsePromptBarEnhancementOptions {
   form: UseFormReturn<PromptTextareaSchema>;
   watchedModel: string;
@@ -528,9 +492,6 @@ export interface UsePromptBarEnhancementOptions {
   setTextValue: Dispatch<SetStateAction<string>>;
 }
 
-/**
- * Return type for usePromptBarEnhancement hook
- */
 export interface UsePromptBarEnhancementReturn {
   isEnhancing: boolean;
   previousPrompt: string | null;
@@ -541,9 +502,6 @@ export interface UsePromptBarEnhancementReturn {
   timeoutRefsRef: RefObject<Array<NodeJS.Timeout>>;
 }
 
-/**
- * Props for PromptBarFolderSelector component
- */
 export interface PromptBarFolderSelectorProps {
   folders?: IFolder[];
   form: UseFormReturn<PromptTextareaSchema>;
@@ -552,9 +510,6 @@ export interface PromptBarFolderSelectorProps {
   triggerDisplay?: 'default' | 'icon-only';
 }
 
-/**
- * Props for PromptBarVariationPresets component
- */
 export interface PromptBarVariationPresetsProps {
   shouldRender: boolean;
   form: UseFormReturn<PromptTextareaSchema>;

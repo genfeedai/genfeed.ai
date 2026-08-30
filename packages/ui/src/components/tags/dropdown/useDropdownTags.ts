@@ -54,19 +54,16 @@ export function useDropdownTags({
 
   // Update allTags when externalTags change (only if valid and different)
   useEffect(() => {
-    // Only update if externalTags is provided and is a valid array
     if (
       externalTags &&
       Array.isArray(externalTags) &&
       externalTags.length >= 0
     ) {
-      // Cancel any in-flight requests
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
       }
 
-      // Only update if component is still mounted
       if (isMountedRef.current) {
         setAllTags(externalTags);
         setIsLoading(false);
@@ -80,20 +77,16 @@ export function useDropdownTags({
 
   // Load tags when dropdown opens (only if no external tags provided)
   useEffect(() => {
-    // Skip if external tags are provided
     if (externalTags) {
       return;
     }
 
-    // Skip if not open
     if (!isOpen) {
       return;
     }
 
-    // Create cache key from scope and brandId combination
     const currentCacheKey = `${scope ?? 'no-scope'}-${brandId ?? 'no-brand'}`;
 
-    // Reset loaded flag if scope/brandId combination changed
     if (
       previousCacheKeyRef.current !== null &&
       previousCacheKeyRef.current !== currentCacheKey
@@ -101,30 +94,24 @@ export function useDropdownTags({
       hasLoadedRef.current = false;
     }
 
-    // Update cache key
     previousCacheKeyRef.current = currentCacheKey;
 
-    // Skip if already loaded for this cache key
     if (hasLoadedRef.current) {
       return;
     }
 
-    // Cancel any previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Load tags internally
     const loadTags = async () => {
       setIsLoading(true);
 
       const url = `GET /tags ${scope ? `?category=${scope}` : ''}`;
       try {
-        // Only update state if component is still mounted
         if (!isMountedRef.current) {
           return;
         }

@@ -135,17 +135,14 @@ export class EntityIdUtil {
     value: unknown,
     fieldName: string,
   ): Promise<string | null> {
-    // Handle null, undefined, or empty string - remove relationship
     if (value === null || value === undefined || value === '') {
       return null;
     }
 
-    // Handle valid string id
     if (typeof value === 'string') {
       return await Promise.resolve(EntityIdUtil.validate(value, fieldName));
     }
 
-    // Handle empty object {} - treat as null (remove relationship)
     if (
       typeof value === 'object' &&
       value !== null &&
@@ -154,14 +151,12 @@ export class EntityIdUtil {
       return null;
     }
 
-    // Handle invalid objects or other types
     if (typeof value === 'object' && value !== null) {
       throw new ValidationException(
         `Invalid ${fieldName} format. Must be a valid entity id string or null`,
       );
     }
 
-    // Handle other invalid types
     throw new ValidationException(
       `Invalid ${fieldName} type. Expected string, null, or undefined, got ${typeof value}`,
     );
