@@ -578,7 +578,9 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
 
     expect(
@@ -647,7 +649,9 @@ describe('AdsResearchPageClient', () => {
     expect(screen.queryByText('Platform')).not.toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
@@ -692,7 +696,11 @@ describe('AdsResearchPageClient', () => {
   it('opens a public ad remix from its performance record id', () => {
     render(<AdsResearchPageClient initialPlatform="meta" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
@@ -744,7 +752,11 @@ describe('AdsResearchPageClient', () => {
       },
     ];
     rerender(<AdsResearchPageClient initialPlatform="meta" />);
-    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
@@ -759,7 +771,11 @@ describe('AdsResearchPageClient', () => {
     remixAvailability.isAvailable = false;
     render(<AdsResearchPageClient initialPlatform="meta" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
@@ -822,7 +838,9 @@ describe('AdsResearchPageClient', () => {
     rerender(<AdsResearchPageClient />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
     expect(screen.getByText('Loading ad detail…')).toBeInTheDocument();
 
