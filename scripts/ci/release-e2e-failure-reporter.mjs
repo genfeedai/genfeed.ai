@@ -1,7 +1,7 @@
 /**
  * Self-hosted release E2E tracker.
  *
- * Failure path: one open `release-e2e` issue, Project #12 Priority P0, Area Infra.
+ * Failure path: one open `release-e2e` issue, native Priority P0, Area Infra.
  * Success path: close every open `release-e2e` tracker with a green comment so the
  * board cannot look tidy while CI is red, and cannot stay red forever after green.
  *
@@ -70,7 +70,7 @@ export function buildReleaseE2eFailureBody({
     `- Diagnostic artifacts (when produced): \`release-e2e-playwright-report\`, \`release-e2e-compose-logs\``,
     ``,
     `The public release bundle, anonymous image pull, boot path, or LOCAL-mode E2E failed.`,
-    `Automation sets Project **Priority = P0** (Priority is a project field, not a label).`,
+    `Automation sets native issue **Priority = P0** (Priority is structured issue metadata, not a label).`,
   ].join('\n');
 }
 

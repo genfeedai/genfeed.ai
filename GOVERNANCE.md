@@ -82,8 +82,9 @@ Record**:
 
 Delivery state lives on the public
 [GitHub Project #12](https://github.com/orgs/genfeedai/projects/12).
-Priority is a project field, never a label. There is no committed roadmap and
-no release cadence — releases ship from `master` when ready.
+Priority is a native organization Issue Field surfaced on the project, never a
+label. There is no committed roadmap and no release cadence — releases ship
+from `master` when ready.
 
 ### Licensing and boundaries
 

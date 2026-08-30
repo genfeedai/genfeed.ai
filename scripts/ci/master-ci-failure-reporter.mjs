@@ -12,7 +12,7 @@
  * labels, which orphaned 42 unlabeled duplicates and made label-only lookup
  * file a new issue every red push. Title-prefix fallback plus a separate
  * addLabels call keeps the canonical tracker (#3798) as the only open one.
- * Project #12 Priority P0 via the shared board triage.
+ * Native issue Priority P0 via the shared board triage.
  * Success path: close every open tracker — labeled or unlabeled title-prefix —
  * with a green comment so a recovered trunk cannot keep a stale P0 on the board.
  */
@@ -142,7 +142,7 @@ export function buildMasterCiFailureBody({ date, sha, headline, runUrl }) {
     `- The run's Tests Gate step summary names the exact job(s) that went red.`,
     ``,
     `The trunk is red: every branch cut from \`master\` inherits this failure.`,
-    `Automation sets Project **Priority = P0** (Priority is a project field, not a label).`,
+    `Automation sets native issue **Priority = P0** (Priority is structured issue metadata, not a label).`,
     `This tracker closes automatically on the next green master push.`,
   ].join('\n');
 }
