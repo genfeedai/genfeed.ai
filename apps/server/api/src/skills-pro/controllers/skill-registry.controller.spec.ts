@@ -1,7 +1,9 @@
 import { SkillRegistryController } from '@api/skills-pro/controllers/skill-registry.controller';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
-import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
+import { isPublicRoute } from '@libs/decorators/public.decorator';
+import type { ExecutionContext } from '@nestjs/common';
 import { PATH_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -56,16 +58,24 @@ describe('SkillRegistryController', () => {
 
   it('keeps the registry on the global authenticated guard path', () => {
     const handler = SkillRegistryController.prototype.getRegistry;
+    const context = {
+      getClass: () => SkillRegistryController,
+      getHandler: () => handler,
+    } as ExecutionContext;
 
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('registry');
-    expect(Reflect.getMetadata(IS_PUBLIC_KEY, handler)).not.toBe(true);
+    expect(isPublicRoute(new Reflector(), context)).toBe(false);
   });
 
   it('exposes the marketing storefront on a distinct public path', () => {
     const handler = SkillRegistryController.prototype.getStorefrontCatalog;
+    const context = {
+      getClass: () => SkillRegistryController,
+      getHandler: () => handler,
+    } as ExecutionContext;
 
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('storefront');
-    expect(Reflect.getMetadata(IS_PUBLIC_KEY, handler)).toBe(true);
+    expect(isPublicRoute(new Reflector(), context)).toBe(true);
   });
 
   it('serializes only registry metadata and preserves catalogue meta', async () => {
