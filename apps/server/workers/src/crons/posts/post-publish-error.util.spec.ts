@@ -1,9 +1,9 @@
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -52,6 +52,8 @@ describe('post publish error policy', () => {
     );
     expect(getPublishErrorMessage('string failure')).toBe('string failure');
     expect(getPublishErrorMessage(null)).toBe('Post failed');
+    expect(getPublishErrorMessage(new Error(''))).toBe('');
+    expect(getPublishErrorMessage({ status: 503 })).toBe('[object Object]');
   });
 
   it('creates the existing structured channel-target error shape', () => {

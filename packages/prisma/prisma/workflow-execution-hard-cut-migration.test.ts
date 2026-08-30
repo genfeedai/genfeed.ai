@@ -27,7 +27,7 @@ describe('workflow execution hard cut', () => {
       'linkedExecutions WorkflowExecution[] @relation("task_linked_executions")',
     );
     expect(schema).toContain(
-      'workspaceTasks Task[] @relation("task_linked_executions")',
+      'workspaceTasks           Task[]                        @relation("task_linked_executions")',
     );
     expect(migration).toContain('CREATE TABLE "_task_linked_executions"');
     expect(migration).toContain('ingredients_workflowExecutionId_fkey');

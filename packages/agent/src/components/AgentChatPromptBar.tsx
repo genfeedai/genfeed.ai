@@ -17,8 +17,6 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -71,13 +69,6 @@ type AgentChatPromptBarProps = {
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
-  selectedModel?: string;
-  /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
-  models: readonly IModel[];
-  isModelsLoading?: boolean;
-  onModelChange?: (model: string) => void;
-  onPrioritizeChange?: (priority: RouterPriority) => void;
-  prioritize?: RouterPriority;
   creditsAvailable?: number | null;
   onOverlayElement?: (node: HTMLElement | null) => void;
 };
@@ -118,12 +109,6 @@ export function AgentChatPromptBar({
   onSubmitInputRequest,
   pendingInputRequest,
   socketConnectionState,
-  selectedModel,
-  models,
-  isModelsLoading = false,
-  onModelChange,
-  onPrioritizeChange,
-  prioritize,
   creditsAvailable = null,
   onOverlayElement,
 }: AgentChatPromptBarProps): ReactElement {
@@ -226,12 +211,6 @@ export function AgentChatPromptBar({
         removeAttachment={removeAttachment}
         getCompletedAttachments={getCompletedAttachments}
         clearAllAttachments={clearAllAttachments}
-        selectedModel={selectedModel}
-        models={models}
-        isModelsLoading={isModelsLoading}
-        onModelChange={onModelChange}
-        onPrioritizeChange={onPrioritizeChange}
-        prioritize={prioritize}
         creditsAvailable={creditsAvailable}
       />
     </PromptBarContainer>

@@ -1,6 +1,5 @@
 export { LocalStorageProvider } from './local-storage.provider';
 export {
-  assertObjectKeyWithinPrefix,
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
   assertSafeSegment,

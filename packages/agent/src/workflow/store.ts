@@ -85,10 +85,6 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
   (set, get) => ({
     ...createInitialState(),
 
-    // =========================================================================
-    // Proposing phase
-    // =========================================================================
-
     addApproach: (approach) => {
       const a: Approach = { ...approach, id: generateId() };
       set((state) => ({
@@ -96,20 +92,12 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
       }));
     },
 
-    // =========================================================================
-    // Verification phase
-    // =========================================================================
-
     addEvidence: (evidence) => {
       const e: Evidence = { ...evidence, id: generateId() };
       set((state) => ({
         verificationEvidence: [...state.verificationEvidence, e],
       }));
     },
-
-    // =========================================================================
-    // Messages
-    // =========================================================================
 
     addMessage: (role, content) => {
       const state = get();
@@ -127,20 +115,12 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
       });
     },
 
-    // =========================================================================
-    // Clarifying phase
-    // =========================================================================
-
     addQuestion: (question) => {
       const q: Question = { ...question, id: generateId() };
       set((state) => ({
         questions: [...state.questions, q],
       }));
     },
-
-    // =========================================================================
-    // Phase transitions (with optimistic update + server reconciliation)
-    // =========================================================================
 
     advance: (actor) => {
       const state = get();
@@ -222,10 +202,6 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
       return get().advance('user');
     },
 
-    // =========================================================================
-    // API binding
-    // =========================================================================
-
     bindApi: async (workflowId, apiService) => {
       const apiState = await apiService.getWorkflow(workflowId);
       const local = mapApiStateToLocal(apiState);
@@ -234,10 +210,6 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
         apiBinding: { apiService, workflowId },
       });
     },
-
-    // =========================================================================
-    // Queries
-    // =========================================================================
 
     canAdvance: () => {
       return isGateMet(get());
@@ -338,20 +310,12 @@ export const useAgentWorkflowStore = create<AgentWorkflowStoreExtended>(
       return true;
     },
 
-    // =========================================================================
-    // Approval phase
-    // =========================================================================
-
     selectApproach: (approachId) => {
       const state = get();
       const exists = state.approaches.some((a) => a.id === approachId);
       if (!exists) return;
       set({ selectedApproachId: approachId });
     },
-
-    // =========================================================================
-    // Locking
-    // =========================================================================
 
     setLocked: (locked) => {
       set({ isLocked: locked });

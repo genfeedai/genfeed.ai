@@ -16,7 +16,7 @@ const migration = readFileSync(
 describe('workflow-native clip continuity migration', () => {
   it('persists the durable queue state and exact workflow provenance', () => {
     expect(schema).toContain(
-      'continuityQaStatus            String              @default("not-required")',
+      'continuityQaStatus            String             @default("not-required")',
     );
     expect(schema).toContain(
       'continuityWorkflowExecutionId String?            @unique',

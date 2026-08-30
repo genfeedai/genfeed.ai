@@ -47,9 +47,10 @@ function extractImportedModules(filePath: string): string[] {
     match = forwardRefPattern.exec(content);
   }
 
-  const importsBlockMatch = content.match(/imports\s*:\s*\[([^\]]*)\]/s);
-  if (importsBlockMatch) {
-    const block = importsBlockMatch[1];
+  const importsBlockPattern =
+    /\b(?:additionalImports|imports)\s*:\s*\[([^\]]*)\]/gs;
+  for (const importsBlockMatch of content.matchAll(importsBlockPattern)) {
+    const block = importsBlockMatch[1] ?? '';
     const directModulePattern = /(?<!\w)([A-Z]\w*Module)(?!\s*\))/g;
     let directMatch: RegExpExecArray | null = directModulePattern.exec(block);
     while (directMatch !== null) {

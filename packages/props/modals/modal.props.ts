@@ -61,9 +61,6 @@ export interface ModalBaseProps<T = unknown> {
   onClose?: () => void;
 }
 
-/**
- * Props for ModalModel component
- */
 export interface ModalModelProps extends ModalBaseProps<IModel> {
   mode?: 'edit' | 'view';
 }
@@ -274,18 +271,12 @@ export interface ModalCreateThreadPreviewProps {
   charLimit: number;
 }
 
-/**
- * Props for ModalPostHeader component
- */
 export interface ModalPostHeaderProps {
   activeTab: 'setup' | 'platforms';
   onTabChange: (tab: 'setup' | 'platforms') => void;
   isStep1Complete: boolean;
 }
 
-/**
- * Props for ModalPostContent component
- */
 export interface ModalPostContentProps {
   activeTab: 'setup' | 'platforms';
   applyEnabledCredentialIds?: (credentialIds: string[]) => void;
@@ -305,9 +296,6 @@ export interface ModalPostContentProps {
   getMinDateTime: () => Date;
 }
 
-/**
- * Props for ModalPostPlatformsTab component
- */
 export interface ModalPostPlatformsTabProps {
   applyEnabledCredentialIds?: (credentialIds: string[]) => void;
   form: UseFormReturn<MultiPostSchema>;
@@ -323,9 +311,6 @@ export interface ModalPostPlatformsTabProps {
   getMinDateTime: () => Date;
 }
 
-/**
- * Props for ModalPostSetupTab component
- */
 export interface ModalPostSetupTabProps {
   form: UseFormReturn<MultiPostSchema>;
   globalScheduledDate: Date | null;
@@ -336,9 +321,6 @@ export interface ModalPostSetupTabProps {
   getMinDateTime: () => Date;
 }
 
-/**
- * Props for ModalPostFooter component
- */
 export interface ModalPostFooterProps {
   activeTab: 'setup' | 'platforms';
   isLoading: boolean;
@@ -354,17 +336,11 @@ export interface ModalPostFooterProps {
   isFormValid?: boolean;
 }
 
-/**
- * Props for ModalPostSimpleHeader component (single-post modal title/description)
- */
 export interface ModalPostSimpleHeaderProps {
   title: string;
   description: string;
 }
 
-/**
- * Props for ModalPostSimpleFields component (single-post modal form fields)
- */
 export interface ModalPostSimpleFieldsProps {
   form: UseFormReturn<PostModalSchema>;
   credentials: ICredential[];
@@ -381,9 +357,6 @@ export interface ModalPostSimpleFieldsProps {
   onCredentialSelect: (credentialId: string) => void;
 }
 
-/**
- * Props for ModalPostSimpleActions component (single-post modal footer buttons)
- */
 export interface ModalPostSimpleActionsProps {
   isSubmitting: boolean;
   isOverLimit: boolean;

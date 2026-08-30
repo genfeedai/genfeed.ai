@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/integrations', () => ({
   BaseBotManager: class {
-    protected readonly logger = {
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
+    protected readonly logger: unknown;
     protected bots = new Map();
+    constructor(logger: unknown) {
+      this.logger = logger;
+    }
+    protected sanitizeErrorForLog(error: unknown) {
+      return {
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
     protected getActiveCount() {
       return this.bots.size;
     }
@@ -81,6 +85,7 @@ vi.mock('rxjs', () => ({
   firstValueFrom: vi.fn(),
 }));
 
+import { LoggerService } from '@libs/logger/logger.service';
 import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -96,6 +101,12 @@ describe('SlackBotManager', () => {
   let mockRedisService: {
     subscribe: ReturnType<typeof vi.fn>;
     unsubscribe: ReturnType<typeof vi.fn>;
+  };
+  let mockLoggerService: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
 
   const makeIntegration = (overrides: Record<string, unknown> = {}) => ({
@@ -125,11 +136,18 @@ describe('SlackBotManager', () => {
       subscribe: vi.fn().mockResolvedValue(undefined),
       unsubscribe: vi.fn().mockResolvedValue(undefined),
     };
+    mockLoggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     service = new SlackBotManager(
       mockConfigService as any,
       mockHttpService as any,
       mockRedisService as any,
+      mockLoggerService as unknown as LoggerService,
     );
   });
 

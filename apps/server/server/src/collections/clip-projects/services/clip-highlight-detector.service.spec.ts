@@ -1,4 +1,4 @@
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { AGENT_CHAT_MODEL_KEYS, LLM_DEFAULTS } from '@genfeedai/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
@@ -94,10 +94,12 @@ describe('ClipHighlightDetector', () => {
       httpService.post.mockReturnValue(of(llmResponse('[]')));
 
       await detector.detectHighlights('full text', segments, 3, {
-        model: 'openrouter/free',
+        model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
       });
 
-      expect(httpService.post.mock.calls[0][1].model).toBe('openrouter/free');
+      expect(httpService.post.mock.calls[0][1].model).toBe(
+        AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      );
     });
   });
 
@@ -279,7 +281,10 @@ describe('ClipHighlightDetector', () => {
         'full text',
         fallbackSegments,
         1,
-        { fallback: 'deterministic', model: 'openrouter/free' },
+        {
+          fallback: 'deterministic',
+          model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+        },
       );
 
       expect(result).toHaveLength(1);

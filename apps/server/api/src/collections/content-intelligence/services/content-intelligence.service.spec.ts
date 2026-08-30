@@ -3,6 +3,7 @@ import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 describe('ContentIntelligenceService Prisma boundary', () => {
   const create = vi.fn();
@@ -77,5 +78,23 @@ describe('ContentIntelligenceService Prisma boundary', () => {
         organizationId,
       },
     });
+  });
+
+  it('returns the canonical 404 when updating a missing creator analysis', async () => {
+    findUnique.mockResolvedValue(null);
+
+    try {
+      await service.updateStatus(
+        'creator-missing',
+        CreatorAnalysisStatus.FAILED,
+      );
+      expect.unreachable('expected a NotFoundException');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect((error as NotFoundException).getStatus()).toBe(404);
+      expect(error).toMatchObject({ message: 'Creator analysis not found' });
+    }
+
+    expect(update).not.toHaveBeenCalled();
   });
 });

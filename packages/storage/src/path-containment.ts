@@ -263,32 +263,3 @@ export function resolveContainedObjectKey(
 
   return `${normalizedPrefix}/${validatedCandidate}`;
 }
-
-/**
- * Validate an already-built object key under a fixed prefix while preserving
- * the key byte-for-byte.
- */
-export function assertObjectKeyWithinPrefix(
-  prefix: string,
-  key: string,
-  createError: SecurityErrorFactory,
-): string {
-  const normalizedPrefix = validateObjectKey(
-    prefix,
-    'Object key prefix',
-    createError,
-    true,
-  );
-  const validatedKey = validateObjectKey(key, 'Object key', createError, false);
-
-  if (
-    validatedKey !== normalizedPrefix &&
-    !validatedKey.startsWith(`${normalizedPrefix}/`)
-  ) {
-    throw createError(
-      `Object key must stay within prefix ${normalizedPrefix}/`,
-    );
-  }
-
-  return key;
-}

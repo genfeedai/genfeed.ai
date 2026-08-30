@@ -12,6 +12,7 @@ import {
   WorkflowInput,
   WorkflowSession,
 } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
@@ -105,8 +106,9 @@ export class DiscordBotManager
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly redisService: RedisService,
+    logger: LoggerService,
   ) {
-    super();
+    super(logger);
     this.internalApiClient = new BotInternalApiClient({
       apiKey: this.configService.API_KEY,
       apiUrl: this.configService.API_URL,
@@ -155,7 +157,10 @@ export class DiscordBotManager
         `Discord Bot Manager initialized with ${this.getActiveCount()} bots`,
       );
     } catch (error) {
-      this.logger.error('Failed to initialize Discord Bot Manager:', error);
+      this.logger.error(
+        'Failed to initialize Discord Bot Manager:',
+        this.sanitizeErrorForLog(error),
+      );
       throw error;
     }
   }
@@ -231,7 +236,10 @@ export class DiscordBotManager
     try {
       await botInstance.client.destroy();
     } catch (error) {
-      this.logger.error(`Error stopping bot ${botInstance.id}`, error);
+      this.logger.error(
+        `Error stopping bot ${botInstance.id}`,
+        this.sanitizeErrorForLog(error),
+      );
     }
   }
 
@@ -263,7 +271,10 @@ export class DiscordBotManager
       });
       this.logger.log(`Registered slash commands for bot ${clientId}`);
     } catch (error) {
-      this.logger.error('Failed to register slash commands:', error);
+      this.logger.error(
+        'Failed to register slash commands:',
+        this.sanitizeErrorForLog(error),
+      );
     }
   }
 
@@ -362,7 +373,10 @@ export class DiscordBotManager
         content: '**GenFeed AI Workflows**\nSelect a workflow to run:',
       });
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeErrorForLog(error),
+      );
       await interaction.editReply(
         'Failed to load workflows. Please try again.',
       );
@@ -589,7 +603,10 @@ export class DiscordBotManager
 
       await this.promptNextInput(sessionKey, interaction);
     } catch (error) {
-      this.logger.error('Failed to select workflow:', error);
+      this.logger.error(
+        'Failed to select workflow:',
+        this.sanitizeErrorForLog(error),
+      );
       await interaction.editReply({
         components: [],
         content: 'Failed to load workflow details. Please try again.',
@@ -838,7 +855,10 @@ export class DiscordBotManager
         void this.monitorWorkflowExecution(orgId, sessionKey, send);
       }
     } catch (error) {
-      this.logger.error('Failed to execute workflow:', error);
+      this.logger.error(
+        'Failed to execute workflow:',
+        this.sanitizeErrorForLog(error),
+      );
       const send = interaction.channel?.send;
       if (send) {
         await send(
@@ -934,7 +954,10 @@ export class DiscordBotManager
           'API returned 401 — set GENFEEDAI_API_KEY in your .env to authenticate with the API.',
         );
       } else {
-        this.logger.error('Failed to fetch integrations:', error);
+        this.logger.error(
+          'Failed to fetch integrations:',
+          this.sanitizeErrorForLog(error),
+        );
       }
       return [];
     }
@@ -954,7 +977,7 @@ export class DiscordBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and add integration ${integrationId}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -975,7 +998,7 @@ export class DiscordBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and update integration ${integrationId}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -986,7 +1009,10 @@ export class DiscordBotManager
     try {
       return await this.internalApiClient.fetchOrgWorkflows(orgId);
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeErrorForLog(error),
+      );
       return [];
     }
   }

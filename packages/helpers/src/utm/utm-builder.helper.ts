@@ -19,11 +19,6 @@ const LINK_TYPE_PATTERNS: Array<{ pattern: string; type: string }> = [
   { pattern: 'paypal.com', type: 'integration_paypal' },
 ];
 
-const logInvalidUrl = (error: unknown, url: string) => {
-  void error;
-  void url;
-};
-
 export function getLinkType(url: string): string {
   try {
     const hostname = new URL(url).hostname.toLowerCase();
@@ -60,8 +55,7 @@ export function addUTMParameters(
     urlObj.searchParams.append('utm_content', contentType);
 
     return urlObj.toString();
-  } catch (error) {
-    logInvalidUrl(error, url);
+  } catch {
     return url;
   }
 }

@@ -153,7 +153,7 @@ describe('PublicYoutubeClipsService', () => {
     expect(scheduledAnalysisJobs).toContainEqual(
       expect.objectContaining({
         highlightFallback: 'deterministic',
-        highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
         maxClips: 3,
         projectId: `public-youtube-clip-session-${'f'.repeat(64)}`,
       }),

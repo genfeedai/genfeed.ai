@@ -832,6 +832,34 @@
       "rank": "Rank #{rank}"
     }
   },
+  "referrals": {
+    "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
+    "copied": "Referral link copied",
+    "copyLink": "Copy link",
+    "creditsAmount": "{count} credits",
+    "description": "Share your link. You earn 10% of each referred customer's pay-as-you-go credit purchases for 12 months. Rewards settle after seven days; granted credits expire 12 months after they are added.",
+    "headline": "Earn 10% in credits",
+    "linkLabel": "Referral link",
+    "loadErrorDescription": "Your referral balance and reward history could not be loaded. No financial totals are shown until the request succeeds.",
+    "loadErrorTitle": "Referral rewards unavailable",
+    "loadingLink": "Loading referral link…",
+    "recentRewards": "Recent rewards",
+    "retry": "Retry",
+    "status": {
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "granted": "Granted",
+      "pending": "Pending",
+      "processing": "Processing",
+      "reversed": "Reversed"
+    },
+    "stats": {
+      "earned": "Earned",
+      "pending": "Pending",
+      "referred": "Referred"
+    },
+    "title": "Refer & earn"
+  },
   "subscription": {
     "plans": {
       "changeError": "Could not start the plan change. Please try again.",
@@ -840,9 +868,10 @@
       "creditsPerMonth": "{credits} / month",
       "current": "Current",
       "listPrice": "was {price}",
-      "prorationDowngrade": "Your bill goes down by about {amount} per month. Credit is applied to the next invoice.",
-      "prorationNoChange": "This change does not affect your monthly bill.",
-      "prorationUpgrade": "You'll be charged about {amount} more per month, prorated for the rest of this period.",
+      "prorationDowngrade": "Stripe estimates your next invoice at {amount}, including the downgrade credit.",
+      "prorationNoChange": "Stripe estimates your next invoice at {amount}.",
+      "prorationUnavailable": "Stripe could not provide a next-invoice estimate. You can still review the final amount before confirming.",
+      "prorationUpgrade": "Stripe estimates your next invoice at {amount}, including the prorated upgrade.",
       "salesContact": "Need higher limits, custom terms, or an enterprise deployment? Email {email}.",
       "switchTo": "Switch to {plan}",
       "unavailable": "This plan is not available in this environment yet.",

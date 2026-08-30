@@ -6,7 +6,7 @@
  * list. Idempotent by design: operator toggles and prices discovered from a
  * provider survive every subsequent boot.
  */
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   getModelCatalogForDeployment,
@@ -17,6 +17,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class ModelCatalogSeedService implements OnApplicationBootstrap {
@@ -137,6 +138,65 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     };
   }
 
+  /**
+   * Exactly one default per category (`models_global_default_category_key`).
+   * Demote every other row's `isDefault` *before* this entry is allowed to
+   * claim it, or the partial unique index rejects the write. The index
+   * ignores `isActive`, so a disabled-but-not-deleted row can still hold the
+   * flag and must be cleared too.
+   */
+  private async demoteOtherCategoryDefaults(
+    entry: ModelCatalogSeedEntry,
+  ): Promise<void> {
+    // tenant-scope-ignore: platform registry has no organizationId
+    await this.prisma.model.updateMany({
+      data: { isDefault: false },
+      where: {
+        category: entry.category,
+        isDefault: true,
+        isDeleted: false,
+        key: { not: entry.key },
+      },
+    });
+  }
+
+  /**
+   * Whether an *existing* row should have `isDefault` written on this boot.
+   *
+   * `undefined` means "leave it alone" — the catalog doesn't name this key as
+   * the category default, so touching the field here could demote an admin's
+   * own pin of this exact row (Settings → Models, PATCH `/models/:id`).
+   *
+   * When the catalog does name this key as the default, the seed still only
+   * self-heals: it reclaims the pin when the category has no usable
+   * (active, non-deleted) default at all, and otherwise leaves whatever
+   * already holds the pin — this row or another — untouched.
+   */
+  private async resolveUpdateIsDefault(
+    entry: ModelCatalogSeedEntry,
+  ): Promise<boolean | undefined> {
+    if (!entry.isDefault) {
+      return undefined;
+    }
+
+    // tenant-scope-ignore: platform registry has no organizationId
+    const activeDefault = await this.prisma.model.findFirst({
+      select: { key: true },
+      where: {
+        category: entry.category,
+        isActive: true,
+        isDefault: true,
+        isDeleted: false,
+      },
+    });
+
+    if (!activeDefault) {
+      return true;
+    }
+
+    return activeDefault.key === entry.key;
+  }
+
   private async upsertEntry(entry: ModelCatalogSeedEntry): Promise<void> {
     const shared = this.buildSharedFields(entry);
 
@@ -179,32 +239,35 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      // Defaults are the one exception — the router and picker need a live,
-      // public selection even when provider discovery created a hidden draft.
-      ...(entry.isDefault
-        ? {
-            isActive: true,
-            isDefault: true,
-            isDiscovered: false,
-            isPublic: true,
-          }
-        : {}),
+      // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
     };
 
-    // Exactly one default per category (`models_global_default_category_key`).
-    // Demote the previous default *before* upserting, or promoting a new key
-    // (local/e2e cheapest defaults) hits the unique index.
-    if (entry.isDefault) {
-      // tenant-scope-ignore: platform registry has no organizationId
-      await this.prisma.model.updateMany({
-        data: { isDefault: false },
-        where: {
-          category: entry.category,
-          isDefault: true,
-          isDeleted: false,
-          key: { not: entry.key },
-        },
-      });
+    // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
+    const existingRow = await this.prisma.model.findUnique({
+      select: { id: true },
+      where: { key: entry.key },
+    });
+
+    if (!existingRow) {
+      // Brand-new key: seed every field exactly once, including the
+      // catalog's declared default.
+      if (entry.isDefault) {
+        await this.demoteOtherCategoryDefaults(entry);
+      }
+    } else {
+      // Row already exists — never assert or demote `isDefault` on a routine
+      // boot beyond the self-heal case; an admin's pin must survive restarts.
+      const targetIsDefault = await this.resolveUpdateIsDefault(entry);
+
+      if (targetIsDefault !== undefined) {
+        if (targetIsDefault) {
+          await this.demoteOtherCategoryDefaults(entry);
+          updateData.isActive = true;
+          updateData.isDiscovered = false;
+          updateData.isPublic = true;
+        }
+        updateData.isDefault = targetIsDefault;
+      }
     }
 
     // tenant-scope-ignore: the seeded catalog is the platform-wide registry (organizationId null) and `key` is its only unique index

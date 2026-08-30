@@ -10,45 +10,16 @@ import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConv
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
-import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
-import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import {
-  readPreferredAgentChatModel,
-  readPreferredAgentChatPriority,
-  writePreferredAgentChatModel,
-  writePreferredAgentChatPriority,
-} from '@genfeedai/agent/stores/agent-preferred-model.store';
-import {
-  isAutoAgentModel,
-  resolveAgentModelForBalance,
-  toRuntimeAgentModel,
-} from '@genfeedai/agent/utils/agent-auto-model.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
-import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
-import {
-  AlertCategory,
-  fromRouterPriority,
-  RouterPriority,
-  toRouterPriority,
-} from '@genfeedai/enums';
-import { User } from '@genfeedai/models/auth/user.model';
-import { UsersService } from '@genfeedai/services/organization/users.service';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { AlertCategory } from '@genfeedai/enums';
 import Alert from '@ui/feedback/alert/Alert';
-import {
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -57,7 +28,6 @@ export function AgentChatContainer({
   archivedNotice,
   isLoadingThread = false,
   isReadOnly = false,
-  model,
   placeholder,
   emptyStateTitle = 'Start a thread',
   emptyStateDescription = 'Ask me to generate images, create posts, check analytics, and more',
@@ -84,231 +54,13 @@ export function AgentChatContainer({
   const composerOverlayHeightPx = useOverlayElementHeight(
     composerShell?.portalTarget ?? composerOverlayElement,
   );
-  const userContext = useOptionalUser();
-  const currentUser = userContext?.currentUser ?? null;
-  const mutateUser = userContext?.mutateUser;
-  // Only treat settings as authoritative once the user payload is present —
-  // otherwise an empty defaultAgentModel during load would force Auto forever.
-  const hasUserSettings = Boolean(currentUser?.settings);
-  const settingsDefaultModel =
-    currentUser?.settings?.defaultAgentModel?.trim() ?? '';
-  const settingsPriority =
-    toRouterPriority(currentUser?.settings?.generationPriority) ??
-    RouterPriority.BALANCED;
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
-  const hadInitialModel = useRef(Boolean(model?.trim()));
-  const persistSettingsInFlight = useRef(false);
-  const pendingSettingsPatch = useRef<{
-    defaultAgentModel?: string;
-    generationPriority?: ReturnType<typeof fromRouterPriority>;
-  } | null>(null);
-  const {
-    defaultModelKey,
-    isLoading: isRegistryModelsLoading,
-    models: registryModels,
-  } = useAgentRegistryModels(apiService);
-  // SSR-safe initials — localStorage is read only after mount (hydration).
-  const [selectedModel, setSelectedModel] = useState(
-    () => model?.trim() || UNRESOLVED_RUNTIME_AGENT_MODEL,
-  );
-  const [prioritize, setPrioritize] = useState<RouterPriority>(
-    RouterPriority.BALANCED,
-  );
-
-  useEffect(() => {
-    const preferredModel = readPreferredAgentChatModel();
-    if (!hadInitialModel.current && preferredModel) {
-      setSelectedModel(preferredModel);
-    }
-    const preferredPriority = readPreferredAgentChatPriority();
-    if (preferredPriority) {
-      setPrioritize(preferredPriority);
-    }
-    // Mount-only hydrate from localStorage.
-  }, []);
-
-  useEffect(() => {
-    // Prefer server settings once the user payload is present; otherwise keep
-    // the localStorage priority so a refresh after Lowest Cost doesn't flash
-    // back to BALANCED before hydrate.
-    if (hasUserSettings) {
-      setPrioritize(settingsPriority);
-    }
-  }, [hasUserSettings, settingsPriority]);
-
-  const persistChatDefaults = useCallback(
-    async (patch: {
-      defaultAgentModel?: string;
-      generationPriority?: ReturnType<typeof fromRouterPriority>;
-    }) => {
-      if (!currentUser?.id || !mutateUser) {
-        return;
-      }
-
-      // Merge concurrent patches (Auto priority + model clear often fire as a
-      // pair). Dropping the second call left generationPriority stuck on
-      // BALANCED after refresh.
-      pendingSettingsPatch.current = {
-        ...pendingSettingsPatch.current,
-        ...patch,
-      };
-
-      if (persistSettingsInFlight.current) {
-        return;
-      }
-
-      persistSettingsInFlight.current = true;
-      let settingsSnapshot = { ...currentUser.settings };
-      try {
-        while (pendingSettingsPatch.current) {
-          const nextPatch = pendingSettingsPatch.current;
-          pendingSettingsPatch.current = null;
-          const token = await apiService.getToken();
-          if (!token) {
-            // Do not drop the patch — re-queue so a later call can flush it.
-            pendingSettingsPatch.current = {
-              ...nextPatch,
-              ...(pendingSettingsPatch.current ?? {}),
-            };
-            return;
-          }
-          await UsersService.getInstance(token).patchSettings(
-            currentUser.id,
-            nextPatch,
-          );
-          settingsSnapshot = {
-            ...settingsSnapshot,
-            ...nextPatch,
-          };
-          mutateUser(
-            new User({
-              ...currentUser,
-              settings: settingsSnapshot,
-            }),
-          );
-        }
-      } catch {
-        // Preference patch is best-effort — UI already reflects the pick.
-      } finally {
-        persistSettingsInFlight.current = false;
-        // A patch may have been queued while we were finishing.
-        if (pendingSettingsPatch.current) {
-          void persistChatDefaults({});
-        }
-      }
-    },
-    [apiService, currentUser, mutateUser],
-  );
-
-  const handleModelChange = useCallback(
-    (nextModel: string) => {
-      const trimmed = nextModel.trim();
-      if (!trimmed) {
-        return;
-      }
-      setSelectedModel(trimmed);
-      writePreferredAgentChatModel(trimmed);
-      void persistChatDefaults({
-        defaultAgentModel: isAutoAgentModel(trimmed) ? '' : trimmed,
-      });
-    },
-    [persistChatDefaults],
-  );
-
-  const handlePrioritizeChange = useCallback(
-    (next: RouterPriority) => {
-      setPrioritize(next);
-      writePreferredAgentChatPriority(next);
-      // Selecting a priority also means Auto — clear any pinned model override.
-      setSelectedModel(AUTO_MODEL_OPTION_VALUE);
-      writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
-      void persistChatDefaults({
-        defaultAgentModel: '',
-        generationPriority: fromRouterPriority(next),
-      });
-    },
-    [persistChatDefaults],
-  );
-
-  useEffect(() => {
-    if (isRegistryModelsLoading) {
-      return;
-    }
-    if (registryModels.length === 0) {
-      if (selectedModel) {
-        setSelectedModel(UNRESOLVED_RUNTIME_AGENT_MODEL);
-      }
-      return;
-    }
-    // Explicit Auto is first-class — never replace it with a registry default.
-    if (isAutoAgentModel(selectedModel)) {
-      writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
-      return;
-    }
-    const keys = new Set(registryModels.map((entry) => entry.key));
-    if (selectedModel && keys.has(selectedModel)) {
-      // Keep a valid user pick durable across reloads.
-      writePreferredAgentChatModel(selectedModel);
-      return;
-    }
-    const preferred = readPreferredAgentChatModel();
-    // Wait for user settings before pinning a first default so empty
-    // defaultAgentModel can land as Auto instead of racing the registry.
-    if (!preferred && !model?.trim() && !hasUserSettings) {
-      return;
-    }
-    const settingsOverride =
-      settingsDefaultModel && keys.has(settingsDefaultModel)
-        ? settingsDefaultModel
-        : null;
-    // Empty defaultAgentModel = Auto (Settings → Chat Defaults).
-    const settingsMeansAuto = hasUserSettings && !settingsDefaultModel;
-    const next =
-      (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
-      (preferred === AUTO_MODEL_OPTION_VALUE
-        ? AUTO_MODEL_OPTION_VALUE
-        : preferred && keys.has(preferred)
-          ? preferred
-          : null) ||
-      (settingsMeansAuto ? AUTO_MODEL_OPTION_VALUE : null) ||
-      settingsOverride ||
-      defaultModelKey ||
-      registryModels[0]?.key ||
-      UNRESOLVED_RUNTIME_AGENT_MODEL;
-    if (next !== selectedModel) {
-      setSelectedModel(next);
-      if (next) {
-        writePreferredAgentChatModel(next);
-      }
-    }
-  }, [
-    defaultModelKey,
-    hasUserSettings,
-    isRegistryModelsLoading,
-    model,
-    registryModels,
-    selectedModel,
-    settingsDefaultModel,
-  ]);
-
-  const effectiveSelectedModel = resolveAgentModelForBalance(
-    selectedModel,
-    creditsRemaining,
-    registryModels.map((entry) => entry.key),
-  );
-
-  // Auto normally omits model so the server resolves via defaults + priority.
-  // At zero balance the effective selection is the explicit free registry row.
-  const runtimeModel =
-    toRuntimeAgentModel(effectiveSelectedModel) ||
-    UNRESOLVED_RUNTIME_AGENT_MODEL;
 
   const container = useAgentChatContainer({
     apiService,
     isLoadingThread,
     isReadOnly,
     isStreaming,
-    model: runtimeModel,
     onOnboardingCompleted,
     onCopy,
     onRegenerate,
@@ -489,13 +241,7 @@ export function AgentChatContainer({
             placeholder={placeholder}
             promptBarSuggestions={emptyStatePromptBarSuggestions}
             removeAttachment={container.removeAttachment}
-            selectedModel={effectiveSelectedModel}
-            onModelChange={handleModelChange}
-            onPrioritizeChange={handlePrioritizeChange}
-            prioritize={prioritize}
             creditsAvailable={creditsRemaining}
-            models={registryModels}
-            isModelsLoading={isRegistryModelsLoading}
           />
         ) : (
           <AgentChatContainerThreadView
@@ -588,9 +334,7 @@ export function AgentChatContainer({
               onClearError={() => container.setError(null)}
               onOverlayElement={setComposerOverlayElement}
               creditsAvailable={creditsRemaining}
-              onModelChange={handleModelChange}
               onMoveFollowUp={container.followUpQueue.move}
-              onPrioritizeChange={handlePrioritizeChange}
               onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
               onRemoveFollowUp={container.followUpQueue.remove}
               onRetryFollowUp={container.retryFollowUp}
@@ -605,12 +349,8 @@ export function AgentChatContainer({
                   : null
               }
               placeholder={placeholder}
-              prioritize={prioritize}
               promptBarSuggestions={promptBarSuggestions}
               removeAttachment={container.removeAttachment}
-              selectedModel={effectiveSelectedModel}
-              models={registryModels}
-              isModelsLoading={isRegistryModelsLoading}
               showSuggestedActionsWhenNotEmpty={
                 showSuggestedActionsWhenNotEmpty
               }

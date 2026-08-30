@@ -1,4 +1,5 @@
 import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -44,6 +45,12 @@ describe('TelegramBotManager', () => {
   let service: TelegramBotManager;
   let _configService: Mocked<ConfigService>;
   let httpService: Mocked<HttpService>;
+  let loggerService: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let redisService: Mocked<RedisService>;
 
   const mockIntegration: OrgIntegration = {
@@ -78,10 +85,17 @@ describe('TelegramBotManager', () => {
       subscribe: vi.fn(),
       unsubscribe: vi.fn(),
     };
+    loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TelegramBotManager,
+        { provide: LoggerService, useValue: loggerService },
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -165,8 +179,23 @@ describe('TelegramBotManager', () => {
       );
     });
 
-    it('should handle API errors during initialization', async () => {
-      const error = new Error('API Error');
+    it('should sanitize token-bearing API errors during initialization', async () => {
+      const token = 'telegram-secret-token';
+      const error = Object.assign(
+        new Error(`Request failed with Authorization: Bearer ${token}`),
+        {
+          code: 'ERR_UNAUTHORIZED',
+          config: {
+            headers: { Authorization: `Bearer ${token}` },
+            url: `https://api.telegram.org/bot${token}/getMe`,
+          },
+          response: {
+            data: { token },
+            status: 401,
+            statusText: 'Unauthorized',
+          },
+        },
+      );
       httpService.get.mockReturnValue(throwError(() => error));
 
       // fetchActiveIntegrations catches the error and returns [],
@@ -175,7 +204,15 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Failed to fetch integrations:',
-        error,
+        {
+          code: 'ERR_UNAUTHORIZED',
+          message: 'Request failed with Authorization: [REDACTED] [REDACTED]',
+          status: 401,
+          statusText: 'Unauthorized',
+        },
+      );
+      expect(JSON.stringify(loggerService.error.mock.calls)).not.toContain(
+        token,
       );
       expect(service.logger.log).toHaveBeenCalledWith(
         'Telegram Bot Manager initialized with 0 bots',
@@ -310,7 +347,7 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Error stopping bot test-bot',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });
@@ -420,7 +457,7 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Failed to fetch and add integration test-id:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'Fetch failed' }),
       );
       expect(service.getActiveCount()).toBe(0);
     });
@@ -455,7 +492,7 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Failed to fetch and update integration test-id:',
-        expect.any(Error),
+        expect.objectContaining({ message: 'Fetch failed' }),
       );
     });
   });
@@ -486,7 +523,7 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Failed to fetch integrations:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
       expect(result).toEqual([]);
     });
@@ -526,7 +563,7 @@ describe('TelegramBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         'Failed to fetch workflows:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
       expect(result).toEqual([]);
     });

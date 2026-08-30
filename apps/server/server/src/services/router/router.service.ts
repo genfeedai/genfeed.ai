@@ -314,9 +314,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Score based on user priority preference
-   */
   private scorePriority(model: ModelDocument, prioritize: string): number {
     if (prioritize === 'speed' && model.speedTier === 'fast') {
       return 50;
@@ -383,9 +380,6 @@ export class RouterService {
     return null;
   }
 
-  /**
-   * Score based on quality tier (when not prioritizing quality)
-   */
   private scoreQualityTier(model: ModelDocument, prioritize: string): number {
     if (prioritize === 'quality' || !model.qualityTier) {
       return 0;
@@ -393,9 +387,6 @@ export class RouterService {
     return RouterService.QUALITY_TIER_SCORES[model.qualityTier] || 0;
   }
 
-  /**
-   * Score based on prompt analysis match
-   */
   private scoreAnalysisMatch(
     model: ModelDocument,
     analysis: PromptAnalysis,
@@ -422,9 +413,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Score based on keyword matching
-   */
   private scoreKeywordMatch(
     model: ModelDocument,
     analysis: PromptAnalysis,
@@ -449,9 +437,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Score based on dimension requirements
-   */
   private scoreDimensions(
     model: ModelDocument,
     options: ModelSelectionOptions,
@@ -479,9 +464,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Score based on feature requirements
-   */
   private scoreFeatures(
     model: ModelDocument,
     options: ModelSelectionOptions,
@@ -507,9 +489,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Score based on prompt complexity
-   */
   private scoreComplexity(
     model: ModelDocument,
     analysis: PromptAnalysis,
@@ -527,9 +506,6 @@ export class RouterService {
     return 0;
   }
 
-  /**
-   * Score based on model flags
-   */
   private scoreModelFlags(model: ModelDocument): number {
     let score = 0;
     if (model.isDefault) {
@@ -541,9 +517,6 @@ export class RouterService {
     return score;
   }
 
-  /**
-   * Analyze prompt to understand requirements
-   */
   private analyzePrompt(prompt: string): PromptAnalysis {
     const lowerPrompt = prompt.toLowerCase();
 
@@ -605,10 +578,6 @@ export class RouterService {
     };
   }
 
-  /**
-   * Select the best model from a list using scoring
-   * Returns the model with the highest score
-   */
   private selectBestModel(
     models: ModelDocument[],
     options: ModelSelectionOptions,
@@ -641,9 +610,6 @@ export class RouterService {
     return scoredModels[0].model;
   }
 
-  /**
-   * Get alternative model recommendations from the models array
-   */
   private getAlternativesFromModels(
     selectedModelKey: string,
     models: ModelDocument[],
@@ -687,9 +653,6 @@ export class RouterService {
     return scoredModels.sort((a, b) => b.score - a.score).slice(0, 2);
   }
 
-  /**
-   * Main method to select optimal model
-   */
   async selectModel(
     options: ModelSelectionOptions,
   ): Promise<ModelRecommendation> {
@@ -810,9 +773,6 @@ export class RouterService {
     }
   }
 
-  /**
-   * Generate human-readable reason for selection
-   */
   private generateReason(
     analysis: PromptAnalysis,
     model: ModelDocument,

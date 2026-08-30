@@ -103,14 +103,6 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
     },
     {
       group: 'Account',
-      href: APP_ROUTES.SETTINGS.CHAT,
-      hrefScope: 'personal',
-      label: 'Chat',
-      outline: MessageSquare,
-      solid: MessageSquare,
-    },
-    {
-      group: 'Account',
       href: APP_ROUTES.SETTINGS.PROGRESS,
       hrefScope: 'personal',
       label: 'Progress',

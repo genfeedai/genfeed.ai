@@ -22,24 +22,6 @@ export class YoutubeAnalyticsService {
     this.youtubeAPI = google.youtube({ version: 'v3' });
   }
 
-  getTrends(
-    organizationId?: string,
-    brandId?: string,
-    regionCode = 'US',
-  ): unknown[] {
-    const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
-
-    this.loggerService.log(url);
-
-    return [
-      { mentions: 450000, regionCode, topic: 'AI Technology', url: '' },
-      { mentions: 380000, topic: 'Gaming', url: '' },
-      { mentions: 320000, regionCode, topic: 'Music Videos', url: '' },
-      { mentions: 280000, regionCode, topic: 'Tutorials', url: '' },
-      { mentions: 240000, regionCode, topic: 'Vlogs', url: '' },
-    ];
-  }
-
   async getChannelDetails(
     organizationId: string,
     brandId: string,

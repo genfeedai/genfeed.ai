@@ -400,6 +400,40 @@ describe('WebhookClientProcessor', () => {
     expect(diagnostics).not.toContain('raw-webhook-secret');
   });
 
+  it('does not serialize arbitrary thrown objects into webhook diagnostics', async () => {
+    httpService.post.mockReturnValue(
+      throwError(() => ({ privatePayload: 'must-not-be-persisted' })),
+    );
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'https://8.8.8.8/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'target.failed',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'publish-webhook-object-error',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await expect(processor.process(job as never)).rejects.toThrow(
+      'Webhook delivery failed',
+    );
+    expect(
+      organizationSettingsService.recordWebhookDeliveryStatus,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ error: 'Webhook delivery failed' }),
+    );
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
+      'must-not-be-persisted',
+    );
+  });
+
   it('uses the bounded timeout and rethrows a sanitized timeout for retry', async () => {
     const error = Object.assign(
       new Error('timeout after 30000ms access_token=raw-access-token'),

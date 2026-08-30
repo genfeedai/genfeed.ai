@@ -106,6 +106,27 @@ describe('TrendTriggerExecutor', () => {
       expect((result.data as TrendTriggerOutput).trendId).toBe('t-1');
     });
 
+    it('uses the calibrated default threshold when none is configured', async () => {
+      const checker = vi.fn().mockResolvedValue(null);
+      const exec = createTrendTriggerExecutor(checker);
+
+      await exec.execute({
+        context: ctx,
+        inputs: new Map(),
+        node: {
+          config: { platform: 'tiktok', trendType: 'video' },
+          id: '1',
+          inputs: [],
+          label: 'T',
+          type: 'trendTrigger',
+        },
+      });
+
+      expect(checker).toHaveBeenCalledWith(
+        expect.objectContaining({ minViralScore: 70 }),
+      );
+    });
+
     it('passes keywords and platform from inputs when provided', async () => {
       const checker = vi.fn().mockResolvedValue(null);
       const exec = createTrendTriggerExecutor(checker);

@@ -18,6 +18,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      '@genfeedai/helpers/security/redact-sensitive-value.helper': path.resolve(
+        pkgDir,
+        '../helpers/src/security/redact-sensitive-value.helper.ts',
+      ),
       '@genfeedai/config/deployment': path.resolve(
         pkgDir,
         '../config/src/deployment.ts',

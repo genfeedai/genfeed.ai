@@ -39,7 +39,8 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 ## Toolchain and supported operating systems
 
 - Node.js `>=24 <25`
-- Bun `1.3.14`
+- Bun latest stable (resolved from `.bun-version`; the exact `packageManager`
+  value is Turborepo compatibility metadata, not the installer selector)
 - Docker Engine with Docker Compose v2, or Docker Desktop, for PostgreSQL and
   Redis (and for the Community distribution)
 
@@ -172,7 +173,7 @@ the issue.
   maintainer or a triage agent confirms or rewrites the acceptance criteria,
   applies labels, and places it on
   [Project #12](https://github.com/orgs/genfeedai/projects/12).
-- **Priority is a Project #12 field, never a label.**
+- **Priority is a native organization Issue Field surfaced on Project #12, never a label.**
 - If you want to work on an issue, say so in a comment. Issues labelled
   `good first issue` and `help wanted` are pre-scoped for outside contributors.
 

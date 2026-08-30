@@ -1,4 +1,5 @@
 import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Logger } from '@nestjs/common';
@@ -81,6 +82,15 @@ describe('SlackBotManager', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SlackBotManager,
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -304,7 +314,7 @@ describe('SlackBotManager', () => {
       expect(service.getActiveCount()).toBe(0);
       expect(loggerRef.error).toHaveBeenCalledWith(
         'Failed to add integration slack-integration-1:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });

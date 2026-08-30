@@ -1,8 +1,9 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { StudioLooksController } from '@api/collections/studio-looks/controllers/studio-looks.controller';
 import { StudioLooksQueryDto } from '@api/collections/studio-looks/dto/studio-looks-query.dto';
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
+import { RouterPriority } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -51,6 +52,36 @@ describe('StudioLooksController', () => {
       lighting: '',
       mood: '',
       promptTemplate: '',
+      scene: '',
+      style: '',
+    };
+    service.createScoped.mockResolvedValueOnce({ id: 'look-1', ...dto });
+
+    await controller.create(request, user, dto);
+
+    expect(service.createScoped).toHaveBeenCalledWith(dto, {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'opaque-user-id',
+    });
+  });
+
+  it('forwards the widened Generation Setup fields on create', async () => {
+    const dto = {
+      aspectRatio: '16:9',
+      assetType: 'image' as const,
+      brandingMode: 'brand' as const,
+      camera: '',
+      isPromptEnhanceEnabled: true,
+      label: 'Editorial',
+      lens: '',
+      lighting: '',
+      modelKey: '',
+      mood: '',
+      outputs: 4,
+      prioritize: RouterPriority.BALANCED,
+      promptTemplate: '',
+      resolution: '1080p',
       scene: '',
       style: '',
     };

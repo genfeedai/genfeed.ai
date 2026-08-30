@@ -9,15 +9,27 @@ import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
 
 export type StudioLookAssetType = 'image' | 'video';
 
-/** Every visual field captured by a named, brand-shared Studio Look. */
+/**
+ * Every field captured by a named, brand-shared Studio preset. Look fields are
+ * required; the wider setup fields (model, output, brand) are optional so
+ * pre-widening rows stay valid.
+ */
 export interface StudioLookPayload {
+  aspectRatio?: string | null;
+  brandingMode?: 'brand' | 'off' | null;
   camera: string;
   /** Present only for video Looks. Image Looks always persist this as null. */
   cameraMovement?: string | null;
+  duration?: number | null;
+  isPromptEnhanceEnabled?: boolean;
   lens: string;
   lighting: string;
+  modelKey?: string | null;
   mood: string;
+  outputs?: number | null;
+  prioritize?: RouterPriority | null;
   promptTemplate: string;
+  resolution?: string | null;
   scene: string;
   style: string;
 }

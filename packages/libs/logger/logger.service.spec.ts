@@ -157,6 +157,31 @@ describe('LoggerService', () => {
         }),
       );
     });
+
+    it('serializes an Error passed as the message by Nest lifecycle hooks', () => {
+      const lifecycleError = new TypeError('Shutdown failed');
+
+      service.error(lifecycleError);
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        'Shutdown failed',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Shutdown failed',
+            name: 'TypeError',
+            stack: expect.stringContaining('Shutdown failed'),
+          }),
+        }),
+      );
+    });
+
+    it('redacts a structured message instead of throwing', () => {
+      service.error({ apiKey: 'raw-secret', message: 'Provider failed' });
+
+      expect(mockWinston.error).toHaveBeenCalledWith('Provider failed', {
+        error: { apiKey: '[REDACTED]', message: 'Provider failed' },
+      });
+    });
   });
 
   describe('context normalization', () => {

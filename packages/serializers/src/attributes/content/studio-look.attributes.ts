@@ -14,4 +14,12 @@ export const studioLookAttributes = createEntityAttributes([
   'lens',
   'lighting',
   'cameraMovement',
+  'modelKey',
+  'prioritize',
+  'outputs',
+  'aspectRatio',
+  'duration',
+  'resolution',
+  'brandingMode',
+  'isPromptEnhanceEnabled',
 ]);

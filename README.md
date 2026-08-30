@@ -232,7 +232,8 @@ their package metadata.
 **Repository docs** (`docs/` in this tree) are for contributors and
 self-hosters: [self-hosting](docs/self-hosting.md),
 [deployment modes](docs/deployment-modes.md),
-[architecture](docs/architecture.md), [agent surface](docs/agent-surface.md).
+[architecture](docs/architecture.md), [agent surface](docs/agent-surface.md),
+and [native referral credits](docs/referral-credits.md).
 **[docs.genfeed.ai](https://docs.genfeed.ai)** is the product and API
 documentation for people using Genfeed. Each side links the other; neither
 duplicates the other.

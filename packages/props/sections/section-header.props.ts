@@ -16,6 +16,5 @@ export interface SectionHeaderProps {
   align?: SectionHeaderAlign;
   /** Size variant affecting typography */
   size?: SectionHeaderSize;
-  /** Additional CSS classes */
   className?: string;
 }

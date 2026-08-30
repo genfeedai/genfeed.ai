@@ -1,11 +1,17 @@
+import {
+  REDACTED_VALUE,
+  redactSensitiveValue,
+} from '@genfeedai/helpers/security/redact-sensitive-value.helper';
 import { type IntegrationEvent, REDIS_EVENTS } from './constants';
 import type { BotManager, OrgIntegration } from './types';
 
+const TELEGRAM_BOT_TOKEN_PATTERN = /\d{6,}:[A-Za-z0-9_-]{20,}\b/g;
+
 export interface BotManagerLogger {
-  debug: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-  log: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
+  debug(message: string, context?: unknown): void;
+  error(message: string, trace?: unknown, context?: unknown): void;
+  log(message: string, context?: unknown): void;
+  warn(message: string, context?: unknown): void;
 }
 
 /**
@@ -14,8 +20,9 @@ export interface BotManagerLogger {
 export abstract class BaseBotManager<TBotInstance = unknown>
   implements BotManager
 {
-  protected logger: BotManagerLogger = console;
   protected readonly bots = new Map<string, TBotInstance>();
+
+  protected constructor(protected readonly logger: BotManagerLogger) {}
 
   abstract initialize(): Promise<void>;
   abstract shutdown(): Promise<void>;
@@ -43,7 +50,10 @@ export abstract class BaseBotManager<TBotInstance = unknown>
 
       this.logger.log(`Successfully added integration ${integration.id}`);
     } catch (error) {
-      this.logger.error(`Failed to add integration ${integration.id}:`, error);
+      this.logger.error(
+        `Failed to add integration ${integration.id}:`,
+        this.sanitizeErrorForLog(error),
+      );
       throw error;
     }
   }
@@ -64,7 +74,7 @@ export abstract class BaseBotManager<TBotInstance = unknown>
     } catch (error) {
       this.logger.error(
         `Failed to update integration ${integration.id}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
       throw error;
     }
@@ -85,7 +95,7 @@ export abstract class BaseBotManager<TBotInstance = unknown>
     } catch (error) {
       this.logger.error(
         `Failed to remove integration ${integrationId}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
       throw error;
     }
@@ -119,8 +129,56 @@ export abstract class BaseBotManager<TBotInstance = unknown>
           this.logger.warn(`Unknown Redis event: ${event}`);
       }
     } catch (error) {
-      this.logger.error(`Failed to handle Redis event ${event}:`, error);
+      this.logger.error(
+        `Failed to handle Redis event ${event}:`,
+        this.sanitizeErrorForLog(error),
+      );
     }
+  }
+
+  /**
+   * Reduce errors to useful diagnostics before they cross the logging boundary.
+   * Request clients attach credentials to config, headers, and response bodies;
+   * those objects must never be handed to a logger, even one with redaction.
+   */
+  protected sanitizeErrorForLog(error: unknown): Record<string, unknown> {
+    let safeError: Record<string, unknown>;
+
+    if (error instanceof Error) {
+      const requestError = error as Error & {
+        code?: unknown;
+        response?: { status?: unknown; statusText?: unknown };
+      };
+      safeError = {
+        code: requestError.code,
+        message: error.message,
+        status: requestError.response?.status,
+        statusText: requestError.response?.statusText,
+      };
+    } else if (typeof error === 'object' && error !== null) {
+      const errorRecord = error as Record<string, unknown>;
+      safeError = {
+        code: errorRecord.code,
+        message: errorRecord.message,
+        name: errorRecord.name,
+      };
+    } else {
+      safeError = { raw: String(error) };
+    }
+
+    const redactedError = redactSensitiveValue(safeError) as Record<
+      string,
+      unknown
+    >;
+
+    return Object.fromEntries(
+      Object.entries(redactedError).map(([key, value]) => [
+        key,
+        typeof value === 'string'
+          ? value.replace(TELEGRAM_BOT_TOKEN_PATTERN, REDACTED_VALUE)
+          : value,
+      ]),
+    );
   }
 
   protected abstract fetchAndAddIntegration(

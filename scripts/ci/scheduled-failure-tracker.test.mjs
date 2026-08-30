@@ -2,6 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  AREA_INFRA,
+  BLAST_RADIUS_INFRA,
+  ISSUE_TYPE_BUG,
+  PRIORITY_P0,
+} from './genfeed-project-board.mjs';
+import {
   buildScheduledFailureBody,
   classifyScheduledFailure,
   computeFailureFingerprint,
@@ -66,11 +72,29 @@ function githubFixture() {
     },
     graphql: async (query, variables) => {
       calls.graphql.push({ query, variables });
+      if (query.includes('updateIssue(')) {
+        return {
+          updateIssue: {
+            issue: {
+              id: variables.issueId,
+              issueType: { id: ISSUE_TYPE_BUG },
+              issueFieldValues: {
+                nodes: [
+                  { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                  { field: { name: 'Area' }, value: AREA_INFRA },
+                  {
+                    field: { name: 'Blast radius' },
+                    value: BLAST_RADIUS_INFRA,
+                  },
+                ],
+              },
+            },
+          },
+        };
+      }
       return query.includes('addProjectV2ItemById')
         ? { addProjectV2ItemById: { item: { id: 'ITEM_1' } } }
-        : {
-            updateProjectV2ItemFieldValue: { projectV2Item: { id: 'ITEM_1' } },
-          };
+        : { unexpectedMutation: true };
     },
   };
   return { calls, github, issues };

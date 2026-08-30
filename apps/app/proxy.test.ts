@@ -1391,17 +1391,11 @@ describe('proxy', () => {
       makeSignedInRequest('/settings/notifications'),
       {} as never,
     );
-    const chat = await proxy(
-      makeSignedInRequest('/settings/chat'),
-      {} as never,
-    );
 
     expect(personalHome.status).toBe(200);
     expect(personalHome.headers.get('location')).toBeNull();
     expect(notifications.status).toBe(200);
     expect(notifications.headers.get('location')).toBeNull();
-    expect(chat.status).toBe(200);
-    expect(chat.headers.get('location')).toBeNull();
   });
 
   it('redirects signed-in bare protected routes to agent onboarding when no projects exist', async () => {

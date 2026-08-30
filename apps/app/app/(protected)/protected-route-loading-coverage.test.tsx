@@ -1,8 +1,13 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRouterDirs = ['apps/app/app', 'apps/website/app'] as const;
+const routeLoadingShells = [
+  'apps/app/app/(protected)/[orgSlug]/[brandSlug]/loading.tsx',
+  'apps/app/app/(protected)/admin/loading.tsx',
+  'apps/website/app/(content)/loading.tsx',
+] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;
@@ -39,8 +44,8 @@ function collectRouteLoadingFiles(
   });
 }
 
-describe('protected route loading coverage', () => {
-  it('keeps app-router pages content-first instead of route-skeleton-first', () => {
+describe('route loading shell coverage', () => {
+  it('defines loading shells only at the shared route-group boundaries', () => {
     const routeLoadingFiles = appRouterDirs.flatMap((appRouterDir) => {
       const absoluteAppRouterDir = join(repoRoot, appRouterDir);
 
@@ -54,6 +59,15 @@ describe('protected route loading coverage', () => {
       ).map((route) => join(appRouterDir, route));
     });
 
-    expect(routeLoadingFiles).toEqual([]);
+    expect(routeLoadingFiles.sort()).toEqual([...routeLoadingShells].sort());
+  });
+
+  it.each(routeLoadingShells)('reuses LazyLoadingFallback in %s', (route) => {
+    const source = readFileSync(join(repoRoot, route), 'utf8');
+
+    expect(source).toContain(
+      "import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback'",
+    );
+    expect(source).toContain('return <LazyLoadingFallback variant="grid" />;');
   });
 });

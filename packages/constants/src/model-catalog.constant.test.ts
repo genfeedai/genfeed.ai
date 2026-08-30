@@ -101,8 +101,14 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       expect(row?.isLegacy).toBe(true);
       expect(row?.isActive).toBe(false);
       expect(row?.succeededBy).toBe(succeededBy);
-      // A stale binding must never bill at zero.
-      expect(row?.cost).toBeGreaterThan(0);
+      // A stale binding must never bill at zero by accident. Zero is only
+      // legitimate when the successor is declared free — then the row must
+      // carry the deliberate `isFree` marker.
+      if (row?.isFree) {
+        expect(row.cost).toBe(0);
+      } else {
+        expect(row?.cost).toBeGreaterThan(0);
+      }
     }
   });
 
@@ -118,9 +124,9 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(unpricedActiveRows).toEqual([]);
   });
 
-  it('marks the zero-cost auto-router free rather than leaving it unpriced', () => {
+  it('marks the zero-cost pinned default free rather than leaving it unpriced', () => {
     const freeRow = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
 
     expect(freeRow?.isFree).toBe(true);

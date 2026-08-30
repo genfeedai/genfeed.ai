@@ -146,17 +146,12 @@ vi.mock('@ui/buttons/base/Button', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
   AgentChatContainer: function MockAgentChatContainer(props: {
     promptBarLayoutMode?: string;
-    onModelChange?: (model: string) => void;
   }) {
     return (
       <div
         data-testid="agent-chat-container"
         data-prompt-layout-mode={props.promptBarLayoutMode}
-      >
-        <button type="button" onClick={() => props.onModelChange?.('gpt-5')}>
-          change model
-        </button>
-      </div>
+      />
     );
   },
 }));

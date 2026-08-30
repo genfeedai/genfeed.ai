@@ -245,17 +245,67 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   ),
 }));
 
-import {
-  clearPreferredAgentChatModel,
-  clearPreferredGenerationPrefs,
-  readPreferredAgentChatModel,
-  writePreferredGenerationModel,
-  writePreferredGenerationOutputs,
-  writePreferredGenerationPriority,
-} from '@genfeedai/agent/stores/agent-preferred-model.store';
+import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  buildAgentGenerationSetupScope,
+  setGenerationSetupField,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { GenerationActionCard } from './GenerationActionCard';
+
+interface AgentGenerationScopeParams {
+  generationType: 'image' | 'video';
+  threadId: string | null;
+}
+
+function writePreferredGenerationModel(
+  value: string,
+  scopeParams: AgentGenerationScopeParams,
+): void {
+  const scope = buildAgentGenerationSetupScope(
+    scopeParams.threadId,
+    scopeParams.generationType,
+  );
+  const defaults = buildDefaultAgentGenerationSetupValues(
+    scopeParams.generationType,
+  );
+  setGenerationSetupField(
+    scope,
+    'modelKey',
+    value === AUTO_MODEL_OPTION_VALUE ? '' : value,
+    defaults,
+  );
+}
+
+function writePreferredGenerationOutputs(
+  value: number,
+  scopeParams: AgentGenerationScopeParams,
+): void {
+  const scope = buildAgentGenerationSetupScope(
+    scopeParams.threadId,
+    scopeParams.generationType,
+  );
+  const defaults = buildDefaultAgentGenerationSetupValues(
+    scopeParams.generationType,
+  );
+  setGenerationSetupField(scope, 'outputs', value, defaults);
+}
+
+function writePreferredGenerationPriority(
+  value: RouterPriority,
+  scopeParams: AgentGenerationScopeParams,
+): void {
+  const scope = buildAgentGenerationSetupScope(
+    scopeParams.threadId,
+    scopeParams.generationType,
+  );
+  const defaults = buildDefaultAgentGenerationSetupValues(
+    scopeParams.generationType,
+  );
+  setGenerationSetupField(scope, 'prioritize', value, defaults);
+}
 
 function createModel(
   overrides: Partial<IModel> & Pick<IModel, 'key' | 'label'>,
@@ -387,8 +437,8 @@ describe('GenerationActionCard', () => {
     capturedModelSelectorPopoverProps.prioritize = undefined;
     capturedModelSelectorPopoverProps.selectionMode = undefined;
     capturedModelSelectorPopoverProps.values = undefined;
-    clearPreferredAgentChatModel();
-    clearPreferredGenerationPrefs();
+    window.localStorage.clear();
+    useGenerationSetupStore.setState({ reasonsByScope: {}, setupByScope: {} });
   });
 
   it('keeps the prompt field compact and opens an editable full prompt', async () => {
@@ -806,7 +856,6 @@ describe('GenerationActionCard', () => {
     expect(
       screen.getByRole('button', { name: /number of outputs/i }),
     ).toHaveTextContent('3x');
-    expect(readPreferredAgentChatModel()).toBeNull();
 
     first.unmount();
 
@@ -820,7 +869,6 @@ describe('GenerationActionCard', () => {
     expect(
       screen.getByRole('button', { name: /number of outputs/i }),
     ).toHaveTextContent('3x');
-    expect(readPreferredAgentChatModel()).toBeNull();
   });
 
   it('hydrates a stored generation model over the action pin', async () => {

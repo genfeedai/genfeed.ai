@@ -38,4 +38,17 @@ describe('messages/replies/replies-page.tsx', () => {
     expect(source).not.toContain("=== 'YOUTUBE'");
     expect(source).not.toContain("=== 'youtube'");
   });
+
+  it('uses the canonical Button disabled-state prop', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/messages/replies/replies-page.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain('isDisabled={isEnabling}');
+    expect(source).not.toMatch(/\sdisabled=/);
+  });
 });

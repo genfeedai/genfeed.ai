@@ -16,6 +16,11 @@ import type {
   ToolCallSummary,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import {
+  buildCampaignPreparationCacheKey,
+  readCampaignConfirmationSourceActionId,
+  readPreparedCampaignTransition,
+} from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   type AgentArtifactCompletionMetadata,
@@ -28,6 +33,7 @@ import {
 } from '@server/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { normalizeUiBlocks } from '@server/services/agent-orchestrator/utils/agent-ui-blocks.util';
+import { CacheService } from '@server/services/cache/cache.service';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
@@ -163,6 +169,11 @@ export type ExecuteToolRoundResult = {
   terminalToolName?: AgentToolName;
 };
 
+type ConfirmedCampaignIntent = {
+  campaignId: string;
+  sourceActionId: string;
+};
+
 function summarizeToolResult(result: {
   data?: Record<string, unknown>;
   error?: string;
@@ -198,6 +209,7 @@ export class AgentTurnRoundRunnerService {
     private readonly loggerService: LoggerService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -250,6 +262,10 @@ export class AgentTurnRoundRunnerService {
       threadId,
       toolCalls,
     } = params;
+    const currentOperatorMessage = this.readCurrentOperatorMessage(
+      messages,
+      source,
+    );
 
     messages.push({
       content: assistantContent,
@@ -513,6 +529,44 @@ export class AgentTurnRoundRunnerService {
         }
       }
 
+      const confirmedCampaignIntent = await this.resolveConfirmedCampaignIntent(
+        toolName,
+        currentOperatorMessage,
+        context.organizationId,
+        threadId,
+      );
+      if (this.isCampaignConfirmationTool(toolName)) {
+        if (confirmedCampaignIntent) {
+          toolParams = {
+            campaignId: confirmedCampaignIntent.campaignId,
+            confirmed: true,
+            sourceActionId: confirmedCampaignIntent.sourceActionId,
+          };
+        } else {
+          const claimedConfirmation =
+            toolParams.confirmed === true ||
+            toolParams.sourceActionId !== undefined;
+          if (claimedConfirmation) {
+            this.loggerService.warn(
+              'Rejected untrusted campaign confirmation proof',
+              {
+                campaignId: toolParams.campaignId,
+                organizationId: context.organizationId,
+                threadId,
+                toolName,
+                userId: context.userId,
+              },
+            );
+          }
+          const {
+            confirmed: _untrustedConfirmed,
+            sourceActionId: _untrustedSourceActionId,
+            ...unconfirmedParams
+          } = toolParams;
+          toolParams = unconfirmedParams;
+        }
+      }
+
       const result = await this.toolExecutorService.executeTool(
         toolName,
         toolParams,
@@ -532,12 +586,22 @@ export class AgentTurnRoundRunnerService {
           qualityTier: policy.qualityTier,
           reviewModelOverride: policy.reviewModelOverride,
           runId: context.executionId,
+          ...(confirmedCampaignIntent
+            ? {
+                confirmationOrigin: 'thread-ui-action' as const,
+                sourceActionId: confirmedCampaignIntent.sourceActionId,
+              }
+            : {}),
           strategyId: context.strategyId,
           thinkingModel,
           threadId,
           userId: context.userId,
           validatedScope: policy.scope,
         },
+      );
+      const modelVisibleResult = this.buildModelVisibleToolResult(
+        toolName,
+        result,
       );
 
       const durationMs = Date.now() - startTime;
@@ -597,7 +661,7 @@ export class AgentTurnRoundRunnerService {
         durationMs,
         error: result.error,
         parameters: toolParams,
-        resultSummary: summarizeToolResult(result),
+        resultSummary: summarizeToolResult(modelVisibleResult),
         status: result.success ? 'completed' : 'failed',
         toolName,
       };
@@ -652,7 +716,7 @@ export class AgentTurnRoundRunnerService {
       }
 
       messages.push({
-        content: JSON.stringify(result),
+        content: JSON.stringify(modelVisibleResult),
         role: 'tool' as const,
         tool_call_id: toolCall.id,
       });
@@ -666,6 +730,104 @@ export class AgentTurnRoundRunnerService {
             terminalToolName,
           }
         : {}),
+    };
+  }
+
+  private isCampaignConfirmationTool(toolName: AgentToolName): boolean {
+    return (
+      toolName === AgentToolName.START_CAMPAIGN ||
+      toolName === AgentToolName.PAUSE_CAMPAIGN
+    );
+  }
+
+  private async resolveConfirmedCampaignIntent(
+    toolName: AgentToolName,
+    currentOperatorMessage: string | null,
+    organizationId: string,
+    threadId: string,
+  ): Promise<ConfirmedCampaignIntent | null> {
+    const transition =
+      toolName === AgentToolName.START_CAMPAIGN
+        ? 'start'
+        : toolName === AgentToolName.PAUSE_CAMPAIGN
+          ? 'pause'
+          : null;
+    if (!transition) {
+      return null;
+    }
+
+    if (!currentOperatorMessage) {
+      return null;
+    }
+    const confirmationPrompt = currentOperatorMessage;
+
+    const sourceActionId =
+      readCampaignConfirmationSourceActionId(confirmationPrompt);
+    if (!sourceActionId) {
+      return null;
+    }
+
+    const preparation = readPreparedCampaignTransition(
+      await this.cacheService.get<unknown>(
+        buildCampaignPreparationCacheKey({
+          organizationId,
+          sourceActionId,
+          threadId,
+        }),
+      ),
+    );
+    if (
+      preparation?.transition !== transition ||
+      preparation.sourceActionId !== sourceActionId ||
+      preparation.confirmationPrompt !== confirmationPrompt
+    ) {
+      return null;
+    }
+
+    return {
+      campaignId: preparation.campaignId,
+      sourceActionId,
+    };
+  }
+
+  private readCurrentOperatorMessage(
+    messages: OpenRouterMessage[],
+    source: AgentChatRequest['source'] | undefined,
+  ): string | null {
+    if ((source ?? 'agent') !== 'agent') {
+      return null;
+    }
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role === 'user' && typeof message.content === 'string') {
+        return message.content;
+      }
+    }
+
+    return null;
+  }
+
+  private buildModelVisibleToolResult(
+    toolName: AgentToolName,
+    result: AgentToolResult,
+  ): AgentToolResult {
+    if (
+      !this.isCampaignConfirmationTool(toolName) ||
+      result.requiresConfirmation !== true
+    ) {
+      return result;
+    }
+
+    const safeData = Object.fromEntries(
+      Object.entries(result.data ?? {}).filter(
+        ([key]) => key !== 'confirmationPrompt' && key !== 'sourceActionId',
+      ),
+    );
+    const { nextActions: _nextActions, ...safeResult } = result;
+    return {
+      ...safeResult,
+      data: safeData,
     };
   }
 

@@ -23,7 +23,7 @@ describe('lowest-cost model keys', () => {
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     );
     expect(LOWEST_COST_AGENT_CHAT_MODEL_KEY).toBe(
-      AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
   });
 

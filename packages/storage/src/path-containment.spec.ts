@@ -4,7 +4,6 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  assertObjectKeyWithinPrefix,
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
   resolveContainedObjectKey,
@@ -201,16 +200,6 @@ describe('object-key containment', () => {
     ).toThrow(ContainmentError);
   });
 
-  it('rejects prefix confusion for an existing key', () => {
-    expect(() =>
-      assertObjectKeyWithinPrefix(
-        'ingredients/images',
-        'ingredients/images-evil/file.png',
-        createError,
-      ),
-    ).toThrow(ContainmentError);
-  });
-
   it('validates a legitimate nested key without imposing a prefix', () => {
     const key = 'transcripts/job-1/audio.mp3';
     expect(assertSafeObjectKey(key, createError)).toBe(key);
@@ -218,13 +207,6 @@ describe('object-key containment', () => {
 
   it('preserves an empty bucket-root listing prefix', () => {
     expect(assertSafeObjectKeyPrefix('', createError)).toBe('');
-  });
-
-  it('accepts an existing nested key without rewriting it', () => {
-    const key = 'ingredients/images/org-1/photo.png';
-    expect(
-      assertObjectKeyWithinPrefix('ingredients/images/', key, createError),
-    ).toBe(key);
   });
 
   it('rejects an empty or non-string object key', () => {

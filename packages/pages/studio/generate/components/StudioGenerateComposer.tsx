@@ -13,14 +13,38 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import type { IStudioLook } from '@genfeedai/interfaces';
+import type {
+  GenerationSetupFieldKey,
+  GenerationSetupValues,
+} from '@genfeedai/interfaces/studio/generation-setup.interface';
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
+import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
+import { useStudioGenerationSetupLookOptions } from '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions';
+import {
+  presetToGenerationSetupValues,
+  useStudioLooks,
+} from '@pages/studio/generate/hooks/useStudioLooks';
+import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import {
   getStudioGenerateTypeConfig,
   listStudioGenerateTypeConfigs,
-  resolveStudioGenerateType,
 } from '@pages/studio/generate/utils/studio-generate-types';
+import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
+import {
+  applyGenerationSetupPreset,
+  applyGenerationSetupRecommendation,
+  buildStudioGenerationSetupScope,
+  clearGenerationSetupPreset,
+  resetGenerationSetupField,
+  setGenerationSetupField,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import {
   AUTO_MODEL_OPTION_VALUE,
@@ -33,47 +57,17 @@ import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarCompose
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import {
-  ArrowUp,
-  Clapperboard,
-  Image as ImageIcon,
-  Mic,
-  Music,
-  UserRound,
-} from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
+import { useCallback, useEffect } from 'react';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
 const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
 
-const STUDIO_GENERATION_CONTEXT_OPTIONS = listStudioGenerateTypeConfigs().map(
-  (config) => ({
-    description:
-      config.type === 'image'
-        ? 'Create still visuals'
-        : config.type === 'video'
-          ? 'Create motion and clips'
-          : config.type === 'music'
-            ? 'Generate original audio'
-            : config.type === 'avatar'
-              ? 'Animate a speaking avatar'
-              : 'Generate spoken audio',
-    icon:
-      config.type === 'image'
-        ? ImageIcon
-        : config.type === 'video'
-          ? Clapperboard
-          : config.type === 'music'
-            ? Music
-            : config.type === 'avatar'
-              ? UserRound
-              : Mic,
-    label: config.label,
-    value: config.type,
-  }),
-);
+/** Debounce window before a prompt edit re-runs the recommendation engine. */
+const RECOMMENDATION_DEBOUNCE_MS = 400;
 
 /**
  * The single Studio composer. The asset type is state on this row rather than
@@ -167,6 +161,104 @@ export default function StudioGenerateComposer({
     });
   };
 
+  const isRemixActive = useStudioRemixRunScope();
+  const scope = buildStudioGenerationSetupScope(type);
+  const defaults = getDefaultGenerationSetupValues(type);
+  const setupFromStore = useGenerationSetupStore(
+    (state) => state.setupByScope[scope],
+  );
+  const reasons =
+    useGenerationSetupStore((state) => state.reasonsByScope[scope]) ?? {};
+  const setup = setupFromStore ?? { sources: {}, values: defaults };
+  const {
+    deleteLook,
+    isLoading: isPresetsLoading,
+    looks: presets,
+    saveLook,
+  } = useStudioLooks(type);
+  const lookOptions = useStudioGenerationSetupLookOptions(
+    type,
+    settings.modelKey,
+  );
+  const typeOptions = listStudioGenerateTypeConfigs().map((config) => ({
+    label: config.label,
+    value: config.type,
+  }));
+
+  const debouncedPrompt = useDebounce(prompt, RECOMMENDATION_DEBOUNCE_MS);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: capabilities and defaults are pure functions of `type`, which is already a dep — including their fresh-per-render object identities would re-run this on every render and defeat the debounce.
+  useEffect(() => {
+    const recommendation = recommendGenerationSetup({
+      capabilities,
+      lockedType: type,
+      prompt: debouncedPrompt,
+      type,
+    });
+    applyGenerationSetupRecommendation(scope, recommendation, defaults);
+  }, [debouncedPrompt, scope, type]);
+
+  const handleSetField = useCallback(
+    <K extends GenerationSetupFieldKey>(
+      key: K,
+      value: GenerationSetupValues[K],
+    ) => {
+      setGenerationSetupField(scope, key, value, defaults);
+      if (
+        key === 'modelKey' &&
+        type === 'video' &&
+        typeof value === 'string' &&
+        value !== '' &&
+        value !== AUTO_MODEL_OPTION_VALUE
+      ) {
+        setGenerationSetupField(
+          scope,
+          'resolution',
+          getDefaultVideoResolution(value) ?? '',
+          defaults,
+        );
+      }
+    },
+    [defaults, scope, type],
+  );
+
+  const handleResetField = useCallback(
+    (key: GenerationSetupFieldKey) =>
+      resetGenerationSetupField(scope, key, defaults),
+    [defaults, scope],
+  );
+
+  const handleClearPreset = useCallback(
+    () => clearGenerationSetupPreset(scope),
+    [scope],
+  );
+
+  const handleApplyPreset = useCallback(
+    (preset: IStudioLook) => {
+      applyGenerationSetupPreset(
+        scope,
+        preset.id,
+        presetToGenerationSetupValues(preset),
+        defaults,
+      );
+    },
+    [defaults, scope],
+  );
+
+  const handleSavePreset = useCallback(
+    (label: string) => {
+      void saveLook(label, setup.values);
+    },
+    [saveLook, setup],
+  );
+
+  const handleDeletePreset = useCallback(
+    (presetId: string) => {
+      void deleteLook(presetId);
+    },
+    [deleteLook],
+  );
+
   return (
     <PromptBarComposer
       beforeBody={
@@ -209,50 +301,80 @@ export default function StudioGenerateComposer({
 
       <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
         <div className="flex min-w-0 shrink items-center gap-0.5">
-          <ModelSelectorPopover
-            autoLabel={
-              capabilities.hasModelSelection
-                ? isLoadingModels
-                  ? translate('loadingModels')
-                  : AUTO_PRIORITY_LABELS[settings.prioritize]
-                : undefined
-            }
-            className="max-w-[16rem] min-w-0"
-            contextLabel="Output type"
-            contextOptions={STUDIO_GENERATION_CONTEXT_OPTIONS}
-            contextValue={type}
-            favoriteModelKeys={favoriteModelKeys}
-            isDisabled={isGenerating}
-            models={capabilities.hasModelSelection ? models : []}
-            name="studioGenerateModel"
-            onChange={handleModelChange}
-            onContextChange={(value) =>
-              onTypeChange(resolveStudioGenerateType(value))
-            }
-            onFavoriteToggle={onFavoriteToggle}
-            onPrioritizeChange={(prioritize: RouterPriority) =>
-              onSettingsChange({ prioritize })
-            }
-            prioritize={settings.prioritize}
-            selectionMode="single"
-            values={
-              capabilities.hasModelSelection
-                ? isAutoMode
-                  ? [AUTO_MODEL_OPTION_VALUE]
-                  : settings.modelKey
-                    ? [settings.modelKey]
+          {isRemixActive ? (
+            <>
+              <ModelSelectorPopover
+                autoLabel={
+                  capabilities.hasModelSelection
+                    ? isLoadingModels
+                      ? translate('loadingModels')
+                      : AUTO_PRIORITY_LABELS[settings.prioritize]
+                    : undefined
+                }
+                className="max-w-[16rem] min-w-0"
+                favoriteModelKeys={favoriteModelKeys}
+                isDisabled={isGenerating}
+                models={capabilities.hasModelSelection ? models : []}
+                name="studioGenerateModel"
+                onChange={handleModelChange}
+                onFavoriteToggle={onFavoriteToggle}
+                onPrioritizeChange={(prioritize: RouterPriority) =>
+                  onSettingsChange({ prioritize })
+                }
+                prioritize={settings.prioritize}
+                selectionMode="single"
+                values={
+                  capabilities.hasModelSelection
+                    ? isAutoMode
+                      ? [AUTO_MODEL_OPTION_VALUE]
+                      : settings.modelKey
+                        ? [settings.modelKey]
+                        : []
                     : []
-                : []
-            }
-          />
+                }
+              />
 
-          <StudioGenerateSettingsPopover
-            isDisabled={isGenerating}
-            onChange={onSettingsChange}
-            onReset={onResetSettings}
-            settings={settings}
-            type={type}
-          />
+              <StudioGenerateSettingsPopover
+                isDisabled={isGenerating}
+                onChange={onSettingsChange}
+                onReset={onResetSettings}
+                settings={settings}
+                type={type}
+              />
+            </>
+          ) : (
+            <GenerationSetupPopover
+              capabilities={capabilities}
+              favoriteModelKeys={favoriteModelKeys}
+              isDisabled={isGenerating}
+              isPresetsLoading={isPresetsLoading}
+              lookOptions={lookOptions}
+              models={capabilities.hasModelSelection ? models : []}
+              onApplyPreset={handleApplyPreset}
+              onClearPreset={handleClearPreset}
+              onDeletePreset={handleDeletePreset}
+              onFavoriteToggle={onFavoriteToggle}
+              onResetAll={onResetSettings}
+              onResetField={handleResetField}
+              onSavePreset={handleSavePreset}
+              onSetField={handleSetField}
+              onTypeChange={onTypeChange}
+              presets={presets}
+              reasons={reasons}
+              scopeKey={scope}
+              setup={setup}
+              typeOptions={typeOptions}
+            />
+          )}
+
+          {capabilities.hasIdentity ? (
+            <StudioIdentityFields
+              isDisabled={isGenerating}
+              onChange={onSettingsChange}
+              settings={settings}
+              type={type}
+            />
+          ) : null}
 
           {capabilities.hasReferences && type === 'image' ? (
             <PromptBarReferenceControls

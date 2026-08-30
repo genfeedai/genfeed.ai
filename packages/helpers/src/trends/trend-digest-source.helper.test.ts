@@ -138,7 +138,29 @@ describe('buildTrendDigestItems', () => {
     expect(items.map((item) => item.viralScore)).toEqual([0]);
   });
 
-  it('ranks by score and honours the limit', () => {
+  it('rejects non-viral trends and strictly ranks calibrated scores', () => {
+    const items = buildTrendDigestItems(
+      {
+        hashtags: [{ ...hashtag, viralityScore: 82 }],
+        sounds: [{ ...sound, viralityScore: 68 }],
+        videos: [
+          { ...video, title: 'Strong', viralScore: 70 },
+          { ...video, title: 'Breakout', viralScore: 83 },
+          { ...video, title: 'Weak', viralScore: 46 },
+        ],
+      },
+      { minViralScore: 70 },
+    );
+
+    expect(items.map((item) => item.viralScore)).toEqual([83, 82, 70]);
+    expect(items.map((item) => item.topic)).toEqual([
+      'Breakout',
+      '#trendingnow',
+      'Strong',
+    ]);
+  });
+
+  it('honours the limit after ranking', () => {
     const items = buildTrendDigestItems(
       {
         hashtags: [hashtag],

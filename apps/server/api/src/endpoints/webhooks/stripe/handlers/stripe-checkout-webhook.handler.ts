@@ -2,6 +2,7 @@ import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-aut
 import type { IBetterAuthUserCreatedEvent } from '@api/auth/better-auth/better-auth.types';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
@@ -84,6 +85,7 @@ export class StripeCheckoutWebhookHandler {
     private readonly supportService: StripeWebhookSupportService,
     private readonly attributionTracker: StripeAttributionTrackerService,
     private readonly lifecycleEmailService: LifecycleEmailService,
+    private readonly referralsService: ReferralsService,
   ) {}
 
   async handleCheckoutCompleted(
@@ -224,7 +226,7 @@ export class StripeCheckoutWebhookHandler {
         const didAddCredits = await this.supportService.addPurchasedCredits(
           subscription.organizationId,
           creditsToAdd,
-          'pay-as-you-go',
+          ActivitySource.PAY_AS_YOU_GO,
           `Credit pack purchase (${creditsToAdd} credits)`,
           this.supportService.buildCheckoutSessionCreditReference(
             'organization-payment',
@@ -290,6 +292,29 @@ export class StripeCheckoutWebhookHandler {
         sessionId: session.id,
       });
     }
+
+    const amountTax = session.total_details?.amount_tax ?? 0;
+    const amountDiscount = session.total_details?.amount_discount ?? 0;
+    const grossAmountCents = Math.max(
+      0,
+      session.amount_total ??
+        (session.amount_subtotal ?? 0) - amountDiscount + amountTax,
+    );
+    const netAmountCents = Math.max(0, grossAmountCents - amountTax);
+    const stripePaymentIntentId =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : (session.payment_intent?.id ?? null);
+    await this.referralsService.recordPaygPurchase({
+      grossAmountCents,
+      netAmountCents,
+      organizationId: subscription.organizationId,
+      purchasedCredits: this.supportService.resolveCheckoutCredits(
+        session.metadata,
+      ),
+      stripeCheckoutSessionId: session.id,
+      stripePaymentIntentId,
+    });
   }
 
   private async handleManagedInferenceCheckoutCompleted(

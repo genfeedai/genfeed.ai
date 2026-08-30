@@ -49,6 +49,6 @@ read it over first.
   undisclosed vulnerability detail. Filing is immediate and the repo is public.
 - Files bugs only; for feature requests or tasks, use the matching issue type.
 - No YAML frontmatter in issue bodies, and no priority labels — priority lives in
-  the project board.
+  the native organization Issue Field surfaced on Project #12.
 - To root-cause before filing, use `debug` / `systematic-debugging`; for a failing
   CI check, use `gh-fix-ci`.

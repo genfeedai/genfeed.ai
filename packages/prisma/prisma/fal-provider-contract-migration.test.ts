@@ -27,15 +27,15 @@ describe('versioned Fal provider contracts (#3324)', () => {
   it('stores reviewed and pending versions separately on the model row', () => {
     expect(schema).toContain('reviewedProviderContractVersion String?');
     expect(schema).toContain('pendingProviderContractVersion  String?');
-    expect(schema).toContain('providerSchemaFamily             String?');
+    expect(schema).toContain('providerSchemaFamily            String?');
     expect(migration).toContain('"reviewedProviderContractVersion" TEXT');
     expect(migration).toContain('"pendingProviderContractVersion" TEXT');
   });
 
   it('persists freshness and failure state without replacing reviewed pricing columns', () => {
-    expect(schema).toContain('providerSyncStatus               String?');
-    expect(schema).toContain('providerSyncFailedAt             DateTime?');
-    expect(schema).toContain('providerSyncFailureCode          String?');
+    expect(schema).toContain('providerSyncStatus              String?');
+    expect(schema).toContain('providerSyncFailedAt            DateTime?');
+    expect(schema).toContain('providerSyncFailureCode         String?');
     expect(migration).not.toContain('DROP COLUMN "providerCostUsd"');
     expect(migration).not.toContain('DROP COLUMN "pricingType"');
   });

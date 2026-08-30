@@ -7,12 +7,6 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type { ModelSelectionOptions } from '@server/services/router/interfaces/router.interfaces';
-import { RouterService } from '@server/services/router/router.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
@@ -26,6 +20,12 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import type { ModelSelectionOptions } from '@server/services/router/interfaces/router.interfaces';
+import { RouterService } from '@server/services/router/router.service';
 
 const defaultModelId = testId('model');
 
@@ -505,7 +505,7 @@ describe('RouterService', () => {
           category: ModelCategory.TEXT,
           id: testId('model', 16),
           isDefault: true,
-          key: 'openrouter/free',
+          key: LOWEST_COST_AGENT_CHAT_MODEL_KEY,
         });
 
         modelsService.findAllActive.mockResolvedValue([freeChat]);
@@ -526,7 +526,7 @@ describe('RouterService', () => {
           prompt: 'Help me draft a caption',
         });
 
-        expect(result.selectedModel).toBe('openrouter/free');
+        expect(result.selectedModel).toBe(LOWEST_COST_AGENT_CHAT_MODEL_KEY);
       });
 
       it('should prefer default models slightly', async () => {

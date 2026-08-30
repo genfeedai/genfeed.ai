@@ -8,15 +8,7 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import {
-  readPreferredGenerationModel,
-  readPreferredGenerationOutputs,
-  readPreferredGenerationPriority,
-  writePreferredGenerationModel,
-  writePreferredGenerationOutputs,
-  writePreferredGenerationPriority,
-} from '@genfeedai/agent/stores/agent-preferred-model.store';
-import { isAutoAgentModel } from '@genfeedai/agent/utils/agent-auto-model.util';
+import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
 import {
   buildAgentGenerationRequestBody,
@@ -46,12 +38,18 @@ import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   resolveOrgAllowlistedModels,
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
+import {
+  buildAgentGenerationSetupScope,
+  getGenerationSetup,
+  setGenerationSetupField,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import {
   AUTO_MODEL_OPTION_VALUE,
   getAutoModelLabel,
@@ -98,6 +96,34 @@ function formatGenerationError(
   return message;
 }
 
+interface AgentGenerationPreference {
+  /** Whether the shared setup scope has an explicit (`'user'`) model pick. */
+  hasModelPreference: boolean;
+  model: string;
+  outputs: number | null;
+  priority: RouterPriority | null;
+}
+
+/**
+ * Reads the shared generation-setup scope's model/priority/outputs prefs,
+ * treating a field as "preferred" only when its source is `'user'` — mirrors
+ * the null-vs-set distinction the retired `agent-preferred-model.store` made
+ * between "never chosen" and "explicitly set to Auto".
+ */
+function readAgentGenerationPreference(
+  scope: string,
+  defaults: GenerationSetupValues,
+): AgentGenerationPreference {
+  const setup = getGenerationSetup(scope, defaults);
+  return {
+    hasModelPreference: setup.sources.modelKey === 'user',
+    model: setup.values.modelKey,
+    outputs: setup.sources.outputs === 'user' ? setup.values.outputs : null,
+    priority:
+      setup.sources.prioritize === 'user' ? setup.values.prioritize : null,
+  };
+}
+
 interface UseGenerationActionCardParams {
   action: AgentUiAction;
   apiService: AgentApiService;
@@ -115,20 +141,26 @@ export function useGenerationActionCard({
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
-  const generationPrefScope = useMemo(
-    () => ({
-      generationType,
-      threadId: activeThreadId,
-    }),
+  const setupScope = useMemo(
+    () => buildAgentGenerationSetupScope(activeThreadId, generationType),
     [activeThreadId, generationType],
   );
-  const preferredModel = readPreferredGenerationModel(generationPrefScope);
-  const preferredPriority =
-    readPreferredGenerationPriority(generationPrefScope);
-  const preferredOutputs = readPreferredGenerationOutputs(generationPrefScope);
+  const setupDefaults = useMemo(
+    () => buildDefaultAgentGenerationSetupValues(generationType),
+    [generationType],
+  );
+  const initialPreference = readAgentGenerationPreference(
+    setupScope,
+    setupDefaults,
+  );
+  const preferredModel = initialPreference.hasModelPreference
+    ? initialPreference.model
+    : null;
+  const preferredPriority = initialPreference.priority;
+  const preferredOutputs = initialPreference.outputs;
   const actionPriority = toRouterPriority(initParams?.prioritize);
-  const shouldStartInAutoMode = preferredModel
-    ? isAutoAgentModel(preferredModel)
+  const shouldStartInAutoMode = initialPreference.hasModelPreference
+    ? initialPreference.model === ''
     : !initParams?.model;
 
   const [prompt, setPrompt] = useState(() =>
@@ -189,21 +221,20 @@ export function useGenerationActionCard({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const nextModel = readPreferredGenerationModel(generationPrefScope);
-    const nextPriority = readPreferredGenerationPriority(generationPrefScope);
-    const nextOutputs = readPreferredGenerationOutputs(generationPrefScope);
-    const nextAuto = nextModel
-      ? isAutoAgentModel(nextModel)
+    const next = readAgentGenerationPreference(setupScope, setupDefaults);
+    const nextModel = next.hasModelPreference ? next.model : null;
+    const nextAuto = next.hasModelPreference
+      ? nextModel === ''
       : !initParams?.model;
     setIsAutoMode(nextAuto);
     setModelKey(nextAuto ? '' : (nextModel ?? initParams?.model ?? ''));
-    if (nextPriority) {
-      setPrioritize(nextPriority);
+    if (next.priority) {
+      setPrioritize(next.priority);
     }
-    if (typeof nextOutputs === 'number') {
-      setOutputs(nextOutputs);
+    if (typeof next.outputs === 'number') {
+      setOutputs(next.outputs);
     }
-  }, [generationPrefScope, initParams?.model]);
+  }, [setupScope, setupDefaults, initParams?.model]);
 
   // Fetch models on mount.
   //
@@ -755,15 +786,12 @@ export function useGenerationActionCard({
   const handlePrioritizeChange = useCallback(
     (next: RouterPriority) => {
       setPrioritize(next);
-      writePreferredGenerationPriority(next, generationPrefScope);
+      setGenerationSetupField(setupScope, 'prioritize', next, setupDefaults);
       setIsAutoMode(true);
       setModelKey('');
-      writePreferredGenerationModel(
-        AUTO_MODEL_OPTION_VALUE,
-        generationPrefScope,
-      );
+      setGenerationSetupField(setupScope, 'modelKey', '', setupDefaults);
     },
-    [generationPrefScope],
+    [setupScope, setupDefaults],
   );
 
   const handleModelChange = useCallback(
@@ -777,20 +805,22 @@ export function useGenerationActionCard({
       if (hasAutoOption && manualValues.length === 0) {
         setIsAutoMode(true);
         setModelKey('');
-        writePreferredGenerationModel(
-          AUTO_MODEL_OPTION_VALUE,
-          generationPrefScope,
-        );
+        setGenerationSetupField(setupScope, 'modelKey', '', setupDefaults);
         return;
       }
 
       setIsAutoMode(false);
       setModelKey(nextModelKey);
       if (nextModelKey) {
-        writePreferredGenerationModel(nextModelKey, generationPrefScope);
+        setGenerationSetupField(
+          setupScope,
+          'modelKey',
+          nextModelKey,
+          setupDefaults,
+        );
       }
     },
-    [generationPrefScope],
+    [setupScope, setupDefaults],
   );
 
   const handleAspectRatioChange = useCallback(
@@ -857,9 +887,9 @@ export function useGenerationActionCard({
   const handleOutputsChange = useCallback(
     (value: number) => {
       setOutputs(value);
-      writePreferredGenerationOutputs(value, generationPrefScope);
+      setGenerationSetupField(setupScope, 'outputs', value, setupDefaults);
     },
-    [generationPrefScope],
+    [setupScope, setupDefaults],
   );
 
   return {

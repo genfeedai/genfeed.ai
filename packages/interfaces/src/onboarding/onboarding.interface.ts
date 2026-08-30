@@ -17,9 +17,6 @@ export interface IOnboardingAccessPreference {
   source?: string;
 }
 
-/**
- * Social media links extracted from website
- */
 export interface IExtractedSocialLinks {
   facebook?: string;
   instagram?: string;
@@ -29,9 +26,6 @@ export interface IExtractedSocialLinks {
   youtube?: string;
 }
 
-/**
- * Brand data extracted from website scraping
- */
 export interface IScrapedBrandData {
   // Core info
   companyName?: string;
@@ -65,9 +59,6 @@ export interface IScrapedBrandData {
   scrapedAt: Date;
 }
 
-/**
- * AI-generated brand voice analysis
- */
 export interface IBrandVoiceAnalysis {
   tone: string;
   voice: string;
@@ -83,9 +74,6 @@ export interface IBrandVoiceAnalysis {
   topics?: string[];
 }
 
-/**
- * Master prompt generated from brand analysis during onboarding
- */
 export interface IOnboardingMasterPrompt {
   category: string;
   title: string;
@@ -93,17 +81,11 @@ export interface IOnboardingMasterPrompt {
   guidance?: string;
 }
 
-/**
- * Complete extracted brand data including AI analysis
- */
 export interface IExtractedBrandData extends IScrapedBrandData {
   brandVoice?: IBrandVoiceAnalysis;
   masterPrompts?: IOnboardingMasterPrompt[];
 }
 
-/**
- * Onboarding state for tracking user progress
- */
 export interface IOnboardingState {
   step: OnboardingStep;
   status: OnboardingStatus;
@@ -115,9 +97,6 @@ export interface IOnboardingState {
   skippedAt?: Date;
 }
 
-/**
- * Request DTO for brand setup endpoint
- */
 export interface IBrandSetupRequest {
   brandUrl: string;
   linkedinUrl?: string;
@@ -129,9 +108,6 @@ export interface IBrandSetupRequest {
   additionalNotes?: string;
 }
 
-/**
- * Response from brand setup endpoint
- */
 export interface IBrandSetupResponse {
   success: boolean;
   brandId: string;
@@ -140,9 +116,6 @@ export interface IBrandSetupResponse {
   message?: string;
 }
 
-/**
- * Request DTO for confirming brand data
- */
 export interface IConfirmBrandDataRequest {
   brandId: string;
   // Allow user to override extracted data
@@ -158,17 +131,11 @@ export interface IConfirmBrandDataRequest {
   audience?: string;
 }
 
-/**
- * Request DTO for generating a brand preview image during onboarding
- */
 export interface IGeneratePreviewRequest {
   brandId: string;
   contentType: 'ads' | 'social';
 }
 
-/**
- * Response from the generate-preview endpoint
- */
 export interface IGeneratePreviewResponse {
   imageUrl: string;
   prompt: string;
@@ -204,7 +171,4 @@ export interface IProactivePreparationStatus {
   };
 }
 
-/**
- * Content type for onboarding preview generation
- */
 export type OnboardingContentType = 'ads' | 'social';

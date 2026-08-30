@@ -1,14 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import {
-  ConnectCredentialDto,
-  CreateCredentialVerifyDto,
-} from '@server/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
@@ -30,11 +22,16 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import {
+  ConnectCredentialDto,
+  CreateCredentialVerifyDto,
+} from '@server/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
-
-// In development, use ngrok for the front end
-// and lt for the backend ssh tunnel
 
 @AutoSwagger()
 @Controller('services/tiktok')
@@ -42,8 +39,6 @@ export class TiktokController {
   private readonly constructorName: string = String(this.constructor.name);
 
   private readonly redirectUri: string;
-  // private readonly redirectUri =
-  //   'https://5292f8d66eed.ngrok-free.app/oauth/tiktok';
   private readonly scope = [
     'user.info.basic',
     'user.info.stats',

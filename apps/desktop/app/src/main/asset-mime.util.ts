@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import type { DesktopAssetKind } from '@genfeedai/desktop-contracts';
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   '.avif': 'image/avif',
@@ -104,4 +105,11 @@ export const validateDesktopAssetMimeType = async (
   } finally {
     await file.close();
   }
+};
+
+export const inferDesktopAssetKind = (mimeType: string): DesktopAssetKind => {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  return 'document';
 };

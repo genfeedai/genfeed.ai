@@ -112,6 +112,12 @@ const providerTimeoutConfig = {
 };
 
 describe('DesktopGenerationProviderService', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   it('retains a saved key when the redacted config is saved unchanged', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationProviderService(
@@ -192,6 +198,129 @@ describe('DesktopGenerationProviderService', () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('preserves the Replicate create error output', async () => {
+    const service = new DesktopGenerationProviderService(
+      createDatabaseMock() as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
+    );
+    globalThis.fetch = (async () =>
+      new Response('invalid replicate request', {
+        status: 422,
+      })) as typeof fetch;
+
+    await expect(
+      service.requestCompletion(
+        {
+          apiKey: 'replicate-secret',
+          baseUrl: 'https://api.replicate.com/v1',
+          model: 'meta/llama-2-70b-chat',
+          provider: 'replicate',
+        },
+        [{ content: 'Prompt', role: 'user' }],
+      ),
+    ).rejects.toThrow(
+      'Replicate request failed (422): invalid replicate request',
+    );
+  });
+
+  it('preserves the Replicate polling error output', async () => {
+    const service = new DesktopGenerationProviderService(
+      createDatabaseMock() as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
+    );
+    let callCount = 0;
+    globalThis.fetch = (async () => {
+      callCount += 1;
+      if (callCount === 1) {
+        return new Response(
+          JSON.stringify({
+            id: 'prediction-1',
+            status: 'processing',
+            urls: { get: 'https://api.replicate.com/v1/predictions/1' },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response('temporarily unavailable', { status: 503 });
+    }) as typeof fetch;
+
+    await expect(
+      service.requestCompletion(
+        {
+          apiKey: 'replicate-secret',
+          baseUrl: 'https://api.replicate.com/v1',
+          model: 'meta/llama-2-70b-chat',
+          provider: 'replicate',
+        },
+        [{ content: 'Prompt', role: 'user' }],
+      ),
+    ).rejects.toThrow(
+      'Replicate status request failed (503): temporarily unavailable',
+    );
+  });
+
+  it.each([
+    {
+      expected: 'fal request failed (400): invalid fal request',
+      createResponses: () => [
+        new Response('invalid fal request', { status: 400 }),
+      ],
+    },
+    {
+      expected: 'fal status request failed (503): status unavailable',
+      createResponses: () => [
+        new Response(
+          JSON.stringify({
+            request_id: 'fal-request-1',
+            status_url: 'https://queue.fal.run/status/1',
+          }),
+          { status: 200 },
+        ),
+        new Response('status unavailable', { status: 503 }),
+      ],
+    },
+    {
+      expected: 'fal result request failed (502): result unavailable',
+      createResponses: () => [
+        new Response(
+          JSON.stringify({
+            request_id: 'fal-request-1',
+            response_url: 'https://queue.fal.run/result/1',
+            status_url: 'https://queue.fal.run/status/1',
+          }),
+          { status: 200 },
+        ),
+        new Response(JSON.stringify({ status: 'COMPLETED' }), { status: 200 }),
+        new Response('result unavailable', { status: 502 }),
+      ],
+    },
+  ])('preserves $expected', async ({ createResponses, expected }) => {
+    const responses = createResponses();
+    const service = new DesktopGenerationProviderService(
+      createDatabaseMock() as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
+    );
+    globalThis.fetch = (async () => {
+      const response = responses.shift();
+      if (!response) {
+        throw new Error('Unexpected fetch');
+      }
+      return response;
+    }) as typeof fetch;
+
+    await expect(
+      service.requestCompletion(
+        {
+          apiKey: 'fal-secret',
+          baseUrl: 'https://queue.fal.run',
+          model: 'fal-ai/any-llm',
+          provider: 'fal',
+        },
+        [{ content: 'Prompt', role: 'user' }],
+      ),
+    ).rejects.toThrow(expected);
   });
 });
 

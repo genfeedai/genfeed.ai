@@ -29,6 +29,7 @@ export * from './analytics/dashboard-preset.interface';
 export * from './analytics/evaluation.interface';
 export * from './analytics/insight.interface';
 export * from './analytics/platform-config.interface';
+export * from './analytics/saved-ad.interface';
 export * from './analytics/training.interface';
 export * from './analytics/trend.interface';
 export * from './analytics/trend-intelligence.interface';
@@ -62,6 +63,7 @@ export * from './billing/llm-vendor-cost.interface';
 export * from './billing/managed-credits.interface';
 export * from './billing/media-vendor-cost.interface';
 export * from './billing/pricing.interface';
+export * from './billing/referral.interface';
 export * from './billing/subscription.interface';
 export type {
   ITopbarBalanceSegment,

@@ -12,7 +12,7 @@ type RemixPlatform = 'meta' | 'tiktok';
 interface RemixFixtureOptions {
   id: string;
   platform: RemixPlatform;
-  source?: 'connected' | 'public';
+  source?: 'connected' | 'public' | 'saved';
   target: 'organic' | 'paid';
 }
 
@@ -37,10 +37,12 @@ function buildRun({
             kind: 'connected_ad' as const,
             platform: 'meta' as const,
           }
-        : {
-            adPerformanceId: 'ad-performance-meta-1',
-            kind: 'public_ad' as const,
-          };
+        : source === 'saved'
+          ? { kind: 'saved_ad' as const, savedAdId: 'saved-ad-1' }
+          : {
+              adPerformanceId: 'ad-performance-meta-1',
+              kind: 'public_ad' as const,
+            };
 
   return {
     brand: {
@@ -444,6 +446,183 @@ test.describe('Discover prefilled remix handoff', () => {
     await expect(
       authenticatedPage.getByText(/Paid\s*·\s*Meta\s*·\s*Image\s*·\s*1:1/),
     ).toBeVisible();
+  });
+
+  test('saves an ad, filters the swipe file, and remixes from the durable snapshot', async ({
+    authenticatedPage,
+  }) => {
+    let isSaved = false;
+    let savedGetCount = 0;
+    let createBody: Record<string, unknown> | null = null;
+    await routeRemixRun(
+      authenticatedPage,
+      {
+        id: 'run-saved-ad-1',
+        platform: 'meta',
+        source: 'saved',
+        target: 'paid',
+      },
+      (body) => {
+        createBody = body;
+      },
+    );
+    const metaAd = {
+      channel: 'all',
+      explanation: 'Proof appears before the product promise.',
+      id: 'ad-performance-meta-1',
+      imageUrls: ['https://source.example/ad.jpg'],
+      metrics: { performanceScore: 92 },
+      platform: 'meta',
+      source: 'public',
+      sourceId: 'meta-source-1',
+      title: 'Durable Meta winner',
+      usagePolicy: 'remix_allowed',
+    };
+    const savedAttributes = {
+      body: 'Saved body copy',
+      brandId: 'brand-1',
+      capturedAt: FIXED_TIME,
+      channel: 'all',
+      createdAt: FIXED_TIME,
+      explanation: metaAd.explanation,
+      imageUrls: ['https://files.example/copied-ad.jpg'],
+      isDeleted: false,
+      metrics: metaAd.metrics,
+      organizationId: 'org-1',
+      patternSummary: [],
+      platform: 'meta',
+      previewUrl: 'https://files.example/copied-ad.jpg',
+      source: 'public',
+      sourceAdId: 'meta-source-1',
+      sourceRecordId: 'ad-performance-meta-1',
+      title: metaAd.title,
+      updatedAt: FIXED_TIME,
+      usagePolicy: 'remix_allowed',
+      userId: 'user-1',
+      videoUrls: [],
+    };
+    const savedDocument = () => ({
+      data: isSaved
+        ? [
+            {
+              attributes: savedAttributes,
+              id: 'saved-ad-1',
+              type: 'saved-ad',
+            },
+            {
+              attributes: {
+                ...savedAttributes,
+                platform: 'tiktok',
+                sourceAdId: 'tiktok-source-1',
+                sourceRecordId: 'tiktok-record-1',
+                title: 'Saved TikTok winner',
+              },
+              id: 'saved-ad-2',
+              type: 'saved-ad',
+            },
+          ]
+        : [],
+    });
+
+    await authenticatedPage.route(/\/ads\/research(?:\?.*)?$/, (route) =>
+      fulfillJson(route, {
+        connectedAds: [],
+        filters: {},
+        publicAds: [metaAd],
+        summary: {
+          connectedCount: 0,
+          publicCount: 1,
+          reviewPolicy: 'Review required.',
+          selectedPlatform: 'meta',
+          selectedSource: 'public',
+        },
+      }),
+    );
+    await authenticatedPage.route(
+      /\/ads\/research\/public\/ad-performance-meta-1(?:\?.*)?$/,
+      (route) =>
+        fulfillJson(route, {
+          ...metaAd,
+          creative: {
+            body: 'Saved body copy',
+            imageUrls: metaAd.imageUrls,
+          },
+        }),
+    );
+    await authenticatedPage.route(/\/saved-ads(?:\?.*)?$/, async (route) => {
+      if (route.request().method() === 'POST') isSaved = true;
+      if (route.request().method() === 'GET') savedGetCount += 1;
+      await fulfillJson(route, savedDocument());
+    });
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/discover/ads/meta?source=saved`,
+    );
+    await expect(
+      authenticatedPage.getByText('No ads match the current filters.'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Filters' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Refresh' }),
+    ).toBeVisible();
+
+    await authenticatedPage.goto(`${BRAND_BASE}/discover/ads/meta`);
+    await authenticatedPage
+      .getByRole('button', { name: 'Save Durable Meta winner' })
+      .click();
+    await expect.poll(() => isSaved).toBe(true);
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Unsave Durable Meta winner',
+      }),
+    ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', {
+        name: 'Select Durable Meta winner for research context',
+      })
+      .click();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Unsave from swipe file',
+      }),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Brand note')).toBeVisible();
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/discover/ads/meta?source=saved`,
+    );
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Durable Meta winner',
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Saved TikTok winner',
+      }),
+    ).toBeHidden();
+    const refreshBaseline = savedGetCount;
+    await authenticatedPage.getByRole('button', { name: 'Refresh' }).click();
+    await expect.poll(() => savedGetCount).toBeGreaterThan(refreshBaseline);
+    await authenticatedPage.getByRole('button', { name: 'Filters' }).click();
+    await expect(authenticatedPage.getByText('Timeframe')).toBeHidden();
+    await authenticatedPage
+      .getByRole('button', {
+        name: 'Select Durable Meta winner for research context',
+      })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Remix for my brand' })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Continue to Studio' })
+      .click();
+
+    expect(createBody).toMatchObject({
+      source: { kind: 'saved_ad', savedAdId: 'saved-ad-1' },
+    });
   });
 
   test('keeps a stale or unauthorized TikTok selector in an actionable inspector state', async ({

@@ -250,8 +250,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Check formatting
         run: bun run format:check
       - name: Get changed files for secretlint
@@ -412,8 +410,6 @@ jobs:
       - name: Setup Bun environment
         if: steps.scope.outputs.run_any == 'true'
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Spec Typecheck Guard Tests
         if: steps.scope.outputs.run_any == 'true'
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
@@ -508,8 +504,6 @@ jobs:
       - name: Setup Bun environment
         if: needs.trust.outputs.heavy-tier != 'true'
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Compute affected test plan
         id: plan
         # Merge-queue runs stay on the affected tier against the queue base
@@ -560,8 +554,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
@@ -591,8 +583,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run server service tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
@@ -622,8 +612,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run web and mobile tests
         run: |
           # Temporarily disabled while desktop is not an active delivery surface:
@@ -665,8 +653,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run extension tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
@@ -702,8 +688,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Run app test shard
@@ -737,8 +721,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Build app workspace
         run: bunx turbo run build --filter='./apps/app...'
       - name: Mark test start
@@ -808,8 +790,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Mark test start
@@ -885,8 +865,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Build API dependencies
         run: bunx turbo run build --filter=./packages/**
       - name: Run API test shard
@@ -913,8 +891,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Build api (compiled bundle)
         # The api package emits to apps/server/dist, outside apps/server/api.
         # Force a real build so a Turbo cache-hit replay cannot skip restoring
@@ -952,8 +928,6 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
       - name: Run build
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
@@ -1111,7 +1085,7 @@ jobs:
   #
   # A red trunk must not depend on someone opening the Actions tab. When the
   # Tests Gate fails on a master push, file (or update) ONE `master-ci-failure`
-  # tracking issue at Project Priority P0; when the next push is green, close
+  # tracking issue at native issue Priority P0; when the next push is green, close
   # every open tracker automatically — same contract as the self-hosted release
   # E2E tracker. Push-only by construction: these fire inside full-suite.yml's
   # master-push run (workflow_call inherits the caller's originating `push`
@@ -1149,7 +1123,8 @@ jobs:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:
           # This trusted master-only job reuses the existing maintainer PAT so
-          # Project #12 writes are possible; GITHUB_TOKEN is repository-scoped.
+          # Native org issue-field and Project #12 writes are possible;
+          # GITHUB_TOKEN is repository-scoped.
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const path = require('node:path');

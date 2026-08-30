@@ -14,7 +14,6 @@ describe('buildSettingsMenuItems', () => {
       expect(items.map((item) => item.label)).toEqual([
         'Personal',
         'Notifications',
-        'Chat',
         'Progress',
         'Help',
       ]);
@@ -24,9 +23,6 @@ describe('buildSettingsMenuItems', () => {
       expect(items.every((item) => item.hrefScope === 'personal')).toBe(true);
       expect(items.find((i) => i.label === 'Notifications')?.href).toBe(
         APP_ROUTES.SETTINGS.NOTIFICATIONS,
-      );
-      expect(items.find((i) => i.label === 'Chat')?.href).toBe(
-        APP_ROUTES.SETTINGS.CHAT,
       );
       expect(items.find((i) => i.label === 'Progress')?.href).toBe(
         APP_ROUTES.SETTINGS.PROGRESS,

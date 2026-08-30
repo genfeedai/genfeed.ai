@@ -1,16 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  type IngredientMediaSource,
-  resolveIngredientMediaUrl,
-} from '@server/helpers/utils/ingredient-media-url/ingredient-media-url.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { FileInputType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import {
+  type IngredientMediaSource,
+  resolveIngredientMediaUrl,
+} from '@server/helpers/utils/ingredient-media-url/ingredient-media-url.util';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -155,6 +155,20 @@ export class WhisperService {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(millis).padStart(3, '0')}`;
   }
 
+  private formatTranscriptionToSrt(result: {
+    duration: number;
+    segments?: Array<{ start: number; end: number; text: string }>;
+    text: string;
+  }): string {
+    if (result.segments && result.segments.length > 0) {
+      return this.formatSegmentsToSrt(result.segments);
+    }
+
+    return `1\n00:00:00,000 --> 00:00:${String(
+      Math.max(Math.ceil(result.duration), 1),
+    ).padStart(2, '0')},000\n${result.text}`;
+  }
+
   public async generateCaptions(
     id: string,
     source?: IngredientMediaSource,
@@ -206,13 +220,7 @@ export class WhisperService {
         },
       });
 
-      let srt: string;
-      if (result.segments && result.segments.length > 0) {
-        srt = this.formatSegmentsToSrt(result.segments);
-      } else {
-        // Fallback: wrap entire text as a single SRT entry
-        srt = `1\n00:00:00,000 --> 00:00:${String(Math.max(Math.ceil(result.duration), 1)).padStart(2, '0')},000\n${result.text}`;
-      }
+      const srt = this.formatTranscriptionToSrt(result);
 
       this.loggerService.log(
         `${url} success - Caption generated for ingredient: ${id}`,
@@ -294,10 +302,7 @@ export class WhisperService {
       });
 
       const segments = result.segments || [];
-      const srt =
-        segments.length > 0
-          ? this.formatSegmentsToSrt(segments)
-          : `1\n00:00:00,000 --> 00:00:${String(Math.max(Math.ceil(result.duration), 1)).padStart(2, '0')},000\n${result.text}`;
+      const srt = this.formatTranscriptionToSrt(result);
 
       this.loggerService.log(
         `${methodName} success - ${segments.length} segments, ${result.duration}s`,

@@ -1,11 +1,9 @@
 import { RouterPriority } from '@genfeedai/enums';
-import type {
-  IStudioLook,
-  StudioGenerateSettings,
-} from '@genfeedai/interfaces';
+import type { IStudioLook } from '@genfeedai/interfaces';
+import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import {
   buildStudioLookPayload,
-  studioLookToSettingsPatch,
+  presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/generate/hooks/useStudioLooks';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -40,13 +38,13 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
-const settings: StudioGenerateSettings = {
+const values: GenerationSetupValues = {
   aspectRatio: '1:1',
-  blacklist: [],
   brandingMode: 'brand',
   camera: 'camera-1',
   cameraMovement: 'move-1',
-  isAudioEnabled: false,
+  duration: 8,
+  isPromptEnhanceEnabled: true,
   lens: 'lens-1',
   lighting: 'lighting-1',
   modelKey: 'model-1',
@@ -57,57 +55,106 @@ const settings: StudioGenerateSettings = {
   resolution: '1K',
   scene: 'scene-1',
   style: 'style-1',
-  tags: [],
-  voiceId: 'voice-1',
+  type: 'video',
 };
 
 const look: IStudioLook = {
+  aspectRatio: 'saved-aspect',
   assetType: 'video',
   brandId: 'brand-a',
+  brandingMode: 'brand',
   camera: 'saved-camera',
   cameraMovement: 'saved-move',
   createdAt: '2026-08-26T00:00:00.000Z',
+  duration: 12,
   id: 'look-a',
   isDeleted: false,
+  isPromptEnhanceEnabled: false,
   label: 'Saved',
   lens: 'saved-lens',
   lighting: 'saved-lighting',
+  modelKey: 'saved-model',
   mood: 'saved-mood',
   organizationId: 'org-1',
+  outputs: 2,
+  prioritize: RouterPriority.QUALITY,
   promptTemplate: 'saved-preset',
+  resolution: 'saved-resolution',
   scene: 'saved-scene',
   style: 'saved-style',
   updatedAt: '2026-08-26T00:00:00.000Z',
   userId: 'user-1',
 };
 
-describe('Studio Look settings contract', () => {
-  it('captures every Look field without any Output, Identity, model, or prompt field', () => {
-    expect(buildStudioLookPayload(' Saved ', 'video', settings)).toEqual({
+describe('Studio Look preset contract', () => {
+  it('captures every widened Preset field from the shared generation-setup values', () => {
+    expect(buildStudioLookPayload(' Saved ', 'video', values)).toEqual({
+      aspectRatio: '1:1',
       assetType: 'video',
+      brandingMode: 'brand',
       camera: 'camera-1',
       cameraMovement: 'move-1',
+      duration: 8,
+      isPromptEnhanceEnabled: true,
       label: 'Saved',
       lens: 'lens-1',
       lighting: 'lighting-1',
+      modelKey: 'model-1',
       mood: 'mood-1',
+      outputs: 4,
+      prioritize: RouterPriority.BALANCED,
       promptTemplate: 'preset-1',
+      resolution: '1K',
       scene: 'scene-1',
       style: 'style-1',
     });
   });
 
-  it('applies every Look field and no unrelated composer setting', () => {
-    expect(studioLookToSettingsPatch(look)).toEqual({
+  it('nulls cameraMovement and duration for image Presets', () => {
+    const imageValues: GenerationSetupValues = { ...values, type: 'image' };
+    const payload = buildStudioLookPayload('Saved', 'image', imageValues);
+    expect(payload.cameraMovement).toBeNull();
+    expect(payload.duration).toBeNull();
+  });
+
+  it('treats an empty modelKey (Auto) as null', () => {
+    const autoValues: GenerationSetupValues = { ...values, modelKey: '' };
+    expect(buildStudioLookPayload('Saved', 'video', autoValues).modelKey).toBe(
+      null,
+    );
+  });
+
+  it('projects every persisted Preset field back onto generation-setup values', () => {
+    expect(presetToGenerationSetupValues(look)).toEqual({
+      aspectRatio: 'saved-aspect',
+      brandingMode: 'brand',
       camera: 'saved-camera',
       cameraMovement: 'saved-move',
+      duration: 12,
+      isPromptEnhanceEnabled: false,
       lens: 'saved-lens',
       lighting: 'saved-lighting',
+      modelKey: 'saved-model',
       mood: 'saved-mood',
+      outputs: 2,
+      prioritize: RouterPriority.QUALITY,
       promptTemplate: 'saved-preset',
+      resolution: 'saved-resolution',
       scene: 'saved-scene',
       style: 'saved-style',
     });
+  });
+
+  it('omits video-only fields when projecting an image Preset', () => {
+    const imageLook: IStudioLook = {
+      ...look,
+      assetType: 'image',
+      cameraMovement: 'stale-move',
+      duration: 5,
+    };
+    const patch = presetToGenerationSetupValues(imageLook);
+    expect(patch.cameraMovement).toBeUndefined();
+    expect(patch.duration).toBeUndefined();
   });
 });
 
@@ -129,5 +176,23 @@ describe('useStudioLooks', () => {
 
     expect(result.current.looks).toEqual([]);
     expect(result.current.isLoading).toBe(true);
+  });
+
+  it('saves a Look built from the full generation-setup values', async () => {
+    mocks.service.post.mockResolvedValue(look);
+    const { result } = renderHook(() => useStudioLooks('video'));
+
+    await waitFor(() => expect(result.current.looks).toEqual([look]));
+
+    await result.current.saveLook('New Preset', values);
+
+    expect(mocks.service.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aspectRatio: values.aspectRatio,
+        isPromptEnhanceEnabled: values.isPromptEnhanceEnabled,
+        label: 'New Preset',
+        modelKey: values.modelKey,
+      }),
+    );
   });
 });

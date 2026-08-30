@@ -6,6 +6,13 @@ import { Pool, type PoolClient } from 'pg';
 import { describe, expect, it } from 'vitest';
 
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
+const seededSystemCleanupMigrationSource = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260828115959_retire_seeded_system_workflow_mirrors/migration.sql',
+  ),
+  'utf8',
+);
 const migrationSource = readFileSync(
   join(
     prismaDir,
@@ -81,6 +88,7 @@ async function createLegacyWorkflowSchema(client: PoolClient): Promise<void> {
       "steps" jsonb NOT NULL DEFAULT '[]',
       "inputVariables" jsonb NOT NULL DEFAULT '[]',
       "lockedNodeIds" jsonb NOT NULL DEFAULT '[]',
+      "metadata" jsonb,
       "createdAt" timestamp NOT NULL DEFAULT now(),
       "updatedAt" timestamp NOT NULL DEFAULT now()
     );
@@ -91,6 +99,10 @@ async function createLegacyWorkflowSchema(client: PoolClient): Promise<void> {
       "userId" text NOT NULL REFERENCES "users"("id"),
       "status" text NOT NULL DEFAULT 'PENDING',
       "createdAt" timestamp NOT NULL DEFAULT now()
+    );
+    CREATE TABLE "batch_workflow_jobs" (
+      "id" text PRIMARY KEY,
+      "workflowId" text NOT NULL REFERENCES "workflows"("id")
     );
     INSERT INTO "users" ("id")
     VALUES ('user_fixture'), ('user_other');
@@ -125,8 +137,9 @@ async function closeMigrationFixture(fixture: MigrationFixture): Promise<void> {
 async function runRejectedMigration(
   client: PoolClient,
   expectedError: RegExp,
+  source = migrationSource,
 ): Promise<void> {
-  await expect(client.query(migrationSource)).rejects.toThrow(expectedError);
+  await expect(client.query(source)).rejects.toThrow(expectedError);
   await client.query('ROLLBACK');
 }
 
@@ -171,6 +184,20 @@ function graphNode(
   };
 }
 
+function retiredSeededSystemWorkflowMetadata(canonicalId: string): JsonRecord {
+  return {
+    sourceTemplateId: canonicalId,
+    sourceType: 'seeded-template',
+    systemWorkflow: {
+      canonicalId,
+      immutable: true,
+      kind: 'system-workflow',
+      owner: 'genfeed',
+      visibility: 'organization',
+    },
+  };
+}
+
 describe('immutable workflow version migration', () => {
   it('owns one atomic hard-cut transaction', () => {
     expect(migrationSource.trimStart().startsWith('BEGIN;')).toBe(true);
@@ -208,6 +235,40 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain("'workflow.run-child'");
     expect(migrationSource).toContain('references removed macro');
     expect(migrationSource).toContain('has unconvertible legacy type');
+  });
+
+  it('removes only unexecuted legacy seeded system mirrors before versioning', () => {
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'CREATE FUNCTION workflow_is_retired_seeded_system_clone',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `@.type == "systemWorkflowAction"`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_metadata->>'sourceType' = 'seeded-template'`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'jsonb_array_length(workflow_nodes) = 1',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_nodes->0->'data'->'config'->>'actionId'`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain('SELECT COALESCE(');
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'FROM "batch_workflow_jobs" batch_job',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'DELETE FROM "workflows" workflow',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      "column_name = 'nodes'",
+    );
+    expect(migrationSource).not.toContain(
+      'workflow_is_retired_seeded_system_clone',
+    );
   });
 
   it('pins identity and every execution to tenant-owned immutable v1', () => {
@@ -325,13 +386,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
             ("id", "organizationId", "userId", "nodes", "edges", "steps", "inputVariables", "lockedNodeIds")
           VALUES
             ('workflow_graph', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb, '[]'::jsonb, $3::jsonb, '["input_node"]'::jsonb),
-            ('workflow_delay', 'org_fixture', 'user_fixture', '[]'::jsonb, '[]'::jsonb, $4::jsonb, '[]'::jsonb, '[]'::jsonb);
-          INSERT INTO "workflow_executions"
-            ("id", "workflowId", "organizationId", "userId", "status")
-          VALUES
-            ('execution_pending', 'workflow_graph', 'org_fixture', 'user_fixture', 'PENDING'),
-            ('execution_running', 'workflow_graph', 'org_fixture', 'user_fixture', 'RUNNING'),
-            ('execution_completed', 'workflow_graph', 'org_fixture', 'user_fixture', 'COMPLETED');
+            ('workflow_delay', 'org_fixture', 'user_fixture', '[]'::jsonb, '[]'::jsonb, $4::jsonb, '[]'::jsonb, '[]'::jsonb)
         `,
         [
           JSON.stringify(graphNodes),
@@ -340,7 +395,16 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
           JSON.stringify(delaySteps),
         ],
       );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId", "status")
+        VALUES
+          ('execution_pending', 'workflow_graph', 'org_fixture', 'user_fixture', 'PENDING'),
+          ('execution_running', 'workflow_graph', 'org_fixture', 'user_fixture', 'RUNNING'),
+          ('execution_completed', 'workflow_graph', 'org_fixture', 'user_fixture', 'COMPLETED')
+      `);
 
+      await client.query(seededSystemCleanupMigrationSource);
       await client.query(migrationSource);
 
       const versions = await client.query<{
@@ -543,6 +607,234 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
            'sha256:v1:fixture');
       `);
       await client.query('COMMIT');
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
+  it('deletes retired seeded system mirrors while versioning executable workflows', async () => {
+    const fixture = await openMigrationFixture(
+      'workflow_version_seeded_system',
+    );
+    const { client } = fixture;
+    const retiredNodes = [
+      graphNode('system_action', 'systemWorkflowAction', {
+        config: { actionId: 'scheduled-publish' },
+      }),
+    ];
+    const executableNodes = [graphNode('llm_node', 'llm', { config: {} })];
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes", "metadata")
+          VALUES
+            ('workflow_retired', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb),
+            ('workflow_executable', 'org_fixture', 'user_fixture', $3::jsonb, NULL)
+        `,
+        [
+          JSON.stringify(retiredNodes),
+          JSON.stringify(
+            retiredSeededSystemWorkflowMetadata('scheduled-publish'),
+          ),
+          JSON.stringify(executableNodes),
+        ],
+      );
+
+      await client.query(seededSystemCleanupMigrationSource);
+      await client.query(migrationSource);
+
+      const workflows = await client.query<{ id: string }>(`
+        SELECT "id" FROM "workflows" ORDER BY "id"
+      `);
+      expect(workflows.rows).toEqual([{ id: 'workflow_executable' }]);
+
+      const versions = await client.query<{
+        id: string;
+        workflowId: string;
+      }>(`
+        SELECT "id", "workflowId"
+        FROM "workflow_versions"
+        ORDER BY "workflowId"
+      `);
+      expect(versions.rows).toEqual([
+        {
+          id: 'wv_legacy_workflow_executable',
+          workflowId: 'workflow_executable',
+        },
+      ]);
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
+  it('rejects legacy system actions without exact retired-seeder provenance', async () => {
+    const fixture = await openMigrationFixture(
+      'workflow_version_system_provenance',
+    );
+    const { client } = fixture;
+    const nodes = [
+      graphNode('system_action', 'systemWorkflowAction', {
+        config: { actionId: 'customer-template' },
+      }),
+    ];
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes", "metadata")
+          VALUES
+            ('workflow_customer', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb)
+        `,
+        [
+          JSON.stringify(nodes),
+          JSON.stringify({
+            sourceTemplateId: 'customer-template',
+            sourceType: 'catalog-install',
+          }),
+        ],
+      );
+
+      await runRejectedMigration(
+        client,
+        /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
+      );
+      await expectLegacySchemaIntact(client);
+
+      await client.query(`
+        UPDATE "workflows"
+        SET "metadata" = NULL
+        WHERE "id" = 'workflow_customer'
+      `);
+      await runRejectedMigration(
+        client,
+        /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
+      );
+      await expectLegacySchemaIntact(client);
+
+      await client.query(
+        `
+          UPDATE "workflows"
+          SET "nodes" = $1::jsonb,
+              "metadata" = $2::jsonb
+          WHERE "id" = 'workflow_customer'
+        `,
+        [
+          JSON.stringify([
+            ...nodes,
+            graphNode('executable_action', 'llm', { config: {} }),
+          ]),
+          JSON.stringify(
+            retiredSeededSystemWorkflowMetadata('customer-template'),
+          ),
+        ],
+      );
+      await runRejectedMigration(
+        client,
+        /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
+      );
+      await expectLegacySchemaIntact(client);
+
+      const workflows = await client.query<{ id: string }>(`
+        SELECT "id" FROM "workflows"
+      `);
+      expect(workflows.rows).toEqual([{ id: 'workflow_customer' }]);
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
+  it('rejects retired seeded system mirrors referenced by either legacy execution path', async () => {
+    const fixture = await openMigrationFixture(
+      'workflow_version_system_history',
+    );
+    const { client } = fixture;
+    const nodes = [
+      graphNode('system_action', 'systemWorkflowAction', {
+        config: { actionId: 'scheduled-publish' },
+      }),
+    ];
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes", "metadata")
+          VALUES
+            ('workflow_retired', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb)
+        `,
+        [
+          JSON.stringify(nodes),
+          JSON.stringify(
+            retiredSeededSystemWorkflowMetadata('scheduled-publish'),
+          ),
+        ],
+      );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId")
+        VALUES
+          ('execution_retired', 'workflow_retired', 'org_fixture', 'user_fixture')
+      `);
+
+      await runRejectedMigration(
+        client,
+        /Retired seeded system workflows have execution history and cannot be removed automatically/,
+        seededSystemCleanupMigrationSource,
+      );
+      await expectLegacySchemaIntact(client);
+
+      await client.query(`
+        DELETE FROM "workflow_executions"
+        WHERE "workflowId" = 'workflow_retired';
+        INSERT INTO "batch_workflow_jobs" ("id", "workflowId")
+        VALUES ('batch_retired', 'workflow_retired');
+      `);
+
+      await runRejectedMigration(
+        client,
+        /Retired seeded system workflows have execution history and cannot be removed automatically/,
+        seededSystemCleanupMigrationSource,
+      );
+      await expectLegacySchemaIntact(client);
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
+  it('is a no-op when a community database already applied the immutable cutover', async () => {
+    const fixture = await openMigrationFixture(
+      'workflow_version_cleanup_after_cutover',
+    );
+    const { client } = fixture;
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes")
+          VALUES ('workflow_existing', 'org_fixture', 'user_fixture', $1::jsonb)
+        `,
+        [JSON.stringify([graphNode('llm_node', 'llm', { config: {} })])],
+      );
+
+      await client.query(migrationSource);
+      await client.query(seededSystemCleanupMigrationSource);
+
+      const workflows = await client.query<{ id: string }>(`
+        SELECT "id" FROM "workflows" ORDER BY "id"
+      `);
+      expect(workflows.rows).toEqual([{ id: 'workflow_existing' }]);
+
+      const versions = await client.query<{ workflowId: string }>(`
+        SELECT "workflowId" FROM "workflow_versions" ORDER BY "workflowId"
+      `);
+      expect(versions.rows).toEqual([{ workflowId: 'workflow_existing' }]);
     } finally {
       await closeMigrationFixture(fixture);
     }
@@ -755,13 +1047,15 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
         `
           INSERT INTO "workflows"
             ("id", "organizationId", "userId", "nodes")
-          VALUES ('workflow_tenant', 'org_fixture', 'user_fixture', $1::jsonb);
-          INSERT INTO "workflow_executions"
-            ("id", "workflowId", "organizationId", "userId")
-          VALUES ('execution_cross_tenant', 'workflow_tenant', 'org_other', 'user_other');
+          VALUES ('workflow_tenant', 'org_fixture', 'user_fixture', $1::jsonb)
         `,
         [JSON.stringify([graphNode('node_a', 'llm', { config: {} })])],
       );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId")
+        VALUES ('execution_cross_tenant', 'workflow_tenant', 'org_other', 'user_other')
+      `);
 
       await runRejectedMigration(
         client,

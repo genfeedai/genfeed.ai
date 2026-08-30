@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -8,6 +6,9 @@ import {
 } from '@genfeedai/enums';
 import type { IChannelTargetError } from '@genfeedai/interfaces';
 import type { PublishResult } from '@genfeedai/server';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const RETRYABLE_ERROR_PATTERNS = [
@@ -43,9 +44,10 @@ export type QueuedPostPublishSkip = {
 };
 
 export function getPublishErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : String(error || 'Post failed');
+  return getErrorMessage(error, {
+    fallback: (value) => String(value || 'Post failed'),
+    messageSource: 'error-instance',
+  });
 }
 
 export function getPublishErrorCode(error: unknown): string {

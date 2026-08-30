@@ -50,9 +50,9 @@ class TestBotManager extends BaseBotManager<{ id: string; token: string }> {
     return this.bots;
   }
 
-  /** Expose logger setter for testing. */
-  setLogger(logger: typeof this.logger): void {
-    this.logger = logger;
+  /** Expose the protected security boundary for focused assertions. */
+  sanitizeError(error: unknown): Record<string, unknown> {
+    return this.sanitizeErrorForLog(error);
   }
 }
 
@@ -82,14 +82,67 @@ describe('BaseBotManager', () => {
   };
 
   beforeEach(() => {
-    manager = new TestBotManager();
     mockLogger = {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
     };
-    manager.setLogger(mockLogger);
+    manager = new TestBotManager(mockLogger);
+  });
+
+  describe('sanitizeErrorForLog', () => {
+    it('allows only diagnostic fields from request errors', () => {
+      const error = Object.assign(new Error('Request failed'), {
+        code: 'ERR_BAD_REQUEST',
+        config: {
+          headers: { Authorization: 'Bearer telegram-bot-token' },
+          url: 'https://api.telegram.org/bottelegram-bot-token/getMe',
+        },
+        response: {
+          data: { token: 'telegram-bot-token' },
+          status: 401,
+          statusText: 'Unauthorized',
+        },
+      });
+
+      expect(manager.sanitizeError(error)).toEqual({
+        code: 'ERR_BAD_REQUEST',
+        message: 'Request failed',
+        status: 401,
+        statusText: 'Unauthorized',
+      });
+    });
+
+    it('redacts credentials embedded in safe diagnostic strings', () => {
+      expect(
+        manager.sanitizeError(
+          new Error('Telegram failed with Authorization: Bearer secret-token'),
+        ),
+      ).toEqual({
+        code: undefined,
+        message: 'Telegram failed with Authorization: [REDACTED] [REDACTED]',
+        status: undefined,
+        statusText: undefined,
+      });
+    });
+
+    it('redacts Telegram bot tokens embedded in request URLs', () => {
+      const token = ['123456789', 'AAABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'].join(
+        ':',
+      );
+
+      const sanitized = manager.sanitizeError(
+        new Error(
+          `Request failed at https://api.telegram.org/bot${token}/getMe`,
+        ),
+      );
+
+      expect(sanitized.message).toBe(
+        'Request failed at https://api.telegram.org/bot[REDACTED]/getMe',
+      );
+      expect(JSON.stringify(sanitized)).not.toContain(token);
+    });
   });
 
   describe('addIntegration', () => {
@@ -144,7 +197,12 @@ describe('BaseBotManager', () => {
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to add integration int-1:',
-        error,
+        {
+          code: undefined,
+          message: 'creation failed',
+          status: undefined,
+          statusText: undefined,
+        },
       );
     });
   });
@@ -174,7 +232,12 @@ describe('BaseBotManager', () => {
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to update integration int-1:',
-        error,
+        {
+          code: undefined,
+          message: 'update failed',
+          status: undefined,
+          statusText: undefined,
+        },
       );
     });
   });
@@ -214,7 +277,12 @@ describe('BaseBotManager', () => {
       );
       expect(mockLogger.error).toHaveBeenCalledWith(
         'Failed to remove integration int-1:',
-        error,
+        {
+          code: undefined,
+          message: 'destroy failed',
+          status: undefined,
+          statusText: undefined,
+        },
       );
     });
   });
@@ -304,7 +372,12 @@ describe('BaseBotManager', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         `Failed to handle Redis event ${REDIS_EVENTS.INTEGRATION_CREATED}:`,
-        error,
+        {
+          code: undefined,
+          message: 'fetch failed',
+          status: undefined,
+          statusText: undefined,
+        },
       );
     });
   });

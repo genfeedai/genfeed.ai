@@ -1,6 +1,7 @@
 import { ConfigService } from '@discord/config/config.service';
 import { DiscordBotManager } from '@discord/services/discord-bot-manager.service';
 import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -121,6 +122,15 @@ describe('DiscordBotManager', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DiscordBotManager,
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: RedisService, useValue: mockRedisService },
@@ -302,7 +312,7 @@ describe('DiscordBotManager', () => {
 
       expect(service.logger.error).toHaveBeenCalledWith(
         `Error stopping bot ${mockIntegration.id}`,
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });

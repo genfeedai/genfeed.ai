@@ -35,10 +35,11 @@
     "react-color": "2.19.3",
     "react-day-picker": "10.0.1",
     "react-dropzone": "20.1.1",
-    "react-hook-form": "7.86.0",
+    "react-hook-form": "7.87.0",
     "recharts": "3.10.1",
     "temporal-polyfill": "1.0.4",
-    "vaul": "1.1.2"
+    "vaul": "1.1.2",
+    "zustand": "5.0.15"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {

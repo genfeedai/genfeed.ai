@@ -1,6 +1,7 @@
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,6 +26,10 @@ describe('StripeWebhookService', () => {
     handleCustomerCreated: vi.fn(),
     handleCustomerUpdated: vi.fn(),
   };
+  const paymentHandler = {
+    handleChargeRefunded: vi.fn(),
+    handleDisputeCreated: vi.fn(),
+  };
 
   function eventOf(type: string, object: Record<string, unknown> = {}) {
     return { data: { object }, type };
@@ -44,6 +49,7 @@ describe('StripeWebhookService', () => {
         { provide: StripeCheckoutWebhookHandler, useValue: checkoutHandler },
         { provide: StripeInvoiceWebhookHandler, useValue: invoiceHandler },
         { provide: StripeCustomerWebhookHandler, useValue: customerHandler },
+        { provide: StripePaymentWebhookHandler, useValue: paymentHandler },
       ],
     }).compile();
 
@@ -79,11 +85,22 @@ describe('StripeWebhookService', () => {
     expect(handler[method]).toHaveBeenCalledWith(object, 'test');
   });
 
+  it.each([
+    ['charge.refunded', 'handleChargeRefunded'],
+    ['charge.dispute.created', 'handleDisputeCreated'],
+  ] as const)('routes %s to the payment handler', async (type, method) => {
+    const object = { id: 'obj_1' };
+
+    await service.handleWebhookEvent(eventOf(type, object), 'test');
+
+    expect(paymentHandler[method]).toHaveBeenCalledWith(object);
+  });
+
   it('logs unhandled event types without touching any handler', async () => {
-    await service.handleWebhookEvent(eventOf('charge.refunded'), 'test');
+    await service.handleWebhookEvent(eventOf('charge.dispute.closed'), 'test');
 
     expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('unhandled event type: charge.refunded'),
+      expect.stringContaining('unhandled event type: charge.dispute.closed'),
     );
     expect(checkoutHandler.handleCheckoutCompleted).not.toHaveBeenCalled();
     expect(invoiceHandler.handleInvoicePaid).not.toHaveBeenCalled();

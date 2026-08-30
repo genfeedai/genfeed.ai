@@ -38,7 +38,6 @@ export class TTSService {
       message: 'TTS generation job created',
     });
 
-    // Process asynchronously
     this.processTTSJob(job.jobId, request).catch((error) => {
       this.loggerService.error(caller, {
         error,
@@ -59,7 +58,6 @@ export class TTSService {
     await this.jobService.updateJob(jobId, { status: 'processing' });
 
     try {
-      // Check inference container is online
       const { status, modelLoaded } =
         await this.ttsInferenceService.getStatus();
       if (status !== 'online') {
@@ -71,12 +69,10 @@ export class TTSService {
         });
       }
 
-      // Generate speech via inference container
       const audioBuffer = await this.ttsInferenceService.generateSpeech({
         text: request.text,
       });
 
-      // Upload audio to S3 via files microservice
       const uploadResponse = await axios.post(
         `${this.configService.FILES_SERVICE_URL}/v1/files/upload`,
         {

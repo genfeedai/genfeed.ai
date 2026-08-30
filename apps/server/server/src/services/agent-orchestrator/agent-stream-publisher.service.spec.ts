@@ -1,5 +1,5 @@
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import { testId } from '@helpers/testing/test-id.helper';
+import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
@@ -9,6 +9,31 @@ const CHANNEL = 'agent-chat';
 // mockConfigService.get() resolves to `undefined` unless a test overrides it.
 const DEFAULT_COALESCE_WINDOW_MS = 50;
 const DEFAULT_COALESCE_MAX_BYTES = 2048;
+
+type PublisherDependencies = ConstructorParameters<
+  typeof AgentStreamPublisherService
+>;
+type PublishDoneInput = Parameters<
+  AgentStreamPublisherService['publishDone']
+>[0];
+type PublishErrorInput = Parameters<
+  AgentStreamPublisherService['publishError']
+>[0];
+type PublishReasoningInput = Parameters<
+  AgentStreamPublisherService['publishReasoning']
+>[0];
+type PublishStreamStartInput = Parameters<
+  AgentStreamPublisherService['publishStreamStart']
+>[0];
+type PublishToolCompleteInput = Parameters<
+  AgentStreamPublisherService['publishToolComplete']
+>[0];
+type PublishToolStartInput = Parameters<
+  AgentStreamPublisherService['publishToolStart']
+>[0];
+type PublishUIBlocksInput = Parameters<
+  AgentStreamPublisherService['publishUIBlocks']
+>[0];
 
 const mockRedisService = {
   publish: vi.fn(),
@@ -45,11 +70,11 @@ describe('AgentStreamPublisherService', () => {
     mockRedisService.publish.mockResolvedValue(undefined);
     mockRedisService.publishBatch.mockResolvedValue(undefined);
     service = new AgentStreamPublisherService(
-      mockRedisService as any,
-      mockLoggerService as any,
-      mockAgentThreadsService as any,
-      mockAgentThreadEngineService as any,
-      mockConfigService as any,
+      mockRedisService as unknown as PublisherDependencies[0],
+      mockLoggerService as unknown as PublisherDependencies[1],
+      mockAgentThreadsService as unknown as PublisherDependencies[2],
+      mockAgentThreadEngineService as unknown as PublisherDependencies[3],
+      mockConfigService as unknown as PublisherDependencies[4],
     );
   });
 
@@ -65,7 +90,9 @@ describe('AgentStreamPublisherService', () => {
         sessionId: 'sess-1',
         userId: 'user-1',
       };
-      await service.publishStreamStart(data as any);
+      await service.publishStreamStart(
+        data as unknown as PublishStreamStartInput,
+      );
 
       expect(mockRedisService.publish).toHaveBeenCalledOnce();
       const [channel, payload] = mockRedisService.publish.mock.calls[0];
@@ -221,7 +248,7 @@ describe('AgentStreamPublisherService', () => {
         runId: 'run-1',
         sessionId: 'sess-1',
       };
-      await service.publishReasoning(data as any);
+      await service.publishReasoning(data as unknown as PublishReasoningInput);
 
       const [channel, payload] = mockRedisService.publish.mock.calls[0];
       expect(channel).toBe(CHANNEL);
@@ -234,7 +261,7 @@ describe('AgentStreamPublisherService', () => {
   describe('publishToolStart', () => {
     it('should publish with type agent:tool_start', async () => {
       const data = { runId: 'run-1', sessionId: 'sess-1', toolName: 'search' };
-      await service.publishToolStart(data as any);
+      await service.publishToolStart(data as unknown as PublishToolStartInput);
 
       const [channel, payload] = mockRedisService.publish.mock.calls[0];
       expect(channel).toBe(CHANNEL);
@@ -257,7 +284,7 @@ describe('AgentStreamPublisherService', () => {
         threadId,
         toolName: 'search',
         userId,
-      } as any);
+      } as unknown as PublishToolStartInput);
 
       expect(
         mockAgentThreadEngineService.appendEventEffect,
@@ -285,7 +312,9 @@ describe('AgentStreamPublisherService', () => {
         sessionId: 'sess-1',
         toolName: 'search',
       };
-      await service.publishToolComplete(data as any);
+      await service.publishToolComplete(
+        data as unknown as PublishToolCompleteInput,
+      );
 
       const [channel, payload] = mockRedisService.publish.mock.calls[0];
       expect(channel).toBe(CHANNEL);
@@ -302,7 +331,7 @@ describe('AgentStreamPublisherService', () => {
         sessionId: 'sess-1',
         threadId: 'thread-1',
       };
-      await service.publishDone(data as any);
+      await service.publishDone(data as unknown as PublishDoneInput);
 
       expect(mockRedisService.publishBatch).toHaveBeenCalledOnce();
       const [entries] = mockRedisService.publishBatch.mock.calls[0];
@@ -335,7 +364,7 @@ describe('AgentStreamPublisherService', () => {
         runId: 'run-1',
         sessionId: 'sess-1',
         threadId: 'thread-1',
-      } as any);
+      } as unknown as PublishDoneInput);
 
       expect(mockRedisService.publishBatch).toHaveBeenCalledOnce();
       const [entries] = mockRedisService.publishBatch.mock.calls[0];
@@ -362,7 +391,7 @@ describe('AgentStreamPublisherService', () => {
       await service.publishDone({
         runId: 'run-1',
         threadId: 'thread-1',
-      } as any);
+      } as unknown as PublishDoneInput);
 
       const [entries] = mockRedisService.publishBatch.mock.calls[0];
       expect(entries).toHaveLength(1);
@@ -378,7 +407,7 @@ describe('AgentStreamPublisherService', () => {
         sessionId: 'sess-1',
         threadId: 'thread-1',
       };
-      await service.publishError(data as any);
+      await service.publishError(data as unknown as PublishErrorInput);
 
       expect(mockRedisService.publishBatch).toHaveBeenCalledOnce();
       const [entries] = mockRedisService.publishBatch.mock.calls[0];
@@ -401,7 +430,7 @@ describe('AgentStreamPublisherService', () => {
         error: 'boom',
         runId: 'run-1',
         threadId: 'thread-1',
-      } as any);
+      } as unknown as PublishErrorInput);
 
       expect(mockRedisService.publishBatch).toHaveBeenCalledOnce();
       const [entries] = mockRedisService.publishBatch.mock.calls[0];
@@ -415,7 +444,7 @@ describe('AgentStreamPublisherService', () => {
   describe('publishUIBlocks', () => {
     it('should publish with type agent:ui_blocks', async () => {
       const data = { blocks: [], runId: 'run-1', sessionId: 'sess-1' };
-      await service.publishUIBlocks(data as any);
+      await service.publishUIBlocks(data as unknown as PublishUIBlocksInput);
 
       const [channel, payload] = mockRedisService.publish.mock.calls[0];
       expect(channel).toBe(CHANNEL);
@@ -577,7 +606,7 @@ describe('AgentStreamPublisherService', () => {
         service.publishDone({
           runId: 'run-1',
           threadId: 'thread-1',
-        } as any),
+        } as unknown as PublishDoneInput),
       ).rejects.toThrow('Redis down');
     });
   });

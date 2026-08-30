@@ -6,6 +6,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
@@ -112,7 +113,7 @@ export class CreditDeductionProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} job failed`, {
         attempt: job.attemptsMade + 1,
-        error: (error as Error)?.message,
+        error: getErrorMessage(error, { fallback: () => undefined }),
         jobId: job.id,
         maxAttempts: job.opts.attempts,
         organizationId,
@@ -122,7 +123,12 @@ export class CreditDeductionProcessor extends WorkerHost {
       // BusinessLogicException = permanent failure (e.g. "insufficient credits"
       // on retry means deduction already committed but side effects failed)
       if (error instanceof BusinessLogicException) {
-        throw new UnrecoverableError((error as Error).message);
+        throw new UnrecoverableError(
+          getErrorMessage(error, {
+            fallback: () => '',
+            messageSource: 'error-instance',
+          }),
+        );
       }
 
       // Transient error — BullMQ retries

@@ -80,11 +80,6 @@ export function useCrudModal<
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Memoize defaultValues to prevent object identity changes
-  const _defaultValuesKey = useMemo(
-    () => JSON.stringify(defaultValues),
-    [defaultValues],
-  );
   const stableDefaultValues = useMemo(() => defaultValues, [defaultValues]);
 
   const closeModal = useCallback(

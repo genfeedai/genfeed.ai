@@ -9,8 +9,6 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
@@ -62,15 +60,9 @@ interface AgentChatInputProps {
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'inspector';
-  selectedModel?: string;
-  /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
-  models: readonly IModel[];
-  isModelsLoading?: boolean;
   /** Joins the composer to an expandable mode/settings strip above it. */
   isTopAttached?: boolean;
-  onModelChange?: (model: string) => void;
-  onPrioritizeChange?: (priority: RouterPriority) => void;
-  prioritize?: RouterPriority;
+  /** Credits lock shown on the generation-setup popover's model rows. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
 }
@@ -106,13 +98,7 @@ export function AgentChatInput({
   getCompletedAttachments,
   clearAllAttachments,
   density = 'default',
-  selectedModel,
-  models,
-  isModelsLoading = false,
   isTopAttached = false,
-  onModelChange,
-  onPrioritizeChange,
-  prioritize,
   creditsAvailable = null,
   willQueueFollowUp = false,
 }: AgentChatInputProps): ReactElement {
@@ -125,26 +111,6 @@ export function AgentChatInput({
       aspectRatio: '1:1',
       outputs: 1,
     });
-  const handleConversationSend = useCallback(
-    async (
-      content: string,
-      mentions?: ExtractedMention[],
-      completedAttachments?: ChatAttachment[],
-      options?: ConversationComposerSendOptions,
-    ) => {
-      const accepted = await onSend(
-        content,
-        mentions,
-        completedAttachments,
-        options,
-      );
-      if (accepted !== false) {
-        setGenerationMode('auto');
-      }
-      return accepted;
-    },
-    [onSend],
-  );
   const {
     actionFeedback,
     canSendMessage,
@@ -164,6 +130,7 @@ export function AgentChatInput({
     isDragActive,
     isListening,
     isTranscribing,
+    promptText,
     references,
     selectedContentIds,
     setIsContentPickerOpen,
@@ -184,7 +151,7 @@ export function AgentChatInput({
     hasQueuedFollowUps,
     isUploading,
     onPromoteQueuedFollowUp,
-    onSend: handleConversationSend,
+    onSend,
     onStop,
     placeholder,
     removeAttachment,
@@ -259,25 +226,19 @@ export function AgentChatInput({
           disabled={disabled}
           hasEditor={Boolean(editor)}
           isListening={isListening}
-          isModelsLoading={isModelsLoading}
           isTranscribing={isTranscribing}
           isUploading={isUploading}
           generationMode={generationMode}
-          generationSettings={generationSettings}
-          models={models}
+          promptText={promptText}
           onAddFiles={addFiles}
           onInsertReference={handleInsertReference}
           onGenerationModeChange={setGenerationMode}
           onGenerationSettingsChange={setGenerationSettings}
-          onModelChange={onModelChange}
-          onPrioritizeChange={onPrioritizeChange}
           onSelectAction={handleSelectAction}
           onSend={handleToolbarSend}
           onStartListening={startListening}
           onStop={onStop}
           onStopListening={stopListening}
-          prioritize={prioritize}
-          selectedModel={selectedModel}
           shouldShowSendButton={shouldShowSendButton}
           shouldShowVoiceInput={shouldShowVoiceInput}
           showStop={Boolean(showStop)}

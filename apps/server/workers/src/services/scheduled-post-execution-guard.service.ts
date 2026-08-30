@@ -1,4 +1,3 @@
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   AGENT_SCOPE_SOURCES,
   type AgentScopeSource,
@@ -8,6 +7,7 @@ import {
   AgentScopeContextService,
 } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const AGENT_SCOPE_SOURCE_SET: ReadonlySet<unknown> = new Set(
@@ -30,11 +30,8 @@ export class ScheduledPostExecutionGuardService {
     const record = post as unknown as Record<string, unknown>;
     const contextVersion = record.agentContextVersion;
     const source = record.agentContextSource;
-    const organizationId = readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
-    const userId = readPostString(post, ['userId', 'user']);
+    const organizationId = readPostString(post, ['organizationId']);
+    const userId = readPostString(post, ['userId']);
 
     if (
       typeof contextVersion !== 'number' ||
@@ -47,7 +44,7 @@ export class ScheduledPostExecutionGuardService {
       );
     }
 
-    const brandId = readPostString(post, ['brandId', 'brand']);
+    const brandId = readPostString(post, ['brandId']);
     const scope = {
       brandId,
       contextVersion,
@@ -97,17 +94,14 @@ export class ScheduledPostExecutionGuardService {
       return;
     }
 
-    const organizationId = readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
+    const organizationId = readPostString(post, ['organizationId']);
     if (!organizationId) {
       throw new Error(
         `Post ${post.id.toString()} is missing an organization for version-pin validation.`,
       );
     }
 
-    const brandId = readPostString(post, ['brandId', 'brand']);
+    const brandId = readPostString(post, ['brandId']);
     const resolved =
       await this.agentArtifactReferenceService.assertVersionPinCurrent({
         pinId: versionPinId,

@@ -6,8 +6,6 @@ import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollo
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -54,13 +52,6 @@ type AgentChatEmptyStateProps = {
   placeholder?: string;
   promptBarSuggestions: ReactNode;
   removeAttachment: (id: string) => void;
-  selectedModel?: string;
-  /** Registry-backed chat catalogue. Empty means Auto is the only choice. */
-  models: readonly IModel[];
-  isModelsLoading?: boolean;
-  onModelChange?: (model: string) => void;
-  onPrioritizeChange?: (priority: RouterPriority) => void;
-  prioritize?: RouterPriority;
   creditsAvailable?: number | null;
 };
 
@@ -94,12 +85,6 @@ export function AgentChatEmptyState({
   placeholder,
   promptBarSuggestions,
   removeAttachment,
-  selectedModel,
-  models,
-  isModelsLoading = false,
-  onModelChange,
-  onPrioritizeChange,
-  prioritize,
   creditsAvailable = null,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
@@ -189,19 +174,13 @@ export function AgentChatEmptyState({
                 dragHandlers={dragHandlers}
                 dragState={dragState}
                 getCompletedAttachments={getCompletedAttachments}
-                isModelsLoading={isModelsLoading}
                 isUploading={isAttachmentUploading}
-                models={models}
                 onSend={onSend}
                 onStop={onStop}
                 placeholder={placeholder}
                 removeAttachment={removeAttachment}
                 showStop={isRunActive}
                 willQueueFollowUp={isBusy}
-                selectedModel={selectedModel}
-                onModelChange={onModelChange}
-                onPrioritizeChange={onPrioritizeChange}
-                prioritize={prioritize}
                 creditsAvailable={creditsAvailable}
               />
             </PromptBarContainer>

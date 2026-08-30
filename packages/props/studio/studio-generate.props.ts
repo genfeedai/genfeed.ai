@@ -17,16 +17,17 @@ export type StudioGenerateReferenceRole =
   | 'endFrame'
   | 'videoReference';
 
-export interface StudioGenerateTypeSelectorProps {
-  isDisabled?: boolean;
-  onChange: (type: StudioGenerateType) => void;
-  type: StudioGenerateType;
-}
-
 export interface StudioGenerateSettingsPopoverProps {
   isDisabled?: boolean;
   onChange: (patch: Partial<StudioGenerateSettings>) => void;
   onReset: () => void;
+  settings: StudioGenerateSettings;
+  type: StudioGenerateType;
+}
+
+export interface StudioIdentityFieldsProps {
+  isDisabled?: boolean;
+  onChange: (patch: Partial<StudioGenerateSettings>) => void;
   settings: StudioGenerateSettings;
   type: StudioGenerateType;
 }

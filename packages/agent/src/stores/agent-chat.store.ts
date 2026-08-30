@@ -9,7 +9,6 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
-import { adoptNewThreadGenerationPrefs } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { sortThreads } from '@genfeedai/agent/utils/sort-agent-threads.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
@@ -18,6 +17,10 @@ import type {
   OnboardingChecklistStep,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import { AGENT_PANEL_OPEN_KEY } from '@genfeedai/services/core/agent-overlay-coordination.service';
+import {
+  adoptNewScopeSetup,
+  buildAgentGenerationSetupScope,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { create } from 'zustand';
 
 // ---------------------------------------------------------------------------
@@ -981,7 +984,17 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       // card in `pendingUiActions`.
       if (state.activeThreadId === id || !state.activeThreadId) {
         if (!state.activeThreadId && id) {
-          adoptNewThreadGenerationPrefs(id);
+          // Carry the composer-built ("__new__") setup over onto the freshly
+          // created thread's own scope, for both generation types the agent
+          // composer can produce — mirrors adoptNewThreadGenerationPrefs.
+          adoptNewScopeSetup(
+            buildAgentGenerationSetupScope(state.activeThreadId, 'image'),
+            buildAgentGenerationSetupScope(id, 'image'),
+          );
+          adoptNewScopeSetup(
+            buildAgentGenerationSetupScope(state.activeThreadId, 'video'),
+            buildAgentGenerationSetupScope(id, 'video'),
+          );
         }
         return { activeThreadId: id };
       }

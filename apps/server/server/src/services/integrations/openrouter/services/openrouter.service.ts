@@ -1,4 +1,3 @@
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -12,16 +11,6 @@ import {
   type OpenRouterToolCallResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { firstValueFrom } from 'rxjs';
-
-const RETRYABLE_OPENROUTER_STATUSES = new Set([
-  408, 429, 502, 503, 504, 524, 529,
-]);
-const FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS = [
-  'no endpoints found matching your data policy',
-  'no endpoints found that support',
-  'no allowed providers are available for the selected model',
-  'no compatible endpoints available',
-] as const;
 
 interface OpenRouterErrorDetails {
   message: string;
@@ -135,81 +124,6 @@ export class OpenRouterService {
     };
   }
 
-  private normalizeError(error: unknown): unknown {
-    const details = this.getSafeErrorDetails(error);
-    if (!details.status || details.status === details.transportStatus) {
-      return error;
-    }
-
-    const errorRecord = asRecord(error);
-    const response = asRecord(errorRecord?.response);
-    return Object.assign(new Error(details.message), {
-      cause: error,
-      response: {
-        ...response,
-        status: details.status,
-        statusText: details.statusText,
-      },
-      status: details.status,
-    });
-  }
-
-  private isRetryableFreeRouteError(
-    params: OpenRouterChatCompletionParams,
-    error: unknown,
-  ): boolean {
-    if (params.model !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
-      return false;
-    }
-
-    const details = this.getSafeErrorDetails(error);
-    if (
-      details.status !== undefined &&
-      RETRYABLE_OPENROUTER_STATUSES.has(details.status)
-    ) {
-      return true;
-    }
-
-    if (details.status !== 404) {
-      return false;
-    }
-
-    const message = details.message.toLowerCase();
-    return FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS.some((pattern) =>
-      message.includes(pattern),
-    );
-  }
-
-  private async withFreeRouteFallback<T>(
-    operation: string,
-    params: OpenRouterChatCompletionParams,
-    run: () => Promise<T>,
-    canRetry: () => boolean = () => true,
-  ): Promise<T> {
-    try {
-      return await run();
-    } catch (error: unknown) {
-      if (!canRetry() || !this.isRetryableFreeRouteError(params, error)) {
-        throw error;
-      }
-
-      const details = this.getSafeErrorDetails(error);
-      this.loggerService.warn(
-        `${this.constructorName}.${operation} retrying synthetic free route after retryable upstream failure`,
-        { status: details.status },
-      );
-
-      try {
-        // `openrouter/free` randomly chooses a compatible free model for every
-        // request, so one fresh request gives the router one bounded chance to
-        // avoid the saturated route without ever crossing into a paid model.
-        return await run();
-      } catch (retryError: unknown) {
-        throw this.normalizeError(retryError);
-      }
-    }
-  }
-
   async chatCompletion(
     params: OpenRouterChatCompletionParams,
     apiKeyOverride?: string,
@@ -217,28 +131,22 @@ export class OpenRouterService {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
     try {
-      return await this.withFreeRouteFallback(
-        'chatCompletion',
-        params,
-        async () => {
-          const response = await firstValueFrom(
-            this.httpService.post<OpenRouterChatCompletionResponse>(
-              this.apiUrl,
-              { ...this.withRetentionPolicy(params), stream: false },
-              {
-                headers: {
-                  Authorization: `Bearer ${apiKey}`,
-                  'Content-Type': 'application/json',
-                  'HTTP-Referer': 'https://genfeed.ai',
-                  'X-Title': 'Genfeed AI',
-                },
-              },
-            ),
-          );
-
-          return response.data;
-        },
+      const response = await firstValueFrom(
+        this.httpService.post<OpenRouterChatCompletionResponse>(
+          this.apiUrl,
+          { ...this.withRetentionPolicy(params), stream: false },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://genfeed.ai',
+              'X-Title': 'Genfeed AI',
+            },
+          },
+        ),
       );
+
+      return response.data;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,
@@ -255,25 +163,20 @@ export class OpenRouterService {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
     try {
-      const response = await this.withFreeRouteFallback(
-        'streamChatCompletion',
-        params,
-        async () =>
-          firstValueFrom(
-            this.httpService.post(
-              this.apiUrl,
-              { ...this.withRetentionPolicy(params), stream: true },
-              {
-                headers: {
-                  Authorization: `Bearer ${apiKey}`,
-                  'Content-Type': 'application/json',
-                  'HTTP-Referer': 'https://genfeed.ai',
-                  'X-Title': 'Genfeed AI',
-                },
-                responseType: 'stream',
-              },
-            ),
-          ),
+      const response = await firstValueFrom(
+        this.httpService.post(
+          this.apiUrl,
+          { ...this.withRetentionPolicy(params), stream: true },
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://genfeed.ai',
+              'X-Title': 'Genfeed AI',
+            },
+            responseType: 'stream',
+          },
+        ),
       );
 
       const stream = response.data as AsyncIterable<Uint8Array | string>;
@@ -372,24 +275,12 @@ export class OpenRouterService {
     onToken?: OpenRouterStreamTokenHandler,
   ): Promise<OpenRouterChatCompletionResponse> {
     const apiKey = this.resolveApiKey(apiKeyOverride);
-    let emittedToken = false;
 
     try {
-      return await this.withFreeRouteFallback(
-        'streamChatCompletionAggregated',
+      return await this.streamChatCompletionAggregatedOnce(
         params,
-        () =>
-          this.streamChatCompletionAggregatedOnce(
-            params,
-            apiKey,
-            onToken
-              ? async (token) => {
-                  emittedToken = true;
-                  await onToken(token);
-                }
-              : undefined,
-          ),
-        () => !emittedToken,
+        apiKey,
+        onToken,
       );
     } catch (error: unknown) {
       this.loggerService.error(

@@ -13,9 +13,7 @@ export class Member extends BaseMember {
       typeof partial.organization === 'object' &&
       'id' in partial.organization
     ) {
-      this.organization = new Organization(
-        partial.organization as unknown as Partial<Organization>,
-      );
+      this.organization = new Organization(partial.organization);
     }
 
     if (

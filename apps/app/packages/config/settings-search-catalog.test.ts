@@ -21,7 +21,6 @@ describe('buildSettingsSearchCatalog', () => {
     ).toBe(true);
     expect(catalog.map((item) => item.id)).toEqual(
       expect.arrayContaining([
-        'personal-section:chat-defaults',
         'personal-section:appearance',
         'personal-section:email-notifications',
       ]),
@@ -71,13 +70,6 @@ describe('buildSettingsSearchCatalog', () => {
       catalog.find(
         (item) =>
           item.id ===
-          `personal-section:${PERSONAL_SETTINGS_ANCHOR.CHAT_DEFAULTS}`,
-      )?.href,
-    ).toBe(APP_ROUTES.SETTINGS.CHAT);
-    expect(
-      catalog.find(
-        (item) =>
-          item.id ===
           `personal-section:${PERSONAL_SETTINGS_ANCHOR.SETUP_CHECKLIST}`,
       )?.href,
     ).toBe(APP_ROUTES.SETTINGS.PROGRESS);
@@ -99,7 +91,7 @@ describe('buildSettingsSearchCatalog', () => {
       ),
     ).toBe(true);
     expect(
-      catalog.some((item) => item.id === 'personal-section:chat-defaults'),
+      catalog.some((item) => item.id === 'personal-section:appearance'),
     ).toBe(false);
   });
 
@@ -128,11 +120,11 @@ describe('filterSettingsSearchCatalog', () => {
     );
   });
 
-  it('finds chat defaults in personal search without org Models', () => {
-    const results = filterSettingsSearchCatalog(catalog, 'model');
+  it('finds appearance in personal search without org Models', () => {
+    const results = filterSettingsSearchCatalog(catalog, 'theme');
 
     expect(results.map((item) => item.id)).toEqual(
-      expect.arrayContaining(['personal-section:chat-defaults']),
+      expect.arrayContaining(['personal-section:appearance']),
     );
     expect(results.some((item) => item.label === 'Models')).toBe(false);
   });

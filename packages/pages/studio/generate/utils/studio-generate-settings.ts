@@ -2,7 +2,6 @@ import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
 import {
   getDefaultVideoResolution,
-  getVideoResolutionLabel,
   getVideoResolutionsByModel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -304,46 +303,4 @@ export function buildStudioPromptData({
     voiceId: capabilities.hasIdentity ? settings.voiceId : undefined,
     width,
   };
-}
-
-/**
- * Compact label for the composer's gear chip, e.g. `16:9 · 720p · 5s`. Only
- * capabilities the type actually exposes contribute a segment, so Voice reads
- * as `Brand` rather than as a fake `1:1 · 1K`.
- */
-export function describeStudioGenerateSettings(
-  settings: StudioGenerateSettings,
-  type: StudioGenerateType,
-): string {
-  const { capabilities } = getStudioGenerateTypeConfig(type);
-  const segments: string[] = [];
-
-  if (capabilities.hasAspectRatio) {
-    segments.push(settings.aspectRatio);
-  }
-
-  if (type === 'video') {
-    if (settings.modelKey !== AUTO_MODEL_OPTION_VALUE) {
-      segments.push(
-        getVideoResolutionLabel(settings.modelKey, settings.resolution) ??
-          settings.resolution,
-      );
-    }
-  } else if (getStudioResolutions(type).length > 0) {
-    segments.push(settings.resolution);
-  }
-
-  if (capabilities.hasDuration && settings.duration) {
-    segments.push(`${settings.duration}s`);
-  }
-
-  if (capabilities.hasOutputs && settings.outputs > 1) {
-    segments.push(`${settings.outputs}x`);
-  }
-
-  if (capabilities.hasBrandEnrichment && settings.brandingMode === 'brand') {
-    segments.push('Brand');
-  }
-
-  return segments.join(' · ');
 }

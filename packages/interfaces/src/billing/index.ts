@@ -9,6 +9,7 @@ export * from './llm-vendor-cost.interface';
 export * from './managed-credits.interface';
 export * from './media-vendor-cost.interface';
 export * from './pricing.interface';
+export * from './referral.interface';
 export * from './subscription.interface';
 export * from './subscriptions-service.contract';
 export type {

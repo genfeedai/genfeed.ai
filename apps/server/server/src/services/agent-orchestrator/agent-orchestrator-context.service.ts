@@ -1,9 +1,5 @@
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import {
-  AgentMessageRole,
-  AgentType,
-  SubscriptionTier,
-} from '@genfeedai/enums';
+import { AgentMessageRole, AgentType } from '@genfeedai/enums';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import {
   AgentScopeContextService,
@@ -53,12 +49,6 @@ import {
 import { ThreadContextCompressorService } from '@server/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
-
-const PAID_SUBSCRIPTION_TIERS = new Set<string>([
-  SubscriptionTier.PRO,
-  SubscriptionTier.SCALE,
-  SubscriptionTier.ENTERPRISE,
-]);
 
 function buildGenerationModePrompt(
   mode: AgentChatRequest['generationMode'],
@@ -167,13 +157,6 @@ export class AgentOrchestratorContextService {
       );
 
     const replyStyle = orgSettings?.agentReplyStyle;
-    const subscriptionDefaultModel =
-      !request.model &&
-      !strategyModel &&
-      !policy.thinkingModelOverride &&
-      PAID_SUBSCRIPTION_TIERS.has(orgSettings?.subscriptionTier ?? '')
-        ? await this.agentChatModelRegistry.getLocalDefaultModelKey()
-        : undefined;
     const shouldLoadBrandContext =
       Boolean(policy.brandId) ||
       (!thread?.systemPrompt && !request.systemPromptOverride);
@@ -197,17 +180,16 @@ export class AgentOrchestratorContextService {
           query: request.content,
         })
       : null;
-    // Every candidate here can be a key persisted months ago — an org default, a
-    // brand default, a strategy pin. Retired keys map forward to their catalogue
-    // successor so the model we call is always one the picker offers and the
-    // biller has a real price for.
-    const resolveModel = async (brandDefaultModel?: string): Promise<string> =>
+    // Chat always runs the pinned catalogue default — there is no user-facing
+    // model picker and no per-org/per-brand override. Only an explicit
+    // strategy pin, a thinking-model override, or an agent-type default may
+    // steer the model; a retired key still maps forward to its catalogue
+    // successor so the model we call is always one the biller has a real
+    // price for.
+    const resolveModel = async (): Promise<string> =>
       this.agentChatModelRegistry.resolveModelKey(
-        request.model ||
-          strategyModel ||
+        strategyModel ||
           policy.thinkingModelOverride ||
-          subscriptionDefaultModel ||
-          brandDefaultModel ||
           agentTypeConfig?.defaultModel,
       );
 
@@ -273,7 +255,7 @@ export class AgentOrchestratorContextService {
         .join('\n\n');
       return {
         memories,
-        model: await resolveModel(brandContext?.defaultModel),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
@@ -292,7 +274,7 @@ export class AgentOrchestratorContextService {
         .join('\n\n');
       return {
         memories,
-        model: await resolveModel(brandContext?.defaultModel),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
@@ -320,7 +302,7 @@ export class AgentOrchestratorContextService {
       );
       return {
         memories,
-        model: await resolveModel(brandContext.defaultModel),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,

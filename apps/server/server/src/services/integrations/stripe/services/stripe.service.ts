@@ -50,17 +50,20 @@ export type StripeSubscription = Awaited<
 export type StripeInvoice = Awaited<
   ReturnType<StripeClient['invoices']['retrieve']>
 >;
+export type StripeCharge = Awaited<
+  ReturnType<StripeClient['charges']['retrieve']>
+>;
+export type StripeDispute = Awaited<
+  ReturnType<StripeClient['disputes']['retrieve']>
+>;
 type StripeWebhookEvent = Awaited<
   ReturnType<StripeClient['webhooks']['constructEventAsync']>
 >;
 
-type UpcomingInvoicePreview = {
-  amount_due: number;
-  currency: string;
-  lines: {
-    data: Record<string, unknown>[];
-  };
-};
+export type UpcomingInvoicePreview = Pick<
+  StripeInvoice,
+  'amount_due' | 'currency' | 'lines'
+>;
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
   '2026-08-26.dahlia';
@@ -1074,39 +1077,90 @@ export class StripeService {
   public async getUpcomingInvoice(
     customerId: string,
     subscriptionId: string,
+    currentPriceId: string,
     newPriceId: string,
+    quantity?: number,
   ): Promise<UpcomingInvoicePreview> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Get the subscription to find the subscription item
-      const subscription =
-        await this.stripe.subscriptions.retrieve(subscriptionId);
-
-      if (!subscription.items.data || subscription.items.data.length === 0) {
-        throw new Error('No subscription items found');
+      if (!this.isStripePriceId(currentPriceId)) {
+        throw new BadRequestException('Invalid current Stripe price ID');
+      }
+      if (!this.isStripePriceId(newPriceId)) {
+        throw new BadRequestException('Invalid Stripe price ID');
+      }
+      if (
+        quantity !== undefined &&
+        (!Number.isInteger(quantity) || quantity < 1)
+      ) {
+        throw new BadRequestException(
+          'Subscription quantity must be a positive integer',
+        );
       }
 
-      // Preview the upcoming invoice with the new price
-      const upcomingInvoice = await this.stripe.invoices.list({
+      const subscription =
+        await this.stripe.subscriptions.retrieve(subscriptionId);
+      const subscriptionCustomerId =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer?.id;
+      if (subscriptionCustomerId !== customerId) {
+        throw new BadRequestException(
+          'Stripe subscription does not belong to the requested customer',
+        );
+      }
+
+      if (subscription.items.data.length === 0) {
+        throw new BadRequestException('No subscription items found');
+      }
+      if (subscription.items.data.every((item) => !item.price?.id)) {
+        throw new BadRequestException('No price found for subscription item');
+      }
+      const subscriptionItem = subscription.items.data.find(
+        (item) => item.price?.id === currentPriceId,
+      );
+      if (!subscriptionItem?.id) {
+        throw new BadRequestException(
+          'No subscription item found for current Stripe price',
+        );
+      }
+      const targetPrice = await this.stripe.prices.retrieve(newPriceId);
+      const targetQuantity =
+        targetPrice.recurring?.usage_type === 'metered'
+          ? undefined
+          : (quantity ?? subscriptionItem.quantity ?? undefined);
+
+      const upcomingInvoice = await this.stripe.invoices.createPreview({
         customer: customerId,
-        limit: 1,
         subscription: subscriptionId,
+        subscription_details: {
+          items: [
+            {
+              id: subscriptionItem.id,
+              price: newPriceId,
+              ...(targetQuantity === undefined
+                ? {}
+                : { quantity: targetQuantity }),
+            },
+          ],
+          proration_behavior: 'create_prorations',
+        },
       });
 
       this.loggerService.log(`${url} success`, {
+        amountDue: upcomingInvoice.amount_due,
         customerId,
-        invoiceCount: upcomingInvoice.data.length,
+        currency: upcomingInvoice.currency,
+        currentPriceId,
         newPriceId,
+        quantity: targetQuantity,
         subscriptionId,
+        subscriptionItemId: subscriptionItem.id,
+        targetUsageType: targetPrice.recurring?.usage_type,
       });
 
-      // Return a mock invoice for preview purposes
-      return {
-        amount_due: 0, // This will be calculated on the frontend based on price difference
-        currency: 'usd',
-        lines: { data: [] },
-      };
+      return upcomingInvoice;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;

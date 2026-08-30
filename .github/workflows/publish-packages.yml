@@ -154,7 +154,6 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: '24.x'
-          bun-version: '1.3.14'
 
       - name: Validate npm release enrollment
         run: bun run check:npm-release
@@ -214,7 +213,6 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: '24.x'
-          bun-version: '1.3.14'
 
       - name: Require npm trusted-publishing support
         run: |
@@ -311,7 +309,6 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: '24.x'
-          bun-version: '1.3.14'
           install-command: 'bun install --frozen-lockfile'
 
       - name: Require npm trusted-publishing support

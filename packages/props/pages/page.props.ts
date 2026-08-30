@@ -1,7 +1,3 @@
-/**
- * Props for Next.js page components with dynamic route parameters
- */
-
 export interface IngredientsListPageProps {
   params: Promise<{ type: string }>;
 }

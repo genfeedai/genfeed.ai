@@ -14,21 +14,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
-import { CreatePromptDto } from '@server/collections/prompts/dto/create-prompt.dto';
 import type { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
-import { UpdatePromptDto } from '@server/collections/prompts/dto/update-prompt.dto';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { PromptCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -36,6 +27,15 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { CreatePromptDto } from '@server/collections/prompts/dto/create-prompt.dto';
+import { UpdatePromptDto } from '@server/collections/prompts/dto/update-prompt.dto';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 
 describe('PromptsController', () => {
@@ -163,7 +163,7 @@ describe('PromptsController', () => {
       expect(service.create).toHaveBeenCalled();
       expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+          model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
         }),
       );
       expect(result).toBeDefined();

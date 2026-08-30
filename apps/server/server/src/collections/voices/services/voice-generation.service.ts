@@ -5,12 +5,18 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import type { GenerateVoiceDto } from '@server/collections/voices/dto/generate-voice.dto';
 import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
@@ -24,8 +30,16 @@ export type VoiceGenerationActionResult = {
   status: string;
 };
 
+type VoiceGenerationParams = {
+  ingredientId: string;
+  organizationId: string;
+  text: string;
+  userId: string;
+  voiceId: string;
+};
+
 @Injectable()
-export class VoiceGenerationService {
+export class VoiceGenerationService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
@@ -36,6 +50,18 @@ export class VoiceGenerationService {
     private readonly voicesService: VoicesService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
+      ({ input }) => {
+        // The workflow engine validates this action input before execution.
+        return this.executeQueuedGeneration(
+          input as unknown as VoiceGenerationParams,
+        );
+      },
+    );
+  }
 
   async generate(
     user: User,
@@ -122,13 +148,9 @@ export class VoiceGenerationService {
     return accepted;
   }
 
-  private async enqueueGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<void> {
+  private async enqueueGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<void> {
     await this.workflowRunner.enqueueWorkflow({
       actionType: 'voice.generate',
       canonicalId: 'voice.generate',
@@ -143,13 +165,9 @@ export class VoiceGenerationService {
     });
   }
 
-  async executeQueuedGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<VoiceGenerationActionResult> {
+  async executeQueuedGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<VoiceGenerationActionResult> {
     const existing = await this.voicesService.findOne(
       {
         id: params.ingredientId,
@@ -189,13 +207,9 @@ export class VoiceGenerationService {
     };
   }
 
-  private async executeGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<IngredientDocument> {
+  private async executeGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<IngredientDocument> {
     let result: { audioUrl: string; duration: number };
     try {
       result = await this.elevenLabsService.generateAndUploadAudio(

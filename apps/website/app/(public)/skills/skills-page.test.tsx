@@ -104,6 +104,10 @@ describe('getSkillsRegistry', () => {
     );
 
     await expect(getSkillsRegistry()).resolves.toEqual(payload);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/skills-pro/storefront'),
+      expect.any(Object),
+    );
   });
 
   it('returns null when the registry answers with an error status', async () => {

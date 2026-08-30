@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
     "better-auth": "1.6.29",
-    "zod": "4.5.3"
+    "zod": "4.5.4"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {

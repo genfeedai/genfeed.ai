@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import { buildBaseGenerationPayload } from './generation-payloads';
 import {
   buildStudioPromptData,
-  describeStudioGenerateSettings,
   getDefaultStudioGenerateSettings,
   getStudioAspectRatios,
   getStudioDurations,
@@ -312,58 +311,5 @@ describe('studio prompt data feeding the Genfeed enrichment payload', () => {
     });
 
     expect(promptData.isBrandingEnabled).toBe(false);
-  });
-});
-
-describe('describeStudioGenerateSettings', () => {
-  it('summarises an image setup with aspect, resolution, and brand', () => {
-    expect(
-      describeStudioGenerateSettings(
-        getDefaultStudioGenerateSettings('image'),
-        'image',
-      ),
-    ).toBe('1:1 \u00b7 1K \u00b7 Brand');
-  });
-
-  it('adds the outputs multiplier only above one', () => {
-    const settings = {
-      ...getDefaultStudioGenerateSettings('image'),
-      outputs: 4,
-    };
-
-    expect(describeStudioGenerateSettings(settings, 'image')).toBe(
-      '1:1 \u00b7 1K \u00b7 4x \u00b7 Brand',
-    );
-  });
-
-  it('summarises a video setup with duration and no outputs multiplier', () => {
-    const settings = {
-      ...getDefaultStudioGenerateSettings('video'),
-      outputs: 4,
-    };
-
-    expect(describeStudioGenerateSettings(settings, 'video')).toBe(
-      '16:9 \u00b7 5s \u00b7 Brand',
-    );
-  });
-
-  it('omits visual segments for types without them', () => {
-    // No Brand chip on music: the music payload carries model + duration only.
-    expect(
-      describeStudioGenerateSettings(
-        getDefaultStudioGenerateSettings('music'),
-        'music',
-      ),
-    ).toBe('10s');
-
-    expect(
-      describeStudioGenerateSettings(
-        {
-          ...getDefaultStudioGenerateSettings('voice'),
-          brandingMode: 'off',
-        },
-        'voice',
-      ),
-    ).toBe('');
   });
 });

@@ -88,7 +88,9 @@ describe('Genfeed action registry', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('has no placeholder or open action contracts', () => {
+  // Walks every schema object in the registry once; on a contended CI runner
+  // the sweep can exceed the 5s default, so it carries its own budget.
+  it('has no placeholder or open action contracts', { timeout: 20_000 }, () => {
     // Contract shards share schema fragments across actions. One `seen` set for
     // the whole registry validates each distinct object once instead of
     // re-walking the common fragments for every action.

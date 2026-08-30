@@ -24,18 +24,6 @@ vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));
 
-vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
-  useOptionalUser: () => null,
-}));
-
-vi.mock('@genfeedai/agent/hooks/use-agent-registry-models', () => ({
-  useAgentRegistryModels: () => ({
-    defaultModelKey: null,
-    isLoading: false,
-    models: [],
-  }),
-}));
-
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => null,
 }));
@@ -53,16 +41,6 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
     isReady: false,
     subscribe: () => () => undefined,
   }),
-}));
-
-vi.mock('@genfeedai/models/auth/user.model', () => ({
-  User: class User {},
-}));
-
-vi.mock('@genfeedai/services/organization/users.service', () => ({
-  UsersService: {
-    getInstance: vi.fn(),
-  },
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({

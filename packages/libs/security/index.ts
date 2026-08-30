@@ -1,5 +1,4 @@
 export {
-  assertObjectKeyWithinPrefix,
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
   resolveContainedObjectKey,

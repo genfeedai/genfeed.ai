@@ -8,6 +8,7 @@ import type {
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
+  IDeductCreditsOptions,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
@@ -15,7 +16,7 @@ import type {
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
@@ -50,7 +51,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    @Optional() private readonly transactionUtil?: TransactionUtil,
+    private readonly transactionUtil: TransactionUtil,
   ) {}
 
   /**
@@ -86,12 +87,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     creditsToDeduct: number,
     description: string,
     source: ActivitySource = ActivitySource.SCRIPT,
-    options?: {
-      maxOverdraftCredits?: number;
-      metadata?: Record<string, unknown>;
-      referenceId?: string;
-      referenceType?: string;
-    },
+    options?: IDeductCreditsOptions,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -113,8 +109,34 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core deduction logic — runs atomically inside a transaction when available
+      // Core deduction logic always runs inside the required serializable transaction.
       const deductCore = async (tx?: PrismaTransactionClient) => {
+        if (options?.idempotencyKey) {
+          const idempotencyWhere = {
+            idempotencyKey: options.idempotencyKey,
+            isDeleted: false,
+          };
+          const findExistingByIdempotencyKey = () => {
+            if (tx) {
+              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              return tx.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              });
+            }
+            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+            return this.prisma.creditTransaction.findFirst({
+              where: idempotencyWhere,
+            });
+          };
+          const existingByIdempotencyKey = await findExistingByIdempotencyKey();
+          if (existingByIdempotencyKey) {
+            return {
+              newBalance: existingByIdempotencyKey.balanceAfter ?? 0,
+              wasApplied: false,
+            };
+          }
+        }
+
         if (options?.referenceId && options.referenceType) {
           const existingTransaction = tx
             ? await tx.creditTransaction.findFirst({
@@ -141,7 +163,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
                 referenceType: options.referenceType,
               },
             );
-            return this.getOrganizationCreditsBalance(organizationId, tx);
+            return {
+              newBalance: await this.getOrganizationCreditsBalance(
+                organizationId,
+                tx,
+              ),
+              wasApplied: false,
+            };
           }
         }
 
@@ -180,6 +208,9 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           {
             actorUserId: userId,
             billingAccountId: account.id,
+            ...(options?.idempotencyKey
+              ? { idempotencyKey: options.idempotencyKey }
+              : {}),
             ...(options?.metadata ? { metadata: options.metadata } : {}),
             ...(options?.referenceId
               ? { referenceId: options.referenceId }
@@ -190,16 +221,22 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           },
         );
 
-        return newBalance;
+        return { newBalance, wasApplied: true };
       };
 
-      // Use transaction if available, otherwise fallback
-      const newBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(
-            (tx) => deductCore(tx),
-            CreditsUtilsService.BALANCE_TX_OPTIONS,
-          )
-        : await deductCore();
+      const { newBalance, wasApplied } =
+        await this.transactionUtil.runInTransaction(
+          (tx) => deductCore(tx),
+          CreditsUtilsService.BALANCE_TX_OPTIONS,
+        );
+
+      if (!wasApplied) {
+        this.loggerService.log(`${url} credit deduction already recorded`, {
+          idempotencyKey: options?.idempotencyKey,
+          organizationId,
+        });
+        return;
+      }
 
       // Balance is persisted to the credit-balance table above (epic #735,
       // Phase C — no legacy auth provider identity write-back).
@@ -341,15 +378,48 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core add logic — runs atomically inside a transaction when available
+      // Core add logic always runs inside the required serializable transaction.
       const addCore = async (tx?: PrismaTransactionClient) => {
+        if (options?.idempotencyKey) {
+          const idempotencyWhere = {
+            idempotencyKey: options.idempotencyKey,
+            isDeleted: false,
+          };
+          const findExistingByIdempotencyKey = () => {
+            if (tx) {
+              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              return tx.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              });
+            }
+            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+            return this.prisma.creditTransaction.findFirst({
+              where: idempotencyWhere,
+            });
+          };
+          const existing = await findExistingByIdempotencyKey();
+          if (existing) {
+            return {
+              currentBalance: existing.balanceAfter ?? 0,
+              newBalance: existing.balanceAfter ?? 0,
+              wasApplied: false,
+            };
+          }
+        }
+
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
 
         const newBalance = currentBalance + creditsToAdd;
         const transactionOptions =
-          options?.referenceId || options?.referenceType || options?.metadata
+          options?.idempotencyKey ||
+          options?.referenceId ||
+          options?.referenceType ||
+          options?.metadata
             ? {
+                ...(options.idempotencyKey
+                  ? { idempotencyKey: options.idempotencyKey }
+                  : {}),
                 ...(options.metadata ? { metadata: options.metadata } : {}),
                 ...(options.referenceId
                   ? { referenceId: options.referenceId }
@@ -393,16 +463,22 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           );
         }
 
-        return { currentBalance, newBalance };
+        return { currentBalance, newBalance, wasApplied: true };
       };
 
-      // Use transaction if available, otherwise fallback
-      const { currentBalance, newBalance } = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(
-            (tx) => addCore(tx),
-            CreditsUtilsService.BALANCE_TX_OPTIONS,
-          )
-        : await addCore();
+      const { currentBalance, newBalance, wasApplied } =
+        await this.transactionUtil.runInTransaction(
+          (tx) => addCore(tx),
+          CreditsUtilsService.BALANCE_TX_OPTIONS,
+        );
+
+      if (!wasApplied) {
+        this.loggerService.log(`${url} credit grant already recorded`, {
+          idempotencyKey: options?.idempotencyKey,
+          organizationId,
+        });
+        return;
+      }
 
       if (creditsToAdd > 0) {
         await this.markOrganizationAsHavingCredits(organizationId);
@@ -464,7 +540,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core refund logic — runs atomically inside a transaction when available
+      // Core refund logic always runs inside the required serializable transaction.
       const refundCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
@@ -492,13 +568,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         return { currentBalance, newBalance };
       };
 
-      // Use transaction if available, otherwise fallback
-      const { currentBalance, newBalance } = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(
-            (tx) => refundCore(tx),
-            CreditsUtilsService.BALANCE_TX_OPTIONS,
-          )
-        : await refundCore();
+      const { currentBalance, newBalance } =
+        await this.transactionUtil.runInTransaction(
+          (tx) => refundCore(tx),
+          CreditsUtilsService.BALANCE_TX_OPTIONS,
+        );
 
       // Balance is persisted to the credit-balance table above (epic #735,
       // Phase C — no legacy auth provider identity write-back).
@@ -669,7 +743,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
             }
           : undefined;
 
-      // Core reset logic — runs atomically inside a transaction when available
+      // Core reset logic always runs inside the required serializable transaction.
       const resetCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
@@ -710,13 +784,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         return currentBalance;
       };
 
-      // Use transaction if available, otherwise fallback
-      const currentBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(
-            (tx) => resetCore(tx),
-            CreditsUtilsService.BALANCE_TX_OPTIONS,
-          )
-        : await resetCore();
+      const currentBalance = await this.transactionUtil.runInTransaction(
+        (tx) => resetCore(tx),
+        CreditsUtilsService.BALANCE_TX_OPTIONS,
+      );
 
       if (newCreditAmount > 0) {
         await this.markOrganizationAsHavingCredits(organizationId);
@@ -773,7 +844,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
-      // Core remove-all logic — runs atomically inside a transaction when available
+      // Core remove-all logic always runs inside the required serializable transaction.
       const removeAllCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
@@ -799,13 +870,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         return currentBalance;
       };
 
-      // Use transaction if available, otherwise fallback
-      const currentBalance = this.transactionUtil
-        ? await this.transactionUtil.runInTransaction(
-            (tx) => removeAllCore(tx),
-            CreditsUtilsService.BALANCE_TX_OPTIONS,
-          )
-        : await removeAllCore();
+      const currentBalance = await this.transactionUtil.runInTransaction(
+        (tx) => removeAllCore(tx),
+        CreditsUtilsService.BALANCE_TX_OPTIONS,
+      );
 
       // Balance is persisted to the credit-balance table above (epic #735,
       // Phase C — no legacy auth provider identity write-back). The subscription lookup

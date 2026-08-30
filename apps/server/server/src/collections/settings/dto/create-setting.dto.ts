@@ -1,6 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
-  DEFAULT_AGENT_CHAT_MODEL_KEY,
   DEFAULT_LOCALE,
   DEFAULT_THEME,
   SUPPORTED_LOCALES,
@@ -12,6 +10,7 @@ import {
   TrendNotificationFrequency,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsBoolean,
   IsEmail,
@@ -200,15 +199,6 @@ export class CreateSettingDto {
     type: [String],
   })
   readonly favoriteModelKeys?: string[];
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    default: DEFAULT_AGENT_CHAT_MODEL_KEY,
-    description: 'Default AI model for agent chat sessions',
-    required: false,
-  })
-  readonly defaultAgentModel?: string;
 
   @IsBoolean()
   @IsOptional()

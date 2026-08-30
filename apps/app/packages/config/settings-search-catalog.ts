@@ -50,22 +50,6 @@ const PERSONAL_SECTION_ITEMS: SettingsSearchItem[] = [
     scope: SettingsSurface.PERSONAL,
   },
   {
-    description: 'Default chat model and generation priority',
-    group: 'Account',
-    href: APP_ROUTES.SETTINGS.CHAT,
-    id: `personal-section:${PERSONAL_SETTINGS_ANCHOR.CHAT_DEFAULTS}`,
-    keywords: [
-      'chat',
-      'model',
-      'default chat model',
-      'auto',
-      'priority',
-      'llm',
-    ],
-    label: 'Chat Defaults',
-    scope: SettingsSurface.PERSONAL,
-  },
-  {
     description: 'Review every setup step',
     group: 'Account',
     href: APP_ROUTES.SETTINGS.PROGRESS,

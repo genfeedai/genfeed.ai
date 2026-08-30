@@ -47,6 +47,70 @@ describe('parseActivityKey', () => {
       },
     );
   });
+
+  it('preserves the established outputs for every special key family', () => {
+    for (const key of [
+      ActivityKey.CREDITS_ADD,
+      ActivityKey.CREDITS_REMOVE,
+      ActivityKey.CREDITS_REMOVE_ALL,
+      ActivityKey.CREDITS_RESET,
+    ]) {
+      expect(parseActivityKey(key)).toEqual({
+        key,
+        lifecycle: 'completed',
+        operation: 'credit',
+        subject: 'credits',
+      });
+    }
+
+    for (const [key, lifecycle] of [
+      [ActivityKey.MODELS_TRAINING_CREATED, 'created'],
+      [ActivityKey.MODELS_TRAINING_COMPLETED, 'completed'],
+      [ActivityKey.MODELS_TRAINING_FAILED, 'failed'],
+    ] as const) {
+      expect(parseActivityKey(key)).toMatchObject({
+        lifecycle,
+        operation: 'train',
+        subject: 'model',
+      });
+    }
+
+    for (const [key, lifecycle] of [
+      [ActivityKey.POST_PUBLISHED, 'published'],
+      [ActivityKey.POST_SCHEDULED, 'scheduled'],
+      [ActivityKey.POST_FAILED, 'failed'],
+    ] as const) {
+      expect(parseActivityKey(key)).toMatchObject({
+        lifecycle,
+        operation: 'publish',
+        subject: 'post',
+      });
+    }
+
+    expect(
+      parseActivityKey(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED),
+    ).toMatchObject({
+      lifecycle: 'disconnected',
+      operation: 'connect',
+      subject: 'integration',
+    });
+
+    expect(parseActivityKey('model-training-generated')).toMatchObject({
+      lifecycle: 'processing',
+      operation: 'train',
+      subject: 'model',
+    });
+    expect(parseActivityKey('content-publish-generated')).toMatchObject({
+      lifecycle: 'processing',
+      operation: 'publish',
+      subject: 'post',
+    });
+    expect(parseActivityKey('integration-social-completed')).toMatchObject({
+      lifecycle: 'failed',
+      operation: 'connect',
+      subject: 'integration',
+    });
+  });
 });
 
 describe('formatActivityMessage', () => {

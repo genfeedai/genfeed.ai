@@ -17,7 +17,6 @@ export class Setting extends BaseEntity implements ISetting {
   public declare trendNotificationsEmailAddress?: string;
   public declare trendNotificationsFrequency: TrendNotificationFrequency;
   public declare trendNotificationsMinViralScore: number;
-  public declare defaultAgentModel?: string;
   public declare isAgentAssetsPanelOpen?: boolean;
   public declare dashboardPreferences?: DashboardPreferences;
 

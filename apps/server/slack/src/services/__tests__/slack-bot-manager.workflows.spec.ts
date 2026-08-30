@@ -1,5 +1,6 @@
 import type { OrgIntegration, WorkflowSession } from '@genfeedai/integrations';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -141,10 +142,17 @@ describe('SlackBotManager workflows', () => {
       subscribe: vi.fn().mockResolvedValue(undefined),
       unsubscribe: vi.fn().mockResolvedValue(undefined),
     };
+    logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SlackBotManager,
+        { provide: LoggerService, useValue: logger },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: httpService },
         { provide: RedisService, useValue: redisService },
@@ -152,14 +160,6 @@ describe('SlackBotManager workflows', () => {
     }).compile();
 
     service = module.get<SlackBotManager>(SlackBotManager);
-
-    logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-    service['logger'] = logger;
 
     respond = vi.fn().mockResolvedValue(undefined);
     mockApp.start.mockResolvedValue(undefined);
@@ -1453,6 +1453,7 @@ describe('SlackBotManager workflows', () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           SlackBotManager,
+          { provide: LoggerService, useValue: logger },
           {
             provide: ConfigService,
             useValue: { API_KEY: '', API_URL, get: vi.fn() },

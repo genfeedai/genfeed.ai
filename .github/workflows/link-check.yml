@@ -80,8 +80,6 @@ jobs:
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
 
       - name: Build website
         run: bunx turbo run build --filter=@genfeedai/website

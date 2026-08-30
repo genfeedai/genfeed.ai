@@ -79,7 +79,9 @@ describe('ad_watched_advertisers generalization to every ad platform (#3537)', (
     expect(generalizeMigration).toContain(
       'ADD COLUMN IF NOT EXISTS "platform" TEXT NOT NULL DEFAULT \'x\'',
     );
-    expect(schema).toContain('platform             String       @default("x")');
+    expect(schema).toContain(
+      'platform                String       @default("x")',
+    );
   });
 
   it('constrains platform to the archives Genfeed can actually resolve', () => {

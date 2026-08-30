@@ -1,6 +1,7 @@
 import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-auth.constants';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
@@ -8,6 +9,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { ActivitySource } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
@@ -82,6 +84,7 @@ describe('StripeCheckoutWebhookHandler', () => {
   const lifecycleEmailService = {
     recordCheckoutCompleted: vi.fn(),
   };
+  const referralsService = { recordPaygPurchase: vi.fn() };
 
   function subscription(
     overrides: Partial<ISubscriptionOssReadModel> = {},
@@ -150,6 +153,7 @@ describe('StripeCheckoutWebhookHandler', () => {
           useValue: attributionTracker,
         },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        { provide: ReferralsService, useValue: referralsService },
       ],
     }).compile();
 
@@ -158,10 +162,13 @@ describe('StripeCheckoutWebhookHandler', () => {
 
   describe('handleCheckoutCompleted — payment mode (PAYG)', () => {
     const session = {
+      amount_total: 1_080,
       customer: 'cus_123',
       id: 'cs_payg_1',
       metadata: { credits: '100' },
       mode: 'payment',
+      payment_intent: 'pi_payg_1',
+      total_details: { amount_discount: 0, amount_tax: 80 },
     } as unknown as StripeCheckoutSession;
 
     it('adds purchased credits and records the activity for the org', async () => {
@@ -181,7 +188,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
         'org_1',
         100,
-        'pay-as-you-go',
+        ActivitySource.PAY_AS_YOU_GO,
         expect.stringContaining('100 credits'),
         {
           referenceId: 'cs_payg_1',
@@ -207,6 +214,14 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',
       );
+      expect(referralsService.recordPaygPurchase).toHaveBeenCalledWith({
+        grossAmountCents: 1_080,
+        netAmountCents: 1_000,
+        organizationId: 'org_1',
+        purchasedCredits: 100,
+        stripeCheckoutSessionId: 'cs_payg_1',
+        stripePaymentIntentId: 'pi_payg_1',
+      });
     });
 
     it('does not grant duplicate PAYG credits for an already processed session', async () => {
@@ -219,6 +234,7 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(supportService.addPurchasedCredits).not.toHaveBeenCalled();
       expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+      expect(referralsService.recordPaygPurchase).toHaveBeenCalledTimes(1);
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('PAYG checkout already processed'),
         expect.objectContaining({ sessionId: 'cs_payg_1' }),
@@ -236,7 +252,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
         'org_1',
         100,
-        'pay-as-you-go',
+        ActivitySource.PAY_AS_YOU_GO,
         expect.stringContaining('100 credits'),
         {
           referenceId: 'cs_payg_1',

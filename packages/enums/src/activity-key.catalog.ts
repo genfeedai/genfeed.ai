@@ -143,18 +143,42 @@ const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
   Partial<Record<string, ActivityMessageId>>
 > = ACTIVITY_MESSAGE_ID_BY_KEY;
 
-const LIFECYCLE_BY_TOKEN: Record<string, ActivityLifecycle> = {
-  completed: 'completed',
-  created: 'created',
-  disconnected: 'disconnected',
-  failed: 'failed',
-  generated: 'completed',
-  processing: 'processing',
-  published: 'published',
-  scheduled: 'scheduled',
-};
+const LIFECYCLE_BY_TOKEN: Readonly<Partial<Record<string, ActivityLifecycle>>> =
+  {
+    completed: 'completed',
+    created: 'created',
+    disconnected: 'disconnected',
+    failed: 'failed',
+    generated: 'completed',
+    processing: 'processing',
+    published: 'published',
+    scheduled: 'scheduled',
+  };
 
 const OPERATION_TOKENS = new Set(['enhance', 'reframe', 'remix', 'upscale']);
+
+const MODEL_TRAINING_LIFECYCLES = new Set<ActivityLifecycle>([
+  'completed',
+  'created',
+  'failed',
+]);
+const CONTENT_PUBLISH_LIFECYCLES = new Set<ActivityLifecycle>([
+  'failed',
+  'published',
+  'scheduled',
+]);
+
+function pickLifecycle(
+  tail: string,
+  allowed: ReadonlySet<ActivityLifecycle>,
+  fallback: ActivityLifecycle,
+): ActivityLifecycle {
+  const lifecycle = LIFECYCLE_BY_TOKEN[tail];
+
+  return lifecycle !== undefined && tail === lifecycle && allowed.has(lifecycle)
+    ? lifecycle
+    : fallback;
+}
 
 /** Subject display labels (English defaults; i18n keys use machine `subject`). */
 const SUBJECT_LABELS: Record<string, string> = {
@@ -188,31 +212,12 @@ const OPERATION_LABELS: Record<ActivityOperation, string> = {
 /** Multi-segment prefixes that are not `subject-op-phase`. */
 const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
-    if (key === 'credits-add') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-remove') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-remove-all') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-reset') {
+    if (
+      key === 'credits-add' ||
+      key === 'credits-remove' ||
+      key === 'credits-remove-all' ||
+      key === 'credits-reset'
+    ) {
       return {
         key,
         lifecycle: 'completed',
@@ -225,17 +230,9 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('model-training-')) {
       const tail = key.slice('model-training-'.length);
-      const lifecycle =
-        tail === 'created'
-          ? 'created'
-          : tail === 'completed'
-            ? 'completed'
-            : tail === 'failed'
-              ? 'failed'
-              : 'processing';
       return {
         key,
-        lifecycle,
+        lifecycle: pickLifecycle(tail, MODEL_TRAINING_LIFECYCLES, 'processing'),
         operation: 'train',
         subject: 'model',
       };
@@ -245,17 +242,13 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('content-publish-')) {
       const tail = key.slice('content-publish-'.length);
-      const lifecycle =
-        tail === 'published'
-          ? 'published'
-          : tail === 'scheduled'
-            ? 'scheduled'
-            : tail === 'failed'
-              ? 'failed'
-              : 'processing';
       return {
         key,
-        lifecycle,
+        lifecycle: pickLifecycle(
+          tail,
+          CONTENT_PUBLISH_LIFECYCLES,
+          'processing',
+        ),
         operation: 'publish',
         subject: 'post',
       };

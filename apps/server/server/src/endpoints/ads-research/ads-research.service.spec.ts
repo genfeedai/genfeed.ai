@@ -1,6 +1,6 @@
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
+import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -511,7 +511,13 @@ describe('AdsResearchService', () => {
       getTopPerformers: vi.fn().mockResolvedValue([
         {
           id: 'ad-1',
-          insights: { clicks: 40, ctr: 0.05, spend: 90 },
+          insights: {
+            clicks: 40,
+            ctr: 0.05,
+            dateStart: '2026-08-01',
+            dateStop: '2026-08-30',
+            spend: 90,
+          },
           metric: 'ctr',
           name: 'Hook A',
           value: 0.05,
@@ -519,7 +525,7 @@ describe('AdsResearchService', () => {
       ]),
       listAds: vi.fn().mockResolvedValue([
         {
-          creative: { body: 'Body', title: 'Hook A' },
+          creative: { body: 'Body', title: 'Hook A', videoId: 'video-1' },
           id: 'ad-1',
         },
       ]),
@@ -548,6 +554,10 @@ describe('AdsResearchService', () => {
       channel: 'all',
       id: 'connected:tiktok:ad-1',
     });
+    expect(result.connectedAds[0]).not.toHaveProperty('firstSeenAt');
+    expect(result.connectedAds[0]).not.toHaveProperty('lastSeenAt');
+    expect(result.connectedAds[0]?.previewUrl).toBeUndefined();
+    expect(result.connectedAds[0]?.videoUrls).toEqual([]);
     expect(result.connectedAds[0].explanation).toContain('TikTok Ads');
   });
 
