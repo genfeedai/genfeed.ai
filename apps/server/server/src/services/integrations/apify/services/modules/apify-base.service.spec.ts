@@ -1,9 +1,9 @@
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
-import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
-import { ApifyRunBudgetService } from '@server/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
+import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
+import { ApifyRunBudgetService } from '@server/services/integrations/apify/services/modules/apify-run-budget.service';
 import { of, throwError } from 'rxjs';
 
 const ACCOUNT_LIMIT_ERROR = {
@@ -290,6 +290,58 @@ describe('ApifyBaseService', () => {
     const score = service.calculateViralityScore(1000000, 50000);
     expect(score).toBeGreaterThan(0);
     expect(score).toBeLessThanOrEqual(100);
+  });
+
+  it('keeps order-of-magnitude hashtag signals distinguishable', () => {
+    const scores = [
+      service.calculateViralityScore(100_000, 2_000),
+      service.calculateViralityScore(1_000_000, 20_000),
+      service.calculateViralityScore(10_000_000, 200_000),
+      service.calculateViralityScore(50_000_000, 1_000_000),
+    ];
+
+    expect(scores).toEqual([55, 68, 82, 91]);
+    expect(scores[1]).toBeLessThan(70);
+    expect(scores[2]).toBeGreaterThanOrEqual(70);
+  });
+
+  it('calibrates video scores so the default threshold rejects weak trends', () => {
+    const now = 1_700_000_000_000;
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);
+    const fixtures = [
+      { engagementRate: 5, velocity: 1_000, views: 100_000 },
+      { engagementRate: 8, velocity: 10_000, views: 1_000_000 },
+      { engagementRate: 10, velocity: 50_000, views: 10_000_000 },
+      { engagementRate: 15, velocity: 250_000, views: 50_000_000 },
+    ];
+
+    const scores = fixtures.map(({ engagementRate, velocity, views }) => {
+      const hoursOld = views / velocity;
+      return service.calculateEngagementMetrics(
+        views,
+        (views * engagementRate) / 100,
+        0,
+        0,
+        new Date(now - hoursOld * 60 * 60 * 1_000),
+      ).viralScore;
+    });
+
+    nowSpy.mockRestore();
+    expect(scores[0]).toBe(46);
+    expect(scores[1]).toBe(60);
+    expect(scores[2]).toBeGreaterThanOrEqual(70);
+    expect(scores[2]).toBeLessThan(72);
+    expect(scores[3]).toBe(83);
+  });
+
+  it('treats invalid or negative scoring inputs as zero signal', () => {
+    expect(
+      service.calculateViralityScore(Number.NaN, Number.POSITIVE_INFINITY),
+    ).toBe(0);
+    expect(service.calculateViralityScore(-1, -1)).toBe(0);
+    expect(service.calculateEngagementMetrics(-1, -1, -1, -1).viralScore).toBe(
+      0,
+    );
   });
 
   it('calculateGrowthRate with previous value', () => {
