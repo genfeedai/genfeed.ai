@@ -1,6 +1,6 @@
 import { SavedAdsController } from '@api/collections/saved-ads/controllers/saved-ads.controller';
 import type { SavedAdsService } from '@api/collections/saved-ads/services/saved-ads.service';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,13 +49,22 @@ describe('SavedAdsController', () => {
 
   it('rejects a cross-brand list before querying storage', async () => {
     await expect(
-      controller.list(
-        request,
-        user,
-        '550e8400-e29b-41d4-a716-446655440004',
-      ),
+      controller.list(request, user, '550e8400-e29b-41d4-a716-446655440004'),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(service.list).not.toHaveBeenCalled();
+  });
+
+  it('bounds provider-backed save batches', async () => {
+    const inputs = Array.from({ length: 6 }, (_, index) => ({
+      adId: `ad-${index}`,
+      brandId,
+      source: 'public',
+    }));
+
+    await expect(
+      controller.save(request, user, inputs as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(service.saveMany).not.toHaveBeenCalled();
   });
 
   it('keeps note and unsave mutations array-shaped', async () => {

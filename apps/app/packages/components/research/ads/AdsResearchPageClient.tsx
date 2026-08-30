@@ -143,15 +143,16 @@ export default function AdsResearchPageClient({
   // (`BrandDetailSocialMediaCard`). `/settings/organization/credentials` never shipped.
   const credentialsHref = href(APP_ROUTES.SETTINGS.SOCIAL);
   /** Not set up at all — no ad platform connected and no public winners loaded. */
-  const isSetupEmpty = !isLoading && !hasCredentials && !hasAds;
+  const isSetupEmpty =
+    source !== 'saved' && !isLoading && !hasCredentials && !hasAds;
   /**
    * Public research can still fill the list without a connected ad account.
    * When we have public ads only, keep the list and show a slim connect strip.
    */
-  const showConnectStrip = !hasCredentials && hasAds;
+  const showConnectStrip = source !== 'saved' && !hasCredentials && hasAds;
   const sourceLabel =
     source === 'saved'
-      ? 'Saved'
+      ? translate('swipeFile.saved')
       : results.summary.selectedSource === 'my_accounts'
         ? 'My accounts'
         : results.summary.selectedSource === 'public'
@@ -312,14 +313,23 @@ export default function AdsResearchPageClient({
                 className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
               />
               <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <CompactStat
-                  label="Public"
-                  value={results.summary.publicCount}
-                />
-                <CompactStat
-                  label="Connected"
-                  value={results.summary.connectedCount}
-                />
+                {source === 'saved' ? (
+                  <CompactStat
+                    label={translate('swipeFile.saved')}
+                    value={allAds.length}
+                  />
+                ) : (
+                  <>
+                    <CompactStat
+                      label="Public"
+                      value={results.summary.publicCount}
+                    />
+                    <CompactStat
+                      label="Connected"
+                      value={results.summary.connectedCount}
+                    />
+                  </>
+                )}
                 <CompactStat label="Source" value={sourceLabel} />
               </div>
             </div>
@@ -403,6 +413,7 @@ export default function AdsResearchPageClient({
           {viewType === ViewType.GRID ? (
             <AdsResearchAdGrid
               ads={[...pageItems]}
+              isSavedView={source === 'saved'}
               isLoading={isLoading}
               metric={metric}
               search={search}
@@ -414,6 +425,7 @@ export default function AdsResearchPageClient({
           ) : (
             <AdsResearchAdTable
               ads={[...pageItems]}
+              isSavedView={source === 'saved'}
               metric={metric}
               search={search}
               selectedKey={selectedKey}

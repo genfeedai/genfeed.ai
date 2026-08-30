@@ -54,6 +54,7 @@ export function useSavedAds() {
       saveMutation.isPending ||
       noteMutation.isPending ||
       unsaveMutation.isPending,
+    refetch: query.refetch,
     savedAds: query.data ?? [],
     save: saveMutation.mutateAsync,
     unsave: unsaveMutation.mutateAsync,

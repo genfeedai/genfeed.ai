@@ -6,6 +6,7 @@
       "ctr": "CTR",
       "platform": "Platform",
       "running": "Running",
+      "saved": "Saved",
       "source": "Source",
       "title": "Title"
     },
@@ -28,6 +29,22 @@
       "title": "Ads hub needs attention"
     },
     "reviewPolicy": "Launch plans require review. No external campaign objects are created from Ads Research.",
+    "swipeFile": {
+      "brandRequired": "Choose a brand before saving reference ads.",
+      "emptyFilters": "No ads match the current filters.",
+      "emptyLiveFilters": "No ads match the current filters. Adjust filters or widen the timeframe.",
+      "emptySearch": "No ads match your search.",
+      "noteLabel": "Brand note",
+      "notePlaceholder": "Why this ad is worth revisiting…",
+      "saveAction": "Save to swipe file",
+      "saveAria": "Save {title}",
+      "saveNote": "Save note",
+      "saved": "Saved",
+      "snapshotBadge": "Saved snapshot",
+      "sourceLabel": "Saved swipe file",
+      "unsaveAction": "Unsave from swipe file",
+      "unsaveAria": "Unsave {title}"
+    },
     "watchlist": {
       "archivesUnavailable": "Archives we cannot poll yet",
       "creatives": "{count, plural, one {# creative} other {# creatives}}",

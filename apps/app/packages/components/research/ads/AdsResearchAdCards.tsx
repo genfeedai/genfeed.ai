@@ -42,9 +42,14 @@ export function AdGridCard({
   onToggleSaved,
   savedMutating,
 }: AdGridCardProps) {
+  const translate = useTranslations('pages.adsResearch');
   const metricValue = getMetricValue(item, metric);
   const longevityLabel = formatLongevity(item.longevity);
   const previewUrl = item.previewUrl || item.imageUrls?.[0];
+  const savedActionLabel = translate(
+    item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
+    { title: item.title },
+  );
 
   return (
     <div className="relative">
@@ -138,7 +143,7 @@ export function AdGridCard({
       <Button
         type="button"
         variant={item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
-        ariaLabel={`${item.savedAdId ? 'Unsave' : 'Save'} ${item.title}`}
+        ariaLabel={savedActionLabel}
         className="absolute bottom-3 right-3 size-8 p-0"
         disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
         onClick={() => onToggleSaved([item])}
@@ -148,11 +153,7 @@ export function AdGridCard({
             className={cn('size-4', item.savedAdId && 'fill-current')}
           />
         }
-        label={
-          <span className="sr-only">
-            {item.savedAdId ? 'Unsave' : 'Save'} {item.title}
-          </span>
-        }
+        label={<span className="sr-only">{savedActionLabel}</span>}
       />
     </div>
   );
@@ -175,7 +176,12 @@ export function AdTableRow({
   onToggleSaved,
   savedMutating,
 }: AdTableRowProps) {
+  const translate = useTranslations('pages.adsResearch');
   const metricValue = getMetricValue(item, metric);
+  const savedActionLabel = translate(
+    item.savedAdId ? 'swipeFile.unsaveAria' : 'swipeFile.saveAria',
+    { title: item.title },
+  );
 
   return (
     <TableRow
@@ -228,7 +234,7 @@ export function AdTableRow({
           variant={
             item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
           }
-          ariaLabel={`${item.savedAdId ? 'Unsave' : 'Save'} ${item.title}`}
+          ariaLabel={savedActionLabel}
           disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
           onClick={(event) => {
             event.stopPropagation();
@@ -239,11 +245,7 @@ export function AdTableRow({
               className={cn('size-4', item.savedAdId && 'fill-current')}
             />
           }
-          label={
-            <span className="sr-only">
-              {item.savedAdId ? 'Unsave' : 'Save'} {item.title}
-            </span>
-          }
+          label={<span className="sr-only">{savedActionLabel}</span>}
         />
       </TableCell>
     </TableRow>
@@ -252,6 +254,7 @@ export function AdTableRow({
 
 type AdsResearchAdListProps = {
   ads: AdsResearchItem[];
+  isSavedView: boolean;
   isLoading: boolean;
   metric: AdsResearchMetric;
   search: string;
@@ -263,6 +266,7 @@ type AdsResearchAdListProps = {
 
 export function AdsResearchAdGrid({
   ads,
+  isSavedView,
   isLoading,
   metric,
   search,
@@ -271,12 +275,14 @@ export function AdsResearchAdGrid({
   onToggleSaved,
   savedMutating,
 }: AdsResearchAdListProps) {
+  const translate = useTranslations('pages.adsResearch.swipeFile');
+
   if (ads.length === 0 && !isLoading) {
     return (
       <div className="py-8 text-center text-sm text-foreground/40">
         {search.trim()
-          ? 'No ads match your search.'
-          : 'No ads match the current filters. Adjust filters or widen the timeframe.'}
+          ? translate('emptySearch')
+          : translate(isSavedView ? 'emptyFilters' : 'emptyLiveFilters')}
       </div>
     );
   }
@@ -311,6 +317,7 @@ export function AdsResearchAdGrid({
 
 type AdsResearchAdTableProps = {
   ads: AdsResearchItem[];
+  isSavedView: boolean;
   metric: AdsResearchMetric;
   search: string;
   selectedKey: string;
@@ -321,6 +328,7 @@ type AdsResearchAdTableProps = {
 
 export function AdsResearchAdTable({
   ads,
+  isSavedView,
   metric,
   search,
   selectedKey,
@@ -329,6 +337,7 @@ export function AdsResearchAdTable({
   savedMutating,
 }: AdsResearchAdTableProps) {
   const translate = useTranslations('pages.adsResearch.adList');
+  const translateSwipeFile = useTranslations('pages.adsResearch.swipeFile');
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
@@ -360,7 +369,7 @@ export function AdsResearchAdTable({
               {translate('account')}
             </TableHead>
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
-              Saved
+              {translate('saved')}
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -372,8 +381,10 @@ export function AdsResearchAdTable({
                 className="px-4 py-8 text-center text-sm text-foreground/40"
               >
                 {search.trim()
-                  ? 'No ads match your search.'
-                  : 'No ads match the current filters.'}
+                  ? translateSwipeFile('emptySearch')
+                  : translateSwipeFile(
+                      isSavedView ? 'emptyFilters' : 'emptyLiveFilters',
+                    )}
               </TableCell>
             </TableRow>
           ) : (

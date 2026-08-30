@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import type { AdsResearchViewSource } from './useAdsResearchPageClient';
 
 const ALL_FILTER_VALUE = '__all__';
@@ -164,6 +165,13 @@ export function AdsResearchFilterPanel({
   onSourceChange,
   onTimeframeChange,
 }: AdsResearchFilterPanelProps) {
+  const translate = useTranslations('pages.adsResearch.swipeFile');
+  const sourceOptions = SOURCE_OPTIONS.map((option) =>
+    option.value === 'saved'
+      ? { ...option, label: translate('saved') }
+      : option,
+  );
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       {initialPlatform === 'all' && (
@@ -178,7 +186,7 @@ export function AdsResearchFilterPanel({
       )}
       <FilterSelect
         label="Source"
-        options={SOURCE_OPTIONS}
+        options={sourceOptions}
         value={source}
         onChange={onSourceChange}
       />

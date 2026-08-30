@@ -18,6 +18,15 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 const MAX_SNAPSHOT_MEDIA = 12;
 const STORAGE_TYPE = 'saved-ad-references';
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function optionalDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
@@ -94,7 +103,17 @@ export class SavedAdsService {
           organizationId,
         },
       });
-      if (result.count !== 1) throw new NotFoundException('Saved ad', input.id);
+      if (result.count !== 1) {
+        const existing = await this.prisma.savedAd.findFirst({
+          select: { id: true },
+          where: {
+            brandId: input.brandId,
+            id: input.id,
+            organizationId,
+          },
+        });
+        if (!existing) throw new NotFoundException('Saved ad', input.id);
+      }
       removed.push(input.id);
     }
     return removed;
@@ -300,7 +319,9 @@ export class SavedAdsService {
     kind: 'image' | 'video',
     urls: string[],
   ): Promise<string[]> {
-    const uniqueUrls = [...new Set(urls)].slice(0, MAX_SNAPSHOT_MEDIA);
+    const uniqueUrls = [...new Set(urls)]
+      .filter(isHttpUrl)
+      .slice(0, MAX_SNAPSHOT_MEDIA);
     return Promise.all(
       uniqueUrls.map(async (url, index) => {
         assertUrlNotPrivate(url);

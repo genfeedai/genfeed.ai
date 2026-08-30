@@ -28,6 +28,9 @@ import {
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
+const MAX_PROVIDER_SAVE_BATCH_SIZE = 5;
+const MAX_LOCAL_MUTATION_BATCH_SIZE = 50;
+
 @AutoSwagger()
 @Controller('saved-ads')
 @UseGuards(RolesGuard)
@@ -52,7 +55,7 @@ export class SavedAdsController {
     @Body(new ParseArrayPipe({ items: SaveAdDto }))
     inputs: SaveAdDto[],
   ) {
-    this.assertBatchSize(inputs);
+    this.assertBatchSize(inputs, MAX_PROVIDER_SAVE_BATCH_SIZE);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -72,7 +75,7 @@ export class SavedAdsController {
     @Body(new ParseArrayPipe({ items: UpdateSavedAdNoteDto }))
     inputs: UpdateSavedAdNoteDto[],
   ) {
-    this.assertBatchSize(inputs);
+    this.assertBatchSize(inputs, MAX_LOCAL_MUTATION_BATCH_SIZE);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -90,7 +93,7 @@ export class SavedAdsController {
     @Body(new ParseArrayPipe({ items: UnsaveSavedAdDto }))
     inputs: UnsaveSavedAdDto[],
   ) {
-    this.assertBatchSize(inputs);
+    this.assertBatchSize(inputs, MAX_LOCAL_MUTATION_BATCH_SIZE);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -117,9 +120,11 @@ export class SavedAdsController {
     return authorized;
   }
 
-  private assertBatchSize(inputs: unknown[]): void {
-    if (inputs.length === 0 || inputs.length > 50) {
-      throw new BadRequestException('Saved ad mutations require 1 to 50 items');
+  private assertBatchSize(inputs: unknown[], max: number): void {
+    if (inputs.length === 0 || inputs.length > max) {
+      throw new BadRequestException(
+        `Saved ad mutation requires 1 to ${max} items`,
+      );
     }
   }
 

@@ -519,7 +519,7 @@ export class AdsResearchService {
         headline: ad.creative?.title,
         imageUrls: ad.creative?.imageUrl ? [ad.creative.imageUrl] : [],
         landingPageUrl: ad.creative?.linkUrl,
-        videoUrls: ad.creative?.videoId ? [ad.creative.videoId] : [],
+        videoUrls: [],
       },
     };
   }
@@ -740,12 +740,10 @@ export class AdsResearchService {
         params.platform,
       )} account. Keep the core angle, tighten the promise, and adapt the proof for your brand before launch.`,
       headline: creative?.title,
-      firstSeenAt: params.topInsights?.dateStart,
       id: `connected:${params.platform}:${params.sourceId}`,
       imageUrls: creative?.imageUrl ? [creative.imageUrl] : [],
       landingPageUrl: creative?.linkUrl,
       loginCustomerId: params.loginCustomerId,
-      lastSeenAt: params.topInsights?.dateStop,
       metricLabel: params.insightMetric || 'performance',
       metrics: {
         clicks: params.topInsights?.clicks,
@@ -762,15 +760,13 @@ export class AdsResearchService {
       metricValue: params.metricValue,
       patternSummary: [],
       platform: params.platform,
-      previewUrl: creative?.imageUrl || creative?.videoId,
+      previewUrl: creative?.imageUrl,
       source: 'my_accounts',
       sourceId: params.sourceId,
       sourceLabel: 'Connected account',
       status: params.ad?.status,
       title: params.name || params.ad?.name || 'Connected ad',
-      videoUrls: params.ad?.creative?.videoId
-        ? [params.ad.creative.videoId]
-        : [],
+      videoUrls: [],
     };
   }
 

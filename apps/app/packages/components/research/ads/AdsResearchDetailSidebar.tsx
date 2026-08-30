@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 import { formatMetric } from './ads-metric.helpers';
@@ -260,6 +261,7 @@ export function DetailSidebar({
   onUpdateSavedNote,
   savedMutating,
 }: DetailSidebarProps) {
+  const translate = useTranslations('pages.adsResearch.swipeFile');
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -314,7 +316,9 @@ export function DetailSidebar({
                   )}
                   {detail.status && <Badge status={detail.status} />}
                   {detail.isSavedSnapshot && (
-                    <Badge variant="success">Saved snapshot</Badge>
+                    <Badge variant="success">
+                      {translate('snapshotBadge')}
+                    </Badge>
                   )}
                 </div>
 
@@ -438,8 +442,8 @@ export function DetailSidebar({
                   }
                 >
                   {detail.savedAdId
-                    ? 'Unsave from swipe file'
-                    : 'Save to swipe file'}
+                    ? translate('unsaveAction')
+                    : translate('saveAction')}
                 </Button>
                 {detail.savedAdId ? (
                   <div className="space-y-2 rounded-md border border-border p-3">
@@ -447,13 +451,13 @@ export function DetailSidebar({
                       className="text-xs font-medium text-foreground"
                       htmlFor="saved-ad-note"
                     >
-                      Brand note
+                      {translate('noteLabel')}
                     </label>
                     <Textarea
                       id="saved-ad-note"
                       value={note}
                       maxLength={1000}
-                      placeholder="Why this ad is worth revisiting…"
+                      placeholder={translate('notePlaceholder')}
                       onChange={(event) => setNote(event.target.value)}
                     />
                     <Button
@@ -464,7 +468,7 @@ export function DetailSidebar({
                         onUpdateSavedNote(detail.savedAdId as string, note)
                       }
                     >
-                      Save note
+                      {translate('saveNote')}
                     </Button>
                   </div>
                 ) : null}

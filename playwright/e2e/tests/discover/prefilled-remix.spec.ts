@@ -452,6 +452,7 @@ test.describe('Discover prefilled remix handoff', () => {
     authenticatedPage,
   }) => {
     let isSaved = false;
+    let savedGetCount = 0;
     let createBody: Record<string, unknown> | null = null;
     await routeRemixRun(
       authenticatedPage,
@@ -550,8 +551,22 @@ test.describe('Discover prefilled remix handoff', () => {
     );
     await authenticatedPage.route(/\/saved-ads(?:\?.*)?$/, async (route) => {
       if (route.request().method() === 'POST') isSaved = true;
+      if (route.request().method() === 'GET') savedGetCount += 1;
       await fulfillJson(route, savedDocument());
     });
+
+    await authenticatedPage.goto(
+      `${BRAND_BASE}/discover/ads/meta?source=saved`,
+    );
+    await expect(
+      authenticatedPage.getByText('No ads match the current filters.'),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Filters' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Refresh' }),
+    ).toBeVisible();
 
     await authenticatedPage.goto(`${BRAND_BASE}/discover/ads/meta`);
     await authenticatedPage
@@ -588,6 +603,9 @@ test.describe('Discover prefilled remix handoff', () => {
         name: 'Saved TikTok winner',
       }),
     ).toBeHidden();
+    const refreshBaseline = savedGetCount;
+    await authenticatedPage.getByRole('button', { name: 'Refresh' }).click();
+    await expect.poll(() => savedGetCount).toBeGreaterThan(refreshBaseline);
     await authenticatedPage.getByRole('button', { name: 'Filters' }).click();
     await expect(authenticatedPage.getByText('Timeframe')).toBeHidden();
     await authenticatedPage

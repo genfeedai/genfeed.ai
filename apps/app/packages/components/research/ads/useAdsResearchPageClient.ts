@@ -95,7 +95,10 @@ function getBrandLabel(selectedBrand?: { label?: string; name?: string }) {
   return selectedBrand?.label || selectedBrand?.name || 'Brand';
 }
 
-function toSavedAdResearchItem(saved: ISavedAd): AdsResearchItem {
+function toSavedAdResearchItem(
+  saved: ISavedAd,
+  sourceLabel: string,
+): AdsResearchItem {
   return {
     accountId: saved.advertiserId ?? undefined,
     accountName: saved.advertiserName ?? undefined,
@@ -119,15 +122,15 @@ function toSavedAdResearchItem(saved: ISavedAd): AdsResearchItem {
     savedNote: saved.note ?? undefined,
     source: saved.source,
     sourceId: saved.sourceAdId,
-    sourceLabel: 'Saved swipe file',
+    sourceLabel,
     title: saved.title,
     usagePolicy: saved.usagePolicy,
     videoUrls: saved.videoUrls,
   };
 }
 
-function toSavedAdDetail(saved: ISavedAd) {
-  const item = toSavedAdResearchItem(saved);
+function toSavedAdDetail(saved: ISavedAd, sourceLabel: string) {
+  const item = toSavedAdResearchItem(saved, sourceLabel);
   return {
     ...item,
     creative: {
@@ -422,34 +425,45 @@ export function useAdsResearchPageClient(
   });
 
   const {
-    data: detail,
+    data: liveDetail,
     error: detailError,
-    isLoading: detailLoading,
+    isLoading: liveDetailLoading,
   } = useQuery({
-    queryKey: ['ads-research-detail', selectedAd, saved.savedAds, source],
+    queryKey: ['ads-research-detail', selectedAd, source],
     queryFn: async () => {
       if (!selectedAd) {
         return null;
       }
 
-      const snapshot = findSavedSnapshot(saved.savedAds, selectedAd);
-      if (source === 'saved') {
-        return snapshot ? toSavedAdDetail(snapshot) : null;
-      }
-
       const service = await getAdsResearchService();
-      const liveDetail = await service.getDetail(selectedAd);
-      return snapshot
-        ? {
-            ...liveDetail,
-            savedAdId: snapshot.id,
-            savedAt: snapshot.createdAt,
-            savedNote: snapshot.note ?? undefined,
-          }
-        : liveDetail;
+      return await service.getDetail(selectedAd);
     },
-    enabled: !!selectedAd,
+    enabled: !!selectedAd && source !== 'saved',
   });
+
+  const selectedSnapshot = useMemo(
+    () =>
+      selectedAd ? findSavedSnapshot(saved.savedAds, selectedAd) : undefined,
+    [saved.savedAds, selectedAd],
+  );
+  const detail = useMemo(() => {
+    if (source === 'saved') {
+      return selectedSnapshot
+        ? toSavedAdDetail(selectedSnapshot, translate('swipeFile.sourceLabel'))
+        : null;
+    }
+    if (!liveDetail) return liveDetail;
+    return selectedSnapshot
+      ? {
+          ...liveDetail,
+          savedAdId: selectedSnapshot.id,
+          savedAt: selectedSnapshot.createdAt,
+          savedNote: selectedSnapshot.note ?? undefined,
+        }
+      : liveDetail;
+  }, [liveDetail, selectedSnapshot, source, translate]);
+  const detailLoading =
+    source === 'saved' ? saved.isLoading : liveDetailLoading;
 
   const allAds = useMemo(() => {
     const savedBySource = new Map(
@@ -471,7 +485,9 @@ export function useAdsResearchPageClient(
                 (!adAccountId || item.adAccountId === adAccountId) &&
                 (!loginCustomerId || item.loginCustomerId === loginCustomerId),
             )
-            .map(toSavedAdResearchItem)
+            .map((item) =>
+              toSavedAdResearchItem(item, translate('swipeFile.sourceLabel')),
+            )
         : [...results.publicAds, ...results.connectedAds].map((item) => {
             const sourceAdId = item.sourceId || item.id;
             const snapshot = sourceAdId
@@ -538,6 +554,7 @@ export function useAdsResearchPageClient(
     showChannelFilter,
     sortKey,
     source,
+    translate,
   ]);
   const findings = useMemo(() => allAds.map(toAdsResearchFinding), [allAds]);
   const requestedReference = surface?.urlState.requestedReference ?? null;
@@ -751,7 +768,7 @@ export function useAdsResearchPageClient(
 
   const toggleSaved = async (items: AdsResearchItem[]) => {
     if (!brandId) {
-      setActionError('Choose a brand before saving reference ads.');
+      setActionError(translate('swipeFile.brandRequired'));
       return;
     }
     const snapshots = items
@@ -814,7 +831,7 @@ export function useAdsResearchPageClient(
     metric,
     openBrandRemix,
     platform,
-    refetch,
+    refetch: source === 'saved' ? saved.refetch : refetch,
     results,
     resultsError,
     savedError: saved.error,

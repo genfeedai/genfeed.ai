@@ -93,6 +93,25 @@ describe('SavedAdsService', () => {
     expect(saved.imageUrls).toEqual(['https://files.example/copied.jpg']);
   });
 
+  it('lists only active snapshots in the requested tenant and brand', async () => {
+    const rows = [{ id: 'saved-2' }, { id: 'saved-1' }];
+    (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      rows,
+    );
+
+    const result = await service.list('org-1', 'brand-1');
+
+    expect(result).toEqual(rows);
+    expect(prisma.savedAd.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      where: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
   it('rejects a connected credential outside the requested brand before provider reads', async () => {
     (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
       null,
@@ -137,6 +156,7 @@ describe('SavedAdsService', () => {
       sourceId: 'source-1',
       title: 'Connected winner',
       usagePolicy: 'remix_allowed',
+      videoUrls: ['provider-video-id'],
     });
     (prisma.savedAd.create as ReturnType<typeof vi.fn>).mockImplementation(
       ({ data }) => ({ id: 'saved-1', ...data }),
@@ -180,7 +200,9 @@ describe('SavedAdsService', () => {
       adAccountId: 'acct-1',
       credentialId: 'credential-1',
       loginCustomerId: 'mcc-1',
+      videoUrls: [],
     });
+    expect(files.uploadToS3).not.toHaveBeenCalled();
   });
 
   it('restores a soft-deleted snapshot instead of creating a duplicate', async () => {
@@ -271,6 +293,62 @@ describe('SavedAdsService', () => {
         brandId: 'brand-1',
         id: 'saved-other',
         isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('updates and returns a trimmed brand note in scope', async () => {
+    (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
+      count: 1,
+    });
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'saved-1',
+      note: 'Keep this hook',
+    });
+
+    const result = await service.updateNotes('org-1', [
+      { brandId: 'brand-1', id: 'saved-1', note: '  Keep this hook  ' },
+    ]);
+
+    expect(result).toEqual([{ id: 'saved-1', note: 'Keep this hook' }]);
+    expect(prisma.savedAd.updateMany).toHaveBeenCalledWith({
+      data: { note: 'Keep this hook' },
+      where: {
+        brandId: 'brand-1',
+        id: 'saved-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.savedAd.findFirst).toHaveBeenCalledWith({
+      where: {
+        brandId: 'brand-1',
+        id: 'saved-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('treats an already deleted in-scope snapshot as successfully unsaved', async () => {
+    (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
+      count: 0,
+    });
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'saved-1',
+    });
+
+    const result = await service.unsaveMany('org-1', [
+      { brandId: 'brand-1', id: 'saved-1' },
+    ]);
+
+    expect(result).toEqual(['saved-1']);
+    expect(prisma.savedAd.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'saved-1',
         organizationId: 'org-1',
       },
     });
