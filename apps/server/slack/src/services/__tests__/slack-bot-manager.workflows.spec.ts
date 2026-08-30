@@ -161,8 +161,6 @@ describe('SlackBotManager workflows', () => {
 
     service = module.get<SlackBotManager>(SlackBotManager);
 
-    service['logger'] = logger;
-
     respond = vi.fn().mockResolvedValue(undefined);
     mockApp.start.mockResolvedValue(undefined);
     mockApp.stop.mockResolvedValue(undefined);
