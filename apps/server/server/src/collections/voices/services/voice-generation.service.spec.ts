@@ -6,6 +6,7 @@ import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenti
 import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
 import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
 
@@ -31,7 +32,10 @@ describe('VoiceGenerationService', () => {
     findOne: ReturnType<typeof vi.fn>;
     patchAll: ReturnType<typeof vi.fn>;
   };
-  let workflowRunner: { enqueueWorkflow: ReturnType<typeof vi.fn> };
+  let workflowRunner: {
+    enqueueWorkflow: ReturnType<typeof vi.fn>;
+    registerAction: ReturnType<typeof vi.fn>;
+  };
   let service: VoiceGenerationService;
 
   beforeEach(() => {
@@ -58,7 +62,10 @@ describe('VoiceGenerationService', () => {
       }),
       patchAll: vi.fn(),
     };
-    workflowRunner = { enqueueWorkflow: vi.fn() };
+    workflowRunner = {
+      enqueueWorkflow: vi.fn(),
+      registerAction: vi.fn(),
+    };
     service = new VoiceGenerationService(
       elevenLabs as unknown as ElevenLabsService,
       logger as unknown as LoggerService,
@@ -67,6 +74,35 @@ describe('VoiceGenerationService', () => {
       voices as unknown as VoicesService,
       workflowRunner as never,
     );
+  });
+
+  it('registers the queued voice executor during module initialization', async () => {
+    const params = {
+      ingredientId,
+      organizationId,
+      text: 'Hello',
+      userId,
+      voiceId: 'voice-1',
+    };
+    const result = {
+      id: ingredientId,
+      status: IngredientStatus.GENERATED,
+    };
+    const executeQueuedGeneration = vi
+      .spyOn(service, 'executeQueuedGeneration')
+      .mockResolvedValue(result);
+
+    service.onModuleInit();
+
+    expect(workflowRunner.registerAction).toHaveBeenCalledWith(
+      AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
+      expect.any(Function),
+    );
+    const execute = workflowRunner.registerAction.mock.calls[0]?.[1] as
+      | ((request: { input: Record<string, unknown> }) => Promise<unknown>)
+      | undefined;
+    await expect(execute?.({ input: params })).resolves.toEqual(result);
+    expect(executeQueuedGeneration).toHaveBeenCalledWith(params);
   });
 
   it.each([
