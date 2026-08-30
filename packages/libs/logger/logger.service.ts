@@ -1,7 +1,8 @@
 import {
   redactSensitiveString,
   redactSensitiveValue,
-} from '@genfeedai/helpers';
+} from '@genfeedai/helpers/security/redact-sensitive-value.helper';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
 import type { Logger as winstonLogger } from 'winston';
 
@@ -25,20 +26,21 @@ export class LoggerService extends ConsoleLogger {
     this.constructorName = String(this.constructor.name);
   }
 
-  public log(message: string, context?: unknown): void {
+  public log(message: unknown, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    this.winston.info(redactSensitiveString(message), contextObj);
+    this.winston.info(this.normalizeMessage(message), contextObj);
   }
 
-  public warn(message: string, context?: unknown): void {
+  public warn(message: unknown, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    this.winston.warn(redactSensitiveString(message), contextObj);
+    this.winston.warn(this.normalizeMessage(message), contextObj);
   }
 
-  public debug(message: string, context?: unknown): void {
+  public debug(message: unknown, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    const formattedMessage = redactSensitiveString(
-      this.formatMessage(message, contextObj),
+    const formattedMessage = this.formatMessage(
+      this.normalizeMessage(message),
+      contextObj,
     );
     this.winston.debug(formattedMessage, contextObj);
   }
@@ -56,16 +58,19 @@ export class LoggerService extends ConsoleLogger {
   }
 
   public error(
-    message: string,
+    message: unknown,
     trace?: string | Error | unknown,
     context?: unknown,
   ): void {
     const contextObj = this.normalizeContext(context);
-    const formattedMessage = redactSensitiveString(
-      this.formatMessage(message, contextObj),
+    const formattedMessage = this.formatMessage(
+      this.normalizeMessage(message),
+      contextObj,
     );
 
-    const errorData = redactSensitiveValue(this.serializeError(trace));
+    const effectiveTrace =
+      trace ?? (typeof message === 'string' ? undefined : message);
+    const errorData = redactSensitiveValue(this.serializeError(effectiveTrace));
     const errorContext = {
       ...contextObj,
       ...(errorData !== undefined && { error: errorData }),
@@ -76,6 +81,10 @@ export class LoggerService extends ConsoleLogger {
     // duplicated every backend error in the console — removed. winston is the
     // single sink for this runtime (see class-level boundary note).
     this.winston.error(formattedMessage, errorContext);
+  }
+
+  private normalizeMessage(message: unknown): string {
+    return redactSensitiveString(getErrorMessage(message));
   }
 
   private serializeError(trace?: string | Error | unknown): unknown {
