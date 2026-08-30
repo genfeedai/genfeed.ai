@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { AgentTurnRoundRunnerService } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
+import { buildCampaignPreparationCacheKey } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentTurnRoundRunnerService campaign confirmations', () => {
@@ -19,15 +21,21 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     success: true,
   });
   const toolExecutorService = { executeTool };
+  const cachedPreparations = new Map<string, unknown>();
+  const cacheService = {
+    get: vi.fn(async (key: string) => cachedPreparations.get(key) ?? null),
+  };
 
   let runner: AgentTurnRoundRunnerService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cachedPreparations.clear();
     runner = new AgentTurnRoundRunnerService(
       loggerService as never,
       creditsUtilsService as never,
       toolExecutorService as never,
+      cacheService as never,
     );
   });
 
@@ -76,27 +84,26 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
   });
 
   it('restores and binds the exact prepared intent after an operator confirmation', async () => {
-    const confirmationPrompt =
-      'Confirm campaign start for "Launch" (campaign-1). Intent: campaign-transition-1.';
-    const messages = [
-      { content: 'Start the campaign.', role: 'user' as const },
+    const sourceActionId = `campaign-transition-${randomUUID()}`;
+    const confirmationPrompt = `Confirm campaign start for campaign campaign-1. Intent: ${sourceActionId}.`;
+    cachedPreparations.set(
+      buildCampaignPreparationCacheKey({
+        organizationId: 'org-1',
+        sourceActionId,
+        threadId: 'thread-1',
+      }),
       {
-        content: JSON.stringify({
-          data: {
-            campaignId: 'campaign-1',
-            confirmationPrompt,
-            pendingConfirmation: true,
-            sourceActionId: 'campaign-transition-1',
-            transition: 'start',
-          },
-          requiresConfirmation: true,
-          success: true,
-        }),
-        role: 'tool' as const,
-        tool_call_id: 'prepare-call',
+        campaignId: 'campaign-1',
+        confirmationPrompt,
+        currentStatus: 'draft',
+        intendedStatus: 'active',
+        label: 'Launch',
+        pendingConfirmation: true,
+        sourceActionId,
+        transition: 'start',
       },
-      { content: confirmationPrompt, role: 'user' as const },
-    ];
+    );
+    const messages = [{ content: confirmationPrompt, role: 'user' as const }];
 
     await runner.executeToolRound({
       allowedToolNames: new Set([AgentToolName.START_CAMPAIGN]),
@@ -128,11 +135,11 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       {
         campaignId: 'campaign-1',
         confirmed: true,
-        sourceActionId: 'campaign-transition-1',
+        sourceActionId,
       },
       expect.objectContaining({
         confirmationOrigin: 'thread-ui-action',
-        sourceActionId: 'campaign-transition-1',
+        sourceActionId,
       }),
     );
   });

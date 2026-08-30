@@ -16,6 +16,10 @@ import type {
   ToolCallSummary,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import {
+  buildCampaignPreparationCacheKey,
+  type PreparedCampaignTransition,
+} from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   type AgentArtifactCompletionMetadata,
@@ -28,6 +32,7 @@ import {
 } from '@server/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { normalizeUiBlocks } from '@server/services/agent-orchestrator/utils/agent-ui-blocks.util';
+import { CacheService } from '@server/services/cache/cache.service';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
@@ -204,6 +209,7 @@ export class AgentTurnRoundRunnerService {
     private readonly loggerService: LoggerService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -519,9 +525,11 @@ export class AgentTurnRoundRunnerService {
         }
       }
 
-      const confirmedCampaignIntent = this.resolveConfirmedCampaignIntent(
+      const confirmedCampaignIntent = await this.resolveConfirmedCampaignIntent(
         toolName,
         messages,
+        context.organizationId,
+        threadId,
       );
       if (this.isCampaignConfirmationTool(toolName)) {
         if (confirmedCampaignIntent) {
@@ -709,10 +717,12 @@ export class AgentTurnRoundRunnerService {
     );
   }
 
-  private resolveConfirmedCampaignIntent(
+  private async resolveConfirmedCampaignIntent(
     toolName: AgentToolName,
     messages: OpenRouterMessage[],
-  ): ConfirmedCampaignIntent | null {
+    organizationId: string,
+    threadId: string,
+  ): Promise<ConfirmedCampaignIntent | null> {
     const transition =
       toolName === AgentToolName.START_CAMPAIGN
         ? 'start'
@@ -734,82 +744,48 @@ export class AgentTurnRoundRunnerService {
       return null;
     }
 
-    const confirmationMessage = messages[latestUserIndex]?.content;
-    if (typeof confirmationMessage !== 'string') {
+    const confirmationPrompt = messages[latestUserIndex]?.content;
+    if (typeof confirmationPrompt !== 'string') {
       return null;
     }
 
-    for (let index = latestUserIndex - 1; index >= 0; index -= 1) {
-      const message = messages[index];
-      if (message?.role !== 'tool' || typeof message.content !== 'string') {
-        continue;
-      }
-
-      const preparation = this.readPreparedCampaignIntent(message.content);
-      if (
-        preparation?.transition === transition &&
-        preparation.confirmationPrompt === confirmationMessage
-      ) {
-        return {
-          campaignId: preparation.campaignId,
-          sourceActionId: preparation.sourceActionId,
-          transition,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  private readPreparedCampaignIntent(content: string):
-    | (ConfirmedCampaignIntent & {
-        confirmationPrompt: string;
-      })
-    | null {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      return null;
-    }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    const sourceActionId = this.readCampaignSourceActionId(confirmationPrompt);
+    if (!sourceActionId) {
       return null;
     }
 
-    const result = parsed as Record<string, unknown>;
-    const data = result.data;
-    if (
-      result.requiresConfirmation !== true ||
-      !data ||
-      typeof data !== 'object' ||
-      Array.isArray(data)
-    ) {
-      return null;
-    }
-
-    const preparation = data as Record<string, unknown>;
-    const campaignId = this.readNonEmptyString(preparation.campaignId);
-    const confirmationPrompt = this.readNonEmptyString(
-      preparation.confirmationPrompt,
+    const preparation = await this.cacheService.get<PreparedCampaignTransition>(
+      buildCampaignPreparationCacheKey({
+        organizationId,
+        sourceActionId,
+        threadId,
+      }),
     );
-    const sourceActionId = this.readNonEmptyString(preparation.sourceActionId);
-    const transition = preparation.transition;
+    const campaignId = this.readNonEmptyString(preparation?.campaignId);
     if (
-      preparation.pendingConfirmation !== true ||
-      !campaignId ||
-      !confirmationPrompt ||
-      !sourceActionId ||
-      (transition !== 'start' && transition !== 'pause')
+      preparation?.pendingConfirmation !== true ||
+      preparation.transition !== transition ||
+      preparation.sourceActionId !== sourceActionId ||
+      preparation.confirmationPrompt !== confirmationPrompt ||
+      !campaignId
     ) {
       return null;
     }
 
     return {
       campaignId,
-      confirmationPrompt,
       sourceActionId,
       transition,
     };
+  }
+
+  private readCampaignSourceActionId(
+    confirmationPrompt: string,
+  ): string | null {
+    const match = confirmationPrompt.match(
+      /Intent: (campaign-transition-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.$/i,
+    );
+    return match?.[1] ?? null;
   }
 
   private readNonEmptyString(value: unknown): string | null {

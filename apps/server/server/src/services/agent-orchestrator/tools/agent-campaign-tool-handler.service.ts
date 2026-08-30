@@ -34,6 +34,21 @@ export type PreparedCampaignTransition = {
   transition: CampaignTransition;
 };
 
+const CAMPAIGN_PREPARATION_TTL_SECONDS = 604_800;
+
+export function buildCampaignPreparationCacheKey(params: {
+  organizationId: string;
+  sourceActionId: string;
+  threadId: string;
+}): string {
+  return [
+    'agent-campaign-preparation',
+    params.organizationId,
+    params.threadId,
+    params.sourceActionId,
+  ].join(':');
+}
+
 export function buildCampaignConfirmationPrompt(params: {
   campaignId: string;
   sourceActionId: string;
@@ -157,9 +172,23 @@ export class AgentCampaignToolHandler {
       return this.prepareCampaignTransition(transition, campaignId, ctx);
     }
 
-    if (!this.cacheService) {
-      throw new InternalServerErrorException(
-        'Campaign confirmation idempotency is unavailable.',
+    const { cacheService, threadId } = this.requireConfirmationPersistence(ctx);
+    const preparedTransition =
+      await cacheService.get<PreparedCampaignTransition>(
+        buildCampaignPreparationCacheKey({
+          organizationId: ctx.organizationId,
+          sourceActionId,
+          threadId,
+        }),
+      );
+    if (
+      preparedTransition?.pendingConfirmation !== true ||
+      preparedTransition.campaignId !== campaignId ||
+      preparedTransition.sourceActionId !== sourceActionId ||
+      preparedTransition.transition !== transition
+    ) {
+      throw new BadRequestException(
+        'Campaign confirmation does not match a persisted preparation.',
       );
     }
 
@@ -173,7 +202,7 @@ export class AgentCampaignToolHandler {
     ].join(':');
 
     return runIdempotent(
-      this.cacheService,
+      cacheService,
       idempotencyKey,
       async () => {
         const campaign =
@@ -221,7 +250,10 @@ export class AgentCampaignToolHandler {
           success: true,
         };
       },
-      { lockTtlSeconds: 86_400, resultTtlSeconds: 86_400 },
+      {
+        lockTtlSeconds: CAMPAIGN_PREPARATION_TTL_SECONDS,
+        resultTtlSeconds: CAMPAIGN_PREPARATION_TTL_SECONDS,
+      },
     );
   }
 
@@ -230,6 +262,7 @@ export class AgentCampaignToolHandler {
     campaignId: string,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const { cacheService, threadId } = this.requireConfirmationPersistence(ctx);
     const campaign = await this.campaignsService.findOneById(
       campaignId,
       ctx.organizationId,
@@ -255,6 +288,20 @@ export class AgentCampaignToolHandler {
       sourceActionId,
       transition,
     };
+    const persisted = await cacheService.set(
+      buildCampaignPreparationCacheKey({
+        organizationId: ctx.organizationId,
+        sourceActionId,
+        threadId,
+      }),
+      preparation,
+      { ttl: CAMPAIGN_PREPARATION_TTL_SECONDS },
+    );
+    if (!persisted) {
+      throw new InternalServerErrorException(
+        'Campaign confirmation preparation could not be persisted.',
+      );
+    }
 
     return {
       creditsUsed: 0,
@@ -288,6 +335,19 @@ export class AgentCampaignToolHandler {
       riskLevel: 'medium',
       success: true,
     };
+  }
+
+  private requireConfirmationPersistence(ctx: ToolExecutionContext): {
+    cacheService: CacheService;
+    threadId: string;
+  } {
+    if (!this.cacheService || !ctx.threadId) {
+      throw new InternalServerErrorException(
+        'Campaign confirmation persistence is unavailable.',
+      );
+    }
+
+    return { cacheService: this.cacheService, threadId: ctx.threadId };
   }
 
   async completeCampaign(

@@ -38,6 +38,7 @@ describe('AgentCampaignToolHandler', () => {
     }),
     set: vi.fn(async (key: string, value: unknown) => {
       cachedResults.set(key, value);
+      return true;
     }),
   };
 
@@ -182,6 +183,15 @@ describe('AgentCampaignToolHandler', () => {
         }),
       ]),
     );
+    expect(cacheService.set).toHaveBeenCalledWith(
+      expect.stringContaining(String(result.data?.sourceActionId)),
+      expect.objectContaining({
+        campaignId: 'campaign-1',
+        pendingConfirmation: true,
+        transition: 'start',
+      }),
+      expect.objectContaining({ ttl: expect.any(Number) }),
+    );
   });
 
   it('prepares an exact pause intent without pausing the campaign', async () => {
@@ -213,20 +223,30 @@ describe('AgentCampaignToolHandler', () => {
   });
 
   it('starts a confirmed prepared campaign exactly once across retries', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
     campaignsService.start.mockResolvedValue({
       id: 'campaign-1',
       label: 'Launch',
       status: 'active',
     });
+    const preparation = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
     const confirmedContext: ToolExecutionContext = {
       ...ctx,
       confirmationOrigin: 'thread-ui-action',
-      sourceActionId: 'campaign-transition-1',
+      sourceActionId,
     };
     const params = {
       campaignId: 'campaign-1',
       confirmed: true,
-      sourceActionId: 'campaign-transition-1',
+      sourceActionId,
     };
 
     const first = await handler.startCampaign(params, confirmedContext);
@@ -242,7 +262,7 @@ describe('AgentCampaignToolHandler', () => {
     expect(first).toMatchObject({
       data: {
         campaignId: 'campaign-1',
-        sourceActionId: 'campaign-transition-1',
+        sourceActionId,
         status: 'active',
         transition: 'start',
       },
@@ -252,22 +272,32 @@ describe('AgentCampaignToolHandler', () => {
   });
 
   it('pauses only the exact server-confirmed prepared campaign intent', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'active',
+    });
     campaignsService.pause.mockResolvedValue({
       id: 'campaign-1',
       label: 'Launch',
       status: 'paused',
     });
+    const preparation = await handler.pauseCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
     const confirmedContext: ToolExecutionContext = {
       ...ctx,
       confirmationOrigin: 'thread-ui-action',
-      sourceActionId: 'campaign-transition-2',
+      sourceActionId,
     };
 
     const result = await handler.pauseCampaign(
       {
         campaignId: 'campaign-1',
         confirmed: true,
-        sourceActionId: 'campaign-transition-2',
+        sourceActionId,
       },
       confirmedContext,
     );
@@ -280,12 +310,41 @@ describe('AgentCampaignToolHandler', () => {
     expect(result).toMatchObject({
       data: {
         campaignId: 'campaign-1',
-        sourceActionId: 'campaign-transition-2',
+        sourceActionId,
         status: 'paused',
         transition: 'pause',
       },
       success: true,
     });
     expect(result.requiresConfirmation).toBeUndefined();
+  });
+
+  it('rejects confirmation when the persisted preparation targets another campaign', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+    const preparation = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
+
+    await expect(
+      handler.startCampaign(
+        {
+          campaignId: 'campaign-2',
+          confirmed: true,
+          sourceActionId,
+        },
+        {
+          ...ctx,
+          confirmationOrigin: 'thread-ui-action',
+          sourceActionId,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.start).not.toHaveBeenCalled();
   });
 });
