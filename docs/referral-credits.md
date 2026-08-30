@@ -12,7 +12,8 @@ and the credit ledger portable across supported deployments.
   first valid claim is immutable.
 - The referrer earns credits equal to 10% of the referred account's net,
   pre-tax pay-as-you-go credit purchases for 12 months.
-- Rewards remain pending for seven days and expire 12 months after settlement.
+- Rewards remain pending for seven days. Settlement issues the credits, which
+  expire 12 months after issuance.
 - Subscription charges, managed inference, marketplace purchases, and cash
   payouts are outside this program.
 - Refunds reduce pending rewards. Refunds and disputes after settlement create
