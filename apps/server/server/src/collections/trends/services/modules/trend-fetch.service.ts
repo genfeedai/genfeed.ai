@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { TrendEntity } from '@server/collections/trends/entities/trend.entity';
 import type {
   ApifyTrendItem,
@@ -8,13 +11,13 @@ import type { TrendDocument } from '@server/collections/trends/schemas/trend.sch
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
+import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { GrokTrendData } from '@server/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@server/services/integrations/xai/services/xai.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TrendFetchService {
@@ -53,6 +56,9 @@ export class TrendFetchService {
     private readonly linkedinService: LinkedInService,
     private readonly xaiService: XaiService,
     private readonly twitterService: TwitterService,
+    private readonly redditService: RedditService,
+    private readonly youtubeService: YoutubeService,
+    private readonly pinterestService: PinterestService,
   ) {}
 
   /**
@@ -288,6 +294,158 @@ export class TrendFetchService {
     }));
   }
 
+  private async fetchRedditTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    return this.fetchNativeFirst(
+      'reddit',
+      async () => {
+        const trends = await this.redditService.getTrends(
+          organizationId,
+          brandId,
+          20,
+        );
+        return trends.map((trend) => ({
+          createdAt: trend.createdAt,
+          growthRate: trend.upvoteRatio * 100,
+          mentions: trend.score,
+          metadata: {
+            author: trend.author,
+            commentCount: trend.commentCount,
+            provider: 'reddit-api',
+            source: 'native-api',
+            subreddit: trend.subreddit,
+            trendType: 'topic',
+            urls: trend.url ? [trend.url] : [],
+          },
+          platform: 'reddit',
+          topic: trend.title,
+        }));
+      },
+      async () =>
+        this.toTrendDataArray(
+          await this.apifyService.getRedditTrends({ limit: 20 }),
+        ),
+    );
+  }
+
+  private async fetchYoutubeTrends(): Promise<TrendData[]> {
+    return this.fetchNativeFirst(
+      'youtube',
+      async () => {
+        const trends = await this.youtubeService.getTrends('US', 20);
+        return trends.map((trend) => ({
+          createdAt: trend.publishedAt,
+          growthRate:
+            trend.viewCount > 0
+              ? Math.min(
+                  100,
+                  ((trend.likeCount + trend.commentCount) / trend.viewCount) *
+                    100,
+                )
+              : 0,
+          mentions: trend.viewCount,
+          metadata: {
+            commentCount: trend.commentCount,
+            creatorHandle: trend.channelTitle,
+            hashtags: trend.tags,
+            likeCount: trend.likeCount,
+            provider: 'youtube-data-api-v3',
+            source: 'native-api',
+            thumbnailUrl: trend.thumbnailUrl,
+            trendType: 'video',
+            videoUrl: trend.url,
+            viewCount: trend.viewCount,
+          },
+          platform: 'youtube',
+          topic: trend.title,
+        }));
+      },
+      async () =>
+        this.toTrendDataArray(
+          await this.apifyService.getYouTubeTrends({ limit: 20 }),
+        ),
+    );
+  }
+
+  private async fetchPinterestTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    return this.fetchNativeFirst(
+      'pinterest',
+      async () => {
+        const trends = await this.pinterestService.getTrends(
+          organizationId,
+          brandId,
+          'US',
+          20,
+        );
+        return trends.map((trend) => ({
+          growthRate: trend.weeklyGrowth,
+          mentions: this.getLatestPinterestTrendValue(trend.timeSeries),
+          metadata: {
+            monthlyGrowth: trend.monthlyGrowth,
+            provider: 'pinterest-api-v5',
+            source: 'native-api',
+            timeSeries: trend.timeSeries,
+            trendType: 'topic',
+            yearlyGrowth: trend.yearlyGrowth,
+          },
+          platform: 'pinterest',
+          topic: trend.keyword,
+        }));
+      },
+      async () =>
+        this.toTrendDataArray(
+          await this.apifyService.getPinterestTrends({ limit: 20 }),
+        ),
+    );
+  }
+
+  private async fetchNativeFirst(
+    platform: 'pinterest' | 'reddit' | 'youtube',
+    nativeFetch: () => Promise<TrendData[]>,
+    fallbackFetch: () => Promise<TrendData[]>,
+  ): Promise<TrendData[]> {
+    try {
+      const nativeTrends = await nativeFetch();
+      if (nativeTrends.length > 0) {
+        return nativeTrends;
+      }
+
+      this.loggerService.warn(
+        `${platform} native trends returned no signal; falling back to Apify`,
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${platform} native trends failed; falling back to Apify`,
+        { error: error instanceof Error ? error.message : 'unknown' },
+      );
+    }
+
+    try {
+      return await fallbackFetch();
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${platform} Apify trend fallback failed`,
+        error,
+      );
+      return [];
+    }
+  }
+
+  private getLatestPinterestTrendValue(
+    timeSeries: Record<string, number>,
+  ): number {
+    return (
+      Object.entries(timeSeries)
+        .sort(([first], [second]) => first.localeCompare(second))
+        .at(-1)?.[1] ?? 0
+    );
+  }
+
   /**
    * Fetch trends from a specific platform using Apify or fallback services.
    *
@@ -324,23 +482,14 @@ export class TrendFetchService {
             await this.apifyService.getInstagramTrends({ limit: 20 }),
           ),
         linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
-        pinterest: async () =>
-          this.toTrendDataArray(
-            await this.apifyService.getPinterestTrends({ limit: 20 }),
-          ),
-        reddit: async () =>
-          this.toTrendDataArray(
-            await this.apifyService.getRedditTrends({ limit: 20 }),
-          ),
+        pinterest: () => this.fetchPinterestTrends(organizationId, brandId),
+        reddit: () => this.fetchRedditTrends(organizationId, brandId),
         tiktok: async () =>
           this.toTrendDataArray(
             await this.apifyService.getTikTokTrends({ limit: 20 }),
           ),
         twitter: () => this.fetchTwitterTrends(organizationId, brandId),
-        youtube: async () =>
-          this.toTrendDataArray(
-            await this.apifyService.getYouTubeTrends({ limit: 20 }),
-          ),
+        youtube: () => this.fetchYoutubeTrends(),
       };
 
       const handler = platformHandlers[platform];
@@ -349,7 +498,16 @@ export class TrendFetchService {
         return [];
       }
 
-      const trends = await handler();
+      let trends: TrendData[];
+      try {
+        trends = await handler();
+      } catch (error: unknown) {
+        this.loggerService.error(
+          `Failed to fetch trends for ${platform}`,
+          error,
+        );
+        trends = [];
+      }
 
       await this.cacheService.set(cacheKey, trends, {
         tags: this.buildPlatformTrendsCacheTags(
@@ -362,7 +520,7 @@ export class TrendFetchService {
 
       return trends;
     } catch (error: unknown) {
-      this.loggerService.error(`Failed to fetch trends for ${platform}`, error);
+      this.loggerService.error(`Failed to cache trends for ${platform}`, error);
       return [];
     }
   }

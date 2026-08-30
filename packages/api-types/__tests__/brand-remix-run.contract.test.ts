@@ -172,7 +172,7 @@ describe('brand remix run contract', () => {
     });
   });
 
-  test('accepts connected Meta and public-ad source selectors without copied creative', () => {
+  test('accepts connected, public, and saved-ad selectors without client creative', () => {
     expect(
       createBrandRemixRunSchema.parse({
         source: {
@@ -199,6 +199,12 @@ describe('brand remix run contract', () => {
         },
       }).source.kind,
     ).toBe('public_ad');
+
+    expect(
+      createBrandRemixRunSchema.parse({
+        source: { kind: 'saved_ad', savedAdId: 'saved_ad_1' },
+      }).source,
+    ).toEqual({ kind: 'saved_ad', savedAdId: 'saved_ad_1' });
   });
 
   test('rejects client-supplied source prose, metrics, URLs, and provider identities', () => {

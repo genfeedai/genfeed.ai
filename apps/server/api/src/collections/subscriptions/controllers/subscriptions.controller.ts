@@ -1,24 +1,19 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { SubscriptionPlan } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   OrganizationCreditUsageResponse,
+  SubscriptionChangePreview,
 } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -34,6 +29,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import type { Request } from 'express';
 
 interface SubscriptionMutationResponse<T = unknown> {
@@ -160,7 +161,7 @@ export class SubscriptionsController {
   async previewChange(
     @CurrentUser() user: User,
     @Body() subscriptionPreviewDto: CreateSubscriptionPreviewDto,
-  ): Promise<SubscriptionMutationResponse> {
+  ): Promise<SubscriptionMutationResponse<SubscriptionChangePreview>> {
     try {
       const result = await this.subscriptionsService.previewSubscriptionChange(
         user.organizationId,

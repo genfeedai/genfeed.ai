@@ -6,9 +6,8 @@ import { fileURLToPath } from 'node:url';
 import {
   AREA_INFRA,
   BLAST_RADIUS_INFRA,
-  GENFEED_PROJECT_ID,
+  ISSUE_TYPE_BUG,
   PRIORITY_P0,
-  WORK_TYPE_BUG,
 } from './genfeed-project-board.mjs';
 import {
   buildMasterCiFailureBody,
@@ -86,15 +85,33 @@ function createGithubMock({
     },
     graphql: async (query, vars) => {
       graphqlCalls.push({ query, vars });
+      if (query.includes('updateIssue(')) {
+        return {
+          updateIssue: {
+            issue: {
+              id: vars.issueId,
+              issueType: { id: ISSUE_TYPE_BUG },
+              issueFieldValues: {
+                nodes: [
+                  { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                  { field: { name: 'Area' }, value: AREA_INFRA },
+                  {
+                    field: { name: 'Blast radius' },
+                    value: BLAST_RADIUS_INFRA,
+                  },
+                ],
+              },
+            },
+          },
+        };
+      }
       if (query.includes('addProjectV2ItemById')) {
         return {
           addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } },
         };
       }
       return {
-        updateProjectV2ItemFieldValue: {
-          projectV2Item: { id: 'PROJECT_ITEM_1' },
-        },
+        unexpectedMutation: true,
       };
     },
   };
@@ -143,13 +160,13 @@ test('reportMasterCiFailure comments existing open tracker and re-asserts P0', a
   assert.ok(
     graphqlCalls.some(
       (c) =>
-        c.vars?.projectId === GENFEED_PROJECT_ID &&
-        c.vars?.optionId === PRIORITY_P0,
+        c.vars?.issueTypeId === ISSUE_TYPE_BUG &&
+        c.vars?.priority === PRIORITY_P0,
     ),
   );
 });
 
-test('reportMasterCiFailure creates tracker and triages project fields', async () => {
+test('reportMasterCiFailure creates tracker, sets native metadata, and adds it to the project', async () => {
   const { github, created, labelCalls, graphqlCalls } = createGithubMock({
     openIssues: [],
   });
@@ -174,11 +191,18 @@ test('reportMasterCiFailure creates tracker and triages project fields', async (
   assert.equal(labelCalls[0].issue_number, 99);
   assert.deepEqual(labelCalls[0].labels, [MASTER_CI_FAILURE_LABEL]);
 
-  const optionIds = graphqlCalls.map((c) => c.vars?.optionId).filter(Boolean);
-  assert.ok(optionIds.includes(PRIORITY_P0));
-  assert.ok(optionIds.includes(AREA_INFRA));
-  assert.ok(optionIds.includes(WORK_TYPE_BUG));
-  assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
+  const nativeUpdate = graphqlCalls.find((c) =>
+    c.query.includes('updateIssue('),
+  );
+  assert.equal(nativeUpdate.vars.issueTypeId, ISSUE_TYPE_BUG);
+  assert.equal(nativeUpdate.vars.priority, PRIORITY_P0);
+  assert.equal(nativeUpdate.vars.area, AREA_INFRA);
+  assert.equal(nativeUpdate.vars.blastRadius, BLAST_RADIUS_INFRA);
+  assert.ok(graphqlCalls.some((c) => c.query.includes('addProjectV2ItemById')));
+  assert.equal(
+    graphqlCalls.some((c) => c.query.includes('updateProjectV2ItemFieldValue')),
+    false,
+  );
 });
 
 test('reportMasterCiFailure fails loudly when the tracker label does not land', async () => {
@@ -207,7 +231,7 @@ test('reportMasterCiFailure fails loudly when the tracker label does not land', 
   assert.equal(graphqlCalls.length, 0);
 });
 
-test('reportMasterCiFailure files the issue but fails when project GraphQL is denied', async () => {
+test('reportMasterCiFailure files the issue but fails when triage GraphQL is denied', async () => {
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
@@ -231,6 +255,92 @@ test('reportMasterCiFailure files the issue but fails when project GraphQL is de
 
   assert.equal(created.length, 1);
   assert.ok(warnings.some((w) => w.includes('Could not triage')));
+});
+
+test('reportMasterCiFailure keeps Project membership when native metadata verification fails', async () => {
+  const { github, created } = createGithubMock({ openIssues: [] });
+  const mutationOrder = [];
+  github.graphql = async (query, vars) => {
+    if (query.includes('addProjectV2ItemById')) {
+      mutationOrder.push('project');
+      return { addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } } };
+    }
+    mutationOrder.push('metadata');
+    return {
+      updateIssue: {
+        issue: {
+          id: vars.issueId,
+          issueType: { id: ISSUE_TYPE_BUG },
+          issueFieldValues: {
+            nodes: [
+              { field: { name: 'Priority' }, value: PRIORITY_P0 },
+              { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
+            ],
+          },
+        },
+      },
+    };
+  };
+
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: { info: () => {}, warning: () => {} },
+    }),
+    /did not persist the required native issue type and triage fields/,
+  );
+
+  assert.equal(created.length, 1);
+  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+});
+
+test('reportMasterCiFailure still writes native metadata when Project membership fails', async () => {
+  const { github, created } = createGithubMock({ openIssues: [] });
+  const mutationOrder = [];
+  github.graphql = async (query, vars) => {
+    if (query.includes('addProjectV2ItemById')) {
+      mutationOrder.push('project');
+      throw new Error('Project is unavailable');
+    }
+    mutationOrder.push('metadata');
+    return {
+      updateIssue: {
+        issue: {
+          id: vars.issueId,
+          issueType: { id: ISSUE_TYPE_BUG },
+          issueFieldValues: {
+            nodes: [
+              { field: { name: 'Priority' }, value: PRIORITY_P0 },
+              { field: { name: 'Area' }, value: AREA_INFRA },
+              {
+                field: { name: 'Blast radius' },
+                value: BLAST_RADIUS_INFRA,
+              },
+            ],
+          },
+        },
+      },
+    };
+  };
+
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: { info: () => {}, warning: () => {} },
+    }),
+    /Project #12 membership failed: Project is unavailable/,
+  );
+
+  assert.equal(created.length, 1);
+  assert.deepEqual(mutationOrder, ['project', 'metadata']);
 });
 
 test('resolveMasterCiFailure closes all open trackers', async () => {

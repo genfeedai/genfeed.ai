@@ -5,9 +5,6 @@ import type {
   ITrendVideo,
 } from '@genfeedai/interfaces';
 
-/**
- * Props for ViralVideoLeaderboard component
- */
 export interface ViralVideoLeaderboardProps {
   videos: ITrendVideo[];
   isLoading?: boolean;
@@ -19,9 +16,6 @@ export interface ViralVideoLeaderboardProps {
   className?: string;
 }
 
-/**
- * Props for TrendingHashtags component
- */
 export interface TrendingHashtagsProps {
   hashtags: ITrendHashtag[];
   isLoading?: boolean;
@@ -31,9 +25,6 @@ export interface TrendingHashtagsProps {
   className?: string;
 }
 
-/**
- * Props for TrendingSounds component
- */
 export interface TrendingSoundsProps {
   sounds: ITrendSound[];
   isLoading?: boolean;
@@ -42,9 +33,6 @@ export interface TrendingSoundsProps {
   className?: string;
 }
 
-/**
- * Props for PlatformTrendsTabs component
- */
 export interface PlatformTrendsTabsProps {
   selectedPlatform: string;
   onPlatformChange: (platform: string) => void;

@@ -38,7 +38,8 @@ import type {
 } from 'react-hook-form';
 
 /**
- * Props for PromptBarEssentials — the always-visible tier.
+ * Always-visible tier.
+ *
  * Contains: model selector, format/aspect ratio, duration, prompt textarea, generate button.
  */
 export interface PromptBarEssentialsProps {
@@ -134,7 +135,8 @@ export interface PromptBarEssentialsProps {
 }
 
 /**
- * Props for PromptBarQuickOptions — the collapsible second tier.
+ * Collapsible second tier.
+ *
  * Contains: folder selector, output count, audio toggle, reference images.
  */
 export interface PromptBarQuickOptionsProps {

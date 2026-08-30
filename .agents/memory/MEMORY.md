@@ -16,10 +16,10 @@ Keep it that way: this file is auto-loaded into every request.
 - [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
 - [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
 - [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
-- [p0_priority_not_label](p0_priority_not_label.md) — priority lives in Project #12, not labels
+- [p0_priority_not_label](p0_priority_not_label.md) — priority lives in native organization Issue Fields, not labels or project-local duplicates
 - [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
 - [skill_boundary](skill_boundary.md) — `.agents/skills` build the app; `skills/` are product content
-- [genfeed_project_kanban](genfeed_project_kanban.md) — project #12 is canonical
+- [genfeed_project_kanban](genfeed_project_kanban.md) — Project #12 owns workflow Status; native Issue Fields own shared metadata
 - [epic_status_on_child_start](epic_status_on_child_start.md) — epics go In Progress when a child starts
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
 - [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
@@ -39,7 +39,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
-- [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
+- [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → native issue Priority P0 + auto-close on green; never prose-only triage
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_hosted_saas_public_deploy](feedback_hosted_saas_public_deploy.md) — hosted SaaS deploys from public genfeed.ai; do not dispatch console
 - [feedback_seo_hard_cut_routes](feedback_seo_hard_cut_routes.md) — retired/moved public routes are hard cuts: remove current references, add no redirects

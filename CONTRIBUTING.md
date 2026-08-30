@@ -173,7 +173,7 @@ the issue.
   maintainer or a triage agent confirms or rewrites the acceptance criteria,
   applies labels, and places it on
   [Project #12](https://github.com/orgs/genfeedai/projects/12).
-- **Priority is a Project #12 field, never a label.**
+- **Priority is a native organization Issue Field surfaced on Project #12, never a label.**
 - If you want to work on an issue, say so in a comment. Issues labelled
   `good first issue` and `help wanted` are pre-scoped for outside contributors.
 

@@ -33,6 +33,15 @@ describe('TrendFetchService', () => {
   const mockTwitterService = {
     getTrends: vi.fn(),
   };
+  const mockRedditService = {
+    getTrends: vi.fn(),
+  };
+  const mockYoutubeService = {
+    getTrends: vi.fn(),
+  };
+  const mockPinterestService = {
+    getTrends: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,6 +55,9 @@ describe('TrendFetchService', () => {
     mockXaiService.getTrends.mockResolvedValue([]);
     mockLinkedInService.getTrends.mockResolvedValue([]);
     mockTwitterService.getTrends.mockResolvedValue([]);
+    mockRedditService.getTrends.mockResolvedValue([]);
+    mockYoutubeService.getTrends.mockResolvedValue([]);
+    mockPinterestService.getTrends.mockResolvedValue([]);
 
     service = new TrendFetchService(
       mockPrisma as never,
@@ -55,6 +67,9 @@ describe('TrendFetchService', () => {
       mockLinkedInService as never,
       mockXaiService as never,
       mockTwitterService as never,
+      mockRedditService as never,
+      mockYoutubeService as never,
+      mockPinterestService as never,
     );
   });
 
@@ -279,6 +294,195 @@ describe('TrendFetchService', () => {
         topic: '#ai',
       },
     ]);
+  });
+
+  describe('native-first platform discovery', () => {
+    it('returns native Reddit trends without running the Apify actor', async () => {
+      mockRedditService.getTrends.mockResolvedValue([
+        {
+          author: 'creator',
+          commentCount: 80,
+          createdAt: '2026-08-30T08:00:00Z',
+          id: 'reddit-1',
+          score: 1500,
+          subreddit: 'technology',
+          title: 'Native Reddit topic',
+          upvoteRatio: 0.96,
+          url: 'https://www.reddit.com/r/technology/comments/reddit-1',
+        },
+      ]);
+
+      const result = await service.fetchPlatformTrends(
+        'reddit',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(mockRedditService.getTrends).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        20,
+      );
+      expect(mockApifyService.getRedditTrends).not.toHaveBeenCalled();
+      expect(result).toEqual([
+        expect.objectContaining({
+          growthRate: 96,
+          mentions: 1500,
+          platform: 'reddit',
+          topic: 'Native Reddit topic',
+        }),
+      ]);
+      expect(result[0]?.metadata).toMatchObject({
+        provider: 'reddit-api',
+        source: 'native-api',
+      });
+    });
+
+    it('falls back to Apify when native Reddit returns no signal', async () => {
+      mockRedditService.getTrends.mockResolvedValue([]);
+      mockApifyService.getRedditTrends.mockResolvedValue([
+        {
+          growthRate: 50,
+          mentions: 500,
+          platform: 'reddit',
+          topic: 'Fallback Reddit topic',
+        },
+      ]);
+
+      await expect(service.fetchPlatformTrends('reddit')).resolves.toEqual([
+        expect.objectContaining({ topic: 'Fallback Reddit topic' }),
+      ]);
+      expect(mockApifyService.getRedditTrends).toHaveBeenCalledWith({
+        limit: 20,
+      });
+    });
+
+    it('falls back to Apify when native Reddit errors', async () => {
+      mockRedditService.getTrends.mockRejectedValue(
+        new Error('Reddit unavailable'),
+      );
+      mockApifyService.getRedditTrends.mockResolvedValue([
+        {
+          growthRate: 50,
+          mentions: 500,
+          platform: 'reddit',
+          topic: 'Fallback Reddit topic',
+        },
+      ]);
+
+      await expect(service.fetchPlatformTrends('reddit')).resolves.toHaveLength(
+        1,
+      );
+      expect(mockApifyService.getRedditTrends).toHaveBeenCalledOnce();
+    });
+
+    it('returns native YouTube mostPopular results before Apify', async () => {
+      mockYoutubeService.getTrends.mockResolvedValue([
+        {
+          channelTitle: 'Creator',
+          commentCount: 50,
+          id: 'youtube-1',
+          likeCount: 950,
+          tags: ['ai'],
+          title: 'Native YouTube topic',
+          url: 'https://www.youtube.com/watch?v=youtube-1',
+          viewCount: 10000,
+        },
+      ]);
+
+      const result = await service.fetchPlatformTrends('youtube');
+
+      expect(mockYoutubeService.getTrends).toHaveBeenCalledWith('US', 20);
+      expect(mockApifyService.getYouTubeTrends).not.toHaveBeenCalled();
+      expect(result[0]).toMatchObject({
+        growthRate: 10,
+        mentions: 10000,
+        platform: 'youtube',
+        topic: 'Native YouTube topic',
+      });
+      expect(result[0]?.metadata).toMatchObject({
+        provider: 'youtube-data-api-v3',
+        source: 'native-api',
+      });
+    });
+
+    it('returns credentialed Pinterest v5 trends before Apify', async () => {
+      mockPinterestService.getTrends.mockResolvedValue([
+        {
+          keyword: 'summer nails',
+          monthlyGrowth: 100,
+          timeSeries: { '2026-08-17': 71, '2026-08-24': 87 },
+          weeklyGrowth: 30,
+          yearlyGrowth: 10,
+        },
+      ]);
+
+      const result = await service.fetchPlatformTrends(
+        'pinterest',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(mockPinterestService.getTrends).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'US',
+        20,
+      );
+      expect(mockApifyService.getPinterestTrends).not.toHaveBeenCalled();
+      expect(result[0]).toMatchObject({
+        growthRate: 30,
+        mentions: 87,
+        platform: 'pinterest',
+        topic: 'summer nails',
+      });
+    });
+
+    it('uses Apify when Pinterest has no eligible business credential', async () => {
+      mockPinterestService.getTrends.mockResolvedValue([]);
+      mockApifyService.getPinterestTrends.mockResolvedValue([
+        {
+          growthRate: 20,
+          mentions: 100,
+          platform: 'pinterest',
+          topic: 'Pinterest fallback',
+        },
+      ]);
+
+      await expect(
+        service.fetchPlatformTrends('pinterest', 'org-1', 'brand-1'),
+      ).resolves.toEqual([
+        expect.objectContaining({ topic: 'Pinterest fallback' }),
+      ]);
+      expect(mockApifyService.getPinterestTrends).toHaveBeenCalledWith({
+        limit: 20,
+      });
+    });
+
+    it('negative-caches total native and fallback failure', async () => {
+      mockRedditService.getTrends.mockRejectedValue(
+        new Error('Reddit unavailable'),
+      );
+      mockApifyService.getRedditTrends.mockRejectedValue(
+        new Error('Apify unavailable'),
+      );
+
+      await expect(service.fetchPlatformTrends('reddit')).resolves.toEqual([]);
+
+      expect(mockCacheService.set).toHaveBeenCalledWith(
+        'trends:global:reddit',
+        [],
+        expect.objectContaining({ ttl: 15 * 60 }),
+      );
+
+      mockCacheService.get.mockResolvedValue([]);
+      mockRedditService.getTrends.mockClear();
+      mockApifyService.getRedditTrends.mockClear();
+
+      await expect(service.fetchPlatformTrends('reddit')).resolves.toEqual([]);
+      expect(mockRedditService.getTrends).not.toHaveBeenCalled();
+      expect(mockApifyService.getRedditTrends).not.toHaveBeenCalled();
+    });
   });
 
   it('persists fetched provider trends as current tenant-scoped trend documents', async () => {

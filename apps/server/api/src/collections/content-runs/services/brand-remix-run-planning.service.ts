@@ -116,7 +116,8 @@ export class BrandRemixRunPlanningService {
   ): BrandRemixDraft {
     const isPaidSource =
       source.snapshot.selector.kind === 'connected_ad' ||
-      source.snapshot.selector.kind === 'public_ad';
+      source.snapshot.selector.kind === 'public_ad' ||
+      source.snapshot.selector.kind === 'saved_ad';
     const target = isPaidSource
       ? ({ kind: 'paid', platform: source.snapshot.platform } as const)
       : ({

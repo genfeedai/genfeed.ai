@@ -48,8 +48,14 @@ function formatCurrencyFromCents(amountInCents: number, currency: string) {
  * component, where the `useTranslations` binding lives.
  */
 function describeProration(preview: SubscriptionChangePreview) {
-  const currency = preview.upcomingInvoice?.currency || 'usd';
-  const amount = formatCurrencyFromCents(preview.prorationAmount, currency);
+  if (!preview.upcomingInvoice) {
+    return { amount: '', key: 'subscription.plans.prorationUnavailable' };
+  }
+
+  const amount = formatCurrencyFromCents(
+    preview.upcomingInvoice.amount_due,
+    preview.upcomingInvoice.currency,
+  );
 
   if (preview.isUpgrade) {
     return { amount, key: 'subscription.plans.prorationUpgrade' };

@@ -336,9 +336,6 @@ export function useIngredientActions({
     onRefresh,
   ]);
 
-  /**
-   * Publish an ingredient to a platform
-   */
   const handlePublish = useCallback(
     async (ingredient: IIngredient) => {
       if (onPublishIngredient) {
@@ -348,9 +345,6 @@ export function useIngredientActions({
     [onPublishIngredient],
   );
 
-  /**
-   * Mark an ingredient as archived
-   */
   const handleMarkArchived = useCallback(
     async (ingredient: IIngredient) => {
       if (ingredient.status === IngredientStatus.ARCHIVED) {
@@ -374,9 +368,6 @@ export function useIngredientActions({
     [onRefresh, getIngredientsService],
   );
 
-  /**
-   * Mark an ingredient as validated (usable)
-   */
   const handleMarkValidated = useCallback(
     async (ingredient: IIngredient) => {
       if (ingredient.status === IngredientStatus.VALIDATED) {
@@ -400,9 +391,6 @@ export function useIngredientActions({
     [onRefresh, getIngredientsService],
   );
 
-  /**
-   * Mark an ingredient as rejected
-   */
   const handleMarkRejected = useCallback(
     async (ingredient: IIngredient) => {
       if (ingredient.status === IngredientStatus.REJECTED) {
@@ -426,15 +414,8 @@ export function useIngredientActions({
     [onRefresh, getIngredientsService],
   );
 
-  /**
-   * Upscale an ingredient (video or image)
-   * Sets confirmation data instead of directly calling API
-   */
   // Note: upscale handlers moved to useEnhanceUpscale
 
-  /**
-   * Clone an ingredient
-   */
   const handleClone = useCallback(
     async (ingredient: IIngredient) => {
       await executeSilentWithActionState<unknown, MasonryActionStates>({
@@ -452,9 +433,6 @@ export function useIngredientActions({
     [onRefresh, getIngredientsService],
   );
 
-  /**
-   * Reverse a video ingredient
-   */
   const handleReverse = useCallback(
     async (ingredient: IIngredient) => {
       if (!isVideoIngredient(ingredient)) {
@@ -476,9 +454,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, notificationsService],
   );
 
-  /**
-   * Delete an ingredient
-   */
   const handleDelete = useCallback(
     async (ingredient: IIngredient) => {
       const url = `DELETE /ingredients/${ingredient.id}`;
@@ -524,9 +499,6 @@ export function useIngredientActions({
     ],
   );
 
-  /**
-   * Download an ingredient
-   */
   const handleDownload = useCallback(
     async (ingredient: IIngredient) => {
       if (!ingredient.ingredientUrl) {
@@ -548,9 +520,6 @@ export function useIngredientActions({
     [notificationsService],
   );
 
-  /**
-   * Mirror a video ingredient
-   */
   const handleMirror = useCallback(
     async (ingredient: IIngredient) => {
       if (!isVideoIngredient(ingredient)) {
@@ -572,9 +541,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, notificationsService],
   );
 
-  /**
-   * Convert a video to portrait orientation
-   */
   const handlePortrait = useCallback(
     async (ingredient: IIngredient) => {
       await executeSilentWithActionState<unknown, MasonryActionStates>({
@@ -597,9 +563,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, getImagesService],
   );
 
-  /**
-   * Convert an ingredient to square format
-   */
   const handleSquare = useCallback(
     async (ingredient: IIngredient) => {
       await executeSilentWithActionState<unknown, MasonryActionStates>({
@@ -622,9 +585,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, getImagesService],
   );
 
-  /**
-   * Convert an ingredient to landscape format
-   */
   const handleLandscape = useCallback(
     async (ingredient: IIngredient) => {
       await executeSilentWithActionState<unknown, MasonryActionStates>({
@@ -647,9 +607,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, getImagesService],
   );
 
-  /**
-   * Convert a video to GIF
-   */
   const handleConvertToGif = useCallback(
     async (ingredient: IIngredient) => {
       if (!isVideoIngredient(ingredient)) {
@@ -672,9 +629,6 @@ export function useIngredientActions({
   );
 
   /**
-   * Convert an image to video (opens ModalImageToVideo)
-   * Used in manager app for actual conversion
-   *
    * NOTE: This hook cannot directly use Next.js router because hooks don't have access to it.
    * The parent component should pass onConvertToVideo callback that opens ModalImageToVideo
    */
@@ -698,9 +652,6 @@ export function useIngredientActions({
   );
 
   /**
-   * Use image as video reference (navigates to studio)
-   * Used in studio app to navigate to video studio with image as reference
-   *
    * NOTE: This hook cannot directly use Next.js router because hooks don't have access to it.
    * The parent component should pass onUseAsVideoReference callback that uses router.push()
    */
@@ -725,9 +676,6 @@ export function useIngredientActions({
     [onUseAsVideoReference, notificationsService],
   );
 
-  /**
-   * Vote or unvote on an ingredient
-   */
   const handleVote = useCallback(
     async (ingredient: IIngredient) => {
       const endpoint = ingredient.hasVoted ? 'unvote' : 'vote';
@@ -752,9 +700,6 @@ export function useIngredientActions({
     [getIngredientsService],
   );
 
-  /**
-   * Generate captions for a video
-   */
   const handleGenerateCaptions = useCallback(
     async (ingredient: IIngredient) => {
       if (!isVideoIngredient(ingredient)) {
@@ -778,9 +723,6 @@ export function useIngredientActions({
     [onRefresh, getVideosService, notificationsService],
   );
 
-  /**
-   * Add text overlay to an ingredient
-   */
   const handleAddTextOverlay = useCallback(
     async (ingredient: IIngredient) => {
       if (!isVideoIngredient(ingredient)) {
@@ -794,14 +736,8 @@ export function useIngredientActions({
     [notificationsService],
   );
 
-  /**
-   * Enhance an ingredient using Topaz upscale
-   */
   // Note: enhance handlers moved to useEnhanceUpscale
 
-  /**
-   * Set an image as brand logo
-   */
   const handleSetAsLogo = useCallback(
     async (ingredient: IIngredient) => {
       if (!brandId) {
@@ -848,9 +784,6 @@ export function useIngredientActions({
     [brandId, onRefresh, getAssetsService, notificationsService],
   );
 
-  /**
-   * Set an image as brand banner
-   */
   const handleSetAsBanner = useCallback(
     async (ingredient: IIngredient) => {
       if (!brandId) {
@@ -898,9 +831,6 @@ export function useIngredientActions({
     [brandId, onRefresh, getAssetsService, notificationsService],
   );
 
-  /**
-   * Share an ingredient by copying its URL to clipboard
-   */
   const handleShare = useCallback(
     async (ingredient: IIngredient) => {
       if (onShare) {
@@ -926,9 +856,6 @@ export function useIngredientActions({
     [clipboardService, href, notificationsService, onShare],
   );
 
-  /**
-   * Copy prompt text to clipboard
-   */
   const handleCopyPrompt = useCallback(
     async (ingredient: IIngredient) => {
       if (onCopyPrompt) {
@@ -950,9 +877,6 @@ export function useIngredientActions({
     [clipboardService, notificationsService, onCopyPrompt],
   );
 
-  /**
-   * Reprompt - regenerate with same settings
-   */
   const handleReprompt = useCallback(
     async (ingredient: IIngredient) => {
       if (onReprompt) {
@@ -967,9 +891,6 @@ export function useIngredientActions({
     [notificationsService, onReprompt],
   );
 
-  /**
-   * Navigate to ingredient detail page
-   */
   const handleSeeDetails = useCallback(
     async (ingredient: IIngredient) => {
       if (onSeeDetails) {
@@ -979,9 +900,6 @@ export function useIngredientActions({
     [onSeeDetails],
   );
 
-  /**
-   * Update sharing settings for an ingredient
-   */
   const handleUpdateSharing = useCallback(
     async (ingredient: IIngredient, field: string, value: boolean | string) => {
       if (onUpdateSharing) {
@@ -1005,9 +923,6 @@ export function useIngredientActions({
     [onRefresh, onUpdateSharing, getIngredientsService],
   );
 
-  /**
-   * Update metadata for an ingredient
-   */
   const handleUpdateMetadata = useCallback(
     async (ingredient: IIngredient, field: string, value: string) => {
       if (onUpdateMetadata) {
@@ -1039,9 +954,6 @@ export function useIngredientActions({
     [onRefresh, onUpdateMetadata, getIngredientsService],
   );
 
-  /**
-   * Update parent relationship for an ingredient
-   */
   const handleUpdateParent = useCallback(
     async (ingredient: IIngredient, parentId: string | null) => {
       if (onUpdateParent) {

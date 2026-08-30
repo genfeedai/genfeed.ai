@@ -1085,7 +1085,7 @@ jobs:
   #
   # A red trunk must not depend on someone opening the Actions tab. When the
   # Tests Gate fails on a master push, file (or update) ONE `master-ci-failure`
-  # tracking issue at Project Priority P0; when the next push is green, close
+  # tracking issue at native issue Priority P0; when the next push is green, close
   # every open tracker automatically — same contract as the self-hosted release
   # E2E tracker. Push-only by construction: these fire inside full-suite.yml's
   # master-push run (workflow_call inherits the caller's originating `push`
@@ -1123,7 +1123,8 @@ jobs:
           HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         with:
           # This trusted master-only job reuses the existing maintainer PAT so
-          # Project #12 writes are possible; GITHUB_TOKEN is repository-scoped.
+          # Native org issue-field and Project #12 writes are possible;
+          # GITHUB_TOKEN is repository-scoped.
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const path = require('node:path');

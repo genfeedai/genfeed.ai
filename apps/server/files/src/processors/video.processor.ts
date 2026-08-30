@@ -128,9 +128,6 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
-  /**
-   * Convert FFmpegProgress to JobProgress
-   */
   private convertToJobProgress(ffmpegProgress: FFmpegProgress): JobProgress {
     return {
       fps: ffmpegProgress.fps,
@@ -142,9 +139,6 @@ export class VideoProcessor extends WorkerHost {
     };
   }
 
-  /**
-   * Publish video completion event to Redis
-   */
   private async publishVideoCompletion(
     ingredientId: string,
     userId: string,
@@ -171,9 +165,6 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
-  /**
-   * Download input file from S3 or URL
-   */
   private async downloadInput(
     params: { s3Key?: string; inputPath?: string },
     destinationPath: string,
@@ -185,9 +176,6 @@ export class VideoProcessor extends WorkerHost {
     }
   }
 
-  /**
-   * Create progress callback for WebSocket emission
-   */
   private createProgressCallback(
     websocketUrl: string,
     userId?: string,
@@ -203,9 +191,6 @@ export class VideoProcessor extends WorkerHost {
     };
   }
 
-  /**
-   * Upload result and emit success
-   */
   private async uploadAndEmitSuccess(
     outputPath: string,
     ingredientId: string,
