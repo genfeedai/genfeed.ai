@@ -9,6 +9,7 @@ import {
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   type OnModuleInit,
@@ -243,7 +244,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       optionalString(failure.message) ??
       optionalString(request.input.failure);
     if (!error) {
-      throw new Error('Agent workflow failure requires an error');
+      throw new BadRequestException('Agent workflow failure requires an error');
     }
     const state = readRecord(request.input.state);
     const originalRequest = readRecord(request.input.request);

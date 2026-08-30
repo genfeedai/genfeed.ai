@@ -30,6 +30,14 @@ export type VoiceGenerationActionResult = {
   status: string;
 };
 
+type VoiceGenerationParams = {
+  ingredientId: string;
+  organizationId: string;
+  text: string;
+  userId: string;
+  voiceId: string;
+};
+
 @Injectable()
 export class VoiceGenerationService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
@@ -46,16 +54,12 @@ export class VoiceGenerationService implements OnModuleInit {
   onModuleInit(): void {
     this.workflowRunner.registerAction(
       AGENT_RUNTIME_ACTION_IDS.VOICE_GENERATION,
-      ({ input }) =>
-        this.executeQueuedGeneration(
-          input as unknown as {
-            ingredientId: string;
-            organizationId: string;
-            text: string;
-            userId: string;
-            voiceId: string;
-          },
-        ),
+      ({ input }) => {
+        // The workflow engine validates this action input before execution.
+        return this.executeQueuedGeneration(
+          input as unknown as VoiceGenerationParams,
+        );
+      },
     );
   }
 
@@ -144,13 +148,9 @@ export class VoiceGenerationService implements OnModuleInit {
     return accepted;
   }
 
-  private async enqueueGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<void> {
+  private async enqueueGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<void> {
     await this.workflowRunner.enqueueWorkflow({
       actionType: 'voice.generate',
       canonicalId: 'voice.generate',
@@ -165,13 +165,9 @@ export class VoiceGenerationService implements OnModuleInit {
     });
   }
 
-  async executeQueuedGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<VoiceGenerationActionResult> {
+  async executeQueuedGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<VoiceGenerationActionResult> {
     const existing = await this.voicesService.findOne(
       {
         id: params.ingredientId,

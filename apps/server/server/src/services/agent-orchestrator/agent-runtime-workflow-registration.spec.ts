@@ -121,6 +121,34 @@ describe('agent runtime workflow registration contract', () => {
     });
   });
 
+  it('rejects a missing workflow failure error as a bad request', async () => {
+    const actions = new Map<string, (request: never) => unknown>();
+    const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
+      ...Array.from({ length: 17 }, () => ({})),
+      {
+        registerAction: vi.fn(
+          (actionId: string, executor: (request: never) => unknown) => {
+            actions.set(actionId, executor);
+          },
+        ),
+      },
+    ]) as AgentTurnWorkflowExecutionService;
+    service.onModuleInit();
+
+    const executor = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_FAIL);
+    expect(executor).toBeDefined();
+    await expect(
+      executor?.({
+        context: { organizationId: 'organization-1', userId: 'user-1' },
+        input: { failure: {} },
+        provenance: { executionId: 'execution-1' },
+      } as never),
+    ).rejects.toMatchObject({
+      message: 'Agent workflow failure requires an error',
+      status: 400,
+    });
+  });
+
   it('publishes one canonical terminal failure event path', async () => {
     const publishStreamFailureEffect = vi.fn(() => Effect.void);
     const recordRunFailed = vi.fn();
