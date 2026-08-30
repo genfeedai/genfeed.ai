@@ -11,10 +11,13 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
+import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
+import { RedditModule } from '@api/services/integrations/reddit/reddit.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
+import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 import { TrendAnalysisService } from '@server/collections/trends/services/modules/trend-analysis.service';
@@ -54,10 +57,13 @@ import { CacheModule } from '@server/services/cache/cache.module';
     InstagramModule,
     LinkedInModule,
     ModelsModule,
+    PinterestModule,
+    RedditModule,
     ReplicateModule,
     TiktokModule,
     TwitterModule,
     XaiModule,
+    YoutubeModule,
   ],
   providers: [
     TrendAnalysisService,

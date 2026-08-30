@@ -6,7 +6,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@server/server.dependencies';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import type { Mock } from 'vitest';
 import { PinterestService } from './pinterest.service';
 
@@ -151,6 +151,81 @@ describe('PinterestService', () => {
       }),
     );
     expect(data).toEqual({ metrics: {} });
+  });
+
+  describe('getTrends', () => {
+    it('reads v5 growing keywords for a connected business credential', async () => {
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue({
+        accessToken: 'business-token',
+      });
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({
+          data: {
+            trends: [
+              {
+                keyword: 'summer nails',
+                pct_growth_mom: 100,
+                pct_growth_wow: 30,
+                pct_growth_yoy: 10,
+                time_series: { '2026-08-17': 71, '2026-08-24': 87 },
+              },
+            ],
+          },
+        }),
+      );
+
+      await expect(
+        service.getTrends('org', 'brand', 'us', 10),
+      ).resolves.toEqual([
+        {
+          keyword: 'summer nails',
+          monthlyGrowth: 100,
+          timeSeries: { '2026-08-17': 71, '2026-08-24': 87 },
+          weeklyGrowth: 30,
+          yearlyGrowth: 10,
+        },
+      ]);
+      expect(credentialsServiceMock.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand',
+        organizationId: 'org',
+        platform: 'pinterest',
+      });
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://api.pinterest.com/v5/trends/keywords/US/top/growing',
+        {
+          headers: { Authorization: 'Bearer business-token' },
+          params: { limit: 10 },
+        },
+      );
+    });
+
+    it('does not call the native endpoint without a connected credential', async () => {
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue(null);
+
+      await expect(service.getTrends('org', 'brand')).resolves.toEqual([]);
+
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('does not call the native endpoint for an unscoped request', async () => {
+      await expect(service.getTrends()).resolves.toEqual([]);
+
+      expect(credentialsServiceMock.resolveBrandAccount).not.toHaveBeenCalled();
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('propagates endpoint entitlement errors for orchestration fallback', async () => {
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue({
+        accessToken: 'business-token',
+      });
+      (httpServiceMock.get as Mock).mockReturnValue(
+        throwError(() => new Error('Pinterest trends not entitled')),
+      );
+
+      await expect(service.getTrends('org', 'brand')).rejects.toThrow(
+        'Pinterest trends not entitled',
+      );
+    });
   });
 
   describe('getMediaAnalytics', () => {
