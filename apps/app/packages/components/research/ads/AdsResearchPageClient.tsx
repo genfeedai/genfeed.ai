@@ -95,6 +95,8 @@ export default function AdsResearchPageClient({
     refetch,
     results,
     resultsError,
+    savedError,
+    savedMutating,
     accountsError,
     runAction,
     search,
@@ -122,6 +124,8 @@ export default function AdsResearchPageClient({
     industry,
     loginCustomerId,
     timeframe,
+    toggleSaved,
+    updateSavedNote,
     brandLabel,
     workflowResult,
     viewType,
@@ -139,18 +143,21 @@ export default function AdsResearchPageClient({
   // (`BrandDetailSocialMediaCard`). `/settings/organization/credentials` never shipped.
   const credentialsHref = href(APP_ROUTES.SETTINGS.SOCIAL);
   /** Not set up at all — no ad platform connected and no public winners loaded. */
-  const isSetupEmpty = !isLoading && !hasCredentials && !hasAds;
+  const isSetupEmpty =
+    source !== 'saved' && !isLoading && !hasCredentials && !hasAds;
   /**
    * Public research can still fill the list without a connected ad account.
    * When we have public ads only, keep the list and show a slim connect strip.
    */
-  const showConnectStrip = !hasCredentials && hasAds;
+  const showConnectStrip = source !== 'saved' && !hasCredentials && hasAds;
   const sourceLabel =
-    results.summary.selectedSource === 'my_accounts'
-      ? 'My accounts'
-      : results.summary.selectedSource === 'public'
-        ? 'Public'
-        : 'All';
+    source === 'saved'
+      ? translate('swipeFile.saved')
+      : results.summary.selectedSource === 'my_accounts'
+        ? 'My accounts'
+        : results.summary.selectedSource === 'public'
+          ? 'Public'
+          : 'All';
 
   // Setup empty = no credentials and no ads: hide chrome (tabs, view toggle,
   // refresh). Only the connect empty state should compete for attention.
@@ -225,12 +232,15 @@ export default function AdsResearchPageClient({
       icon={Megaphone}
       right={headerRight}
     >
-      {(resultsError || accountsError || detailError) && (
+      {(resultsError || accountsError || detailError || savedError) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
             <div className="font-medium">{translate('errors.title')}</div>
             <div className="text-xs text-foreground/70">
               {detailError?.message ||
+                (savedError instanceof Error
+                  ? savedError.message
+                  : undefined) ||
                 accountsError?.message ||
                 resultsError?.message ||
                 'Try refreshing the page.'}
@@ -238,6 +248,12 @@ export default function AdsResearchPageClient({
           </div>
         </Alert>
       )}
+
+      {actionError && !selectedAd ? (
+        <Alert type={AlertCategory.ERROR} className="mb-4">
+          <div className="text-xs">{actionError}</div>
+        </Alert>
+      ) : null}
 
       {isSetupEmpty ? (
         <CardEmpty
@@ -303,14 +319,23 @@ export default function AdsResearchPageClient({
                 className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
               />
               <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                <CompactStat
-                  label="Public"
-                  value={results.summary.publicCount}
-                />
-                <CompactStat
-                  label="Connected"
-                  value={results.summary.connectedCount}
-                />
+                {source === 'saved' ? (
+                  <CompactStat
+                    label={translate('swipeFile.saved')}
+                    value={allAds.length}
+                  />
+                ) : (
+                  <>
+                    <CompactStat
+                      label="Public"
+                      value={results.summary.publicCount}
+                    />
+                    <CompactStat
+                      label="Connected"
+                      value={results.summary.connectedCount}
+                    />
+                  </>
+                )}
                 <CompactStat label="Source" value={sourceLabel} />
               </div>
             </div>
@@ -394,19 +419,25 @@ export default function AdsResearchPageClient({
           {viewType === ViewType.GRID ? (
             <AdsResearchAdGrid
               ads={[...pageItems]}
+              isSavedView={source === 'saved'}
               isLoading={isLoading}
               metric={metric}
               search={search}
               selectedKey={selectedKey}
               onSelect={handleSelectAd}
+              onToggleSaved={toggleSaved}
+              savedMutating={savedMutating}
             />
           ) : (
             <AdsResearchAdTable
               ads={[...pageItems]}
+              isSavedView={source === 'saved'}
               metric={metric}
               search={search}
               selectedKey={selectedKey}
               onSelect={handleSelectAd}
+              onToggleSaved={toggleSaved}
+              savedMutating={savedMutating}
             />
           )}
           {pagination ? <div className="mt-5">{pagination}</div> : null}
@@ -421,6 +452,9 @@ export default function AdsResearchPageClient({
           selectedAd={selectedAd}
           onClose={handleCloseDetail}
           onOpenRemix={openBrandRemix}
+          onToggleSaved={toggleSaved}
+          onUpdateSavedNote={updateSavedNote}
+          savedMutating={savedMutating}
           onRunAction={runAction}
           busyAction={busyAction}
           actionError={actionError}

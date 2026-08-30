@@ -664,6 +664,7 @@ model User {
   contentVersionPins       ContentVersionPin[]
   publishApprovals         PublishApproval[]
   studioLooks              StudioLook[]
+  savedAds                 SavedAd[]
   billingAccountMembers    BillingAccountMember[]
 
   @@index([isDefault])
@@ -798,6 +799,7 @@ model Organization {
   adOptimizationRecommendations AdOptimizationRecommendation[]
   adPerformances                AdPerformance[]
   adWatchedAdvertisers          AdWatchedAdvertiser[]
+  savedAds                      SavedAd[]
   outreachCampaigns             OutreachCampaign[]
   campaignTargets               CampaignTarget[]
   customers                     Customer[]
@@ -950,6 +952,7 @@ model Brand {
   adCreativeMappings         AdCreativeMapping[]
   adPerformances             AdPerformance[]
   adWatchedAdvertisers       AdWatchedAdvertiser[]
+  savedAds                   SavedAd[]
   botActivities              BotActivity[]
   monitoredAccounts          MonitoredAccount[]
   socialSources              SocialSource[]
@@ -1175,6 +1178,51 @@ model StudioLook {
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
   @@map("studio_looks")
+}
+
+/// Durable research-only creative snapshot saved from Discover → Ads.
+/// Copied media lives in files storage and is never promoted to Library assets.
+model SavedAd {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String
+  brand           Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  source          String
+  platform        String
+  sourceAdId      String
+  sourceRecordId  String?
+  channel         String       @default("all")
+  credentialId    String?
+  adAccountId     String?
+  loginCustomerId String?
+  advertiserId    String?
+  advertiserName  String?
+  title           String
+  headline        String?
+  body            String?
+  cta             String?
+  explanation     String
+  landingPageUrl  String?
+  previewUrl      String?
+  imageUrls       String[]     @default([])
+  videoUrls       String[]     @default([])
+  metrics         Json         @default("{}")
+  patternSummary  Json         @default("[]")
+  usagePolicy     String       @default("remix_allowed")
+  firstSeenAt     DateTime?
+  lastSeenAt      DateTime?
+  capturedAt      DateTime     @default(now())
+  note            String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, platform, sourceAdId], map: "saved_ads_scope_source_key")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "saved_ads_scope_created_idx")
+  @@map("saved_ads")
 }
 
 model Member {

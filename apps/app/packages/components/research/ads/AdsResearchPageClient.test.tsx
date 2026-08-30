@@ -1,3 +1,4 @@
+import type { AdsResearchDetail } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +31,12 @@ const getAdsResearchServiceMock = vi.fn();
 const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
 const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
+const saveSavedAdsMock = vi.fn();
+const unsaveSavedAdsMock = vi.fn();
+const updateSavedNotesMock = vi.fn();
+const savedAdsState: { savedAds: Array<Record<string, unknown>> } = {
+  savedAds: [],
+};
 let useQueryCallIndex = 0;
 
 const publicAd = {
@@ -189,6 +196,19 @@ vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAdsResearchServiceMock,
+}));
+
+vi.mock('@hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
+  useSavedAds: () => ({
+    brandId: 'brand-1',
+    error: null,
+    isLoading: false,
+    isMutating: false,
+    save: saveSavedAdsMock,
+    savedAds: savedAdsState.savedAds,
+    unsave: unsaveSavedAdsMock,
+    updateNotes: updateSavedNotesMock,
+  }),
 }));
 
 // The watchlist owns its own queries. Mocked whole rather than left to the
@@ -437,11 +457,14 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
+import { DetailSidebar } from './AdsResearchDetailSidebar';
 import AdsResearchPageClient from './AdsResearchPageClient';
+import { buildSaveAdInput } from './useAdsResearchPageClient';
 
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    savedAdsState.savedAds = [];
     remixAvailability.isAvailable = true;
     useQueryCallIndex = 0;
     useQueryStates[0].data = resultsState;
@@ -558,7 +581,9 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
 
     expect(
@@ -618,6 +643,20 @@ describe('AdsResearchPageClient', () => {
     );
   });
 
+  it('keeps table save controls from bubbling keyboard selection to the row', () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Save Google lead gen winner' }),
+      { key: 'Enter' },
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Ad Detail' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
     render(<AdsResearchPageClient initialPlatform="google" />);
 
@@ -627,7 +666,9 @@ describe('AdsResearchPageClient', () => {
     expect(screen.queryByText('Platform')).not.toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
@@ -672,7 +713,11 @@ describe('AdsResearchPageClient', () => {
   it('opens a public ad remix from its performance record id', () => {
     render(<AdsResearchPageClient initialPlatform="meta" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
@@ -683,11 +728,282 @@ describe('AdsResearchPageClient', () => {
     });
   });
 
+  it('saves from a card and remixes a saved match by durable snapshot id', () => {
+    const { rerender } = render(
+      <AdsResearchPageClient initialPlatform="meta" />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        adId: 'public-1',
+        brandId: 'brand-1',
+        source: 'public',
+      }),
+    ]);
+
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: ['https://files.example/copied.jpg'],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-1',
+        sourceRecordId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    rerender(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      kind: 'saved_ad',
+      savedAdId: 'saved-1',
+    });
+  });
+
+  it('keeps live detail open after unsaving a matched snapshot', async () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave from swipe file' }),
+    );
+
+    expect(unsaveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'saved-1' }),
+    ]);
+    expect(
+      screen.getByRole('heading', { name: 'Ad Detail' }),
+    ).toBeInTheDocument();
+  });
+
+  it('catches a rejected save mutation inside the detail surface', async () => {
+    saveSavedAdsMock.mockRejectedValueOnce(new Error('save failed'));
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save to swipe file' }));
+
+    expect(await screen.findByText('save failed')).toBeInTheDocument();
+  });
+
+  it('does not submit an empty save for a stale saved identifier', () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      publicAds: [{ ...publicAd, savedAdId: 'stale-saved-id' }],
+    };
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).not.toHaveBeenCalled();
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'This saved snapshot is no longer available. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('clears an unsaved note draft when the selected snapshot changes', () => {
+    const firstDetail: AdsResearchDetail = {
+      channel: 'all',
+      creative: {},
+      explanation: 'Saved evidence',
+      id: 'source-1',
+      metrics: {},
+      platform: 'meta',
+      savedAdId: 'saved-1',
+      source: 'public',
+      sourceId: 'source-1',
+      title: 'Saved A',
+      usagePolicy: 'remix_allowed',
+    };
+    const sharedProps = {
+      actionError: null,
+      adPackResult: null,
+      brandLabel: 'Moonrise',
+      busyAction: null,
+      detailLoading: false,
+      href: (path: string) => path,
+      launchPrepResult: null,
+      onClose: vi.fn(),
+      onOpenRemix: vi.fn(),
+      onRunAction: vi.fn(),
+      onToggleSaved: vi.fn(),
+      onUpdateSavedNote: updateSavedNotesMock,
+      savedMutating: false,
+      workflowResult: null,
+    };
+    const { rerender } = render(
+      <DetailSidebar
+        {...sharedProps}
+        detail={firstDetail}
+        selectedAd={{
+          id: 'source-1',
+          platform: 'meta',
+          savedAdId: 'saved-1',
+          source: 'public',
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Brand note'), {
+      target: { value: 'Draft for A' },
+    });
+    expect(screen.getByLabelText('Brand note')).toHaveValue('Draft for A');
+
+    rerender(
+      <DetailSidebar
+        {...sharedProps}
+        detail={{
+          ...firstDetail,
+          id: 'source-2',
+          savedAdId: 'saved-2',
+          sourceId: 'source-2',
+          title: 'Saved B',
+        }}
+        selectedAd={{
+          id: 'source-2',
+          platform: 'meta',
+          savedAdId: 'saved-2',
+          source: 'public',
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Brand note')).toHaveValue('');
+  });
+
+  it('inherits selected account scope when a connected result omits it', () => {
+    expect(
+      buildSaveAdInput(
+        {
+          ...connectedAd,
+          adAccountId: undefined,
+          credentialId: undefined,
+          loginCustomerId: undefined,
+        },
+        {
+          adAccountId: 'acct-filtered',
+          brandId: 'brand-1',
+          credentialId: 'cred-filtered',
+          loginCustomerId: 'mcc-filtered',
+        },
+      ),
+    ).toEqual({
+      adAccountId: 'acct-filtered',
+      adId: 'source-google-1',
+      brandId: 'brand-1',
+      channel: 'search',
+      credentialId: 'cred-filtered',
+      loginCustomerId: 'mcc-filtered',
+      platform: 'google',
+      source: 'my_accounts',
+    });
+  });
+
+  it('does not join a saved snapshot to a different research ad', () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Different saved ad',
+        id: 'saved-other',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-other',
+        title: 'Different saved ad',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ adId: 'public-1' }),
+    ]);
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
+  });
+
   it('shows an unavailable error when the remix provider is missing', () => {
     remixAvailability.isAvailable = false;
     render(<AdsResearchPageClient initialPlatform="meta" />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /remix for my brand/i }),
     );
@@ -750,7 +1066,9 @@ describe('AdsResearchPageClient', () => {
     rerender(<AdsResearchPageClient />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Google lead gen winner/i }),
+      screen.getByRole('button', {
+        name: /^Select Google lead gen winner for research context$/i,
+      }),
     );
     expect(screen.getByText('Loading ad detail…')).toBeInTheDocument();
 
@@ -763,6 +1081,23 @@ describe('AdsResearchPageClient', () => {
     expect(await screen.findByText('workflow failed')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
     expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
+  });
+
+  it('shows an unavailable detail state after a selected ad disappears', () => {
+    useQueryStates[2].data = null;
+    useQueryStates[2].isLoading = false;
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    expect(
+      screen.getByText('This ad is no longer available.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Loading ad detail…')).not.toBeInTheDocument();
   });
 
   it('shows a full connect empty state when there are no credentials and no ads', () => {

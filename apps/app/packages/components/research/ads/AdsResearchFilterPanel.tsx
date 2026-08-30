@@ -4,7 +4,6 @@ import type {
   AdsChannel,
   AdsResearchMetric,
   AdsResearchPlatform,
-  AdsResearchSource,
   AdsResearchTimeframe,
 } from '@genfeedai/interfaces';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
@@ -16,13 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
+import type { AdsResearchViewSource } from './useAdsResearchPageClient';
 
 const ALL_FILTER_VALUE = '__all__';
 
-const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchSource }> = [
+const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchViewSource }> = [
   { label: 'Public + My Accounts', value: 'all' },
   { label: 'Public', value: 'public' },
   { label: 'My Accounts', value: 'my_accounts' },
+  { label: 'Saved', value: 'saved' },
 ];
 
 const PLATFORM_OPTIONS: Array<{
@@ -125,7 +127,7 @@ type AdsResearchFilterPanelProps = {
   metric: AdsResearchMetric;
   platform: AdsResearchPlatform | 'all';
   showChannelFilter: boolean;
-  source: AdsResearchSource;
+  source: AdsResearchViewSource;
   timeframe: AdsResearchTimeframe;
   onAdAccountChange: (value: string) => void;
   onChannelChange: (value: AdsChannel) => void;
@@ -134,7 +136,7 @@ type AdsResearchFilterPanelProps = {
   onLoginCustomerIdChange: (value: string) => void;
   onMetricChange: (value: AdsResearchMetric) => void;
   onPlatformChange: (value: AdsResearchPlatform | 'all') => void;
-  onSourceChange: (value: AdsResearchSource) => void;
+  onSourceChange: (value: AdsResearchViewSource) => void;
   onTimeframeChange: (value: AdsResearchTimeframe) => void;
 };
 
@@ -163,6 +165,13 @@ export function AdsResearchFilterPanel({
   onSourceChange,
   onTimeframeChange,
 }: AdsResearchFilterPanelProps) {
+  const translate = useTranslations('pages.adsResearch.swipeFile');
+  const sourceOptions = SOURCE_OPTIONS.map((option) =>
+    option.value === 'saved'
+      ? { ...option, label: translate('saved') }
+      : option,
+  );
+
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
       {initialPlatform === 'all' && (
@@ -177,7 +186,7 @@ export function AdsResearchFilterPanel({
       )}
       <FilterSelect
         label="Source"
-        options={SOURCE_OPTIONS}
+        options={sourceOptions}
         value={source}
         onChange={onSourceChange}
       />
@@ -195,18 +204,22 @@ export function AdsResearchFilterPanel({
         value={metric}
         onChange={onMetricChange}
       />
-      <FilterSelect
-        label="Timeframe"
-        options={TIMEFRAME_OPTIONS}
-        value={timeframe}
-        onChange={onTimeframeChange}
-      />
-      <Input
-        value={industry}
-        onChange={(event) => onIndustryChange(event.target.value)}
-        placeholder="Niche / industry…"
-        className="h-8 w-[160px] text-xs"
-      />
+      {source !== 'saved' && (
+        <>
+          <FilterSelect
+            label="Timeframe"
+            options={TIMEFRAME_OPTIONS}
+            value={timeframe}
+            onChange={onTimeframeChange}
+          />
+          <Input
+            value={industry}
+            onChange={(event) => onIndustryChange(event.target.value)}
+            placeholder="Niche / industry…"
+            className="h-8 w-[160px] text-xs"
+          />
+        </>
+      )}
       <Select
         value={credentialId || ALL_FILTER_VALUE}
         onValueChange={(value) =>
