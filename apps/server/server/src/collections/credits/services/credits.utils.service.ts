@@ -116,15 +116,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
             idempotencyKey: options.idempotencyKey,
             isDeleted: false,
           };
-          const existingByIdempotencyKey = tx
-            ? // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              await tx.creditTransaction.findFirst({
-                where: idempotencyWhere,
-              })
-            : // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              await this.prisma.creditTransaction.findFirst({
+          const findExistingByIdempotencyKey = () => {
+            if (tx) {
+              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              return tx.creditTransaction.findFirst({
                 where: idempotencyWhere,
               });
+            }
+            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+            return this.prisma.creditTransaction.findFirst({
+              where: idempotencyWhere,
+            });
+          };
+          const existingByIdempotencyKey = await findExistingByIdempotencyKey();
           if (existingByIdempotencyKey) {
             return {
               newBalance: existingByIdempotencyKey.balanceAfter ?? 0,
@@ -383,15 +387,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
             idempotencyKey: options.idempotencyKey,
             isDeleted: false,
           };
-          const existing = tx
-            ? // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              await tx.creditTransaction.findFirst({
-                where: idempotencyWhere,
-              })
-            : // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
-              await this.prisma.creditTransaction.findFirst({
+          const findExistingByIdempotencyKey = () => {
+            if (tx) {
+              // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              return tx.creditTransaction.findFirst({
                 where: idempotencyWhere,
               });
+            }
+            // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+            return this.prisma.creditTransaction.findFirst({
+              where: idempotencyWhere,
+            });
+          };
+          const existing = await findExistingByIdempotencyKey();
           if (existing) {
             return {
               currentBalance: existing.balanceAfter ?? 0,
