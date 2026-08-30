@@ -252,7 +252,7 @@ describe('SkillRegistryService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('fetching registry'),
         expect.objectContaining({
-          url: expect.stringContaining('registry.json'),
+          url: expect.stringContaining('registry/skills-pro.json'),
         }),
       );
       expect(loggerService.log).toHaveBeenCalledWith(
