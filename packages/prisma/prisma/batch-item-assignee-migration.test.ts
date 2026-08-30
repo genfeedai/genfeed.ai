@@ -20,7 +20,7 @@ describe('batch item assignee migration (#3200)', () => {
       '@relation("batch_item_assignee", fields: [assigneeId], references: [id], onDelete: SetNull)',
     );
     expect(schemaSource).toContain(
-      'assignedBatchItems       BatchItem[]               @relation("batch_item_assignee")',
+      'assignedBatchItems        BatchItem[]               @relation("batch_item_assignee")',
     );
   });
 

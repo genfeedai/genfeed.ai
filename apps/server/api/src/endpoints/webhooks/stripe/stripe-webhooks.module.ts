@@ -5,6 +5,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
@@ -16,6 +17,7 @@ import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
@@ -40,6 +42,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     LifecycleEmailsModule,
     OrganizationSettingsModule,
     OrganizationsModule,
+    ReferralsModule,
     StripeModule,
     SubscriptionAttributionsModule,
     SubscriptionCreditGrantModule,
@@ -57,6 +60,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     StripeCheckoutWebhookHandler,
     StripeCustomerWebhookHandler,
     StripeInvoiceWebhookHandler,
+    StripePaymentWebhookHandler,
     StripeSubscriptionCreditReconcilerService,
     StripeSubscriptionWebhookHandler,
     StripeWebhookSupportService,

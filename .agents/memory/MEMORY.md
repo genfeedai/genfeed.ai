@@ -38,6 +38,8 @@ Keep it that way: this file is auto-loaded into every request.
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
+- [spec-native-referral-credits](spec-native-referral-credits.md) — native first-touch referral attribution and recurring PAYG credit rewards
+- [decisions-native-referral-credits](decisions-native-referral-credits.md) — product, ownership, fraud, and fulfillment decisions for referral credits
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → native issue Priority P0 + auto-close on green; never prose-only triage
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow

@@ -19,7 +19,7 @@ describe('pattern_extraction_checkpoints (#2513)', () => {
 
     expect(schema).toContain('model PatternExtractionCheckpoint');
     expect(schema).toContain('@@map("pattern_extraction_checkpoints")');
-    expect(schema).toContain('source      String   @unique');
+    expect(schema).toContain('source     String   @unique');
     expect(migration).toContain('pattern_extraction_checkpoints');
     expect(migration).toContain('pattern_extraction_checkpoints_source_key');
     expect(executableSql).not.toContain('"ad_performance"');

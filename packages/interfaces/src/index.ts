@@ -63,6 +63,7 @@ export * from './billing/llm-vendor-cost.interface';
 export * from './billing/managed-credits.interface';
 export * from './billing/media-vendor-cost.interface';
 export * from './billing/pricing.interface';
+export * from './billing/referral.interface';
 export * from './billing/subscription.interface';
 export type {
   ITopbarBalanceSegment,

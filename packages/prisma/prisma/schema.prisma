@@ -448,6 +448,21 @@ enum CreditReservationStatus {
   EXPIRED
 }
 
+enum ReferralStatus {
+  ACTIVE
+  BLOCKED
+  EXPIRED
+}
+
+enum ReferralRewardStatus {
+  PENDING
+  PROCESSING
+  GRANTED
+  CANCELLED
+  REVERSED
+  FAILED
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -572,100 +587,101 @@ model User {
   updatedAt                DateTime        @updatedAt
 
   // Ownership relations (what this user owns)
-  organizations            Organization[]
-  brands                   Brand[]
-  members                  Member[]
-  invitationsSent          Invitation[]              @relation("invitation_invited_by")
-  invitationsAccepted      Invitation[]              @relation("invitation_accepted_by")
-  sessions                 Session[]
-  accounts                 Account[]
-  settings                 Setting?
-  credentials              Credential[]
-  apiKeys                  ApiKey[]
-  ingredients              Ingredient[]
-  posts                    Post[]
-  postGroups               PostGroup[]
-  postingCadences          PostingCadence[]
-  postAnalytics            PostAnalytics[]
-  prompts                  Prompt[]
-  folders                  Folder[]
-  bookmarks                Bookmark[]
-  articles                 Article[]
-  articleAnalytics         ArticleAnalytics[]
-  newsletters              Newsletter[]              @relation("newsletter_user")
-  newsletterApprovals      Newsletter[]              @relation("newsletter_approved_by")
-  newsletterPublishes      Newsletter[]              @relation("newsletter_published_by")
-  trainings                Training[]
-  personas                 Persona[]
-  agentStrategies          AgentStrategy[]
-  agentCampaigns           AgentCampaign[]
-  agentGoals               AgentGoal[]
-  agentMemories            AgentMemory[]
-  agentThreads             AgentThread[]
-  agentMessages            AgentMessage[]
-  agentTransfers           AgentTransfer[]
-  socialConversations      SocialConversation[]
-  socialMessages           SocialMessage[]
-  agentWorkflows           AgentWorkflow[]
-  workflows                Workflow[]
-  workflowVersions         WorkflowVersion[]
-  workflowExecutions       WorkflowExecution[]
-  promotedWorkflowArtifacts WorkflowArtifact[]       @relation("workflow_artifact_promoted_by")
-  bots                     Bot[]
-  livestreamBotSessions    LivestreamBotSession[]
-  botActivities            BotActivity[]
-  replyBotConfigs          ReplyBotConfig[]
-  monitoredAccounts        MonitoredAccount[]
-  socialSources            SocialSource[]
-  sourcePosts              SourcePost[]
-  listeningTopics          ListeningTopic[]
-  listeningThemeReviews    ListeningTheme[]            @relation("listening_theme_reviewed_by")
-  socialWarmupEnrollments  SocialWarmupEnrollment[]
-  socialWarmupEvents       SocialWarmupEvent[]
-  votes                    Vote[]
-  watchlists               Watchlist[]
-  postingSets              PostingSet[]
-  postingSignatures        PostingSignature[]
-  rssSources               RssSource[]
-  rssFeedItems             RssFeedItem[]
-  engagementRules          EngagementRule[]
-  agentPublishAudits       AgentPublishAudit[]
-  streaks                  Streak[]
-  forecasts                Forecast[]
-  tasks                    Task[]
-  contentPlans             ContentPlan[]
-  evaluations              Evaluation[]
-  editorProjects           EditorProject[]
-  batches                  Batch[]
-  assignedBatchItems       BatchItem[]               @relation("batch_item_assignee")
-  assets                   Asset[]
-  subscriptions            Subscription[]
-  userSubscription         UserSubscription?
-  subscriptionAttributions SubscriptionAttribution[]
-  distributions            Distribution[]
-  creatorAnalyses          CreatorAnalysis[]
-  profiles                 Profile[]
-  contextBases             ContextBase[]
-  optimizations            Optimization[]
-  leads                    Lead[]                    @relation("lead_user")
-  outreachCampaigns        OutreachCampaign[]
-  captions                 Caption[]
-  clipProjects             ClipProject[]
-  clipResults              ClipResult[]
-  personaAssignments       Persona[]                 @relation("persona_assigned_members")
-  mcpApprovals             McpApproval[]
-  brandInterviews          BrandInterview[]
-  warmupAccountsOperated   WarmupAccount[]           @relation("warmup_account_operator")
-  warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
-  lifecycleEmailPreference LifecycleEmailPreference?
-  lifecycleEmailDeliveries LifecycleEmailDelivery[]
-  notificationPreferences  NotificationPreference[]
-  notificationDeliveries   NotificationDelivery[]
-  contentVersionPins       ContentVersionPin[]
-  publishApprovals         PublishApproval[]
-  studioLooks              StudioLook[]
-  savedAds                 SavedAd[]
-  billingAccountMembers    BillingAccountMember[]
+  organizations             Organization[]
+  brands                    Brand[]
+  members                   Member[]
+  invitationsSent           Invitation[]              @relation("invitation_invited_by")
+  invitationsAccepted       Invitation[]              @relation("invitation_accepted_by")
+  sessions                  Session[]
+  accounts                  Account[]
+  settings                  Setting?
+  credentials               Credential[]
+  apiKeys                   ApiKey[]
+  ingredients               Ingredient[]
+  posts                     Post[]
+  postGroups                PostGroup[]
+  postingCadences           PostingCadence[]
+  postAnalytics             PostAnalytics[]
+  prompts                   Prompt[]
+  folders                   Folder[]
+  bookmarks                 Bookmark[]
+  articles                  Article[]
+  articleAnalytics          ArticleAnalytics[]
+  newsletters               Newsletter[]              @relation("newsletter_user")
+  newsletterApprovals       Newsletter[]              @relation("newsletter_approved_by")
+  newsletterPublishes       Newsletter[]              @relation("newsletter_published_by")
+  trainings                 Training[]
+  personas                  Persona[]
+  agentStrategies           AgentStrategy[]
+  agentCampaigns            AgentCampaign[]
+  agentGoals                AgentGoal[]
+  agentMemories             AgentMemory[]
+  agentThreads              AgentThread[]
+  agentMessages             AgentMessage[]
+  agentTransfers            AgentTransfer[]
+  socialConversations       SocialConversation[]
+  socialMessages            SocialMessage[]
+  agentWorkflows            AgentWorkflow[]
+  workflows                 Workflow[]
+  workflowVersions          WorkflowVersion[]
+  workflowExecutions        WorkflowExecution[]
+  promotedWorkflowArtifacts WorkflowArtifact[]        @relation("workflow_artifact_promoted_by")
+  bots                      Bot[]
+  livestreamBotSessions     LivestreamBotSession[]
+  botActivities             BotActivity[]
+  replyBotConfigs           ReplyBotConfig[]
+  monitoredAccounts         MonitoredAccount[]
+  socialSources             SocialSource[]
+  sourcePosts               SourcePost[]
+  listeningTopics           ListeningTopic[]
+  listeningThemeReviews     ListeningTheme[]          @relation("listening_theme_reviewed_by")
+  socialWarmupEnrollments   SocialWarmupEnrollment[]
+  socialWarmupEvents        SocialWarmupEvent[]
+  votes                     Vote[]
+  watchlists                Watchlist[]
+  postingSets               PostingSet[]
+  postingSignatures         PostingSignature[]
+  rssSources                RssSource[]
+  rssFeedItems              RssFeedItem[]
+  engagementRules           EngagementRule[]
+  agentPublishAudits        AgentPublishAudit[]
+  streaks                   Streak[]
+  forecasts                 Forecast[]
+  tasks                     Task[]
+  contentPlans              ContentPlan[]
+  evaluations               Evaluation[]
+  editorProjects            EditorProject[]
+  batches                   Batch[]
+  assignedBatchItems        BatchItem[]               @relation("batch_item_assignee")
+  assets                    Asset[]
+  subscriptions             Subscription[]
+  userSubscription          UserSubscription?
+  subscriptionAttributions  SubscriptionAttribution[]
+  distributions             Distribution[]
+  creatorAnalyses           CreatorAnalysis[]
+  profiles                  Profile[]
+  contextBases              ContextBase[]
+  optimizations             Optimization[]
+  leads                     Lead[]                    @relation("lead_user")
+  outreachCampaigns         OutreachCampaign[]
+  captions                  Caption[]
+  clipProjects              ClipProject[]
+  clipResults               ClipResult[]
+  personaAssignments        Persona[]                 @relation("persona_assigned_members")
+  mcpApprovals              McpApproval[]
+  brandInterviews           BrandInterview[]
+  warmupAccountsOperated    WarmupAccount[]           @relation("warmup_account_operator")
+  warmupAccountsCustomer    WarmupAccount[]           @relation("warmup_account_customer")
+  lifecycleEmailPreference  LifecycleEmailPreference?
+  lifecycleEmailDeliveries  LifecycleEmailDelivery[]
+  notificationPreferences   NotificationPreference[]
+  notificationDeliveries    NotificationDelivery[]
+  contentVersionPins        ContentVersionPin[]
+  publishApprovals          PublishApproval[]
+  studioLooks               StudioLook[]
+  savedAds                  SavedAd[]
+  billingAccountMembers     BillingAccountMember[]
+  referralCodes             ReferralCode[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -674,25 +690,25 @@ model User {
 }
 
 model Organization {
-  id                         String                @id @default(cuid())
-  authProviderLogoUrl        String?
-  userId                     String
-  user                       User                  @relation(fields: [userId], references: [id])
-  billingAccountId           String?
-  billingAccount             BillingAccount?       @relation(fields: [billingAccountId], references: [id])
-  label                      String
-  slug                       String                @unique
-  prefix                     String?
-  isSelected                 Boolean               @default(false)
-  isDefault                  Boolean               @default(false)
-  isDeleted                  Boolean               @default(false)
-  category                   OrganizationCategory  @default(BUSINESS)
-  accountType                OrganizationCategory?
-  onboardingCompleted        Boolean               @default(false)
-  isProactiveOnboarding      Boolean               @default(false)
-  proactiveWelcomeDismissed  Boolean               @default(false)
-  createdAt                  DateTime              @default(now())
-  updatedAt                  DateTime              @updatedAt
+  id                        String                @id @default(cuid())
+  authProviderLogoUrl       String?
+  userId                    String
+  user                      User                  @relation(fields: [userId], references: [id])
+  billingAccountId          String?
+  billingAccount            BillingAccount?       @relation(fields: [billingAccountId], references: [id])
+  label                     String
+  slug                      String                @unique
+  prefix                    String?
+  isSelected                Boolean               @default(false)
+  isDefault                 Boolean               @default(false)
+  isDeleted                 Boolean               @default(false)
+  category                  OrganizationCategory  @default(BUSINESS)
+  accountType               OrganizationCategory?
+  onboardingCompleted       Boolean               @default(false)
+  isProactiveOnboarding     Boolean               @default(false)
+  proactiveWelcomeDismissed Boolean               @default(false)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
 
   // Ownership relations
   brands                        Brand[]
@@ -808,6 +824,9 @@ model Organization {
   creditTransactions            CreditTransaction[]
   billingAccountLinks           BillingAccountOrganization[]
   creditReservations            CreditReservation[]
+  referralCodesRewardTarget     ReferralCode[]                 @relation("referral_code_reward_organization")
+  referralsAsReferrer           Referral[]                     @relation("referral_referrer_organization")
+  referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
   llmVendorCosts                LlmVendorCost[]
   mediaVendorCosts              MediaVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
@@ -929,8 +948,8 @@ model Brand {
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
   agentThreads               AgentThread[]
-  outboundAgentTransfers     AgentTransfer[]             @relation("agent_transfer_source_brand")
-  inboundAgentTransfers      AgentTransfer[]             @relation("agent_transfer_destination_brand")
+  outboundAgentTransfers     AgentTransfer[]            @relation("agent_transfer_source_brand")
+  inboundAgentTransfers      AgentTransfer[]            @relation("agent_transfer_destination_brand")
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
@@ -985,8 +1004,8 @@ model Brand {
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
-  llmVendorCosts             LlmVendorCost[]             @relation("llm_vendor_cost_brand")
-  mediaVendorCosts           MediaVendorCost[]           @relation("media_vendor_cost_brand")
+  llmVendorCosts             LlmVendorCost[]            @relation("llm_vendor_cost_brand")
+  mediaVendorCosts           MediaVendorCost[]          @relation("media_vendor_cost_brand")
   warmupAccounts             WarmupAccount[]
   contentVersionPins         ContentVersionPin[]
   publishApprovals           PublishApproval[]
@@ -1144,23 +1163,23 @@ model DashboardLayout {
 /// Ownership columns are server-derived from the authenticated request context;
 /// callers never choose them in create or mutation payloads.
 model StudioLook {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String
-  brand          Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  label          String
-  assetType      String
-  promptTemplate String       @default("")
-  style          String       @default("")
-  mood           String       @default("")
-  scene          String       @default("")
-  camera         String       @default("")
-  lens           String       @default("")
-  lighting       String       @default("")
-  cameraMovement String?
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  brandId                String
+  brand                  Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId                 String
+  user                   User         @relation(fields: [userId], references: [id])
+  label                  String
+  assetType              String
+  promptTemplate         String       @default("")
+  style                  String       @default("")
+  mood                   String       @default("")
+  scene                  String       @default("")
+  camera                 String       @default("")
+  lens                   String       @default("")
+  lighting               String       @default("")
+  cameraMovement         String?
   // Preset widening (Generation Setup): router model selection, output
   // count, and brand/enhancement toggles saved alongside the Look. All
   // optional so pre-widening rows stay valid.
@@ -1171,10 +1190,10 @@ model StudioLook {
   duration               Int?
   resolution             String?
   brandingMode           String?
-  isPromptEnhanceEnabled Boolean  @default(true)
-  isDeleted              Boolean  @default(false)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  isPromptEnhanceEnabled Boolean      @default(true)
+  isDeleted              Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
   @@map("studio_looks")
@@ -1449,71 +1468,71 @@ model Setting {
 }
 
 model OrganizationSetting {
-  id                            String            @id @default(cuid())
-  organizationId                String            @unique
-  organization                  Organization      @relation(fields: [organizationId], references: [id])
-  isFirstLogin                  Boolean           @default(true)
-  isWhitelabelEnabled           Boolean           @default(false)
-  isVoiceControlEnabled         Boolean           @default(false)
-  isNotificationsDiscordEnabled  Boolean          @default(false)
-  isNotificationsTelegramEnabled Boolean          @default(false)
-  isNotificationsEmailEnabled    Boolean          @default(true)
-  isFleetNsfwVisible            Boolean           @default(false)
-  isWatermarkEnabled            Boolean           @default(true)
-  isVerifyScriptEnabled         Boolean           @default(true)
-  isVerifyIngredientEnabled     Boolean           @default(true)
-  isVerifyVideoEnabled          Boolean           @default(true)
-  isGenerateVideosEnabled       Boolean           @default(true)
-  isGenerateArticlesEnabled     Boolean           @default(false)
-  isGenerateImagesEnabled       Boolean           @default(true)
-  isGenerateMusicEnabled        Boolean           @default(true)
-  isAutoEvaluateEnabled         Boolean           @default(false)
-  isFastlaneEnabled             Boolean           @default(false)
-  seatsLimit                    Int               @default(1)
-  brandsLimit                   Int               @default(0)
-  timezone                      String            @default("UTC")
-  defaultLocale                 String            @default("en")
-  isWebhookEnabled              Boolean           @default(false)
-  webhookEndpoint               String?
-  webhookSecret                 String?
-  webhookEventTypes             String[]          @default([])
-  webhookDeliveryStatus         Json?
-  quotaYoutube                  Int               @default(5)
-  quotaTiktok                   Int               @default(1)
-  quotaTwitter                  Int               @default(5)
-  quotaInstagram                Int               @default(5)
-  enabledModelIds               String[]          @default([])
-  subscriptionTier              String?
-  isByokEnabled                 Boolean           @default(false)
-  hasEverHadCredits             Boolean           @default(false)
+  id                             String            @id @default(cuid())
+  organizationId                 String            @unique
+  organization                   Organization      @relation(fields: [organizationId], references: [id])
+  isFirstLogin                   Boolean           @default(true)
+  isWhitelabelEnabled            Boolean           @default(false)
+  isVoiceControlEnabled          Boolean           @default(false)
+  isNotificationsDiscordEnabled  Boolean           @default(false)
+  isNotificationsTelegramEnabled Boolean           @default(false)
+  isNotificationsEmailEnabled    Boolean           @default(true)
+  isFleetNsfwVisible             Boolean           @default(false)
+  isWatermarkEnabled             Boolean           @default(true)
+  isVerifyScriptEnabled          Boolean           @default(true)
+  isVerifyIngredientEnabled      Boolean           @default(true)
+  isVerifyVideoEnabled           Boolean           @default(true)
+  isGenerateVideosEnabled        Boolean           @default(true)
+  isGenerateArticlesEnabled      Boolean           @default(false)
+  isGenerateImagesEnabled        Boolean           @default(true)
+  isGenerateMusicEnabled         Boolean           @default(true)
+  isAutoEvaluateEnabled          Boolean           @default(false)
+  isFastlaneEnabled              Boolean           @default(false)
+  seatsLimit                     Int               @default(1)
+  brandsLimit                    Int               @default(0)
+  timezone                       String            @default("UTC")
+  defaultLocale                  String            @default("en")
+  isWebhookEnabled               Boolean           @default(false)
+  webhookEndpoint                String?
+  webhookSecret                  String?
+  webhookEventTypes              String[]          @default([])
+  webhookDeliveryStatus          Json?
+  quotaYoutube                   Int               @default(5)
+  quotaTiktok                    Int               @default(1)
+  quotaTwitter                   Int               @default(5)
+  quotaInstagram                 Int               @default(5)
+  enabledModelIds                String[]          @default([])
+  subscriptionTier               String?
+  isByokEnabled                  Boolean           @default(false)
+  hasEverHadCredits              Boolean           @default(false)
   // First-asset unlock gate (cloud SaaS): flips true the first time this org
   // completes a generation (Ingredient -> GENERATED). Durable org signal read by
   // the auth bootstrap payload to unlock the main app nav sections.
-  hasGeneratedFirstAsset        Boolean           @default(false)
-  onboardingJourneyMissions     Json              @default("[]")
-  onboardingJourneyCompletedAt  DateTime?
-  isAdvancedMode                Boolean           @default(false)
-  agentReplyStyle               AgentReplyStyle   @default(CONCISE)
-  byokOpenrouterApiKey          String?
-  byokBillingRollover           Float             @default(0)
-  byokBillingStatus             ByokBillingStatus @default(ACTIVE)
-  byokFreeThresholdOverride     Float?
-  defaultAvatarPhotoUrl         String?
-  defaultAvatarIngredientId     String?
-  defaultVoiceId                String?
-  defaultVoiceRef               Json?
-  defaultVoiceProvider          String?
-  defaultModel                  String?
-  defaultModelReview            String?
-  defaultModelUpdate            String?
-  defaultImageModel             String?
-  defaultVideoModel             String?
-  defaultImageToVideoModel      String?
-  defaultMusicModel             String?
-  agentPolicy                   Json              @default("{}")
-  byokKeys                      Json              @default("{}")
-  createdAt                     DateTime          @default(now())
-  updatedAt                     DateTime          @updatedAt
+  hasGeneratedFirstAsset         Boolean           @default(false)
+  onboardingJourneyMissions      Json              @default("[]")
+  onboardingJourneyCompletedAt   DateTime?
+  isAdvancedMode                 Boolean           @default(false)
+  agentReplyStyle                AgentReplyStyle   @default(CONCISE)
+  byokOpenrouterApiKey           String?
+  byokBillingRollover            Float             @default(0)
+  byokBillingStatus              ByokBillingStatus @default(ACTIVE)
+  byokFreeThresholdOverride      Float?
+  defaultAvatarPhotoUrl          String?
+  defaultAvatarIngredientId      String?
+  defaultVoiceId                 String?
+  defaultVoiceRef                Json?
+  defaultVoiceProvider           String?
+  defaultModel                   String?
+  defaultModelReview             String?
+  defaultModelUpdate             String?
+  defaultImageModel              String?
+  defaultVideoModel              String?
+  defaultImageToVideoModel       String?
+  defaultMusicModel              String?
+  agentPolicy                    Json              @default("{}")
+  byokKeys                       Json              @default("{}")
+  createdAt                      DateTime          @default(now())
+  updatedAt                      DateTime          @updatedAt
 
   @@map("organization_settings")
 }
@@ -1585,18 +1604,18 @@ model Credential {
   updatedAt                       DateTime           @updatedAt
 
   // Relations
-  tags                Tag[]                @relation("credential_tags")
-  posts               Post[]
-  postingCadences     PostingCadence[]
-  slotReservations    SlotReservation[]
-  adBulkUploadJobs    AdBulkUploadJob[]
-  adPerformances      AdPerformance[]
-  adWatchedAdvertisers AdWatchedAdvertiser[]
-  monitoredAccounts   MonitoredAccount[]
-  socialSources       SocialSource[]
-  socialConversations SocialConversation[]
-  socialMessages      SocialMessage[]
-  personas            Persona[]            @relation("persona_credentials")
+  tags                    Tag[]                    @relation("credential_tags")
+  posts                   Post[]
+  postingCadences         PostingCadence[]
+  slotReservations        SlotReservation[]
+  adBulkUploadJobs        AdBulkUploadJob[]
+  adPerformances          AdPerformance[]
+  adWatchedAdvertisers    AdWatchedAdvertiser[]
+  monitoredAccounts       MonitoredAccount[]
+  socialSources           SocialSource[]
+  socialConversations     SocialConversation[]
+  socialMessages          SocialMessage[]
+  personas                Persona[]                @relation("persona_credentials")
   outreachCampaigns       OutreachCampaign[]
   socialWarmupEnrollments SocialWarmupEnrollment[]
 
@@ -1614,23 +1633,23 @@ model Credential {
 /// `WarmupAccount` (customer lead warmup). Active uniqueness is the partial
 /// index `(organizationId, credentialId) WHERE isDeleted = false` in SQL.
 model SocialWarmupEnrollment {
-  id               String                       @id @default(cuid())
+  id               String                      @id @default(cuid())
   organizationId   String
-  organization     Organization                 @relation(fields: [organizationId], references: [id])
+  organization     Organization                @relation(fields: [organizationId], references: [id])
   brandId          String
-  brand            Brand                        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand            Brand                       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   credentialId     String
-  credential       Credential                   @relation(fields: [credentialId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  credential       Credential                  @relation(fields: [credentialId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   blueprintId      String
   blueprintVersion Int
-  startedAt        DateTime                     @default(now())
+  startedAt        DateTime                    @default(now())
   currentPhaseId   String
-  state            SocialWarmupEnrollmentState  @default(ENROLLED)
+  state            SocialWarmupEnrollmentState @default(ENROLLED)
   enrolledByUserId String
-  enrolledByUser   User                         @relation(fields: [enrolledByUserId], references: [id])
-  isDeleted        Boolean                      @default(false)
-  createdAt        DateTime                     @default(now())
-  updatedAt        DateTime                     @updatedAt
+  enrolledByUser   User                        @relation(fields: [enrolledByUserId], references: [id])
+  isDeleted        Boolean                     @default(false)
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
 
   events  SocialWarmupEvent[]
   signals SocialWarmupSignal[]
@@ -1644,22 +1663,22 @@ model SocialWarmupEnrollment {
 /// Append-only checklist audit. Provenance is the blueprint lowercase string
 /// (`user_confirmed` / `platform_verified` / `genfeed_observed`).
 model SocialWarmupEvent {
-  id             String                   @id @default(cuid())
+  id             String                  @id @default(cuid())
   organizationId String
-  organization   Organization             @relation(fields: [organizationId], references: [id])
+  organization   Organization            @relation(fields: [organizationId], references: [id])
   brandId        String
-  brand          Brand                    @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand          Brand                   @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   enrollmentId   String
-  enrollment     SocialWarmupEnrollment   @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  enrollment     SocialWarmupEnrollment  @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   itemId         String
   provenance     String
   actorUserId    String
-  actorUser      User                     @relation(fields: [actorUserId], references: [id])
+  actorUser      User                    @relation(fields: [actorUserId], references: [id])
   action         SocialWarmupEventAction
-  occurredAt     DateTime                 @default(now())
-  isDeleted      Boolean                  @default(false)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
+  occurredAt     DateTime                @default(now())
+  isDeleted      Boolean                 @default(false)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
 
   @@index([organizationId, brandId, enrollmentId, occurredAt], map: "social_warmup_events_scope_enrollment_idx")
   @@index([organizationId, enrollmentId, itemId, occurredAt], map: "social_warmup_events_item_idx")
@@ -1669,22 +1688,22 @@ model SocialWarmupEvent {
 /// Platform / Genfeed / user signal snapshot. Secrets never belong in evidence.
 /// Active uniqueness is the partial index `(enrollmentId, key) WHERE isDeleted = false`.
 model SocialWarmupSignal {
-  id             String                    @id @default(cuid())
+  id             String                   @id @default(cuid())
   organizationId String
-  organization   Organization              @relation(fields: [organizationId], references: [id])
+  organization   Organization             @relation(fields: [organizationId], references: [id])
   brandId        String
-  brand          Brand                     @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand          Brand                    @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   enrollmentId   String
-  enrollment     SocialWarmupEnrollment    @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  enrollment     SocialWarmupEnrollment   @relation(fields: [enrollmentId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   key            String
   observedAt     DateTime?
   staleAt        DateTime?
   status         SocialWarmupSignalStatus
   source         SocialWarmupSignalSource
-  evidence       Json                      @default("{}")
-  isDeleted      Boolean                   @default(false)
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
+  evidence       Json                     @default("{}")
+  isDeleted      Boolean                  @default(false)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
   @@unique([id, organizationId, brandId], map: "social_warmup_signals_id_scope_key")
   @@index([organizationId, brandId, enrollmentId, key, isDeleted], map: "social_warmup_signals_scope_key_idx")
@@ -1831,33 +1850,33 @@ model OrgIntegration {
 // ═══════════════════════════════════════════════════════════════
 
 model Ingredient {
-  id              String         @id @default(cuid())
-  userId          String?
-  user            User?          @relation(fields: [userId], references: [id])
-  organizationId  String?
-  organization    Organization?  @relation(fields: [organizationId], references: [id])
-  brandId         String?
-  brand           Brand?         @relation("ingredient_brand", fields: [brandId], references: [id])
-  folderId        String?
-  folder          Folder?        @relation(fields: [folderId], references: [id])
-  parentId        String?
-  parent          Ingredient?    @relation("ingredient_parent", fields: [parentId], references: [id])
-  children        Ingredient[]   @relation("ingredient_parent")
-  metadataId      String?
-  metadata        Metadata?      @relation(fields: [metadataId], references: [id])
-  promptId        String?
-  prompt          Prompt?        @relation("ingredient_prompt", fields: [promptId], references: [id])
-  trainingId      String?
-  training        Training?      @relation("ingredient_training", fields: [trainingId], references: [id])
-  bookmarkId      String?
-  bookmark        Bookmark?      @relation(fields: [bookmarkId], references: [id])
-  personaId       String?
-  persona         Persona?       @relation(fields: [personaId], references: [id])
+  id                  String             @id @default(cuid())
+  userId              String?
+  user                User?              @relation(fields: [userId], references: [id])
+  organizationId      String?
+  organization        Organization?      @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?             @relation("ingredient_brand", fields: [brandId], references: [id])
+  folderId            String?
+  folder              Folder?            @relation(fields: [folderId], references: [id])
+  parentId            String?
+  parent              Ingredient?        @relation("ingredient_parent", fields: [parentId], references: [id])
+  children            Ingredient[]       @relation("ingredient_parent")
+  metadataId          String?
+  metadata            Metadata?          @relation(fields: [metadataId], references: [id])
+  promptId            String?
+  prompt              Prompt?            @relation("ingredient_prompt", fields: [promptId], references: [id])
+  trainingId          String?
+  training            Training?          @relation("ingredient_training", fields: [trainingId], references: [id])
+  bookmarkId          String?
+  bookmark            Bookmark?          @relation(fields: [bookmarkId], references: [id])
+  personaId           String?
+  persona             Persona?           @relation(fields: [personaId], references: [id])
   workflowExecutionId String?
   workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
-  agentStrategyId String?
-  agentStrategy   AgentStrategy? @relation("ingredient_agent_strategy", fields: [agentStrategyId], references: [id])
-  sourceActionId  String?
+  agentStrategyId     String?
+  agentStrategy       AgentStrategy?     @relation("ingredient_agent_strategy", fields: [agentStrategyId], references: [id])
+  sourceActionId      String?
 
   // Discriminator: single table for Image, Video, Music, GIF, Avatar, Voice, etc.
   category              IngredientCategory       @default(IMAGE)
@@ -1934,23 +1953,23 @@ model Ingredient {
   sources  Ingredient[] @relation("ingredient_sources")
 
   // Relations where this ingredient is referenced
-  tags                     Tag[]           @relation("ingredient_tags")
-  brandVoices              Brand[]         @relation("brand_voice")
-  brandMusics              Brand[]         @relation("brand_music")
-  postEntities             Post[]          @relation("post_entity_ingredient")
-  postIngredients          Post[]          @relation("post_ingredients")
-  postAnalyticsIngredients PostAnalytics[] @relation("post_analytics_ingredients")
-  bookmarkExtracted        Bookmark[]      @relation("bookmark_extracted")
-  bookmarkGenerated        Bookmark[]      @relation("bookmark_generated")
-  trainingSources          Training[]      @relation("training_sources")
-  personaAvatars           Persona[]       @relation("persona_avatar")
-  personaVoices            Persona[]       @relation("persona_voice")
-  captions                 Caption[]
-  editorProjectVideos      EditorProject[] @relation("editor_project_video")
-  trackedLinkContent       TrackedLink[]
-  taskLinkedOutputs        Task[]          @relation("task_linked_outputs")
-  taskApprovedOutputs      Task[]          @relation("task_approved_outputs")
-  clipResults              ClipResult[]    @relation("clip_result_ingredient")
+  tags                      Tag[]                      @relation("ingredient_tags")
+  brandVoices               Brand[]                    @relation("brand_voice")
+  brandMusics               Brand[]                    @relation("brand_music")
+  postEntities              Post[]                     @relation("post_entity_ingredient")
+  postIngredients           Post[]                     @relation("post_ingredients")
+  postAnalyticsIngredients  PostAnalytics[]            @relation("post_analytics_ingredients")
+  bookmarkExtracted         Bookmark[]                 @relation("bookmark_extracted")
+  bookmarkGenerated         Bookmark[]                 @relation("bookmark_generated")
+  trainingSources           Training[]                 @relation("training_sources")
+  personaAvatars            Persona[]                  @relation("persona_avatar")
+  personaVoices             Persona[]                  @relation("persona_voice")
+  captions                  Caption[]
+  editorProjectVideos       EditorProject[]            @relation("editor_project_video")
+  trackedLinkContent        TrackedLink[]
+  taskLinkedOutputs         Task[]                     @relation("task_linked_outputs")
+  taskApprovedOutputs       Task[]                     @relation("task_approved_outputs")
+  clipResults               ClipResult[]               @relation("clip_result_ingredient")
   workflowNodeContinuations WorkflowNodeContinuation[]
 
   @@index([groupId])
@@ -2178,9 +2197,9 @@ model Bookmark {
 }
 
 model Asset {
-  id                 String        @id @default(cuid())
+  id                 String                  @id @default(cuid())
   userId             String
-  user               User          @relation(fields: [userId], references: [id])
+  user               User                    @relation(fields: [userId], references: [id])
   parentType         AssetParent
   parentOrgId        String?
   parentBrandId      String?
@@ -2200,9 +2219,9 @@ model Asset {
   uploadPolicy       String?
   originalFileName   String?
   displayName        String?
-  isDeleted          Boolean       @default(false)
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  isDeleted          Boolean                 @default(false)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   // Live BRAND ranking/category lookup is supported by the raw-SQL partial
   // indexes assets_brand_kit_ranking_idx and
@@ -2234,9 +2253,9 @@ model ContentVersionPin {
   provenance      Json         @default("{}")
   createdAt       DateTime     @default(now())
 
-  reviewedNewsletters   Newsletter[]
-  reviewedPosts         Post[]
-  publishApprovals      PublishApproval[]
+  reviewedNewsletters Newsletter[]
+  reviewedPosts       Post[]
+  publishApprovals    PublishApproval[]
 
   @@unique([organizationId, idempotencyKey], map: "content_version_pins_org_idempotency_key")
   @@unique([id, organizationId], map: "content_version_pins_id_organization_key")
@@ -2422,10 +2441,10 @@ model Post {
   publishApproval                PublishApproval?   @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   publishApprovals               PublishApproval[]  @relation("post_publish_approvals")
   sourceActionId                 String?
-  listeningTopicId              String?
-  listeningThemeId              String?
-  listeningTheme                ListeningTheme?     @relation("post_listening_theme", fields: [listeningThemeId, organizationId, brandId, listeningTopicId], references: [id, organizationId, brandId, topicId], onDelete: Restrict, onUpdate: Cascade)
-  listeningEvidenceIds          String[]            @default([])
+  listeningTopicId               String?
+  listeningThemeId               String?
+  listeningTheme                 ListeningTheme?    @relation("post_listening_theme", fields: [listeningThemeId, organizationId, brandId, listeningTopicId], references: [id, organizationId, brandId, topicId], onDelete: Restrict, onUpdate: Cascade)
+  listeningEvidenceIds           String[]           @default([])
   sourceWorkflowId               String?
   sourceWorkflowName             String?
   // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
@@ -2515,33 +2534,33 @@ model PublishApproval {
 }
 
 model PostGroup {
-  id                String       @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  ownerId           String
-  owner             User         @relation(fields: [ownerId], references: [id])
-  brandId           String?
-  brand             Brand?       @relation(fields: [brandId], references: [id])
-  title             String
-  baseContent       String
-  media             Json         @default("[]")
-  timezone          String       @default("UTC")
-  status            String       @default("draft")
-  scheduledAt       DateTime?
-  publishedAt       DateTime?
-  recurrence        Json?
-  idempotencyKey    String?
-  attachments       Json         @default("[]")
-  statusTransitions Json         @default("[]")
-  postingSetId      String?
-  postingSet        PostingSet?  @relation(fields: [postingSetId], references: [id])
-  rssSourceId       String?
-  rssSource         RssSource?   @relation(fields: [rssSourceId], references: [id])
-  rssFeedItemId     String?
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  engagementRules   EngagementRule[]
+  id                 String              @id @default(cuid())
+  organizationId     String
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  ownerId            String
+  owner              User                @relation(fields: [ownerId], references: [id])
+  brandId            String?
+  brand              Brand?              @relation(fields: [brandId], references: [id])
+  title              String
+  baseContent        String
+  media              Json                @default("[]")
+  timezone           String              @default("UTC")
+  status             String              @default("draft")
+  scheduledAt        DateTime?
+  publishedAt        DateTime?
+  recurrence         Json?
+  idempotencyKey     String?
+  attachments        Json                @default("[]")
+  statusTransitions  Json                @default("[]")
+  postingSetId       String?
+  postingSet         PostingSet?         @relation(fields: [postingSetId], references: [id])
+  rssSourceId        String?
+  rssSource          RssSource?          @relation(fields: [rssSourceId], references: [id])
+  rssFeedItemId      String?
+  isDeleted          Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  engagementRules    EngagementRule[]
   agentPublishAudits AgentPublishAudit[]
 
   @@unique([organizationId, idempotencyKey])
@@ -2553,31 +2572,31 @@ model PostGroup {
 
 /// Named posting plan for calendar ghosts. Does not dispatch work.
 model PostingCadence {
-  id                 String       @id @default(cuid())
-  organizationId     String
-  organization       Organization @relation(fields: [organizationId], references: [id])
-  userId             String
-  user               User         @relation(fields: [userId], references: [id])
-  brandId            String
-  brand              Brand        @relation(fields: [brandId], references: [id])
-  credentialId       String
-  credential         Credential   @relation(fields: [credentialId], references: [id])
-  label              String?
-  format             String
-  intervalMinutes    Int
-  windowStartMinute  Int
-  windowEndMinute    Int
-  timezone           String       @default("UTC")
-  startsAt           DateTime
-  endsAt             DateTime?
-  maxOccurrences     Int?
-  generateLanding    String       @default("draft")
-  brief              String?
-  status             String       @default("active")
-  isDeleted          Boolean      @default(false)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  reservations       SlotReservation[]
+  id                String            @id @default(cuid())
+  organizationId    String
+  organization      Organization      @relation(fields: [organizationId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  brandId           String
+  brand             Brand             @relation(fields: [brandId], references: [id])
+  credentialId      String
+  credential        Credential        @relation(fields: [credentialId], references: [id])
+  label             String?
+  format            String
+  intervalMinutes   Int
+  windowStartMinute Int
+  windowEndMinute   Int
+  timezone          String            @default("UTC")
+  startsAt          DateTime
+  endsAt            DateTime?
+  maxOccurrences    Int?
+  generateLanding   String            @default("draft")
+  brief             String?
+  status            String            @default("active")
+  isDeleted         Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  reservations      SlotReservation[]
 
   @@index([organizationId, isDeleted, brandId, status], map: "posting_cadences_org_brand_status_idx")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "posting_cadences_org_created_idx")
@@ -2586,26 +2605,26 @@ model PostingCadence {
 
 /// Non-derivable slot state (generating, failed, skip, generated-item link).
 model SlotReservation {
-  id                 String          @id @default(cuid())
-  organizationId     String
-  organization       Organization    @relation(fields: [organizationId], references: [id])
-  brandId            String
-  brand              Brand           @relation(fields: [brandId], references: [id])
-  cadenceId          String?
-  cadence            PostingCadence? @relation(fields: [cadenceId], references: [id])
-  credentialId       String
-  credential         Credential      @relation(fields: [credentialId], references: [id])
-  format             String
-  instant            DateTime
-  timezone           String          @default("UTC")
-  identityKey        String
-  state              String          @default("missing")
-  generatedItemId    String?
-  generatedItemType  String?
-  lastFailureReason  String?
-  isDeleted          Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  organizationId    String
+  organization      Organization    @relation(fields: [organizationId], references: [id])
+  brandId           String
+  brand             Brand           @relation(fields: [brandId], references: [id])
+  cadenceId         String?
+  cadence           PostingCadence? @relation(fields: [cadenceId], references: [id])
+  credentialId      String
+  credential        Credential      @relation(fields: [credentialId], references: [id])
+  format            String
+  instant           DateTime
+  timezone          String          @default("UTC")
+  identityKey       String
+  state             String          @default("missing")
+  generatedItemId   String?
+  generatedItemType String?
+  lastFailureReason String?
+  isDeleted         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@unique([organizationId, identityKey], map: "slot_reservations_org_identity_key")
   @@index([organizationId, isDeleted, brandId, instant], map: "slot_reservations_org_brand_instant_idx")
@@ -2679,7 +2698,6 @@ model Schedule {
   @@index([organizationId, isDeleted, createdAt])
   @@map("schedules")
 }
-
 
 model Distribution {
   id             String       @id @default(cuid())
@@ -2914,26 +2932,27 @@ model CreditBalance {
 }
 
 model CreditTransaction {
-  id               String             @id @default(cuid())
-  organizationId   String
-  organization     Organization       @relation(fields: [organizationId], references: [id])
-  billingAccountId String?
-  billingAccount   BillingAccount?    @relation(fields: [billingAccountId], references: [id])
-  actorUserId      String?
-  reservationId    String?
-  reservation      CreditReservation? @relation(fields: [reservationId], references: [id])
-  idempotencyKey   String?
-  amount           Float
-  balanceAfter     Float?
-  source           String?
-  description      String?
-  referenceId      String?
-  referenceType    String?
-  metadata         Json?
-  category         String?
-  isDeleted        Boolean            @default(false)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id                   String             @id @default(cuid())
+  organizationId       String
+  organization         Organization       @relation(fields: [organizationId], references: [id])
+  billingAccountId     String?
+  billingAccount       BillingAccount?    @relation(fields: [billingAccountId], references: [id])
+  actorUserId          String?
+  reservationId        String?
+  reservation          CreditReservation? @relation(fields: [reservationId], references: [id])
+  idempotencyKey       String?
+  amount               Float
+  balanceAfter         Float?
+  source               String?
+  description          String?
+  referenceId          String?
+  referenceType        String?
+  metadata             Json?
+  category             String?
+  isDeleted            Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  referralRewardGrants ReferralReward[]   @relation("referral_reward_grant_transaction")
 
   @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
@@ -2944,26 +2963,119 @@ model CreditTransaction {
 }
 
 model BillingAccount {
-  id               String                @id @default(cuid())
+  id               String               @id @default(cuid())
   label            String?
   stripeCustomerId String?
-  status           BillingAccountStatus  @default(UNPROVISIONED)
+  status           BillingAccountStatus @default(UNPROVISIONED)
   planTier         String?
-  isDeleted        Boolean               @default(false)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  isDeleted        Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-  members          BillingAccountMember[]
-  organizationLinks BillingAccountOrganization[]
-  organizations    Organization[]
-  customers        Customer[]
-  subscriptions    Subscription[]
-  creditBalances   CreditBalance[]
-  creditTransactions CreditTransaction[]
-  creditReservations CreditReservation[]
+  members             BillingAccountMember[]
+  organizationLinks   BillingAccountOrganization[]
+  organizations       Organization[]
+  customers           Customer[]
+  subscriptions       Subscription[]
+  creditBalances      CreditBalance[]
+  creditTransactions  CreditTransaction[]
+  creditReservations  CreditReservation[]
+  referralCodes       ReferralCode[]               @relation("referral_code_reward_billing_account")
+  referralsAsReferrer Referral[]                   @relation("referral_referrer_billing_account")
+  referralsAsReferred Referral[]                   @relation("referral_referred_billing_account")
 
   @@index([status, isDeleted])
   @@map("billing_accounts")
+}
+
+/// Shareable, opaque referral identity. The reward destination is pinned when
+/// the code is created so later organization switching cannot redirect rewards.
+model ReferralCode {
+  id                     String         @id @default(cuid())
+  ownerUserId            String
+  ownerUser              User           @relation(fields: [ownerUserId], references: [id])
+  rewardBillingAccountId String
+  rewardBillingAccount   BillingAccount @relation("referral_code_reward_billing_account", fields: [rewardBillingAccountId], references: [id])
+  rewardOrganizationId   String
+  rewardOrganization     Organization   @relation("referral_code_reward_organization", fields: [rewardOrganizationId], references: [id])
+  code                   String         @unique
+  isActive               Boolean        @default(true)
+  isDeleted              Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  referrals              Referral[]
+  rewards                ReferralReward[]
+
+  @@unique([ownerUserId, rewardBillingAccountId], map: "referral_codes_owner_billing_account_key")
+  @@index([rewardBillingAccountId, isDeleted])
+  @@index([rewardOrganizationId, isDeleted])
+  @@map("referral_codes")
+}
+
+/// Immutable first-touch attribution between two billing accounts.
+model Referral {
+  id                       String           @id @default(cuid())
+  codeId                   String
+  code                     ReferralCode     @relation(fields: [codeId], references: [id])
+  referrerBillingAccountId String
+  referrerBillingAccount   BillingAccount   @relation("referral_referrer_billing_account", fields: [referrerBillingAccountId], references: [id])
+  referredBillingAccountId String
+  referredBillingAccount   BillingAccount   @relation("referral_referred_billing_account", fields: [referredBillingAccountId], references: [id])
+  referrerOrganizationId   String
+  referrerOrganization     Organization     @relation("referral_referrer_organization", fields: [referrerOrganizationId], references: [id])
+  referredOrganizationId   String
+  referredOrganization     Organization     @relation("referral_referred_organization", fields: [referredOrganizationId], references: [id])
+  status                   ReferralStatus   @default(ACTIVE)
+  attributedAt             DateTime         @default(now())
+  rewardEndsAt             DateTime
+  isDeleted                Boolean          @default(false)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  rewards                  ReferralReward[]
+
+  @@index([codeId, status, isDeleted])
+  @@index([referrerBillingAccountId, status, isDeleted])
+  @@index([referredOrganizationId, isDeleted])
+  @@map("referrals")
+}
+
+/// Durable reward settlement record. Stripe events and scheduled settlement
+/// converge on this row; Redis or cron is only a wake-up mechanism.
+model ReferralReward {
+  id                      String               @id @default(cuid())
+  referralId              String
+  referral                Referral             @relation(fields: [referralId], references: [id])
+  referralCodeId          String
+  referralCode            ReferralCode         @relation(fields: [referralCodeId], references: [id])
+  stripeCheckoutSessionId String               @unique
+  stripePaymentIntentId   String?
+  grossAmountCents        Int
+  netAmountCents          Int
+  purchasedCredits        Int
+  refundedAmountCents     Int                  @default(0)
+  rewardCredits           Int
+  reversedCredits         Int                  @default(0)
+  status                  ReferralRewardStatus @default(PENDING)
+  eligibleAt              DateTime
+  nextAttemptAt           DateTime
+  attemptCount            Int                  @default(0)
+  lockedAt                DateTime?
+  grantedAt               DateTime?
+  cancelledAt             DateTime?
+  reversedAt              DateTime?
+  failureReason           String?
+  grantTransactionId      String?              @unique
+  grantTransaction        CreditTransaction?   @relation("referral_reward_grant_transaction", fields: [grantTransactionId], references: [id])
+  isDeleted               Boolean              @default(false)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@index([status, nextAttemptAt, isDeleted])
+  @@index([stripePaymentIntentId, isDeleted])
+  @@index([referralId, createdAt(sort: Desc)])
+  @@index([referralCodeId, createdAt(sort: Desc)])
+  @@index([referralCodeId, status, isDeleted])
+  @@map("referral_rewards")
 }
 
 model BillingAccountMember {
@@ -2983,19 +3095,19 @@ model BillingAccountMember {
 }
 
 model BillingAccountOrganization {
-  id               String                            @id @default(cuid())
-  billingAccountId String
-  billingAccount   BillingAccount                    @relation(fields: [billingAccountId], references: [id])
-  organizationId   String
-  organization     Organization                      @relation(fields: [organizationId], references: [id])
-  status           BillingAccountOrganizationStatus  @default(LINKED)
+  id                   String                           @id @default(cuid())
+  billingAccountId     String
+  billingAccount       BillingAccount                   @relation(fields: [billingAccountId], references: [id])
+  organizationId       String
+  organization         Organization                     @relation(fields: [organizationId], references: [id])
+  status               BillingAccountOrganizationStatus @default(LINKED)
   monthlyBudgetCredits Float?
-  budgetPolicy     String?
-  linkedAt         DateTime                          @default(now())
-  detachedAt       DateTime?
-  isDeleted        Boolean                           @default(false)
-  createdAt        DateTime                          @default(now())
-  updatedAt        DateTime                          @updatedAt
+  budgetPolicy         String?
+  linkedAt             DateTime                         @default(now())
+  detachedAt           DateTime?
+  isDeleted            Boolean                          @default(false)
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
 
   @@index([billingAccountId, status, isDeleted])
   @@index([organizationId, status, isDeleted])
@@ -3003,22 +3115,22 @@ model BillingAccountOrganization {
 }
 
 model CreditReservation {
-  id               String                   @id @default(cuid())
+  id               String                  @id @default(cuid())
   billingAccountId String
-  billingAccount   BillingAccount           @relation(fields: [billingAccountId], references: [id])
+  billingAccount   BillingAccount          @relation(fields: [billingAccountId], references: [id])
   organizationId   String
-  organization     Organization             @relation(fields: [organizationId], references: [id])
+  organization     Organization            @relation(fields: [organizationId], references: [id])
   actorUserId      String?
   amount           Float
   settledAmount    Float?
-  status           CreditReservationStatus  @default(RESERVED)
+  status           CreditReservationStatus @default(RESERVED)
   workloadType     String?
   workloadId       String?
   idempotencyKey   String
   expiresAt        DateTime
-  isDeleted        Boolean                  @default(false)
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  isDeleted        Boolean                 @default(false)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
   settlements      CreditTransaction[]
 
   @@index([billingAccountId, status, isDeleted])
@@ -3035,7 +3147,7 @@ model LlmVendorCost {
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
   brandId          String?
-  brand             Brand?       @relation("llm_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand            Brand?       @relation("llm_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   provider         String
   model            String
   promptTokens     Int          @default(0)
@@ -3064,7 +3176,7 @@ model MediaVendorCost {
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
   brandId          String?
-  brand             Brand?       @relation("media_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand            Brand?       @relation("media_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   provider         String
   model            String
   category         String
@@ -3322,22 +3434,22 @@ model Model {
   // approved contract until an operator promotes the candidate.
   reviewedProviderContractVersion String?
   pendingProviderContractVersion  String?
-  providerSchemaFamily             String?
-  providerInputSchema              Json?
-  providerSyncStatus               String?
-  providerSchemaSyncedAt           DateTime?
-  providerPricingSyncedAt          DateTime?
-  providerSyncFailedAt             DateTime?
-  providerSyncFailureCode          String?
-  providerContracts                ModelProviderContract[]
+  providerSchemaFamily            String?
+  providerInputSchema             Json?
+  providerSyncStatus              String?
+  providerSchemaSyncedAt          DateTime?
+  providerPricingSyncedAt         DateTime?
+  providerSyncFailedAt            DateTime?
+  providerSyncFailureCode         String?
+  providerContracts               ModelProviderContract[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([provider, endpoint], map: "models_provider_endpoint_key")
   @@index([category, isActive, isDeleted])
   @@index([provider, isActive, isDeleted])
   @@index([organizationId, isActive, isDeleted])
-  @@unique([provider, endpoint], map: "models_provider_endpoint_key")
   @@map("models")
 }
 
@@ -3345,9 +3457,9 @@ model Model {
 /// metadata never enter model serializers; reviewed projections are copied to
 /// Model only when an operator approves a supported candidate.
 model ModelProviderContract {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   modelId               String
-  model                 Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  model                 Model     @relation(fields: [modelId], references: [id], onDelete: Cascade)
   provider              String
   endpoint              String
   version               String
@@ -3361,20 +3473,20 @@ model ModelProviderContract {
   billingUnit           String?
   unitPrice             String?
   unitPriceMicros       BigInt?
-  conditionalDimensions Json     @default("{}")
+  conditionalDimensions Json      @default("{}")
   pricingType           String?
   mappingStatus         String
   unsupportedReason     String?
-  reviewStatus          String   @default("pending")
+  reviewStatus          String    @default("pending")
   reviewedAt            DateTime?
   reviewedBy            String?
-  discoveredAt          DateTime @default(now())
-  lastSeenAt            DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  discoveredAt          DateTime  @default(now())
+  lastSeenAt            DateTime  @default(now())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  @@index([modelId, reviewStatus, discoveredAt(sort: Desc)], map: "model_provider_contracts_model_review_discovered_idx")
   @@unique([provider, endpoint, version], map: "model_provider_contracts_identity_version_key")
+  @@index([modelId, reviewStatus, discoveredAt(sort: Desc)], map: "model_provider_contracts_model_review_discovered_idx")
   @@map("model_provider_contracts")
 }
 
@@ -3464,14 +3576,14 @@ model AgentThread {
   createdAt                      DateTime     @default(now())
   updatedAt                      DateTime     @updatedAt
 
-  messages      AgentMessage[]
-  outboundTransfers AgentTransfer[] @relation("agent_transfer_source_thread")
-  inboundTransfers  AgentTransfer[] @relation("agent_transfer_destination_thread")
-  posts         Post[]                @relation("post_agent_thread_scope")
-  events        AgentThreadEvent[]
-  snapshots     AgentThreadSnapshot[]
-  contextStates ThreadContextState[]
-  tasks         Task[]                @relation("task_planning_thread")
+  messages          AgentMessage[]
+  outboundTransfers AgentTransfer[]       @relation("agent_transfer_source_thread")
+  inboundTransfers  AgentTransfer[]       @relation("agent_transfer_destination_thread")
+  posts             Post[]                @relation("post_agent_thread_scope")
+  events            AgentThreadEvent[]
+  snapshots         AgentThreadSnapshot[]
+  contextStates     ThreadContextState[]
+  tasks             Task[]                @relation("task_planning_thread")
 
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)], map: "agent_threads_org_brand_deleted_updated_at_idx")
@@ -3531,7 +3643,7 @@ model AgentTransfer {
   destinationExecutionId      String?                   @unique
   destinationExecution        WorkflowExecution?        @relation(fields: [destinationExecutionId], references: [id], onDelete: SetNull)
   deliveryMode                AgentTransferDeliveryMode
-  status                      AgentTransferStatus        @default(PENDING)
+  status                      AgentTransferStatus       @default(PENDING)
   idempotencyKey              String
   requestHash                 String
   correlationId               String                    @unique
@@ -3827,32 +3939,32 @@ model AgentStrategyReport {
 }
 
 model AgentCampaign {
-  id                     String         @id @default(cuid())
-  organizationId         String
-  organization           Organization   @relation(fields: [organizationId], references: [id])
-  userId                 String
-  user                   User           @relation(fields: [userId], references: [id])
-  brandId                String?
-  brand                  Brand?         @relation(fields: [brandId], references: [id])
-  campaignLeadStrategyId String?
-  campaignLeadStrategy   AgentStrategy? @relation("campaign_lead", fields: [campaignLeadStrategyId], references: [id])
-  label                  String?
-  description            String?
+  id                         String         @id @default(cuid())
+  organizationId             String
+  organization               Organization   @relation(fields: [organizationId], references: [id])
+  userId                     String
+  user                       User           @relation(fields: [userId], references: [id])
+  brandId                    String?
+  brand                      Brand?         @relation(fields: [brandId], references: [id])
+  campaignLeadStrategyId     String?
+  campaignLeadStrategy       AgentStrategy? @relation("campaign_lead", fields: [campaignLeadStrategyId], references: [id])
+  label                      String?
+  description                String?
   /// Remaining free-form payload (contentQuota, contentRotation). Scalars live as columns.
-  config                 Json           @default("{}")
-  status                 String?        @default("draft")
-  startDate              DateTime?
-  endDate                DateTime?
-  creditsAllocated       Int            @default(0)
-  creditsUsed            Int            @default(0)
-  orchestrationEnabled   Boolean        @default(false)
+  config                     Json           @default("{}")
+  status                     String?        @default("draft")
+  startDate                  DateTime?
+  endDate                    DateTime?
+  creditsAllocated           Int            @default(0)
+  creditsUsed                Int            @default(0)
+  orchestrationEnabled       Boolean        @default(false)
   orchestrationIntervalHours Int?
-  nextOrchestratedAt     DateTime?
-  lastOrchestratedAt     DateTime?
-  lastOrchestrationSummary String?
-  isDeleted              Boolean        @default(false)
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  nextOrchestratedAt         DateTime?
+  lastOrchestratedAt         DateTime?
+  lastOrchestrationSummary   String?
+  isDeleted                  Boolean        @default(false)
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
 
   agents   AgentStrategy[] @relation("campaign_agents")
   memories AgentMemory[]
@@ -3990,22 +4102,22 @@ model AgentWorkflow {
 // ═══════════════════════════════════════════════════════════════
 
 model Workflow {
-  id                String       @id @default(cuid())
+  id                String          @id @default(cuid())
   userId            String
-  user              User         @relation(fields: [userId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
   organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
+  organization      Organization    @relation(fields: [organizationId], references: [id])
   brandId           String?
-  brand             Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand             Brand?          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   label             String?
   description       String?
   currentVersionId  String          @unique
   currentVersion    WorkflowVersion @relation("workflow_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  config            Json         @default("{}")
+  config            Json            @default("{}")
   metadata          Json?
   recurrence        Json?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status            String       @default("draft")
+  status            String          @default("draft")
   lifecycle         String?
   trigger           String?
   isScheduleEnabled Boolean?
@@ -4018,9 +4130,9 @@ model Workflow {
   startedAt         DateTime?
   completedAt       DateTime?
   lastExecutedAt    DateTime?
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  isDeleted         Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   // Denormalized for the partial unique constraint that enforces at-most-one
   // default recurring workflow per (brand, org, contentType). NULL for every
@@ -4062,8 +4174,8 @@ model WorkflowVersion {
   contentHash    String
   createdAt      DateTime     @default(now())
 
-  currentFor Workflow?           @relation("workflow_current_version")
-  executions WorkflowExecution[]
+  currentFor        Workflow?                  @relation("workflow_current_version")
+  executions        WorkflowExecution[]
   nodeContinuations WorkflowNodeContinuation[]
 
   @@unique([workflowId, version])
@@ -4072,60 +4184,60 @@ model WorkflowVersion {
 }
 
 model WorkflowExecution {
-  id             String                  @id @default(cuid())
-  idempotencyKey String?
-  workflowId     String
-  workflow       Workflow                @relation(fields: [workflowId], references: [id])
+  id                String                  @id @default(cuid())
+  idempotencyKey    String?
+  workflowId        String
+  workflow          Workflow                @relation(fields: [workflowId], references: [id])
   workflowVersionId String
-  workflowVersion   WorkflowVersion      @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  userId         String
-  user           User                    @relation(fields: [userId], references: [id])
-  organizationId String
-  organization   Organization            @relation(fields: [organizationId], references: [id])
-  status         WorkflowExecutionStatus @default(PENDING)
-  result         Json?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  isDeleted      Boolean                 @default(false)
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  workflowVersion   WorkflowVersion         @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  userId            String
+  user              User                    @relation(fields: [userId], references: [id])
+  organizationId    String
+  organization      Organization            @relation(fields: [organizationId], references: [id])
+  status            WorkflowExecutionStatus @default(PENDING)
+  result            Json?
+  error             String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  isDeleted         Boolean                 @default(false)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
   /// Scalar progress/ETA so node transitions do not rewrite `result` JSON (#2512).
-  progress            Int       @default(0)
-  durationMs          Int?
-  creditsUsed         Int       @default(0)
-  failedNodeId        String?
-  totalNodes          Int?
-  estimatedDurationMs Int?
-  remainingDurationMs Int?
-  etaConfidence       String?
-  etaCurrentPhase     String?
-  etaUpdatedAt        DateTime?
-  scrubAllNodePayloads Boolean    @default(false)
-  scrubNodeIds         String[]   @default([])
+  progress             Int       @default(0)
+  durationMs           Int?
+  creditsUsed          Int       @default(0)
+  failedNodeId         String?
+  totalNodes           Int?
+  estimatedDurationMs  Int?
+  remainingDurationMs  Int?
+  etaConfidence        String?
+  etaCurrentPhase      String?
+  etaUpdatedAt         DateTime?
+  scrubAllNodePayloads Boolean   @default(false)
+  scrubNodeIds         String[]  @default([])
   payloadScrubbedAt    DateTime?
   purgeAfterHours      Int?
   purgeAt              DateTime?
 
-  posts        Post[]
-  nodeResults  WorkflowExecutionNodeResult[]
-  artifacts    WorkflowArtifact[]
-  nodeContinuations WorkflowNodeContinuation[]
-  workspaceTasks Task[] @relation("task_linked_executions")
-  ingredients Ingredient[]
-  newsletters Newsletter[]
-  captions Caption[]
+  posts                    Post[]
+  nodeResults              WorkflowExecutionNodeResult[]
+  artifacts                WorkflowArtifact[]
+  nodeContinuations        WorkflowNodeContinuation[]
+  workspaceTasks           Task[]                        @relation("task_linked_executions")
+  ingredients              Ingredient[]
+  newsletters              Newsletter[]
+  captions                 Caption[]
   destinationAgentTransfer AgentTransfer?
-  agentPublishAudits AgentPublishAudit[]
-  clipGenerationProject ClipProject? @relation("clip_generation_workflow_execution")
-  clipContinuityProject ClipProject? @relation("clip_continuity_workflow_execution")
+  agentPublishAudits       AgentPublishAudit[]
+  clipGenerationProject    ClipProject?                  @relation("clip_generation_workflow_execution")
+  clipContinuityProject    ClipProject?                  @relation("clip_continuity_workflow_execution")
 
   trigger String?
 
+  @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
-  @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@map("workflow_executions")
 }
@@ -4133,10 +4245,10 @@ model WorkflowExecution {
 /// Per-node execution results, unique on (executionId, nodeId). One upsert
 /// per transition — the execution `result` JSON is no longer rewritten (#2512).
 model WorkflowExecutionNodeResult {
-  id             String             @id @default(cuid())
+  id             String            @id @default(cuid())
   organizationId String
   executionId    String
-  execution      WorkflowExecution  @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  execution      WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
   nodeId         String
   nodeType       String
   status         String
@@ -4148,8 +4260,8 @@ model WorkflowExecutionNodeResult {
   progress       Int?
   retryCount     Int?
   creditsUsed    Int?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@unique([executionId, nodeId])
   @@index([organizationId, executionId])
@@ -4160,31 +4272,31 @@ model WorkflowExecutionNodeResult {
 /// nodes. Durable Library assets remain in Asset/Ingredient; this row only
 /// owns deletion or an explicit promotion handoff for temporary storage.
 model WorkflowArtifact {
-  id               String                @id @default(cuid())
-  organizationId   String
-  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  executionId      String
-  execution        WorkflowExecution     @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  nodeId           String
-  storageProvider  String                @default("primary")
-  storageKey       String
-  kind             String
-  retentionPolicy  String                @default("terminal")
-  metadata         Json                  @default("{}")
-  state            WorkflowArtifactState @default(ACTIVE)
-  expiresAt        DateTime
-  cleanupClaimedAt DateTime?
-  cleanupAttempts  Int                   @default(0)
-  deletedAt        DateTime?
-  lastError        String?
-  promotedAt       DateTime?
-  promotedByUserId String?
-  promotedByUser   User?                 @relation("workflow_artifact_promoted_by", fields: [promotedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  id                  String                @id @default(cuid())
+  organizationId      String
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  executionId         String
+  execution           WorkflowExecution     @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  nodeId              String
+  storageProvider     String                @default("primary")
+  storageKey          String
+  kind                String
+  retentionPolicy     String                @default("terminal")
+  metadata            Json                  @default("{}")
+  state               WorkflowArtifactState @default(ACTIVE)
+  expiresAt           DateTime
+  cleanupClaimedAt    DateTime?
+  cleanupAttempts     Int                   @default(0)
+  deletedAt           DateTime?
+  lastError           String?
+  promotedAt          DateTime?
+  promotedByUserId    String?
+  promotedByUser      User?                 @relation("workflow_artifact_promoted_by", fields: [promotedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   promotionTargetType String?
   promotionTargetId   String?
-  isDeleted        Boolean               @default(false)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  isDeleted           Boolean               @default(false)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
   @@unique([executionId, nodeId, storageProvider, storageKey], map: "workflow_artifacts_storage_identity_key")
   @@index([organizationId, executionId, state, isDeleted], map: "workflow_artifacts_execution_state_idx")
@@ -4217,31 +4329,31 @@ model WorkflowNodeClaim {
 /// process that submitted it. A continuation is created before provider
 /// submission and remains bound to the exact immutable workflow version.
 model WorkflowNodeContinuation {
-  id                String            @id @default(cuid())
-  organizationId    String
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  executionId       String
-  execution         WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  workflowVersionId String
-  workflowVersion   WorkflowVersion   @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  nodeId            String
-  actionId          String
-  ingredientId      String
-  ingredient        Ingredient        @relation(fields: [ingredientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  provider          String
-  externalId        String?
-  status            WorkflowNodeContinuationStatus @default(PENDING_SUBMISSION)
-  initialOutput     Json?
-  providerResult    Json?
-  error             String?
-  creditsUsed       Int               @default(0)
-  resumeClaimedAt   DateTime?
-  pollAttempt       Int?
+  id                    String                         @id @default(cuid())
+  organizationId        String
+  organization          Organization                   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  executionId           String
+  execution             WorkflowExecution              @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workflowVersionId     String
+  workflowVersion       WorkflowVersion                @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nodeId                String
+  actionId              String
+  ingredientId          String
+  ingredient            Ingredient                     @relation(fields: [ingredientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  provider              String
+  externalId            String?
+  status                WorkflowNodeContinuationStatus @default(PENDING_SUBMISSION)
+  initialOutput         Json?
+  providerResult        Json?
+  error                 String?
+  creditsUsed           Int                            @default(0)
+  resumeClaimedAt       DateTime?
+  pollAttempt           Int?
   pollDispatchClaimedAt DateTime?
-  pollDispatchedAt  DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  pollDispatchedAt      DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
 
   @@unique([executionId, nodeId], map: "workflow_node_continuations_execution_node_key")
   @@unique([organizationId, ingredientId], map: "workflow_node_continuations_org_ingredient_key")
@@ -4306,10 +4418,10 @@ model Task {
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
 
-  comments        TaskComment[]
+  comments         TaskComment[]
   linkedExecutions WorkflowExecution[] @relation("task_linked_executions")
-  linkedOutputs   Ingredient[]  @relation("task_linked_outputs")
-  approvedOutputs Ingredient[]  @relation("task_approved_outputs")
+  linkedOutputs    Ingredient[]        @relation("task_linked_outputs")
+  approvedOutputs  Ingredient[]        @relation("task_approved_outputs")
 
   assigneeUserId  String?
   assigneeAgentId String?
@@ -4320,8 +4432,8 @@ model Task {
   checkoutRunId   String?
   checkedOutAt    DateTime?
 
-  @@index([organizationId, checkoutAgentId])
   @@unique([organizationId, identifier])
+  @@index([organizationId, checkoutAgentId])
   @@map("tasks")
 }
 
@@ -4648,11 +4760,11 @@ model ListeningEvidence {
 /// explicit comparison windows. Evidence membership is stored in the explicit
 /// ListeningThemeEvidence join rather than copied into the theme record.
 model ListeningTheme {
-  id                  String       @id @default(cuid())
+  id                  String         @id @default(cuid())
   organizationId      String
-  organization        Organization @relation(fields: [organizationId], references: [id])
+  organization        Organization   @relation(fields: [organizationId], references: [id])
   brandId             String
-  brand               Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand               Brand          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   topicId             String
   topic               ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   label               String
@@ -4664,13 +4776,13 @@ model ListeningTheme {
   previousWindowStart DateTime
   previousWindowEnd   DateTime
   idempotencyKey      String
-  reviewState          String       @default("unreviewed")
-  reviewedAt           DateTime?
-  reviewedBy           String?
-  reviewer             User?        @relation("listening_theme_reviewed_by", fields: [reviewedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  isDeleted           Boolean      @default(false)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  reviewState         String         @default("unreviewed")
+  reviewedAt          DateTime?
+  reviewedBy          String?
+  reviewer            User?          @relation("listening_theme_reviewed_by", fields: [reviewedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  isDeleted           Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   evidence ListeningThemeEvidence[]
   signals  ListeningSignal[]
@@ -4703,13 +4815,13 @@ model ListeningThemeEvidence {
 /// A bounded, attributable calculation. Insufficient coverage is durable and
 /// observable: status explains the outcome and value remains null.
 model ListeningSignal {
-  id                  String       @id @default(cuid())
+  id                  String          @id @default(cuid())
   organizationId      String
-  organization        Organization @relation(fields: [organizationId], references: [id])
+  organization        Organization    @relation(fields: [organizationId], references: [id])
   brandId             String
-  brand               Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand               Brand           @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   topicId             String
-  topic               ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  topic               ListeningTopic  @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   themeId             String?
   theme               ListeningTheme? @relation(fields: [themeId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
   signalType          String
@@ -4723,13 +4835,13 @@ model ListeningSignal {
   currentWindowEnd    DateTime
   previousWindowStart DateTime
   previousWindowEnd   DateTime
-  includedSourceIds   String[]     @default([])
-  excludedSourceIds   String[]     @default([])
-  evidenceIds         String[]     @default([])
+  includedSourceIds   String[]        @default([])
+  excludedSourceIds   String[]        @default([])
+  evidenceIds         String[]        @default([])
   idempotencyKey      String
-  isDeleted           Boolean      @default(false)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  isDeleted           Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   @@unique([organizationId, brandId, topicId, idempotencyKey], map: "listening_signals_scope_idempotency_key")
   @@index([organizationId, brandId, topicId, analysisKey, isDeleted], map: "listening_signals_scope_analysis_idx")
@@ -4872,14 +4984,14 @@ model CreativePattern {
 /// `measuredAt` stores the last scanned source `updatedAt` — AdPerformance has
 /// no measuredAt column (#2511 owns that model).
 model PatternExtractionCheckpoint {
-  id          String   @id @default(cuid())
-  source      String   @unique
-  measuredAt  DateTime
-  sourceId    String
-  data        Json     @default("{}")
-  lastRunAt   DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  source     String   @unique
+  measuredAt DateTime
+  sourceId   String
+  data       Json     @default("{}")
+  lastRunAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("pattern_extraction_checkpoints")
 }
@@ -5160,27 +5272,27 @@ model AdPerformance {
 /// paid-creative transparency sources (Meta Ad Library, TikTok Creative Center,
 /// Google Ads Transparency Center, X DSA Ads Repository). #3395, #3537.
 model AdWatchedAdvertiser {
-  id                   String       @id @default(cuid())
-  organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id])
-  brandId              String?
-  brand                Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  credentialId         String?
-  credential           Credential?  @relation(fields: [credentialId], references: [id])
-  platform             String       @default("x")
-  advertiserHandle     String
-  advertiserName       String?
-  externalAdvertiserId String?
-  freshnessState       String       @default("unavailable")
-  lastAttemptedAt      DateTime?
-  lastSuccessfulAt     DateTime?
-  lastIngestionStatus  String?
-  lastIngestionErrorCode String?
-  lastSnapshotId       String?
+  id                      String       @id @default(cuid())
+  organizationId          String
+  organization            Organization @relation(fields: [organizationId], references: [id])
+  brandId                 String?
+  brand                   Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  credentialId            String?
+  credential              Credential?  @relation(fields: [credentialId], references: [id])
+  platform                String       @default("x")
+  advertiserHandle        String
+  advertiserName          String?
+  externalAdvertiserId    String?
+  freshnessState          String       @default("unavailable")
+  lastAttemptedAt         DateTime?
+  lastSuccessfulAt        DateTime?
+  lastIngestionStatus     String?
+  lastIngestionErrorCode  String?
+  lastSnapshotId          String?
   lastSnapshotRecordCount Int?
-  isDeleted            Boolean      @default(false)
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  isDeleted               Boolean      @default(false)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
   // Exact platform + brand-or-organization-fallback uniqueness is enforced by
   // two raw partial indexes in the migration; Prisma cannot represent NULL
@@ -5266,17 +5378,17 @@ model TrendPreferences {
 }
 
 model TrendRemixLineage {
-  id             String        @id @default(cuid())
+  id             String       @id @default(cuid())
   organizationId String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
-  brand          Brand?        @relation(fields: [brandId], references: [id])
+  brand          Brand?       @relation(fields: [brandId], references: [id])
   postId         String?
-  post           Post?         @relation(fields: [postId], references: [id])
-  data           Json          @default("{}")
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  post           Post?        @relation(fields: [postId], references: [id])
+  data           Json         @default("{}")
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   trends           Trend[]                @relation("remix_lineage_trends")
   sourceReferences TrendSourceReference[] @relation("remix_lineage_source_refs")
@@ -5575,21 +5687,21 @@ model Preset {
 }
 
 model Caption {
-  id             String       @id @default(cuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  ingredientId   String?
-  ingredient     Ingredient?  @relation(fields: [ingredientId], references: [id])
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id])
+  ingredientId        String?
+  ingredient          Ingredient?        @relation(fields: [ingredientId], references: [id])
   workflowExecutionId String?
   workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  content        String?
-  format         String       @default("srt")
-  language       String       @default("en")
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  organizationId      String
+  organization        Organization       @relation(fields: [organizationId], references: [id])
+  content             String?
+  format              String             @default("srt")
+  language            String             @default("en")
+  isDeleted           Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)])
@@ -5597,35 +5709,35 @@ model Caption {
 }
 
 model ClipProject {
-  id                  String             @id @default(cuid())
-  organizationId      String
-  organization        Organization       @relation(fields: [organizationId], references: [id])
-  brandId             String?
-  brand               Brand?             @relation(fields: [brandId], references: [id])
-  userId              String?
-  user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id                            String             @id @default(cuid())
+  organizationId                String
+  organization                  Organization       @relation(fields: [organizationId], references: [id])
+  brandId                       String?
+  brand                         Brand?             @relation(fields: [brandId], references: [id])
+  userId                        String?
+  user                          User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   workflowExecutionId           String?            @unique
   workflowExecution             WorkflowExecution? @relation("clip_generation_workflow_execution", fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   continuityWorkflowExecutionId String?            @unique
   continuityWorkflowExecution   WorkflowExecution? @relation("clip_continuity_workflow_execution", fields: [continuityWorkflowExecutionId], references: [id], onDelete: SetNull)
-  continuityQaStatus            String              @default("not-required")
-  results             ClipResult[]
-  status              String             @default("pending")
-  progress            Int                @default(0)
-  error               String?
-  readyClipCount      Int                @default(0)
-  failedClipCount     Int                @default(0)
-  pendingClipCount    Int                @default(0)
-  readiness           Json               @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
-  terminalAt          DateTime?
-  config              Json               @default("{}")
-  isDeleted           Boolean            @default(false)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  continuityQaStatus            String             @default("not-required")
+  results                       ClipResult[]
+  status                        String             @default("pending")
+  progress                      Int                @default(0)
+  error                         String?
+  readyClipCount                Int                @default(0)
+  failedClipCount               Int                @default(0)
+  pendingClipCount              Int                @default(0)
+  readiness                     Json               @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt                    DateTime?
+  config                        Json               @default("{}")
+  isDeleted                     Boolean            @default(false)
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime           @updatedAt
 
+  @@unique([id, organizationId])
   @@index([organizationId, status, isDeleted])
   @@index([userId])
-  @@unique([id, organizationId])
   @@map("clip_projects")
 }
 
@@ -5735,18 +5847,18 @@ model ContextBase {
 }
 
 model ContextEntry {
-  id             String       @id @default(cuid())
-  contextBaseId  String
-  contextBase    ContextBase  @relation(fields: [contextBaseId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  data           Json         @default("{}")
-  embedding      Unsupported("vector(1024)")?
+  id                 String                       @id @default(cuid())
+  contextBaseId      String
+  contextBase        ContextBase                  @relation(fields: [contextBaseId], references: [id])
+  organizationId     String
+  organization       Organization                 @relation(fields: [organizationId], references: [id])
+  data               Json                         @default("{}")
+  embedding          Unsupported("vector(1024)")?
   embeddingClaimedAt DateTime?
   embeddingFailedAt  DateTime?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isDeleted          Boolean                      @default(false)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
 
   // Context-base reads also enforce organization ownership. The context-base
   // prefix remains the selective hot-path key; organizationId is applied in
@@ -5969,23 +6081,23 @@ model Profile {
 }
 
 model Batch {
-  id              String         @id @default(cuid())
-  organizationId  String
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  userId          String
-  user            User           @relation(fields: [userId], references: [id])
-  brandId         String?
-  brand           Brand?         @relation(fields: [brandId], references: [id])
-  agentStrategyId String?
-  agentStrategy   AgentStrategy? @relation(fields: [agentStrategyId], references: [id])
-  items           Json           @default("[]")
-  status          BatchStatus    @default(PENDING)
-  config          Json           @default("{}")
-  settlementShortfall Float?
+  id                     String         @id @default(cuid())
+  organizationId         String
+  organization           Organization   @relation(fields: [organizationId], references: [id])
+  userId                 String
+  user                   User           @relation(fields: [userId], references: [id])
+  brandId                String?
+  brand                  Brand?         @relation(fields: [brandId], references: [id])
+  agentStrategyId        String?
+  agentStrategy          AgentStrategy? @relation(fields: [agentStrategyId], references: [id])
+  items                  Json           @default("[]")
+  status                 BatchStatus    @default(PENDING)
+  config                 Json           @default("{}")
+  settlementShortfall    Float?
   settlementShortfallSeq Int?
-  isDeleted       Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  isDeleted              Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 
   batchItems BatchItem[]
 
@@ -6269,31 +6381,31 @@ model RssFeedItem {
 
 /// Engagement-triggered automation attached to a published release target.
 model EngagementRule {
-  id                   String               @id @default(cuid())
-  userId               String
-  user                 User                 @relation(fields: [userId], references: [id])
-  organizationId       String
-  organization         Organization         @relation(fields: [organizationId], references: [id])
-  brandId              String?
-  brand                Brand?               @relation(fields: [brandId], references: [id])
-  postGroupId          String
-  postGroup            PostGroup            @relation(fields: [postGroupId], references: [id])
-  targetId             String
-  metric               EngagementMetric
-  threshold            Float
-  windowEndsAt         DateTime?
-  actionType           EngagementRuleAction
-  actionPayload        Json                 @default("{}")
-  mode                 EngagementRuleMode   @default(APPROVAL)
-  state                EngagementRuleState  @default(ARMED)
-  isEnabled            Boolean              @default(true)
-  triggeredAt          DateTime?
-  metricSnapshot       Json?
-  resultingReleaseId   String?
-  lastError            String?
-  isDeleted            Boolean              @default(false)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                 String               @id @default(cuid())
+  userId             String
+  user               User                 @relation(fields: [userId], references: [id])
+  organizationId     String
+  organization       Organization         @relation(fields: [organizationId], references: [id])
+  brandId            String?
+  brand              Brand?               @relation(fields: [brandId], references: [id])
+  postGroupId        String
+  postGroup          PostGroup            @relation(fields: [postGroupId], references: [id])
+  targetId           String
+  metric             EngagementMetric
+  threshold          Float
+  windowEndsAt       DateTime?
+  actionType         EngagementRuleAction
+  actionPayload      Json                 @default("{}")
+  mode               EngagementRuleMode   @default(APPROVAL)
+  state              EngagementRuleState  @default(ARMED)
+  isEnabled          Boolean              @default(true)
+  triggeredAt        DateTime?
+  metricSnapshot     Json?
+  resultingReleaseId String?
+  lastError          String?
+  isDeleted          Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
   @@index([organizationId, isDeleted, state, isEnabled])
   @@index([organizationId, postGroupId, isDeleted])
@@ -6303,27 +6415,27 @@ model EngagementRule {
 
 /// Queryable audit of every agent-initiated publish policy decision.
 model AgentPublishAudit {
-  id             String               @id @default(cuid())
-  userId         String
-  user           User                 @relation(fields: [userId], references: [id])
-  organizationId String
-  organization   Organization         @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?               @relation(fields: [brandId], references: [id])
-  postGroupId    String?
-  postGroup      PostGroup?           @relation(fields: [postGroupId], references: [id])
+  id                  String               @id @default(cuid())
+  userId              String
+  user                User                 @relation(fields: [userId], references: [id])
+  organizationId      String
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?               @relation(fields: [brandId], references: [id])
+  postGroupId         String?
+  postGroup           PostGroup?           @relation(fields: [postGroupId], references: [id])
   workflowExecutionId String?
-  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
-  agentThreadId  String?
-  agentStrategyId String?
-  autonomyMode   String
-  channel        String?
-  policyName     String
-  decision       AgentPublishDecision
-  reason         String
-  isDeleted      Boolean              @default(false)
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  workflowExecution   WorkflowExecution?   @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  agentThreadId       String?
+  agentStrategyId     String?
+  autonomyMode        String
+  channel             String?
+  policyName          String
+  decision            AgentPublishDecision
+  reason              String
+  isDeleted           Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([postGroupId, isDeleted, createdAt(sort: Desc)])

@@ -10,6 +10,7 @@ import { Text } from '@ui/typography/text';
 import { TriangleAlert } from 'lucide-react';
 import AddCreditsCard from '../billing/add-credits-card';
 import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
+import ReferralHubCard from './referral-hub-card';
 
 /**
  * Credits surface: balance + top-up.
@@ -83,6 +84,10 @@ export default function SettingsCreditsPage() {
       ) : (
         <AddCreditsCard />
       )}
+
+      {isBillingEnabled && !useManagedCloudCheckout ? (
+        <ReferralHubCard />
+      ) : null}
     </div>
   );
 }

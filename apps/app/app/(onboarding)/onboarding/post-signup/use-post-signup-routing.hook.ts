@@ -25,6 +25,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
+import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { ClipProjectsService } from '@services/content/clip-projects.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -41,6 +42,7 @@ import {
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
+  parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
@@ -50,6 +52,8 @@ export type PostSignupRoutingState = {
   resolveOnboardingHref: () => Promise<string>;
   retryBrandOsHandoff?: (() => void) | undefined;
 };
+
+const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
   const { getToken } = useAuthIdentity();
@@ -62,6 +66,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandNameParam = searchParams.get('brandName');
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
+  const requestedReferralCodeParam = searchParams.get('ref');
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
@@ -198,6 +203,49 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           ONBOARDING_STORAGE_KEYS.brandName,
           requestedBrandName,
         );
+      }
+
+      const referralCode =
+        parseReferralCode(requestedReferralCodeParam) ??
+        parseReferralCode(
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode),
+        );
+      if (referralCode) {
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          logger.warn(
+            'Referral attribution deferred because no auth token was available',
+          );
+        } else {
+          let timeoutId: number | undefined;
+          const claimAttempt = ReferralsService.getInstance(token)
+            .claim(referralCode)
+            .then(() => {
+              localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
+              return 'settled' as const;
+            })
+            .catch((error: unknown) => {
+              logger.error('Failed to claim referral after auth', error);
+              return 'failed' as const;
+            });
+          const claimOutcome = await Promise.race([
+            claimAttempt,
+            new Promise<'timed-out'>((resolve) => {
+              timeoutId = window.setTimeout(
+                () => resolve('timed-out'),
+                REFERRAL_CLAIM_TIMEOUT_MS,
+              );
+            }),
+          ]);
+          if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+          }
+          if (claimOutcome === 'timed-out') {
+            logger.warn(
+              'Referral attribution is still pending; continuing post-signup routing',
+            );
+          }
+        }
       }
 
       const requestedPlan = resolveSelectedPlanParam(requestedPlanParam);
@@ -558,6 +606,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedClipToolTokenParam,
     requestedCreditsParam,
     requestedPlanParam,
+    requestedReferralCodeParam,
     routingAttempt,
     resolveCheckoutReturnHref,
     resolveOnboardingHref,
