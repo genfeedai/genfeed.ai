@@ -111,8 +111,7 @@ export class RouterService extends HTTPBaseService {
   async selectModel(request: SelectModelRequest): Promise<ModelRecommendation> {
     return await this.instance
       .post<ModelRecommendation>('/select-model', request)
-      .then((res) => res.data)
-      .then((data) => data);
+      .then((res) => res.data);
   }
 
   /**

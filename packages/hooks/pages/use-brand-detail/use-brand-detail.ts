@@ -9,7 +9,6 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ArticleStatus,
   AssetCategory,
-  AssetParent,
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -409,43 +408,6 @@ export function useBrandDetail(): UseBrandDetailReturn {
       getBrandsService,
       notificationsService,
     ],
-  );
-
-  const _confirmGenerateAsset = useCallback(
-    async (type: 'banner' | 'logo', modelKey: string) => {
-      if (!state.brand) {
-        return;
-      }
-
-      const isBanner = type === 'banner';
-      if (isBanner) {
-        setIsGeneratingBanner(true);
-      } else {
-        setIsGeneratingLogo(true);
-      }
-
-      try {
-        const assetsService = await getAssetsService();
-        const response = await assetsService.postGenerate({
-          category: isBanner ? AssetCategory.BANNER : AssetCategory.LOGO,
-          model: modelKey,
-          parentId: state.brand.id,
-          parentType: AssetParent.BRAND,
-          text: state.brand.label,
-        });
-
-        if (response?.id) {
-          setPendingAssetId(response.id);
-        }
-      } catch (error) {
-        logger.error('Failed to generate asset', error);
-        notificationsService.error('Failed to generate asset');
-        setIsGeneratingBanner(false);
-        setIsGeneratingLogo(false);
-        setPendingAssetId(null);
-      }
-    },
-    [state.brand, getAssetsService, notificationsService],
   );
 
   const handleGenerateBanner = useCallback(() => {

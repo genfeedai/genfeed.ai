@@ -1,18 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { serializeProviderCatalog } from '@api/services/integrations/_shared/serialize-provider-catalog';
-import { HedraService } from '@server/services/integrations/hedra/services/hedra.service';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -29,7 +21,15 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HedraService } from '@server/services/integrations/hedra/services/hedra.service';
+import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Request } from 'express';
 
 type HeyGenVoice = Awaited<ReturnType<HeyGenService['getVoices']>>[number];
@@ -140,7 +140,12 @@ export class AvatarsController {
         id: 'hedra',
         type: 'voice-provider',
       });
-    } catch (_error: unknown) {
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} ${CallerUtil.getCallerName()} failed`,
+        error,
+      );
+
       throw new HttpException(
         'Failed to fetch Hedra voices',
         HttpStatus.INTERNAL_SERVER_ERROR,

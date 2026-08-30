@@ -98,8 +98,7 @@ export default function ColorPicker({
   };
 
   const updateColorPicker = (colorResult: ColorResult) => {
-    const nextColor = showAlpha ? colorResult.hex : colorResult.hex;
-    onChange(nextColor);
+    onChange(colorResult.hex);
   };
 
   return (
