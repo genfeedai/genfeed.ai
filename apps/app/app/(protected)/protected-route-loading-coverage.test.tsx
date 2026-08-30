@@ -1,13 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRouterDirs = ['apps/app/app', 'apps/website/app'] as const;
-const routeLoadingShells = [
-  'apps/app/app/(protected)/[orgSlug]/[brandSlug]/loading.tsx',
-  'apps/app/app/(protected)/admin/loading.tsx',
-  'apps/website/app/(content)/loading.tsx',
-] as const;
+// The product app renders page shells immediately and keeps loading states
+// inside data regions, so it defines no route-level loading.tsx fallbacks.
+// The public website keeps its single content route-group shell.
+const routeLoadingShells = ['apps/website/app/(content)/loading.tsx'] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;
@@ -45,7 +44,7 @@ function collectRouteLoadingFiles(
 }
 
 describe('route loading shell coverage', () => {
-  it('defines loading shells only at the shared route-group boundaries', () => {
+  it('keeps the product app free of route-level loading.tsx fallbacks', () => {
     const routeLoadingFiles = appRouterDirs.flatMap((appRouterDir) => {
       const absoluteAppRouterDir = join(repoRoot, appRouterDir);
 
@@ -60,14 +59,5 @@ describe('route loading shell coverage', () => {
     });
 
     expect(routeLoadingFiles.sort()).toEqual([...routeLoadingShells].sort());
-  });
-
-  it.each(routeLoadingShells)('reuses LazyLoadingFallback in %s', (route) => {
-    const source = readFileSync(join(repoRoot, route), 'utf8');
-
-    expect(source).toContain(
-      "import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback'",
-    );
-    expect(source).toContain('return <LazyLoadingFallback variant="grid" />;');
   });
 });
