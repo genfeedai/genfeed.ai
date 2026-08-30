@@ -694,6 +694,9 @@ jobs:
         run: cd apps/app && bunx vitest run --config ./vitest.config.mts --maxWorkers=2 --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
+          # The heaviest shard retains just over Node's default ~4 GiB heap even
+          # after per-test DOM/mock cleanup. Match the app build's proven limit.
+          NODE_OPTIONS: --max-old-space-size=6144
 
   # Focused, blocking app tests on master push and every ordinary PR. The
   # planner counts the exact Vitest changed graph and selects one, two, or four
