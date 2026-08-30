@@ -87,7 +87,6 @@ describe('YoutubeService — extended coverage', () => {
       getChannelDetails: vi.fn(),
       getMediaAnalytics: vi.fn(),
       getMediaAnalyticsBatch: vi.fn(),
-      getTrends: vi.fn(),
     } as unknown as vi.Mocked<YoutubeAnalyticsService>;
 
     commentsService = {
@@ -246,43 +245,43 @@ describe('YoutubeService — extended coverage', () => {
   });
 
   // -------------------------------------------------------------------------
-  // getTrends — explicit regionCode override (default 'US' covered in base spec)
+  // getTrends — YouTube Data API request options
   // -------------------------------------------------------------------------
 
-  describe('getTrends — region override', () => {
-    it('passes explicit regionCode to analyticsService', async () => {
-      analyticsService.getTrends.mockResolvedValue([] as never);
+  describe('getTrends — request options', () => {
+    it('passes an explicit region code to videos.list', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
 
-      await service.getTrends('org', 'brand', 'GB');
+      await service.getTrends('GB');
 
-      expect(analyticsService.getTrends).toHaveBeenCalledWith(
-        'org',
-        'brand',
-        'GB',
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ chart: 'mostPopular', regionCode: 'GB' }),
       );
     });
 
-    it('uses default regionCode US when omitted', async () => {
-      analyticsService.getTrends.mockResolvedValue([] as never);
+    it('uses the US region and a 20-item limit by default', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
 
-      await service.getTrends('org', 'brand');
+      await service.getTrends();
 
-      expect(analyticsService.getTrends).toHaveBeenCalledWith(
-        'org',
-        'brand',
-        'US',
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ maxResults: 20, regionCode: 'US' }),
       );
     });
 
-    it('works without organizationId and brandId', async () => {
-      analyticsService.getTrends.mockResolvedValue([] as never);
+    it('clamps the requested limit to the API maximum', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
 
-      await service.getTrends(undefined, undefined, 'JP');
+      await service.getTrends('JP', 100);
 
-      expect(analyticsService.getTrends).toHaveBeenCalledWith(
-        undefined,
-        undefined,
-        'JP',
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ maxResults: 50, regionCode: 'JP' }),
       );
     });
   });
