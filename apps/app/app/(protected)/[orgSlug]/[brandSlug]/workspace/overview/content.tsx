@@ -15,6 +15,10 @@ import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
 function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
   const { bundle, isLoading } = useWorkspaceDashboardData(layout.brandId);
   const hydration = useMemo(() => {
+    if (isLoading) {
+      return { blocks: [], isValid: true };
+    }
+
     try {
       return {
         blocks: hydrateLayout(layout.document, bundle),
@@ -23,7 +27,7 @@ function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
     } catch {
       return { blocks: [], isValid: false };
     }
-  }, [bundle, layout.document]);
+  }, [bundle, isLoading, layout.document]);
 
   if (isLoading) {
     return (

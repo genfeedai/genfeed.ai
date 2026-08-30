@@ -10,8 +10,14 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+// The real hook returns a referentially stable callback; the mock must too,
+// or every render re-fires the load effect and drains the *Once mocks.
+const getBotsServiceStable = vi.hoisted(() => async () => ({
+  findAllPages: mocks.findAllPages,
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ findAllPages: mocks.findAllPages }),
+  useAuthedService: () => getBotsServiceStable,
 }));
 
 vi.mock('@services/core/logger.service', () => ({

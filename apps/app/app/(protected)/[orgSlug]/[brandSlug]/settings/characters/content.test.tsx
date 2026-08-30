@@ -145,7 +145,9 @@ describe('BrandSettingsCharactersPage', () => {
 
     // Chrome renders immediately: title card and create-wizard fields don't
     // wait on the character list.
-    expect(screen.getByText('Characters')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Characters' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('character-description')).toBeInTheDocument();
     expect(screen.getByTestId('characters-list-loading')).toBeInTheDocument();
 
