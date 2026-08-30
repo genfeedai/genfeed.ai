@@ -4,7 +4,6 @@ import type {
   AdsChannel,
   AdsResearchMetric,
   AdsResearchPlatform,
-  AdsResearchSource,
   AdsResearchTimeframe,
 } from '@genfeedai/interfaces';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
@@ -16,13 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import type { AdsResearchViewSource } from './useAdsResearchPageClient';
 
 const ALL_FILTER_VALUE = '__all__';
 
-const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchSource }> = [
+const SOURCE_OPTIONS: Array<{ label: string; value: AdsResearchViewSource }> = [
   { label: 'Public + My Accounts', value: 'all' },
   { label: 'Public', value: 'public' },
   { label: 'My Accounts', value: 'my_accounts' },
+  { label: 'Saved', value: 'saved' },
 ];
 
 const PLATFORM_OPTIONS: Array<{
@@ -125,7 +126,7 @@ type AdsResearchFilterPanelProps = {
   metric: AdsResearchMetric;
   platform: AdsResearchPlatform | 'all';
   showChannelFilter: boolean;
-  source: AdsResearchSource;
+  source: AdsResearchViewSource;
   timeframe: AdsResearchTimeframe;
   onAdAccountChange: (value: string) => void;
   onChannelChange: (value: AdsChannel) => void;
@@ -134,7 +135,7 @@ type AdsResearchFilterPanelProps = {
   onLoginCustomerIdChange: (value: string) => void;
   onMetricChange: (value: AdsResearchMetric) => void;
   onPlatformChange: (value: AdsResearchPlatform | 'all') => void;
-  onSourceChange: (value: AdsResearchSource) => void;
+  onSourceChange: (value: AdsResearchViewSource) => void;
   onTimeframeChange: (value: AdsResearchTimeframe) => void;
 };
 

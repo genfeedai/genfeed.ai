@@ -6,6 +6,7 @@ import type {
   AdPack,
   AdsChannel,
   AdsResearchDetail,
+  AdsResearchItem,
   AdsResearchPlatform,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces';
@@ -14,7 +15,9 @@ import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import {
+  Bookmark,
   ChartColumn,
   ExternalLink,
   Rocket,
@@ -23,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import { formatMetric } from './ads-metric.helpers';
 
@@ -34,6 +38,7 @@ type SelectedAdRef = {
   loginCustomerId?: string;
   platform?: AdsResearchPlatform;
   source: 'public' | 'my_accounts';
+  savedAdId?: string;
 };
 
 type SummaryMetricCardProps = {
@@ -234,6 +239,9 @@ type DetailSidebarProps = {
     workflowName: string;
   } | null;
   brandLabel: string;
+  onToggleSaved: (items: AdsResearchItem[]) => void;
+  onUpdateSavedNote: (id: string, note: string) => void;
+  savedMutating: boolean;
 };
 
 export function DetailSidebar({
@@ -248,7 +256,16 @@ export function DetailSidebar({
   adPackResult,
   launchPrepResult,
   workflowResult,
+  onToggleSaved,
+  onUpdateSavedNote,
+  savedMutating,
 }: DetailSidebarProps) {
+  const [note, setNote] = useState('');
+
+  useEffect(() => {
+    setNote(detail?.savedNote ?? '');
+  }, [detail?.savedNote]);
+
   return (
     <>
       {/* Backdrop */}
@@ -296,6 +313,9 @@ export function DetailSidebar({
                     <Badge variant="ghost">{detail.channel}</Badge>
                   )}
                   {detail.status && <Badge status={detail.status} />}
+                  {detail.isSavedSnapshot && (
+                    <Badge variant="success">Saved snapshot</Badge>
+                  )}
                 </div>
 
                 <div>
@@ -399,6 +419,59 @@ export function DetailSidebar({
 
               <div className="grid gap-2">
                 <Button
+                  variant={
+                    detail.savedAdId
+                      ? ButtonVariant.SECONDARY
+                      : ButtonVariant.GHOST
+                  }
+                  size={ButtonSize.SM}
+                  disabled={
+                    savedMutating || detail.usagePolicy === 'disclosure_only'
+                  }
+                  onClick={() => onToggleSaved([detail])}
+                  icon={
+                    <Bookmark
+                      className={
+                        detail.savedAdId ? 'size-4 fill-current' : 'size-4'
+                      }
+                    />
+                  }
+                >
+                  {detail.savedAdId
+                    ? 'Unsave from swipe file'
+                    : 'Save to swipe file'}
+                </Button>
+                {detail.savedAdId ? (
+                  <div className="space-y-2 rounded-md border border-border p-3">
+                    <label
+                      className="text-xs font-medium text-foreground"
+                      htmlFor="saved-ad-note"
+                    >
+                      Brand note
+                    </label>
+                    <Textarea
+                      id="saved-ad-note"
+                      value={note}
+                      maxLength={1000}
+                      placeholder="Why this ad is worth revisiting…"
+                      onChange={(event) => setNote(event.target.value)}
+                    />
+                    <Button
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.SM}
+                      disabled={savedMutating}
+                      onClick={() =>
+                        onUpdateSavedNote(detail.savedAdId as string, note)
+                      }
+                    >
+                      Save note
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-2">
+                <Button
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   onClick={onOpenRemix}
@@ -406,24 +479,28 @@ export function DetailSidebar({
                 >
                   Remix for my brand
                 </Button>
-                <Button
-                  variant={ButtonVariant.DEFAULT}
-                  size={ButtonSize.SM}
-                  isLoading={busyAction === 'workflow'}
-                  onClick={() => onRunAction('workflow')}
-                  icon={<Wrench className="size-4" />}
-                >
-                  Create workflow
-                </Button>
-                <Button
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  isLoading={busyAction === 'launch_prep'}
-                  onClick={() => onRunAction('launch_prep')}
-                  icon={<Rocket className="size-4" />}
-                >
-                  Build launch plan
-                </Button>
+                {!detail.isSavedSnapshot ? (
+                  <Button
+                    variant={ButtonVariant.DEFAULT}
+                    size={ButtonSize.SM}
+                    isLoading={busyAction === 'workflow'}
+                    onClick={() => onRunAction('workflow')}
+                    icon={<Wrench className="size-4" />}
+                  >
+                    Create workflow
+                  </Button>
+                ) : null}
+                {!detail.isSavedSnapshot ? (
+                  <Button
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    isLoading={busyAction === 'launch_prep'}
+                    onClick={() => onRunAction('launch_prep')}
+                    icon={<Rocket className="size-4" />}
+                  >
+                    Build launch plan
+                  </Button>
+                ) : null}
               </div>
 
               {workflowResult && (

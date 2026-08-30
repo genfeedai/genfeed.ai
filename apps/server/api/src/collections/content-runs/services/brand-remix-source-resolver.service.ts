@@ -15,14 +15,14 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { BrandRemixSourceSelector } from '@api-types/contracts/brand-remix-run.contract';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { AdsResearchDetail } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class BrandRemixSourceResolverService {
@@ -47,6 +47,8 @@ export class BrandRemixSourceResolverService {
         return this.resolveTrendReference(organizationId, brandId, selector);
       case 'public_ad':
         return this.resolvePublicAd(organizationId, brandId, selector);
+      case 'saved_ad':
+        return this.resolveSavedAd(organizationId, brandId, selector);
       case 'connected_ad':
         return this.resolveConnectedAd(organizationId, brandId, selector);
     }
@@ -294,10 +296,60 @@ export class BrandRemixSourceResolverService {
     return this.resolvedAd(selector, detail);
   }
 
+  private async resolveSavedAd(
+    organizationId: string,
+    brandId: string,
+    selector: Extract<BrandRemixSourceSelector, { kind: 'saved_ad' }>,
+  ): Promise<ResolvedSource> {
+    const saved = await this.prisma.savedAd.findFirst({
+      where: scopedWhere(organizationId, {
+        brandId,
+        id: selector.savedAdId,
+      }),
+    });
+    if (!saved) throw new NotFoundException('Saved ad', selector.savedAdId);
+
+    const patterns = Array.isArray(saved.patternSummary)
+      ? saved.patternSummary.flatMap((value) => {
+          const record = remixRecord(value);
+          const label = remixText(record.label);
+          const summary = remixText(record.summary);
+          return label && summary ? [{ label, summary }] : [];
+        })
+      : [];
+    return this.resolvedAd(selector, {
+      body: saved.body ?? undefined,
+      channel: saved.channel as AdsResearchDetail['channel'],
+      creative: {
+        body: saved.body ?? undefined,
+        cta: saved.cta ?? undefined,
+        headline: saved.headline ?? undefined,
+        imageUrls: saved.imageUrls,
+        landingPageUrl: saved.landingPageUrl ?? undefined,
+        videoUrls: saved.videoUrls,
+      },
+      cta: saved.cta ?? undefined,
+      explanation: saved.explanation,
+      headline: saved.headline ?? undefined,
+      id: saved.id,
+      imageUrls: saved.imageUrls,
+      landingPageUrl: saved.landingPageUrl ?? undefined,
+      metrics: remixNumericRecord(saved.metrics),
+      patternSummary: patterns,
+      platform: saved.platform as AdsResearchDetail['platform'],
+      previewUrl: saved.previewUrl ?? saved.imageUrls[0] ?? saved.videoUrls[0],
+      source: saved.source as AdsResearchDetail['source'],
+      sourceId: saved.sourceAdId,
+      title: saved.title,
+      usagePolicy: saved.usagePolicy as AdsResearchDetail['usagePolicy'],
+      videoUrls: saved.videoUrls,
+    });
+  }
+
   private resolvedAd(
     selector: Extract<
       BrandRemixSourceSelector,
-      { kind: 'connected_ad' | 'public_ad' }
+      { kind: 'connected_ad' | 'public_ad' | 'saved_ad' }
     >,
     detail: AdsResearchDetail,
   ): ResolvedSource {
@@ -315,7 +367,9 @@ export class BrandRemixSourceResolverService {
       remixText(detail.sourceId) ??
       (selector.kind === 'public_ad'
         ? selector.adPerformanceId
-        : selector.adId);
+        : selector.kind === 'saved_ad'
+          ? selector.savedAdId
+          : selector.adId);
     const patternLabels =
       detail.patternSummary?.flatMap((pattern) =>
         remixText(pattern.label) ? [remixTruncate(pattern.label)] : [],

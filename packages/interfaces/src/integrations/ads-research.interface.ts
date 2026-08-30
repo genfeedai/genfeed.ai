@@ -93,6 +93,12 @@ export interface AdsResearchItem {
   };
   patternSummary?: AdsResearchPatternSummary[];
   usagePolicy?: 'remix_allowed' | 'disclosure_only';
+  firstSeenAt?: string;
+  lastSeenAt?: string;
+  savedAdId?: string;
+  savedAt?: string;
+  savedNote?: string;
+  isSavedSnapshot?: boolean;
 }
 
 export interface AdsResearchDetail extends AdsResearchItem {

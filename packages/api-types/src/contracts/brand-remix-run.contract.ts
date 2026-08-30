@@ -85,6 +85,13 @@ export const publicAdRemixSourceSelectorSchema = z
   })
   .strict();
 
+export const savedAdRemixSourceSelectorSchema = z
+  .object({
+    kind: z.literal('saved_ad'),
+    savedAdId: opaqueIdSchema,
+  })
+  .strict();
+
 export const connectedAdRemixSourceSelectorSchema = z
   .object({
     adAccountId: opaqueIdSchema,
@@ -102,6 +109,7 @@ export const brandRemixSourceSelectorSchema = z.discriminatedUnion('kind', [
   sourcePostRemixSourceSelectorSchema,
   ownedPostRemixSourceSelectorSchema,
   publicAdRemixSourceSelectorSchema,
+  savedAdRemixSourceSelectorSchema,
   connectedAdRemixSourceSelectorSchema,
 ]);
 

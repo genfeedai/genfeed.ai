@@ -95,6 +95,8 @@ export default function AdsResearchPageClient({
     refetch,
     results,
     resultsError,
+    savedError,
+    savedMutating,
     accountsError,
     runAction,
     search,
@@ -122,6 +124,8 @@ export default function AdsResearchPageClient({
     industry,
     loginCustomerId,
     timeframe,
+    toggleSaved,
+    updateSavedNote,
     brandLabel,
     workflowResult,
     viewType,
@@ -146,11 +150,13 @@ export default function AdsResearchPageClient({
    */
   const showConnectStrip = !hasCredentials && hasAds;
   const sourceLabel =
-    results.summary.selectedSource === 'my_accounts'
-      ? 'My accounts'
-      : results.summary.selectedSource === 'public'
-        ? 'Public'
-        : 'All';
+    source === 'saved'
+      ? 'Saved'
+      : results.summary.selectedSource === 'my_accounts'
+        ? 'My accounts'
+        : results.summary.selectedSource === 'public'
+          ? 'Public'
+          : 'All';
 
   // Setup empty = no credentials and no ads: hide chrome (tabs, view toggle,
   // refresh). Only the connect empty state should compete for attention.
@@ -225,12 +231,15 @@ export default function AdsResearchPageClient({
       icon={Megaphone}
       right={headerRight}
     >
-      {(resultsError || accountsError || detailError) && (
+      {(resultsError || accountsError || detailError || savedError) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
             <div className="font-medium">{translate('errors.title')}</div>
             <div className="text-xs text-foreground/70">
               {detailError?.message ||
+                (savedError instanceof Error
+                  ? savedError.message
+                  : undefined) ||
                 accountsError?.message ||
                 resultsError?.message ||
                 'Try refreshing the page.'}
@@ -399,6 +408,8 @@ export default function AdsResearchPageClient({
               search={search}
               selectedKey={selectedKey}
               onSelect={handleSelectAd}
+              onToggleSaved={toggleSaved}
+              savedMutating={savedMutating}
             />
           ) : (
             <AdsResearchAdTable
@@ -407,6 +418,8 @@ export default function AdsResearchPageClient({
               search={search}
               selectedKey={selectedKey}
               onSelect={handleSelectAd}
+              onToggleSaved={toggleSaved}
+              savedMutating={savedMutating}
             />
           )}
           {pagination ? <div className="mt-5">{pagination}</div> : null}
@@ -421,6 +434,9 @@ export default function AdsResearchPageClient({
           selectedAd={selectedAd}
           onClose={handleCloseDetail}
           onOpenRemix={openBrandRemix}
+          onToggleSaved={toggleSaved}
+          onUpdateSavedNote={updateSavedNote}
+          savedMutating={savedMutating}
           onRunAction={runAction}
           busyAction={busyAction}
           actionError={actionError}

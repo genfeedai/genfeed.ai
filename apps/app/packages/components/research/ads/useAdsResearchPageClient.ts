@@ -11,8 +11,10 @@ import type {
   AdsResearchSource,
   AdsResearchTimeframe,
   CampaignLaunchPrep,
+  ISavedAd,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
 import {
@@ -55,6 +57,7 @@ type SelectedAdRef = {
   loginCustomerId?: string;
   platform?: AdsResearchPlatform;
   source: 'public' | 'my_accounts';
+  savedAdId?: string;
 };
 
 type CredentialOption = {
@@ -65,8 +68,9 @@ type CredentialOption = {
 };
 
 export type AdSortKey = 'score' | 'ctr' | 'roas' | 'longevity';
+export type AdsResearchViewSource = AdsResearchSource | 'saved';
 
-const SOURCE_VALUES = ['all', 'my_accounts', 'public'] as const;
+const SOURCE_VALUES = ['all', 'my_accounts', 'public', 'saved'] as const;
 const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok', 'x'] as const;
 const CHANNEL_VALUES = ['all', 'display', 'search', 'youtube'] as const;
 const METRIC_VALUES = [
@@ -89,6 +93,52 @@ function getBrandLabel(selectedBrand?: { label?: string; name?: string }) {
   return selectedBrand?.label || selectedBrand?.name || 'Brand';
 }
 
+function toSavedAdResearchItem(saved: ISavedAd): AdsResearchItem {
+  return {
+    accountId: saved.advertiserId ?? undefined,
+    accountName: saved.advertiserName ?? undefined,
+    body: saved.body ?? undefined,
+    channel: saved.channel,
+    cta: saved.cta ?? undefined,
+    explanation: saved.explanation,
+    firstSeenAt: saved.firstSeenAt ?? undefined,
+    headline: saved.headline ?? undefined,
+    id: saved.sourceRecordId ?? saved.sourceAdId,
+    imageUrls: saved.imageUrls,
+    isSavedSnapshot: true,
+    landingPageUrl: saved.landingPageUrl ?? undefined,
+    lastSeenAt: saved.lastSeenAt ?? undefined,
+    metrics: saved.metrics,
+    patternSummary: saved.patternSummary,
+    platform: saved.platform,
+    previewUrl: saved.previewUrl ?? saved.imageUrls[0] ?? saved.videoUrls[0],
+    savedAdId: saved.id,
+    savedAt: saved.createdAt,
+    savedNote: saved.note ?? undefined,
+    source: saved.source,
+    sourceId: saved.sourceAdId,
+    sourceLabel: 'Saved swipe file',
+    title: saved.title,
+    usagePolicy: saved.usagePolicy,
+    videoUrls: saved.videoUrls,
+  };
+}
+
+function toSavedAdDetail(saved: ISavedAd) {
+  const item = toSavedAdResearchItem(saved);
+  return {
+    ...item,
+    creative: {
+      body: item.body,
+      cta: item.cta,
+      headline: item.headline,
+      imageUrls: item.imageUrls,
+      landingPageUrl: item.landingPageUrl,
+      videoUrls: item.videoUrls,
+    },
+  };
+}
+
 export function useAdsResearchPageClient(
   initialPlatform: AdsResearchPlatform | 'all',
 ) {
@@ -100,12 +150,14 @@ export function useAdsResearchPageClient(
   const getAdsResearchService = useAuthedService((token: string) =>
     AdsResearchService.getInstance(token),
   );
+  const saved = useSavedAds();
 
-  const [source, setSource] = useResearchSearchParamState<AdsResearchSource>({
-    allowedValues: SOURCE_VALUES,
-    defaultValue: 'all',
-    key: 'source',
-  });
+  const [source, setSource] =
+    useResearchSearchParamState<AdsResearchViewSource>({
+      allowedValues: SOURCE_VALUES,
+      defaultValue: 'all',
+      key: 'source',
+    });
   const [platform, setPlatform] = useResearchSearchParamState<
     AdsResearchPlatform | 'all'
   >({
@@ -266,7 +318,7 @@ export function useAdsResearchPageClient(
       loginCustomerId: loginCustomerId || undefined,
       metric,
       platform: effectivePlatform === 'all' ? undefined : effectivePlatform,
-      source,
+      source: source === 'saved' ? 'all' : source,
       timeframe,
     }),
     [
@@ -296,7 +348,7 @@ export function useAdsResearchPageClient(
       const service = await getAdsResearchService();
       return await service.list(filters);
     },
-    enabled: isReady,
+    enabled: isReady && source !== 'saved',
   });
 
   const {
@@ -325,10 +377,17 @@ export function useAdsResearchPageClient(
     error: detailError,
     isLoading: detailLoading,
   } = useQuery({
-    queryKey: ['ads-research-detail', selectedAd],
+    queryKey: ['ads-research-detail', selectedAd, saved.savedAds],
     queryFn: async () => {
       if (!selectedAd) {
         return null;
+      }
+
+      if (selectedAd.savedAdId) {
+        const snapshot = saved.savedAds.find(
+          (item) => item.id === selectedAd.savedAdId,
+        );
+        return snapshot ? toSavedAdDetail(snapshot) : null;
       }
 
       const service = await getAdsResearchService();
@@ -338,7 +397,28 @@ export function useAdsResearchPageClient(
   });
 
   const allAds = useMemo(() => {
-    const combined = [...results.publicAds, ...results.connectedAds];
+    const savedBySource = new Map(
+      saved.savedAds.map((item) => [
+        `${item.platform}:${item.sourceAdId}`,
+        item,
+      ]),
+    );
+    const combined =
+      source === 'saved'
+        ? saved.savedAds.map(toSavedAdResearchItem)
+        : [...results.publicAds, ...results.connectedAds].map((item) => {
+            const snapshot = savedBySource.get(
+              `${item.platform}:${item.sourceId}`,
+            );
+            return snapshot
+              ? {
+                  ...item,
+                  savedAdId: snapshot.id,
+                  savedAt: snapshot.createdAt,
+                  savedNote: snapshot.note ?? undefined,
+                }
+              : item;
+          });
 
     let filtered = combined;
     if (search.trim()) {
@@ -378,7 +458,14 @@ export function useAdsResearchPageClient(
     });
 
     return filtered;
-  }, [results.publicAds, results.connectedAds, search, sortKey]);
+  }, [
+    results.publicAds,
+    results.connectedAds,
+    saved.savedAds,
+    search,
+    sortKey,
+    source,
+  ]);
   const findings = useMemo(() => allAds.map(toAdsResearchFinding), [allAds]);
   const requestedReference = surface?.urlState.requestedReference ?? null;
 
@@ -412,6 +499,7 @@ export function useAdsResearchPageClient(
       id: item.source === 'my_accounts' ? item.sourceId : item.id,
       loginCustomerId: item.loginCustomerId || loginCustomerId || undefined,
       platform: item.platform,
+      savedAdId: item.savedAdId,
       source: item.source,
     });
   }, [
@@ -436,6 +524,7 @@ export function useAdsResearchPageClient(
       id: item.source === 'my_accounts' ? item.sourceId : item.id,
       loginCustomerId: item.loginCustomerId || loginCustomerId || undefined,
       platform: item.platform,
+      savedAdId: item.savedAdId,
       source: item.source,
     });
     surface?.selectFinding(toAdsResearchFinding(item));
@@ -461,6 +550,13 @@ export function useAdsResearchPageClient(
     }
 
     setActionError(null);
+    if (selectedAd.savedAdId) {
+      void remixSurface.openRemix({
+        kind: 'saved_ad',
+        savedAdId: selectedAd.savedAdId,
+      });
+      return;
+    }
     if (selectedAd.source === 'public') {
       void remixSurface.openRemix({
         adPerformanceId: selectedAd.id,
@@ -577,6 +673,48 @@ export function useAdsResearchPageClient(
     }
   };
 
+  const toggleSaved = async (items: AdsResearchItem[]) => {
+    if (!brandId) {
+      setActionError('Choose a brand before saving reference ads.');
+      return;
+    }
+    const snapshots = items
+      .map((item) =>
+        saved.savedAds.find((snapshot) => snapshot.id === item.savedAdId),
+      )
+      .filter((item): item is ISavedAd => Boolean(item));
+    if (snapshots.length === items.length) {
+      await saved.unsave(snapshots);
+      if (
+        selectedAd?.savedAdId &&
+        snapshots.some((item) => item.id === selectedAd.savedAdId)
+      ) {
+        handleCloseDetail();
+      }
+      return;
+    }
+
+    await saved.save(
+      items
+        .filter((item) => !item.savedAdId)
+        .map((item) => ({
+          adAccountId: item.adAccountId,
+          adId: item.source === 'my_accounts' ? item.sourceId : item.id,
+          brandId,
+          channel: item.channel,
+          credentialId: item.credentialId,
+          loginCustomerId: item.loginCustomerId,
+          platform: item.platform,
+          source: item.source,
+        })),
+    );
+  };
+
+  const updateSavedNote = async (id: string, note: string) => {
+    if (!brandId) return;
+    await saved.updateNotes([{ brandId, id, note }]);
+  };
+
   const selectedKey = selectedAd
     ? `${selectedAd.source}:${selectedAd.platform}:${selectedAd.id}`
     : '';
@@ -597,7 +735,7 @@ export function useAdsResearchPageClient(
     handleSelectAd,
     href,
     industry,
-    isLoading,
+    isLoading: source === 'saved' ? saved.isLoading : isLoading,
     launchPrepResult,
     metric,
     openBrandRemix,
@@ -605,6 +743,8 @@ export function useAdsResearchPageClient(
     refetch,
     results,
     resultsError,
+    savedError: saved.error,
+    savedMutating: saved.isMutating,
     accountsError,
     runAction,
     search,
@@ -631,6 +771,8 @@ export function useAdsResearchPageClient(
     credentialId,
     loginCustomerId,
     timeframe,
+    toggleSaved,
+    updateSavedNote,
     brandLabel,
     viewType,
     setViewType,

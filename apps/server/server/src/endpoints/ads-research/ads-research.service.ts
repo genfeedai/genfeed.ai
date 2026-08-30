@@ -1,11 +1,3 @@
-import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
-import type { CreativePatternDocument } from '@server/collections/creative-patterns/schemas/creative-pattern.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
-import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 import {
   Platform,
   toPrismaCredentialPlatform,
@@ -43,6 +35,14 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
+import type { CreativePatternDocument } from '@server/collections/creative-patterns/schemas/creative-pattern.schema';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
+import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 
 interface DetailContext {
   source: Exclude<AdsResearchSource, 'all'>;
@@ -553,6 +553,8 @@ export class AdsResearchService {
       : [];
 
     return {
+      accountId: item.advertiserId as string | undefined,
+      accountName: item.advertiserName as string | undefined,
       body: item.bodyText as string | undefined,
       campaignId: item.externalCampaignId as string | undefined,
       campaignName: item.campaignName as string | undefined,
@@ -567,10 +569,12 @@ export class AdsResearchService {
         roas: this.toNumber(item.roas),
       }),
       headline: item.headlineText as string | undefined,
+      firstSeenAt: item.presentationStartDate as string | undefined,
       id: String(item.id || item.externalAdId || item.externalCampaignId || ''),
       imageUrls,
       industry: item.industry as string | undefined,
       landingPageUrl: item.landingPageUrl as string | undefined,
+      lastSeenAt: item.presentationEndDate as string | undefined,
       metricLabel: 'Performance score',
       metrics: {
         clicks: this.toNumber(item.clicks),
@@ -677,6 +681,8 @@ export class AdsResearchService {
       : '';
 
     return {
+      accountId: item.advertiserId as string | undefined,
+      accountName: advertiserLabel,
       body: isRemixAllowed ? (item.bodyText as string | undefined) : undefined,
       channel: 'all',
       cta: isRemixAllowed ? (item.ctaText as string | undefined) : undefined,
@@ -686,6 +692,7 @@ export class AdsResearchService {
       headline: isRemixAllowed
         ? (item.headlineText as string | undefined)
         : undefined,
+      firstSeenAt: item.presentationStartDate as string | undefined,
       id: String(item.id || item.externalAdId || ''),
       imageUrls,
       industry: isRemixAllowed
@@ -694,6 +701,7 @@ export class AdsResearchService {
       landingPageUrl: isRemixAllowed
         ? (item.landingPageUrl as string | undefined)
         : undefined,
+      lastSeenAt: item.presentationEndDate as string | undefined,
       longevity,
       metricLabel: 'Estimated reach',
       metricValue: this.toNumber(item.estimatedReach),
@@ -732,10 +740,12 @@ export class AdsResearchService {
         params.platform,
       )} account. Keep the core angle, tighten the promise, and adapt the proof for your brand before launch.`,
       headline: creative?.title,
+      firstSeenAt: params.topInsights?.dateStart,
       id: `connected:${params.platform}:${params.sourceId}`,
       imageUrls: creative?.imageUrl ? [creative.imageUrl] : [],
       landingPageUrl: creative?.linkUrl,
       loginCustomerId: params.loginCustomerId,
+      lastSeenAt: params.topInsights?.dateStop,
       metricLabel: params.insightMetric || 'performance',
       metrics: {
         clicks: params.topInsights?.clicks,

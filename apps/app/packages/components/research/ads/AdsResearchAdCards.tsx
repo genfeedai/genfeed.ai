@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { Megaphone } from 'lucide-react';
+import { Bookmark, Megaphone } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -30,6 +30,8 @@ type AdGridCardProps = {
   item: AdsResearchItem;
   metric: AdsResearchMetric;
   onSelect: (item: AdsResearchItem) => void;
+  onToggleSaved: (items: AdsResearchItem[]) => void;
+  savedMutating: boolean;
 };
 
 export function AdGridCard({
@@ -37,96 +39,116 @@ export function AdGridCard({
   item,
   metric,
   onSelect,
+  onToggleSaved,
+  savedMutating,
 }: AdGridCardProps) {
   const metricValue = getMetricValue(item, metric);
   const longevityLabel = formatLongevity(item.longevity);
   const previewUrl = item.previewUrl || item.imageUrls?.[0];
 
   return (
-    <Button
-      type="button"
-      aria-pressed={isSelected}
-      ariaLabel={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
-      variant={ButtonVariant.UNSTYLED}
-      onClick={() => onSelect(item)}
-      className={cn(
-        'group rounded-card border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-200 hover:border-border-strong',
-        isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-tertiary text-muted-foreground">
-            <Megaphone className="size-4" />
+    <div className="relative">
+      <Button
+        type="button"
+        aria-pressed={isSelected}
+        ariaLabel={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
+        variant={ButtonVariant.UNSTYLED}
+        onClick={() => onSelect(item)}
+        className={cn(
+          'group h-full w-full rounded-card border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-200 hover:border-border-strong',
+          isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-tertiary text-muted-foreground">
+              <Megaphone className="size-4" />
+            </div>
+
+            <div className="min-w-0">
+              <h3 className="line-clamp-2 text-base font-semibold text-foreground">
+                {item.title}
+              </h3>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
+                  {item.source === 'public' ? 'Public' : 'Connected'}
+                </Badge>
+                <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
+                {item.channel !== 'all' && (
+                  <Badge variant="ghost">{item.channel}</Badge>
+                )}
+                {longevityLabel && (
+                  <Badge
+                    variant={item.longevity?.isStillRunning ? 'blue' : 'ghost'}
+                  >
+                    {longevityLabel}
+                  </Badge>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <h3 className="line-clamp-2 text-base font-semibold text-foreground">
-              {item.title}
-            </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
-                {item.source === 'public' ? 'Public' : 'Connected'}
-              </Badge>
-              <Badge variant="ghost">{getPlatformLabel(item.platform)}</Badge>
-              {item.channel !== 'all' && (
-                <Badge variant="ghost">{item.channel}</Badge>
-              )}
-              {longevityLabel && (
-                <Badge
-                  variant={item.longevity?.isStillRunning ? 'blue' : 'ghost'}
-                >
-                  {longevityLabel}
-                </Badge>
-              )}
+          <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
+            <div className="text-2xs uppercase tracking-[0.18em] text-foreground/45">
+              {getMetricLabel(metric)}
+            </div>
+            <div className="text-lg font-semibold text-foreground">
+              {formatMetric(metricValue)}
             </div>
           </div>
         </div>
 
-        <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
-          <div className="text-2xs uppercase tracking-[0.18em] text-foreground/45">
-            {getMetricLabel(metric)}
+        <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
+          {item.headline ||
+            item.body ||
+            item.explanation ||
+            'No copy available.'}
+        </p>
+
+        {previewUrl && (
+          <div
+            className={
+              'relative mt-3 h-36 overflow-hidden rounded-lg border border-border bg-black/20' // design-system-allow-content-color
+            }
+          >
+            <Image
+              src={previewUrl}
+              alt={item.title}
+              fill
+              unoptimized
+              sizes="(min-width: 768px) 20rem, 100vw"
+              className="object-cover"
+            />
           </div>
-          <div className="text-lg font-semibold text-foreground">
-            {formatMetric(metricValue)}
-          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {item.accountName && (
+            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
+              {item.accountName}
+            </span>
+          )}
+          {item.industry && (
+            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
+              {item.industry}
+            </span>
+          )}
         </div>
-      </div>
-
-      <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
-        {item.headline || item.body || item.explanation || 'No copy available.'}
-      </p>
-
-      {previewUrl && (
-        <div
-          className={
-            'relative mt-3 h-36 overflow-hidden rounded-lg border border-border bg-black/20' // design-system-allow-content-color
-          }
-        >
-          <Image
-            src={previewUrl}
-            alt={item.title}
-            fill
-            unoptimized
-            sizes="(min-width: 768px) 20rem, 100vw"
-            className="object-cover"
+      </Button>
+      <Button
+        type="button"
+        variant={item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
+        ariaLabel={`${item.savedAdId ? 'Unsave' : 'Save'} ${item.title}`}
+        className="absolute bottom-3 right-3 size-8 p-0"
+        disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
+        onClick={() => onToggleSaved([item])}
+        icon={
+          <Bookmark
+            className={cn('size-4', item.savedAdId && 'fill-current')}
           />
-        </div>
-      )}
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {item.accountName && (
-          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
-            {item.accountName}
-          </span>
-        )}
-        {item.industry && (
-          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
-            {item.industry}
-          </span>
-        )}
-      </div>
-    </Button>
+        }
+      />
+    </div>
   );
 }
 
@@ -135,6 +157,8 @@ type AdTableRowProps = {
   item: AdsResearchItem;
   metric: AdsResearchMetric;
   onSelect: (item: AdsResearchItem) => void;
+  onToggleSaved: (items: AdsResearchItem[]) => void;
+  savedMutating: boolean;
 };
 
 export function AdTableRow({
@@ -142,6 +166,8 @@ export function AdTableRow({
   item,
   metric,
   onSelect,
+  onToggleSaved,
+  savedMutating,
 }: AdTableRowProps) {
   const metricValue = getMetricValue(item, metric);
 
@@ -190,6 +216,25 @@ export function AdTableRow({
       <TableCell className="px-4 py-3 text-sm text-foreground/40">
         {item.accountName || '—'}
       </TableCell>
+      <TableCell className="px-4 py-3">
+        <Button
+          type="button"
+          variant={
+            item.savedAdId ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+          }
+          ariaLabel={`${item.savedAdId ? 'Unsave' : 'Save'} ${item.title}`}
+          disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleSaved([item]);
+          }}
+          icon={
+            <Bookmark
+              className={cn('size-4', item.savedAdId && 'fill-current')}
+            />
+          }
+        />
+      </TableCell>
     </TableRow>
   );
 }
@@ -201,6 +246,8 @@ type AdsResearchAdListProps = {
   search: string;
   selectedKey: string;
   onSelect: (item: AdsResearchItem) => void;
+  onToggleSaved: (items: AdsResearchItem[]) => void;
+  savedMutating: boolean;
 };
 
 export function AdsResearchAdGrid({
@@ -210,6 +257,8 @@ export function AdsResearchAdGrid({
   search,
   selectedKey,
   onSelect,
+  onToggleSaved,
+  savedMutating,
 }: AdsResearchAdListProps) {
   if (ads.length === 0 && !isLoading) {
     return (
@@ -240,6 +289,8 @@ export function AdsResearchAdGrid({
             metric={metric}
             isSelected={selectedKey === itemKey}
             onSelect={onSelect}
+            onToggleSaved={onToggleSaved}
+            savedMutating={savedMutating}
           />
         );
       })}
@@ -253,6 +304,8 @@ type AdsResearchAdTableProps = {
   search: string;
   selectedKey: string;
   onSelect: (item: AdsResearchItem) => void;
+  onToggleSaved: (items: AdsResearchItem[]) => void;
+  savedMutating: boolean;
 };
 
 export function AdsResearchAdTable({
@@ -261,6 +314,8 @@ export function AdsResearchAdTable({
   search,
   selectedKey,
   onSelect,
+  onToggleSaved,
+  savedMutating,
 }: AdsResearchAdTableProps) {
   const translate = useTranslations('pages.adsResearch.adList');
 
@@ -293,13 +348,16 @@ export function AdsResearchAdTable({
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               {translate('account')}
             </TableHead>
+            <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
+              Saved
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {ads.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={8}
+                colSpan={9}
                 className="px-4 py-8 text-center text-sm text-foreground/40"
               >
                 {search.trim()
@@ -325,6 +383,8 @@ export function AdsResearchAdTable({
                   metric={metric}
                   isSelected={selectedKey === itemKey}
                   onSelect={onSelect}
+                  onToggleSaved={onToggleSaved}
+                  savedMutating={savedMutating}
                 />
               );
             })

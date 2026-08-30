@@ -30,6 +30,12 @@ const getAdsResearchServiceMock = vi.fn();
 const remixAvailability = vi.hoisted(() => ({ isAvailable: true }));
 const openRemixMock = vi.fn();
 const prepareCampaignForReviewMock = vi.fn();
+const saveSavedAdsMock = vi.fn();
+const unsaveSavedAdsMock = vi.fn();
+const updateSavedNotesMock = vi.fn();
+const savedAdsState: { savedAds: Array<Record<string, unknown>> } = {
+  savedAds: [],
+};
 let useQueryCallIndex = 0;
 
 const publicAd = {
@@ -189,6 +195,19 @@ vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getAdsResearchServiceMock,
+}));
+
+vi.mock('@hooks/data/analytics/use-saved-ads/use-saved-ads', () => ({
+  useSavedAds: () => ({
+    brandId: 'brand-1',
+    error: null,
+    isLoading: false,
+    isMutating: false,
+    save: saveSavedAdsMock,
+    savedAds: savedAdsState.savedAds,
+    unsave: unsaveSavedAdsMock,
+    updateNotes: updateSavedNotesMock,
+  }),
 }));
 
 // The watchlist owns its own queries. Mocked whole rather than left to the
@@ -442,6 +461,7 @@ import AdsResearchPageClient from './AdsResearchPageClient';
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    savedAdsState.savedAds = [];
     remixAvailability.isAvailable = true;
     useQueryCallIndex = 0;
     useQueryStates[0].data = resultsState;
@@ -680,6 +700,58 @@ describe('AdsResearchPageClient', () => {
     expect(openRemixMock).toHaveBeenCalledWith({
       adPerformanceId: 'public-1',
       kind: 'public_ad',
+    });
+  });
+
+  it('saves from a card and remixes a saved match by durable snapshot id', () => {
+    const { rerender } = render(
+      <AdsResearchPageClient initialPlatform="meta" />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        adId: 'public-1',
+        brandId: 'brand-1',
+        source: 'public',
+      }),
+    ]);
+
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: ['https://files.example/copied.jpg'],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: undefined,
+        sourceRecordId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    rerender(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(screen.getByRole('button', { name: /Meta hook story/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /remix for my brand/i }),
+    );
+
+    expect(openRemixMock).toHaveBeenCalledWith({
+      kind: 'saved_ad',
+      savedAdId: 'saved-1',
     });
   });
 
