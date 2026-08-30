@@ -5,11 +5,32 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable } from '@nestjs/common';
+import type { CredentialDocument } from '@server/collections/credentials/credential.types';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@server/server.dependencies';
 import { firstValueFrom } from 'rxjs';
+
+interface PinterestTrendsResponse {
+  trends?: PinterestTrendResponse[];
+}
+
+interface PinterestTrendResponse {
+  keyword?: string;
+  pct_growth_mom?: number;
+  pct_growth_wow?: number;
+  pct_growth_yoy?: number;
+  time_series?: Record<string, number>;
+}
+
+export interface PinterestTrend {
+  keyword: string;
+  monthlyGrowth: number;
+  timeSeries: Record<string, number>;
+  weeklyGrowth: number;
+  yearlyGrowth: number;
+}
 
 @Injectable()
 export class PinterestService {
@@ -94,7 +115,7 @@ export class PinterestService {
     organizationId: string,
     brandId: string,
     credentialId?: string,
-  ): Promise<unknown> {
+  ): Promise<CredentialDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       const credential = await this.credentialsService.resolveBrandAccount({
@@ -160,6 +181,66 @@ export class PinterestService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Pinterest exposes trend keywords only to eligible business accounts. A
+   * connected brand credential is therefore required before making the native
+   * request; endpoint entitlement errors are allowed to propagate so the
+   * trend orchestrator can use its Apify fallback.
+   */
+  public async getTrends(
+    organizationId?: string,
+    brandId?: string,
+    region = 'US',
+    limit = 20,
+  ): Promise<PinterestTrend[]> {
+    if (!organizationId || !brandId) {
+      return [];
+    }
+
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId,
+      organizationId,
+      platform: CredentialPlatform.PINTEREST,
+    });
+    if (!credential?.accessToken) {
+      return [];
+    }
+
+    const normalizedRegion = region.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(normalizedRegion)) {
+      throw new Error('Pinterest trends region must be a two-letter code');
+    }
+
+    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+    const response = await firstValueFrom(
+      this.httpService.get(
+        `${this.baseUrl}/trends/keywords/${normalizedRegion}/top/growing`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { limit: Math.max(1, Math.min(50, limit)) },
+        },
+      ),
+    );
+    const payload = response.data as PinterestTrendsResponse;
+
+    return (payload.trends ?? []).flatMap((trend) => {
+      const keyword = trend.keyword?.trim();
+      if (!keyword) {
+        return [];
+      }
+
+      return [
+        {
+          keyword,
+          monthlyGrowth: trend.pct_growth_mom ?? 0,
+          timeSeries: trend.time_series ?? {},
+          weeklyGrowth: trend.pct_growth_wow ?? 0,
+          yearlyGrowth: trend.pct_growth_yoy ?? 0,
+        },
+      ];
+    });
   }
 
   public async createPin(

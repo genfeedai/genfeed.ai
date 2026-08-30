@@ -1,3 +1,6 @@
+import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
@@ -17,13 +20,13 @@ import { TrendsService } from '@server/collections/trends/services/trends.servic
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
+import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { XaiService } from '@server/services/integrations/xai/services/xai.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type MockTrendReferenceCorpusService = {
   getCorpusFreshnessHealth: ReturnType<typeof vi.fn>;
@@ -204,6 +207,24 @@ describe('TrendsService', () => {
         },
         {
           provide: TwitterService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
+          provide: RedditService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
+          provide: YoutubeService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
+          provide: PinterestService,
           useValue: {
             getTrends: vi.fn(),
           },

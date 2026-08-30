@@ -54,21 +54,6 @@ describe('YoutubeAnalyticsService', () => {
     expect(service).toBeDefined();
   });
 
-  // --- getTrends ---
-
-  it('should return hardcoded trends with default region US', () => {
-    const trends = service.getTrends('org-1', 'brand-1');
-    expect(trends).toHaveLength(5);
-    expect(trends[0]).toEqual(
-      expect.objectContaining({ regionCode: 'US', topic: 'AI Technology' }),
-    );
-  });
-
-  it('should return trends with custom region code', () => {
-    const trends = service.getTrends('org-1', 'brand-1', 'DE');
-    expect(trends[0]).toEqual(expect.objectContaining({ regionCode: 'DE' }));
-  });
-
   // --- getChannelDetails ---
 
   it('should return channel details on success', async () => {

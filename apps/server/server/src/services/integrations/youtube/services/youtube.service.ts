@@ -19,12 +19,28 @@ import {
 
 export type { YoutubeVideoMetadata } from './modules/youtube-metadata.service';
 
+export interface YoutubeTrend {
+  channelId?: string;
+  channelTitle?: string;
+  commentCount: number;
+  description?: string;
+  id: string;
+  likeCount: number;
+  publishedAt?: string;
+  tags: string[];
+  thumbnailUrl?: string;
+  title: string;
+  viewCount: number;
+  url: string;
+}
+
 @Injectable()
 export class YoutubeService {
   // youtubeAPI is used with per-request auth passed via the auth parameter
   // This is safe because each API call passes its own OAuth client
   public readonly youtubeAPI: youtube_v3.Youtube;
   public readonly youtubeDataAPI: youtube_v3.Youtube;
+  private readonly youtubeDataApiConfigured: boolean;
 
   constructor(
     private readonly configService: ConfigService,
@@ -48,6 +64,7 @@ export class YoutubeService {
       typeof apiKey === 'string' && apiKey.trim().length > 0
         ? apiKey
         : undefined;
+    this.youtubeDataApiConfigured = auth !== undefined;
     this.youtubeDataAPI = google.youtube({
       auth,
       version: 'v3',
@@ -62,8 +79,46 @@ export class YoutubeService {
     return this.authService.refreshToken(organizationId, brandId, credentialId);
   }
 
-  getTrends(organizationId?: string, brandId?: string, regionCode = 'US') {
-    return this.analyticsService.getTrends(organizationId, brandId, regionCode);
+  async getTrends(regionCode = 'US', limit = 20): Promise<YoutubeTrend[]> {
+    if (!this.youtubeDataApiConfigured) {
+      return [];
+    }
+
+    const response = await this.youtubeDataAPI.videos.list({
+      chart: 'mostPopular',
+      maxResults: Math.max(1, Math.min(50, limit)),
+      part: ['id', 'snippet', 'statistics'],
+      regionCode,
+    });
+
+    return (response.data.items ?? []).flatMap((video) => {
+      const id = video.id?.trim();
+      const title = video.snippet?.title?.trim();
+      if (!id || !title) {
+        return [];
+      }
+
+      return [
+        {
+          channelId: video.snippet?.channelId ?? undefined,
+          channelTitle: video.snippet?.channelTitle ?? undefined,
+          commentCount: Number(video.statistics?.commentCount ?? 0),
+          description: video.snippet?.description ?? undefined,
+          id,
+          likeCount: Number(video.statistics?.likeCount ?? 0),
+          publishedAt: video.snippet?.publishedAt ?? undefined,
+          tags: video.snippet?.tags ?? [],
+          thumbnailUrl:
+            video.snippet?.thumbnails?.high?.url ??
+            video.snippet?.thumbnails?.medium?.url ??
+            video.snippet?.thumbnails?.default?.url ??
+            undefined,
+          title,
+          url: `https://www.youtube.com/watch?v=${id}`,
+          viewCount: Number(video.statistics?.viewCount ?? 0),
+        },
+      ];
+    });
   }
 
   /**
