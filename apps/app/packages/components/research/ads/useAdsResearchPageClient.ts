@@ -195,6 +195,7 @@ export function useAdsResearchPageClient(
 ) {
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.adsResearch');
+  const savedSourceLabel = translate('swipeFile.sourceLabel');
   const remixSurface = useOptionalDiscoverRemix();
   const surface = useOptionalResearchWorkSurface();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
@@ -449,7 +450,7 @@ export function useAdsResearchPageClient(
   const detail = useMemo(() => {
     if (source === 'saved') {
       return selectedSnapshot
-        ? toSavedAdDetail(selectedSnapshot, translate('swipeFile.sourceLabel'))
+        ? toSavedAdDetail(selectedSnapshot, savedSourceLabel)
         : null;
     }
     if (!liveDetail) return liveDetail;
@@ -461,7 +462,7 @@ export function useAdsResearchPageClient(
           savedNote: selectedSnapshot.note ?? undefined,
         }
       : liveDetail;
-  }, [liveDetail, selectedSnapshot, source, translate]);
+  }, [liveDetail, savedSourceLabel, selectedSnapshot, source]);
   const detailLoading =
     source === 'saved' ? saved.isLoading : liveDetailLoading;
 
@@ -485,9 +486,7 @@ export function useAdsResearchPageClient(
                 (!adAccountId || item.adAccountId === adAccountId) &&
                 (!loginCustomerId || item.loginCustomerId === loginCustomerId),
             )
-            .map((item) =>
-              toSavedAdResearchItem(item, translate('swipeFile.sourceLabel')),
-            )
+            .map((item) => toSavedAdResearchItem(item, savedSourceLabel))
         : [...results.publicAds, ...results.connectedAds].map((item) => {
             const sourceAdId = item.sourceId || item.id;
             const snapshot = sourceAdId
@@ -550,11 +549,11 @@ export function useAdsResearchPageClient(
     results.publicAds,
     results.connectedAds,
     saved.savedAds,
+    savedSourceLabel,
     search,
     showChannelFilter,
     sortKey,
     source,
-    translate,
   ]);
   const findings = useMemo(() => allAds.map(toAdsResearchFinding), [allAds]);
   const requestedReference = surface?.urlState.requestedReference ?? null;
