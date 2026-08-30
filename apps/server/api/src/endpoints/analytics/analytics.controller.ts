@@ -230,7 +230,6 @@ export class AnalyticsController {
         await Promise.all([
           safeFetchTrends(() => this.tiktokService.getTrends(), 'tiktok'),
           safeFetchTrends(() => this.twitterService.getTrends(), 'twitter'),
-          // @ts-expect-error TS2739
           safeFetchTrends(() => this.youtubeService.getTrends(), 'youtube'),
           safeFetchTrends(() => this.instagramService.getTrends(), 'instagram'),
         ]);
