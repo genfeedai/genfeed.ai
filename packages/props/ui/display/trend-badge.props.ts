@@ -9,6 +9,5 @@ export interface TrendBadgeProps {
   showIcon?: boolean;
   /** Size of the badge */
   size?: TrendBadgeSize;
-  /** Additional CSS classes */
   className?: string;
 }

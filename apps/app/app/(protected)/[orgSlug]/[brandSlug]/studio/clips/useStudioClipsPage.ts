@@ -185,13 +185,6 @@ export function resolveAvatarProviderSelection({
     : { avatarId: '', voiceId: '' };
 }
 
-const REVIEW_STATUSES = new Set([
-  'analyzed',
-  'analyzing',
-  'pending',
-  'transcribing',
-]);
-
 const PROGRESS_STATUSES = new Set([
   'captioning',
   'clipping',
@@ -204,10 +197,6 @@ const PROGRESS_STATUSES = new Set([
 export function resolveClipsStepFromStatus(status?: string): ClipsStep {
   if (status && PROGRESS_STATUSES.has(status)) {
     return 'progress';
-  }
-
-  if (status && REVIEW_STATUSES.has(status)) {
-    return 'review';
   }
 
   return 'review';

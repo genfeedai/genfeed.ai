@@ -7,6 +7,7 @@ bootstrap({ app: 'workers' });
 import type { Server } from 'node:http';
 import process from 'node:process';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@workers/app.module';
@@ -143,7 +144,10 @@ async function main() {
     });
   } catch (error: unknown) {
     logger.error('Failed to start workers service:', {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error, {
+        fallback: String,
+        messageSource: 'error-instance',
+      }),
     });
     process.exit(1);
   }

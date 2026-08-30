@@ -202,7 +202,7 @@ export class VoiceCloneService {
           if (entryStat.isDirectory()) {
             const files = await readdir(entryPath);
             const modelFile = files.find((f) => {
-              const ext = f.slice(f.lastIndexOf('.'));
+              const ext = extname(f);
               return MODEL_EXTENSIONS.has(ext);
             });
 
@@ -258,7 +258,7 @@ export class VoiceCloneService {
 
         const voiceId = parts[0];
         const filename = parts.slice(1).join('/');
-        const ext = filename.slice(filename.lastIndexOf('.'));
+        const ext = extname(filename);
 
         if (!MODEL_EXTENSIONS.has(ext)) {
           continue;

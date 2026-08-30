@@ -3,8 +3,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
 export class StreaksService extends HTTPBaseService {
-  private static instanceMap = new Map<string, StreaksService>();
-
   constructor(token: string, organizationId: string) {
     super(
       `${EnvironmentService.apiEndpoint}/organizations/${organizationId}/streaks`,
@@ -20,16 +18,11 @@ export class StreaksService extends HTTPBaseService {
       throw new Error('organizationId is required for StreaksService');
     }
 
-    const key = `${token}:${organizationId}`;
-    const instance = HTTPBaseService.getBaseServiceInstance(
+    return HTTPBaseService.getBaseServiceInstance(
       StreaksService,
       token,
       organizationId,
     );
-
-    StreaksService.instanceMap.set(key, instance);
-
-    return instance;
   }
 
   async getMyStreak(): Promise<IStreakSummary> {

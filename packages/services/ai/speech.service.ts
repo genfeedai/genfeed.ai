@@ -80,7 +80,6 @@ export class SpeechService extends HTTPBaseService {
     });
 
     try {
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append('audio', audioFile);
 
@@ -92,7 +91,6 @@ export class SpeechService extends HTTPBaseService {
         formData.append('prompt', options.prompt);
       }
 
-      // Call backend speech transcription endpoint
       return await this.instance
         .post('transcribe/audio', formData, {
           headers: {
@@ -179,12 +177,10 @@ export class SpeechService extends HTTPBaseService {
       '.flac',
     ];
 
-    // Check MIME type
     if (supportedTypes.includes(file.type)) {
       return true;
     }
 
-    // Check file extension as fallback
     const extension = file.name.toLowerCase().split('.').pop() || '';
     return supportedExtensions.some((ext) => ext.includes(extension));
   }

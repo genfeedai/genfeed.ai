@@ -59,10 +59,6 @@ interface DashboardProps {
   workspaceTasks: Task[];
 }
 
-/* ------------------------------------------------------------------ */
-/*  Utilities                                                          */
-/* ------------------------------------------------------------------ */
-
 function formatRelativeTime(date: string): string {
   const delta = Date.now() - new Date(date).getTime();
   const minutes = Math.floor(delta / 60_000);
@@ -81,10 +77,6 @@ function formatStatusLabel(status: WorkflowExecutionStatus): string {
   const normalized = status.toLowerCase();
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
-
-/* ------------------------------------------------------------------ */
-/*  Workflow execution cards                                           */
-/* ------------------------------------------------------------------ */
 
 function WorkflowExecutionCard({
   execution,
@@ -216,10 +208,6 @@ export function DashboardAgentCards({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Stats Strip                                                        */
-/* ------------------------------------------------------------------ */
-
 export function DashboardStatsStrip({
   activeExecutions,
   isExecutionsLoading = false,
@@ -280,10 +268,6 @@ export function DashboardStatsStrip({
     />
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Recent Activity & Recent Tasks                                     */
-/* ------------------------------------------------------------------ */
 
 function formatTaskEventLabel(task: Task): string {
   const latestEvent = task.eventStream?.at(-1);
@@ -485,10 +469,6 @@ export function DashboardRecentTasks({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Guided first run                                                   */
-/* ------------------------------------------------------------------ */
-
 const FIRST_RUN_STEPS = [
   'Describe what you want in the conversation below — a post, a campaign, a research pass.',
   'The agent plans it, runs it, and drops the output in your inbox for review.',
@@ -525,10 +505,6 @@ function WorkspaceDashboardFirstRun({ trendsHref }: { trendsHref: string }) {
     </section>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Main Dashboard Layout                                              */
-/* ------------------------------------------------------------------ */
 
 /**
  * True once the brand has anything at all to show. Exported because the overview

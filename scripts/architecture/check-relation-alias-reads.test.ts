@@ -396,6 +396,83 @@ describe('check-relation-alias-reads', () => {
     });
   });
 
+  describe('helper-key-array rule', () => {
+    it('flags a relation alias after its canonical scalar key', () => {
+      writeFixture(
+        'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
+        [
+          "import type { PostEntity } from './post.entity';",
+          '',
+          'export function readOrganization(post: PostEntity) {',
+          "  return readPostString(post, ['organizationId', 'organization']);",
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          receiver: 'post',
+          rule: 'helper-key-array',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+
+    it('flags a relation alias before its canonical scalar key', () => {
+      writeFixture(
+        'apps/server/workers/src/crons/posts/cron.posts.service.ts',
+        [
+          "import type { PostEntity } from './post.entity';",
+          '',
+          'export function readOrganization(post: PostEntity) {',
+          "  return readPostString(post, ['organization', 'organizationId']);",
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          receiver: 'post',
+          rule: 'helper-key-array',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+
+    it('allows canonical and non-identity single-key reads', () => {
+      writeFixture(
+        'apps/server/workers/src/services/scheduled-post-workflow.service.ts',
+        [
+          "import type { PostEntity } from './post.entity';",
+          '',
+          'export function readPost(post: PostEntity) {',
+          '  return {',
+          "    organizationId: readPostString(post, ['organizationId']),",
+          "    title: readPostString(post, ['title']),",
+          '  };',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([]);
+    });
+
+    it('ignores helper key arrays for values that are not Prisma rows', () => {
+      writeFixture(
+        'apps/server/workers/src/services/job-payload.service.ts',
+        [
+          'export function readOrganization(job: PublishJob) {',
+          "  return readJobString(job, ['organization', 'organizationId']);",
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([]);
+    });
+  });
+
   describe('non-violations', () => {
     it('allows canonical id and scalar relation reads', () => {
       writeFixture(

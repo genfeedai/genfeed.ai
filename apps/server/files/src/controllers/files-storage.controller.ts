@@ -5,6 +5,7 @@ import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   BadRequestException,
   Body,
@@ -229,7 +230,10 @@ export class FilesStorageController {
       }
 
       throw new HttpException(
-        (error as Error)?.message || 'Failed to upload file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to upload file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -281,7 +285,10 @@ export class FilesStorageController {
       }
 
       throw new HttpException(
-        (error as Error)?.message || 'Failed to upload file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to upload file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
@@ -325,8 +332,12 @@ export class FilesStorageController {
 
       return new StreamableFile(stream);
     } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error, {
+        emptyMessage: 'fallback',
+        fallback: () => 'Unknown error',
+      });
       this.logger.error('Failed to download file', {
-        error: (error as Error)?.message || 'Unknown error',
+        error: errorMessage,
         key: typeof key === 'string' ? key : String(key),
         statusCode:
           (error as { statusCode?: number })?.statusCode ||
@@ -334,7 +345,10 @@ export class FilesStorageController {
         type,
       });
       throw new HttpException(
-        (error as Error)?.message || 'Failed to download file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to download file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -382,13 +396,15 @@ export class FilesStorageController {
       };
     } catch (error: unknown) {
       const parsedError = error as {
-        message?: string;
         code?: string;
         status?: number;
         statusCode?: number;
         stack?: string;
       };
-      const errorMessage = parsedError?.message || 'Unknown error';
+      const errorMessage = getErrorMessage(error, {
+        emptyMessage: 'fallback',
+        fallback: () => 'Unknown error',
+      });
 
       const errorDetails = {
         code: parsedError?.code,
@@ -434,7 +450,10 @@ export class FilesStorageController {
     } catch (error: unknown) {
       this.logger.error('Failed to generate presigned upload URL:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to generate presigned upload URL',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate presigned upload URL',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -471,8 +490,10 @@ export class FilesStorageController {
 
       this.logger.error('Failed to generate presigned download URL:', error);
       throw new HttpException(
-        (error as Error)?.message ||
-          'Failed to generate presigned download URL',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate presigned download URL',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

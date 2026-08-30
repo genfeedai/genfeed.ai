@@ -7,6 +7,7 @@ describe('BrandRemixSourceResolverService', () => {
   const prisma = {
     credential: { findFirst: vi.fn() },
     post: { findFirst: vi.fn() },
+    savedAd: { findFirst: vi.fn() },
     sourcePost: { findFirst: vi.fn() },
     trendSourceReference: { findFirst: vi.fn() },
   } as unknown as PrismaService;
@@ -98,6 +99,46 @@ describe('BrandRemixSourceResolverService', () => {
       ),
     ).rejects.toThrow('Ads credential is unavailable');
     expect(adsResearchService.getAdDetail).not.toHaveBeenCalled();
+  });
+
+  it('remixes from a live brand-scoped saved snapshot after upstream expiry', async () => {
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      body: 'Durable saved copy',
+      channel: 'all',
+      explanation: 'Stored evidence',
+      id: 'saved-1',
+      imageUrls: ['https://files.example/copied.jpg'],
+      landingPageUrl: 'https://advertiser.example/offer',
+      metrics: { impressions: 1200 },
+      patternSummary: [{ label: 'Proof', summary: 'Lead with proof' }],
+      platform: 'meta',
+      previewUrl: 'https://files.example/copied.jpg',
+      sourceAdId: 'source-1',
+      title: 'Saved winner',
+      usagePolicy: 'remix_allowed',
+      videoUrls: [],
+    });
+
+    const resolved = await resolver.resolveSource('org-1', 'brand-1', {
+      kind: 'saved_ad',
+      savedAdId: 'saved-1',
+    });
+
+    expect(prisma.savedAd.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          brandId: 'brand-1',
+          id: 'saved-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+    expect(adsResearchService.getAdDetail).not.toHaveBeenCalled();
+    expect(resolved.snapshot.canonicalUrl).toBe(
+      'https://files.example/copied.jpg',
+    );
+    expect(resolved.snapshot.selector.kind).toBe('saved_ad');
   });
 
   it('authorizes connected ads against organization and brand before provider reads', async () => {

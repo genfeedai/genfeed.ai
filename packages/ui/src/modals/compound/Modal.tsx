@@ -61,16 +61,12 @@ const ModalContext = createContext<ModalContextValue>({ size: 'md' });
 
 const useModalContext = () => use(ModalContext);
 
-// Root
 const ModalRoot = DialogPrimitive.Root;
 
-// Trigger
 const ModalTrigger = DialogPrimitive.Trigger;
 
-// Portal
 const ModalPortal = DialogPrimitive.Portal;
 
-// Overlay
 function ModalOverlay({
   ref,
   className,
@@ -91,7 +87,6 @@ function ModalOverlay({
 }
 ModalOverlay.displayName = 'Modal.Overlay';
 
-// Content
 interface ModalContentProps
   extends ComponentPropsWithRef<typeof DialogPrimitive.Content> {
   size?: ModalSize;
@@ -152,7 +147,6 @@ function ModalContent({
 }
 ModalContent.displayName = 'Modal.Content';
 
-// Header
 interface ModalHeaderProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
@@ -175,7 +169,6 @@ function ModalHeader({
 }
 ModalHeader.displayName = 'Modal.Header';
 
-// Title
 function ModalTitle({
   ref,
   className,
@@ -194,7 +187,6 @@ function ModalTitle({
 }
 ModalTitle.displayName = 'Modal.Title';
 
-// Description
 function ModalDescription({
   ref,
   className,
@@ -210,7 +202,6 @@ function ModalDescription({
 }
 ModalDescription.displayName = 'Modal.Description';
 
-// Body - scrollable content area
 interface ModalBodyProps extends HTMLAttributes<HTMLDivElement> {
   scrollable?: boolean;
 }
@@ -238,7 +229,6 @@ function ModalBody({
 }
 ModalBody.displayName = 'Modal.Body';
 
-// Footer
 function ModalFooter({
   ref,
   className,
@@ -257,7 +247,6 @@ function ModalFooter({
 }
 ModalFooter.displayName = 'Modal.Footer';
 
-// Close Button
 const ModalCloseButton = DialogPrimitive.Close;
 ModalCloseButton.displayName = 'Modal.CloseButton';
 

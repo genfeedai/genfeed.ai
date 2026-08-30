@@ -3,7 +3,7 @@ version = 1
 name = "localhost"
 
 [setup]
-script = "bun install --frozen-lockfile"
+script = "bunx \"bun@$(xargs < .bun-version)\" install --frozen-lockfile"
 
 [cleanup]
 script = "rm -fr node_modules"

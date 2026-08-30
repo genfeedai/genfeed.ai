@@ -9,7 +9,7 @@ name: Self-Hosted Release E2E
 # shipped container end to end.
 #
 # Failure reporting is fail-closed for the board: open one `release-e2e` tracker,
-# set Project #12 Priority=P0, and auto-close that tracker when the suite is green
+# set native issue Priority=P0, and auto-close that tracker when the suite is green
 # again so red CI cannot rot silently in Backlog.
 
 on:
@@ -200,7 +200,6 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          bun-version: "1.3.14"
           install-command: "bun install"
           cache-playwright: "true"
 
@@ -264,8 +263,8 @@ jobs:
         if: always() && env.COMPOSE_FILE != ''
         run: docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" down -v
 
-  # File a deduped tracking issue when the release E2E fails, and force Project
-  # Priority P0 so the board cannot park a broken public install contract in
+  # File a deduped tracking issue when the release E2E fails, and force native
+  # issue Priority P0 so the board cannot park a broken public install contract in
   # Backlog with no priority.
   report-failure:
     name: Report failure

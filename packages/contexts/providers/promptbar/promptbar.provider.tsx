@@ -224,8 +224,6 @@ function PromptBarProviderContent({
     getTagsService,
     orgSettings,
   ]);
-  /* eslint-enable react-doctor/no-adjust-state-on-prop-change */
-
   useEffect(() => {
     if (!isAuthLoaded || !enabled) {
       return;

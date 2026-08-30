@@ -329,11 +329,14 @@ const extractProviderOutputText = (payload: ProviderOutputPayload): string => {
   throw new Error('Provider returned an empty generation output.');
 };
 
-const getProviderJson = async <T>(response: Response): Promise<T> => {
+const getProviderJson = async <T>(
+  response: Response,
+  errorLabel = 'Provider request failed',
+): Promise<T> => {
   const responseText = await response.text();
   if (!response.ok) {
     throw new Error(
-      `Provider request failed (${String(response.status)}): ${
+      `${errorLabel} (${String(response.status)}): ${
         responseText || response.statusText
       }`,
     );
@@ -632,16 +635,10 @@ export class DesktopGenerationProviderService {
       },
     );
 
-    const responseText = await response.text();
-    if (!response.ok) {
-      throw new Error(
-        `Replicate request failed (${String(response.status)}): ${
-          responseText || response.statusText
-        }`,
-      );
-    }
-
-    const payload = JSON.parse(responseText) as ProviderOutputPayload;
+    const payload = await getProviderJson<ProviderOutputPayload>(
+      response,
+      'Replicate request failed',
+    );
     return this.resolveReplicatePrediction(config, payload);
   }
 
@@ -792,16 +789,10 @@ export class DesktopGenerationProviderService {
           Authorization: `Bearer ${config.apiKey}`,
         },
       });
-      const statusText = await statusResponse.text();
-      if (!statusResponse.ok) {
-        throw new Error(
-          `Replicate status request failed (${String(statusResponse.status)}): ${
-            statusText || statusResponse.statusText
-          }`,
-        );
-      }
-
-      current = JSON.parse(statusText) as ProviderOutputPayload;
+      current = await getProviderJson<ProviderOutputPayload>(
+        statusResponse,
+        'Replicate status request failed',
+      );
     }
 
     throw new Error(
@@ -828,16 +819,10 @@ export class DesktopGenerationProviderService {
       method: 'POST',
     });
 
-    const createText = await createResponse.text();
-    if (!createResponse.ok) {
-      throw new Error(
-        `fal request failed (${String(createResponse.status)}): ${
-          createText || createResponse.statusText
-        }`,
-      );
-    }
-
-    const created = JSON.parse(createText) as ProviderOutputPayload;
+    const created = await getProviderJson<ProviderOutputPayload>(
+      createResponse,
+      'fal request failed',
+    );
     const requestId =
       typeof created.request_id === 'string' ? created.request_id : undefined;
 
@@ -860,16 +845,10 @@ export class DesktopGenerationProviderService {
           Authorization: `Key ${config.apiKey}`,
         },
       });
-      const statusText = await statusResponse.text();
-      if (!statusResponse.ok) {
-        throw new Error(
-          `fal status request failed (${String(statusResponse.status)}): ${
-            statusText || statusResponse.statusText
-          }`,
-        );
-      }
-
-      const statusPayload = JSON.parse(statusText) as ProviderOutputPayload;
+      const statusPayload = await getProviderJson<ProviderOutputPayload>(
+        statusResponse,
+        'fal status request failed',
+      );
       const status =
         typeof statusPayload.status === 'string'
           ? statusPayload.status.toUpperCase()
@@ -881,17 +860,11 @@ export class DesktopGenerationProviderService {
             Authorization: `Key ${config.apiKey}`,
           },
         });
-        const resultText = await resultResponse.text();
-        if (!resultResponse.ok) {
-          throw new Error(
-            `fal result request failed (${String(resultResponse.status)}): ${
-              resultText || resultResponse.statusText
-            }`,
-          );
-        }
-
         return extractProviderOutputText(
-          JSON.parse(resultText) as ProviderOutputPayload,
+          await getProviderJson<ProviderOutputPayload>(
+            resultResponse,
+            'fal result request failed',
+          ),
         );
       }
 

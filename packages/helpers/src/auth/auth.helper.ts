@@ -83,7 +83,7 @@ export function normalizeAuthAvatarUrl(
 }
 
 export function getAuthPublicData(user: AuthUserLike): IAuthPublicData {
-  return (user.publicMetadata || {}) as unknown as IAuthPublicData;
+  return (user.publicMetadata || {}) as IAuthPublicData;
 }
 
 export function getPlaywrightAuthState(): PlaywrightAuthState | null {

@@ -6,9 +6,8 @@ import { fileURLToPath } from 'node:url';
 import {
   AREA_INFRA,
   BLAST_RADIUS_INFRA,
-  GENFEED_PROJECT_ID,
+  ISSUE_TYPE_BUG,
   PRIORITY_P0,
-  WORK_TYPE_BUG,
 } from './genfeed-project-board.mjs';
 import {
   buildReleaseE2eFailureBody,
@@ -75,15 +74,33 @@ function createGithubMock({
     },
     graphql: async (query, vars) => {
       graphqlCalls.push({ query, vars });
+      if (query.includes('updateIssue(')) {
+        return {
+          updateIssue: {
+            issue: {
+              id: vars.issueId,
+              issueType: { id: ISSUE_TYPE_BUG },
+              issueFieldValues: {
+                nodes: [
+                  { field: { name: 'Priority' }, value: PRIORITY_P0 },
+                  { field: { name: 'Area' }, value: AREA_INFRA },
+                  {
+                    field: { name: 'Blast radius' },
+                    value: BLAST_RADIUS_INFRA,
+                  },
+                ],
+              },
+            },
+          },
+        };
+      }
       if (query.includes('addProjectV2ItemById')) {
         return {
           addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } },
         };
       }
       return {
-        updateProjectV2ItemFieldValue: {
-          projectV2Item: { id: 'PROJECT_ITEM_1' },
-        },
+        unexpectedMutation: true,
       };
     },
   };
@@ -91,7 +108,7 @@ function createGithubMock({
   return { github, comments, created, labelCalls, updates, graphqlCalls };
 }
 
-test('buildReleaseE2eFailureBody names Priority as a project field', () => {
+test('buildReleaseE2eFailureBody names Priority as native issue metadata', () => {
   const body = buildReleaseE2eFailureBody({
     date: '2026-07-28',
     releaseTag: 'v0.1.3',
@@ -129,13 +146,13 @@ test('reportReleaseE2eFailure comments existing open tracker and re-asserts P0',
   assert.ok(
     graphqlCalls.some(
       (c) =>
-        c.vars?.projectId === GENFEED_PROJECT_ID &&
-        c.vars?.optionId === PRIORITY_P0,
+        c.vars?.issueTypeId === ISSUE_TYPE_BUG &&
+        c.vars?.priority === PRIORITY_P0,
     ),
   );
 });
 
-test('reportReleaseE2eFailure creates tracker and triages project fields', async () => {
+test('reportReleaseE2eFailure creates tracker, sets native metadata, and adds it to the project', async () => {
   const { github, created, labelCalls, graphqlCalls } = createGithubMock({
     openIssues: [],
   });
@@ -160,11 +177,18 @@ test('reportReleaseE2eFailure creates tracker and triages project fields', async
   assert.equal(labelCalls[0].issue_number, 99);
   assert.deepEqual(labelCalls[0].labels, [RELEASE_E2E_FAILURE_LABEL]);
 
-  const optionIds = graphqlCalls.map((c) => c.vars?.optionId).filter(Boolean);
-  assert.ok(optionIds.includes(PRIORITY_P0));
-  assert.ok(optionIds.includes(AREA_INFRA));
-  assert.ok(optionIds.includes(WORK_TYPE_BUG));
-  assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
+  const nativeUpdate = graphqlCalls.find((c) =>
+    c.query.includes('updateIssue('),
+  );
+  assert.equal(nativeUpdate.vars.issueTypeId, ISSUE_TYPE_BUG);
+  assert.equal(nativeUpdate.vars.priority, PRIORITY_P0);
+  assert.equal(nativeUpdate.vars.area, AREA_INFRA);
+  assert.equal(nativeUpdate.vars.blastRadius, BLAST_RADIUS_INFRA);
+  assert.ok(graphqlCalls.some((c) => c.query.includes('addProjectV2ItemById')));
+  assert.equal(
+    graphqlCalls.some((c) => c.query.includes('updateProjectV2ItemFieldValue')),
+    false,
+  );
 });
 
 test('reportReleaseE2eFailure fails loudly when the tracker label does not land', async () => {
@@ -193,7 +217,7 @@ test('reportReleaseE2eFailure fails loudly when the tracker label does not land'
   assert.equal(graphqlCalls.length, 0);
 });
 
-test('reportReleaseE2eFailure files the issue but fails when project GraphQL is denied', async () => {
+test('reportReleaseE2eFailure files the issue but fails when triage GraphQL is denied', async () => {
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
@@ -229,7 +253,7 @@ const RELEASE_E2E_WORKFLOW = readFileSync(
   'utf8',
 );
 
-test('release failure triage uses the existing PAT for organization Project writes', () => {
+test('release failure triage uses the existing PAT for issue metadata and Project membership writes', () => {
   assert.match(
     RELEASE_E2E_WORKFLOW,
     /Open or update tracking issue \(Priority P0\)[\s\S]*?github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,

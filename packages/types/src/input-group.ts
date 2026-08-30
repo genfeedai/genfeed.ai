@@ -41,52 +41,37 @@ export type ActionUIPattern =
 export type InputGroupVariant = 'section' | 'inline' | 'card' | 'minimal';
 
 export interface InputGroupProps<TChildren = unknown, TIcon = unknown> {
-  /** Unique identifier for the group */
   id: string;
 
-  /** Group title displayed in header */
   title?: string;
 
-  /** Optional description text */
   description?: string;
 
-  /** Visual variant */
   variant?: InputGroupVariant;
 
-  /** Whether the group is collapsible */
   collapsible?: boolean;
 
-  /** Initial collapsed state */
   defaultCollapsed?: boolean;
 
-  /** Whether the group is in edit mode (inline editing) */
   isEditing?: boolean;
 
-  /** Actions available at the group level */
   actions?: ActionConfig<TIcon>[];
 
-  /** How to display actions */
   actionPattern?: ActionUIPattern;
 
-  /** Whether the entire group is disabled */
   disabled?: boolean;
 
-  /** Whether the group is in loading state */
   loading?: boolean;
 
-  /** Error message for the group */
   error?: string;
 
-  /** Callback when edit mode changes */
   onEditChange?: (isEditing: boolean) => void;
 
-  /** Callback when group is collapsed/expanded */
   onCollapseChange?: (collapsed: boolean) => void;
 
-  /** Children - InputGroupField or InputGroupRow components */
+  /** InputGroupField or InputGroupRow components. */
   children: TChildren;
 
-  /** Additional CSS classes */
   className?: string;
 }
 
@@ -115,37 +100,26 @@ export interface InputGroupHeaderProps<TIcon = unknown> {
 export type FieldWidth = 'full' | 'half' | 'third' | 'quarter' | 'auto';
 
 export interface InputGroupFieldProps<TChildren = unknown, TIcon = unknown> {
-  /** Unique identifier */
   id: string;
 
-  /** Field label */
   label?: string;
 
-  /** Helper text below the field */
   helperText?: string;
 
-  /** Whether field is required */
   required?: boolean;
 
-  /** Validation error */
   error?: string;
 
-  /** Actions for this specific field */
   actions?: ActionConfig<TIcon>[];
 
-  /** How to display field-level actions */
   actionPattern?: ActionUIPattern;
 
-  /** Whether field is disabled */
   disabled?: boolean;
 
-  /** The actual input component */
   children: TChildren;
 
-  /** Layout width */
   width?: FieldWidth;
 
-  /** Additional CSS classes */
   className?: string;
 }
 
@@ -158,37 +132,26 @@ export interface InputGroupRowProps<
   TChildren = unknown,
   TIcon = unknown,
 > {
-  /** Row index in the list */
   index: number;
 
-  /** Row data */
   data: T;
 
-  /** Whether this row is being dragged */
   isDragging?: boolean;
 
-  /** Whether rows can be reordered */
   sortable?: boolean;
 
-  /** Actions available for this row */
   actions?: ActionConfig<TIcon>[];
 
-  /** How to display row actions */
   actionPattern?: ActionUIPattern;
 
-  /** Callback when data changes */
   onChange: (data: T) => void;
 
-  /** Callback to delete this row */
   onDelete?: () => void;
 
-  /** Callback to duplicate this row */
   onDuplicate?: () => void;
 
-  /** The row content */
   children: TChildren;
 
-  /** Additional CSS classes */
   className?: string;
 }
 
@@ -208,37 +171,26 @@ export interface DynamicListProps<
   T = Record<string, unknown>,
   TIcon = unknown,
 > {
-  /** List of items */
   items: T[];
 
-  /** Minimum number of items */
   minItems?: number;
 
-  /** Maximum number of items */
   maxItems?: number;
 
-  /** Whether items can be reordered */
   sortable?: boolean;
 
-  /** Default value for new items */
   defaultItem: T;
 
-  /** Callback when items change */
   onChange: (items: T[]) => void;
 
-  /** Render function for each row */
   renderRow: (item: T, index: number, helpers: RowHelpers<T>) => unknown;
 
-  /** Add button label */
   addButtonLabel?: string;
 
-  /** Empty state message */
   emptyMessage?: string;
 
-  /** Group-level actions */
   actions?: ActionConfig<TIcon>[];
 
-  /** Additional CSS classes */
   className?: string;
 }
 

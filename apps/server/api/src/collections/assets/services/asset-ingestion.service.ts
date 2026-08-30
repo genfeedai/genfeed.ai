@@ -1,17 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
-import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { getAssetParentId } from '@server/collections/assets/utils/asset-parent.util';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ValidationException } from '@server/exceptions/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   AssetCategory,
   AssetParent,
@@ -22,7 +11,18 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
+import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { getAssetParentId } from '@server/collections/assets/utils/asset-parent.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ValidationException } from '@server/exceptions/validation.exception';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 const ASSET_CACHE_TAGS = ['brands', 'links', 'assets', 'public'];
 
@@ -261,12 +261,7 @@ export class AssetIngestionService {
 
   private async invalidateBrandAssets(parentId: string): Promise<void> {
     await this.cacheService.invalidateByTags(ASSET_CACHE_TAGS);
-
-    try {
-      await this.cacheService.del(`brand:${parentId}`);
-    } catch (_error) {
-      // Legacy brand cache keys may not exist.
-    }
+    await this.cacheService.del(`brand:${parentId}`);
   }
 
   private async publishAssetCompleted(

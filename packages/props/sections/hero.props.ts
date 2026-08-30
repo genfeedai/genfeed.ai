@@ -26,6 +26,5 @@ export interface HeroSectionProps {
   showcase?: ReactNode;
   /** Layout variant */
   variant?: HeroVariant;
-  /** Additional CSS classes */
   className?: string;
 }

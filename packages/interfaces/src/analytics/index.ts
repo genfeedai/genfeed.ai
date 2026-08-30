@@ -3,6 +3,7 @@ export * from './analytics.interface';
 export * from './analytics-collection-state.interface';
 export * from './analytics-query-reference.interface';
 export * from './evaluation.interface';
+export * from './saved-ad.interface';
 export * from './training.interface';
 export * from './trend.interface';
 export * from './vote.interface';

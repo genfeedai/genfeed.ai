@@ -7,7 +7,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@server/server.dependencies';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import type { Mock } from 'vitest';
 import { RedditService } from './reddit.service';
 
@@ -24,6 +24,7 @@ describe('RedditService', () => {
   let httpService: HttpService;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     const credentialsMock = {
       findAll: vi.fn(),
       findBrandAccounts: vi.fn(),
@@ -83,6 +84,196 @@ describe('RedditService', () => {
     const url = service.generateAuthUrl('state');
     expect(url).toContain('https://www.reddit.com/api/v1/authorize');
     expect(url).toContain('state=state');
+  });
+
+  it('fetches global trends from the native r/all hot listing', async () => {
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({
+        data: {
+          data: {
+            children: [
+              {
+                data: {
+                  author: 'creator',
+                  created_utc: 1_777_000_000,
+                  id: 'post-1',
+                  num_comments: 42,
+                  permalink: '/r/all/comments/post-1/native_trend/',
+                  score: 1200,
+                  subreddit: 'all',
+                  title: 'Native Reddit trend',
+                  upvote_ratio: 0.95,
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    await expect(service.getTrends()).resolves.toEqual([
+      expect.objectContaining({
+        commentCount: 42,
+        id: 'post-1',
+        score: 1200,
+        title: 'Native Reddit trend',
+        upvoteRatio: 0.95,
+      }),
+    ]);
+    expect(httpService.post).toHaveBeenCalledWith(
+      'https://www.reddit.com/api/v1/access_token',
+      'grant_type=client_credentials',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: expect.stringMatching(/^Basic /),
+        }),
+      }),
+    );
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://oauth.reddit.com/r/all/hot',
+      expect.objectContaining({ params: { limit: 20, raw_json: 1 } }),
+    );
+  });
+
+  it('combines configured subreddit hot and daily top listings', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue({
+      externalId: '1w72r0ba',
+    });
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock)
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              children: [
+                {
+                  data: {
+                    id: 'hot-1',
+                    score: 10,
+                    subreddit: 'artificial',
+                    title: 'Hot topic',
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              children: [
+                {
+                  data: {
+                    id: 'top-1',
+                    score: 20,
+                    subreddit: 'artificial',
+                    title: 'Top topic',
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+    const result = await service.getTrends('org', 'brand', 20, {
+      subreddit: 'r/artificial',
+    });
+
+    expect(credentialsService.resolveBrandAccount).not.toHaveBeenCalled();
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      1,
+      'https://oauth.reddit.com/r/artificial/hot',
+      expect.objectContaining({ params: { limit: 20, raw_json: 1 } }),
+    );
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      2,
+      'https://oauth.reddit.com/r/artificial/top',
+      expect.objectContaining({
+        params: { limit: 20, raw_json: 1, t: 'day' },
+      }),
+    );
+    expect(result.map((trend) => trend.id)).toEqual(['top-1', 'hot-1']);
+  });
+
+  it('uses r/all when a connected credential external id is an account id', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue({
+      externalId: '1w72r0ba',
+    });
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({ data: { data: { children: [] } } }),
+    );
+
+    await expect(service.getTrends('org', 'brand')).resolves.toEqual([]);
+
+    expect(httpService.get).toHaveBeenCalledOnce();
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://oauth.reddit.com/r/all/hot',
+      expect.any(Object),
+    );
+  });
+
+  it('supports the legacy r/name credential fallback', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue({
+      externalId: 'r/artificial',
+    });
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({ data: { data: { children: [] } } }),
+    );
+
+    await service.getTrends('org', 'brand');
+
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      1,
+      'https://oauth.reddit.com/r/artificial/hot',
+      expect.any(Object),
+    );
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      2,
+      'https://oauth.reddit.com/r/artificial/top',
+      expect.any(Object),
+    );
+  });
+
+  it('uses r/all for a scoped request without a Reddit credential', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue(null);
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({ data: { data: { children: [] } } }),
+    );
+
+    await expect(service.getTrends('org', 'brand')).resolves.toEqual([]);
+
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://oauth.reddit.com/r/all/hot',
+      expect.any(Object),
+    );
+  });
+
+  it('propagates native listing errors for orchestration fallback', async () => {
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      throwError(() => new Error('Reddit unavailable')),
+    );
+
+    await expect(service.getTrends()).rejects.toThrow('Reddit unavailable');
   });
 
   it('refreshes token', async () => {

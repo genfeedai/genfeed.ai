@@ -92,6 +92,7 @@ import { PublishingSetupModule } from '@api/collections/publishing-setup/publish
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
+import { SavedAdsModule } from '@api/collections/saved-ads/saved-ads.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
@@ -356,6 +357,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     RolesModule,
     RssSourcesModule,
     SchedulesModule,
+    SavedAdsModule,
     SettingsModule,
     SpeechModule,
     SocialInboxModule,

@@ -32,10 +32,7 @@ export class CronPostsService {
   }
 
   private async queuePost(post: PostEntity): Promise<void> {
-    const organizationId = readPostString(post, [
-      'organization',
-      'organizationId',
-    ]);
+    const organizationId = readPostString(post, ['organizationId']);
     if (!organizationId) {
       this.logger.warn('Scheduled post has no organization', {
         postId: post.id,
@@ -43,7 +40,7 @@ export class CronPostsService {
       return;
     }
     const approval = this.readRecord(post.publishApproval);
-    const userId = readPostString(post, ['userId', 'user']);
+    const userId = readPostString(post, ['userId']);
     try {
       await this.workflowQueue.enqueue({
         ...(typeof approval.id === 'string' ? { approvalId: approval.id } : {}),

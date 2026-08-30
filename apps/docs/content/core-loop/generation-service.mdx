@@ -30,8 +30,8 @@ The generation story in the current repo spans a small set of stable entrypoints
   - dispatches generation tools to the internal media APIs
 - [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
   - discovers models from verified Replicate owners into an inactive review queue
-- [`packages/agent/src/hooks/use-agent-registry-models.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/hooks/use-agent-registry-models.ts)
-  - filters reviewed text-model records for the shared agent model selector
+- [`packages/agent/src/hooks/use-agent-generation-setup-presets.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/hooks/use-agent-generation-setup-presets.ts)
+  - builds unified Generation Setup presets from Studio Looks and allowed generation models
 
 ## Stable Generation Surface
 

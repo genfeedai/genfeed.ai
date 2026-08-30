@@ -119,6 +119,19 @@ describe('CacheService', () => {
     });
   });
 
+  describe('del', () => {
+    it('gracefully handles client errors', async () => {
+      const error = new Error('oops');
+      mockRedisClient.del.mockRejectedValue(error);
+
+      await expect(service.del('key')).resolves.toBe(false);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'CacheService del error',
+        { error, key: 'key' },
+      );
+    });
+  });
+
   describe('invalidateByTags', () => {
     it('delegates to cache tag service', async () => {
       (cacheTagsService.invalidateByTags as vi.Mock).mockResolvedValue(2);

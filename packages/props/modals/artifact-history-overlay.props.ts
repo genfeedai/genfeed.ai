@@ -1,6 +1,4 @@
 /**
- * Props for the artifact-history overlay (temporary conversation-shell overlay).
- *
  * Models the version-pin + approval contract from
  * `.agents/memory/architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`:
  * approval is a typed user decision bound to one immutable version pin, the

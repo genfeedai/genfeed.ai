@@ -26,8 +26,6 @@ export class ApiKeyHelperService {
 
     const envVar = API_KEY_ENV_MAP[provider];
 
-    return envVar
-      ? String(String(this.configService.get<string>(envVar) || ''))
-      : '';
+    return envVar ? String(this.configService.get<string>(envVar) || '') : '';
   }
 }

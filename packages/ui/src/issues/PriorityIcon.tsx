@@ -1,5 +1,5 @@
 import { cn } from '../lib/utils';
-import { priorityColor, priorityColorDefault } from '../tokens/status-colors';
+import { priorityColor } from '../tokens/status-colors';
 
 type PriorityLevel = 'critical' | 'high' | 'medium' | 'low';
 
@@ -9,22 +9,22 @@ const priorityConfig: Record<
 > = {
   critical: {
     symbol: '⚠',
-    color: priorityColor.critical ?? priorityColorDefault,
+    color: priorityColor.critical,
     label: 'Critical',
   },
   high: {
     symbol: '↑',
-    color: priorityColor.high ?? priorityColorDefault,
+    color: priorityColor.high,
     label: 'High',
   },
   low: {
     symbol: '↓',
-    color: priorityColor.low ?? priorityColorDefault,
+    color: priorityColor.low,
     label: 'Low',
   },
   medium: {
     symbol: '—',
-    color: priorityColor.medium ?? priorityColorDefault,
+    color: priorityColor.medium,
     label: 'Medium',
   },
 };

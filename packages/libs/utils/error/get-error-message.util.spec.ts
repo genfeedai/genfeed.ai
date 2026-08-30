@@ -47,4 +47,39 @@ describe('getErrorMessage', () => {
 
     expect(getErrorMessage(circular)).toBe('Unknown error');
   });
+
+  it('applies a fallback policy without changing the default behavior', () => {
+    const fallback = () => 'fallback';
+
+    expect(getErrorMessage(new Error('boom'), { fallback })).toBe('boom');
+    expect(getErrorMessage(new Error(''), { fallback })).toBe('');
+    expect(
+      getErrorMessage(new Error(''), {
+        emptyMessage: 'fallback',
+        fallback,
+      }),
+    ).toBe('fallback');
+    expect(getErrorMessage('plain failure', { fallback })).toBe('fallback');
+  });
+
+  it('can limit extraction to Error instances', () => {
+    expect(
+      getErrorMessage(
+        { message: 'plain object' },
+        {
+          fallback: String,
+          messageSource: 'error-instance',
+        },
+      ),
+    ).toBe('[object Object]');
+  });
+
+  it('can coerce a non-string message property', () => {
+    expect(
+      getErrorMessage(
+        { message: 42 },
+        { coerceMessage: true, fallback: () => 'fallback' },
+      ),
+    ).toBe('42');
+  });
 });

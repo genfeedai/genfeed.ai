@@ -15,7 +15,6 @@ import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 
-// Score thresholds with corresponding color classes
 const SCORE_THRESHOLDS = [
   {
     bar: 'bg-success',
@@ -141,7 +140,6 @@ export default function EvaluationCard({
   isPublished = false,
 }: EvaluationCardProps) {
   const evaluationData = evaluation?.data;
-  // When published, start collapsed by default
   const [isCardCollapsed, setIsCardCollapsed] = useState(
     () => isPublished && evaluationData?.status === Status.COMPLETED,
   );
@@ -151,7 +149,6 @@ export default function EvaluationCard({
 
   const contentTypeLabel = CONTENT_TYPE_LABELS[contentType] ?? 'Content';
 
-  // Get the 3 lowest scores for "Focus Areas"
   const getLowestScores = () => {
     if (!evaluationData?.scores) {
       return [];
@@ -171,7 +168,6 @@ export default function EvaluationCard({
 
   const lowestScores = getLowestScores();
 
-  // Determine header action based on state
   const getHeaderAction = () => {
     if (!evaluation || evaluationData?.status === Status.FAILED) {
       return undefined;
@@ -182,7 +178,6 @@ export default function EvaluationCard({
 
     const { overallScore } = evaluationData ?? {};
 
-    // When published, show collapsed summary with score
     if (isPublished && evaluationData?.status === Status.COMPLETED) {
       return (
         <Button
@@ -209,7 +204,6 @@ export default function EvaluationCard({
       );
     }
 
-    // When not published, show score and run button
     return (
       <div className="flex items-center gap-2">
         <div
@@ -296,7 +290,6 @@ function EvaluationCardContent({
 }: EvaluationCardContentProps): React.ReactNode {
   const evaluationData = evaluation?.data;
 
-  // No evaluation yet
   if (!evaluation) {
     return (
       <div className="flex items-center justify-between gap-4">
@@ -319,7 +312,6 @@ function EvaluationCardContent({
     );
   }
 
-  // Evaluation in progress
   if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
     return (
       <div className="flex items-center gap-3">
@@ -339,7 +331,6 @@ function EvaluationCardContent({
     );
   }
 
-  // Evaluation failed
   if (evaluationData?.status === Status.FAILED) {
     return (
       <>
@@ -360,10 +351,8 @@ function EvaluationCardContent({
     );
   }
 
-  // Evaluation complete - show full results
   const { scores, analysis, flags } = evaluationData ?? {};
 
-  // When published and collapsed, show summary
   if (isPublished && isCardCollapsed) {
     return (
       <div className="space-y-2">
@@ -388,7 +377,6 @@ function EvaluationCardContent({
 
   return (
     <div className="space-y-4">
-      {/* Focus Areas - Show 3 lowest scores */}
       {lowestScores.length > 0 && lowestScores[0][1] < 50 && (
         <div className="p-2 bg-warning/10 border border-warning/20 text-sm">
           <span className="font-medium text-warning">Focus:</span>{' '}
@@ -400,7 +388,6 @@ function EvaluationCardContent({
         </div>
       )}
 
-      {/* Flagged Warning */}
       {flags?.isFlagged && (
         <div
           className={cn(
@@ -417,7 +404,6 @@ function EvaluationCardContent({
         </div>
       )}
 
-      {/* Category Scores */}
       <div className="space-y-3">
         <Button
           type="button"
@@ -457,7 +443,6 @@ function EvaluationCardContent({
         )}
       </div>
 
-      {/* Strengths & Weaknesses */}
       <div className="space-y-3">
         <Button
           type="button"
@@ -516,7 +501,6 @@ function EvaluationCardContent({
         )}
       </div>
 
-      {/* Suggestions */}
       {(analysis?.suggestions?.length ?? 0) > 0 && (
         <div>
           <Button
@@ -550,7 +534,6 @@ function EvaluationCardContent({
         </div>
       )}
 
-      {/* Last evaluated */}
       {evaluation.updatedAt && (
         <div className="text-xs text-foreground/50 text-right">
           <ClientDateTime value={evaluation.updatedAt} prefix="Evaluated " />

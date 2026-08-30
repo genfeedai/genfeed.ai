@@ -111,7 +111,8 @@ export function useAgentCliTerminal(
   }, [activeThreadId]);
 
   const threadKey = resolveThreadKey(activeThreadId);
-  const sessions = terminalSessionsByThread.get(threadKey) ?? [];
+  const activeThreadSessions = terminalSessionsByThread.get(threadKey);
+  const sessions = activeThreadSessions ?? [];
   const activeSessionId =
     activeTerminalSessionByThread[threadKey] ?? sessions[0]?.id ?? null;
 
@@ -260,11 +261,14 @@ export function useAgentCliTerminal(
     }
 
     const key = resolveThreadKey(activeThreadId);
-    const existingSessions = terminalSessionsByThread.get(key) ?? [];
     const targetId =
-      activeTerminalSessionByThread[key] ?? existingSessions[0]?.id;
+      activeTerminalSessionByThread[key] ?? activeThreadSessions?.[0]?.id;
 
     if (targetId) {
+      if (sessionIdRef.current === targetId) {
+        return;
+      }
+
       // Existing session for this thread — attach
       sessionIdRef.current = targetId;
       terminalRef.current?.clear();
@@ -278,7 +282,7 @@ export function useAgentCliTerminal(
     activeThreadId, // No session yet for new thread — spawn one
     startSession,
     activeTerminalSessionByThread,
-    terminalSessionsByThread.get,
+    activeThreadSessions,
   ]);
 
   // Boot effect — mounts xterm, establishes socket, lists existing sessions.

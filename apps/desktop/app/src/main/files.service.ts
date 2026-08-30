@@ -2,7 +2,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type {
-  DesktopAssetKind,
   DesktopAssetUploadPolicy,
   IDesktopAsset,
 } from '@genfeedai/desktop-contracts';
@@ -15,6 +14,7 @@ import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
 import {
   extensionForDesktopAssetMimeType,
+  inferDesktopAssetKind,
   inferDesktopAssetMimeType,
   validateDesktopAssetMimeType,
 } from './asset-mime.util';
@@ -23,13 +23,6 @@ import { toIso } from './time.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
-
-const inferAssetKind = (mimeType: string): DesktopAssetKind => {
-  if (mimeType.startsWith('image/')) return 'image';
-  if (mimeType.startsWith('video/')) return 'video';
-  if (mimeType.startsWith('audio/')) return 'audio';
-  return 'document';
-};
 
 const sanitizeFilenamePart = (value: string): string =>
   value
@@ -306,7 +299,7 @@ export class DesktopFilesService {
       displayName: params.displayName,
       isDeleted: false,
       id: randomUUID(),
-      kind: inferAssetKind(params.mimeType),
+      kind: inferDesktopAssetKind(params.mimeType),
       localPath: params.localPath,
       mimeType: params.mimeType,
       organizationId: LOCAL_ORGANIZATION_ID,

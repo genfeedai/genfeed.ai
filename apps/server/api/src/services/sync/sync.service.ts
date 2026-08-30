@@ -1,3 +1,7 @@
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import type {
@@ -7,10 +11,6 @@ import type {
 import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 import type {
@@ -327,9 +327,7 @@ export class SyncService {
       syncDirection: 'pull',
     };
 
-    const localId = String(
-      created.id ?? (created as Record<string, unknown>).id,
-    );
+    const localId = String(created.id);
     await this.workflowsService.patch(localId, { cloudSync });
 
     this.logger.log('Workflow pulled from cloud successfully', {

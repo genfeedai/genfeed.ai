@@ -1413,6 +1413,41 @@ describe('FilesController', () => {
         HttpException,
       );
     });
+
+    it.each([
+      {
+        error: new Error('File does not exist'),
+        expectedMessage: 'File not accessible: File does not exist',
+        expectedStatus: 400,
+      },
+      {
+        error: 'File does not exist',
+        expectedMessage: 'Failed to get file metadata',
+        expectedStatus: 500,
+      },
+      {
+        error: { message: 'File does not exist' },
+        expectedMessage: 'File does not exist',
+        expectedStatus: 500,
+      },
+      {
+        error: new Error(''),
+        expectedMessage: 'Failed to get file metadata',
+        expectedStatus: 500,
+      },
+    ])(
+      'preserves metadata error behavior for $error',
+      async ({ error, expectedMessage, expectedStatus }) => {
+        mockFFmpegService.getVideoMetadata.mockRejectedValueOnce(error);
+
+        await expect(
+          controller.getFileMetadata({ filePath: '/path/to/video.mp4' }),
+        ).rejects.toMatchObject({
+          response: expectedMessage,
+          status: expectedStatus,
+        });
+      },
+    );
   });
 
   // ==========================================================================

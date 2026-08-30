@@ -195,7 +195,6 @@ function buildLlmsIndex(): string {
   );
   lines.push('');
 
-  // Products
   lines.push('## Products');
   lines.push('');
   for (const p of products) {
@@ -203,7 +202,6 @@ function buildLlmsIndex(): string {
   }
   lines.push('');
 
-  // Use Cases
   lines.push('## Use Cases');
   lines.push('');
   for (const uc of useCases) {
@@ -213,7 +211,6 @@ function buildLlmsIndex(): string {
   }
   lines.push('');
 
-  // Integrations
   lines.push('## Integrations');
   lines.push('');
   for (const i of integrations) {
@@ -223,7 +220,6 @@ function buildLlmsIndex(): string {
   }
   lines.push('');
 
-  // Resources
   lines.push('## Resources');
   lines.push('');
   lines.push(
@@ -240,7 +236,6 @@ function buildLlmsIndex(): string {
   );
   lines.push('');
 
-  // Optional
   lines.push('## Optional');
   lines.push('');
   lines.push(`- [About](${BASE_URL}/about): Company mission and team`);
@@ -266,7 +261,6 @@ function buildLlmsIndex(): string {
 function buildLlmsFull(): string {
   const s: string[] = [];
 
-  // Header
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
@@ -274,7 +268,6 @@ function buildLlmsFull(): string {
   );
   s.push('');
 
-  // Overview
   s.push('## Overview');
   s.push('');
   s.push(
@@ -298,7 +291,6 @@ function buildLlmsFull(): string {
     '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',
   );
   s.push('');
-  // Products
   s.push('---');
   s.push('');
   s.push('## Products');
@@ -331,7 +323,6 @@ function buildLlmsFull(): string {
     s.push('');
   }
 
-  // Pricing
   s.push('---');
   s.push('');
   s.push('## Pricing');
@@ -385,7 +376,6 @@ function buildLlmsFull(): string {
     s.push('');
   }
 
-  // AI Models
   s.push('---');
   s.push('');
   s.push('## AI Models');
@@ -411,7 +401,6 @@ function buildLlmsFull(): string {
     s.push('');
   }
 
-  // Use Cases
   s.push('---');
   s.push('');
   s.push('## Use Cases');
@@ -457,7 +446,6 @@ function buildLlmsFull(): string {
     s.push('');
   }
 
-  // Integrations
   s.push('---');
   s.push('');
   s.push('## Integrations');
@@ -489,7 +477,6 @@ function buildLlmsFull(): string {
     s.push('');
   }
 
-  // FAQ
   s.push('---');
   s.push('');
   s.push('## FAQ');

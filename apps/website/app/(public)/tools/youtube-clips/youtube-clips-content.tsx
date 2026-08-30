@@ -5,7 +5,6 @@ import type {
   IPublicYoutubeClipRecommendation,
   IPublicYoutubeClipToolSession,
 } from '@genfeedai/interfaces';
-import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -21,6 +20,7 @@ import {
   type WebsiteAnalyticsEventProperties,
 } from '../../../../packages/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+import { buildAuthHandoffHref } from '../../../../packages/auth/auth-handoff';
 
 const POLL_INTERVAL_MS = 2_000;
 
@@ -47,28 +47,6 @@ function formatTimestamp(seconds: number): string {
   return hours > 0
     ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
     : `${minutes}:${String(remainder).padStart(2, '0')}`;
-}
-
-function buildAuthHandoffHref(
-  path: 'login' | 'sign-up',
-  previewToken: string,
-): string {
-  const postSignup = new URL(
-    '/onboarding/post-signup',
-    EnvironmentService.apps.app,
-  );
-  postSignup.searchParams.set('clipToolToken', previewToken);
-
-  const auth = new URL(`/${path}`, EnvironmentService.apps.app);
-  if (path === 'login') {
-    auth.searchParams.set(
-      'callbackUrl',
-      `${postSignup.pathname}${postSignup.search}`,
-    );
-  } else {
-    auth.searchParams.set('clipToolToken', previewToken);
-  }
-  return auth.toString();
 }
 
 function RecommendationCard({
@@ -476,6 +454,7 @@ export default function YoutubeClipsContent(): React.ReactElement {
                       data-ph-no-capture
                       href={buildAuthHandoffHref(
                         'sign-up',
+                        'clipToolToken',
                         session.previewToken,
                       )}
                       onClick={() => captureAuthHandoff('sign_up')}
@@ -491,7 +470,11 @@ export default function YoutubeClipsContent(): React.ReactElement {
                   >
                     <Link
                       data-ph-no-capture
-                      href={buildAuthHandoffHref('login', session.previewToken)}
+                      href={buildAuthHandoffHref(
+                        'login',
+                        'clipToolToken',
+                        session.previewToken,
+                      )}
                       onClick={() => captureAuthHandoff('sign_in')}
                     >
                       Sign in and continue

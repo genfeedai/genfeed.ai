@@ -85,7 +85,8 @@ _Avoid_: grooming, review (reserved for PRs).
 
 **Intake labels**: The public label set applied during triage: `needs:triage` (automatic on open),
 `needs:ears`, `needs:info`, `good first issue`, `help wanted`, plus the type label set by the issue
-form (`bug`, `enhancement`, `task`). Priority is a Project #12 field, never a label.
+form (`bug`, `enhancement`, `task`). Priority is a native organization Issue Field
+surfaced on Project #12, never a label.
 _Avoid_: P0/P1 labels, area labels.
 
 **Internal labels**: `shipcode:*` — pipeline state for the maintainer's automation. Visible but

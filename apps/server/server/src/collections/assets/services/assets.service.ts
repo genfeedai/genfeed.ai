@@ -1,3 +1,6 @@
+import { AssetParent } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
 import { UpdateAssetDto } from '@server/collections/assets/dto/update-asset.dto';
 import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
@@ -5,9 +8,6 @@ import { buildAssetParentColumns } from '@server/collections/assets/utils/asset-
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
-import { AssetParent } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type AssetCreateInput = CreateAssetDto & { userId: string };
 
@@ -17,8 +17,6 @@ export class AssetsService extends BaseService<
   AssetCreateInput,
   UpdateAssetDto
 > {
-  public readonly constructorName: string = String(this.constructor.name);
-
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
