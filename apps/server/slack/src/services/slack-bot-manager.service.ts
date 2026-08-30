@@ -17,6 +17,7 @@ import {
   WorkflowDefinition,
   WorkflowSession,
 } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
@@ -83,8 +84,9 @@ export class SlackBotManager
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly redisService: RedisService,
+    logger: LoggerService,
   ) {
-    super();
+    super(logger);
     this.internalApiClient = new BotInternalApiClient({
       apiUrl: this.configService.API_URL,
       apiKey: this.configService.API_KEY,
@@ -713,38 +715,6 @@ export class SlackBotManager
     ];
 
     await respond({ blocks, text: 'Settings' });
-  }
-
-  /**
-   * Strip sensitive fields from an error before logging.
-   * Axios errors carry the full request config (including Authorization headers)
-   * on `error.config` — never log that object directly.
-   */
-  private sanitizeErrorForLog(error: unknown): Record<string, unknown> {
-    if (error instanceof Error) {
-      const axiosError = error as {
-        response?: { status?: number; statusText?: string };
-        code?: string;
-        config?: unknown;
-      };
-      return {
-        code: axiosError.code,
-        message: error.message,
-        status: axiosError.response?.status,
-        statusText: axiosError.response?.statusText,
-      };
-    }
-
-    if (typeof error === 'object' && error !== null) {
-      const obj = error as Record<string, unknown>;
-      return {
-        code: obj.code,
-        message: obj.message,
-        name: obj.name,
-      };
-    }
-
-    return { raw: String(error) };
   }
 
   private getInternalApiHeaders(): { Authorization: string } | undefined {

@@ -41,13 +41,16 @@ vi.mock('@genfeedai/enums', async (importOriginal) => ({
 
 vi.mock('@genfeedai/integrations', () => ({
   BaseBotManager: class {
-    protected readonly logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
+    protected readonly logger: unknown;
     protected readonly bots = new Map();
+    constructor(logger: unknown) {
+      this.logger = logger;
+    }
+    protected sanitizeErrorForLog(error: unknown) {
+      return {
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
     getActiveCount() {
       return this.bots.size;
     }
@@ -134,12 +137,19 @@ const mockRedisService = {
   unsubscribe: vi.fn().mockResolvedValue(undefined),
 };
 
+const mockLoggerService = {
+  debug: vi.fn(),
+  error: vi.fn(),
+  log: vi.fn(),
+  warn: vi.fn(),
+};
+
 function createManager(): TelegramBotManager {
   return new (
     TelegramBotManager as unknown as new (
       ...args: unknown[]
     ) => TelegramBotManager
-  )(mockConfigService, mockHttpService, mockRedisService);
+  )(mockConfigService, mockHttpService, mockRedisService, mockLoggerService);
 }
 
 const mockIntegration = {

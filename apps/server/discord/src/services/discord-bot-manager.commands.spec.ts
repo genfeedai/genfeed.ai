@@ -8,6 +8,7 @@ import type {
   WorkflowInput,
   WorkflowSession,
 } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -213,10 +214,17 @@ describe('DiscordBotManager command handlers', () => {
     mockRest.setToken.mockReturnThis();
 
     httpService = { get: vi.fn() };
+    logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DiscordBotManager,
+        { provide: LoggerService, useValue: logger },
         {
           provide: ConfigService,
           useValue: { API_KEY: 'test-key', API_URL: 'http://api.test' },
@@ -231,12 +239,6 @@ describe('DiscordBotManager command handlers', () => {
 
     service = module.get<DiscordBotManager>(DiscordBotManager);
     internals = service as unknown as ManagerInternals;
-    logger = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
     internals.logger = logger;
   });
 
@@ -261,7 +263,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to register slash commands:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });
@@ -359,7 +361,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch workflows:',
-        expect.any(Error),
+        expect.objectContaining({ message: expect.any(String) }),
       );
       expect(interaction.editReply).toHaveBeenLastCalledWith(
         'Failed to load workflows. Please try again.',
@@ -670,7 +672,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to select workflow:',
-        expect.any(Error),
+        expect.objectContaining({ message: expect.any(String) }),
       );
       expect(interaction.editReply).toHaveBeenCalledWith({
         components: [],
@@ -1104,7 +1106,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to execute workflow:',
-        expect.any(Error),
+        expect.objectContaining({ message: expect.any(String) }),
       );
       expect(send).toHaveBeenCalledWith(
         'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
@@ -1236,7 +1238,7 @@ describe('DiscordBotManager command handlers', () => {
       expect(integrations).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch integrations:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
 
@@ -1280,7 +1282,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch and add integration int-1:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
 
@@ -1322,7 +1324,7 @@ describe('DiscordBotManager command handlers', () => {
 
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch and update integration int-1:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
 
@@ -1338,7 +1340,7 @@ describe('DiscordBotManager command handlers', () => {
       expect(workflows).toEqual([]);
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch workflows:',
-        error,
+        expect.objectContaining({ message: error.message }),
       );
     });
   });

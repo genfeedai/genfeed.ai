@@ -18,6 +18,7 @@ import {
   WorkflowDefinition,
   WorkflowSession,
 } from '@genfeedai/integrations';
+import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
@@ -79,8 +80,9 @@ export class TelegramBotManager
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly redisService: RedisService,
+    logger: LoggerService,
   ) {
-    super();
+    super(logger);
     this.internalApiClient = new BotInternalApiClient({
       apiUrl: this.configService.API_URL,
       apiKey: this.configService.API_KEY,
@@ -112,7 +114,10 @@ export class TelegramBotManager
         `Telegram Bot Manager initialized with ${this.getActiveCount()} bots`,
       );
     } catch (error) {
-      this.logger.error('Failed to initialize Telegram Bot Manager:', error);
+      this.logger.error(
+        'Failed to initialize Telegram Bot Manager:',
+        this.sanitizeErrorForLog(error),
+      );
       throw error;
     }
   }
@@ -144,7 +149,10 @@ export class TelegramBotManager
     this.setupBotHandlers(bot, integration);
 
     bot.start().catch((error) => {
-      this.logger.error(`Failed to start bot ${integration.id}:`, error);
+      this.logger.error(
+        `Failed to start bot ${integration.id}:`,
+        this.sanitizeErrorForLog(error),
+      );
     });
 
     return Promise.resolve({
@@ -159,7 +167,10 @@ export class TelegramBotManager
     try {
       await botInstance.bot.stop();
     } catch (error) {
-      this.logger.error(`Error stopping bot ${botInstance.id}`, error);
+      this.logger.error(
+        `Error stopping bot ${botInstance.id}`,
+        this.sanitizeErrorForLog(error),
+      );
     }
   }
 
@@ -225,7 +236,10 @@ export class TelegramBotManager
     });
 
     bot.catch((err) => {
-      this.logger.error(`Error in bot ${integration.id}:`, err);
+      this.logger.error(
+        `Error in bot ${integration.id}:`,
+        this.sanitizeErrorForLog(err),
+      );
     });
   }
 
@@ -270,7 +284,10 @@ export class TelegramBotManager
         reply_markup: keyboard,
       });
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeErrorForLog(error),
+      );
       await ctx.reply('Failed to load workflows. Please try again.');
     }
   }
@@ -490,7 +507,10 @@ export class TelegramBotManager
 
       await this.promptNextInput(ctx, chatId);
     } catch (error) {
-      this.logger.error('Failed to handle photo:', error);
+      this.logger.error(
+        'Failed to handle photo:',
+        this.sanitizeErrorForLog(error),
+      );
       await ctx.reply('Failed to process the photo. Please try again.');
     }
   }
@@ -531,7 +551,10 @@ export class TelegramBotManager
           return;
         }
         this.handleRedisEvent(event, data).catch((err) =>
-          this.logger.error('Failed to handle Redis integration event', err),
+          this.logger.error(
+            'Failed to handle Redis integration event',
+            this.sanitizeErrorForLog(err),
+          ),
         );
       });
     }
@@ -576,7 +599,10 @@ export class TelegramBotManager
       const url = response.data?.data?.url;
       return typeof url === 'string' && url.length > 0 ? url : null;
     } catch (error) {
-      this.logger.error('Failed to mirror Telegram file:', error);
+      this.logger.error(
+        'Failed to mirror Telegram file:',
+        this.sanitizeErrorForLog(error),
+      );
       return null;
     }
   }
@@ -591,7 +617,10 @@ export class TelegramBotManager
       }
       return await this.internalApiClient.fetchActiveIntegrations();
     } catch (error) {
-      this.logger.error('Failed to fetch integrations:', error);
+      this.logger.error(
+        'Failed to fetch integrations:',
+        this.sanitizeErrorForLog(error),
+      );
       return [];
     }
   }
@@ -610,7 +639,7 @@ export class TelegramBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and add integration ${integrationId}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -631,7 +660,7 @@ export class TelegramBotManager
     } catch (error) {
       this.logger.error(
         `Failed to fetch and update integration ${integrationId}:`,
-        error,
+        this.sanitizeErrorForLog(error),
       );
     }
   }
@@ -640,7 +669,10 @@ export class TelegramBotManager
     try {
       return await this.internalApiClient.fetchOrgWorkflows(orgId);
     } catch (error) {
-      this.logger.error('Failed to fetch workflows:', error);
+      this.logger.error(
+        'Failed to fetch workflows:',
+        this.sanitizeErrorForLog(error),
+      );
       return [];
     }
   }
@@ -683,7 +715,10 @@ export class TelegramBotManager
 
       await this.promptNextInput(ctx, chatId);
     } catch (error) {
-      this.logger.error('Failed to select workflow:', error);
+      this.logger.error(
+        'Failed to select workflow:',
+        this.sanitizeErrorForLog(error),
+      );
       await ctx.reply('Failed to load workflow details. Please try again.');
     }
   }
@@ -785,7 +820,10 @@ export class TelegramBotManager
 
       void this.monitorWorkflowExecution(orgId, chatId, ctx);
     } catch (error) {
-      this.logger.error('Failed to execute workflow:', error);
+      this.logger.error(
+        'Failed to execute workflow:',
+        this.sanitizeErrorForLog(error),
+      );
       await ctx.reply(
         'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       );
@@ -980,7 +1018,10 @@ export class TelegramBotManager
         return;
       }
 
-      this.logger.error('Failed while monitoring workflow execution:', error);
+      this.logger.error(
+        'Failed while monitoring workflow execution:',
+        this.sanitizeErrorForLog(error),
+      );
       await ctx.reply(
         'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
       );
