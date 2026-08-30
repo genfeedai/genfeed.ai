@@ -12,6 +12,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
 import { Copy, Gift } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 function resolveShareUrl(value: string): string {
   if (!value.startsWith('/') || typeof window === 'undefined') {
@@ -21,6 +22,7 @@ function resolveShareUrl(value: string): string {
 }
 
 export default function ReferralHubCard() {
+  const translate = useTranslations('common.referrals');
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
@@ -40,30 +42,28 @@ export default function ReferralHubCard() {
       return;
     }
     await ClipboardService.getInstance().copyToClipboard(shareUrl);
-    NotificationsService.getInstance().success('Referral link copied');
+    NotificationsService.getInstance().success(translate('copied'));
   };
 
   return (
-    <Card label="Refer & earn" bodyClassName="gap-4 p-4">
+    <Card label={translate('title')} bodyClassName="gap-4 p-4">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Gift className="size-5" aria-hidden="true" />
         </div>
         <div className="space-y-1">
-          <Text weight="semibold">Earn 10% in credits</Text>
+          <Text weight="semibold">{translate('headline')}</Text>
           <Text size="sm" color="muted">
-            Share your link. You earn 10% of each referred customer&apos;s
-            pay-as-you-go credit purchases for 12 months. Rewards settle after
-            seven days and expire after 12 months.
+            {translate('description')}
           </Text>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input
-          aria-label="Referral link"
+          aria-label={translate('linkLabel')}
           isReadOnly
-          value={isLoading ? 'Loading referral link…' : shareUrl}
+          value={isLoading ? translate('loadingLink') : shareUrl}
         />
         <Button
           type="button"
@@ -72,20 +72,29 @@ export default function ReferralHubCard() {
           icon={<Copy className="size-4" aria-hidden="true" />}
           withWrapper={false}
         >
-          Copy link
+          {translate('copyLink')}
         </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <ReferralStat label="Referred" value={data?.referralCount ?? 0} />
-        <ReferralStat label="Pending" value={data?.pendingCredits ?? 0} />
-        <ReferralStat label="Earned" value={data?.earnedCredits ?? 0} />
+        <ReferralStat
+          label={translate('stats.referred')}
+          value={data?.referralCount ?? 0}
+        />
+        <ReferralStat
+          label={translate('stats.pending')}
+          value={data?.pendingCredits ?? 0}
+        />
+        <ReferralStat
+          label={translate('stats.earned')}
+          value={data?.earnedCredits ?? 0}
+        />
       </div>
 
       {data?.recentRewards.length ? (
         <div className="space-y-2">
           <Text size="sm" weight="semibold">
-            Recent rewards
+            {translate('recentRewards')}
           </Text>
           {data.recentRewards.slice(0, 5).map((reward) => (
             <div
@@ -94,10 +103,12 @@ export default function ReferralHubCard() {
             >
               <div>
                 <Text size="sm" weight="medium">
-                  {reward.rewardCredits.toLocaleString('en-US')} credits
+                  {translate('creditsAmount', {
+                    count: reward.rewardCredits.toLocaleString(),
+                  })}
                 </Text>
                 <Text size="xs" color="muted">
-                  {new Date(reward.createdAt).toLocaleDateString('en-US')}
+                  {new Date(reward.createdAt).toLocaleDateString()}
                 </Text>
               </div>
               <Badge status={reward.status.toLowerCase()} />
@@ -116,7 +127,7 @@ function ReferralStat({ label, value }: { label: string; value: number }) {
         {label}
       </Text>
       <Text as="span" size="lg" weight="bold">
-        {value.toLocaleString('en-US')}
+        {value.toLocaleString()}
       </Text>
     </div>
   );

@@ -6,6 +6,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReferralHubCard from './referral-hub-card';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const { copyMock, getMineMock, successMock } = vi.hoisted(() => ({
   copyMock: vi.fn(),
   getMineMock: vi.fn(),

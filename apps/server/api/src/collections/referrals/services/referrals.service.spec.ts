@@ -77,6 +77,7 @@ function reward(overrides: Record<string, unknown> = {}) {
       referrerOrganizationId: 'org_referrer',
       status: ReferralStatus.ACTIVE,
     },
+    referralCodeId: 'code_1',
     referralId: 'referral_1',
     refundedAmountCents: 0,
     reversedAt: null,
@@ -231,6 +232,10 @@ describe('ReferralsService', () => {
       { organizationId: ACTOR.organizationId },
       { organizationId: 'org_linked_2' },
     ]);
+    prisma.organization.findMany.mockResolvedValue([
+      { id: ACTOR.organizationId },
+      { id: 'org_linked_2' },
+    ]);
     prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'tx_paid' });
 
     const result = await service.claim(ACTOR, 'validcode1');
@@ -261,6 +266,10 @@ describe('ReferralsService', () => {
       { organizationId: ACTOR.organizationId },
       { organizationId: 'org_linked_2' },
     ]);
+    prisma.organization.findMany.mockResolvedValue([
+      { id: ACTOR.organizationId },
+      { id: 'org_linked_2' },
+    ]);
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_paid' });
 
     const result = await service.claim(ACTOR, 'validcode1');
@@ -278,7 +287,10 @@ describe('ReferralsService', () => {
   });
 
   it('creates a seven-day pending reward worth ten percent of net PAYG spend', async () => {
-    prisma.referral.findFirst.mockResolvedValue({ id: 'referral_1' });
+    prisma.referral.findFirst.mockResolvedValue({
+      codeId: 'code_1',
+      id: 'referral_1',
+    });
     prisma.referralReward.create.mockResolvedValue(reward());
 
     await service.recordPaygPurchase({
@@ -294,6 +306,7 @@ describe('ReferralsService', () => {
       data: expect.objectContaining({
         grossAmountCents: 14_814,
         netAmountCents: 12_345,
+        referralCodeId: 'code_1',
         referralId: 'referral_1',
         rewardCredits: 1_234,
         status: ReferralRewardStatus.PENDING,
@@ -320,7 +333,11 @@ describe('ReferralsService', () => {
         rewardCredits: 750,
         status: ReferralRewardStatus.PENDING,
       }),
-      where: { id: 'reward_1', lockedAt: expect.any(Date) },
+      where: {
+        id: 'reward_1',
+        isDeleted: false,
+        lockedAt: expect.any(Date),
+      },
     });
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
@@ -360,7 +377,11 @@ describe('ReferralsService', () => {
         reversedCredits: 500,
         status: ReferralRewardStatus.GRANTED,
       }),
-      where: { id: 'reward_1', lockedAt: expect.any(Date) },
+      where: {
+        id: 'reward_1',
+        isDeleted: false,
+        lockedAt: expect.any(Date),
+      },
     });
   });
 
@@ -381,7 +402,11 @@ describe('ReferralsService', () => {
         refundedAmountCents: 5_000,
         rewardCredits: 500,
       }),
-      where: { id: 'reward_1', lockedAt: expect.any(Date) },
+      where: {
+        id: 'reward_1',
+        isDeleted: false,
+        lockedAt: expect.any(Date),
+      },
     });
   });
 
@@ -448,6 +473,7 @@ describe('ReferralsService', () => {
       }),
       where: {
         id: 'reward_1',
+        isDeleted: false,
         lockedAt: expect.any(Date),
         status: ReferralRewardStatus.PROCESSING,
       },
@@ -460,7 +486,7 @@ describe('ReferralsService', () => {
       .mockResolvedValueOnce(reward())
       .mockResolvedValueOnce({ attemptCount: 2 });
     prisma.organization.findFirst.mockResolvedValue(null);
-    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+    prisma.billingAccountOrganization.findMany.mockResolvedValue([]);
 
     await service.settleDueRewards();
 
@@ -473,6 +499,7 @@ describe('ReferralsService', () => {
       }),
       where: {
         id: 'reward_1',
+        isDeleted: false,
         lockedAt: expect.any(Date),
         status: ReferralRewardStatus.PROCESSING,
       },

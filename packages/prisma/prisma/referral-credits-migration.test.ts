@@ -29,6 +29,11 @@ describe('native referral credits migration (#1435)', () => {
     expect(migrationSource).toContain('CREATE TABLE "referral_rewards"');
     expect(migrationSource).toContain('referral_rewards_amount_check');
     expect(migrationSource).toContain('"reversedCredits" <= "rewardCredits"');
+    expect(migrationSource).toContain('"referralCodeId" TEXT NOT NULL');
+    expect(migrationSource).toContain('referral_rewards_referralCodeId_fkey');
+    expect(migrationSource).toContain(
+      'referral_rewards_referralCodeId_status_isDeleted_idx',
+    );
     expect(schemaSource).toContain('model ReferralReward');
   });
 

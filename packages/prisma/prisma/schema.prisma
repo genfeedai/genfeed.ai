@@ -2956,6 +2956,7 @@ model ReferralCode {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
   referrals              Referral[]
+  rewards                ReferralReward[]
 
   @@unique([ownerUserId, rewardBillingAccountId], map: "referral_codes_owner_billing_account_key")
   @@index([rewardBillingAccountId, isDeleted])
@@ -2996,6 +2997,8 @@ model ReferralReward {
   id                      String               @id @default(cuid())
   referralId              String
   referral                Referral             @relation(fields: [referralId], references: [id])
+  referralCodeId          String
+  referralCode            ReferralCode         @relation(fields: [referralCodeId], references: [id])
   stripeCheckoutSessionId String               @unique
   stripePaymentIntentId   String?
   grossAmountCents        Int
@@ -3022,6 +3025,8 @@ model ReferralReward {
   @@index([status, nextAttemptAt, isDeleted])
   @@index([stripePaymentIntentId, isDeleted])
   @@index([referralId, createdAt(sort: Desc)])
+  @@index([referralCodeId, createdAt(sort: Desc)])
+  @@index([referralCodeId, status, isDeleted])
   @@map("referral_rewards")
 }
 

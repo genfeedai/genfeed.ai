@@ -41,6 +41,7 @@ CREATE TABLE "referrals" (
 CREATE TABLE "referral_rewards" (
   "id" TEXT NOT NULL,
   "referralId" TEXT NOT NULL,
+  "referralCodeId" TEXT NOT NULL,
   "stripeCheckoutSessionId" TEXT NOT NULL,
   "stripePaymentIntentId" TEXT,
   "grossAmountCents" INTEGER NOT NULL,
@@ -95,6 +96,8 @@ CREATE UNIQUE INDEX "referral_rewards_grantTransactionId_key" ON "referral_rewar
 CREATE INDEX "referral_rewards_status_nextAttemptAt_isDeleted_idx" ON "referral_rewards"("status", "nextAttemptAt", "isDeleted");
 CREATE INDEX "referral_rewards_stripePaymentIntentId_isDeleted_idx" ON "referral_rewards"("stripePaymentIntentId", "isDeleted");
 CREATE INDEX "referral_rewards_referralId_createdAt_idx" ON "referral_rewards"("referralId", "createdAt" DESC);
+CREATE INDEX "referral_rewards_referralCodeId_createdAt_idx" ON "referral_rewards"("referralCodeId", "createdAt" DESC);
+CREATE INDEX "referral_rewards_referralCodeId_status_isDeleted_idx" ON "referral_rewards"("referralCodeId", "status", "isDeleted");
 
 ALTER TABLE "referral_codes"
   ADD CONSTRAINT "referral_codes_ownerUserId_fkey"
@@ -119,5 +122,7 @@ ALTER TABLE "referrals"
 ALTER TABLE "referral_rewards"
   ADD CONSTRAINT "referral_rewards_referralId_fkey"
   FOREIGN KEY ("referralId") REFERENCES "referrals"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT "referral_rewards_referralCodeId_fkey"
+  FOREIGN KEY ("referralCodeId") REFERENCES "referral_codes"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT "referral_rewards_grantTransactionId_fkey"
   FOREIGN KEY ("grantTransactionId") REFERENCES "credit_transactions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
