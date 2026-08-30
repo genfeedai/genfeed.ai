@@ -535,7 +535,9 @@ test.describe('Discover prefilled remix handoff', () => {
       `${BRAND_BASE}/discover/ads/meta?source=saved`,
     );
     await expect(
-      authenticatedPage.getByText('Durable Meta winner'),
+      authenticatedPage.getByRole('heading', {
+        name: 'Durable Meta winner',
+      }),
     ).toBeVisible();
     await authenticatedPage
       .getByRole('button', {
