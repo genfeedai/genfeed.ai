@@ -26,6 +26,29 @@ describe('ViralScoringUtil', () => {
       );
       expect(score).toBeLessThanOrEqual(100);
     });
+
+    it('keeps order-of-magnitude trend signals distinguishable', () => {
+      const scores = [
+        ViralScoringUtil.calculateViralityScore(100_000, 2_000),
+        ViralScoringUtil.calculateViralityScore(1_000_000, 20_000),
+        ViralScoringUtil.calculateViralityScore(10_000_000, 200_000),
+        ViralScoringUtil.calculateViralityScore(50_000_000, 1_000_000),
+      ];
+
+      expect(scores).toEqual([55, 68, 82, 91]);
+      expect(scores[1]).toBeLessThan(70);
+      expect(scores[2]).toBeGreaterThanOrEqual(70);
+    });
+
+    it('never lowers a score when engagement increases', () => {
+      const noEngagement = ViralScoringUtil.calculateViralityScore(400_000, 0);
+      const withEngagement = ViralScoringUtil.calculateViralityScore(
+        400_000,
+        3,
+      );
+
+      expect(withEngagement).toBeGreaterThanOrEqual(noEngagement);
+    });
   });
 
   describe('calculateViralScore', () => {
@@ -51,6 +74,31 @@ describe('ViralScoringUtil', () => {
         999999999,
       );
       expect(score).toBeLessThanOrEqual(100);
+    });
+
+    it('calibrates realistic video signals around the default threshold', () => {
+      const scores = [
+        ViralScoringUtil.calculateViralScore(100_000, 5, 1_000),
+        ViralScoringUtil.calculateViralScore(1_000_000, 8, 10_000),
+        ViralScoringUtil.calculateViralScore(10_000_000, 10, 50_000),
+        ViralScoringUtil.calculateViralScore(50_000_000, 15, 250_000),
+      ];
+
+      expect(scores[0]).toBe(46);
+      expect(scores[1]).toBe(60);
+      expect(scores[2]).toBeGreaterThanOrEqual(70);
+      expect(scores[2]).toBeLessThan(72);
+      expect(scores[3]).toBe(83);
+    });
+
+    it('treats invalid or negative inputs as zero signal', () => {
+      expect(
+        ViralScoringUtil.calculateViralScore(
+          Number.NaN,
+          Number.POSITIVE_INFINITY,
+          -1,
+        ),
+      ).toBe(0);
     });
   });
 
@@ -88,7 +136,7 @@ describe('ViralScoringUtil', () => {
           shareCount: 0,
           viewCount: 12,
         }).velocity,
-      ).toBe(12);
+      ).toBe(0);
     });
 
     it('uses the default 24-hour window', () => {

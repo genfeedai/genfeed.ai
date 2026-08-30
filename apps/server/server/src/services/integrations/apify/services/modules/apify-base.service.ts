@@ -19,6 +19,7 @@ import {
   describeApifyError,
   isApifyAccountLimitError,
 } from '@server/services/integrations/apify/utils/apify-error.util';
+import { ViralScoringUtil } from '@server/services/integrations/apify/utils/viral-scoring.util';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -361,29 +362,24 @@ export class ApifyBaseService {
     velocity: number;
     viralScore: number;
   } {
-    const totalEngagement = likeCount + commentCount + shareCount;
-    const engagementRate =
-      viewCount > 0 ? (totalEngagement / viewCount) * 100 : 0;
     const hoursOld = publishedAt
       ? (Date.now() - publishedAt.getTime()) / (1000 * 60 * 60)
       : 24;
-    const velocity = hoursOld > 0 ? viewCount / hoursOld : 0;
 
-    return {
-      engagementRate: Math.round(engagementRate * 100) / 100,
-      velocity: Math.round(velocity),
-      viralScore: this.calculateViralScore(viewCount, engagementRate, velocity),
-    };
+    return ViralScoringUtil.calculateVideoMetrics({
+      commentCount,
+      hoursAgo: hoursOld,
+      likeCount,
+      shareCount,
+      viewCount,
+    });
   }
 
   /**
    * Calculate virality score based on engagement metrics
    */
   calculateViralityScore(views: number, engagement: number): number {
-    // Simple formula: normalize to 0-100 scale
-    const viewScore = Math.min(50, Math.log10(views + 1) * 10);
-    const engagementScore = Math.min(50, Math.log10(engagement + 1) * 15);
-    return Math.round(viewScore + engagementScore);
+    return ViralScoringUtil.calculateViralityScore(views, engagement);
   }
 
   /**
@@ -427,21 +423,6 @@ export class ApifyBaseService {
     }
 
     return 0;
-  }
-
-  /**
-   * Calculate viral score for videos
-   */
-  private calculateViralScore(
-    viewCount: number,
-    engagementRate: number,
-    velocity: number,
-  ): number {
-    // Weighted formula for viral potential
-    const viewScore = Math.min(40, Math.log10(viewCount + 1) * 8);
-    const engagementScore = Math.min(30, engagementRate * 3);
-    const velocityScore = Math.min(30, Math.log10(velocity + 1) * 10);
-    return Math.round(viewScore + engagementScore + velocityScore);
   }
 
   /**
