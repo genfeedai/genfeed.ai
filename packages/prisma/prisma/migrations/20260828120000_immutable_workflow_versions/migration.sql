@@ -1432,17 +1432,24 @@ RETURNS BOOLEAN
 LANGUAGE SQL
 IMMUTABLE
 AS $$
-    SELECT workflow_contains_legacy_system_action(workflow_nodes)
-        AND jsonb_typeof(workflow_metadata) = 'object'
-        AND NULLIF(workflow_metadata->>'sourceTemplateId', '') IS NOT NULL
-        AND workflow_metadata->>'sourceType' = 'seeded-template'
-        AND jsonb_typeof(workflow_metadata->'systemWorkflow') = 'object'
-        AND workflow_metadata->'systemWorkflow'->>'canonicalId'
-            = workflow_metadata->>'sourceTemplateId'
-        AND workflow_metadata->'systemWorkflow'->>'kind' = 'system-workflow'
-        AND workflow_metadata->'systemWorkflow'->>'owner' = 'genfeed'
-        AND workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb
-        AND workflow_metadata->'systemWorkflow'->>'visibility' = 'organization';
+    SELECT COALESCE(
+        workflow_contains_legacy_system_action(workflow_nodes)
+            AND jsonb_array_length(workflow_nodes) = 1
+            AND workflow_nodes->0->>'type' = 'systemWorkflowAction'
+            AND workflow_nodes->0->'data'->'config'->>'actionId'
+                = workflow_metadata->>'sourceTemplateId'
+            AND jsonb_typeof(workflow_metadata) = 'object'
+            AND NULLIF(workflow_metadata->>'sourceTemplateId', '') IS NOT NULL
+            AND workflow_metadata->>'sourceType' = 'seeded-template'
+            AND jsonb_typeof(workflow_metadata->'systemWorkflow') = 'object'
+            AND workflow_metadata->'systemWorkflow'->>'canonicalId'
+                = workflow_metadata->>'sourceTemplateId'
+            AND workflow_metadata->'systemWorkflow'->>'kind' = 'system-workflow'
+            AND workflow_metadata->'systemWorkflow'->>'owner' = 'genfeed'
+            AND workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb
+            AND workflow_metadata->'systemWorkflow'->>'visibility' = 'organization',
+        FALSE
+    );
 $$;
 
 DO $$

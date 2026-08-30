@@ -240,6 +240,11 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain(
       `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
     );
+    expect(migrationSource).toContain('jsonb_array_length(workflow_nodes) = 1');
+    expect(migrationSource).toContain(
+      `workflow_nodes->0->'data'->'config'->>'actionId'`,
+    );
+    expect(migrationSource).toContain('SELECT COALESCE(');
     expect(migrationSource).toContain('FROM "batch_workflow_jobs" batch_job');
     expect(migrationSource).toContain('DELETE FROM "workflows" workflow');
   });
@@ -645,7 +650,11 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       'workflow_version_system_provenance',
     );
     const { client } = fixture;
-    const nodes = [graphNode('system_action', 'systemWorkflowAction')];
+    const nodes = [
+      graphNode('system_action', 'systemWorkflowAction', {
+        config: { actionId: 'customer-template' },
+      }),
+    ];
 
     try {
       await client.query(
@@ -670,6 +679,40 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       );
       await expectLegacySchemaIntact(client);
 
+      await client.query(`
+        UPDATE "workflows"
+        SET "metadata" = NULL
+        WHERE "id" = 'workflow_customer'
+      `);
+      await runRejectedMigration(
+        client,
+        /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+      );
+      await expectLegacySchemaIntact(client);
+
+      await client.query(
+        `
+          UPDATE "workflows"
+          SET "nodes" = $1::jsonb,
+              "metadata" = $2::jsonb
+          WHERE "id" = 'workflow_customer'
+        `,
+        [
+          JSON.stringify([
+            ...nodes,
+            graphNode('executable_action', 'llm', { config: {} }),
+          ]),
+          JSON.stringify(
+            retiredSeededSystemWorkflowMetadata('customer-template'),
+          ),
+        ],
+      );
+      await runRejectedMigration(
+        client,
+        /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+      );
+      await expectLegacySchemaIntact(client);
+
       const workflows = await client.query<{ id: string }>(`
         SELECT "id" FROM "workflows"
       `);
@@ -684,7 +727,11 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       'workflow_version_system_history',
     );
     const { client } = fixture;
-    const nodes = [graphNode('system_action', 'systemWorkflowAction')];
+    const nodes = [
+      graphNode('system_action', 'systemWorkflowAction', {
+        config: { actionId: 'scheduled-publish' },
+      }),
+    ];
 
     try {
       await client.query(
