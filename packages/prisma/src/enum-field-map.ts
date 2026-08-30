@@ -4327,6 +4327,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'grantTransaction',
       'grantTransactionId',
       'grantedAt',
+      'grossAmountCents',
       'id',
       'isDeleted',
       'lockedAt',
