@@ -396,6 +396,30 @@ describe('check-relation-alias-reads', () => {
     });
   });
 
+  describe('helper-key-array rule', () => {
+    it('flags a relation alias after its canonical scalar key', () => {
+      writeFixture(
+        'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
+        [
+          "import type { PostEntity } from './post.entity';",
+          '',
+          'export function readOrganization(post: PostEntity) {',
+          "  return readPostString(post, ['organizationId', 'organization']);",
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          receiver: 'post',
+          rule: 'helper-key-array',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+  });
+
   describe('non-violations', () => {
     it('allows canonical id and scalar relation reads', () => {
       writeFixture(
