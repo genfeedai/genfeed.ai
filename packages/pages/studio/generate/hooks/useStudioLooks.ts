@@ -3,10 +3,10 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type {
   IStudioLook,
-  StudioGenerateSettings,
   StudioGenerateType,
   StudioLookAssetType,
 } from '@genfeedai/interfaces';
+import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { StudioLooksService } from '@services/content/studio-looks.service';
 import { logger } from '@services/core/logger.service';
@@ -33,10 +33,7 @@ export interface UseStudioLooksReturn {
   isLoading: boolean;
   isSaving: boolean;
   looks: readonly IStudioLook[];
-  saveLook: (
-    label: string,
-    settings: StudioGenerateSettings,
-  ) => Promise<boolean>;
+  saveLook: (label: string, values: GenerationSetupValues) => Promise<boolean>;
 }
 
 export function isStudioLookAssetType(
@@ -45,40 +42,90 @@ export function isStudioLookAssetType(
   return type === 'image' || type === 'video';
 }
 
+/**
+ * Builds the full widened `StudioLookPayload`. `GenerationSetupValues` is a
+ * strict superset of every field the Preset entity persists, so this reads
+ * straight off the shared generation-setup store's values — no round-trip
+ * through `StudioGenerateSettings`.
+ */
 export function buildStudioLookPayload(
   label: string,
   type: StudioLookAssetType,
-  settings: StudioGenerateSettings,
+  values: GenerationSetupValues,
 ) {
+  const isVideo = type === 'video';
+
   return {
+    aspectRatio: values.aspectRatio,
     assetType: type,
-    camera: settings.camera ?? '',
-    cameraMovement: type === 'video' ? (settings.cameraMovement ?? '') : null,
+    brandingMode: values.brandingMode,
+    camera: values.camera ?? '',
+    cameraMovement: isVideo ? (values.cameraMovement ?? '') : null,
+    duration: isVideo ? (values.duration ?? null) : null,
+    isPromptEnhanceEnabled: values.isPromptEnhanceEnabled,
     label: label.trim(),
-    lens: settings.lens ?? '',
-    lighting: settings.lighting ?? '',
-    mood: settings.mood ?? '',
-    promptTemplate: settings.promptTemplate ?? '',
-    scene: settings.scene ?? '',
-    style: settings.style ?? '',
+    lens: values.lens ?? '',
+    lighting: values.lighting ?? '',
+    modelKey: values.modelKey || null,
+    mood: values.mood ?? '',
+    outputs: values.outputs,
+    prioritize: values.prioritize,
+    promptTemplate: values.promptTemplate ?? '',
+    resolution: values.resolution ?? null,
+    scene: values.scene ?? '',
+    style: values.style ?? '',
   };
 }
 
-/** Apply only Look-owned fields; prompt, model, Output, and Identity stay put. */
-export function studioLookToSettingsPatch(
-  look: IStudioLook,
-): Partial<StudioGenerateSettings> {
-  return {
-    camera: look.camera || undefined,
-    cameraMovement:
-      look.assetType === 'video' ? look.cameraMovement || undefined : undefined,
-    lens: look.lens || undefined,
-    lighting: look.lighting || undefined,
-    mood: look.mood || undefined,
-    promptTemplate: look.promptTemplate || undefined,
-    scene: look.scene || undefined,
-    style: look.style || undefined,
+/**
+ * Projects a persisted Preset back onto the shared generation-setup store's
+ * values, for `applyPreset`. Only fields the Preset actually carries are
+ * included — everything else is left for the store to fill from the
+ * scope's existing values/defaults.
+ */
+export function presetToGenerationSetupValues(
+  preset: IStudioLook,
+): Partial<GenerationSetupValues> {
+  const isVideo = preset.assetType === 'video';
+  const patch: Partial<GenerationSetupValues> = {
+    camera: preset.camera || undefined,
+    lens: preset.lens || undefined,
+    lighting: preset.lighting || undefined,
+    mood: preset.mood || undefined,
+    promptTemplate: preset.promptTemplate || undefined,
+    scene: preset.scene || undefined,
+    style: preset.style || undefined,
   };
+
+  if (isVideo && preset.cameraMovement) {
+    patch.cameraMovement = preset.cameraMovement;
+  }
+  if (isVideo && preset.duration != null) {
+    patch.duration = preset.duration;
+  }
+  if (preset.aspectRatio) {
+    patch.aspectRatio = preset.aspectRatio;
+  }
+  if (preset.brandingMode) {
+    patch.brandingMode = preset.brandingMode;
+  }
+  if (preset.isPromptEnhanceEnabled != null) {
+    patch.isPromptEnhanceEnabled = preset.isPromptEnhanceEnabled;
+  }
+  if (preset.modelKey) {
+    patch.modelKey = preset.modelKey;
+  }
+  if (preset.outputs != null) {
+    patch.outputs = preset.outputs;
+  }
+  if (preset.prioritize) {
+    patch.prioritize = preset.prioritize;
+  }
+  if (preset.resolution) {
+    patch.resolution = preset.resolution;
+  }
+
+  return patch;
 }
 
 export function useStudioLooks(type: StudioGenerateType): UseStudioLooksReturn {
@@ -167,7 +214,7 @@ export function useStudioLooks(type: StudioGenerateType): UseStudioLooksReturn {
   }, [assetType, brandId, getStudioLooksService, organizationId, scopeKey]);
 
   const saveLook = useCallback(
-    async (label: string, settings: StudioGenerateSettings) => {
+    async (label: string, values: GenerationSetupValues) => {
       if (!assetType || !scopeKey || !label.trim()) {
         return false;
       }
@@ -181,7 +228,7 @@ export function useStudioLooks(type: StudioGenerateType): UseStudioLooksReturn {
       try {
         const service = await getStudioLooksService();
         const created = await service.post(
-          buildStudioLookPayload(label, assetType, settings),
+          buildStudioLookPayload(label, assetType, values),
         );
         setSnapshot((current) =>
           current.scopeKey === scopeKey

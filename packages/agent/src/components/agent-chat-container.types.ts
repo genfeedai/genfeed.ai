@@ -11,7 +11,6 @@ export interface AgentChatContainerProps {
   archivedNotice?: string | null;
   isLoadingThread?: boolean;
   isReadOnly?: boolean;
-  model?: string;
   placeholder?: string;
   emptyStateTitle?: string;
   emptyStateDescription?: string;

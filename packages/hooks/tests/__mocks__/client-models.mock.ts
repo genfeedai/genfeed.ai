@@ -66,6 +66,7 @@ export const Scene = createModelClass();
 export const Setting = createModelClass();
 export const StripePrice = createModelClass();
 export const StripeUrl = createModelClass();
+export const StudioLook = createModelClass();
 export const Style = createModelClass();
 export const Subscription = createModelClass();
 export const Tag = createModelClass();

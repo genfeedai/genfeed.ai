@@ -244,6 +244,9 @@ export function useAgentChatInput({
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
+  // Live prompt text for the generation-setup recommendation debounce — the
+  // toolbar has no other way to see what the operator is typing.
+  const [promptText, setPromptText] = useState(restoredDraft.plainText);
   const [isContentPickerOpen, setIsContentPickerOpen] = useState(false);
   const [contentReferences, setContentReferences] = useState<
     PersistedConversationComposerContentReference[]
@@ -469,6 +472,7 @@ export function useAgentChatInput({
     }
     const updateHandler = () => {
       setIsEmpty(editor.isEmpty);
+      setPromptText(editor.getText());
       const document = editor.getJSON();
       const nextReferences = mapMentionsToReferences(extractMentions(document));
       // Editor fires on every keystroke; only promote mention state when the
@@ -506,6 +510,7 @@ export function useAgentChatInput({
       : '';
     applyComposerDocument(editor, cleanedDocument);
     setIsEmpty(editor.isEmpty);
+    setPromptText(editor.getText());
     setContentReferences(migratedContentReferences);
     writeConversationComposerContentReferences(
       draftScopeKey,
@@ -888,6 +893,7 @@ export function useAgentChatInput({
     isDragActive,
     isListening,
     isTranscribing,
+    promptText,
     references: displayedReferences,
     selectedContentIds,
     setIsContentPickerOpen,

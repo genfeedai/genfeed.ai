@@ -1263,6 +1263,7 @@
         "recharts": "3.10.1",
         "temporal-polyfill": "1.0.4",
         "vaul": "1.1.2",
+        "zustand": "5.0.15",
       },
       "devDependencies": {
         "@genfeedai/config": "workspace:*",

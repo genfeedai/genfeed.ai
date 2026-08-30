@@ -260,8 +260,10 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
  *
  * Persisted rows (org settings, brand agent config, thread bindings, scheduled
  * runs) still hold these keys. A row priced at its successor keeps a stale
- * binding billable at what the run actually costs — 0 would make it free, which
- * is the exact failure `openrouter/auto` shipped.
+ * binding billable at what the run actually costs — an uncurated 0 would make
+ * it free, which is the exact failure `openrouter/auto` shipped. When the
+ * successor itself is a declared-free model, 0 IS the real cost, so the row
+ * carries `isFree` to mark that price as curated rather than missing.
  */
 function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
   return Object.entries(RETIRED_AGENT_CHAT_MODELS).map(([key, succeededBy]) => {
@@ -282,6 +284,7 @@ function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       provider: ModelProvider.OPENROUTER,
       succeededBy,
       ...(successor ? { costTier: successor.costTier } : {}),
+      ...(successor?.isFree ? { isFree: true } : {}),
     } satisfies ModelCatalogSeedEntry;
   });
 }

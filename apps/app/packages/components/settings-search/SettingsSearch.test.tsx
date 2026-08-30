@@ -112,9 +112,9 @@ describe('SettingsSearch', () => {
     const user = userEvent.setup();
     render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
-    await user.type(screen.getByLabelText('Search settings'), 'model');
+    await user.type(screen.getByLabelText('Search settings'), 'theme');
 
-    expect(screen.getByRole('button', { name: /Chat Defaults/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /Appearance/ })).toBeVisible();
     expect(
       screen.queryByRole('button', { name: /^Models/ }),
     ).not.toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('SettingsSearch', () => {
 
     expect(screen.getByRole('button', { name: /^Models/ })).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: /Chat Defaults/ }),
+      screen.queryByRole('button', { name: /Appearance/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -139,10 +139,10 @@ describe('SettingsSearch', () => {
     const user = userEvent.setup();
     render(<SettingsSearch scope={SettingsSurface.PERSONAL} />);
 
-    await user.type(screen.getByLabelText('Search settings'), 'chat defaults');
-    await user.click(screen.getByRole('button', { name: /Chat Defaults/ }));
+    await user.type(screen.getByLabelText('Search settings'), 'appearance');
+    await user.click(screen.getByRole('button', { name: /Appearance/ }));
 
-    expect(mocks.push).toHaveBeenCalledWith('/settings/chat');
+    expect(mocks.push).toHaveBeenCalledWith('/settings/personal#appearance');
   });
 
   it('focuses the searchbar on cmd+k', async () => {

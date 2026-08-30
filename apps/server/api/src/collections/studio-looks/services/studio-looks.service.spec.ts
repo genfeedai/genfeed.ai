@@ -6,9 +6,10 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
+import { RouterPriority } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const scope = {
@@ -28,6 +29,18 @@ const createDto = {
   promptTemplate: 'preset-1',
   scene: 'scene-1',
   style: 'style-1',
+};
+
+const setupFieldsDto = {
+  ...createDto,
+  aspectRatio: '16:9',
+  brandingMode: 'brand' as const,
+  duration: 5,
+  isPromptEnhanceEnabled: true,
+  modelKey: 'replicate/model-key',
+  outputs: 4,
+  prioritize: RouterPriority.QUALITY,
+  resolution: '1080p',
 };
 
 const row = {
@@ -107,6 +120,42 @@ describe('StudioLooksService', () => {
         userId: 'opaque-user-id',
       },
     });
+  });
+
+  it('persists the widened Generation Setup fields on create', async () => {
+    brand.findFirst.mockResolvedValueOnce({ id: 'brand-1' });
+    studioLook.create.mockResolvedValueOnce({ ...row, ...setupFieldsDto });
+
+    await service.createScoped(setupFieldsDto, scope);
+
+    expect(studioLook.create).toHaveBeenCalledWith({
+      data: {
+        ...setupFieldsDto,
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'opaque-user-id',
+      },
+    });
+  });
+
+  it('persists the widened Generation Setup fields on update', async () => {
+    const patch = {
+      aspectRatio: '9:16',
+      isPromptEnhanceEnabled: false,
+      modelKey: '',
+      outputs: 1,
+      prioritize: RouterPriority.SPEED,
+    };
+    studioLook.findFirst
+      .mockResolvedValueOnce(row)
+      .mockResolvedValueOnce({ ...row, ...patch });
+    studioLook.updateMany.mockResolvedValueOnce({ count: 1 });
+
+    await service.updateScoped('look-1', patch, scope);
+
+    expect(studioLook.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining(patch) }),
+    );
   });
 
   it('rejects create when the active brand is outside the organization', async () => {
