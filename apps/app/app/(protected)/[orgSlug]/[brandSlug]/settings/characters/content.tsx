@@ -24,8 +24,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import Card from '@ui/card/Card';
+import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -314,10 +314,6 @@ export default function BrandSettingsCharactersPage(): ReactElement {
     );
   }
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
-
   return (
     <Container>
       <div className="mx-auto flex max-w-3xl flex-col gap-3">
@@ -330,7 +326,11 @@ export default function BrandSettingsCharactersPage(): ReactElement {
 
         <Card>
           <h2 className="text-base font-medium">{translate('list.title')}</h2>
-          {characters.length === 0 ? (
+          {isLoading ? (
+            <div className="mt-3" data-testid="characters-list-loading">
+              <SkeletonList count={3} />
+            </div>
+          ) : characters.length === 0 ? (
             <p className="mt-2 text-sm text-muted-foreground">
               {translate('empty')}
             </p>

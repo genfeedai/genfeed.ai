@@ -43,10 +43,6 @@ vi.mock('@genfeedai/agent/components', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: () => <div data-testid="dashboard-loading-fallback" />,
-}));
-
 vi.mock('@app/(protected)/home/content', () => ({
   default: () => <div data-testid="operational-home-fallback" />,
 }));
@@ -66,7 +62,7 @@ describe('WorkspaceOverviewContent', () => {
     });
   });
 
-  it('renders the loading fallback while the persisted layout query is in flight', () => {
+  it('renders an in-region loading placeholder while the persisted layout query is in flight', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: true,
       layout: undefined,
@@ -76,7 +72,7 @@ describe('WorkspaceOverviewContent', () => {
     render(<WorkspaceOverviewContent />);
 
     expect(
-      screen.getByTestId('dashboard-loading-fallback'),
+      screen.getByTestId('workspace-overview-loading'),
     ).toBeInTheDocument();
     expect(
       screen.queryByTestId('operational-home-fallback'),
@@ -84,6 +80,38 @@ describe('WorkspaceOverviewContent', () => {
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /reset to default/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the reset toolbar mounted while the persisted layout bundle is still loading', () => {
+    mocks.useDashboardLayout.mockReturnValue({
+      isLoading: false,
+      layout: {
+        brandId: 'brand-1',
+        document: { blocks: [], version: 'genfeed.dashboard.openui.v1' },
+        id: 'layout-1',
+      },
+      resetLayout: mocks.resetLayout,
+    });
+    mocks.useWorkspaceDashboardData.mockReturnValue({
+      bundle: undefined,
+      isLoading: true,
+    });
+
+    render(<WorkspaceOverviewContent />);
+
+    expect(
+      screen.getByRole('button', { name: /reset to default/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('workspace-dashboard-loading'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-open-ui-renderer'),
+    ).not.toBeInTheDocument();
+    expect(mocks.hydrateLayout).not.toHaveBeenCalled();
   });
 
   it('renders the operational overview when no custom layout is persisted', () => {

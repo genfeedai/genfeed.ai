@@ -84,15 +84,27 @@ describe('ChatJourneyPage', () => {
     ).toHaveAttribute('href', '/onboarding/providers');
   });
 
-  it('shows a loading spinner while organization settings load', () => {
+  it('renders chrome and placeholder stats while organization settings load', () => {
     useOrganizationMock.mockReturnValueOnce({
       isLoading: true,
       refresh: refreshMock,
       settings: undefined,
     });
 
-    const { container } = render(<ChatJourneyPage />);
+    render(<ChatJourneyPage />);
 
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Activation Journey' }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.getByRole('link', { name: /back to onboarding/i }),
+    ).toHaveAttribute('href', '/onboarding/providers');
+    expect(screen.getByText('Available to unlock')).toBeInTheDocument();
+    expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
+    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('journey-missions-loading')).toBeInTheDocument();
+    expect(
+      screen.queryByText(ONBOARDING_JOURNEY_MISSIONS[0].label),
+    ).not.toBeInTheDocument();
   });
 });

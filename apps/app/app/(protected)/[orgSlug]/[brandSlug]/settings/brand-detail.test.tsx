@@ -122,10 +122,6 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({ children }: { children: ReactNode }) => <main>{children}</main>,
 }));
 
-vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div>Loading brand detail</div>,
-}));
-
 vi.mock('@pages/brands/components/banner/BrandDetailBanner', () => ({
   default: ({
     onGenerateBanner,
@@ -284,7 +280,11 @@ describe('BrandDetail', () => {
 
     mocks.brandDetail = createBrandDetailState({ isLoading: true });
     rerender(<BrandDetail />);
-    expect(screen.getByText('Loading brand detail')).toBeInTheDocument();
+    // Shell-first: the Container chrome renders even while data loads, only
+    // the body region shows a loading placeholder.
+    expect(screen.getByTestId('brand-detail-loading')).toBeInTheDocument();
+    expect(screen.queryByText('Banner')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     mocks.brandDetail = createBrandDetailState({ brand: null });
     rerender(<BrandDetail />);

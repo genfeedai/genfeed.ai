@@ -16,6 +16,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -275,103 +276,105 @@ export default function SettingsWebhooksPage() {
     }
   }, [form.webhookEventTypes, getOrganizationsService, organizationId]);
 
-  if (isLoading) {
-    return <Card label="Webhooks" description="Loading endpoint settings..." />;
-  }
-
   return (
     <div className="grid gap-4">
       <Card
         label="Outbound Webhook Endpoint"
         description="Signed publish events are sent to this organization endpoint."
       >
-        <div className="grid gap-4">
-          <Switch
-            isChecked={form.isWebhookEnabled}
-            label="Enable endpoint"
-            description="Disabled endpoints do not receive publish webhook events."
-            onCheckedChange={(checked) =>
-              setForm((current) => ({
-                ...current,
-                isWebhookEnabled: checked,
-              }))
-            }
-          />
-
-          <div className="grid gap-2">
-            <Label htmlFor="webhook-endpoint">Endpoint URL</Label>
-            <Input
-              id="webhook-endpoint"
-              placeholder="https://example.com/webhooks/genfeed"
-              value={form.webhookEndpoint}
-              onChange={(event) =>
+        {isLoading ? (
+          <div data-testid="webhook-form-loading">
+            <SkeletonCard showImage={false} />
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <Switch
+              isChecked={form.isWebhookEnabled}
+              label="Enable endpoint"
+              description="Disabled endpoints do not receive publish webhook events."
+              onCheckedChange={(checked) =>
                 setForm((current) => ({
                   ...current,
-                  webhookEndpoint: event.target.value,
+                  isWebhookEnabled: checked,
                 }))
               }
             />
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="webhook-secret">Signing secret</Label>
-            <Input
-              id="webhook-secret"
-              type="password"
-              placeholder="Leave blank to keep the existing secret"
-              value={form.webhookSecret}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  webhookSecret: event.target.value,
-                }))
-              }
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Events</Label>
-              <span className="text-xs text-muted-foreground">
-                No selection means every event
-              </span>
+            <div className="grid gap-2">
+              <Label htmlFor="webhook-endpoint">Endpoint URL</Label>
+              <Input
+                id="webhook-endpoint"
+                placeholder="https://example.com/webhooks/genfeed"
+                value={form.webhookEndpoint}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    webhookEndpoint: event.target.value,
+                  }))
+                }
+              />
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              {ORGANIZATION_WEBHOOK_EVENT_TYPES.map((event) => (
-                <Checkbox
-                  key={event}
-                  isChecked={selectedEvents.has(event)}
-                  label={EVENT_LABELS[event]}
-                  onCheckedChange={() => toggleEvent(event)}
-                />
-              ))}
+
+            <div className="grid gap-2">
+              <Label htmlFor="webhook-secret">Signing secret</Label>
+              <Input
+                id="webhook-secret"
+                type="password"
+                placeholder="Leave blank to keep the existing secret"
+                value={form.webhookSecret}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    webhookSecret: event.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label>Events</Label>
+                <span className="text-xs text-muted-foreground">
+                  No selection means every event
+                </span>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                {ORGANIZATION_WEBHOOK_EVENT_TYPES.map((event) => (
+                  <Checkbox
+                    key={event}
+                    isChecked={selectedEvents.has(event)}
+                    label={EVENT_LABELS[event]}
+                    onCheckedChange={() => toggleEvent(event)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                icon={<RefreshCw />}
+                isLoading={isSaving}
+                onClick={saveSettings}
+              >
+                Save
+              </Button>
+              <Button
+                icon={<Send />}
+                isDisabled={!isWebhookConfigured}
+                isLoading={isTesting}
+                onClick={testDelivery}
+                variant={SECONDARY_BUTTON_VARIANT}
+              >
+                Test delivery
+              </Button>
+              {!isWebhookConfigured ? (
+                <Text as="span" className="text-xs text-surface/55">
+                  Save an enabled endpoint before sending a test.
+                </Text>
+              ) : null}
             </div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              icon={<RefreshCw />}
-              isLoading={isSaving}
-              onClick={saveSettings}
-            >
-              Save
-            </Button>
-            <Button
-              icon={<Send />}
-              isDisabled={!isWebhookConfigured}
-              isLoading={isTesting}
-              onClick={testDelivery}
-              variant={SECONDARY_BUTTON_VARIANT}
-            >
-              Test delivery
-            </Button>
-            {!isWebhookConfigured ? (
-              <Text as="span" className="text-xs text-surface/55">
-                Save an enabled endpoint before sending a test.
-              </Text>
-            ) : null}
-          </div>
-        </div>
+        )}
       </Card>
 
       <Card
@@ -385,42 +388,48 @@ export default function SettingsWebhooksPage() {
           ) : null
         }
       >
-        <dl className="grid gap-3 text-sm md:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">Event</dt>
-            <dd className="font-medium">{deliveryStatus?.event ?? 'None'}</dd>
+        {isLoading ? (
+          <div data-testid="webhook-delivery-loading">
+            <SkeletonCard showImage={false} />
           </div>
-          <div>
-            <dt className="text-muted-foreground">Delivery ID</dt>
-            <dd className="break-all font-mono text-xs">
-              {deliveryStatus?.deliveryId ?? 'None'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Queued</dt>
-            <dd>{formatDate(deliveryStatus?.queuedAt)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Completed</dt>
-            <dd>{formatDate(deliveryStatus?.completedAt)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Attempt</dt>
-            <dd>
-              {typeof deliveryStatus?.attempt === 'number'
-                ? deliveryStatus.attempt
-                : 'Unknown'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">HTTP status</dt>
-            <dd>{formatHttpStatus(deliveryStatus)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Error</dt>
-            <dd>{deliveryStatus?.error ?? 'None'}</dd>
-          </div>
-        </dl>
+        ) : (
+          <dl className="grid gap-3 text-sm md:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Event</dt>
+              <dd className="font-medium">{deliveryStatus?.event ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Delivery ID</dt>
+              <dd className="break-all font-mono text-xs">
+                {deliveryStatus?.deliveryId ?? 'None'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Queued</dt>
+              <dd>{formatDate(deliveryStatus?.queuedAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Completed</dt>
+              <dd>{formatDate(deliveryStatus?.completedAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Attempt</dt>
+              <dd>
+                {typeof deliveryStatus?.attempt === 'number'
+                  ? deliveryStatus.attempt
+                  : 'Unknown'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">HTTP status</dt>
+              <dd>{formatHttpStatus(deliveryStatus)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Error</dt>
+              <dd>{deliveryStatus?.error ?? 'None'}</dd>
+            </div>
+          </dl>
+        )}
       </Card>
     </div>
   );

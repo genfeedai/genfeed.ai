@@ -3,13 +3,17 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsCreditsPage from './content';
 
-const { hasOrganizationBillingMock, isSelfHostedMock, paygMock } = vi.hoisted(
-  () => ({
-    hasOrganizationBillingMock: vi.fn(),
-    isSelfHostedMock: vi.fn(),
-    paygMock: vi.fn(),
-  }),
-);
+const {
+  hasOrganizationBillingMock,
+  isSelfHostedMock,
+  paygMock,
+  useSubscriptionMock,
+} = vi.hoisted(() => ({
+  hasOrganizationBillingMock: vi.fn(),
+  isSelfHostedMock: vi.fn(),
+  paygMock: vi.fn(),
+  useSubscriptionMock: vi.fn(),
+}));
 
 vi.mock('@genfeedai/config/deployment', () => ({
   isSelfHostedDeployment: () => isSelfHostedMock(),
@@ -17,6 +21,10 @@ vi.mock('@genfeedai/config/deployment', () => ({
 
 vi.mock('@genfeedai/config/license', () => ({
   hasOrganizationBillingHint: () => hasOrganizationBillingMock(),
+}));
+
+vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
+  useSubscription: () => useSubscriptionMock(),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -58,9 +66,30 @@ describe('SettingsCreditsPage', () => {
     isSelfHostedMock.mockReset();
     hasOrganizationBillingMock.mockReset();
     paygMock.mockReset();
+    useSubscriptionMock.mockReset();
     isSelfHostedMock.mockReturnValue(true);
     hasOrganizationBillingMock.mockReturnValue(false);
     paygMock.mockReturnValue(undefined);
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: null,
+      isLoading: false,
+    });
+  });
+
+  it('renders section chrome immediately while the subscription query loads', () => {
+    useSubscriptionMock.mockReturnValue({
+      creditsBreakdown: null,
+      isLoading: true,
+    });
+
+    renderCreditsPage();
+
+    expect(screen.getByRole('heading', { name: 'Credits' })).toHaveClass(
+      'sr-only',
+    );
+    expect(screen.getByTestId('managed-credits-card')).toBeInTheDocument();
+    expect(screen.getByTestId('credits-balance-loading')).toBeInTheDocument();
+    expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
   });
 
   it('renders managed credits for self-hosted installs', () => {

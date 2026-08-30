@@ -113,10 +113,6 @@ vi.mock('@services/ingredients/images.service', () => ({
   },
 }));
 
-vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div>Loading</div>,
-}));
-
 describe('BrandSettingsCharactersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -137,11 +133,34 @@ describe('BrandSettingsCharactersPage', () => {
     });
   });
 
+  it('renders section chrome and the create wizard while the character list loads', async () => {
+    let resolveListCharacters!: (rows: Array<unknown>) => void;
+    mocks.listCharacters.mockReturnValue(
+      new Promise((resolve) => {
+        resolveListCharacters = resolve;
+      }),
+    );
+
+    render(<BrandSettingsCharactersPage />);
+
+    // Chrome renders immediately: title card and create-wizard fields don't
+    // wait on the character list.
+    expect(screen.getByText('Characters')).toBeInTheDocument();
+    expect(screen.getByTestId('character-description')).toBeInTheDocument();
+    expect(screen.getByTestId('characters-list-loading')).toBeInTheDocument();
+
+    resolveListCharacters([]);
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('characters-list-loading'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('generates a sheet from the description using the server preset', async () => {
     render(<BrandSettingsCharactersPage />);
 
     await screen.findByTestId('character-description');
-    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('character-description'), {
       target: { value: 'a tall woman' },

@@ -19,6 +19,7 @@ import { CreditsService } from '@services/billing/credits.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink, TriangleAlert } from 'lucide-react';
@@ -175,24 +176,20 @@ export default function SettingsSubscriptionPage() {
     useSubscription();
   const { account: billingAccount } = useBillingAccount();
 
+  const isPlanLoading = !isReady || isLoading;
   const isByokTier =
-    subscription?.category?.toLowerCase() === 'byok' || !subscription;
+    !isPlanLoading &&
+    (subscription?.category?.toLowerCase() === 'byok' || !subscription);
   const planEntitlement = getPlanEntitlementForTier(settings?.subscriptionTier);
-
-  if (!isReady || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4 pb-10">
       <h1 className="sr-only">Subscription</h1>
 
       <SectionCard title="Current Plan">
-        {subscription ? (
+        {isPlanLoading ? (
+          <SkeletonCard showImage={false} />
+        ) : subscription ? (
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1">
@@ -244,7 +241,9 @@ export default function SettingsSubscriptionPage() {
               Organizations
             </Text>
             <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.organizationLimit)}
+              {isReady
+                ? formatPlanLimit(planEntitlement.organizationLimit)
+                : '-'}
             </Text>
           </div>
           <div className="p-3 bg-muted/50 rounded">
@@ -252,7 +251,7 @@ export default function SettingsSubscriptionPage() {
               Brands
             </Text>
             <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.brandLimit)}
+              {isReady ? formatPlanLimit(planEntitlement.brandLimit) : '-'}
             </Text>
           </div>
           <div className="p-3 bg-muted/50 rounded">
@@ -260,7 +259,7 @@ export default function SettingsSubscriptionPage() {
               Channels
             </Text>
             <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.channelLimit)}
+              {isReady ? formatPlanLimit(planEntitlement.channelLimit) : '-'}
             </Text>
           </div>
           <div className="p-3 bg-muted/50 rounded">
@@ -268,7 +267,7 @@ export default function SettingsSubscriptionPage() {
               Seats
             </Text>
             <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.seatLimit)}
+              {isReady ? formatPlanLimit(planEntitlement.seatLimit) : '-'}
             </Text>
           </div>
           <div className="p-3 bg-muted/50 rounded">
@@ -276,7 +275,7 @@ export default function SettingsSubscriptionPage() {
               API
             </Text>
             <Text as="p" size="lg" weight="bold">
-              {getApiAccessLabel(planEntitlement)}
+              {isReady ? getApiAccessLabel(planEntitlement) : '-'}
             </Text>
           </div>
         </div>

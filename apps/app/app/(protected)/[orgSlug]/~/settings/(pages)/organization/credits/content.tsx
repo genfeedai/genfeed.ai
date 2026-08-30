@@ -5,6 +5,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Text } from '@ui/typography/text';
 import { TriangleAlert } from 'lucide-react';
@@ -40,19 +41,19 @@ export default function SettingsCreditsPage() {
     : null;
   const isLowCredits = (creditsBreakdown?.total ?? 0) < 1000;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-4 pb-10">
       <h1 className="sr-only">Credits</h1>
 
-      {creditsBreakdown ? (
+      {isLoading ? (
+        <Card
+          label="Balance"
+          bodyClassName="gap-3 p-4"
+          data-testid="credits-balance-loading"
+        >
+          <SkeletonCard showImage={false} />
+        </Card>
+      ) : creditsBreakdown ? (
         <Card label="Balance" bodyClassName="gap-3 p-4">
           <div className="flex flex-col gap-3">
             {isLowCredits && (
