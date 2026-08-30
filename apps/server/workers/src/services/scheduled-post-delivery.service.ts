@@ -226,10 +226,10 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   private readDeliveryIds(post: PostEntity): PostDeliveryIds {
     return {
-      brandId: readPostString(post, ['brandId', 'brand']),
-      credentialId: readPostString(post, ['credentialId', 'credential']),
-      organizationId: readPostString(post, ['organizationId', 'organization']),
-      userId: readPostString(post, ['userId', 'user']),
+      brandId: readPostString(post, ['brandId']),
+      credentialId: readPostString(post, ['credentialId']),
+      organizationId: readPostString(post, ['organizationId']),
+      userId: readPostString(post, ['userId']),
     };
   }
 
