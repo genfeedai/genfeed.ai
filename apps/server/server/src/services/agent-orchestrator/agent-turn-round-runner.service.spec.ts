@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { RouterPriority } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { AgentTurnRoundRunnerService } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
 import { buildCampaignPreparationCacheKey } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
@@ -48,7 +49,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       allowedToolNames: new Set([AgentToolName.START_CAMPAIGN]),
       assistantContent: null,
       context: { organizationId: 'org-1', userId: 'user-1' },
-      generationPriority: 'balanced',
+      generationPriority: RouterPriority.BALANCED,
       messages,
       model: 'test-model',
       policy: {
@@ -109,7 +110,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       allowedToolNames: new Set([AgentToolName.START_CAMPAIGN]),
       assistantContent: null,
       context: { organizationId: 'org-1', userId: 'user-1' },
-      generationPriority: 'balanced',
+      generationPriority: RouterPriority.BALANCED,
       messages,
       model: 'test-model',
       policy: {
