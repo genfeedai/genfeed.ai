@@ -113,7 +113,7 @@ describe('SkillRegistryService', () => {
       const result = await service.getRegistry();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/skills/registry.json',
+        'https://cdn.genfeed.ai/registry/skills-pro.json',
       );
       expect(result).toEqual({
         bundlePrice: 49,
@@ -263,6 +263,68 @@ describe('SkillRegistryService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('registry cached'),
         expect.objectContaining({ skillCount: 2 }),
+      );
+    });
+
+    it('projects authenticated registry metadata without private fields', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue({
+          ...mockCdnRegistry,
+          skills: mockSkills.map((skill) => ({
+            ...skill,
+            body: '# private',
+            downloadUrl: 'https://private.example.test/download',
+            storageKey: 'private/storage/key',
+          })),
+        }),
+        ok: true,
+      });
+
+      const result = await service.getMetadataRegistry();
+
+      expect(result).toEqual({
+        bundlePrice: 49,
+        skills: [
+          {
+            category: 'generation',
+            description: 'Generate images with AI',
+            id: 'image-gen-pro',
+            name: 'Image Gen Pro',
+            slug: 'image-gen-pro',
+            version: '1.0.0',
+          },
+          {
+            category: 'editing',
+            description: 'Edit videos with AI',
+            id: 'video-editor',
+            name: 'Video Editor',
+            slug: 'video-editor',
+            version: '2.0.0',
+          },
+        ],
+        updatedAt: '2026-01-15T00:00:00Z',
+      });
+
+      const serialized = JSON.stringify(result);
+      for (const forbiddenField of [
+        'body',
+        'checksum',
+        'downloadUrl',
+        's3Key',
+        'storageKey',
+      ]) {
+        expect(serialized).not.toContain(forbiddenField);
+      }
+    });
+
+    it('returns a separately named public storefront catalogue', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue(mockCdnRegistry),
+        ok: true,
+      });
+
+      await expect(service.getStorefrontCatalog()).resolves.toEqual(
+        await service.getMetadataRegistry(),
       );
     });
   });
