@@ -489,7 +489,8 @@ export class SubscriptionsService
             : amount,
         0,
       );
-      const pricesComparable =
+      let priceDifference: number | null = null;
+      if (
         currentPrice.unit_amount !== null &&
         newPrice.unit_amount !== null &&
         currentPrice.currency === newPrice.currency &&
@@ -497,10 +498,11 @@ export class SubscriptionsService
         newPrice.recurring !== null &&
         currentPrice.recurring.interval === newPrice.recurring.interval &&
         currentPrice.recurring.interval_count ===
-          newPrice.recurring.interval_count;
-      const priceDifference = pricesComparable
-        ? newPrice.unit_amount - currentPrice.unit_amount
-        : null;
+          newPrice.recurring.interval_count
+      ) {
+        priceDifference = newPrice.unit_amount - currentPrice.unit_amount;
+      }
+      const pricesComparable = priceDifference !== null;
       const isUpgrade = priceDifference !== null && priceDifference > 0;
       const isDowngrade = priceDifference !== null && priceDifference < 0;
 
