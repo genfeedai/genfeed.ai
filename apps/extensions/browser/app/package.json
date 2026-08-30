@@ -70,7 +70,6 @@
     }
   },
   "name": "@genfeedai/extension-browser",
-  "packageManager": "bun@latest",
   "type": "module",
   "scripts": {
     "build": "bun run css:build && npm exec plasmo build",
