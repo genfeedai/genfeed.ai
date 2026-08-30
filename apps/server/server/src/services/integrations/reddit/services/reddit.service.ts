@@ -209,15 +209,16 @@ export class RedditService {
   }
 
   private requireConfigValue(key: string): string {
-    const value = this.configService.get<string>(key)?.trim();
-    if (!value) {
+    const value = this.configService.get(key);
+    if (typeof value !== 'string' || !value.trim()) {
       throw new Error(`${key} is not configured`);
     }
-    return value;
+    return value.trim();
   }
 
   private getUserAgent(): string {
-    return this.configService.get('REDDIT_USER_AGENT') || 'genfeed';
+    const value = this.configService.get('REDDIT_USER_AGENT');
+    return typeof value === 'string' && value.trim() ? value.trim() : 'genfeed';
   }
 
   public generateAuthUrl(state: string): string {
