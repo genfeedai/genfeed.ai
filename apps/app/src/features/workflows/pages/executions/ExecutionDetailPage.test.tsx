@@ -21,6 +21,12 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/link', () => ({
   default: ({
     children,

@@ -4,12 +4,16 @@ import PublicationAnalyticsDashboard from '@ui/analytics/post-dashboard/publicat
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+const mocks = vi.hoisted(() => ({
+  getPostAnalyticsService: vi.fn(() => new Promise(() => undefined)),
+}));
+
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({ isSignedIn: true }),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => mocks.getPostAnalyticsService,
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({

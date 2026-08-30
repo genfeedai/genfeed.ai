@@ -28,6 +28,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/admin/automation/trainings/training-123'),
+  useRouter: vi.fn(() => ({ prefetch: vi.fn() })),
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
