@@ -34,18 +34,24 @@ block signup.
 
 A claim is rejected when the accounts are identical, share an active member,
 already have an attribution, or the referred account already has paid ledger
-or subscription activity. All customer reads require authenticated billing
-membership and all claim/read routes are rate limited.
+or subscription activity. Paid-history checks cover every authoritative
+organization link on the billing account, including subscriptions whose legacy
+billing-account column is null. All customer reads require authenticated
+billing membership and all claim/read routes are rate limited.
 
 ## Settlement operations
 
 `ReferralReward` is the durable source of truth. Checkout-session uniqueness,
-database-unique credit-ledger idempotency keys, a shared settlement/reversal
+active-row database-unique credit-ledger idempotency keys, a shared settlement/reversal
 lease, and retry backoff make Stripe retries, cumulative refunds, disputes, and
 scheduled settlement safe. The API scheduler scans due rows every five minutes,
 recovers expired leases, grants expiring credits, and links the resulting ledger
 transaction to the reward. Tax-inclusive Stripe refunds are normalized back to
 the stored pre-tax purchase basis before reward credits are adjusted.
+
+The credit-ledger idempotency index is installed concurrently in a standalone
+migration so normal credit writes remain available while the hot table is
+indexed. Soft-deleted ledger history does not reserve active idempotency keys.
 
 Operators should investigate `FAILED` rewards in the admin audit view. The
 failure reason is bounded and contains no referral link or customer email.

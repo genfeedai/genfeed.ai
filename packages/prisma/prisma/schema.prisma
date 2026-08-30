@@ -2911,7 +2911,6 @@ model CreditTransaction {
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
   @@index([reservationId])
-  @@unique([organizationId, idempotencyKey], map: "credit_transactions_org_idempotency_key")
   @@map("credit_transactions")
 }
 
@@ -2971,7 +2970,7 @@ model Referral {
   code                     ReferralCode     @relation(fields: [codeId], references: [id])
   referrerBillingAccountId String
   referrerBillingAccount   BillingAccount   @relation("referral_referrer_billing_account", fields: [referrerBillingAccountId], references: [id])
-  referredBillingAccountId String           @unique
+  referredBillingAccountId String
   referredBillingAccount   BillingAccount   @relation("referral_referred_billing_account", fields: [referredBillingAccountId], references: [id])
   referrerOrganizationId   String
   referrerOrganization     Organization     @relation("referral_referrer_organization", fields: [referrerOrganizationId], references: [id])

@@ -64,6 +64,9 @@ Use approach 3. Vincent explicitly selected the native, full end-to-end program 
   parts, preserves OSS portability, and recovers from downtime without relying
   on Redis retention. A compare-and-set processing lease prevents duplicate
   workers from granting the same row.
+- Credit-ledger idempotency is enforced by an active-row partial unique index
+  built concurrently, so soft-deleted history does not poison a key and rollout
+  does not block writes on the hot ledger table.
 - Signup preserves `ref` through callback parameters and temporary browser storage;
   the authenticated claim endpoint makes the durable decision.
 - Stripe Checkout and payment objects are authoritative for purchase identity and
@@ -84,7 +87,8 @@ Use approach 3. Vincent explicitly selected the native, full end-to-end program 
 
 - Reject same-wallet and shared-active-member referrals deterministically.
 - Reject accounts with any prior paid subscription, PAYG ledger purchase, or
-  referral attribution.
+  referral attribution. Paid-history checks resolve authoritative linked
+  organization ids and do not rely on legacy-nullable billing-account columns.
 - Do not block by IP address or email domain: both create false positives for
   agencies, teams, shared offices, and privacy relays.
 - Expose aggregate counts and values to referrers, never referred-user email,

@@ -228,41 +228,44 @@ export class ReferralsService {
       return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
-    const [targetOrganizations, priorSubscription] = await Promise.all([
-      // tenant-scope-ignore: paid-account eligibility is billing-account scoped and must cover every linked organization
-      this.prisma.organization.findMany({
+    // tenant-scope-ignore: paid-account eligibility is billing-account scoped and must cover every authoritative organization link
+    const targetLinks = await this.prisma.billingAccountOrganization.findMany({
+      select: { organizationId: true },
+      where: {
+        billingAccountId: targetAccount.id,
+        isDeleted: false,
+        organization: { isDeleted: false },
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
+    const targetOrganizationIds = [
+      ...new Set([
+        actor.organizationId,
+        ...targetLinks.map((link) => link.organizationId),
+      ]),
+    ];
+    const [priorPurchase, priorSubscription] = await Promise.all([
+      this.prisma.creditTransaction.findFirst({
         select: { id: true },
         where: {
-          billingAccountId: targetAccount.id,
+          amount: { gt: 0 },
           isDeleted: false,
+          organizationId: { in: targetOrganizationIds },
+          source: {
+            in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
+          },
         },
       }),
-      // tenant-scope-ignore: eligibility is billing-account scoped and must cover every linked organization
+      // tenant-scope-ignore: prior paid status follows linked organizations because subscription.billingAccountId is legacy-nullable
       this.prisma.subscription.findFirst({
         select: { id: true },
         where: {
-          billingAccountId: targetAccount.id,
           isDeleted: false,
+          organizationId: { in: targetOrganizationIds },
           stripeSubscriptionId: { not: null },
         },
       }),
     ]);
-    const targetOrganizationIds = targetOrganizations.map(
-      (organization) => organization.id,
-    );
-    const priorPurchase = targetOrganizationIds.length
-      ? await this.prisma.creditTransaction.findFirst({
-          select: { id: true },
-          where: {
-            amount: { gt: 0 },
-            isDeleted: false,
-            organizationId: { in: targetOrganizationIds },
-            source: {
-              in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
-            },
-          },
-        })
-      : null;
     if (priorPurchase || priorSubscription) {
       return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
@@ -433,6 +436,7 @@ export class ReferralsService {
       take: MAX_SETTLEMENT_BATCH,
       where: {
         isDeleted: false,
+        lockedAt: null,
         nextAttemptAt: { lte: now },
         status: {
           in: [ReferralRewardStatus.PENDING, ReferralRewardStatus.FAILED],
@@ -467,16 +471,22 @@ export class ReferralsService {
     try {
       const reward = await this.prisma.referralReward.findFirst({
         include: { referral: { include: { code: true } } },
-        where: { id: rewardId, isDeleted: false },
+        where: { id: rewardId, isDeleted: false, lockedAt },
       });
       if (!reward || reward.rewardCredits < 1) {
-        await this.cancelReward(rewardId);
+        await this.cancelReward(rewardId, lockedAt);
         return;
       }
       const code = reward.referral.code;
       const pinnedDestination = await this.prisma.organization.findFirst({
         where: {
-          billingAccountId: code.rewardBillingAccountId,
+          billingAccountLinks: {
+            some: {
+              billingAccountId: code.rewardBillingAccountId,
+              isDeleted: false,
+              status: BillingAccountOrganizationStatus.LINKED,
+            },
+          },
           id: code.rewardOrganizationId,
           isDeleted: false,
         },
@@ -521,7 +531,7 @@ export class ReferralsService {
       if (!transaction) {
         throw new Error('Referral reward ledger transaction was not persisted');
       }
-      await this.prisma.referralReward.update({
+      const completed = await this.prisma.referralReward.updateMany({
         data: {
           failureReason: null,
           grantTransactionId: transaction.id,
@@ -529,8 +539,15 @@ export class ReferralsService {
           lockedAt: null,
           status: ReferralRewardStatus.GRANTED,
         },
-        where: { id: reward.id },
+        where: {
+          id: reward.id,
+          lockedAt,
+          status: ReferralRewardStatus.PROCESSING,
+        },
       });
+      if (completed.count !== 1) {
+        throw new Error('Referral reward settlement lease was lost');
+      }
       try {
         await this.activitiesService.create({
           key: ActivityKey.CREDITS_ADD,
@@ -563,7 +580,11 @@ export class ReferralsService {
           nextAttemptAt: new Date(Date.now() + delayMinutes * 60 * 1000),
           status: ReferralRewardStatus.FAILED,
         },
-        where: { id: rewardId, status: ReferralRewardStatus.PROCESSING },
+        where: {
+          id: rewardId,
+          lockedAt,
+          status: ReferralRewardStatus.PROCESSING,
+        },
       });
       this.logger.error('Referral reward settlement failed', {
         error,
@@ -662,7 +683,7 @@ export class ReferralsService {
             },
           );
         }
-        await this.prisma.referralReward.update({
+        const completed = await this.prisma.referralReward.updateMany({
           data: {
             refundedAmountCents,
             lockedAt: null,
@@ -676,12 +697,15 @@ export class ReferralsService {
                 ? ReferralRewardStatus.REVERSED
                 : ReferralRewardStatus.GRANTED,
           },
-          where: { id: reward.id },
+          where: { id: reward.id, lockedAt },
         });
+        if (completed.count !== 1) {
+          throw new Error(`Referral reward ${reward.id} lease was lost`);
+        }
         return;
       }
 
-      await this.prisma.referralReward.update({
+      const completed = await this.prisma.referralReward.updateMany({
         data: {
           cancelledAt: retainedCredits < 1 ? new Date() : null,
           refundedAmountCents,
@@ -692,8 +716,11 @@ export class ReferralsService {
               ? ReferralRewardStatus.CANCELLED
               : ReferralRewardStatus.PENDING,
         },
-        where: { id: reward.id },
+        where: { id: reward.id, lockedAt },
       });
+      if (completed.count !== 1) {
+        throw new Error(`Referral reward ${reward.id} lease was lost`);
+      }
     } catch (error: unknown) {
       await this.prisma.referralReward.updateMany({
         data: { lockedAt: null },
@@ -823,14 +850,21 @@ export class ReferralsService {
     };
   }
 
-  private async cancelReward(id: string): Promise<void> {
-    await this.prisma.referralReward.update({
+  private async cancelReward(id: string, lockedAt: Date): Promise<void> {
+    const cancelled = await this.prisma.referralReward.updateMany({
       data: {
         cancelledAt: new Date(),
         lockedAt: null,
         status: ReferralRewardStatus.CANCELLED,
       },
-      where: { id },
+      where: {
+        id,
+        lockedAt,
+        status: ReferralRewardStatus.PROCESSING,
+      },
     });
+    if (cancelled.count !== 1) {
+      throw new Error('Referral reward cancellation lease was lost');
+    }
   }
 }

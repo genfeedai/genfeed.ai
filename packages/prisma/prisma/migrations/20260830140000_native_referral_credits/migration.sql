@@ -78,15 +78,14 @@ CREATE TABLE "referral_rewards" (
   )
 );
 
-CREATE UNIQUE INDEX "credit_transactions_org_idempotency_key"
-  ON "credit_transactions"("organizationId", "idempotencyKey");
-
 CREATE UNIQUE INDEX "referral_codes_code_key" ON "referral_codes"("code");
 CREATE UNIQUE INDEX "referral_codes_owner_billing_account_key" ON "referral_codes"("ownerUserId", "rewardBillingAccountId");
 CREATE INDEX "referral_codes_rewardBillingAccountId_isDeleted_idx" ON "referral_codes"("rewardBillingAccountId", "isDeleted");
 CREATE INDEX "referral_codes_rewardOrganizationId_isDeleted_idx" ON "referral_codes"("rewardOrganizationId", "isDeleted");
 
-CREATE UNIQUE INDEX "referrals_referredBillingAccountId_key" ON "referrals"("referredBillingAccountId");
+CREATE UNIQUE INDEX "referrals_referredBillingAccountId_active_key"
+  ON "referrals"("referredBillingAccountId")
+  WHERE "isDeleted" = false;
 CREATE INDEX "referrals_codeId_status_isDeleted_idx" ON "referrals"("codeId", "status", "isDeleted");
 CREATE INDEX "referrals_referrerBillingAccountId_status_isDeleted_idx" ON "referrals"("referrerBillingAccountId", "status", "isDeleted");
 CREATE INDEX "referrals_referredOrganizationId_isDeleted_idx" ON "referrals"("referredOrganizationId", "isDeleted");

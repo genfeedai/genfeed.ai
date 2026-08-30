@@ -13,14 +13,17 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const configMock = vi.hoisted(() => ({ organizationBilling: true }));
+
 vi.mock('@genfeedai/config', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@genfeedai/config')>()),
-  hasOrganizationBilling: () => true,
+  hasOrganizationBilling: () => configMock.organizationBilling,
 }));
 
 type MockFn = ReturnType<typeof vi.fn>;
 
 type PrismaMock = {
+  billingAccountOrganization: { findFirst: MockFn; findMany: MockFn };
   billingAccountMember: { findFirst: MockFn; findMany: MockFn };
   creditTransaction: { findFirst: MockFn };
   organization: { findFirst: MockFn; findMany: MockFn };
@@ -97,7 +100,14 @@ describe('ReferralsService', () => {
   };
 
   beforeEach(() => {
+    configMock.organizationBilling = true;
     prisma = {
+      billingAccountOrganization: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ organizationId: ACTOR.organizationId }]),
+      },
       billingAccountMember: {
         findFirst: vi.fn().mockResolvedValue({ id: 'member_1' }),
         findMany: vi.fn().mockResolvedValue([{ userId: ACTOR.userId }]),
@@ -234,6 +244,31 @@ describe('ReferralsService', () => {
     expect(prisma.referral.create).not.toHaveBeenCalled();
   });
 
+  it('rejects an account with a prior subscription in any linked organization', async () => {
+    prisma.referralCode.findFirst.mockResolvedValue({
+      id: 'code_1',
+      rewardBillingAccountId: 'ba_referrer',
+      rewardOrganizationId: 'org_referrer',
+    });
+    prisma.billingAccountMember.findFirst
+      .mockResolvedValueOnce({ id: 'target_member' })
+      .mockResolvedValueOnce(null);
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_paid' });
+
+    const result = await service.claim(ACTOR, 'validcode1');
+
+    expect(result.status).toBe(ReferralClaimStatus.INELIGIBLE);
+    expect(prisma.subscription.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        organizationId: { in: [ACTOR.organizationId] },
+        stripeSubscriptionId: { not: null },
+      },
+    });
+    expect(prisma.referral.create).not.toHaveBeenCalled();
+  });
+
   it('creates a seven-day pending reward worth ten percent of net PAYG spend', async () => {
     prisma.referral.findFirst.mockResolvedValue({ id: 'referral_1' });
     prisma.referralReward.create.mockResolvedValue(reward());
@@ -271,13 +306,13 @@ describe('ReferralsService', () => {
       stripePaymentIntentId: 'pi_1',
     });
 
-    expect(prisma.referralReward.update).toHaveBeenCalledWith({
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         refundedAmountCents: 2_500,
         rewardCredits: 750,
         status: ReferralRewardStatus.PENDING,
       }),
-      where: { id: 'reward_1' },
+      where: { id: 'reward_1', lockedAt: expect.any(Date) },
     });
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
@@ -311,13 +346,13 @@ describe('ReferralsService', () => {
         maxOverdraftCredits: 300,
       }),
     );
-    expect(prisma.referralReward.update).toHaveBeenCalledWith({
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         refundedAmountCents: 5_000,
         reversedCredits: 500,
         status: ReferralRewardStatus.GRANTED,
       }),
-      where: { id: 'reward_1' },
+      where: { id: 'reward_1', lockedAt: expect.any(Date) },
     });
   });
 
@@ -333,12 +368,12 @@ describe('ReferralsService', () => {
       stripePaymentIntentId: 'pi_1',
     });
 
-    expect(prisma.referralReward.update).toHaveBeenCalledWith({
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         refundedAmountCents: 5_000,
         rewardCredits: 500,
       }),
-      where: { id: 'reward_1' },
+      where: { id: 'reward_1', lockedAt: expect.any(Date) },
     });
   });
 
@@ -377,6 +412,100 @@ describe('ReferralsService', () => {
       }),
     ).rejects.toThrow('retry payment reversal');
     expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
+  it('settles a due reward once and binds the durable ledger transaction', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(reward());
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org_referrer' });
+    prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'tx_grant' });
+
+    await service.settleDueRewards();
+
+    expect(credits.addOrganizationCreditsWithExpiration).toHaveBeenCalledWith(
+      'org_referrer',
+      1_000,
+      ActivitySource.REFERRAL,
+      'Referral purchase reward',
+      expect.any(Date),
+      expect.objectContaining({
+        idempotencyKey: 'referral-reward-grant:reward_1',
+      }),
+    );
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        grantTransactionId: 'tx_grant',
+        lockedAt: null,
+        status: ReferralRewardStatus.GRANTED,
+      }),
+      where: {
+        id: 'reward_1',
+        lockedAt: expect.any(Date),
+        status: ReferralRewardStatus.PROCESSING,
+      },
+    });
+  });
+
+  it('requeues a failed settlement with a guarded exponential backoff', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst
+      .mockResolvedValueOnce(reward())
+      .mockResolvedValueOnce({ attemptCount: 2 });
+    prisma.organization.findFirst.mockResolvedValue(null);
+    prisma.billingAccountOrganization.findFirst.mockResolvedValue(null);
+
+    await service.settleDueRewards();
+
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        failureReason: 'Referral reward destination is no longer eligible',
+        lockedAt: null,
+        nextAttemptAt: expect.any(Date),
+        status: ReferralRewardStatus.FAILED,
+      }),
+      where: {
+        id: 'reward_1',
+        lockedAt: expect.any(Date),
+        status: ReferralRewardStatus.PROCESSING,
+      },
+    });
+  });
+
+  it('recovers expired settlement and reversal leases before selecting work', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([]);
+
+    await service.settleDueRewards();
+
+    expect(prisma.referralReward.updateMany).toHaveBeenNthCalledWith(1, {
+      data: {
+        failureReason: 'Settlement lease expired',
+        lockedAt: null,
+        nextAttemptAt: expect.any(Date),
+        status: ReferralRewardStatus.FAILED,
+      },
+      where: {
+        isDeleted: false,
+        lockedAt: { lt: expect.any(Date) },
+        status: ReferralRewardStatus.PROCESSING,
+      },
+    });
+    expect(prisma.referralReward.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { lockedAt: null },
+      where: {
+        isDeleted: false,
+        lockedAt: { lt: expect.any(Date) },
+        status: { not: ReferralRewardStatus.PROCESSING },
+      },
+    });
+  });
+
+  it('does not run settlement in community mode', async () => {
+    configMock.organizationBilling = false;
+
+    await service.settleDueRewards();
+
+    expect(prisma.referralReward.updateMany).not.toHaveBeenCalled();
+    expect(prisma.referralReward.findMany).not.toHaveBeenCalled();
   });
 
   it('reactivates a soft-deleted code instead of violating its unique key', async () => {
