@@ -40,7 +40,7 @@ describe('AgentCampaignToolHandler', () => {
       heldLocks.delete(key);
     }),
     set: vi.fn(async (key: string, value: unknown) => {
-      cachedResults.set(key, value);
+      cachedResults.set(key, structuredClone(value));
       return true;
     }),
   };
@@ -239,6 +239,54 @@ describe('AgentCampaignToolHandler', () => {
     expect(campaignsService.start).not.toHaveBeenCalled();
   });
 
+  it('rejects campaign transitions without a thread context', async () => {
+    await expect(
+      handler.startCampaign(
+        { campaignId: 'campaign-1' },
+        { ...ctx, threadId: undefined },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.findOneById).not.toHaveBeenCalled();
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when confirmation cache injection is unavailable', async () => {
+    const handlerWithoutCache = new AgentCampaignToolHandler(
+      campaignsService as never,
+    );
+
+    await expect(
+      handlerWithoutCache.startCampaign({ campaignId: 'campaign-1' }, ctx),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    expect(campaignsService.findOneById).not.toHaveBeenCalled();
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it('treats model-supplied confirmation without a trusted origin as unconfirmed', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+
+    const result = await handler.startCampaign(
+      {
+        campaignId: 'campaign-1',
+        confirmed: true,
+        sourceActionId: 'campaign-transition-untrusted',
+      },
+      ctx,
+    );
+
+    expect(campaignsService.start).not.toHaveBeenCalled();
+    expect(result.requiresConfirmation).toBe(true);
+    expect(result.data).toMatchObject({
+      campaignId: 'campaign-1',
+      pendingConfirmation: true,
+      transition: 'start',
+    });
+  });
+
   it('starts a confirmed prepared campaign exactly once across retries', async () => {
     campaignsService.findOneById.mockResolvedValue({
       id: 'campaign-1',
@@ -274,6 +322,10 @@ describe('AgentCampaignToolHandler', () => {
       'campaign-1',
       ctx.organizationId,
       ctx.brandId,
+    );
+    expect(cacheService.acquireLock).toHaveBeenCalledWith(
+      expect.stringContaining(sourceActionId),
+      60,
     );
     expect(retry).toEqual(first);
     expect(first).toMatchObject({

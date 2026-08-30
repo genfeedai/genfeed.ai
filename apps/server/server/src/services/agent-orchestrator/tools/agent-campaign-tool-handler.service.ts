@@ -8,10 +8,10 @@ import {
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { CreateOutreachCampaignDto } from '@server/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -26,7 +26,7 @@ export type CampaignTransition = 'pause' | 'start';
 export type PreparedCampaignTransition = {
   campaignId: string;
   confirmationPrompt: string;
-  currentStatus: string;
+  currentStatus: CampaignStatus;
   intendedStatus: CampaignStatus.ACTIVE | CampaignStatus.PAUSED;
   label: string;
   pendingConfirmation: true;
@@ -35,6 +35,21 @@ export type PreparedCampaignTransition = {
 };
 
 const CAMPAIGN_PREPARATION_TTL_SECONDS = 3_600;
+const CAMPAIGN_TRANSITION_LOCK_TTL_SECONDS = 60;
+const CAMPAIGN_SOURCE_ACTION_ID_PATTERN =
+  /campaign-transition-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
+
+function readNonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
+function readCampaignStatus(value: unknown): CampaignStatus | null {
+  return (
+    Object.values(CampaignStatus).find((status) => status === value) ?? null
+  );
+}
 
 export function buildCampaignPreparationCacheKey(params: {
   organizationId: string;
@@ -57,6 +72,69 @@ export function buildCampaignConfirmationPrompt(params: {
   return `Confirm campaign ${params.transition} for campaign ${params.campaignId}. Intent: ${params.sourceActionId}.`;
 }
 
+export function readCampaignConfirmationSourceActionId(
+  confirmationPrompt: string,
+): string | null {
+  const match = confirmationPrompt.match(
+    new RegExp(
+      `Intent: (${CAMPAIGN_SOURCE_ACTION_ID_PATTERN.source})\\.$`,
+      'i',
+    ),
+  );
+  return match?.[1] ?? null;
+}
+
+export function readPreparedCampaignTransition(
+  value: unknown,
+): PreparedCampaignTransition | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const campaignId = readNonEmptyString(candidate.campaignId);
+  const confirmationPrompt = readNonEmptyString(candidate.confirmationPrompt);
+  const currentStatus = readCampaignStatus(candidate.currentStatus);
+  const intendedStatus = readCampaignStatus(candidate.intendedStatus);
+  const label = readNonEmptyString(candidate.label);
+  const sourceActionId = readNonEmptyString(candidate.sourceActionId);
+  const transition = candidate.transition;
+  if (
+    !campaignId ||
+    !confirmationPrompt ||
+    !currentStatus ||
+    !label ||
+    !sourceActionId ||
+    candidate.pendingConfirmation !== true ||
+    (transition !== 'start' && transition !== 'pause') ||
+    intendedStatus !==
+      (transition === 'start'
+        ? CampaignStatus.ACTIVE
+        : CampaignStatus.PAUSED) ||
+    readCampaignConfirmationSourceActionId(confirmationPrompt) !==
+      sourceActionId ||
+    confirmationPrompt !==
+      buildCampaignConfirmationPrompt({
+        campaignId,
+        sourceActionId,
+        transition,
+      })
+  ) {
+    return null;
+  }
+
+  return {
+    campaignId,
+    confirmationPrompt,
+    currentStatus,
+    intendedStatus,
+    label,
+    pendingConfirmation: true,
+    sourceActionId,
+    transition,
+  };
+}
+
 /**
  * Outreach campaign tools (`create_campaign`, `start_campaign`,
  * `pause_campaign`, `complete_campaign`, `get_campaign_analytics`).
@@ -64,10 +142,14 @@ export function buildCampaignConfirmationPrompt(params: {
  */
 @Injectable()
 export class AgentCampaignToolHandler {
+  private readonly cacheService?: CacheService;
+
   constructor(
     private readonly campaignsService: OutreachCampaignsService,
-    @Optional() private readonly cacheService?: CacheService,
-  ) {}
+    @Inject(CacheService) cacheService?: CacheService,
+  ) {
+    this.cacheService = cacheService;
+  }
 
   async createCampaign(
     params: Record<string, unknown>,
@@ -173,14 +255,15 @@ export class AgentCampaignToolHandler {
     }
 
     const { cacheService, threadId } = this.requireConfirmationPersistence(ctx);
-    const preparedTransition =
-      await cacheService.get<PreparedCampaignTransition>(
+    const preparedTransition = readPreparedCampaignTransition(
+      await cacheService.get<unknown>(
         buildCampaignPreparationCacheKey({
           organizationId: ctx.organizationId,
           sourceActionId,
           threadId,
         }),
-      );
+      ),
+    );
     if (
       preparedTransition?.pendingConfirmation !== true ||
       preparedTransition.campaignId !== campaignId ||
@@ -213,9 +296,7 @@ export class AgentCampaignToolHandler {
         if (!currentCampaign) {
           throw new NotFoundException(`Campaign ${campaignId} not found`);
         }
-        if (
-          String(currentCampaign.status) !== preparedTransition.currentStatus
-        ) {
+        if (currentCampaign.status !== preparedTransition.currentStatus) {
           throw new BadRequestException(
             'Campaign state changed after confirmation was prepared.',
           );
@@ -267,7 +348,7 @@ export class AgentCampaignToolHandler {
         };
       },
       {
-        lockTtlSeconds: CAMPAIGN_PREPARATION_TTL_SECONDS,
+        lockTtlSeconds: CAMPAIGN_TRANSITION_LOCK_TTL_SECONDS,
         resultTtlSeconds: CAMPAIGN_PREPARATION_TTL_SECONDS,
       },
     );
@@ -289,6 +370,12 @@ export class AgentCampaignToolHandler {
     }
 
     const sourceActionId = `campaign-transition-${randomUUID()}`;
+    const currentStatus = readCampaignStatus(campaign.status);
+    if (!currentStatus) {
+      throw new InternalServerErrorException(
+        'Campaign has an unsupported lifecycle status.',
+      );
+    }
     const preparation: PreparedCampaignTransition = {
       campaignId,
       confirmationPrompt: buildCampaignConfirmationPrompt({
@@ -296,7 +383,7 @@ export class AgentCampaignToolHandler {
         sourceActionId,
         transition,
       }),
-      currentStatus: String(campaign.status),
+      currentStatus,
       intendedStatus:
         transition === 'start' ? CampaignStatus.ACTIVE : CampaignStatus.PAUSED,
       label: String(campaign.label),
@@ -357,7 +444,12 @@ export class AgentCampaignToolHandler {
     cacheService: CacheService;
     threadId: string;
   } {
-    if (!this.cacheService || !ctx.threadId) {
+    if (!ctx.threadId) {
+      throw new BadRequestException(
+        'Campaign transitions require a thread context.',
+      );
+    }
+    if (!this.cacheService) {
       throw new InternalServerErrorException(
         'Campaign confirmation persistence is unavailable.',
       );

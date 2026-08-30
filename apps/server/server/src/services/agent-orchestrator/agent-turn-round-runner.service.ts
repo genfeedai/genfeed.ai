@@ -18,7 +18,8 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import {
   buildCampaignPreparationCacheKey,
-  type PreparedCampaignTransition,
+  readCampaignConfirmationSourceActionId,
+  readPreparedCampaignTransition,
 } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
@@ -748,65 +749,44 @@ export class AgentTurnRoundRunnerService {
       return null;
     }
 
-    let latestUserIndex = -1;
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      if (messages[index]?.role === 'user') {
-        latestUserIndex = index;
-        break;
-      }
-    }
-    if (latestUserIndex < 0) {
+    const currentTurnMessage = messages.at(-2);
+    if (
+      currentTurnMessage?.role !== 'user' ||
+      typeof currentTurnMessage.content !== 'string'
+    ) {
       return null;
     }
+    const confirmationPrompt = currentTurnMessage.content;
 
-    const confirmationPrompt = messages[latestUserIndex]?.content;
-    if (typeof confirmationPrompt !== 'string') {
-      return null;
-    }
-
-    const sourceActionId = this.readCampaignSourceActionId(confirmationPrompt);
+    const sourceActionId =
+      readCampaignConfirmationSourceActionId(confirmationPrompt);
     if (!sourceActionId) {
       return null;
     }
 
-    const preparation = await this.cacheService.get<PreparedCampaignTransition>(
-      buildCampaignPreparationCacheKey({
-        organizationId,
-        sourceActionId,
-        threadId,
-      }),
+    const preparation = readPreparedCampaignTransition(
+      await this.cacheService.get<unknown>(
+        buildCampaignPreparationCacheKey({
+          organizationId,
+          sourceActionId,
+          threadId,
+        }),
+      ),
     );
-    const campaignId = this.readNonEmptyString(preparation?.campaignId);
     if (
       preparation?.pendingConfirmation !== true ||
       preparation.transition !== transition ||
       preparation.sourceActionId !== sourceActionId ||
-      preparation.confirmationPrompt !== confirmationPrompt ||
-      !campaignId
+      preparation.confirmationPrompt !== confirmationPrompt
     ) {
       return null;
     }
 
     return {
-      campaignId,
+      campaignId: preparation.campaignId,
       sourceActionId,
       transition,
     };
-  }
-
-  private readCampaignSourceActionId(
-    confirmationPrompt: string,
-  ): string | null {
-    const match = confirmationPrompt.match(
-      /Intent: (campaign-transition-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\.$/i,
-    );
-    return match?.[1] ?? null;
-  }
-
-  private readNonEmptyString(value: unknown): string | null {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : null;
   }
 
   private buildUnknownToolError(

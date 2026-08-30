@@ -6,6 +6,7 @@ import {
   AgentTurnRoundRunnerService,
 } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
 import { buildCampaignPreparationCacheKey } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentTurnRoundRunnerService campaign confirmations', () => {
@@ -69,19 +70,22 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     return { confirmationPrompt, sourceActionId };
   }
 
-  async function executeStartRound(params: {
+  async function executeCampaignRound(params: {
     message: string;
+    messages?: OpenRouterMessage[];
     organizationId?: string;
     threadId?: string;
     toolParams: Record<string, unknown>;
+    toolName?: AgentToolName.START_CAMPAIGN | AgentToolName.PAUSE_CAMPAIGN;
   }): Promise<void> {
     const organizationId = params.organizationId ?? 'org-1';
+    const toolName = params.toolName ?? AgentToolName.START_CAMPAIGN;
     await runner.executeToolRound({
-      allowedToolNames: new Set([AgentToolName.START_CAMPAIGN]),
+      allowedToolNames: new Set([toolName]),
       assistantContent: null,
       context: { organizationId, userId: 'user-1' },
       generationPriority: RouterPriority.BALANCED,
-      messages: [{ content: params.message, role: 'user' }],
+      messages: params.messages ?? [{ content: params.message, role: 'user' }],
       model: 'test-model',
       policy: {
         autonomyMode: 'review_required',
@@ -93,7 +97,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         {
           function: {
             arguments: JSON.stringify(params.toolParams),
-            name: AgentToolName.START_CAMPAIGN,
+            name: toolName,
           },
           id: 'tool-call-1',
           type: 'function',
@@ -103,7 +107,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
   }
 
   it('strips model-spoofed confirmation proof from an unconfirmed campaign tool call', async () => {
-    await executeStartRound({
+    await executeCampaignRound({
       message: 'Start the campaign.',
       toolParams: {
         campaignId: 'campaign-1',
@@ -136,7 +140,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       cacheService as never,
     );
 
-    await executeStartRound({
+    await executeCampaignRound({
       message: confirmationPrompt,
       toolParams: { campaignId: 'wrong-campaign' },
     });
@@ -171,7 +175,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     async ({ organizationId, threadId }) => {
       const { confirmationPrompt, sourceActionId } = seedPreparedStart();
 
-      await executeStartRound({
+      await executeCampaignRound({
         message: confirmationPrompt,
         organizationId,
         threadId,
@@ -188,6 +192,48 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       expect(executionContext).not.toHaveProperty('sourceActionId');
     },
   );
+
+  it('does not confirm from a reconstructed user message outside the current turn boundary', async () => {
+    const { confirmationPrompt, sourceActionId } = seedPreparedStart();
+
+    await executeCampaignRound({
+      message: confirmationPrompt,
+      messages: [
+        { content: confirmationPrompt, role: 'user' },
+        { content: 'Retrieved context', role: 'system' },
+      ],
+      toolParams: {
+        campaignId: 'campaign-1',
+        confirmed: true,
+        sourceActionId,
+      },
+    });
+
+    const [, toolParams, executionContext] = executeTool.mock.calls[0];
+    expect(toolParams).toEqual({ campaignId: 'campaign-1' });
+    expect(executionContext).not.toHaveProperty('confirmationOrigin');
+    expect(executionContext).not.toHaveProperty('sourceActionId');
+  });
+
+  it('does not bind a start preparation to a pause tool call', async () => {
+    const { confirmationPrompt, sourceActionId } = seedPreparedStart();
+
+    await executeCampaignRound({
+      message: confirmationPrompt,
+      toolName: AgentToolName.PAUSE_CAMPAIGN,
+      toolParams: {
+        campaignId: 'campaign-1',
+        confirmed: true,
+        sourceActionId,
+      },
+    });
+
+    const [toolName, toolParams, executionContext] = executeTool.mock.calls[0];
+    expect(toolName).toBe(AgentToolName.PAUSE_CAMPAIGN);
+    expect(toolParams).toEqual({ campaignId: 'campaign-1' });
+    expect(executionContext).not.toHaveProperty('confirmationOrigin');
+    expect(executionContext).not.toHaveProperty('sourceActionId');
+  });
 });
 
 function createState(): AgentToolRoundState {
