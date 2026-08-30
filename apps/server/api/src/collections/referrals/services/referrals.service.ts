@@ -515,10 +515,10 @@ export class ReferralsService {
           isDeleted: false,
         },
       });
+      // tenant-scope-ignore: destination recovery is scoped by the immutable billing account and selects only a linked, live organization
       const fallbackLink = pinnedDestination
         ? null
-        : // tenant-scope-ignore: destination recovery is scoped by the immutable billing account and selects only a linked, live organization
-          await this.prisma.billingAccountOrganization.findFirst({
+        : await this.prisma.billingAccountOrganization.findFirst({
             include: { organization: true },
             where: {
               billingAccountId: code.rewardBillingAccountId,
