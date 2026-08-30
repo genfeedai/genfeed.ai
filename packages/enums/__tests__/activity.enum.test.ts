@@ -47,6 +47,7 @@ describe('activity.enum', () => {
         'TREND_SCAN',
         'BRAND_INTERVIEW',
         'BRAND_RELOCATION',
+        'REFERRAL',
       ]);
     });
 
@@ -92,6 +93,7 @@ describe('activity.enum', () => {
       expect(ActivitySource.TREND_SCAN).toBe('trend-scan');
       expect(ActivitySource.BRAND_INTERVIEW).toBe('brand-interview');
       expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
+      expect(ActivitySource.REFERRAL).toBe('credits-referral');
     });
   });
 

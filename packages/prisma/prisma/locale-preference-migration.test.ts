@@ -22,7 +22,7 @@ describe('locale preference migration', () => {
 
   it('stores the organization fallback next to the organization timezone', () => {
     expect(schemaSource).toContain(
-      'defaultLocale                 String            @default("en")',
+      'defaultLocale                  String            @default("en")',
     );
   });
 

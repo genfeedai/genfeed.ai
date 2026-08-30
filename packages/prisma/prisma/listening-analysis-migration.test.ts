@@ -66,9 +66,9 @@ describe('attributable listening analysis persistence (#1796, #1797)', () => {
   });
 
   it('persists an operator review without changing theme evidence attribution', () => {
-    expect(schema).toContain('reviewState          String');
-    expect(schema).toContain('reviewedAt           DateTime?');
-    expect(schema).toContain('reviewedBy           String?');
+    expect(schema).toContain('reviewState         String');
+    expect(schema).toContain('reviewedAt          DateTime?');
+    expect(schema).toContain('reviewedBy          String?');
     expect(schema).toContain('@relation("listening_theme_reviewed_by"');
     expect(reviewMigration).toContain('ADD COLUMN "reviewState" TEXT');
     expect(reviewMigration).toContain('ADD COLUMN "reviewedAt" TIMESTAMP(3)');
