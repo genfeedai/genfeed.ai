@@ -520,6 +520,17 @@ test.describe('Discover prefilled remix handoff', () => {
         },
       }),
     );
+    await authenticatedPage.route(
+      /\/ads\/research\/public\/ad-performance-meta-1(?:\?.*)?$/,
+      (route) =>
+        fulfillJson(route, {
+          ...metaAd,
+          creative: {
+            body: 'Saved body copy',
+            imageUrls: metaAd.imageUrls,
+          },
+        }),
+    );
     await authenticatedPage.route(/\/saved-ads(?:\?.*)?$/, async (route) => {
       if (route.request().method() === 'POST') isSaved = true;
       await fulfillJson(route, savedDocument());
@@ -530,6 +541,22 @@ test.describe('Discover prefilled remix handoff', () => {
       .getByRole('button', { name: 'Save Durable Meta winner' })
       .click();
     await expect.poll(() => isSaved).toBe(true);
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Unsave Durable Meta winner',
+      }),
+    ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', {
+        name: 'Select Durable Meta winner for research context',
+      })
+      .click();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Unsave from swipe file',
+      }),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Brand note')).toBeVisible();
 
     await authenticatedPage.goto(
       `${BRAND_BASE}/discover/ads/meta?source=saved`,

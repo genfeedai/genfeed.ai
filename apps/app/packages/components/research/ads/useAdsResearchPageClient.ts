@@ -58,6 +58,7 @@ type SelectedAdRef = {
   platform?: AdsResearchPlatform;
   source: 'public' | 'my_accounts';
   savedAdId?: string;
+  sourceId?: string;
 };
 
 type CredentialOption = {
@@ -137,6 +138,24 @@ function toSavedAdDetail(saved: ISavedAd) {
       videoUrls: item.videoUrls,
     },
   };
+}
+
+function findSavedSnapshot(
+  savedAds: ISavedAd[],
+  selectedAd: SelectedAdRef,
+): ISavedAd | undefined {
+  if (selectedAd.savedAdId) {
+    const selectedSnapshot = savedAds.find(
+      (item) => item.id === selectedAd.savedAdId,
+    );
+    if (selectedSnapshot) return selectedSnapshot;
+  }
+
+  const sourceAdId = selectedAd.sourceId || selectedAd.id;
+  return savedAds.find(
+    (item) =>
+      item.platform === selectedAd.platform && item.sourceAdId === sourceAdId,
+  );
 }
 
 export function useAdsResearchPageClient(
@@ -383,15 +402,21 @@ export function useAdsResearchPageClient(
         return null;
       }
 
-      if (source === 'saved' && selectedAd.savedAdId) {
-        const snapshot = saved.savedAds.find(
-          (item) => item.id === selectedAd.savedAdId,
-        );
+      const snapshot = findSavedSnapshot(saved.savedAds, selectedAd);
+      if (source === 'saved') {
         return snapshot ? toSavedAdDetail(snapshot) : null;
       }
 
       const service = await getAdsResearchService();
-      return await service.getDetail(selectedAd);
+      const liveDetail = await service.getDetail(selectedAd);
+      return snapshot
+        ? {
+            ...liveDetail,
+            savedAdId: snapshot.id,
+            savedAt: snapshot.createdAt,
+            savedNote: snapshot.note ?? undefined,
+          }
+        : liveDetail;
     },
     enabled: !!selectedAd,
   });
@@ -501,6 +526,7 @@ export function useAdsResearchPageClient(
       platform: item.platform,
       savedAdId: item.savedAdId,
       source: item.source,
+      sourceId: item.sourceId,
     });
   }, [
     adAccountId,
@@ -526,6 +552,7 @@ export function useAdsResearchPageClient(
       platform: item.platform,
       savedAdId: item.savedAdId,
       source: item.source,
+      sourceId: item.sourceId,
     });
     surface?.selectFinding(toAdsResearchFinding(item));
   };
@@ -550,10 +577,11 @@ export function useAdsResearchPageClient(
     }
 
     setActionError(null);
-    if (selectedAd.savedAdId) {
+    const snapshot = findSavedSnapshot(saved.savedAds, selectedAd);
+    if (snapshot) {
       void remixSurface.openRemix({
         kind: 'saved_ad',
-        savedAdId: selectedAd.savedAdId,
+        savedAdId: snapshot.id,
       });
       return;
     }
