@@ -2,7 +2,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 
 export function buildAuthHandoffHref(
   path: 'login' | 'sign-up',
-  tokenName: string,
+  tokenName: 'brandOsToken' | 'clipToolToken',
   previewToken: string,
 ): string {
   const postSignup = new URL(

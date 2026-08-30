@@ -63,6 +63,38 @@ describe('parseActivityKey', () => {
       });
     }
 
+    for (const [key, lifecycle] of [
+      [ActivityKey.MODELS_TRAINING_CREATED, 'created'],
+      [ActivityKey.MODELS_TRAINING_COMPLETED, 'completed'],
+      [ActivityKey.MODELS_TRAINING_FAILED, 'failed'],
+    ] as const) {
+      expect(parseActivityKey(key)).toMatchObject({
+        lifecycle,
+        operation: 'train',
+        subject: 'model',
+      });
+    }
+
+    for (const [key, lifecycle] of [
+      [ActivityKey.POST_PUBLISHED, 'published'],
+      [ActivityKey.POST_SCHEDULED, 'scheduled'],
+      [ActivityKey.POST_FAILED, 'failed'],
+    ] as const) {
+      expect(parseActivityKey(key)).toMatchObject({
+        lifecycle,
+        operation: 'publish',
+        subject: 'post',
+      });
+    }
+
+    expect(
+      parseActivityKey(ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED),
+    ).toMatchObject({
+      lifecycle: 'disconnected',
+      operation: 'connect',
+      subject: 'integration',
+    });
+
     expect(parseActivityKey('model-training-generated')).toMatchObject({
       lifecycle: 'processing',
       operation: 'train',

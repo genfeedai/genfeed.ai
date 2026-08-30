@@ -264,11 +264,13 @@ describe('DesktopGenerationProviderService', () => {
   it.each([
     {
       expected: 'fal request failed (400): invalid fal request',
-      responses: [new Response('invalid fal request', { status: 400 })],
+      createResponses: () => [
+        new Response('invalid fal request', { status: 400 }),
+      ],
     },
     {
       expected: 'fal status request failed (503): status unavailable',
-      responses: [
+      createResponses: () => [
         new Response(
           JSON.stringify({
             request_id: 'fal-request-1',
@@ -281,7 +283,7 @@ describe('DesktopGenerationProviderService', () => {
     },
     {
       expected: 'fal result request failed (502): result unavailable',
-      responses: [
+      createResponses: () => [
         new Response(
           JSON.stringify({
             request_id: 'fal-request-1',
@@ -294,7 +296,8 @@ describe('DesktopGenerationProviderService', () => {
         new Response('result unavailable', { status: 502 }),
       ],
     },
-  ])('preserves $expected', async ({ expected, responses }) => {
+  ])('preserves $expected', async ({ createResponses, expected }) => {
+    const responses = createResponses();
     const service = new DesktopGenerationProviderService(
       createDatabaseMock() as unknown as DesktopGenerationProviderStore,
       providerTimeoutConfig,

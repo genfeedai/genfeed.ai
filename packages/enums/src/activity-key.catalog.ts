@@ -143,18 +143,42 @@ const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
   Partial<Record<string, ActivityMessageId>>
 > = ACTIVITY_MESSAGE_ID_BY_KEY;
 
-const LIFECYCLE_BY_TOKEN: Record<string, ActivityLifecycle> = {
-  completed: 'completed',
-  created: 'created',
-  disconnected: 'disconnected',
-  failed: 'failed',
-  generated: 'completed',
-  processing: 'processing',
-  published: 'published',
-  scheduled: 'scheduled',
-};
+const LIFECYCLE_BY_TOKEN: Readonly<Partial<Record<string, ActivityLifecycle>>> =
+  {
+    completed: 'completed',
+    created: 'created',
+    disconnected: 'disconnected',
+    failed: 'failed',
+    generated: 'completed',
+    processing: 'processing',
+    published: 'published',
+    scheduled: 'scheduled',
+  };
 
 const OPERATION_TOKENS = new Set(['enhance', 'reframe', 'remix', 'upscale']);
+
+const MODEL_TRAINING_LIFECYCLES = new Set<ActivityLifecycle>([
+  'completed',
+  'created',
+  'failed',
+]);
+const CONTENT_PUBLISH_LIFECYCLES = new Set<ActivityLifecycle>([
+  'failed',
+  'published',
+  'scheduled',
+]);
+
+function pickLifecycle(
+  tail: string,
+  allowed: ReadonlySet<ActivityLifecycle>,
+  fallback: ActivityLifecycle,
+): ActivityLifecycle {
+  const lifecycle = LIFECYCLE_BY_TOKEN[tail];
+
+  return lifecycle !== undefined && tail === lifecycle && allowed.has(lifecycle)
+    ? lifecycle
+    : fallback;
+}
 
 /** Subject display labels (English defaults; i18n keys use machine `subject`). */
 const SUBJECT_LABELS: Record<string, string> = {
@@ -206,16 +230,9 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('model-training-')) {
       const tail = key.slice('model-training-'.length);
-      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle:
-          tail === lifecycle &&
-          (lifecycle === 'created' ||
-            lifecycle === 'completed' ||
-            lifecycle === 'failed')
-            ? lifecycle
-            : 'processing',
+        lifecycle: pickLifecycle(tail, MODEL_TRAINING_LIFECYCLES, 'processing'),
         operation: 'train',
         subject: 'model',
       };
@@ -225,16 +242,13 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('content-publish-')) {
       const tail = key.slice('content-publish-'.length);
-      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle:
-          tail === lifecycle &&
-          (lifecycle === 'published' ||
-            lifecycle === 'scheduled' ||
-            lifecycle === 'failed')
-            ? lifecycle
-            : 'processing',
+        lifecycle: pickLifecycle(
+          tail,
+          CONTENT_PUBLISH_LIFECYCLES,
+          'processing',
+        ),
         operation: 'publish',
         subject: 'post',
       };
@@ -252,10 +266,9 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('integration-social-')) {
       const tail = key.slice('integration-social-'.length);
-      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle: lifecycle === 'disconnected' ? lifecycle : 'failed',
+        lifecycle: tail === 'disconnected' ? 'disconnected' : 'failed',
         operation: 'connect',
         subject: 'integration',
       };
