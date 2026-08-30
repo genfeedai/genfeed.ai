@@ -47,6 +47,38 @@ describe('parseActivityKey', () => {
       },
     );
   });
+
+  it('preserves the established outputs for every special key family', () => {
+    for (const key of [
+      ActivityKey.CREDITS_ADD,
+      ActivityKey.CREDITS_REMOVE,
+      ActivityKey.CREDITS_REMOVE_ALL,
+      ActivityKey.CREDITS_RESET,
+    ]) {
+      expect(parseActivityKey(key)).toEqual({
+        key,
+        lifecycle: 'completed',
+        operation: 'credit',
+        subject: 'credits',
+      });
+    }
+
+    expect(parseActivityKey('model-training-generated')).toMatchObject({
+      lifecycle: 'processing',
+      operation: 'train',
+      subject: 'model',
+    });
+    expect(parseActivityKey('content-publish-generated')).toMatchObject({
+      lifecycle: 'processing',
+      operation: 'publish',
+      subject: 'post',
+    });
+    expect(parseActivityKey('integration-social-completed')).toMatchObject({
+      lifecycle: 'failed',
+      operation: 'connect',
+      subject: 'integration',
+    });
+  });
 });
 
 describe('formatActivityMessage', () => {

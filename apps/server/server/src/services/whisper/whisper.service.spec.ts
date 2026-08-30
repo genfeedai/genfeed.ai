@@ -184,7 +184,7 @@ describe('WhisperService', () => {
       const result = await service.transcribeUrl(
         'https://example.com/audio.mp3',
       );
-      expect(result.srt).toContain('Short clip');
+      expect(result.srt).toBe('1\n00:00:00,000 --> 00:00:03,000\nShort clip');
     });
 
     it('should pass language parameter', async () => {
@@ -207,6 +207,19 @@ describe('WhisperService', () => {
   });
 
   describe('generateCaptions', () => {
+    it('uses the same single-entry SRT fallback when no segments exist', async () => {
+      replicateMock.transcribeAudio.mockResolvedValue({
+        duration: 3,
+        language: 'en',
+        segments: [],
+        text: 'Short clip',
+      });
+
+      await expect(service.generateCaptions('ingredient-123')).resolves.toBe(
+        '1\n00:00:00,000 --> 00:00:03,000\nShort clip',
+      );
+    });
+
     it('should throw when video download fails', async () => {
       httpServiceMock.get.mockImplementation(() => {
         throw new Error('Download failed');
