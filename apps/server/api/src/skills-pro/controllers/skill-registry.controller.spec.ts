@@ -1,12 +1,22 @@
 import { SkillRegistryController } from '@api/skills-pro/controllers/skill-registry.controller';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
+import { isPublicRoute } from '@libs/decorators/public.decorator';
+import type { ExecutionContext } from '@nestjs/common';
+import { PATH_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('SkillRegistryController', () => {
   let controller: SkillRegistryController;
   let skillRegistryService: {
-    getRegistry: ReturnType<typeof vi.fn>;
+    getMetadataRegistry: ReturnType<typeof vi.fn>;
+    getStorefrontCatalog: ReturnType<typeof vi.fn>;
   };
+
+  const mockRequest = {
+    originalUrl: '/v1/skills-pro/registry',
+  } as Request;
 
   const mockRegistry = {
     bundlePrice: 49,
@@ -14,8 +24,8 @@ describe('SkillRegistryController', () => {
       {
         category: 'generation',
         description: 'Generate images',
+        id: 'image-gen',
         name: 'Image Gen',
-        s3Key: 'skills/image-gen.zip',
         slug: 'image-gen',
         version: '1.0.0',
       },
@@ -23,9 +33,22 @@ describe('SkillRegistryController', () => {
     updatedAt: '2026-01-01T00:00:00Z',
   };
 
+  const mockStorefront = {
+    bundlePrice: 49,
+    skills: [
+      {
+        category: 'generation',
+        description: 'Generate images',
+        name: 'Image Gen',
+        slug: 'image-gen',
+      },
+    ],
+  };
+
   beforeEach(async () => {
     skillRegistryService = {
-      getRegistry: vi.fn().mockResolvedValue(mockRegistry),
+      getMetadataRegistry: vi.fn().mockResolvedValue(mockRegistry),
+      getStorefrontCatalog: vi.fn().mockResolvedValue(mockStorefront),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,64 +68,67 @@ describe('SkillRegistryController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('keeps the registry on the global authenticated guard path', () => {
+    const handler = SkillRegistryController.prototype.getRegistry;
+    const context = {
+      getClass: () => SkillRegistryController,
+      getHandler: () => handler,
+    } as unknown as ExecutionContext;
+
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('registry');
+    expect(isPublicRoute(new Reflector(), context)).toBe(false);
   });
 
-  describe('getRegistry', () => {
-    it('returns the skill registry from the service', async () => {
-      const result = await controller.getRegistry();
-      expect(result).toEqual(mockRegistry);
-    });
+  it('exposes the marketing storefront on a distinct public path', () => {
+    const handler = SkillRegistryController.prototype.getStorefrontCatalog;
+    const context = {
+      getClass: () => SkillRegistryController,
+      getHandler: () => handler,
+    } as unknown as ExecutionContext;
 
-    it('calls skillRegistryService.getRegistry once', async () => {
-      await controller.getRegistry();
-      expect(skillRegistryService.getRegistry).toHaveBeenCalledTimes(1);
-    });
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('storefront');
+    expect(isPublicRoute(new Reflector(), context)).toBe(true);
+  });
 
-    it('calls getRegistry with no arguments', async () => {
-      await controller.getRegistry();
-      expect(skillRegistryService.getRegistry).toHaveBeenCalledWith();
-    });
+  it('serializes only registry metadata and preserves catalogue meta', async () => {
+    const result = await controller.getRegistry(mockRequest);
 
-    it('propagates errors from the service', async () => {
-      skillRegistryService.getRegistry.mockRejectedValue(
-        new Error('CDN unreachable'),
-      );
-      await expect(controller.getRegistry()).rejects.toThrow('CDN unreachable');
-    });
-
-    it('returns registry with skills array', async () => {
-      const result = (await controller.getRegistry()) as typeof mockRegistry;
-      expect(Array.isArray(result.skills)).toBe(true);
-      expect(result.skills.length).toBeGreaterThan(0);
-    });
-
-    it('returns registry with bundlePrice', async () => {
-      const result = (await controller.getRegistry()) as typeof mockRegistry;
-      expect(result.bundlePrice).toBe(49);
-    });
-
-    it('returns empty skills array when registry has no skills', async () => {
-      skillRegistryService.getRegistry.mockResolvedValue({
-        bundlePrice: 0,
-        skills: [],
+    expect(result).toMatchObject({
+      data: [
+        {
+          attributes: {
+            category: 'generation',
+            description: 'Generate images',
+            name: 'Image Gen',
+            slug: 'image-gen',
+            version: '1.0.0',
+          },
+          id: 'image-gen',
+          type: 'skills-pro-registry-entry',
+        },
+      ],
+      meta: {
+        bundlePrice: 49,
         updatedAt: '2026-01-01T00:00:00Z',
-      });
-      const result = (await controller.getRegistry()) as { skills: unknown[] };
-      expect(result.skills).toEqual([]);
+      },
     });
+    expect(skillRegistryService.getMetadataRegistry).toHaveBeenCalledOnce();
+  });
 
-    it('handles registry with zero bundle price', async () => {
-      skillRegistryService.getRegistry.mockResolvedValue({
-        bundlePrice: 0,
-        skills: [],
-        updatedAt: '2026-01-01T00:00:00Z',
-      });
-      const result = (await controller.getRegistry()) as {
-        bundlePrice: number;
-      };
-      expect(result.bundlePrice).toBe(0);
-    });
+  it('returns the separately typed public storefront catalogue', async () => {
+    await expect(controller.getStorefrontCatalog()).resolves.toEqual(
+      mockStorefront,
+    );
+    expect(skillRegistryService.getStorefrontCatalog).toHaveBeenCalledOnce();
+  });
+
+  it('propagates registry source failures', async () => {
+    skillRegistryService.getMetadataRegistry.mockRejectedValue(
+      new Error('CDN unreachable'),
+    );
+
+    await expect(controller.getRegistry(mockRequest)).rejects.toThrow(
+      'CDN unreachable',
+    );
   });
 });
