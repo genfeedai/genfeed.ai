@@ -265,9 +265,11 @@ export default function TrendDetail({
           </div>
 
           {/* Trend Analysis Card */}
-          <div className="mt-6">
-            <TrendDetailAnalysisCard analysis={analysis} />
-          </div>
+          {analysis && (
+            <div className="mt-6">
+              <TrendDetailAnalysisCard analysis={analysis} />
+            </div>
+          )}
 
           {/* Hashtags */}
           {trend.metadata?.hashtags && trend.metadata.hashtags.length > 0 && (
