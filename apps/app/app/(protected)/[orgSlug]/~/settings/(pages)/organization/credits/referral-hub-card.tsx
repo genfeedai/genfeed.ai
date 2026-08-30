@@ -1,5 +1,6 @@
 'use client';
 
+import { ReferralRewardStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -13,6 +14,15 @@ import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
 import { Copy, Gift } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+
+const REFERRAL_REWARD_STATUS_KEYS = {
+  [ReferralRewardStatus.CANCELLED]: 'status.cancelled',
+  [ReferralRewardStatus.FAILED]: 'status.failed',
+  [ReferralRewardStatus.GRANTED]: 'status.granted',
+  [ReferralRewardStatus.PENDING]: 'status.pending',
+  [ReferralRewardStatus.PROCESSING]: 'status.processing',
+  [ReferralRewardStatus.REVERSED]: 'status.reversed',
+} as const;
 
 function resolveShareUrl(value: string): string {
   if (!value.startsWith('/') || typeof window === 'undefined') {
@@ -111,7 +121,9 @@ export default function ReferralHubCard() {
                   {new Date(reward.createdAt).toLocaleDateString()}
                 </Text>
               </div>
-              <Badge status={reward.status.toLowerCase()} />
+              <Badge status={reward.status.toLowerCase()}>
+                {translate(REFERRAL_REWARD_STATUS_KEYS[reward.status])}
+              </Badge>
             </div>
           ))}
         </div>

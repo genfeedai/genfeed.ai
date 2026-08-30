@@ -841,6 +841,14 @@
     "linkLabel": "Referral link",
     "loadingLink": "Loading referral link…",
     "recentRewards": "Recent rewards",
+    "status": {
+      "cancelled": "Cancelled",
+      "failed": "Failed",
+      "granted": "Granted",
+      "pending": "Pending",
+      "processing": "Processing",
+      "reversed": "Reversed"
+    },
     "stats": {
       "earned": "Earned",
       "pending": "Pending",

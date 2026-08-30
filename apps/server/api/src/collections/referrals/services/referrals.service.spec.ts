@@ -99,6 +99,7 @@ describe('ReferralsService', () => {
     deductCreditsFromOrganization: MockFn;
     getOrganizationCreditsBalance: MockFn;
   };
+  let activities: { create: MockFn };
 
   beforeEach(() => {
     configMock.organizationBilling = true;
@@ -149,7 +150,7 @@ describe('ReferralsService', () => {
     };
     const config = { get: vi.fn().mockReturnValue('https://app.example.test') };
     const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-    const activities = { create: vi.fn() };
+    activities = { create: vi.fn() };
     service = new ReferralsService(
       prisma as unknown as PrismaService,
       billing as unknown as BillingAccountsService,
@@ -451,7 +452,10 @@ describe('ReferralsService', () => {
     prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
     prisma.referralReward.findFirst.mockResolvedValue(reward());
     prisma.organization.findFirst.mockResolvedValue({ id: 'org_referrer' });
-    prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'tx_grant' });
+    prisma.creditTransaction.findFirst.mockResolvedValue({
+      id: 'tx_grant',
+      organizationId: 'org_referrer',
+    });
 
     await service.settleDueRewards();
 
@@ -478,6 +482,48 @@ describe('ReferralsService', () => {
         status: ReferralRewardStatus.PROCESSING,
       },
     });
+    expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      where: {
+        idempotencyKey: 'referral-reward-grant:reward_1',
+        isDeleted: false,
+      },
+    });
+    expect(activities.create).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org_referrer' }),
+    );
+  });
+
+  it('finalizes an idempotent grant against its original destination', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(reward());
+    prisma.organization.findFirst.mockResolvedValue({ id: 'org_fallback' });
+    prisma.creditTransaction.findFirst.mockResolvedValue({
+      id: 'tx_grant',
+      organizationId: 'org_original',
+    });
+
+    await service.settleDueRewards();
+
+    expect(credits.addOrganizationCreditsWithExpiration).toHaveBeenCalledWith(
+      'org_fallback',
+      expect.any(Number),
+      expect.any(String),
+      expect.any(String),
+      expect.any(Date),
+      expect.objectContaining({
+        idempotencyKey: 'referral-reward-grant:reward_1',
+      }),
+    );
+    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        grantTransactionId: 'tx_grant',
+        status: ReferralRewardStatus.GRANTED,
+      }),
+      where: expect.objectContaining({ id: 'reward_1', isDeleted: false }),
+    });
+    expect(activities.create).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org_original' }),
+    );
   });
 
   it('requeues a failed settlement with a guarded exponential backoff', async () => {

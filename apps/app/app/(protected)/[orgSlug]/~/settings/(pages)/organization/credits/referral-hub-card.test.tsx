@@ -44,7 +44,20 @@ describe('ReferralHubCard', () => {
       id: 'code_1',
       isDeleted: false,
       pendingCredits: 250,
-      recentRewards: [],
+      recentRewards: [
+        {
+          createdAt: '2026-08-30T00:00:00.000Z',
+          id: 'reward_granted',
+          rewardCredits: 500,
+          status: 'GRANTED',
+        },
+        {
+          createdAt: '2026-08-29T00:00:00.000Z',
+          id: 'reward_reversed',
+          rewardCredits: 250,
+          status: 'REVERSED',
+        },
+      ],
       referralCount: 2,
       reversedCredits: 0,
       rewardRatePercent: 10,
@@ -70,6 +83,8 @@ describe('ReferralHubCard', () => {
       expect(input).toHaveValue(expectedShareUrl);
     });
     expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('Granted')).toBeInTheDocument();
+    expect(screen.getByText('Reversed')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
 

@@ -532,11 +532,11 @@ export class ReferralsService {
           referenceType: 'referral-reward',
         },
       );
+      // tenant-scope-ignore: the globally unique reward-grant idempotency key resolves the original ledger tenant after destination fallback
       const transaction = await this.prisma.creditTransaction.findFirst({
         where: {
           idempotencyKey,
           isDeleted: false,
-          organizationId: destination.id,
         },
       });
       if (!transaction) {
@@ -563,7 +563,7 @@ export class ReferralsService {
       try {
         await this.activitiesService.create({
           key: ActivityKey.CREDITS_ADD,
-          organizationId: destination.id,
+          organizationId: transaction.organizationId,
           source: ActivitySource.REFERRAL,
           userId: code.ownerUserId,
           value: String(reward.rewardCredits),

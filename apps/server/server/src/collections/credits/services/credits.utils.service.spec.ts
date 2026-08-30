@@ -249,6 +249,36 @@ describe('CreditsUtilsService', () => {
         creditTransactionsService.createTransactionEntry,
       ).not.toHaveBeenCalled();
     });
+
+    it('matches the global idempotency index and skips duplicate deduction side effects', async () => {
+      const service = buildService(false);
+      prisma.creditTransaction.findFirst.mockResolvedValue({
+        balanceAfter: 60,
+        organizationId: 'org_original',
+      });
+
+      await service.deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        40,
+        'referral reversal',
+        undefined,
+        { idempotencyKey: 'referral-reward-reversal:reward_1:4000' },
+      );
+
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        where: {
+          idempotencyKey: 'referral-reward-reversal:reward_1:4000',
+          isDeleted: false,
+        },
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(websocketService.emit).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
   });
 
   describe('addOrganizationCreditsWithExpiration', () => {
@@ -302,11 +332,10 @@ describe('CreditsUtilsService', () => {
       );
 
       expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
-        where: expect.objectContaining({
+        where: {
           idempotencyKey: 'referral-reward-grant:reward_1',
           isDeleted: false,
-          organizationId: 'org_1',
-        }),
+        },
       });
       expect(
         creditTransactionsService.createTransactionEntry,
@@ -324,6 +353,39 @@ describe('CreditsUtilsService', () => {
           idempotencyKey: 'referral-reward-grant:reward_1',
         }),
       );
+    });
+
+    it('reuses a global idempotency row without mutating a fallback organization', async () => {
+      const service = buildService(false);
+      prisma.creditTransaction.findFirst.mockResolvedValue({
+        balanceAfter: 150,
+        organizationId: 'org_original',
+      });
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_fallback',
+        50,
+        'credits-referral',
+        'referral reward',
+        new Date('2027-01-01T00:00:00Z'),
+        { idempotencyKey: 'referral-reward-grant:reward_1' },
+      );
+
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        where: {
+          idempotencyKey: 'referral-reward-grant:reward_1',
+          isDeleted: false,
+        },
+      });
+      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+      expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
+      expect(websocketService.emit).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
     });
   });
 

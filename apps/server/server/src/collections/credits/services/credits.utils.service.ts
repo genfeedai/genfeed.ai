@@ -112,18 +112,24 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Core deduction logic — runs atomically inside a transaction when available
       const deductCore = async (tx?: PrismaTransactionClient) => {
         if (options?.idempotencyKey) {
-          const idempotencyWhere = scopedWhere(organizationId, {
+          const idempotencyWhere = {
             idempotencyKey: options.idempotencyKey,
-          });
+            isDeleted: false,
+          };
           const existingByIdempotencyKey = tx
-            ? await tx.creditTransaction.findFirst({
+            ? // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              await tx.creditTransaction.findFirst({
                 where: idempotencyWhere,
               })
-            : await this.prisma.creditTransaction.findFirst({
+            : // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              await this.prisma.creditTransaction.findFirst({
                 where: idempotencyWhere,
               });
           if (existingByIdempotencyKey) {
-            return this.getOrganizationCreditsBalance(organizationId, tx);
+            return {
+              newBalance: existingByIdempotencyKey.balanceAfter ?? 0,
+              wasApplied: false,
+            };
           }
         }
 
@@ -153,7 +159,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
                 referenceType: options.referenceType,
               },
             );
-            return this.getOrganizationCreditsBalance(organizationId, tx);
+            return {
+              newBalance: await this.getOrganizationCreditsBalance(
+                organizationId,
+                tx,
+              ),
+              wasApplied: false,
+            };
           }
         }
 
@@ -205,16 +217,24 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           },
         );
 
-        return newBalance;
+        return { newBalance, wasApplied: true };
       };
 
       // Use transaction if available, otherwise fallback
-      const newBalance = this.transactionUtil
+      const { newBalance, wasApplied } = this.transactionUtil
         ? await this.transactionUtil.runInTransaction(
             (tx) => deductCore(tx),
             CreditsUtilsService.BALANCE_TX_OPTIONS,
           )
         : await deductCore();
+
+      if (!wasApplied) {
+        this.loggerService.log(`${url} credit deduction already recorded`, {
+          idempotencyKey: options?.idempotencyKey,
+          organizationId,
+        });
+        return;
+      }
 
       // Balance is persisted to the credit-balance table above (epic #735,
       // Phase C — no legacy auth provider identity write-back).
@@ -359,20 +379,24 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Core add logic — runs atomically inside a transaction when available
       const addCore = async (tx?: PrismaTransactionClient) => {
         if (options?.idempotencyKey) {
-          const idempotencyWhere = scopedWhere(organizationId, {
+          const idempotencyWhere = {
             idempotencyKey: options.idempotencyKey,
-          });
+            isDeleted: false,
+          };
           const existing = tx
-            ? await tx.creditTransaction.findFirst({
+            ? // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              await tx.creditTransaction.findFirst({
                 where: idempotencyWhere,
               })
-            : await this.prisma.creditTransaction.findFirst({
+            : // tenant-scope-ignore: active credit-ledger idempotency keys are globally unique, so replay detection must follow that database invariant across organizations
+              await this.prisma.creditTransaction.findFirst({
                 where: idempotencyWhere,
               });
           if (existing) {
             return {
               currentBalance: existing.balanceAfter ?? 0,
               newBalance: existing.balanceAfter ?? 0,
+              wasApplied: false,
             };
           }
         }
@@ -433,16 +457,24 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           );
         }
 
-        return { currentBalance, newBalance };
+        return { currentBalance, newBalance, wasApplied: true };
       };
 
       // Use transaction if available, otherwise fallback
-      const { currentBalance, newBalance } = this.transactionUtil
+      const { currentBalance, newBalance, wasApplied } = this.transactionUtil
         ? await this.transactionUtil.runInTransaction(
             (tx) => addCore(tx),
             CreditsUtilsService.BALANCE_TX_OPTIONS,
           )
         : await addCore();
+
+      if (!wasApplied) {
+        this.loggerService.log(`${url} credit grant already recorded`, {
+          idempotencyKey: options?.idempotencyKey,
+          organizationId,
+        });
+        return;
+      }
 
       if (creditsToAdd > 0) {
         await this.markOrganizationAsHavingCredits(organizationId);

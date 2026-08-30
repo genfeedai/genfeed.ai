@@ -29,6 +29,24 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 
+const ADMIN_DEFAULT_LIMIT = 50;
+const ADMIN_MAX_LIMIT = 100;
+
+function parsePaginationValue(
+  rawValue: string | undefined,
+  fallback: number,
+  maximum: number,
+): number {
+  if (!rawValue) {
+    return fallback;
+  }
+  const parsed = Number(rawValue);
+  if (!Number.isSafeInteger(parsed)) {
+    return fallback;
+  }
+  return Math.min(Math.max(parsed, 1), maximum);
+}
+
 @AutoSwagger()
 @ApiTags('Referrals')
 @Controller('referrals')
@@ -76,8 +94,12 @@ export class ReferralsController {
     @Query('page') rawPage?: string,
     @Query('status') rawStatus?: ReferralRewardStatus,
   ) {
-    const limit = rawLimit ? Number.parseInt(rawLimit, 10) : 50;
-    const page = rawPage ? Number.parseInt(rawPage, 10) : 1;
+    const limit = parsePaginationValue(
+      rawLimit,
+      ADMIN_DEFAULT_LIMIT,
+      ADMIN_MAX_LIMIT,
+    );
+    const page = parsePaginationValue(rawPage, 1, Number.MAX_SAFE_INTEGER);
     const status = Object.values(ReferralRewardStatus).includes(
       rawStatus as ReferralRewardStatus,
     )

@@ -1,5 +1,6 @@
 'use client';
 
+import { ReferralRewardStatus } from '@genfeedai/enums';
 import type { IReferralAdminReward } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -12,6 +13,15 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Gift } from 'lucide-react';
 import { useEffect } from 'react';
+
+const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
+  [ReferralRewardStatus.CANCELLED]: 'Cancelled',
+  [ReferralRewardStatus.FAILED]: 'Failed',
+  [ReferralRewardStatus.GRANTED]: 'Granted',
+  [ReferralRewardStatus.PENDING]: 'Pending',
+  [ReferralRewardStatus.PROCESSING]: 'Processing',
+  [ReferralRewardStatus.REVERSED]: 'Reversed',
+};
 
 function compactId(value: string | null): string {
   if (!value) {
@@ -39,7 +49,11 @@ export default function ReferralRewardsList() {
     {
       header: 'Status',
       key: 'status',
-      render: (reward) => <Badge status={reward.status.toLowerCase()} />,
+      render: (reward) => (
+        <Badge status={reward.status.toLowerCase()}>
+          {REFERRAL_REWARD_STATUS_LABELS[reward.status]}
+        </Badge>
+      ),
     },
     {
       header: 'Reward',
