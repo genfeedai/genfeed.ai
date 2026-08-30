@@ -359,13 +359,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
             ("id", "organizationId", "userId", "nodes", "edges", "steps", "inputVariables", "lockedNodeIds")
           VALUES
             ('workflow_graph', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb, '[]'::jsonb, $3::jsonb, '["input_node"]'::jsonb),
-            ('workflow_delay', 'org_fixture', 'user_fixture', '[]'::jsonb, '[]'::jsonb, $4::jsonb, '[]'::jsonb, '[]'::jsonb);
-          INSERT INTO "workflow_executions"
-            ("id", "workflowId", "organizationId", "userId", "status")
-          VALUES
-            ('execution_pending', 'workflow_graph', 'org_fixture', 'user_fixture', 'PENDING'),
-            ('execution_running', 'workflow_graph', 'org_fixture', 'user_fixture', 'RUNNING'),
-            ('execution_completed', 'workflow_graph', 'org_fixture', 'user_fixture', 'COMPLETED');
+            ('workflow_delay', 'org_fixture', 'user_fixture', '[]'::jsonb, '[]'::jsonb, $4::jsonb, '[]'::jsonb, '[]'::jsonb)
         `,
         [
           JSON.stringify(graphNodes),
@@ -374,6 +368,14 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
           JSON.stringify(delaySteps),
         ],
       );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId", "status")
+        VALUES
+          ('execution_pending', 'workflow_graph', 'org_fixture', 'user_fixture', 'PENDING'),
+          ('execution_running', 'workflow_graph', 'org_fixture', 'user_fixture', 'RUNNING'),
+          ('execution_completed', 'workflow_graph', 'org_fixture', 'user_fixture', 'COMPLETED')
+      `);
 
       await client.query(migrationSource);
 
@@ -690,11 +692,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
           INSERT INTO "workflows"
             ("id", "organizationId", "userId", "nodes", "metadata")
           VALUES
-            ('workflow_retired', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb);
-          INSERT INTO "workflow_executions"
-            ("id", "workflowId", "organizationId", "userId")
-          VALUES
-            ('execution_retired', 'workflow_retired', 'org_fixture', 'user_fixture');
+            ('workflow_retired', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb)
         `,
         [
           JSON.stringify(nodes),
@@ -703,6 +701,12 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
           ),
         ],
       );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId")
+        VALUES
+          ('execution_retired', 'workflow_retired', 'org_fixture', 'user_fixture')
+      `);
 
       await runRejectedMigration(
         client,
@@ -934,13 +938,15 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
         `
           INSERT INTO "workflows"
             ("id", "organizationId", "userId", "nodes")
-          VALUES ('workflow_tenant', 'org_fixture', 'user_fixture', $1::jsonb);
-          INSERT INTO "workflow_executions"
-            ("id", "workflowId", "organizationId", "userId")
-          VALUES ('execution_cross_tenant', 'workflow_tenant', 'org_other', 'user_other');
+          VALUES ('workflow_tenant', 'org_fixture', 'user_fixture', $1::jsonb)
         `,
         [JSON.stringify([graphNode('node_a', 'llm', { config: {} })])],
       );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId")
+        VALUES ('execution_cross_tenant', 'workflow_tenant', 'org_other', 'user_other')
+      `);
 
       await runRejectedMigration(
         client,
