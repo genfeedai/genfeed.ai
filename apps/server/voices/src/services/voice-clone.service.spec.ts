@@ -285,6 +285,59 @@ describe('VoiceCloneService', () => {
       expect(result.clones[0].source).toBe('s3');
     });
 
+    it('should ignore local filenames without an extension while accepting dotted model names', async () => {
+      mockReaddir
+        .mockResolvedValueOnce([
+          'voice-with-dotfile',
+          'voice-with-dotted-model',
+        ])
+        .mockResolvedValueOnce(['model', '.pth'])
+        .mockResolvedValueOnce(['model.release.v1.safetensors']);
+      mockStat
+        .mockResolvedValueOnce({ isDirectory: () => true })
+        .mockResolvedValueOnce({ isDirectory: () => true })
+        .mockResolvedValueOnce({ mtime: new Date('2024-03-01'), size: 4096 });
+
+      const result = await service.listClones();
+
+      expect(result.clones).toEqual([
+        expect.objectContaining({
+          filename: 'model.release.v1.safetensors',
+          voiceId: 'voice-with-dotted-model',
+        }),
+      ]);
+    });
+
+    it('should ignore extensionless S3 keys under dotted paths while accepting dotted model names', async () => {
+      mockReaddir.mockResolvedValue([]);
+      mockS3Service.listObjects.mockResolvedValue([
+        {
+          key: 'ingredients/trainings/voice-clones/voice.with.dots/model',
+          lastModified: '2024-03-01T00:00:00.000Z',
+          size: 1024,
+        },
+        {
+          key: 'ingredients/trainings/voice-clones/dotfile-voice/.onnx',
+          lastModified: '2024-03-01T00:00:00.000Z',
+          size: 2048,
+        },
+        {
+          key: 'ingredients/trainings/voice-clones/voice.with.dots/model.release.v1.onnx',
+          lastModified: '2024-03-01T00:00:00.000Z',
+          size: 4096,
+        },
+      ]);
+
+      const result = await service.listClones();
+
+      expect(result.clones).toEqual([
+        expect.objectContaining({
+          filename: 'model.release.v1.onnx',
+          voiceId: 'voice.with.dots',
+        }),
+      ]);
+    });
+
     it('should prefer local clones over S3 with same voiceId', async () => {
       mockReaddir
         .mockResolvedValueOnce(['shared-voice'])
