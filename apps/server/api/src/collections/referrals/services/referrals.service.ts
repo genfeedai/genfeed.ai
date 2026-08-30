@@ -515,18 +515,9 @@ export class ReferralsService {
           isDeleted: false,
         },
       });
-      // tenant-scope-ignore: destination recovery is scoped by the immutable billing account and selects only a linked, live organization
       const fallbackLink = pinnedDestination
         ? null
-        : await this.prisma.billingAccountOrganization.findFirst({
-            include: { organization: true },
-            where: {
-              billingAccountId: code.rewardBillingAccountId,
-              isDeleted: false,
-              organization: { isDeleted: false },
-              status: BillingAccountOrganizationStatus.LINKED,
-            },
-          });
+        : await this.findFallbackDestination(code.rewardBillingAccountId);
       const destination = pinnedDestination ?? fallbackLink?.organization;
       if (
         !destination ||
@@ -653,6 +644,19 @@ export class ReferralsService {
       }
     }
     throw new Error('Could not allocate a referral code');
+  }
+
+  private async findFallbackDestination(billingAccountId: string) {
+    // tenant-scope-ignore: destination recovery is scoped by the immutable billing account and selects only a linked, live organization
+    return this.prisma.billingAccountOrganization.findFirst({
+      include: { organization: true },
+      where: {
+        billingAccountId,
+        isDeleted: false,
+        organization: { isDeleted: false },
+        status: BillingAccountOrganizationStatus.LINKED,
+      },
+    });
   }
 
   private async resolveActorAccount(actor: ReferralActor) {
