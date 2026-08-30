@@ -377,13 +377,13 @@ export function useAdsResearchPageClient(
     error: detailError,
     isLoading: detailLoading,
   } = useQuery({
-    queryKey: ['ads-research-detail', selectedAd, saved.savedAds],
+    queryKey: ['ads-research-detail', selectedAd, saved.savedAds, source],
     queryFn: async () => {
       if (!selectedAd) {
         return null;
       }
 
-      if (selectedAd.savedAdId) {
+      if (source === 'saved' && selectedAd.savedAdId) {
         const snapshot = saved.savedAds.find(
           (item) => item.id === selectedAd.savedAdId,
         );
@@ -398,18 +398,18 @@ export function useAdsResearchPageClient(
 
   const allAds = useMemo(() => {
     const savedBySource = new Map(
-      saved.savedAds.map((item) => [
-        `${item.platform}:${item.sourceAdId}`,
-        item,
-      ]),
+      saved.savedAds
+        .filter((item) => Boolean(item.sourceAdId))
+        .map((item) => [`${item.platform}:${item.sourceAdId}`, item]),
     );
     const combined =
       source === 'saved'
         ? saved.savedAds.map(toSavedAdResearchItem)
         : [...results.publicAds, ...results.connectedAds].map((item) => {
-            const snapshot = savedBySource.get(
-              `${item.platform}:${item.sourceId}`,
-            );
+            const sourceAdId = item.sourceId || item.id;
+            const snapshot = sourceAdId
+              ? savedBySource.get(`${item.platform}:${sourceAdId}`)
+              : undefined;
             return snapshot
               ? {
                   ...item,

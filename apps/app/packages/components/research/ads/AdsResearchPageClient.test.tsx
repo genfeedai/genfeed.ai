@@ -742,7 +742,7 @@ describe('AdsResearchPageClient', () => {
         patternSummary: [],
         platform: 'meta',
         source: 'public',
-        sourceAdId: undefined,
+        sourceAdId: 'public-1',
         sourceRecordId: 'public-1',
         title: 'Meta hook story',
         updatedAt: '2026-08-30T10:00:00.000Z',
@@ -765,6 +765,42 @@ describe('AdsResearchPageClient', () => {
       kind: 'saved_ad',
       savedAdId: 'saved-1',
     });
+  });
+
+  it('does not join a saved snapshot to a different research ad', () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Different saved ad',
+        id: 'saved-other',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-other',
+        title: 'Different saved ad',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ adId: 'public-1' }),
+    ]);
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
   });
 
   it('shows an unavailable error when the remix provider is missing', () => {

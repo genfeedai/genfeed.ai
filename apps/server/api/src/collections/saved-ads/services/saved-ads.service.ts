@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { FileInputType } from '@genfeedai/enums';
+import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type {
+  AdsResearchPlatform,
   SaveAdInput,
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
@@ -20,6 +21,13 @@ function optionalDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf()) ? undefined : parsed;
+}
+
+function credentialPlatform(platform: AdsResearchPlatform): CredentialPlatform {
+  if (platform === 'meta') return CredentialPlatform.FACEBOOK;
+  if (platform === 'google') return CredentialPlatform.GOOGLE_ADS;
+  if (platform === 'x') return CredentialPlatform.X_ADS;
+  return CredentialPlatform.TIKTOK;
 }
 
 @Injectable()
@@ -104,6 +112,19 @@ export class SavedAdsService {
     input: SaveAdInput,
   ) {
     await this.assertBrand(organizationId, input.brandId);
+    if (input.source === 'my_accounts') {
+      if (!input.credentialId || !input.platform) {
+        throw new BadRequestException(
+          'Connected ads require a credential and platform',
+        );
+      }
+      await this.assertConnectedCredential(
+        organizationId,
+        input.brandId,
+        input.credentialId,
+        input.platform,
+      );
+    }
     const detail = await this.adsResearchService.getAdDetail(organizationId, {
       adAccountId: input.adAccountId,
       brandId: input.brandId,
@@ -131,13 +152,19 @@ export class SavedAdsService {
     });
     if (existing && !existing.isDeleted) return existing;
 
+    const sourceImageUrls = detail.imageUrls?.length
+      ? detail.imageUrls
+      : (detail.creative?.imageUrls ?? []);
+    const sourceVideoUrls = detail.videoUrls?.length
+      ? detail.videoUrls
+      : (detail.creative?.videoUrls ?? []);
     const imageUrls = await this.copyMedia(
       organizationId,
       input.brandId,
       detail.platform,
       sourceAdId,
       'image',
-      detail.imageUrls ?? detail.creative?.imageUrls ?? [],
+      sourceImageUrls,
     );
     const videoUrls = await this.copyMedia(
       organizationId,
@@ -145,7 +172,7 @@ export class SavedAdsService {
       detail.platform,
       sourceAdId,
       'video',
-      detail.videoUrls ?? detail.creative?.videoUrls ?? [],
+      sourceVideoUrls,
     );
     if (
       !imageUrls.length &&
@@ -212,13 +239,22 @@ export class SavedAdsService {
         const winner = await this.prisma.savedAd.findFirst({
           where: {
             brandId: input.brandId,
-            isDeleted: false,
             organizationId,
             platform: detail.platform,
             sourceAdId,
           },
         });
-        if (winner) return winner;
+        if (winner && !winner.isDeleted) return winner;
+        if (winner) {
+          return this.prisma.savedAd.update({
+            data,
+            where: {
+              brandId: input.brandId,
+              id: winner.id,
+              organizationId,
+            },
+          });
+        }
       }
       throw error;
     }
@@ -230,6 +266,30 @@ export class SavedAdsService {
       where: { id: brandId, isDeleted: false, organizationId },
     });
     if (!brand) throw new NotFoundException('Brand', brandId);
+  }
+
+  private async assertConnectedCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId: string,
+    platform: AdsResearchPlatform,
+  ) {
+    const credential = await this.prisma.credential.findFirst({
+      select: { id: true },
+      where: {
+        brandId,
+        id: credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: credentialPlatform(platform),
+      },
+    });
+    if (!credential) {
+      throw new BadRequestException(
+        'The selected ads credential is unavailable for this brand',
+      );
+    }
   }
 
   private async copyMedia(
