@@ -186,10 +186,10 @@ describe('auth callback URL helpers', () => {
 
   it('preserves a validated referral code through the external auth round trip', () => {
     expect(
-      getAuthCallbackURL(new URLSearchParams({ ref: 'friend_2345' }), {
+      getAuthCallbackURL(new URLSearchParams({ ref: 'frend2345xyz' }), {
         includeOnboardingHandoffParams: true,
       }),
-    ).toBe('/onboarding/post-signup?ref=friend_2345');
+    ).toBe('/onboarding/post-signup?ref=frend2345xyz');
     expect(
       getAuthCallbackURL(new URLSearchParams({ ref: 'not a code' }), {
         includeOnboardingHandoffParams: true,

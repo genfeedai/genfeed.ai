@@ -32,7 +32,7 @@ describe('ReferralHubCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getMineMock.mockResolvedValue({
-      code: 'friend_2345',
+      code: 'frend2345xyz',
       convertedCount: 1,
       earnedCredits: 500,
       id: 'code_1',
@@ -44,7 +44,7 @@ describe('ReferralHubCard', () => {
       rewardRatePercent: 10,
       rewardWindowMonths: 12,
       settlementDelayDays: 7,
-      shareUrl: '/sign-up?ref=friend_2345',
+      shareUrl: '/sign-up?ref=frend2345xyz',
     });
   });
 
@@ -59,7 +59,7 @@ describe('ReferralHubCard', () => {
     );
 
     const input = await screen.findByLabelText('Referral link');
-    const expectedShareUrl = `${window.location.origin}/sign-up?ref=friend_2345`;
+    const expectedShareUrl = `${window.location.origin}/sign-up?ref=frend2345xyz`;
     await waitFor(() => {
       expect(input).toHaveValue(expectedShareUrl);
     });

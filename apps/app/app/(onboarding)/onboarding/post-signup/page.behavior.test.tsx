@@ -404,14 +404,14 @@ describe('PostSignupPage behavior', () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams(
-      'ref=friend_2345&credits=1000',
+      'ref=frend2345xyz&credits=1000',
     );
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'friend_2345');
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz');
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(claimReferralMock).toHaveBeenCalledWith('friend_2345');
+      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
       expect(createCheckoutSessionMock).toHaveBeenCalled();
     });
     expect(claimReferralMock.mock.invocationCallOrder[0]).toBeLessThan(
@@ -426,19 +426,19 @@ describe('PostSignupPage behavior', () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams(
-      'ref=friend_2345&credits=1000',
+      'ref=frend2345xyz&credits=1000',
     );
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'friend_2345');
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz');
     claimReferralMock.mockRejectedValue(new Error('API unavailable'));
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(claimReferralMock).toHaveBeenCalledWith('friend_2345');
+      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
       expect(createCheckoutSessionMock).toHaveBeenCalled();
     });
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
-      'friend_2345',
+      'frend2345xyz',
     );
   });
 
