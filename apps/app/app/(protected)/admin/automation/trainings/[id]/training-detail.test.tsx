@@ -3,9 +3,14 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrainingDetail from './training-detail';
 
-const mocks = vi.hoisted(() => ({
-  findOne: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const findOne = vi.fn();
+
+  return {
+    findOne,
+    getService: vi.fn(async () => ({ findOne })),
+  };
+});
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -14,7 +19,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => async () => ({ findOne: mocks.findOne })),
+  useAuthedService: vi.fn(() => mocks.getService),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -46,7 +51,7 @@ describe('TrainingDetail shell-first loading', () => {
   });
 
   it('should render without crashing', () => {
-    mocks.findOne.mockResolvedValueOnce(null);
+    mocks.findOne.mockReturnValueOnce(new Promise(() => undefined));
     const { container } = render(
       <TrainingDetail trainingId="training-123">
         <div>Tab content</div>
