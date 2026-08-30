@@ -59,9 +59,11 @@ describe('ReferralHubCard', () => {
     );
 
     const input = await screen.findByLabelText('Referral link');
-    expect(input).toHaveValue(
-      'https://app.example.test/sign-up?ref=friend_2345',
-    );
+    await waitFor(() => {
+      expect(input).toHaveValue(
+        'https://app.example.test/sign-up?ref=friend_2345',
+      );
+    });
     expect(screen.getByText('500')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));

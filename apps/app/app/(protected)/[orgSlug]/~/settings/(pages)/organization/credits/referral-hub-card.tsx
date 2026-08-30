@@ -54,7 +54,7 @@ export default function ReferralHubCard() {
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           aria-label="Referral link"
-          readOnly
+          isReadOnly
           value={isLoading ? 'Loading referral link…' : (data?.shareUrl ?? '')}
         />
         <Button
