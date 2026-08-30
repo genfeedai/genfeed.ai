@@ -38,7 +38,8 @@
   },
   "devEngines": {
     "packageManager": {
-      "name": "bun"
+      "name": "bun",
+      "version": "1.4.0"
     }
   },
   "scripts": {

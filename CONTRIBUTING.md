@@ -39,7 +39,9 @@ lives in [CONTEXT.md](CONTEXT.md). Who decides what lives in
 ## Toolchain and supported operating systems
 
 - Node.js `>=24 <25`
-- Bun latest stable (resolved from `.bun-version`)
+- Bun latest stable (resolved from `.bun-version`; the exact
+  `devEngines.packageManager.version` is Turborepo compatibility metadata, not
+  the installer selector)
 - Docker Engine with Docker Compose v2, or Docker Desktop, for PostgreSQL and
   Redis (and for the Community distribution)
 
