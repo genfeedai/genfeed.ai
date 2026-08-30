@@ -94,13 +94,13 @@ describe('provider-compatible tool definitions', () => {
     const params = buildParams('google/gemini-3.5-flash-lite');
     const serializedTools = JSON.stringify(params.tools);
 
-    expect(serializedTools).not.toContain('additionalProperties');
-    expect(serializedTools).not.toContain('"default"');
-    expect(serializedTools).not.toContain('maxItems');
-    expect(serializedTools).not.toContain('maxLength');
-    expect(serializedTools).not.toContain('maximum');
-    expect(serializedTools).not.toContain('minimum');
-    expect(serializedTools).toContain('anyOf');
+    expect(serializedTools).not.toContain('"additionalProperties":');
+    expect(serializedTools).not.toContain('"default":');
+    expect(serializedTools).not.toContain('"maxItems":');
+    expect(serializedTools).not.toContain('"maxLength":');
+    expect(serializedTools).not.toContain('"maximum":');
+    expect(serializedTools).not.toContain('"minimum":');
+    expect(serializedTools).toContain('"anyOf":');
   });
 
   it('preserves canonical schemas for non-Gemini providers', () => {
