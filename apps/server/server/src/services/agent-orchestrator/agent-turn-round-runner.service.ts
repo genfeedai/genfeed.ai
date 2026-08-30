@@ -539,6 +539,21 @@ export class AgentTurnRoundRunnerService {
             sourceActionId: confirmedCampaignIntent.sourceActionId,
           };
         } else {
+          const claimedConfirmation =
+            toolParams.confirmed === true ||
+            toolParams.sourceActionId !== undefined;
+          if (claimedConfirmation) {
+            this.loggerService.warn(
+              'Rejected untrusted campaign confirmation proof',
+              {
+                campaignId: toolParams.campaignId,
+                organizationId: context.organizationId,
+                threadId,
+                toolName,
+                userId: context.userId,
+              },
+            );
+          }
           const {
             confirmed: _untrustedConfirmed,
             sourceActionId: _untrustedSourceActionId,

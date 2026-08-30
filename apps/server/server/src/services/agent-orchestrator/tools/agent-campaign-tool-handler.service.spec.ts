@@ -1,6 +1,9 @@
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AgentCampaignToolHandler } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
@@ -222,6 +225,20 @@ describe('AgentCampaignToolHandler', () => {
     });
   });
 
+  it('fails closed when the confirmation preparation cannot be persisted', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+    cacheService.set.mockResolvedValueOnce(false);
+
+    await expect(
+      handler.startCampaign({ campaignId: 'campaign-1' }, ctx),
+    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
   it('starts a confirmed prepared campaign exactly once across retries', async () => {
     campaignsService.findOneById.mockResolvedValue({
       id: 'campaign-1',
@@ -335,6 +352,86 @@ describe('AgentCampaignToolHandler', () => {
       handler.startCampaign(
         {
           campaignId: 'campaign-2',
+          confirmed: true,
+          sourceActionId,
+        },
+        {
+          ...ctx,
+          confirmationOrigin: 'thread-ui-action',
+          sourceActionId,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      label: 'organization',
+      organizationId: testId('otherorg'),
+      threadId: ctx.threadId,
+    },
+    {
+      label: 'thread',
+      organizationId: ctx.organizationId,
+      threadId: testId('otherthread'),
+    },
+  ])(
+    'rejects confirmation from another $label scope',
+    async ({ organizationId, threadId }) => {
+      campaignsService.findOneById.mockResolvedValue({
+        id: 'campaign-1',
+        label: 'Launch',
+        status: 'draft',
+      });
+      const preparation = await handler.startCampaign(
+        { campaignId: 'campaign-1' },
+        ctx,
+      );
+      const sourceActionId = String(preparation.data?.sourceActionId);
+
+      await expect(
+        handler.startCampaign(
+          {
+            campaignId: 'campaign-1',
+            confirmed: true,
+            sourceActionId,
+          },
+          {
+            ...ctx,
+            confirmationOrigin: 'thread-ui-action',
+            organizationId,
+            sourceActionId,
+            threadId,
+          },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(campaignsService.start).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a prepared transition when the campaign state has changed', async () => {
+    campaignsService.findOneById
+      .mockResolvedValueOnce({
+        id: 'campaign-1',
+        label: 'Launch',
+        status: 'draft',
+      })
+      .mockResolvedValueOnce({
+        id: 'campaign-1',
+        label: 'Launch',
+        status: 'paused',
+      });
+    const preparation = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
+
+    await expect(
+      handler.startCampaign(
+        {
+          campaignId: 'campaign-1',
           confirmed: true,
           sourceActionId,
         },

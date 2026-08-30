@@ -34,7 +34,7 @@ export type PreparedCampaignTransition = {
   transition: CampaignTransition;
 };
 
-const CAMPAIGN_PREPARATION_TTL_SECONDS = 604_800;
+const CAMPAIGN_PREPARATION_TTL_SECONDS = 3_600;
 
 export function buildCampaignPreparationCacheKey(params: {
   organizationId: string;
@@ -195,7 +195,7 @@ export class AgentCampaignToolHandler {
     const idempotencyKey = [
       'agent-campaign-confirmation',
       ctx.organizationId,
-      ctx.threadId ?? 'no-thread',
+      threadId,
       transition,
       campaignId,
       sourceActionId,
@@ -205,6 +205,22 @@ export class AgentCampaignToolHandler {
       cacheService,
       idempotencyKey,
       async () => {
+        const currentCampaign = await this.campaignsService.findOneById(
+          campaignId,
+          ctx.organizationId,
+          ctx.brandId,
+        );
+        if (!currentCampaign) {
+          throw new NotFoundException(`Campaign ${campaignId} not found`);
+        }
+        if (
+          String(currentCampaign.status) !== preparedTransition.currentStatus
+        ) {
+          throw new BadRequestException(
+            'Campaign state changed after confirmation was prepared.',
+          );
+        }
+
         const campaign =
           transition === 'start'
             ? await this.campaignsService.start(
@@ -288,7 +304,7 @@ export class AgentCampaignToolHandler {
       sourceActionId,
       transition,
     };
-    const persisted = await cacheService.set(
+    const persisted: boolean = await cacheService.set(
       buildCampaignPreparationCacheKey({
         organizationId: ctx.organizationId,
         sourceActionId,
