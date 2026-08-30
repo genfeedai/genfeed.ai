@@ -36,6 +36,11 @@
   "engines": {
     "node": ">=24 <25"
   },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun"
+    }
+  },
   "scripts": {
     "audit:api": "bun run audit:api:endpoints && bun run audit:api:sql",
     "audit:api:endpoints": "bun run scripts/api-audit/endpoint-inventory.ts",
