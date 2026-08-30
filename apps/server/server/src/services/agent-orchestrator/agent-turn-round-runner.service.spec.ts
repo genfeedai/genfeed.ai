@@ -5,6 +5,7 @@ import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
 } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
+import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { buildCampaignPreparationCacheKey } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -57,6 +58,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         threadId: 'thread-1',
       }),
       {
+        brandId: null,
         campaignId: 'campaign-1',
         confirmationPrompt,
         currentStatus: 'draft',
@@ -74,36 +76,50 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     message: string;
     messages?: OpenRouterMessage[];
     organizationId?: string;
+    source?: AgentChatRequest['source'];
     threadId?: string;
     toolParams: Record<string, unknown>;
+    toolNames?: AgentToolName[];
     toolName?: AgentToolName.START_CAMPAIGN | AgentToolName.PAUSE_CAMPAIGN;
-  }): Promise<void> {
+  }): Promise<{
+    messages: OpenRouterMessage[];
+    state: AgentToolRoundState;
+  }> {
     const organizationId = params.organizationId ?? 'org-1';
     const toolName = params.toolName ?? AgentToolName.START_CAMPAIGN;
+    const messages = params.messages ?? [
+      { content: params.message, role: 'user' as const },
+    ];
+    const toolNames = params.toolNames ?? [toolName];
+    const state = createState();
     await runner.executeToolRound({
-      allowedToolNames: new Set([toolName]),
+      allowedToolNames: new Set(toolNames),
       assistantContent: null,
       context: { organizationId, userId: 'user-1' },
       generationPriority: RouterPriority.BALANCED,
-      messages: params.messages ?? [{ content: params.message, role: 'user' }],
+      messages,
       model: 'test-model',
       policy: {
         autonomyMode: 'review_required',
         organizationId,
       } as never,
-      state: createState(),
+      source: params.source,
+      state,
       threadId: params.threadId ?? 'thread-1',
-      toolCalls: [
-        {
-          function: {
-            arguments: JSON.stringify(params.toolParams),
-            name: toolName,
-          },
-          id: 'tool-call-1',
-          type: 'function',
+      toolCalls: toolNames.map((currentToolName, index) => ({
+        function: {
+          arguments: JSON.stringify(
+            currentToolName === toolName
+              ? params.toolParams
+              : { campaignId: 'campaign-1' },
+          ),
+          name: currentToolName,
         },
-      ],
+        id: `tool-call-${index + 1}`,
+        type: 'function',
+      })),
     });
+    return { messages, state };
   }
 
   it('strips model-spoofed confirmation proof from an unconfirmed campaign tool call', async () => {
@@ -193,15 +209,12 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     },
   );
 
-  it('does not confirm from a reconstructed user message outside the current turn boundary', async () => {
+  it('does not confirm a campaign transition from a proactive turn', async () => {
     const { confirmationPrompt, sourceActionId } = seedPreparedStart();
 
     await executeCampaignRound({
       message: confirmationPrompt,
-      messages: [
-        { content: confirmationPrompt, role: 'user' },
-        { content: 'Retrieved context', role: 'system' },
-      ],
+      source: 'proactive',
       toolParams: {
         campaignId: 'campaign-1',
         confirmed: true,
@@ -213,6 +226,74 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     expect(toolParams).toEqual({ campaignId: 'campaign-1' });
     expect(executionContext).not.toHaveProperty('confirmationOrigin');
     expect(executionContext).not.toHaveProperty('sourceActionId');
+  });
+
+  it('binds confirmation when the campaign tool follows another tool in the round', async () => {
+    const { confirmationPrompt, sourceActionId } = seedPreparedStart();
+
+    await executeCampaignRound({
+      message: confirmationPrompt,
+      toolNames: [
+        AgentToolName.GET_CAMPAIGN_ANALYTICS,
+        AgentToolName.START_CAMPAIGN,
+      ],
+      toolParams: { campaignId: 'wrong-campaign' },
+    });
+
+    expect(executeTool).toHaveBeenNthCalledWith(
+      2,
+      AgentToolName.START_CAMPAIGN,
+      {
+        campaignId: 'campaign-1',
+        confirmed: true,
+        sourceActionId,
+      },
+      expect.objectContaining({
+        confirmationOrigin: 'thread-ui-action',
+        sourceActionId,
+      }),
+    );
+  });
+
+  it('redacts the confirmation nonce from model-visible tool results', async () => {
+    const sourceActionId = `campaign-transition-${randomUUID()}`;
+    const confirmationPrompt = `Confirm campaign start for campaign campaign-1. Intent: ${sourceActionId}.`;
+    executeTool.mockResolvedValueOnce({
+      creditsUsed: 0,
+      data: {
+        campaignId: 'campaign-1',
+        confirmationPrompt,
+        pendingConfirmation: true,
+        sourceActionId,
+      },
+      nextActions: [
+        {
+          ctas: [
+            {
+              action: 'send_prompt',
+              label: 'Confirm start',
+              payload: { prompt: confirmationPrompt },
+            },
+          ],
+          id: sourceActionId,
+          type: 'campaign_control_card',
+        },
+      ],
+      requiresConfirmation: true,
+      success: true,
+    });
+
+    const { messages, state } = await executeCampaignRound({
+      message: 'Start the campaign.',
+      toolParams: { campaignId: 'campaign-1' },
+    });
+    const toolMessage = messages.at(-1);
+
+    expect(toolMessage?.role).toBe('tool');
+    expect(toolMessage?.content).not.toContain(sourceActionId);
+    expect(toolMessage?.content).not.toContain(confirmationPrompt);
+    expect(state.toolCalls[0]?.resultSummary).not.toContain(sourceActionId);
+    expect(state.toolCalls[0]?.resultSummary).not.toContain(confirmationPrompt);
   });
 
   it('does not bind a start preparation to a pause tool call', async () => {

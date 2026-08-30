@@ -338,6 +338,23 @@ describe('AgentCampaignToolHandler', () => {
       success: true,
     });
     expect(first.requiresConfirmation).toBeUndefined();
+
+    const preparationEntry = Array.from(cachedResults.entries()).find(([key]) =>
+      key.startsWith('agent-campaign-preparation:'),
+    );
+    expect(preparationEntry?.[1]).toMatchObject({
+      pendingConfirmation: false,
+    });
+    for (const key of cachedResults.keys()) {
+      if (key.startsWith('idempotency-result:')) {
+        cachedResults.delete(key);
+      }
+    }
+    heldLocks.clear();
+    await expect(
+      handler.startCampaign(params, confirmedContext),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.start).toHaveBeenCalledTimes(1);
   });
 
   it('pauses only the exact server-confirmed prepared campaign intent', async () => {
@@ -420,17 +437,25 @@ describe('AgentCampaignToolHandler', () => {
   it.each([
     {
       label: 'organization',
+      brandId: ctx.brandId,
       organizationId: testId('otherorg'),
       threadId: ctx.threadId,
     },
     {
       label: 'thread',
+      brandId: ctx.brandId,
       organizationId: ctx.organizationId,
       threadId: testId('otherthread'),
     },
+    {
+      label: 'brand',
+      brandId: testId('otherbrand'),
+      organizationId: ctx.organizationId,
+      threadId: ctx.threadId,
+    },
   ])(
     'rejects confirmation from another $label scope',
-    async ({ organizationId, threadId }) => {
+    async ({ brandId, organizationId, threadId }) => {
       campaignsService.findOneById.mockResolvedValue({
         id: 'campaign-1',
         label: 'Launch',
@@ -451,6 +476,7 @@ describe('AgentCampaignToolHandler', () => {
           },
           {
             ...ctx,
+            brandId,
             confirmationOrigin: 'thread-ui-action',
             organizationId,
             sourceActionId,
@@ -479,6 +505,70 @@ describe('AgentCampaignToolHandler', () => {
       ctx,
     );
     const sourceActionId = String(preparation.data?.sourceActionId);
+
+    await expect(
+      handler.startCampaign(
+        {
+          campaignId: 'campaign-1',
+          confirmed: true,
+          sourceActionId,
+        },
+        {
+          ...ctx,
+          confirmationOrigin: 'thread-ui-action',
+          sourceActionId,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { status: 'active', transition: 'start' as const },
+    { status: 'completed', transition: 'start' as const },
+    { status: 'draft', transition: 'pause' as const },
+    { status: 'paused', transition: 'pause' as const },
+  ])(
+    'rejects $transition preparation from illegal $status state',
+    async ({ status, transition }) => {
+      campaignsService.findOneById.mockResolvedValue({
+        id: 'campaign-1',
+        label: 'Launch',
+        status,
+      });
+
+      const operation =
+        transition === 'start'
+          ? handler.startCampaign({ campaignId: 'campaign-1' }, ctx)
+          : handler.pauseCampaign({ campaignId: 'campaign-1' }, ctx);
+
+      await expect(operation).rejects.toBeInstanceOf(BadRequestException);
+      expect(campaignsService.start).not.toHaveBeenCalled();
+      expect(campaignsService.pause).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a poisoned persisted preparation payload', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+    const preparation = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
+    const preparationEntry = Array.from(cachedResults.entries()).find(([key]) =>
+      key.includes(sourceActionId),
+    );
+    if (!preparationEntry) {
+      throw new Error('Expected persisted campaign preparation.');
+    }
+    cachedResults.set(preparationEntry[0], {
+      ...(preparationEntry[1] as Record<string, unknown>),
+      intendedStatus: 'paused',
+    });
 
     await expect(
       handler.startCampaign(

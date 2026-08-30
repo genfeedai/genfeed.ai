@@ -172,7 +172,6 @@ export type ExecuteToolRoundResult = {
 type ConfirmedCampaignIntent = {
   campaignId: string;
   sourceActionId: string;
-  transition: 'pause' | 'start';
 };
 
 function summarizeToolResult(result: {
@@ -263,6 +262,10 @@ export class AgentTurnRoundRunnerService {
       threadId,
       toolCalls,
     } = params;
+    const currentOperatorMessage = this.readCurrentOperatorMessage(
+      messages,
+      source,
+    );
 
     messages.push({
       content: assistantContent,
@@ -528,7 +531,7 @@ export class AgentTurnRoundRunnerService {
 
       const confirmedCampaignIntent = await this.resolveConfirmedCampaignIntent(
         toolName,
-        messages,
+        currentOperatorMessage,
         context.organizationId,
         threadId,
       );
@@ -596,6 +599,10 @@ export class AgentTurnRoundRunnerService {
           validatedScope: policy.scope,
         },
       );
+      const modelVisibleResult = this.buildModelVisibleToolResult(
+        toolName,
+        result,
+      );
 
       const durationMs = Date.now() - startTime;
       state.artifactMetadata.push(buildArtifactMetadata(result.data, context));
@@ -654,7 +661,7 @@ export class AgentTurnRoundRunnerService {
         durationMs,
         error: result.error,
         parameters: toolParams,
-        resultSummary: summarizeToolResult(result),
+        resultSummary: summarizeToolResult(modelVisibleResult),
         status: result.success ? 'completed' : 'failed',
         toolName,
       };
@@ -709,7 +716,7 @@ export class AgentTurnRoundRunnerService {
       }
 
       messages.push({
-        content: JSON.stringify(result),
+        content: JSON.stringify(modelVisibleResult),
         role: 'tool' as const,
         tool_call_id: toolCall.id,
       });
@@ -735,7 +742,7 @@ export class AgentTurnRoundRunnerService {
 
   private async resolveConfirmedCampaignIntent(
     toolName: AgentToolName,
-    messages: OpenRouterMessage[],
+    currentOperatorMessage: string | null,
     organizationId: string,
     threadId: string,
   ): Promise<ConfirmedCampaignIntent | null> {
@@ -749,14 +756,10 @@ export class AgentTurnRoundRunnerService {
       return null;
     }
 
-    const currentTurnMessage = messages.at(-2);
-    if (
-      currentTurnMessage?.role !== 'user' ||
-      typeof currentTurnMessage.content !== 'string'
-    ) {
+    if (!currentOperatorMessage) {
       return null;
     }
-    const confirmationPrompt = currentTurnMessage.content;
+    const confirmationPrompt = currentOperatorMessage;
 
     const sourceActionId =
       readCampaignConfirmationSourceActionId(confirmationPrompt);
@@ -774,8 +777,7 @@ export class AgentTurnRoundRunnerService {
       ),
     );
     if (
-      preparation?.pendingConfirmation !== true ||
-      preparation.transition !== transition ||
+      preparation?.transition !== transition ||
       preparation.sourceActionId !== sourceActionId ||
       preparation.confirmationPrompt !== confirmationPrompt
     ) {
@@ -785,7 +787,47 @@ export class AgentTurnRoundRunnerService {
     return {
       campaignId: preparation.campaignId,
       sourceActionId,
-      transition,
+    };
+  }
+
+  private readCurrentOperatorMessage(
+    messages: OpenRouterMessage[],
+    source: AgentChatRequest['source'] | undefined,
+  ): string | null {
+    if ((source ?? 'agent') !== 'agent') {
+      return null;
+    }
+
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role === 'user' && typeof message.content === 'string') {
+        return message.content;
+      }
+    }
+
+    return null;
+  }
+
+  private buildModelVisibleToolResult(
+    toolName: AgentToolName,
+    result: AgentToolResult,
+  ): AgentToolResult {
+    if (
+      !this.isCampaignConfirmationTool(toolName) ||
+      result.requiresConfirmation !== true
+    ) {
+      return result;
+    }
+
+    const safeData = Object.fromEntries(
+      Object.entries(result.data ?? {}).filter(
+        ([key]) => key !== 'confirmationPrompt' && key !== 'sourceActionId',
+      ),
+    );
+    const { nextActions: _nextActions, ...safeResult } = result;
+    return {
+      ...safeResult,
+      data: safeData,
     };
   }
 

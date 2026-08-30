@@ -24,12 +24,13 @@ import { requireExecutableOutreachPair } from '@server/services/campaign/outreac
 export type CampaignTransition = 'pause' | 'start';
 
 export type PreparedCampaignTransition = {
+  brandId: string | null;
   campaignId: string;
   confirmationPrompt: string;
   currentStatus: CampaignStatus;
   intendedStatus: CampaignStatus.ACTIVE | CampaignStatus.PAUSED;
   label: string;
-  pendingConfirmation: true;
+  pendingConfirmation: boolean;
   sourceActionId: string;
   transition: CampaignTransition;
 };
@@ -49,6 +50,15 @@ function readCampaignStatus(value: unknown): CampaignStatus | null {
   return (
     Object.values(CampaignStatus).find((status) => status === value) ?? null
   );
+}
+
+function isCampaignTransitionAllowed(
+  transition: CampaignTransition,
+  status: CampaignStatus,
+): boolean {
+  return transition === 'start'
+    ? status === CampaignStatus.DRAFT || status === CampaignStatus.PAUSED
+    : status === CampaignStatus.ACTIVE;
 }
 
 export function buildCampaignPreparationCacheKey(params: {
@@ -92,6 +102,8 @@ export function readPreparedCampaignTransition(
   }
 
   const candidate = value as Record<string, unknown>;
+  const brandId =
+    candidate.brandId === null ? null : readNonEmptyString(candidate.brandId);
   const campaignId = readNonEmptyString(candidate.campaignId);
   const confirmationPrompt = readNonEmptyString(candidate.confirmationPrompt);
   const currentStatus = readCampaignStatus(candidate.currentStatus);
@@ -105,8 +117,10 @@ export function readPreparedCampaignTransition(
     !currentStatus ||
     !label ||
     !sourceActionId ||
-    candidate.pendingConfirmation !== true ||
+    (candidate.brandId !== null && !brandId) ||
+    typeof candidate.pendingConfirmation !== 'boolean' ||
     (transition !== 'start' && transition !== 'pause') ||
+    !isCampaignTransitionAllowed(transition, currentStatus) ||
     intendedStatus !==
       (transition === 'start'
         ? CampaignStatus.ACTIVE
@@ -124,12 +138,13 @@ export function readPreparedCampaignTransition(
   }
 
   return {
+    brandId,
     campaignId,
     confirmationPrompt,
     currentStatus,
     intendedStatus,
     label,
-    pendingConfirmation: true,
+    pendingConfirmation: candidate.pendingConfirmation,
     sourceActionId,
     transition,
   };
@@ -255,18 +270,17 @@ export class AgentCampaignToolHandler {
     }
 
     const { cacheService, threadId } = this.requireConfirmationPersistence(ctx);
+    const preparationKey = buildCampaignPreparationCacheKey({
+      organizationId: ctx.organizationId,
+      sourceActionId,
+      threadId,
+    });
     const preparedTransition = readPreparedCampaignTransition(
-      await cacheService.get<unknown>(
-        buildCampaignPreparationCacheKey({
-          organizationId: ctx.organizationId,
-          sourceActionId,
-          threadId,
-        }),
-      ),
+      await cacheService.get<unknown>(preparationKey),
     );
     if (
-      preparedTransition?.pendingConfirmation !== true ||
-      preparedTransition.campaignId !== campaignId ||
+      preparedTransition?.campaignId !== campaignId ||
+      preparedTransition.brandId !== (ctx.brandId ?? null) ||
       preparedTransition.sourceActionId !== sourceActionId ||
       preparedTransition.transition !== transition
     ) {
@@ -284,10 +298,15 @@ export class AgentCampaignToolHandler {
       sourceActionId,
     ].join(':');
 
-    return runIdempotent(
+    const result = await runIdempotent<AgentToolResult>(
       cacheService,
       idempotencyKey,
       async () => {
+        if (!preparedTransition.pendingConfirmation) {
+          throw new BadRequestException(
+            'Campaign confirmation has already been consumed.',
+          );
+        }
         const currentCampaign = await this.campaignsService.findOneById(
           campaignId,
           ctx.organizationId,
@@ -299,6 +318,11 @@ export class AgentCampaignToolHandler {
         if (currentCampaign.status !== preparedTransition.currentStatus) {
           throw new BadRequestException(
             'Campaign state changed after confirmation was prepared.',
+          );
+        }
+        if (!isCampaignTransitionAllowed(transition, currentCampaign.status)) {
+          throw new BadRequestException(
+            `Campaign cannot ${transition} from ${currentCampaign.status}.`,
           );
         }
 
@@ -352,6 +376,12 @@ export class AgentCampaignToolHandler {
         resultTtlSeconds: CAMPAIGN_PREPARATION_TTL_SECONDS,
       },
     );
+    await cacheService.set(
+      preparationKey,
+      { ...preparedTransition, pendingConfirmation: false },
+      { ttl: CAMPAIGN_PREPARATION_TTL_SECONDS },
+    );
+    return result;
   }
 
   private async prepareCampaignTransition(
@@ -376,7 +406,13 @@ export class AgentCampaignToolHandler {
         'Campaign has an unsupported lifecycle status.',
       );
     }
+    if (!isCampaignTransitionAllowed(transition, currentStatus)) {
+      throw new BadRequestException(
+        `Campaign cannot ${transition} from ${currentStatus}.`,
+      );
+    }
     const preparation: PreparedCampaignTransition = {
+      brandId: ctx.brandId ?? null,
       campaignId,
       confirmationPrompt: buildCampaignConfirmationPrompt({
         campaignId,
