@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => {
   return {
     findOne,
     getService: vi.fn(async () => ({ findOne })),
+    notificationsService: {
+      error: vi.fn(),
+      success: vi.fn(),
+    },
   };
 });
 
@@ -24,10 +28,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
+    getInstance: vi.fn(() => mocks.notificationsService),
   },
 }));
 
