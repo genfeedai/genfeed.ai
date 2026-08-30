@@ -2,6 +2,7 @@ import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
@@ -36,6 +37,7 @@ describe('StripeWebhooksModule', () => {
       StripeCheckoutWebhookHandler,
       StripeCustomerWebhookHandler,
       StripeInvoiceWebhookHandler,
+      StripePaymentWebhookHandler,
       StripeSubscriptionCreditReconcilerService,
       StripeSubscriptionWebhookHandler,
       StripeWebhookSupportService,

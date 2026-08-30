@@ -8,6 +8,7 @@ import {
   getSelectedOnboardingAccessMode,
   ONBOARDING_ACCESS_SOURCE,
   ONBOARDING_STORAGE_KEYS,
+  parseReferralCode,
   persistOnboardingHandoffParams,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -214,5 +215,19 @@ describe('persistOnboardingHandoffParams', () => {
     );
     expect(storedValues.has(ONBOARDING_STORAGE_KEYS.accessMode)).toBe(false);
     expect(storedValues.has(ONBOARDING_STORAGE_KEYS.brandDomain)).toBe(false);
+  });
+
+  it('stores only bounded opaque referral codes', () => {
+    const storedValues = new Map<string, string>();
+
+    persistOnboardingHandoffParams('?ref=friend_2345', {
+      setItem: (key, value) => storedValues.set(key, value),
+    });
+
+    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
+      'friend_2345',
+    );
+    expect(parseReferralCode('not a code')).toBeNull();
+    expect(parseReferralCode('x'.repeat(33))).toBeNull();
   });
 });

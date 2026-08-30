@@ -12,6 +12,7 @@ const {
   captureBrandOsFunnelStageMock,
   claimBrandOsPreviewMock,
   claimPublicYoutubeClipMock,
+  claimReferralMock,
   createCheckoutSessionMock,
   currentUserState,
   getTokenMock,
@@ -29,6 +30,7 @@ const {
   captureBrandOsFunnelStageMock: vi.fn(),
   claimBrandOsPreviewMock: vi.fn(),
   claimPublicYoutubeClipMock: vi.fn(),
+  claimReferralMock: vi.fn(),
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
     currentUser: {
@@ -118,6 +120,12 @@ vi.mock('@services/billing/stripe.service', () => ({
 vi.mock('@services/billing/managed-credits.service', () => ({
   ManagedCreditsService: {
     createCheckoutSession: managedCreateCheckoutSessionMock,
+  },
+}));
+
+vi.mock('@services/billing/referrals.service', () => ({
+  ReferralsService: {
+    getInstance: vi.fn(() => ({ claim: claimReferralMock })),
   },
 }));
 
@@ -219,6 +227,7 @@ describe('PostSignupPage behavior', () => {
     captureBrandOsFunnelStageMock.mockReset();
     claimBrandOsPreviewMock.mockReset();
     claimPublicYoutubeClipMock.mockReset();
+    claimReferralMock.mockReset();
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
@@ -266,6 +275,7 @@ describe('PostSignupPage behavior', () => {
       projectId: 'clip-project-1',
       status: 'claimed',
     });
+    claimReferralMock.mockResolvedValue({ accepted: true, status: 'accepted' });
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
     });
@@ -388,6 +398,28 @@ describe('PostSignupPage behavior', () => {
       'Acme',
     );
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('claims and clears referral attribution before starting a PAYG checkout', async () => {
+    hasOrganizationBillingMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    searchParamsState.value = new URLSearchParams(
+      'ref=friend_2345&credits=1000',
+    );
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'friend_2345');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(claimReferralMock).toHaveBeenCalledWith('friend_2345');
+      expect(createCheckoutSessionMock).toHaveBeenCalled();
+    });
+    expect(claimReferralMock.mock.invocationCallOrder[0]).toBeLessThan(
+      createCheckoutSessionMock.mock.invocationCallOrder[0],
+    );
+    expect(
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode),
+    ).toBeNull();
   });
 
   it('starts an EE plan checkout from a post-signup plan query', async () => {

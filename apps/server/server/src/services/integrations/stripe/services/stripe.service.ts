@@ -50,6 +50,12 @@ export type StripeSubscription = Awaited<
 export type StripeInvoice = Awaited<
   ReturnType<StripeClient['invoices']['retrieve']>
 >;
+export type StripeCharge = Awaited<
+  ReturnType<StripeClient['charges']['retrieve']>
+>;
+export type StripeDispute = Awaited<
+  ReturnType<StripeClient['disputes']['retrieve']>
+>;
 type StripeWebhookEvent = Awaited<
   ReturnType<StripeClient['webhooks']['constructEventAsync']>
 >;

@@ -94,6 +94,7 @@ export * from './prompt.enum';
 export * from './publish-approval.enum';
 export * from './publish-status.enum';
 export * from './reference.enum';
+export * from './referral.enum';
 export * from './replicate.enum';
 export * from './reply.enum';
 export * from './reply-bot.enum';

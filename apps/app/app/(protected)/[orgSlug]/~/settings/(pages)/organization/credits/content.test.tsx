@@ -37,6 +37,10 @@ vi.mock('./managed-credits-checkout-card', () => ({
   default: () => <div data-testid="managed-credits-card">Managed credits</div>,
 }));
 
+vi.mock('./referral-hub-card', () => ({
+  default: () => <div data-testid="referral-hub-card">Referral hub</div>,
+}));
+
 function renderCreditsPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -78,5 +82,14 @@ describe('SettingsCreditsPage', () => {
     expect(
       screen.queryByTestId('managed-credits-card'),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders referral rewards when organization billing is enabled', () => {
+    isSelfHostedMock.mockReturnValue(false);
+    hasOrganizationBillingMock.mockReturnValue(true);
+
+    renderCreditsPage();
+
+    expect(screen.getByTestId('referral-hub-card')).toBeInTheDocument();
   });
 });

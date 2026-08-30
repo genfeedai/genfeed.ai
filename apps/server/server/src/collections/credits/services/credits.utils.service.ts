@@ -8,6 +8,7 @@ import type {
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
+  IDeductCreditsOptions,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
@@ -86,12 +87,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     creditsToDeduct: number,
     description: string,
     source: ActivitySource = ActivitySource.SCRIPT,
-    options?: {
-      maxOverdraftCredits?: number;
-      metadata?: Record<string, unknown>;
-      referenceId?: string;
-      referenceType?: string;
-    },
+    options?: IDeductCreditsOptions,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -115,6 +111,22 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core deduction logic — runs atomically inside a transaction when available
       const deductCore = async (tx?: PrismaTransactionClient) => {
+        if (options?.idempotencyKey) {
+          const idempotencyWhere = scopedWhere(organizationId, {
+            idempotencyKey: options.idempotencyKey,
+          });
+          const existingByIdempotencyKey = tx
+            ? await tx.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              })
+            : await this.prisma.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              });
+          if (existingByIdempotencyKey) {
+            return this.getOrganizationCreditsBalance(organizationId, tx);
+          }
+        }
+
         if (options?.referenceId && options.referenceType) {
           const existingTransaction = tx
             ? await tx.creditTransaction.findFirst({
@@ -180,6 +192,9 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           {
             actorUserId: userId,
             billingAccountId: account.id,
+            ...(options?.idempotencyKey
+              ? { idempotencyKey: options.idempotencyKey }
+              : {}),
             ...(options?.metadata ? { metadata: options.metadata } : {}),
             ...(options?.referenceId
               ? { referenceId: options.referenceId }
@@ -343,13 +358,38 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core add logic — runs atomically inside a transaction when available
       const addCore = async (tx?: PrismaTransactionClient) => {
+        if (options?.idempotencyKey) {
+          const idempotencyWhere = scopedWhere(organizationId, {
+            idempotencyKey: options.idempotencyKey,
+          });
+          const existing = tx
+            ? await tx.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              })
+            : await this.prisma.creditTransaction.findFirst({
+                where: idempotencyWhere,
+              });
+          if (existing) {
+            return {
+              currentBalance: existing.balanceAfter ?? 0,
+              newBalance: existing.balanceAfter ?? 0,
+            };
+          }
+        }
+
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
         const currentBalance = wallet.available;
 
         const newBalance = currentBalance + creditsToAdd;
         const transactionOptions =
-          options?.referenceId || options?.referenceType || options?.metadata
+          options?.idempotencyKey ||
+          options?.referenceId ||
+          options?.referenceType ||
+          options?.metadata
             ? {
+                ...(options.idempotencyKey
+                  ? { idempotencyKey: options.idempotencyKey }
+                  : {}),
                 ...(options.metadata ? { metadata: options.metadata } : {}),
                 ...(options.referenceId
                   ? { referenceId: options.referenceId }

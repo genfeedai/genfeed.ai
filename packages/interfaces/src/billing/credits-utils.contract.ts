@@ -61,10 +61,15 @@ export interface ICycleRemainingMetrics {
  * "never define inline interfaces" coding guideline.
  */
 export interface IDeductCreditsOptions {
+  idempotencyKey?: string;
   maxOverdraftCredits?: number;
+  metadata?: Record<string, unknown>;
+  referenceId?: string;
+  referenceType?: string;
 }
 
 export interface IAddCreditsOptions {
+  idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;
   referenceType?: string;

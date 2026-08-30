@@ -7,6 +7,7 @@ import {
   Cpu,
   CreditCard,
   FileText,
+  Gift,
   Image,
   Mail,
   Megaphone,
@@ -242,6 +243,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
     outline: ChartColumn,
     solid: ChartColumn,
+  },
+  {
+    group: 'Administration',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS,
+    label: 'Referral Rewards',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.REFERRALS],
+    outline: Gift,
+    solid: Gift,
   },
   {
     group: 'Administration',

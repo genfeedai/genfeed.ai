@@ -89,6 +89,7 @@ import { ProjectsModule } from '@api/collections/projects/projects.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { PublishingSetupModule } from '@api/collections/publishing-setup/publishing-setup.module';
+import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
@@ -351,6 +352,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ProfilesModule,
     ProjectsModule,
     PromptsModule,
+    ReferralsModule,
     RolesModule,
     RssSourcesModule,
     SchedulesModule,

@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/auth-client/callback';
 import {
   extractBrandDomain,
+  parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
@@ -68,6 +69,7 @@ function buildPostSignupCallbackURL(
   const clipToolToken = parsePublicYoutubeClipToken(
     searchParams.get('clipToolToken'),
   );
+  const referralCode = parseReferralCode(searchParams.get('ref'));
 
   if (selectedPlan) {
     params.set('plan', selectedPlan);
@@ -91,6 +93,10 @@ function buildPostSignupCallbackURL(
 
   if (clipToolToken) {
     params.set('clipToolToken', clipToolToken);
+  }
+
+  if (referralCode) {
+    params.set('ref', referralCode);
   }
 
   const query = params.toString();

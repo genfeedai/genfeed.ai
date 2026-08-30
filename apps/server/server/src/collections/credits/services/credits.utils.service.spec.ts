@@ -18,6 +18,7 @@ describe('CreditsUtilsService', () => {
   const eventEmitter = { emit: vi.fn() };
   const prisma = {
     brand: { findFirst: vi.fn() },
+    creditTransaction: { findFirst: vi.fn() },
     organization: { findFirst: vi.fn() },
     subscription: { findFirst: vi.fn() },
     user: { findFirst: vi.fn() },
@@ -82,6 +83,7 @@ describe('CreditsUtilsService', () => {
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.brand.findFirst.mockResolvedValue(null);
     prisma.subscription.findFirst.mockResolvedValue(null);
+    prisma.creditTransaction.findFirst.mockResolvedValue(null);
     billingAccountsService.resolveForOrganization.mockResolvedValue({
       id: 'ba_1',
     });
@@ -284,6 +286,43 @@ describe('CreditsUtilsService', () => {
         'renewal credits',
         expiresAt,
         txClient,
+      );
+    });
+
+    it('persists a caller-provided idempotency key on the ledger entry', async () => {
+      const service = buildService(false);
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_1',
+        50,
+        'credits-referral',
+        'referral reward',
+        new Date('2027-01-01T00:00:00Z'),
+        { idempotencyKey: 'referral-reward-grant:reward_1' },
+      );
+
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          idempotencyKey: 'referral-reward-grant:reward_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+        }),
+      });
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        50,
+        100,
+        150,
+        'credits-referral',
+        'referral reward',
+        expect.any(Date),
+        undefined,
+        expect.objectContaining({
+          idempotencyKey: 'referral-reward-grant:reward_1',
+        }),
       );
     });
   });

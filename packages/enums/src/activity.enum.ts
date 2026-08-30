@@ -36,6 +36,7 @@ export enum ActivitySource {
   TREND_SCAN = 'trend-scan',
   BRAND_INTERVIEW = 'brand-interview',
   BRAND_RELOCATION = 'brand-relocation',
+  REFERRAL = 'credits-referral',
 }
 
 /**

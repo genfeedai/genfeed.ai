@@ -183,4 +183,17 @@ describe('auth callback URL helpers', () => {
     ).toBeNull();
     expect(parsePublicYoutubeClipToken('b'.repeat(44))).toBeNull();
   });
+
+  it('preserves a validated referral code through the external auth round trip', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams({ ref: 'friend_2345' }), {
+        includeOnboardingHandoffParams: true,
+      }),
+    ).toBe('/onboarding/post-signup?ref=friend_2345');
+    expect(
+      getAuthCallbackURL(new URLSearchParams({ ref: 'not a code' }), {
+        includeOnboardingHandoffParams: true,
+      }),
+    ).toBe('/onboarding/post-signup');
+  });
 });

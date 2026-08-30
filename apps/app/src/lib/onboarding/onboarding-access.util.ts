@@ -52,10 +52,18 @@ export const ONBOARDING_STORAGE_KEYS = {
   brandName: 'gf_brand_name',
   contentType: 'gf_onboarding_content_type',
   previewUrl: 'gf_onboarding_preview_url',
+  referralCode: 'gf_referral_code',
   selectedCredits: 'gf_selected_credits',
   selectedPlan: 'gf_selected_plan',
   source: 'gf_onboarding_source',
 } as const;
+
+const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{8,32}$/;
+
+export function parseReferralCode(value?: string | null): string | null {
+  const code = value?.trim();
+  return code && REFERRAL_CODE_PATTERN.test(code) ? code : null;
+}
 
 type OnboardingHandoffStorage = Pick<Storage, 'setItem'>;
 
@@ -225,6 +233,7 @@ export function persistOnboardingHandoffParams(
   const brandName = readTrimmedParam(params, 'brandName');
   const accessMode = normalizeOnboardingAccessMode(params.get('accessMode'));
   const source = readTrimmedParam(params, 'source');
+  const referralCode = parseReferralCode(params.get('ref'));
 
   if (selectedPlan) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, selectedPlan);
@@ -248,5 +257,9 @@ export function persistOnboardingHandoffParams(
 
   if (source) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.source, source);
+  }
+
+  if (referralCode) {
+    storage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, referralCode);
   }
 }

@@ -25,6 +25,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
+import { ReferralsService } from '@services/billing/referrals.service';
 import { StripeService } from '@services/billing/stripe.service';
 import { ClipProjectsService } from '@services/content/clip-projects.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -41,6 +42,7 @@ import {
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
+  parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
@@ -62,6 +64,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandNameParam = searchParams.get('brandName');
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
+  const requestedReferralCodeParam = searchParams.get('ref');
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
@@ -198,6 +201,34 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           ONBOARDING_STORAGE_KEYS.brandName,
           requestedBrandName,
         );
+      }
+
+      const referralCode =
+        parseReferralCode(requestedReferralCodeParam) ??
+        parseReferralCode(
+          localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode),
+        );
+      if (referralCode) {
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          setStatusMessage('Finishing your referral setup...');
+          setShowFallback(true);
+          return;
+        }
+        try {
+          await ReferralsService.getInstance(token).claim(referralCode);
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
+        } catch (error) {
+          if (signal.aborted) {
+            return;
+          }
+          logger.error('Failed to claim referral after auth', error);
+          setStatusMessage(
+            'We could not finish your referral setup. Retry before continuing.',
+          );
+          setShowFallback(true);
+          return;
+        }
       }
 
       const requestedPlan = resolveSelectedPlanParam(requestedPlanParam);
@@ -558,6 +589,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedClipToolTokenParam,
     requestedCreditsParam,
     requestedPlanParam,
+    requestedReferralCodeParam,
     routingAttempt,
     resolveCheckoutReturnHref,
     resolveOnboardingHref,
