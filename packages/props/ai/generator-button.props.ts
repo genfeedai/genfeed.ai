@@ -11,7 +11,6 @@ export interface HashtagGeneratorButtonProps {
   niche?: string;
   /** Whether the button should be disabled */
   isDisabled?: boolean;
-  /** Additional CSS classes */
   className?: string;
 }
 
@@ -26,6 +25,5 @@ export interface CaptionGeneratorButtonProps {
   onAccept: (caption: string) => void;
   /** Whether the button should be disabled */
   isDisabled?: boolean;
-  /** Additional CSS classes */
   className?: string;
 }

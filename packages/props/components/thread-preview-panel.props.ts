@@ -20,8 +20,5 @@ export interface ThreadPreviewPanelProps {
     id: string;
     content: string;
   }>;
-  /**
-   * Additional CSS classes
-   */
   className?: string;
 }

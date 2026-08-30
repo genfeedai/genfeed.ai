@@ -227,7 +227,6 @@ export function useModalGallery({
         if (brandId) {
           query.brand = brandId;
         }
-        // Only filter by format if localFormat is set and not empty
         if (localFormat) {
           query.format = localFormat;
         }
@@ -275,7 +274,6 @@ export function useModalGallery({
               (query as Record<string, unknown>).reference = filterReferenceId;
             }
 
-            // Only filter by format if localFormat is set and not empty
             if (localFormat) {
               query.format = localFormat;
             }
@@ -324,7 +322,6 @@ export function useModalGallery({
               query.reference = filterReferenceId;
             }
 
-            // Only filter by format if localFormat is set and not empty
             if (localFormat) {
               query.format = localFormat;
             }

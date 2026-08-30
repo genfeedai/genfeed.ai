@@ -175,11 +175,12 @@ async function executeAuthenticatedRequest<T>(
 }
 
 // Listen for messages from content scripts and popup
+// Returning true keeps Chrome's response channel open for asynchronous handlers.
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   switch (request.event) {
     case 'checkAuth':
       checkAuthentication(sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'savePost':
       savePostToGenfeed(
@@ -188,11 +189,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         sendResponse,
         request.platform || 'twitter',
       );
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'saveBookmark':
       saveBookmark(request.data, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'generateReply':
       generateAIReply(
@@ -205,43 +206,43 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         },
         sendResponse,
       );
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'createVideo':
       createVideoFromPrompt(request.prompt, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'improvePost':
       improveTweetContent(request.postContent, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'generatePostImage':
       generateImageFromTweet(request.postContent, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'getVideos':
       getLatestVideos(sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'generateImage':
       generateImageFromPrompt(request, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'generateReplyWithMedia':
       generateReplyWithMedia(request, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'fetchImageAsDataUrl':
       fetchImageAsDataUrl(request.imageUrl, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'generateReplyWithVideo':
       generateReplyWithVideo(request, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'autoModel':
       processWithAutoModel(request, sendResponse);
-      return true; // Keep message channel open for async response
+      return true;
 
     case 'logout':
       logout();

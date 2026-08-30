@@ -3,7 +3,6 @@ import type { IPreset } from '@genfeedai/interfaces';
 import type { KeyboardEvent, ReactNode, SyntheticEvent } from 'react';
 
 /**
- * Props for the merged content enhancement prompt bar (posts, articles, …).
  * One component serves every content surface; capabilities are opt-in props.
  */
 export interface PromptBarContentProps {
@@ -80,7 +79,6 @@ export interface PromptBarContentCollapsedViewProps
 }
 
 /**
- * Options for the shared prompt submission primitive.
  * Every content prompt bar routes its submit through this contract.
  */
 export interface UsePromptBarSubmissionOptions {
