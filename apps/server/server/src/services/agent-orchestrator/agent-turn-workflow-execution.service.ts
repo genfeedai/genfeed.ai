@@ -187,9 +187,15 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         userId: request.context.userId,
       }),
     );
-    registerAction(AGENT_RUNTIME_ACTION_IDS.TURN_INFER, async ({ input }) => ({
-      final: await this.execute(input.state as PreparedAgentTurnState),
-    }));
+    registerAction(AGENT_RUNTIME_ACTION_IDS.TURN_INFER, async ({ input }) => {
+      const state = input.state as PreparedAgentTurnState;
+      return {
+        decision: 'final' as const,
+        final: await this.execute(state),
+        state,
+        toolItems: [],
+      };
+    });
     registerAction(
       AGENT_RUNTIME_ACTION_IDS.TURN_FINALIZE,
       ({ input }) => input.final as AgentTurnWorkflowResult,
@@ -230,25 +236,29 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
 
   private async recordWorkflowFailure(
     request: SystemWorkflowActionRequest,
-  ): Promise<{ recorded: boolean }> {
+  ): Promise<{ error: string; threadId: string | null }> {
     const failure = readRecord(request.input.failure);
     const error =
       optionalString(failure.error) ??
       optionalString(failure.message) ??
       optionalString(request.input.failure);
-    if (!error) return { recorded: false };
+    if (!error) {
+      throw new Error('Agent workflow failure requires an error');
+    }
     const state = readRecord(request.input.state);
     const originalRequest = readRecord(request.input.request);
+    const threadId =
+      optionalString(state.threadId) ??
+      optionalString(originalRequest.threadId) ??
+      null;
     await this.recordFailure({
       error,
       executionId: request.provenance.executionId,
       organizationId: request.context.organizationId,
-      threadId:
-        optionalString(state.threadId) ??
-        optionalString(originalRequest.threadId),
+      ...(threadId ? { threadId } : {}),
       userId: request.context.userId,
     });
-    return { recorded: true };
+    return { error, threadId };
   }
 
   async prepare(

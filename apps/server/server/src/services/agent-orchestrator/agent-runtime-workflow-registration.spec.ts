@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
+import { AgentTurnWorkflowExecutionService } from '@server/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { describe, expect, it, vi } from 'vitest';
 
 function source(relativePath: string): string {
   return readFileSync(
@@ -43,5 +45,78 @@ describe('agent runtime workflow registration contract', () => {
     expect(moduleSource).toMatch(
       /providers:\s*\[[\s\S]*AgentTurnWorkflowExecutionService[\s\S]*\]/,
     );
+  });
+
+  it('returns the declared inference action envelope', async () => {
+    const actions = new Map<string, (request: never) => unknown>();
+    const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
+      ...Array.from({ length: 17 }, () => ({})),
+      {
+        registerAction: vi.fn(
+          (actionId: string, executor: (request: never) => unknown) => {
+            actions.set(actionId, executor);
+          },
+        ),
+      },
+    ]) as AgentTurnWorkflowExecutionService;
+    const final = {
+      artifactReferences: [],
+      artifactVersionPinIds: [],
+      content: 'Done',
+      creditsUsed: 1,
+      model: 'test/model',
+      summary: 'Done',
+      threadId: 'thread-1',
+    };
+    vi.spyOn(service, 'execute').mockResolvedValue(final);
+    service.onModuleInit();
+
+    const state = { threadId: 'thread-1' };
+    const executor = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_INFER);
+    expect(executor).toBeDefined();
+    await expect(executor?.({ input: { state } } as never)).resolves.toEqual({
+      decision: 'final',
+      final,
+      state,
+      toolItems: [],
+    });
+  });
+
+  it('returns the declared failure action envelope', async () => {
+    const actions = new Map<string, (request: never) => unknown>();
+    const service = Reflect.construct(AgentTurnWorkflowExecutionService, [
+      ...Array.from({ length: 17 }, () => ({})),
+      {
+        registerAction: vi.fn(
+          (actionId: string, executor: (request: never) => unknown) => {
+            actions.set(actionId, executor);
+          },
+        ),
+      },
+    ]) as AgentTurnWorkflowExecutionService;
+    const recordFailure = vi
+      .spyOn(service, 'recordFailure')
+      .mockResolvedValue(undefined);
+    service.onModuleInit();
+
+    const executor = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_FAIL);
+    expect(executor).toBeDefined();
+    await expect(
+      executor?.({
+        context: { organizationId: 'organization-1', userId: 'user-1' },
+        input: {
+          failure: { error: 'Provider failed' },
+          request: { threadId: 'thread-1' },
+        },
+        provenance: { executionId: 'execution-1' },
+      } as never),
+    ).resolves.toEqual({ error: 'Provider failed', threadId: 'thread-1' });
+    expect(recordFailure).toHaveBeenCalledWith({
+      error: 'Provider failed',
+      executionId: 'execution-1',
+      organizationId: 'organization-1',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    });
   });
 });

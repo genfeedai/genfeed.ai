@@ -68,13 +68,6 @@ export function buildAgentTurnWorkflowDefinition(): SystemWorkflowGraphDefinitio
       targetHandle: 'state',
     },
     {
-      id: 'prepare-state-to-finalize',
-      source: prepare.id,
-      sourceHandle: 'state',
-      target: finalize.id,
-      targetHandle: 'state',
-    },
-    {
       id: 'infer-final-to-finalize',
       source: infer.id,
       sourceHandle: 'final',
@@ -82,10 +75,10 @@ export function buildAgentTurnWorkflowDefinition(): SystemWorkflowGraphDefinitio
       targetHandle: 'final',
     },
     {
-      id: 'prepare-state-to-fail',
-      source: prepare.id,
+      id: 'infer-state-to-finalize',
+      source: infer.id,
       sourceHandle: 'state',
-      target: fail.id,
+      target: finalize.id,
       targetHandle: 'state',
     },
     {
@@ -129,7 +122,7 @@ export function buildAgentTurnWorkflowDefinition(): SystemWorkflowGraphDefinitio
       'Executes one durable agent turn through registered preparation, inference, finalization, and failure actions.',
     label: 'Execute Agent Turn',
     resultNodeId: finalize.id,
-    version: 1,
+    version: 2,
   };
 }
 
