@@ -126,6 +126,9 @@ describe('useAgentCliTerminal', () => {
       await Promise.resolve();
     });
 
-    expect(socketMocks.emit).toHaveBeenCalledOnce();
+    const attachCalls = socketMocks.emit.mock.calls.filter(
+      ([event]) => event === 'terminal:attach',
+    );
+    expect(attachCalls).toHaveLength(1);
   });
 });

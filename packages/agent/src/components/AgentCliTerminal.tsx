@@ -265,6 +265,10 @@ export function useAgentCliTerminal(
       activeTerminalSessionByThread[key] ?? activeThreadSessions?.[0]?.id;
 
     if (targetId) {
+      if (sessionIdRef.current === targetId) {
+        return;
+      }
+
       // Existing session for this thread — attach
       sessionIdRef.current = targetId;
       terminalRef.current?.clear();
