@@ -50,7 +50,7 @@ function formatCurrencyFromCents(amountInCents: number, currency: string) {
 function describeProration(preview: SubscriptionChangePreview) {
   const currency = preview.upcomingInvoice?.currency || 'usd';
   const amount = formatCurrencyFromCents(
-    preview.upcomingInvoice.amount_due,
+    preview.upcomingInvoice?.amount_due ?? preview.prorationAmount,
     currency,
   );
 

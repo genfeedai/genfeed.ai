@@ -159,4 +159,23 @@ describe('PlansCard', () => {
       expect(changeSubscriptionPlan).toHaveBeenCalledWith('price_scale');
     });
   });
+
+  it('falls back to the proration amount for a partial preview response', async () => {
+    mockSubscription('sub_123');
+    previewPlanChange.mockResolvedValue({
+      isDowngrade: false,
+      isUpgrade: true,
+      newPriceId: 'price_scale',
+      prorationAmount: 15_000,
+    } as never);
+
+    render(<PlansCard />);
+    fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+
+    expect(
+      await screen.findByText(
+        /Stripe estimates your next invoice at \$150\.00/,
+      ),
+    ).toBeVisible();
+  });
 });

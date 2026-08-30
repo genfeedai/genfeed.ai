@@ -962,7 +962,6 @@ describe('SubscriptionsService', () => {
         'cus_1',
         'sub_stripe_1',
         'price_scale',
-        1,
       );
       expect(preview.prorationAmount).toBe(15_000);
       expect(preview.isUpgrade).toBe(true);

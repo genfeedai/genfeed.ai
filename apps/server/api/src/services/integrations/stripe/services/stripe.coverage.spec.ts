@@ -40,7 +40,7 @@ function makeMockSubscription(
   itemId = 'si_1',
   priceId = 'price_1',
   customerId = 'cus_1',
-  quantity = 1,
+  quantity: number | null = 1,
 ): Stripe.Subscription {
   return {
     customer: customerId,
@@ -1298,6 +1298,70 @@ describe('StripeService — coverage spec', () => {
       expect(result.amount_due).toBe(900);
       expect(result.currency).toBe('eur');
       expect(result.lines.data[0]?.amount).toBe(-1_200);
+    });
+
+    it('preserves the current subscription item quantity by default', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_1',
+          3,
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice('cus_1', 'sub_1', 'price_scale');
+
+      expect(createPreview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscription_details: expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                id: 'si_1',
+                price: 'price_scale',
+                quantity: 3,
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('omits quantity for a metered subscription item', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_1',
+          null,
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice('cus_1', 'sub_1', 'price_metered');
+
+      const previewItem =
+        createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0];
+      expect(previewItem).toEqual({ id: 'si_1', price: 'price_metered' });
     });
 
     it('rejects a subscription owned by a different Stripe customer', async () => {

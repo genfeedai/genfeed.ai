@@ -470,7 +470,6 @@ export class SubscriptionsService
         ),
         subscription.stripeSubscriptionId,
         newPriceId,
-        1,
       );
 
       // Get current subscription details from Stripe

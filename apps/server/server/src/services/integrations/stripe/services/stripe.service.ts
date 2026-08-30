@@ -1072,7 +1072,7 @@ export class StripeService {
     customerId: string,
     subscriptionId: string,
     newPriceId: string,
-    quantity: number = 1,
+    quantity?: number,
   ): Promise<UpcomingInvoicePreview> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -1080,7 +1080,10 @@ export class StripeService {
       if (!this.isStripePriceId(newPriceId)) {
         throw new BadRequestException('Invalid Stripe price ID');
       }
-      if (!Number.isInteger(quantity) || quantity < 1) {
+      if (
+        quantity !== undefined &&
+        (!Number.isInteger(quantity) || quantity < 1)
+      ) {
         throw new BadRequestException(
           'Subscription quantity must be a positive integer',
         );
@@ -1106,6 +1109,7 @@ export class StripeService {
       if (!currentPriceId) {
         throw new Error('No price found for subscription item');
       }
+      const targetQuantity = quantity ?? subscriptionItem.quantity ?? undefined;
 
       const upcomingInvoice = await this.stripe.invoices.createPreview({
         customer: customerId,
@@ -1115,7 +1119,9 @@ export class StripeService {
             {
               id: subscriptionItem.id,
               price: newPriceId,
-              quantity,
+              ...(targetQuantity === undefined
+                ? {}
+                : { quantity: targetQuantity }),
             },
           ],
           proration_behavior: 'create_prorations',
@@ -1128,7 +1134,7 @@ export class StripeService {
         currency: upcomingInvoice.currency,
         currentPriceId,
         newPriceId,
-        quantity,
+        quantity: targetQuantity,
         subscriptionId,
         subscriptionItemId: subscriptionItem.id,
       });
