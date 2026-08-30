@@ -362,16 +362,10 @@ export class CronEngagementTriggersService implements OnModuleInit {
     request: RuleRequest,
     failure: unknown,
   ): Promise<{ completed: boolean }> {
-    let message = 'Engagement action failed';
-    if (failure instanceof Error) {
-      message = failure.message ? getErrorMessage(failure) : '';
-    } else if (failure && typeof failure === 'object' && 'message' in failure) {
-      const rawMessage = (failure as { message: unknown }).message;
-      message =
-        typeof rawMessage === 'string' && rawMessage
-          ? getErrorMessage(failure)
-          : String(rawMessage);
-    }
+    const message = getErrorMessage(failure, {
+      coerceMessage: true,
+      fallback: () => 'Engagement action failed',
+    });
     const result = await this.prisma.engagementRule.updateMany({
       data: { lastError: message, state: EngagementRuleState.COMPLETED },
       where: scopedWhere(request.organizationId, { id: request.ruleId }),

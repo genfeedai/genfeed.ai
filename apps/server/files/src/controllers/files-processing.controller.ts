@@ -69,9 +69,11 @@ export class FilesProcessingController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to generate thumbnail:', error);
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to generate thumbnail',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate thumbnail',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -146,9 +148,11 @@ export class FilesProcessingController {
       }
 
       this.logger.error('Failed to resize image:', error);
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to resize image',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to resize image',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -223,9 +227,11 @@ export class FilesProcessingController {
       }
 
       this.logger.error('Failed to split image:', error);
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to split image',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to split image',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -331,9 +337,11 @@ export class FilesProcessingController {
         throw error;
       }
 
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to inspect video QA',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to inspect video QA',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
@@ -344,15 +352,12 @@ export class FilesProcessingController {
         try {
           fs.unlinkSync(file);
         } catch (cleanupError) {
-          const cleanupMessage =
-            cleanupError instanceof Error && cleanupError.message
-              ? getErrorMessage(cleanupError)
-              : cleanupError instanceof Error
-                ? ''
-                : String(cleanupError);
           this.logger.warn(
             `Failed to cleanup temp file: ${file}`,
-            cleanupMessage,
+            getErrorMessage(cleanupError, {
+              fallback: String,
+              messageSource: 'error-instance',
+            }),
           );
         }
       }

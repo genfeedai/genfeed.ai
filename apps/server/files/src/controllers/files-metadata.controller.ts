@@ -90,7 +90,6 @@ export class FilesMetadataController {
           const parsedError = error as {
             response?: { status?: number };
             code?: string;
-            message?: string;
           };
 
           if (parsedError?.response?.status === 404) {
@@ -119,7 +118,10 @@ export class FilesMetadataController {
           }
 
           throw new HttpException(
-            `Failed to download file from URL: ${parsedError?.message ? getErrorMessage(error) : 'Unknown error'}`,
+            `Failed to download file from URL: ${getErrorMessage(error, {
+              emptyMessage: 'fallback',
+              fallback: () => 'Unknown error',
+            })}`,
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -143,10 +145,11 @@ export class FilesMetadataController {
         }),
       };
     } catch (error: unknown) {
-      const parsedError = error as { name?: string; message?: string };
-      const errorMessage = parsedError?.message
-        ? getErrorMessage(error)
-        : undefined;
+      const parsedError = error as { name?: string };
+      const errorMessage = getErrorMessage(error, {
+        emptyMessage: 'fallback',
+        fallback: () => undefined,
+      });
       if (
         parsedError?.name === 'ValidationException' ||
         (error instanceof Error && errorMessage?.includes('does not exist'))
@@ -175,15 +178,12 @@ export class FilesMetadataController {
           fs.unlinkSync(tempFilePath);
           this.logger.log(`Cleaned up temporary file: ${tempFilePath}`);
         } catch (cleanupError: unknown) {
-          const cleanupMessage =
-            cleanupError instanceof Error && cleanupError.message
-              ? getErrorMessage(cleanupError)
-              : cleanupError instanceof Error
-                ? ''
-                : String(cleanupError);
           this.logger.warn(
             `Failed to cleanup temporary file: ${tempFilePath}`,
-            cleanupMessage,
+            getErrorMessage(cleanupError, {
+              fallback: String,
+              messageSource: 'error-instance',
+            }),
           );
         }
       }

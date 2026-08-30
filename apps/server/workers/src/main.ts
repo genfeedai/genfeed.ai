@@ -143,14 +143,11 @@ async function main() {
       void shutdown('SIGINT');
     });
   } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error && error.message
-        ? getErrorMessage(error)
-        : error instanceof Error
-          ? ''
-          : String(error);
     logger.error('Failed to start workers service:', {
-      error: errorMessage,
+      error: getErrorMessage(error, {
+        fallback: String,
+        messageSource: 'error-instance',
+      }),
     });
     process.exit(1);
   }

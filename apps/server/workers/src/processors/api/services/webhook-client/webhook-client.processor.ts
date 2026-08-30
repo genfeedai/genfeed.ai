@@ -54,7 +54,10 @@ export class WebhookClientProcessor extends WorkerHost {
         if (error instanceof WebhookEndpointValidationError) {
           throw new UnrecoverableError(
             redactPublishWebhookText(
-              error.message ? getErrorMessage(error) : '',
+              getErrorMessage(error, {
+                fallback: () => '',
+                messageSource: 'error-instance',
+              }),
             ),
           );
         }
@@ -191,11 +194,7 @@ function readHttpStatusCode(error: unknown): number | undefined {
 }
 
 function readErrorMessage(error: unknown): string | undefined {
-  const message = (error as { message?: unknown })?.message;
-  if (typeof message !== 'string' || !message) {
-    return typeof message === 'string' ? '' : undefined;
-  }
-  return getErrorMessage(error);
+  return getErrorMessage(error, { fallback: () => undefined });
 }
 
 function readErrorCode(error: unknown): string | undefined {

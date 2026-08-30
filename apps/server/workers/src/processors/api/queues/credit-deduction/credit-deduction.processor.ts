@@ -111,10 +111,9 @@ export class CreditDeductionProcessor extends WorkerHost {
         type,
       });
     } catch (error: unknown) {
-      const message = (error as Error)?.message;
       this.logger.error(`${this.constructorName} job failed`, {
         attempt: job.attemptsMade + 1,
-        error: message ? getErrorMessage(error) : message,
+        error: getErrorMessage(error, { fallback: () => undefined }),
         jobId: job.id,
         maxAttempts: job.opts.attempts,
         organizationId,
@@ -125,7 +124,10 @@ export class CreditDeductionProcessor extends WorkerHost {
       // on retry means deduction already committed but side effects failed)
       if (error instanceof BusinessLogicException) {
         throw new UnrecoverableError(
-          error.message ? getErrorMessage(error) : '',
+          getErrorMessage(error, {
+            fallback: () => '',
+            messageSource: 'error-instance',
+          }),
         );
       }
 

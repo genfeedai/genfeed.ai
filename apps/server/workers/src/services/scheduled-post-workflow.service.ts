@@ -180,16 +180,13 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     executionStartedAt: string,
     error: unknown,
   ): Promise<void> {
-    const publishError =
-      error instanceof Error && error.message
-        ? getErrorMessage(error)
-        : error instanceof Error
-          ? ''
-          : 'Publish claim failed';
     try {
       await this.publishApprovalsService.completeExecution({
         approvalId: this.requiredString(request.approvalId, 'approvalId'),
-        error: publishError,
+        error: getErrorMessage(error, {
+          fallback: () => 'Publish claim failed',
+          messageSource: 'error-instance',
+        }),
         executionStartedAt,
         isSuccessful: false,
         operationId: this.requiredString(request.operationId, 'operationId'),
@@ -197,15 +194,12 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
         versionPinId: this.requiredString(request.versionPinId, 'versionPinId'),
       });
     } catch (completionError: unknown) {
-      const completionMessage =
-        completionError instanceof Error && completionError.message
-          ? getErrorMessage(completionError)
-          : completionError instanceof Error
-            ? ''
-            : 'Unknown publish completion error';
       this.logger.error('Failed to release rejected publish claim', {
         approvalId: request.approvalId,
-        error: completionMessage,
+        error: getErrorMessage(completionError, {
+          fallback: () => 'Unknown publish completion error',
+          messageSource: 'error-instance',
+        }),
         postId: request.postId,
       });
     }

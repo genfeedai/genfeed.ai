@@ -229,9 +229,11 @@ export class FilesStorageController {
         throw error;
       }
 
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to upload file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to upload file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -282,9 +284,11 @@ export class FilesStorageController {
         throw error;
       }
 
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to upload file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to upload file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
@@ -328,9 +332,12 @@ export class FilesStorageController {
 
       return new StreamableFile(stream);
     } catch (error: unknown) {
-      const message = (error as Error)?.message;
+      const errorMessage = getErrorMessage(error, {
+        emptyMessage: 'fallback',
+        fallback: () => 'Unknown error',
+      });
       this.logger.error('Failed to download file', {
-        error: message ? getErrorMessage(error) : 'Unknown error',
+        error: errorMessage,
         key: typeof key === 'string' ? key : String(key),
         statusCode:
           (error as { statusCode?: number })?.statusCode ||
@@ -338,7 +345,10 @@ export class FilesStorageController {
         type,
       });
       throw new HttpException(
-        message ? getErrorMessage(error) : 'Failed to download file',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to download file',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -386,15 +396,15 @@ export class FilesStorageController {
       };
     } catch (error: unknown) {
       const parsedError = error as {
-        message?: string;
         code?: string;
         status?: number;
         statusCode?: number;
         stack?: string;
       };
-      const errorMessage = parsedError?.message
-        ? getErrorMessage(error)
-        : 'Unknown error';
+      const errorMessage = getErrorMessage(error, {
+        emptyMessage: 'fallback',
+        fallback: () => 'Unknown error',
+      });
 
       const errorDetails = {
         code: parsedError?.code,
@@ -439,11 +449,11 @@ export class FilesStorageController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to generate presigned upload URL:', error);
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message
-          ? getErrorMessage(error)
-          : 'Failed to generate presigned upload URL',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate presigned upload URL',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -479,11 +489,11 @@ export class FilesStorageController {
       }
 
       this.logger.error('Failed to generate presigned download URL:', error);
-      const message = (error as Error)?.message;
       throw new HttpException(
-        message
-          ? getErrorMessage(error)
-          : 'Failed to generate presigned download URL',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate presigned download URL',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
