@@ -457,6 +457,7 @@ vi.mock('@ui/primitives/select', () => ({
 }));
 
 import AdsResearchPageClient from './AdsResearchPageClient';
+import { buildSaveAdInput } from './useAdsResearchPageClient';
 
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
@@ -764,6 +765,34 @@ describe('AdsResearchPageClient', () => {
     expect(openRemixMock).toHaveBeenCalledWith({
       kind: 'saved_ad',
       savedAdId: 'saved-1',
+    });
+  });
+
+  it('inherits selected account scope when a connected result omits it', () => {
+    expect(
+      buildSaveAdInput(
+        {
+          ...connectedAd,
+          adAccountId: undefined,
+          credentialId: undefined,
+          loginCustomerId: undefined,
+        },
+        {
+          adAccountId: 'acct-filtered',
+          brandId: 'brand-1',
+          credentialId: 'cred-filtered',
+          loginCustomerId: 'mcc-filtered',
+        },
+      ),
+    ).toEqual({
+      adAccountId: 'acct-filtered',
+      adId: 'source-google-1',
+      brandId: 'brand-1',
+      channel: 'search',
+      credentialId: 'cred-filtered',
+      loginCustomerId: 'mcc-filtered',
+      platform: 'google',
+      source: 'my_accounts',
     });
   });
 

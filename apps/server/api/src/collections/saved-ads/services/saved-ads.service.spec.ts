@@ -124,6 +124,65 @@ describe('SavedAdsService', () => {
     expect(adsResearch.getAdDetail).not.toHaveBeenCalled();
   });
 
+  it('saves a connected ad with the authorized account context', async () => {
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null,
+    );
+    adsResearch.getAdDetail.mockResolvedValue({
+      body: 'Connected body',
+      explanation: 'Strong proof',
+      id: 'record-1',
+      metrics: {},
+      platform: 'google',
+      sourceId: 'source-1',
+      title: 'Connected winner',
+      usagePolicy: 'remix_allowed',
+    });
+    (prisma.savedAd.create as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ data }) => ({ id: 'saved-1', ...data }),
+    );
+
+    const [saved] = await service.saveMany('org-1', 'opaque-user', [
+      {
+        adAccountId: 'acct-1',
+        adId: 'source-1',
+        brandId: 'brand-1',
+        channel: 'search',
+        credentialId: 'credential-1',
+        loginCustomerId: 'mcc-1',
+        platform: 'google',
+        source: 'my_accounts',
+      },
+    ]);
+
+    expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'credential-1',
+        isConnected: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'GOOGLE_ADS',
+      },
+    });
+    expect(adsResearch.getAdDetail).toHaveBeenCalledWith('org-1', {
+      adAccountId: 'acct-1',
+      brandId: 'brand-1',
+      channel: 'search',
+      credentialId: 'credential-1',
+      id: 'source-1',
+      loginCustomerId: 'mcc-1',
+      platform: 'google',
+      source: 'my_accounts',
+    });
+    expect(saved).toMatchObject({
+      adAccountId: 'acct-1',
+      credentialId: 'credential-1',
+      loginCustomerId: 'mcc-1',
+    });
+  });
+
   it('restores a soft-deleted snapshot instead of creating a duplicate', async () => {
     (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'saved-1',

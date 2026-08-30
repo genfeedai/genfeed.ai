@@ -1,16 +1,17 @@
 import { createHash } from 'node:crypto';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type {
   AdsResearchPlatform,
   SaveAdInput,
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
 } from '@genfeedai/interfaces';
-import { CredentialPlatform, toPrismaJson } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
+import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -21,13 +22,6 @@ function optionalDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.valueOf()) ? undefined : parsed;
-}
-
-function credentialPlatform(platform: AdsResearchPlatform): CredentialPlatform {
-  if (platform === 'meta') return CredentialPlatform.FACEBOOK;
-  if (platform === 'google') return CredentialPlatform.GOOGLE_ADS;
-  if (platform === 'x') return CredentialPlatform.X_ADS;
-  return CredentialPlatform.TIKTOK;
 }
 
 @Injectable()
@@ -274,6 +268,12 @@ export class SavedAdsService {
     credentialId: string,
     platform: AdsResearchPlatform,
   ) {
+    const platformValue = toPrismaCredentialPlatform(
+      mapAdsCredentialPlatform(platform),
+    );
+    if (!platformValue) {
+      throw new BadRequestException('Unsupported ads credential platform');
+    }
     const credential = await this.prisma.credential.findFirst({
       select: { id: true },
       where: {
@@ -282,7 +282,7 @@ export class SavedAdsService {
         isConnected: true,
         isDeleted: false,
         organizationId,
-        platform: credentialPlatform(platform),
+        platform: platformValue,
       },
     });
     if (!credential) {

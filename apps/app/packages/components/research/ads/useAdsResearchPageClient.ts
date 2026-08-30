@@ -12,6 +12,7 @@ import type {
   AdsResearchTimeframe,
   CampaignLaunchPrep,
   ISavedAd,
+  SaveAdInput,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
@@ -156,6 +157,34 @@ function findSavedSnapshot(
     (item) =>
       item.platform === selectedAd.platform && item.sourceAdId === sourceAdId,
   );
+}
+
+export function buildSaveAdInput(
+  item: AdsResearchItem,
+  scope: {
+    adAccountId: string;
+    brandId: string;
+    credentialId: string;
+    loginCustomerId: string;
+  },
+): SaveAdInput {
+  const isConnected = item.source === 'my_accounts';
+  return {
+    adAccountId: isConnected
+      ? item.adAccountId || scope.adAccountId || undefined
+      : item.adAccountId,
+    adId: isConnected ? item.sourceId || item.id : item.id,
+    brandId: scope.brandId,
+    channel: item.channel,
+    credentialId: isConnected
+      ? item.credentialId || scope.credentialId || undefined
+      : item.credentialId,
+    loginCustomerId: isConnected
+      ? item.loginCustomerId || scope.loginCustomerId || undefined
+      : item.loginCustomerId,
+    platform: item.platform,
+    source: item.source,
+  };
 }
 
 export function useAdsResearchPageClient(
@@ -388,7 +417,8 @@ export function useAdsResearchPageClient(
         platform: effectivePlatform as AdsResearchPlatform,
       });
     },
-    enabled: !!credentialId && effectivePlatform !== 'all',
+    enabled:
+      !!credentialId && effectivePlatform !== 'all' && source !== 'saved',
   });
 
   const {
@@ -429,7 +459,19 @@ export function useAdsResearchPageClient(
     );
     const combined =
       source === 'saved'
-        ? saved.savedAds.map(toSavedAdResearchItem)
+        ? saved.savedAds
+            .filter(
+              (item) =>
+                (effectivePlatform === 'all' ||
+                  item.platform === effectivePlatform) &&
+                (!showChannelFilter ||
+                  channel === 'all' ||
+                  item.channel === channel) &&
+                (!credentialId || item.credentialId === credentialId) &&
+                (!adAccountId || item.adAccountId === adAccountId) &&
+                (!loginCustomerId || item.loginCustomerId === loginCustomerId),
+            )
+            .map(toSavedAdResearchItem)
         : [...results.publicAds, ...results.connectedAds].map((item) => {
             const sourceAdId = item.sourceId || item.id;
             const snapshot = sourceAdId
@@ -484,10 +526,16 @@ export function useAdsResearchPageClient(
 
     return filtered;
   }, [
+    adAccountId,
+    channel,
+    credentialId,
+    effectivePlatform,
+    loginCustomerId,
     results.publicAds,
     results.connectedAds,
     saved.savedAds,
     search,
+    showChannelFilter,
     sortKey,
     source,
   ]);
@@ -725,16 +773,14 @@ export function useAdsResearchPageClient(
     await saved.save(
       items
         .filter((item) => !item.savedAdId)
-        .map((item) => ({
-          adAccountId: item.adAccountId,
-          adId: item.source === 'my_accounts' ? item.sourceId : item.id,
-          brandId,
-          channel: item.channel,
-          credentialId: item.credentialId,
-          loginCustomerId: item.loginCustomerId,
-          platform: item.platform,
-          source: item.source,
-        })),
+        .map((item) =>
+          buildSaveAdInput(item, {
+            adAccountId,
+            brandId,
+            credentialId,
+            loginCustomerId,
+          }),
+        ),
     );
   };
 

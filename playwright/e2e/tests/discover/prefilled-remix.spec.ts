@@ -502,7 +502,24 @@ test.describe('Discover prefilled remix handoff', () => {
     };
     const savedDocument = () => ({
       data: isSaved
-        ? [{ attributes: savedAttributes, id: 'saved-ad-1', type: 'saved-ad' }]
+        ? [
+            {
+              attributes: savedAttributes,
+              id: 'saved-ad-1',
+              type: 'saved-ad',
+            },
+            {
+              attributes: {
+                ...savedAttributes,
+                platform: 'tiktok',
+                sourceAdId: 'tiktok-source-1',
+                sourceRecordId: 'tiktok-record-1',
+                title: 'Saved TikTok winner',
+              },
+              id: 'saved-ad-2',
+              type: 'saved-ad',
+            },
+          ]
         : [],
     });
 
@@ -566,6 +583,13 @@ test.describe('Discover prefilled remix handoff', () => {
         name: 'Durable Meta winner',
       }),
     ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', {
+        name: 'Saved TikTok winner',
+      }),
+    ).toBeHidden();
+    await authenticatedPage.getByRole('button', { name: 'Filters' }).click();
+    await expect(authenticatedPage.getByText('Timeframe')).toBeHidden();
     await authenticatedPage
       .getByRole('button', {
         name: 'Select Durable Meta winner for research context',

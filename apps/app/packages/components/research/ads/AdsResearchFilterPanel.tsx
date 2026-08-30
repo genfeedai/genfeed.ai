@@ -196,18 +196,22 @@ export function AdsResearchFilterPanel({
         value={metric}
         onChange={onMetricChange}
       />
-      <FilterSelect
-        label="Timeframe"
-        options={TIMEFRAME_OPTIONS}
-        value={timeframe}
-        onChange={onTimeframeChange}
-      />
-      <Input
-        value={industry}
-        onChange={(event) => onIndustryChange(event.target.value)}
-        placeholder="Niche / industry…"
-        className="h-8 w-[160px] text-xs"
-      />
+      {source !== 'saved' && (
+        <>
+          <FilterSelect
+            label="Timeframe"
+            options={TIMEFRAME_OPTIONS}
+            value={timeframe}
+            onChange={onTimeframeChange}
+          />
+          <Input
+            value={industry}
+            onChange={(event) => onIndustryChange(event.target.value)}
+            placeholder="Niche / industry…"
+            className="h-8 w-[160px] text-xs"
+          />
+        </>
+      )}
       <Select
         value={credentialId || ALL_FILTER_VALUE}
         onValueChange={(value) =>
