@@ -1,5 +1,5 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import type { TrainingLayoutProps } from '@genfeedai/interfaces/training-layout.interface';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import TrainingDetail from './training-detail';
 
@@ -10,7 +10,7 @@ export default async function TrainingLayout({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <TrainingDetail trainingId={id}>{children}</TrainingDetail>
     </Suspense>
   );

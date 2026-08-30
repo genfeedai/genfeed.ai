@@ -7,7 +7,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
 import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
@@ -26,7 +26,7 @@ function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
   }, [bundle, layout.document]);
 
   if (isLoading) {
-    return <LazyLoadingFallback variant="grid" />;
+    return <PageLoadingState />;
   }
 
   if (!hydration.isValid) {
@@ -46,7 +46,7 @@ export default function WorkspaceOverviewContent() {
   } = useDashboardLayout({ brandId });
 
   if (!isReady || isLayoutLoading) {
-    return <LazyLoadingFallback variant="grid" />;
+    return <PageLoadingState />;
   }
 
   if (!layout) {

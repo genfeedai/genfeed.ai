@@ -41,7 +41,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
+vi.mock('@ui/loading/page/PageLoadingState', () => ({
   default: () => <div>Loading discover</div>,
 }));
 

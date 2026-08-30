@@ -43,7 +43,7 @@ vi.mock('@genfeedai/agent/components', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
+vi.mock('@ui/loading/page/PageLoadingState', () => ({
   default: () => <div data-testid="dashboard-loading-fallback" />,
 }));
 
