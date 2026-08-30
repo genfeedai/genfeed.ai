@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "@sentry/nextjs": "*",
+    "@sentry/nextjs": "10.71.0",
     "@types/node": "24.13.3",
     "next": "*",
     "tailwindcss": "*",
