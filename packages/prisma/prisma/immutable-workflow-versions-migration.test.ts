@@ -6,6 +6,13 @@ import { Pool, type PoolClient } from 'pg';
 import { describe, expect, it } from 'vitest';
 
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
+const seededSystemCleanupMigrationSource = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260828115959_retire_seeded_system_workflow_mirrors/migration.sql',
+  ),
+  'utf8',
+);
 const migrationSource = readFileSync(
   join(
     prismaDir,
@@ -130,8 +137,9 @@ async function closeMigrationFixture(fixture: MigrationFixture): Promise<void> {
 async function runRejectedMigration(
   client: PoolClient,
   expectedError: RegExp,
+  source = migrationSource,
 ): Promise<void> {
-  await expect(client.query(migrationSource)).rejects.toThrow(expectedError);
+  await expect(client.query(source)).rejects.toThrow(expectedError);
   await client.query('ROLLBACK');
 }
 
@@ -230,23 +238,37 @@ describe('immutable workflow version migration', () => {
   });
 
   it('removes only unexecuted legacy seeded system mirrors before versioning', () => {
-    expect(migrationSource).toContain(
+    expect(seededSystemCleanupMigrationSource).toContain(
       'CREATE FUNCTION workflow_is_retired_seeded_system_clone',
     );
-    expect(migrationSource).toContain(`@.type == "systemWorkflowAction"`);
-    expect(migrationSource).toContain(
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `@.type == "systemWorkflowAction"`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
       `workflow_metadata->>'sourceType' = 'seeded-template'`,
     );
-    expect(migrationSource).toContain(
+    expect(seededSystemCleanupMigrationSource).toContain(
       `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
     );
-    expect(migrationSource).toContain('jsonb_array_length(workflow_nodes) = 1');
-    expect(migrationSource).toContain(
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'jsonb_array_length(workflow_nodes) = 1',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
       `workflow_nodes->0->'data'->'config'->>'actionId'`,
     );
-    expect(migrationSource).toContain('SELECT COALESCE(');
-    expect(migrationSource).toContain('FROM "batch_workflow_jobs" batch_job');
-    expect(migrationSource).toContain('DELETE FROM "workflows" workflow');
+    expect(seededSystemCleanupMigrationSource).toContain('SELECT COALESCE(');
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'FROM "batch_workflow_jobs" batch_job',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'DELETE FROM "workflows" workflow',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      "column_name = 'nodes'",
+    );
+    expect(migrationSource).not.toContain(
+      'workflow_is_retired_seeded_system_clone',
+    );
   });
 
   it('pins identity and every execution to tenant-owned immutable v1', () => {
@@ -382,6 +404,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
           ('execution_completed', 'workflow_graph', 'org_fixture', 'user_fixture', 'COMPLETED')
       `);
 
+      await client.query(seededSystemCleanupMigrationSource);
       await client.query(migrationSource);
 
       const versions = await client.query<{
@@ -619,6 +642,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
         ],
       );
 
+      await client.query(seededSystemCleanupMigrationSource);
       await client.query(migrationSource);
 
       const workflows = await client.query<{ id: string }>(`
@@ -676,6 +700,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       await runRejectedMigration(
         client,
         /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
       );
       await expectLegacySchemaIntact(client);
 
@@ -687,6 +712,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       await runRejectedMigration(
         client,
         /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
       );
       await expectLegacySchemaIntact(client);
 
@@ -710,6 +736,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       await runRejectedMigration(
         client,
         /legacy systemWorkflowAction nodes without exact retired seeded-system provenance/,
+        seededSystemCleanupMigrationSource,
       );
       await expectLegacySchemaIntact(client);
 
@@ -758,6 +785,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       await runRejectedMigration(
         client,
         /Retired seeded system workflows have execution history and cannot be removed automatically/,
+        seededSystemCleanupMigrationSource,
       );
       await expectLegacySchemaIntact(client);
 
@@ -771,8 +799,42 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       await runRejectedMigration(
         client,
         /Retired seeded system workflows have execution history and cannot be removed automatically/,
+        seededSystemCleanupMigrationSource,
       );
       await expectLegacySchemaIntact(client);
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
+  it('is a no-op when a community database already applied the immutable cutover', async () => {
+    const fixture = await openMigrationFixture(
+      'workflow_version_cleanup_after_cutover',
+    );
+    const { client } = fixture;
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes")
+          VALUES ('workflow_existing', 'org_fixture', 'user_fixture', $1::jsonb)
+        `,
+        [JSON.stringify([graphNode('llm_node', 'llm', { config: {} })])],
+      );
+
+      await client.query(migrationSource);
+      await client.query(seededSystemCleanupMigrationSource);
+
+      const workflows = await client.query<{ id: string }>(`
+        SELECT "id" FROM "workflows" ORDER BY "id"
+      `);
+      expect(workflows.rows).toEqual([{ id: 'workflow_existing' }]);
+
+      const versions = await client.query<{ workflowId: string }>(`
+        SELECT "workflowId" FROM "workflow_versions" ORDER BY "workflowId"
+      `);
+      expect(versions.rows).toEqual([{ workflowId: 'workflow_existing' }]);
     } finally {
       await closeMigrationFixture(fixture);
     }
