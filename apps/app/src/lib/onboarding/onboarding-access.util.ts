@@ -58,10 +58,10 @@ export const ONBOARDING_STORAGE_KEYS = {
   source: 'gf_onboarding_source',
 } as const;
 
-const REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{8,32}$/;
+const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
 
 export function parseReferralCode(value?: string | null): string | null {
-  const code = value?.trim();
+  const code = value?.trim().toLowerCase();
   return code && REFERRAL_CODE_PATTERN.test(code) ? code : null;
 }
 

@@ -4,19 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const prismaDir = fileURLToPath(new URL('./', import.meta.url));
+const ledgerIndexMigration = '20260827150000_billing_account_online_indexes';
+const referralMigration = '20260830140000_native_referral_credits';
 const schemaSource = readFileSync(join(prismaDir, 'schema.prisma'), 'utf8');
 const migrationSource = readFileSync(
-  join(
-    prismaDir,
-    'migrations/20260830140000_native_referral_credits/migration.sql',
-  ),
+  join(prismaDir, `migrations/${referralMigration}/migration.sql`),
   'utf8',
 );
 const ledgerIndexSource = readFileSync(
-  join(
-    prismaDir,
-    'migrations/20260827150000_billing_account_online_indexes/migration.sql',
-  ),
+  join(prismaDir, `migrations/${ledgerIndexMigration}/migration.sql`),
   'utf8',
 );
 
@@ -61,6 +57,7 @@ describe('native referral credits migration (#1435)', () => {
     expect(migrationSource).not.toContain(
       'credit_transactions_org_idempotency_key',
     );
+    expect(ledgerIndexMigration < referralMigration).toBe(true);
   });
 
   it('does not model the raw partial indexes as unconditional Prisma uniques', () => {

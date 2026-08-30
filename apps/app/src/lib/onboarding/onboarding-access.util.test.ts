@@ -220,14 +220,15 @@ describe('persistOnboardingHandoffParams', () => {
   it('stores only bounded opaque referral codes', () => {
     const storedValues = new Map<string, string>();
 
-    persistOnboardingHandoffParams('?ref=friend_2345', {
+    persistOnboardingHandoffParams('?ref=ABCDEF23JKMN', {
       setItem: (key, value) => storedValues.set(key, value),
     });
 
     expect(storedValues.get(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
-      'friend_2345',
+      'abcdef23jkmn',
     );
     expect(parseReferralCode('not a code')).toBeNull();
+    expect(parseReferralCode('code_with_1')).toBeNull();
     expect(parseReferralCode('x'.repeat(33))).toBeNull();
   });
 });
