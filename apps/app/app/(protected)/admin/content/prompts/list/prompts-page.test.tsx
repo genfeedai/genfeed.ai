@@ -2,16 +2,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PromptsPage from './prompts-page';
 
-const mocks = vi.hoisted(() => ({
-  error: vi.fn(),
-  findAll: vi.fn(),
-  loggerError: vi.fn(),
-  loggerInfo: vi.fn(),
-  success: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const findAll = vi.fn();
+
+  return {
+    error: vi.fn(),
+    findAll,
+    getService: vi.fn(async () => ({ findAll })),
+    loggerError: vi.fn(),
+    loggerInfo: vi.fn(),
+    success: vi.fn(),
+  };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ findAll: mocks.findAll }),
+  useAuthedService: () => mocks.getService,
 }));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
