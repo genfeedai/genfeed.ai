@@ -319,7 +319,7 @@ export default function RepliesPage() {
         headerAction={
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={isEnabling}
+              isDisabled={isEnabling}
               onClick={() => void handleEnableAuto()}
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
@@ -327,7 +327,7 @@ export default function RepliesPage() {
               {isEnabling ? 'Enabling…' : 'Enable auto-replies'}
             </Button>
             <Button
-              disabled={isLoading}
+              isDisabled={isLoading}
               onClick={() => void loadInbox()}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
@@ -408,7 +408,7 @@ export default function RepliesPage() {
           bodyClassName="flex flex-col gap-3 p-4"
           headerAction={
             <Button
-              disabled={isConnecting}
+              isDisabled={isConnecting}
               onClick={() => void handleConnectPlatform()}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
@@ -482,7 +482,7 @@ export default function RepliesPage() {
                 />
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    disabled={busyId === item.commentId}
+                    isDisabled={busyId === item.commentId}
                     onClick={() => void handleDraft(item)}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
@@ -490,7 +490,7 @@ export default function RepliesPage() {
                     {translate('actions.draft')}
                   </Button>
                   <Button
-                    disabled={busyId === item.commentId}
+                    isDisabled={busyId === item.commentId}
                     onClick={() => void handleSend(item)}
                     size={ButtonSize.SM}
                     variant={ButtonVariant.DEFAULT}
