@@ -15,7 +15,7 @@ const migrationSource = readFileSync(
 const ledgerIndexSource = readFileSync(
   join(
     prismaDir,
-    'migrations/20260830141000_referral_credit_idempotency_index/migration.sql',
+    'migrations/20260827150000_billing_account_online_indexes/migration.sql',
   ),
   'utf8',
 );
@@ -46,18 +46,18 @@ describe('native referral credits migration (#1435)', () => {
     expect(schemaSource).toContain('referredBillingAccountId String');
   });
 
-  it('builds the hot-ledger idempotency index concurrently and in isolation', () => {
+  it('reuses the stricter global active-ledger idempotency index', () => {
     const ledgerIndexSql = stripSqlComments(ledgerIndexSource);
 
-    expect(ledgerIndexSql.match(/CREATE UNIQUE INDEX/g)).toHaveLength(1);
     expect(ledgerIndexSql).toContain(
-      'CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_transactions_org_idempotency_key"',
+      'CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_transactions_idempotencyKey_active_key"',
     );
     expect(ledgerIndexSql).toContain(
-      'ON "credit_transactions" ("organizationId", "idempotencyKey")',
+      'ON "credit_transactions" ("idempotencyKey")',
     );
-    expect(ledgerIndexSql).toContain('WHERE "isDeleted" = false');
-    expect(ledgerIndexSql).toContain('AND "idempotencyKey" IS NOT NULL');
+    expect(ledgerIndexSql).toContain(
+      'WHERE "idempotencyKey" IS NOT NULL AND "isDeleted" = false',
+    );
     expect(migrationSource).not.toContain(
       'credit_transactions_org_idempotency_key',
     );

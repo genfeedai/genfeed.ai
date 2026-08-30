@@ -184,7 +184,7 @@ export class ReferralsService {
     actor: ReferralActor,
     rawCode: string,
   ): Promise<IReferralClaimResult> {
-    const code = rawCode.trim();
+    const code = rawCode.trim().toLowerCase();
     const targetAccount = await this.resolveActorAccount(actor);
     const referralCode = await this.prisma.referralCode.findFirst({
       where: { code, isActive: true, isDeleted: false },

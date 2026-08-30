@@ -227,6 +227,10 @@ describe('ReferralsService', () => {
     prisma.billingAccountMember.findFirst
       .mockResolvedValueOnce({ id: 'target_member' })
       .mockResolvedValueOnce(null);
+    prisma.billingAccountOrganization.findMany.mockResolvedValue([
+      { organizationId: ACTOR.organizationId },
+      { organizationId: 'org_linked_2' },
+    ]);
     prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'tx_paid' });
 
     const result = await service.claim(ACTOR, 'validcode1');
@@ -235,7 +239,7 @@ describe('ReferralsService', () => {
     expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
       select: { id: true },
       where: expect.objectContaining({
-        organizationId: { in: [ACTOR.organizationId] },
+        organizationId: { in: [ACTOR.organizationId, 'org_linked_2'] },
         source: {
           in: [ActivitySource.PAY_AS_YOU_GO, 'pay-as-you-go'],
         },
@@ -253,6 +257,10 @@ describe('ReferralsService', () => {
     prisma.billingAccountMember.findFirst
       .mockResolvedValueOnce({ id: 'target_member' })
       .mockResolvedValueOnce(null);
+    prisma.billingAccountOrganization.findMany.mockResolvedValue([
+      { organizationId: ACTOR.organizationId },
+      { organizationId: 'org_linked_2' },
+    ]);
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_paid' });
 
     const result = await service.claim(ACTOR, 'validcode1');
@@ -262,7 +270,7 @@ describe('ReferralsService', () => {
       select: { id: true },
       where: {
         isDeleted: false,
-        organizationId: { in: [ACTOR.organizationId] },
+        organizationId: { in: [ACTOR.organizationId, 'org_linked_2'] },
         stripeSubscriptionId: { not: null },
       },
     });

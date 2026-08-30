@@ -64,9 +64,9 @@ Use approach 3. Vincent explicitly selected the native, full end-to-end program 
   parts, preserves OSS portability, and recovers from downtime without relying
   on Redis retention. A compare-and-set processing lease prevents duplicate
   workers from granting the same row.
-- Credit-ledger idempotency is enforced by an active-row partial unique index
-  built concurrently, so soft-deleted history does not poison a key and rollout
-  does not block writes on the hot ledger table.
+- Credit-ledger idempotency reuses the billing stack's global active-row partial
+  unique index, built concurrently so soft-deleted history does not poison a key
+  and rollout does not block writes on the hot ledger table.
 - Signup preserves `ref` through callback parameters and temporary browser storage;
   the authenticated claim endpoint makes the durable decision.
 - Stripe Checkout and payment objects are authoritative for purchase identity and

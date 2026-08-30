@@ -49,9 +49,10 @@ recovers expired leases, grants expiring credits, and links the resulting ledger
 transaction to the reward. Tax-inclusive Stripe refunds are normalized back to
 the stored pre-tax purchase basis before reward credits are adjusted.
 
-The credit-ledger idempotency index is installed concurrently in a standalone
-migration so normal credit writes remain available while the hot table is
-indexed. Soft-deleted ledger history does not reserve active idempotency keys.
+The feature reuses the billing stack's stricter global active-ledger idempotency
+index, which is installed concurrently so normal credit writes remain available
+while the hot table is indexed. Soft-deleted ledger history does not reserve
+active idempotency keys.
 
 Operators should investigate `FAILED` rewards in the admin audit view. The
 failure reason is bounded and contains no referral link or customer email.
