@@ -60,6 +60,7 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
@@ -98,6 +99,7 @@ import { OrganizationsService } from '@server/collections/organizations/services
 import { UsersService } from '@server/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
 import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -263,6 +265,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         CreditsUtilsService,
         CreditBalanceService,
         CreditTransactionsService,
+        TransactionUtil,
         {
           provide: RedisService,
           useValue: { getPublisher: () => redisPublisherDouble },
@@ -270,6 +273,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         { provide: StripeSubscriptionWebhookHandler, useValue: {} },
         { provide: StripeCheckoutWebhookHandler, useValue: {} },
         { provide: StripeCustomerWebhookHandler, useValue: {} },
+        { provide: StripePaymentWebhookHandler, useValue: {} },
         {
           provide: SUBSCRIPTIONS_SERVICE,
           useValue: buildSubscriptionsServiceStub(subscriptionsById),
