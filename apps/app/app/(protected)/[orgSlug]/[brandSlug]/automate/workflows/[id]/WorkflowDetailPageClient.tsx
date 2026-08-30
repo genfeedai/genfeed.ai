@@ -288,15 +288,75 @@ export default function WorkflowDetailPageClient({
     void handleRun();
   }, [handleRun, hasRunInputs]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          {translate('detail.loadingEditor')}
+  const toolbarElement = (
+    <CloudWorkflowToolbar
+      isSaving={isSaving}
+      leftContent={<WorkflowEditorToolbarNavigation />}
+      middleContent={<CloudCreditsIndicator />}
+      onRename={handleRename}
+      rightContent={
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {workflowEstimateLabel && (
+              <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
+                {workflowEstimateLabel}
+              </span>
+            )}
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${getLifecycleBadgeClass(lifecycle)}`}
+            >
+              {lifecycle}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={() => setIsScheduleDialogOpen(true)}
+              disabled={isLoading}
+              icon={<CalendarClock className="size-4" />}
+              tooltip={translate('actions.scheduleTooltip')}
+            >
+              {translate('actions.schedule')}
+            </Button>
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              onClick={handleRunButtonClick}
+              disabled={isRunning || isLoading}
+              icon={<Play className="size-4" />}
+            >
+              {isRunning
+                ? translate('actions.running')
+                : translate('actions.run')}
+            </Button>
+            {lifecycle === WorkflowLifecycle.DRAFT && (
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.SM}
+                onClick={handlePublish}
+                disabled={isLoading}
+              >
+                {translate('actions.publish')}
+              </Button>
+            )}
+            {lifecycle !== WorkflowLifecycle.ARCHIVED && (
+              <Button
+                variant={ButtonVariant.DESTRUCTIVE}
+                size={ButtonSize.SM}
+                onClick={handleArchive}
+                disabled={isLoading}
+                className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
+              >
+                {translate('actions.archive')}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    );
-  }
+      }
+    />
+  );
 
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
@@ -308,93 +368,42 @@ export default function WorkflowDetailPageClient({
             </div>
           )}
 
-          <WorkflowEditorShell
-            nodePalette={<CloudNodePalette />}
-            nodeTypes={cloudNodeTypes}
-            rightPanel={
-              showRunPanel ? (
-                <WorkflowRunPanel
-                  inputVariables={inputVariables}
-                  isRunning={isRunning}
-                  onClose={() => setShowRunPanel(false)}
-                  onRun={handleRun}
-                />
-              ) : visibleExecutionPanelId ? (
-                <ExecutionPanel
-                  workflowId={currentWorkflowId ?? workflowId ?? 'new'}
-                  onClose={handleCloseExecutionPanel}
-                  onTerminalExecution={handleTerminalExecution}
-                  runId={visibleExecutionPanelId}
-                />
-              ) : null
-            }
-            toolbar={
-              <CloudWorkflowToolbar
-                isSaving={isSaving}
-                leftContent={<WorkflowEditorToolbarNavigation />}
-                middleContent={<CloudCreditsIndicator />}
-                onRename={handleRename}
-                rightContent={
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {workflowEstimateLabel && (
-                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
-                          {workflowEstimateLabel}
-                        </span>
-                      )}
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${getLifecycleBadgeClass(lifecycle)}`}
-                      >
-                        {lifecycle}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={ButtonVariant.SECONDARY}
-                        size={ButtonSize.SM}
-                        onClick={() => setIsScheduleDialogOpen(true)}
-                        icon={<CalendarClock className="size-4" />}
-                        tooltip={translate('actions.scheduleTooltip')}
-                      >
-                        {translate('actions.schedule')}
-                      </Button>
-                      <Button
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        onClick={handleRunButtonClick}
-                        disabled={isRunning}
-                        icon={<Play className="size-4" />}
-                      >
-                        {isRunning
-                          ? translate('actions.running')
-                          : translate('actions.run')}
-                      </Button>
-                      {lifecycle === WorkflowLifecycle.DRAFT && (
-                        <Button
-                          variant={ButtonVariant.DEFAULT}
-                          size={ButtonSize.SM}
-                          onClick={handlePublish}
-                        >
-                          {translate('actions.publish')}
-                        </Button>
-                      )}
-                      {lifecycle !== WorkflowLifecycle.ARCHIVED && (
-                        <Button
-                          variant={ButtonVariant.DESTRUCTIVE}
-                          size={ButtonSize.SM}
-                          onClick={handleArchive}
-                          className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
-                        >
-                          {translate('actions.archive')}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                }
-              />
-            }
-          />
+          {isLoading ? (
+            <main
+              className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
+              data-testid="workflow-editor-loading-shell"
+            >
+              {toolbarElement}
+              <div className="flex flex-1 items-center justify-center">
+                <div className="animate-pulse text-muted-foreground">
+                  {translate('detail.loadingEditor')}
+                </div>
+              </div>
+            </main>
+          ) : (
+            <WorkflowEditorShell
+              nodePalette={<CloudNodePalette />}
+              nodeTypes={cloudNodeTypes}
+              rightPanel={
+                showRunPanel ? (
+                  <WorkflowRunPanel
+                    inputVariables={inputVariables}
+                    isRunning={isRunning}
+                    onClose={() => setShowRunPanel(false)}
+                    onRun={handleRun}
+                  />
+                ) : visibleExecutionPanelId ? (
+                  <ExecutionPanel
+                    workflowId={currentWorkflowId ?? workflowId ?? 'new'}
+                    onClose={handleCloseExecutionPanel}
+                    onTerminalExecution={handleTerminalExecution}
+                    runId={visibleExecutionPanelId}
+                  />
+                ) : null
+              }
+              toolbar={toolbarElement}
+            />
+          )}
 
           {isScheduleDialogOpen ? (
             <WorkflowScheduleDialog

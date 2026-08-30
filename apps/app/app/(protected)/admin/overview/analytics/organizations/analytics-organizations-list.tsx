@@ -12,7 +12,6 @@ import {
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
 import AppTable from '@ui/display/table/Table';
-import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { format } from 'date-fns';
@@ -178,10 +177,6 @@ export default function AnalyticsOrganizationsList({
     ],
     [basePath],
   );
-
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
 
   return (
     <div className="flex flex-col gap-4">

@@ -1,7 +1,11 @@
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsOrganizationsList from './analytics-organizations-list';
+
+const mocks = vi.hoisted(() => ({
+  getOrganizationsWithStats: vi.fn(),
+}));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: vi.fn(() => ({
@@ -14,18 +18,9 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      getOrganizationsWithStats: vi.fn().mockResolvedValue({
-        data: [],
-        pagination: {
-          page: 1,
-          total: 0,
-          totalPages: 0,
-        },
-      }),
-    }),
-  ),
+  useAuthedService: vi.fn(() => async () => ({
+    getOrganizationsWithStats: mocks.getOrganizationsWithStats,
+  })),
 }));
 
 vi.mock('@services/analytics/analytics.service', () => ({
@@ -34,17 +29,41 @@ vi.mock('@services/analytics/analytics.service', () => ({
   },
 }));
 
-vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div data-testid="loading">Loading</div>,
-}));
-
-describe('AnalyticsOrganizationsList', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<AnalyticsOrganizationsList />);
-    expect(container.firstChild).toBeInTheDocument();
+describe('AnalyticsOrganizationsList shell-first loading', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('should handle user interactions correctly', () => {});
+  it('renders the heading and sort control immediately while organizations are loading', () => {
+    mocks.getOrganizationsWithStats.mockReturnValueOnce(
+      new Promise(() => undefined),
+    );
 
-  it('should apply correct styles and classes', () => {});
+    render(<AnalyticsOrganizationsList />);
+
+    expect(
+      screen.getByRole('heading', { name: /All Organizations/ }),
+    ).toBeVisible();
+    expect(screen.getByTestId('skeleton-table')).toBeVisible();
+  });
+
+  it('renders the organizations table once loading resolves', async () => {
+    mocks.getOrganizationsWithStats.mockResolvedValueOnce({
+      data: [],
+      pagination: {
+        page: 1,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+
+    render(<AnalyticsOrganizationsList />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('skeleton-table')).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('heading', { name: /All Organizations/ }),
+    ).toBeVisible();
+  });
 });

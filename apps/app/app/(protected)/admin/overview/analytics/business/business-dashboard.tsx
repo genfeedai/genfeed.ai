@@ -264,10 +264,6 @@ export default function BusinessDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  if (isLoading && !data) {
-    return <Loading />;
-  }
-
   if (error && !data) {
     return (
       <Alert type={AlertCategory.ERROR}>
@@ -276,7 +272,7 @@ export default function BusinessDashboard() {
     );
   }
 
-  if (!data) {
+  if (!isLoading && !data) {
     return (
       <Alert type={AlertCategory.WARNING}>
         No business analytics data available.
@@ -293,24 +289,24 @@ export default function BusinessDashboard() {
           {
             icon: Banknote,
             label: 'Today',
-            trend: data.revenue.wowGrowth,
+            trend: data?.revenue.wowGrowth,
             trendLabel: 'WoW',
-            value: formatCurrency(data.revenue.today),
+            value: formatCurrency(data?.revenue.today ?? 0),
           },
           {
             icon: Banknote,
             label: 'Last 7 Days',
-            value: formatCurrency(data.revenue.last7d),
+            value: formatCurrency(data?.revenue.last7d ?? 0),
           },
           {
             icon: Banknote,
             label: 'Last 30 Days',
-            value: formatCurrency(data.revenue.last30d),
+            value: formatCurrency(data?.revenue.last30d ?? 0),
           },
           {
             icon: Banknote,
             label: 'Month to Date',
-            value: formatCurrency(data.revenue.mtd),
+            value: formatCurrency(data?.revenue.mtd ?? 0),
           },
         ]}
         gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
@@ -324,14 +320,14 @@ export default function BusinessDashboard() {
           {
             icon: CreditCard,
             label: 'Credits Sold',
-            trend: data.credits.wowGrowth,
+            trend: data?.credits.wowGrowth,
             trendLabel: 'WoW',
-            value: formatCompactNumberIntl(data.credits.sold),
+            value: formatCompactNumberIntl(data?.credits.sold ?? 0),
           },
           {
             icon: Sparkles,
             label: 'Credits Consumed',
-            value: formatCompactNumberIntl(data.credits.consumed),
+            value: formatCompactNumberIntl(data?.credits.consumed ?? 0),
           },
         ]}
         gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
@@ -345,139 +341,149 @@ export default function BusinessDashboard() {
           {
             icon: Box,
             label: 'Today',
-            trend: data.ingredients.wowGrowth,
+            trend: data?.ingredients.wowGrowth,
             trendLabel: 'WoW',
-            value: formatCompactNumberIntl(data.ingredients.today),
+            value: formatCompactNumberIntl(data?.ingredients.today ?? 0),
           },
           {
             icon: Box,
             label: 'Last 7 Days',
-            value: formatCompactNumberIntl(data.ingredients.last7d),
+            value: formatCompactNumberIntl(data?.ingredients.last7d ?? 0),
           },
           {
             icon: Box,
             label: 'Last 30 Days',
-            value: formatCompactNumberIntl(data.ingredients.last30d),
+            value: formatCompactNumberIntl(data?.ingredients.last30d ?? 0),
           },
         ]}
         gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
         isLoading={isLoading}
       />
 
-      {/* Category Breakdown */}
-      {data.ingredients.categoryBreakdown.length > 0 && (
-        <Card bodyClassName="gap-0 p-4">
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
-            Ingredient Category Breakdown
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            {data.ingredients.categoryBreakdown.map((item) => (
-              <div
-                key={item.category}
-                className="flex items-center gap-2 rounded bg-muted px-3 py-2"
-              >
-                <Image className="size-4 text-muted-foreground" />
-                <span className="text-sm font-medium capitalize text-foreground">
-                  {item.category.toLowerCase()}
-                </span>
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {formatCompactNumberIntl(item.count)}
-                </span>
+      {data ? (
+        <>
+          {/* Category Breakdown */}
+          {data.ingredients.categoryBreakdown.length > 0 && (
+            <Card bodyClassName="gap-0 p-4">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">
+                Ingredient Category Breakdown
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {data.ingredients.categoryBreakdown.map((item) => (
+                  <div
+                    key={item.category}
+                    className="flex items-center gap-2 rounded bg-muted px-3 py-2"
+                  >
+                    <Image className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium capitalize text-foreground">
+                      {item.category.toLowerCase()}
+                    </span>
+                    <span className="text-sm tabular-nums text-muted-foreground">
+                      {formatCompactNumberIntl(item.count)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </Card>
+          )}
+
+          {/* Daily Series Charts */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <DailySeriesChart
+              title="Daily Revenue (30d)"
+              data={data.revenue.dailySeries}
+              valueKey="amount"
+              formatter={formatCurrency}
+            />
+            <DailySeriesChart
+              title="Daily Ingredients (30d)"
+              data={data.ingredients.dailySeries}
+              valueKey="count"
+              formatter={(v) => formatCompactNumberIntl(v)}
+            />
           </div>
-        </Card>
+
+          {/* Comparison Cards */}
+          <div>
+            <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
+              Comparisons
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <ComparisonCard
+                title="Cash In vs Usage Value"
+                leftLabel="Cash In"
+                leftValue={formatCurrency(
+                  data.comparisons.cashInVsUsageValue.cashIn,
+                )}
+                rightLabel="Usage Value"
+                rightValue={formatCurrency(
+                  data.comparisons.cashInVsUsageValue.usageValue,
+                )}
+              />
+              <ComparisonCard
+                title="Credits Sold vs Consumed"
+                leftLabel="Sold"
+                leftValue={formatCompactNumberIntl(
+                  data.comparisons.soldVsConsumed.sold,
+                )}
+                rightLabel="Consumed"
+                rightValue={formatCompactNumberIntl(
+                  data.comparisons.soldVsConsumed.consumed,
+                )}
+              />
+              <ComparisonCard
+                title="Outstanding Prepaid"
+                leftLabel="Prepaid Balance"
+                leftValue={formatCurrency(data.comparisons.outstandingPrepaid)}
+                rightLabel=""
+                rightValue=""
+                difference="Credits sold but not yet consumed"
+              />
+            </div>
+          </div>
+
+          {/* Projections */}
+          <div>
+            <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
+              Projections
+            </h2>
+            <ProjectionCard projections={data.projections} />
+          </div>
+
+          {/* Leader Tables */}
+          <div>
+            <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
+              Top Organizations
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <LeaderTable
+                title="By Revenue"
+                leaders={data.leaders.byRevenue}
+                valueFormatter={(item) => formatCurrency(item.amount ?? 0)}
+                valueLabel="Revenue"
+              />
+              <LeaderTable
+                title="By Credits Consumed"
+                leaders={data.leaders.byCredits}
+                valueFormatter={(item) =>
+                  formatCompactNumberIntl(item.amount ?? 0)
+                }
+                valueLabel="Credits"
+              />
+              <LeaderTable
+                title="By Ingredients"
+                leaders={data.leaders.byIngredients}
+                valueFormatter={(item) =>
+                  formatCompactNumberIntl(item.count ?? 0)
+                }
+                valueLabel="Count"
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        <Loading isFullSize={false} />
       )}
-
-      {/* Daily Series Charts */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <DailySeriesChart
-          title="Daily Revenue (30d)"
-          data={data.revenue.dailySeries}
-          valueKey="amount"
-          formatter={formatCurrency}
-        />
-        <DailySeriesChart
-          title="Daily Ingredients (30d)"
-          data={data.ingredients.dailySeries}
-          valueKey="count"
-          formatter={(v) => formatCompactNumberIntl(v)}
-        />
-      </div>
-
-      {/* Comparison Cards */}
-      <div>
-        <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
-          Comparisons
-        </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <ComparisonCard
-            title="Cash In vs Usage Value"
-            leftLabel="Cash In"
-            leftValue={formatCurrency(
-              data.comparisons.cashInVsUsageValue.cashIn,
-            )}
-            rightLabel="Usage Value"
-            rightValue={formatCurrency(
-              data.comparisons.cashInVsUsageValue.usageValue,
-            )}
-          />
-          <ComparisonCard
-            title="Credits Sold vs Consumed"
-            leftLabel="Sold"
-            leftValue={formatCompactNumberIntl(
-              data.comparisons.soldVsConsumed.sold,
-            )}
-            rightLabel="Consumed"
-            rightValue={formatCompactNumberIntl(
-              data.comparisons.soldVsConsumed.consumed,
-            )}
-          />
-          <ComparisonCard
-            title="Outstanding Prepaid"
-            leftLabel="Prepaid Balance"
-            leftValue={formatCurrency(data.comparisons.outstandingPrepaid)}
-            rightLabel=""
-            rightValue=""
-            difference="Credits sold but not yet consumed"
-          />
-        </div>
-      </div>
-
-      {/* Projections */}
-      <div>
-        <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
-          Projections
-        </h2>
-        <ProjectionCard projections={data.projections} />
-      </div>
-
-      {/* Leader Tables */}
-      <div>
-        <h2 className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground">
-          Top Organizations
-        </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <LeaderTable
-            title="By Revenue"
-            leaders={data.leaders.byRevenue}
-            valueFormatter={(item) => formatCurrency(item.amount ?? 0)}
-            valueLabel="Revenue"
-          />
-          <LeaderTable
-            title="By Credits Consumed"
-            leaders={data.leaders.byCredits}
-            valueFormatter={(item) => formatCompactNumberIntl(item.amount ?? 0)}
-            valueLabel="Credits"
-          />
-          <LeaderTable
-            title="By Ingredients"
-            leaders={data.leaders.byIngredients}
-            valueFormatter={(item) => formatCompactNumberIntl(item.count ?? 0)}
-            valueLabel="Count"
-          />
-        </div>
-      </div>
     </div>
   );
 }
