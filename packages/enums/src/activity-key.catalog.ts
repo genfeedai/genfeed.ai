@@ -188,31 +188,12 @@ const OPERATION_LABELS: Record<ActivityOperation, string> = {
 /** Multi-segment prefixes that are not `subject-op-phase`. */
 const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
-    if (key === 'credits-add') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-remove') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-remove-all') {
-      return {
-        key,
-        lifecycle: 'completed',
-        operation: 'credit',
-        subject: 'credits',
-      };
-    }
-    if (key === 'credits-reset') {
+    if (
+      key === 'credits-add' ||
+      key === 'credits-remove' ||
+      key === 'credits-remove-all' ||
+      key === 'credits-reset'
+    ) {
       return {
         key,
         lifecycle: 'completed',
@@ -225,17 +206,16 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('model-training-')) {
       const tail = key.slice('model-training-'.length);
-      const lifecycle =
-        tail === 'created'
-          ? 'created'
-          : tail === 'completed'
-            ? 'completed'
-            : tail === 'failed'
-              ? 'failed'
-              : 'processing';
+      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle,
+        lifecycle:
+          tail === lifecycle &&
+          (lifecycle === 'created' ||
+            lifecycle === 'completed' ||
+            lifecycle === 'failed')
+            ? lifecycle
+            : 'processing',
         operation: 'train',
         subject: 'model',
       };
@@ -245,17 +225,16 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('content-publish-')) {
       const tail = key.slice('content-publish-'.length);
-      const lifecycle =
-        tail === 'published'
-          ? 'published'
-          : tail === 'scheduled'
-            ? 'scheduled'
-            : tail === 'failed'
-              ? 'failed'
-              : 'processing';
+      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle,
+        lifecycle:
+          tail === lifecycle &&
+          (lifecycle === 'published' ||
+            lifecycle === 'scheduled' ||
+            lifecycle === 'failed')
+            ? lifecycle
+            : 'processing',
         operation: 'publish',
         subject: 'post',
       };
@@ -273,9 +252,10 @@ const SPECIAL_PARSERS: Array<(key: string) => ActivityKeyParts | null> = [
   (key) => {
     if (key.startsWith('integration-social-')) {
       const tail = key.slice('integration-social-'.length);
+      const lifecycle = LIFECYCLE_BY_TOKEN[tail];
       return {
         key,
-        lifecycle: tail === 'disconnected' ? 'disconnected' : 'failed',
+        lifecycle: lifecycle === 'disconnected' ? lifecycle : 'failed',
         operation: 'connect',
         subject: 'integration',
       };
