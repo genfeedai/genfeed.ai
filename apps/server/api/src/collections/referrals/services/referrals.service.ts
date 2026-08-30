@@ -405,20 +405,6 @@ export class ReferralsService {
         },
         where: { id: reward.id },
       });
-      try {
-        await this.activitiesService.create({
-          key: ActivityKey.CREDITS_ADD,
-          organizationId: destination.id,
-          source: ActivitySource.REFERRAL,
-          userId: code.ownerUserId,
-          value: String(reward.rewardCredits),
-        });
-      } catch (activityError: unknown) {
-        this.logger.warn('Referral reward activity emission failed', {
-          activityError,
-          rewardId: reward.id,
-        });
-      }
     }
   }
 
@@ -587,6 +573,20 @@ export class ReferralsService {
         },
         where: { id: reward.id },
       });
+      try {
+        await this.activitiesService.create({
+          key: ActivityKey.CREDITS_ADD,
+          organizationId: destination.id,
+          source: ActivitySource.REFERRAL,
+          userId: code.ownerUserId,
+          value: String(reward.rewardCredits),
+        });
+      } catch (activityError: unknown) {
+        this.logger.warn('Referral reward activity emission failed', {
+          activityError,
+          rewardId: reward.id,
+        });
+      }
     } catch (error: unknown) {
       const current = await this.prisma.referralReward.findFirst({
         select: { attemptCount: true },
