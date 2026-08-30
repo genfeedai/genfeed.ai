@@ -207,13 +207,9 @@ export class VoiceGenerationService implements OnModuleInit {
     };
   }
 
-  private async executeGeneration(params: {
-    ingredientId: string;
-    organizationId: string;
-    text: string;
-    userId: string;
-    voiceId: string;
-  }): Promise<IngredientDocument> {
+  private async executeGeneration(
+    params: VoiceGenerationParams,
+  ): Promise<IngredientDocument> {
     let result: { audioUrl: string; duration: number };
     try {
       result = await this.elevenLabsService.generateAndUploadAudio(

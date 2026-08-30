@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import { AgentTurnWorkflowExecutionService } from '@server/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import { Effect } from 'effect';
@@ -137,16 +138,19 @@ describe('agent runtime workflow registration contract', () => {
 
     const executor = actions.get(AGENT_RUNTIME_ACTION_IDS.TURN_FAIL);
     expect(executor).toBeDefined();
-    await expect(
+    const error = await Promise.resolve(
       executor?.({
         context: { organizationId: 'organization-1', userId: 'user-1' },
-        input: { failure: {} },
+        input: { failure: {}, request: { threadId: 'thread-1' } },
         provenance: { executionId: 'execution-1' },
       } as never),
-    ).rejects.toMatchObject({
-      message: 'Agent workflow failure requires an error',
-      status: 400,
-    });
+    ).catch((cause: unknown) => cause);
+    expect(error).toBeInstanceOf(BadRequestException);
+    if (!(error instanceof BadRequestException)) {
+      throw new TypeError('Expected BadRequestException');
+    }
+    expect(error.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    expect(error.message).toBe('Agent workflow failure requires an error');
   });
 
   it('publishes one canonical terminal failure event path', async () => {
