@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import { AgentTurnWorkflowExecutionService } from '@server/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function source(relativePath: string): string {
@@ -118,5 +119,28 @@ describe('agent runtime workflow registration contract', () => {
       threadId: 'thread-1',
       userId: 'user-1',
     });
+  });
+
+  it('publishes one canonical terminal failure event path', async () => {
+    const publishStreamFailureEffect = vi.fn(() => Effect.void);
+    const recordRunFailed = vi.fn();
+    const dependencies = Array.from({ length: 18 }, () => ({}));
+    dependencies[13] = { publishStreamFailureEffect };
+    dependencies[14] = { recordRunFailed };
+    const service = Reflect.construct(
+      AgentTurnWorkflowExecutionService,
+      dependencies,
+    ) as AgentTurnWorkflowExecutionService;
+
+    await service.recordFailure({
+      error: 'Provider failed',
+      executionId: 'execution-1',
+      organizationId: 'organization-1',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    });
+
+    expect(recordRunFailed).not.toHaveBeenCalled();
+    expect(publishStreamFailureEffect).toHaveBeenCalledOnce();
   });
 });

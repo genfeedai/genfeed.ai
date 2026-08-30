@@ -545,12 +545,6 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       organizationId: params.organizationId,
       userId: params.userId,
     };
-    await this.threadEventRecorder.recordRunFailed({
-      context,
-      error: params.error,
-      runId: params.executionId,
-      threadId: params.threadId,
-    });
     await runEffectPromise(
       this.streamEffects.publishStreamFailureEffect({
         context,
