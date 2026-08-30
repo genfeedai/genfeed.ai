@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
+import type { TTSGenerateRequest } from '@voices/interfaces/voices.interfaces';
 import { JobService } from '@voices/services/job.service';
 import { TTSService } from '@voices/services/tts.service';
 
@@ -15,10 +16,7 @@ export class TTSController {
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate speech from text' })
-  generate(
-    @Body()
-    body: { text: string; voiceId?: string; language?: string; speed?: number },
-  ) {
+  generate(@Body() body: TTSGenerateRequest) {
     return this.ttsService.generate(body);
   }
 

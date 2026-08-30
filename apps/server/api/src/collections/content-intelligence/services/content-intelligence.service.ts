@@ -3,14 +3,15 @@ import {
   ScrapeConfigDto,
 } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { readRecordOrEmpty } from '@server/shared/utils/object/read-record-or-empty.util';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
+import { readRecordOrEmpty } from '@server/shared/utils/object/read-record-or-empty.util';
 
 @Injectable()
 export class ContentIntelligenceService extends BaseService<
@@ -137,7 +138,7 @@ export class ContentIntelligenceService extends BaseService<
   ): Promise<CreatorAnalysisDocument> {
     const existing = await this.delegate.findUnique({ where: { id } });
     if (!existing) {
-      throw new Error('Creator analysis not found');
+      throw new NotFoundException('Creator analysis');
     }
     return this.patch(id, {
       data: {
