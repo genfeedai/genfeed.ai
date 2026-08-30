@@ -15,6 +15,7 @@ import Container from '@ui/layout/container/Container';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Gift, TriangleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
 const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
@@ -34,6 +35,7 @@ function compactId(value: string | null): string {
 }
 
 export default function ReferralRewardsList() {
+  const translate = useTranslations('common.referrals');
   const { orgId, sessionId, userId } = useAuthIdentity();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
@@ -113,12 +115,9 @@ export default function ReferralRewardsList() {
       {error ? (
         <Alert variant="destructive">
           <TriangleAlert className="size-4" aria-hidden="true" />
-          <AlertTitle>Referral rewards unavailable</AlertTitle>
+          <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
           <AlertDescription>
-            <p>
-              Financial reward records could not be loaded. No empty audit
-              result is shown until the request succeeds.
-            </p>
+            <p>{translate('adminLoadErrorDescription')}</p>
             <Button
               className="mt-3"
               isDisabled={isFetching}
@@ -126,7 +125,7 @@ export default function ReferralRewardsList() {
               type="button"
               withWrapper={false}
             >
-              Retry
+              {translate('retry')}
             </Button>
           </AlertDescription>
         </Alert>

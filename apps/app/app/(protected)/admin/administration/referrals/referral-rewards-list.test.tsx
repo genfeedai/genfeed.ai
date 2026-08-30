@@ -16,6 +16,16 @@ const { getAdminRewardsMock, identityState } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({
+      adminLoadErrorDescription:
+        'Financial reward records could not be loaded.',
+      loadErrorTitle: 'Referral rewards unavailable',
+      retry: 'Retry',
+    })[key] ?? key,
+}));
+
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => identityState,
 }));

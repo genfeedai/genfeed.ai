@@ -833,6 +833,7 @@
     }
   },
   "referrals": {
+    "adminLoadErrorDescription": "Financial reward records could not be loaded. No empty audit result is shown until the request succeeds.",
     "copied": "Referral link copied",
     "copyLink": "Copy link",
     "creditsAmount": "{count} credits",
