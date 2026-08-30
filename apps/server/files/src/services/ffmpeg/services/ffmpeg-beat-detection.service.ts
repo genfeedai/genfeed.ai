@@ -430,6 +430,20 @@ export class FFmpegBeatDetectionService {
     return volumes;
   }
 
+  private generateRegularBeatTimestamps(
+    duration: number,
+    tempo: number,
+  ): number[] {
+    const beatInterval = 60 / tempo;
+    const beatTimestamps: number[] = [];
+
+    for (let timestamp = 0; timestamp < duration; timestamp += beatInterval) {
+      beatTimestamps.push(timestamp);
+    }
+
+    return beatTimestamps;
+  }
+
   /**
    * Detect beats from volume profile
    */
@@ -442,14 +456,11 @@ export class FFmpegBeatDetectionService {
     if (volumes.length === 0 || duration === 0) {
       // Return default 120 BPM pattern
       const tempo = 120;
-      const beatInterval = 60 / tempo;
-      const beatTimestamps: number[] = [];
 
-      for (let t = 0; t < duration; t += beatInterval) {
-        beatTimestamps.push(t);
-      }
-
-      return { beatTimestamps, tempo };
+      return {
+        beatTimestamps: this.generateRegularBeatTimestamps(duration, tempo),
+        tempo,
+      };
     }
 
     // Find peaks in volume data
@@ -469,14 +480,11 @@ export class FFmpegBeatDetectionService {
     // Calculate tempo from peak intervals
     if (peaks.length < 2) {
       const tempo = 120;
-      const beatInterval = 60 / tempo;
-      const beatTimestamps: number[] = [];
 
-      for (let t = 0; t < duration; t += beatInterval) {
-        beatTimestamps.push(t);
-      }
-
-      return { beatTimestamps, tempo };
+      return {
+        beatTimestamps: this.generateRegularBeatTimestamps(duration, tempo),
+        tempo,
+      };
     }
 
     const intervals: number[] = [];
@@ -495,14 +503,10 @@ export class FFmpegBeatDetectionService {
     tempo = Math.max(minBpm, Math.min(maxBpm, tempo));
 
     // Generate regular beat timestamps based on detected tempo
-    const beatInterval = 60 / tempo;
-    const beatTimestamps: number[] = [];
-
-    for (let t = 0; t < duration; t += beatInterval) {
-      beatTimestamps.push(t);
-    }
-
-    return { beatTimestamps, tempo };
+    return {
+      beatTimestamps: this.generateRegularBeatTimestamps(duration, tempo),
+      tempo,
+    };
   }
 
   /**

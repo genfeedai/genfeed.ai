@@ -176,6 +176,13 @@ describe('FFmpegBeatDetectionService', () => {
 
     expect(result.analysisMethod).toBe('ffmpeg');
     expect(result.confidence).toBe(0.6);
+    expect(result.beatTimestamps).toEqual([
+      0, 0.6999999999999993, 1.3999999999999986, 2.099999999999998,
+      2.799999999999997, 3.4999999999999964, 4.199999999999996,
+      4.899999999999995, 5.599999999999994, 6.299999999999994,
+      6.999999999999993, 7.699999999999992, 8.399999999999991, 9.09999999999999,
+      9.79999999999999,
+    ]);
     expect(core.probe).toHaveBeenCalledWith('/tmp/audio.mp3');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('aubio failed, falling back to FFmpeg'),
@@ -197,6 +204,24 @@ describe('FFmpegBeatDetectionService', () => {
     expect(result.analysisMethod).toBe('ffmpeg');
     expect(result.tempo).toBe(120);
     expect(result.beatTimestamps).toEqual([]);
+  });
+
+  it('preserves the regular 120 BPM fallback when too few peaks exist', async () => {
+    core.probe.mockResolvedValue({ format: { duration: '1.1' } });
+    spawnMock.mockImplementation((command: string) => {
+      if (command === 'aubio') {
+        return createMockProcess({ errorMessage: 'not available' });
+      }
+      return createMockProcess({
+        exitCode: 0,
+        stdout: 'lavfi.astats.Overall.RMS_level=-12.0\n',
+      });
+    });
+
+    const result = await service.analyzeBeat('/tmp/audio.mp3');
+
+    expect(result.tempo).toBe(120);
+    expect(result.beatTimestamps).toEqual([0, 0.5, 1]);
   });
 
   it('falls back to FFmpeg when the aubio tempo output is not a valid number', async () => {

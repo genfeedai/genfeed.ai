@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IBrandOsPreview } from '@genfeedai/interfaces';
-import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -16,6 +15,7 @@ import {
   type WebsiteAnalyticsEventProperties,
 } from '../../../packages/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../packages/analytics/posthog-client';
+import { buildAuthHandoffHref } from '../../../packages/auth/auth-handoff';
 import {
   BrandOSPreviewState,
   type BrandOSPreviewStateName,
@@ -29,28 +29,6 @@ function captureBrandOsWebsiteEvent<
     | typeof WEBSITE_ANALYTICS_EVENTS.BRAND_OS_PREVIEW_COMPLETED,
 >(event: E, properties: WebsiteAnalyticsEventProperties[E]): void {
   captureWebsiteAnalyticsEvent(event, properties);
-}
-
-function buildAuthHandoffHref(
-  path: 'login' | 'sign-up',
-  previewToken: string,
-): string {
-  const postSignup = new URL(
-    '/onboarding/post-signup',
-    EnvironmentService.apps.app,
-  );
-  postSignup.searchParams.set('brandOsToken', previewToken);
-
-  const auth = new URL(`/${path}`, EnvironmentService.apps.app);
-  if (path === 'login') {
-    auth.searchParams.set(
-      'callbackUrl',
-      `${postSignup.pathname}${postSignup.search}`,
-    );
-  } else {
-    auth.searchParams.set('brandOsToken', previewToken);
-  }
-  return auth.toString();
 }
 
 function resolvePreviewState(
@@ -261,7 +239,11 @@ export function BrandOsFunnel(): React.ReactElement {
             <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
               <Link
                 data-ph-no-capture
-                href={buildAuthHandoffHref('sign-up', preview.previewToken)}
+                href={buildAuthHandoffHref(
+                  'sign-up',
+                  'brandOsToken',
+                  preview.previewToken,
+                )}
                 onClick={() => captureHandoff('sign_up')}
               >
                 Create workspace and save
@@ -275,7 +257,11 @@ export function BrandOsFunnel(): React.ReactElement {
             >
               <Link
                 data-ph-no-capture
-                href={buildAuthHandoffHref('login', preview.previewToken)}
+                href={buildAuthHandoffHref(
+                  'login',
+                  'brandOsToken',
+                  preview.previewToken,
+                )}
                 onClick={() => captureHandoff('sign_in')}
               >
                 Sign in and save

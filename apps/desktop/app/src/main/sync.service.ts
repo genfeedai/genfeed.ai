@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import type {
-  DesktopAssetKind,
   DesktopAssetOrigin,
   DesktopAssetResidency,
   DesktopAssetUploadPolicy,
@@ -15,6 +14,7 @@ import type {
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
 import type { DesktopAsset, PrismaClient } from '@genfeedai/desktop-prisma';
+import { inferDesktopAssetKind } from './asset-mime.util';
 import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 
@@ -284,13 +284,6 @@ export class DesktopSyncService {
     };
   }
 
-  private inferAssetKind(mimeType: string): DesktopAssetKind {
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'video';
-    if (mimeType.startsWith('audio/')) return 'audio';
-    return 'document';
-  }
-
   private async upsertAsset(asset: IDesktopAsset): Promise<void> {
     const row = {
       brandId: asset.brandId ?? null,
@@ -338,7 +331,7 @@ export class DesktopSyncService {
       cloudAsset.mimeType ?? localAsset?.mimeType ?? 'application/octet-stream';
     const kind = isOneOf(cloudAsset.kind, ASSET_KINDS)
       ? cloudAsset.kind
-      : this.inferAssetKind(mimeType);
+      : inferDesktopAssetKind(mimeType);
     const origin: DesktopAssetOrigin = isOneOf(cloudAsset.origin, ASSET_ORIGINS)
       ? cloudAsset.origin
       : 'cloud-generation';

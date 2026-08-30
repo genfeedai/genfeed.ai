@@ -1,6 +1,7 @@
 import { AgentToolName } from '@genfeedai/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
+import { getWebviewNonce } from '@views/webview.util';
 import * as vscode from 'vscode';
 import { getWebviewStyles } from '@/styles';
 
@@ -73,7 +74,7 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtmlContent(webview: vscode.Webview): string {
-    const nonce = getNonce();
+    const nonce = getWebviewNonce();
     const styles = getWebviewStyles();
 
     return `<!DOCTYPE html>
@@ -132,14 +133,4 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  const alphabet =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let value = '';
-  for (let index = 0; index < 32; index += 1) {
-    value += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-  }
-  return value;
 }

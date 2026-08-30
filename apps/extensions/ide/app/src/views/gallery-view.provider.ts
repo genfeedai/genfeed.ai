@@ -1,5 +1,6 @@
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
+import { getWebviewNonce } from '@views/webview.util';
 import * as vscode from 'vscode';
 import { getWebviewStyles } from '@/styles';
 import type {
@@ -157,7 +158,7 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtmlContent(webview: vscode.Webview): string {
-    const nonce = getNonce();
+    const nonce = getWebviewNonce();
     const styles = getWebviewStyles();
 
     return `<!DOCTYPE html>
@@ -780,14 +781,4 @@ export class GalleryViewProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
   }
-}
-
-function getNonce(): string {
-  let text = '';
-  const possible =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
 }
