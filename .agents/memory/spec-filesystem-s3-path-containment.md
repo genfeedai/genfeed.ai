@@ -27,8 +27,6 @@ providers inject plain `Error` and remain framework-independent.
   absolute path that is equal to or below the resolved root.
 - `resolveContainedObjectKey(prefix, candidateKey, createError)` returns a
   relative POSIX S3 key below the normalized prefix.
-- `assertObjectKeyWithinPrefix(prefix, key, createError)` validates an existing
-  key without rewriting it.
 - `assertSafeSegment(value, name, createError)` validates one path/key segment.
 
 S3 key helpers reject empty input, absolute candidates, backslashes, NUL,

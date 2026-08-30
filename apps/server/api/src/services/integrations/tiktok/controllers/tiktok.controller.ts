@@ -33,9 +33,6 @@ import { TiktokService } from '@server/services/integrations/tiktok/services/tik
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 
-// In development, use ngrok for the front end
-// and lt for the backend ssh tunnel
-
 @AutoSwagger()
 @Controller('services/tiktok')
 export class TiktokController {

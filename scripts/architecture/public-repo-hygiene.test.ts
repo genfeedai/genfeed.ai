@@ -9,28 +9,29 @@ const OAUTH_CONTROLLER_FILES = [
   'apps/server/api/src/services/integrations/tiktok/controllers/tiktok.controller.ts',
 ] as const;
 
-const PERSONAL_NGROK_URL = /https:\/\/[a-z0-9-]+\.ngrok-free\.app\/oauth\//i;
+const PERSONAL_TUNNEL_URL =
+  /https:\/\/[a-z0-9-]+\.(?:ngrok-free\.app|ngrok\.io|trycloudflare\.com|loca\.lt)\b/i;
 
 const RETIRED_EXPORTS = [
   {
-    declaration: /export function createRouteMatcher\b/,
     file: 'packages/auth-client/src/server.ts',
+    symbol: 'createRouteMatcher',
   },
   {
-    declaration: /export function authMiddleware\b/,
     file: 'packages/auth-client/src/server.ts',
+    symbol: 'authMiddleware',
   },
   {
-    declaration: /export function assertObjectKeyWithinPrefix\b/,
     file: 'packages/storage/src/path-containment.ts',
+    symbol: 'assertObjectKeyWithinPrefix',
   },
   {
-    declaration: /\bassertObjectKeyWithinPrefix\b/,
     file: 'packages/storage/src/index.ts',
+    symbol: 'assertObjectKeyWithinPrefix',
   },
   {
-    declaration: /\bassertObjectKeyWithinPrefix\b/,
     file: 'packages/libs/security/index.ts',
+    symbol: 'assertObjectKeyWithinPrefix',
   },
 ] as const;
 
@@ -42,14 +43,14 @@ describe('public repository hygiene', () => {
   it.each(OAUTH_CONTROLLER_FILES)(
     'keeps the personal tunnel URL out of %s',
     (file) => {
-      expect(readSource(file)).not.toMatch(PERSONAL_NGROK_URL);
+      expect(readSource(file)).not.toMatch(PERSONAL_TUNNEL_URL);
     },
   );
 
   it.each(RETIRED_EXPORTS)(
-    'keeps retired exports out of $file',
-    ({ declaration, file }) => {
-      expect(readSource(file)).not.toMatch(declaration);
+    'keeps $symbol retired in $file',
+    ({ file, symbol }) => {
+      expect(readSource(file)).not.toMatch(new RegExp(`\\b${symbol}\\b`));
     },
   );
 });
