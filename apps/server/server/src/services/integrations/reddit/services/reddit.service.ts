@@ -1,3 +1,7 @@
+import {
+  type ChannelTargetSettings,
+  readChannelSettingString,
+} from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -79,11 +83,13 @@ export class RedditService {
     organizationId?: string,
     brandId?: string,
     limit = 20,
+    settings: ChannelTargetSettings = {},
   ): Promise<RedditTrend[]> {
     const accessToken = await this.getAppAccessToken();
     const subreddit = await this.resolveScopedSubreddit(
       organizationId,
       brandId,
+      settings,
     );
     const listingLimit = Math.max(1, Math.min(100, limit));
 
@@ -146,9 +152,17 @@ export class RedditService {
   private async resolveScopedSubreddit(
     organizationId?: string,
     brandId?: string,
+    settings: ChannelTargetSettings = {},
   ): Promise<string | null> {
     if (!organizationId || !brandId) {
       return null;
+    }
+
+    const configuredSubreddit = this.normalizeSubreddit(
+      readChannelSettingString(settings, 'subreddit'),
+    );
+    if (configuredSubreddit) {
+      return configuredSubreddit;
     }
 
     const credential = await this.credentialsService.resolveBrandAccount({
@@ -156,7 +170,19 @@ export class RedditService {
       organizationId,
       platform: CredentialPlatform.REDDIT,
     });
-    const candidate = credential?.externalId?.trim().replace(/^r\//i, '');
+
+    // OAuth stores the Reddit account id in externalId. Only the historical
+    // `r/<name>` shape is safe to interpret as the pre-settings subreddit.
+    const legacySubreddit = credential?.externalId?.trim();
+    if (!legacySubreddit || !/^r\//i.test(legacySubreddit)) {
+      return null;
+    }
+
+    return this.normalizeSubreddit(legacySubreddit);
+  }
+
+  private normalizeSubreddit(value?: string): string | null {
+    const candidate = value?.trim().replace(/^r\//i, '');
 
     return candidate && /^[a-z0-9_]{2,21}$/i.test(candidate) ? candidate : null;
   }

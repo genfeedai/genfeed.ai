@@ -138,9 +138,9 @@ describe('RedditService', () => {
     );
   });
 
-  it('combines scoped subreddit hot and daily top listings', async () => {
+  it('combines configured subreddit hot and daily top listings', async () => {
     (credentialsService.findOne as Mock).mockResolvedValue({
-      externalId: 'r/artificial',
+      externalId: '1w72r0ba',
     });
     (httpService.post as Mock).mockReturnValue(
       of({ data: { access_token: 'app-token', expires_in: 3600 } }),
@@ -183,13 +183,11 @@ describe('RedditService', () => {
         }),
       );
 
-    const result = await service.getTrends('org', 'brand');
-
-    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
-      brandId: 'brand',
-      organizationId: 'org',
-      platform: CredentialPlatform.REDDIT,
+    const result = await service.getTrends('org', 'brand', 20, {
+      subreddit: 'r/artificial',
     });
+
+    expect(credentialsService.resolveBrandAccount).not.toHaveBeenCalled();
     expect(httpService.get).toHaveBeenNthCalledWith(
       1,
       'https://oauth.reddit.com/r/artificial/hot',
@@ -203,6 +201,51 @@ describe('RedditService', () => {
       }),
     );
     expect(result.map((trend) => trend.id)).toEqual(['top-1', 'hot-1']);
+  });
+
+  it('uses r/all when a connected credential external id is an account id', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue({
+      externalId: '1w72r0ba',
+    });
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({ data: { data: { children: [] } } }),
+    );
+
+    await expect(service.getTrends('org', 'brand')).resolves.toEqual([]);
+
+    expect(httpService.get).toHaveBeenCalledOnce();
+    expect(httpService.get).toHaveBeenCalledWith(
+      'https://oauth.reddit.com/r/all/hot',
+      expect.any(Object),
+    );
+  });
+
+  it('supports the legacy r/name credential fallback', async () => {
+    (credentialsService.findOne as Mock).mockResolvedValue({
+      externalId: 'r/artificial',
+    });
+    (httpService.post as Mock).mockReturnValue(
+      of({ data: { access_token: 'app-token', expires_in: 3600 } }),
+    );
+    (httpService.get as Mock).mockReturnValue(
+      of({ data: { data: { children: [] } } }),
+    );
+
+    await service.getTrends('org', 'brand');
+
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      1,
+      'https://oauth.reddit.com/r/artificial/hot',
+      expect.any(Object),
+    );
+    expect(httpService.get).toHaveBeenNthCalledWith(
+      2,
+      'https://oauth.reddit.com/r/artificial/top',
+      expect.any(Object),
+    );
   });
 
   it('uses r/all for a scoped request without a Reddit credential', async () => {
