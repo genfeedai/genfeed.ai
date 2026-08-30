@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -140,6 +146,7 @@ vi.mock('@services/core/environment.service', () => ({
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -275,7 +282,10 @@ describe('PostSignupPage behavior', () => {
       projectId: 'clip-project-1',
       status: 'claimed',
     });
-    claimReferralMock.mockResolvedValue({ accepted: true, status: 'accepted' });
+    claimReferralMock.mockResolvedValue({
+      isAccepted: true,
+      status: 'accepted',
+    });
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
     });
@@ -440,6 +450,36 @@ describe('PostSignupPage behavior', () => {
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
       'frend2345xyz',
     );
+  });
+
+  it('does not let a hung referral claim block PAYG checkout', async () => {
+    vi.useFakeTimers();
+    try {
+      hasOrganizationBillingMock.mockReturnValue(true);
+      isSelfHostedMock.mockReturnValue(false);
+      searchParamsState.value = new URLSearchParams(
+        'ref=frend2345xyz&credits=1000',
+      );
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEYS.referralCode,
+        'frend2345xyz',
+      );
+      claimReferralMock.mockReturnValue(new Promise(() => undefined));
+
+      render(<PostSignupPage />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+
+      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
+      expect(createCheckoutSessionMock).toHaveBeenCalled();
+      expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
+        'frend2345xyz',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('starts an EE plan checkout from a post-signup plan query', async () => {

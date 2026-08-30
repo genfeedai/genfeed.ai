@@ -29,7 +29,7 @@ export interface IReferralProgram extends IBaseEntity {
 }
 
 export interface IReferralClaimResult {
-  accepted: boolean;
+  isAccepted: boolean;
   status: ReferralClaimStatus;
 }
 

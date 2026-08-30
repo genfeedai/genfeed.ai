@@ -12,10 +12,25 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-const { copyMock, getMineMock, successMock } = vi.hoisted(() => ({
-  copyMock: vi.fn(),
-  getMineMock: vi.fn(),
-  successMock: vi.fn(),
+const { brandState, copyMock, getMineMock, identityState, successMock } =
+  vi.hoisted(() => ({
+    brandState: { organizationId: 'org_1' },
+    copyMock: vi.fn(),
+    getMineMock: vi.fn(),
+    identityState: {
+      orgId: 'org_1',
+      sessionId: 'session_1',
+      userId: 'user_1',
+    },
+    successMock: vi.fn(),
+  }));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandState,
+}));
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => identityState,
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -82,6 +97,11 @@ describe('ReferralHubCard', () => {
     await waitFor(() => {
       expect(input).toHaveValue(expectedShareUrl);
     });
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['referral-program', 'user_1', 'session_1', 'org_1'],
+      }),
+    ).toBeDefined();
     expect(screen.getByText('500')).toBeInTheDocument();
     expect(screen.getByText('Granted')).toBeInTheDocument();
     expect(screen.getByText('Reversed')).toBeInTheDocument();
@@ -92,5 +112,29 @@ describe('ReferralHubCard', () => {
       expect(copyMock).toHaveBeenCalledWith(expectedShareUrl);
     });
     expect(successMock).toHaveBeenCalledWith('Referral link copied');
+  });
+
+  it('shows a recoverable error instead of zero financial data', async () => {
+    getMineMock.mockRejectedValueOnce(new Error('API unavailable'));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ReferralHubCard />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText('Referral rewards unavailable'),
+    ).toBeVisible();
+    expect(screen.queryByText('Earned')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(getMineMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('Earned')).toBeVisible();
+    });
   });
 });

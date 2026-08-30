@@ -49,9 +49,10 @@ describe('CreditsUtilsService', () => {
   const websocketService = { emit: vi.fn() };
   const accessBootstrapCacheService = { invalidateForOrganization: vi.fn() };
 
-  // Marker object standing in for the Prisma transaction client that
-  // runInTransaction injects — assertions check it is threaded through.
-  const txClient = { __tx: true } as unknown as PrismaTransactionClient;
+  const txCreditTransactionFindFirst = vi.fn();
+  const txClient = {
+    creditTransaction: { findFirst: txCreditTransactionFindFirst },
+  } as unknown as PrismaTransactionClient;
   const transactionUtil = {
     runInTransaction: vi.fn(
       async (fn: (tx: PrismaTransactionClient) => Promise<unknown>) =>
@@ -59,7 +60,7 @@ describe('CreditsUtilsService', () => {
     ),
   };
 
-  function buildService(withTransactionUtil = true): CreditsUtilsService {
+  function buildService(): CreditsUtilsService {
     return new CreditsUtilsService(
       loggerService as unknown as LoggerService,
       eventEmitter as unknown as EventEmitter2,
@@ -71,9 +72,7 @@ describe('CreditsUtilsService', () => {
       organizationSettingsService as unknown as OrganizationSettingsService,
       websocketService as unknown as NotificationsPublisherService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
-      withTransactionUtil
-        ? (transactionUtil as unknown as TransactionUtil)
-        : undefined,
+      transactionUtil as unknown as TransactionUtil,
     );
   }
 
@@ -84,6 +83,7 @@ describe('CreditsUtilsService', () => {
     prisma.brand.findFirst.mockResolvedValue(null);
     prisma.subscription.findFirst.mockResolvedValue(null);
     prisma.creditTransaction.findFirst.mockResolvedValue(null);
+    txCreditTransactionFindFirst.mockResolvedValue(null);
     billingAccountsService.resolveForOrganization.mockResolvedValue({
       id: 'ba_1',
     });
@@ -197,31 +197,9 @@ describe('CreditsUtilsService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('falls back to non-transactional path when TransactionUtil is absent', async () => {
-      const service = buildService(false);
-
-      await service.deductCreditsFromOrganization(
-        'org_1',
-        'user_1',
-        40,
-        'fallback deduct',
-      );
-
-      expect(transactionUtil.runInTransaction).not.toHaveBeenCalled();
-      expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
-        'org_1',
-        {
-          balanceDelta: -40,
-          billingAccountId: 'ba_1',
-          maxOverdraftCredits: 0,
-        },
-        undefined,
-      );
-    });
-
     it('skips an idempotent deduction when the ledger reference already exists', async () => {
-      const service = buildService(false);
-      creditTransactionsService.findOne.mockResolvedValue({
+      const service = buildService();
+      txCreditTransactionFindFirst.mockResolvedValue({
         id: 'txn_existing',
       });
 
@@ -237,12 +215,14 @@ describe('CreditsUtilsService', () => {
         },
       );
 
-      expect(creditTransactionsService.findOne).toHaveBeenCalledWith({
-        category: expect.anything(),
-        isDeleted: false,
-        organizationId: 'org_1',
-        referenceId: 'fleet-job-1',
-        referenceType: 'fleet:voice-clone',
+      expect(txCreditTransactionFindFirst).toHaveBeenCalledWith({
+        where: {
+          category: expect.anything(),
+          isDeleted: false,
+          organizationId: 'org_1',
+          referenceId: 'fleet-job-1',
+          referenceType: 'fleet:voice-clone',
+        },
       });
       expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
       expect(
@@ -251,8 +231,8 @@ describe('CreditsUtilsService', () => {
     });
 
     it('matches the global idempotency index and skips duplicate deduction side effects', async () => {
-      const service = buildService(false);
-      prisma.creditTransaction.findFirst.mockResolvedValue({
+      const service = buildService();
+      txCreditTransactionFindFirst.mockResolvedValue({
         balanceAfter: 60,
         organizationId: 'org_original',
       });
@@ -266,7 +246,7 @@ describe('CreditsUtilsService', () => {
         { idempotencyKey: 'referral-reward-reversal:reward_1:4000' },
       );
 
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      expect(txCreditTransactionFindFirst).toHaveBeenCalledWith({
         where: {
           idempotencyKey: 'referral-reward-reversal:reward_1:4000',
           isDeleted: false,
@@ -320,7 +300,7 @@ describe('CreditsUtilsService', () => {
     });
 
     it('persists a caller-provided idempotency key on the ledger entry', async () => {
-      const service = buildService(false);
+      const service = buildService();
 
       await service.addOrganizationCreditsWithExpiration(
         'org_1',
@@ -331,7 +311,7 @@ describe('CreditsUtilsService', () => {
         { idempotencyKey: 'referral-reward-grant:reward_1' },
       );
 
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      expect(txCreditTransactionFindFirst).toHaveBeenCalledWith({
         where: {
           idempotencyKey: 'referral-reward-grant:reward_1',
           isDeleted: false,
@@ -348,7 +328,7 @@ describe('CreditsUtilsService', () => {
         'credits-referral',
         'referral reward',
         expect.any(Date),
-        undefined,
+        txClient,
         expect.objectContaining({
           idempotencyKey: 'referral-reward-grant:reward_1',
         }),
@@ -356,8 +336,8 @@ describe('CreditsUtilsService', () => {
     });
 
     it('reuses a global idempotency row without mutating a fallback organization', async () => {
-      const service = buildService(false);
-      prisma.creditTransaction.findFirst.mockResolvedValue({
+      const service = buildService();
+      txCreditTransactionFindFirst.mockResolvedValue({
         balanceAfter: 150,
         organizationId: 'org_original',
       });
@@ -371,7 +351,7 @@ describe('CreditsUtilsService', () => {
         { idempotencyKey: 'referral-reward-grant:reward_1' },
       );
 
-      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      expect(txCreditTransactionFindFirst).toHaveBeenCalledWith({
         where: {
           idempotencyKey: 'referral-reward-grant:reward_1',
           isDeleted: false,

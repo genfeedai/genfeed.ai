@@ -1,5 +1,8 @@
 import { ClaimReferralDto } from '@api/collections/referrals/dto/claim-referral.dto';
-import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import {
+  REFERRAL_ADMIN_MAX_PAGE,
+  ReferralsService,
+} from '@api/collections/referrals/services/referrals.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -99,7 +102,7 @@ export class ReferralsController {
       ADMIN_DEFAULT_LIMIT,
       ADMIN_MAX_LIMIT,
     );
-    const page = parsePaginationValue(rawPage, 1, Number.MAX_SAFE_INTEGER);
+    const page = parsePaginationValue(rawPage, 1, REFERRAL_ADMIN_MAX_PAGE);
     const status = Object.values(ReferralRewardStatus).includes(
       rawStatus as ReferralRewardStatus,
     )

@@ -168,7 +168,7 @@ describe('ReferralsService', () => {
     });
 
     await expect(service.claim(ACTOR, 'validcode1')).resolves.toEqual({
-      accepted: false,
+      isAccepted: false,
       status: ReferralClaimStatus.INELIGIBLE,
     });
     expect(prisma.referral.create).not.toHaveBeenCalled();
@@ -204,7 +204,7 @@ describe('ReferralsService', () => {
     const result = await service.claim(ACTOR, 'validcode1');
 
     expect(result).toEqual({
-      accepted: true,
+      isAccepted: true,
       status: ReferralClaimStatus.ACCEPTED,
     });
     expect(prisma.referral.create).toHaveBeenCalledWith({
@@ -587,6 +587,57 @@ describe('ReferralsService', () => {
 
     expect(prisma.referralReward.updateMany).not.toHaveBeenCalled();
     expect(prisma.referralReward.findMany).not.toHaveBeenCalled();
+  });
+
+  it('counts failed rewards consistently as converted and pending', async () => {
+    prisma.referralCode.findFirst.mockResolvedValue({
+      code: 'frend2345xyz',
+      createdAt: NOW,
+      id: 'code_1',
+      isDeleted: false,
+      updatedAt: NOW,
+    });
+    prisma.referral.count.mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+    prisma.referralReward.groupBy.mockResolvedValue([
+      {
+        _sum: { reversedCredits: 0, rewardCredits: 250 },
+        status: ReferralRewardStatus.FAILED,
+      },
+    ]);
+    prisma.referralReward.findMany.mockResolvedValue([]);
+
+    const result = await service.getMine(ACTOR);
+
+    expect(prisma.referral.count).toHaveBeenNthCalledWith(2, {
+      where: expect.objectContaining({
+        rewards: {
+          some: {
+            isDeleted: false,
+            status: {
+              in: expect.arrayContaining([ReferralRewardStatus.FAILED]),
+            },
+          },
+        },
+      }),
+    });
+    expect(result).toMatchObject({ convertedCount: 1, pendingCredits: 250 });
+  });
+
+  it('bounds direct admin pagination before calculating Prisma skip', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([]);
+    prisma.referralReward.count.mockResolvedValue(0);
+
+    await service.listAdmin({
+      limit: 100,
+      page: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(prisma.referralReward.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 99_999_900,
+        take: 100,
+      }),
+    );
   });
 
   it('reactivates a soft-deleted code instead of violating its unique key', async () => {

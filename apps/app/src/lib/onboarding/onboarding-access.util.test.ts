@@ -231,4 +231,19 @@ describe('persistOnboardingHandoffParams', () => {
     expect(parseReferralCode('code_with_1')).toBeNull();
     expect(parseReferralCode('x'.repeat(33))).toBeNull();
   });
+
+  it('preserves the first valid referral code across later handoffs', () => {
+    const storedValues = new Map<string, string>([
+      [ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz'],
+    ]);
+
+    persistOnboardingHandoffParams('?ref=abcde2345jkmn', {
+      getItem: (key) => storedValues.get(key) ?? null,
+      setItem: (key, value) => storedValues.set(key, value),
+    });
+
+    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
+      'frend2345xyz',
+    );
+  });
 });

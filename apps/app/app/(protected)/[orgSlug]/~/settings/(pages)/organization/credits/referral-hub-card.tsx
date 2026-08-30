@@ -1,6 +1,8 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ReferralRewardStatus } from '@genfeedai/enums';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReferralsService } from '@services/billing/referrals.service';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -9,11 +11,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
-import { Copy, Gift } from 'lucide-react';
+import { Copy, Gift, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
 
 const REFERRAL_REWARD_STATUS_KEYS = {
   [ReferralRewardStatus.CANCELLED]: 'status.cancelled',
@@ -33,17 +37,45 @@ function resolveShareUrl(value: string): string {
 
 export default function ReferralHubCard() {
   const translate = useTranslations('common.referrals');
+  const { organizationId } = useBrand();
+  const { sessionId, userId } = useAuthIdentity();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['referral-program'],
+  const { data, isFetching, isLoading, error, refetch } = useQuery({
+    enabled: Boolean(userId && organizationId),
+    queryKey: ['referral-program', userId, sessionId, organizationId],
     queryFn: async () => (await getReferralsService()).getMine(),
     staleTime: 30_000,
   });
 
+  useEffect(() => {
+    if (error) {
+      logger.error('GET /referrals/me failed', error);
+    }
+  }, [error]);
+
   if (error) {
-    logger.error('GET /referrals/me failed', error);
+    return (
+      <Card label={translate('title')} bodyClassName="gap-4 p-4">
+        <Alert variant="destructive">
+          <TriangleAlert className="size-4" aria-hidden="true" />
+          <AlertTitle>{translate('loadErrorTitle')}</AlertTitle>
+          <AlertDescription>
+            <p>{translate('loadErrorDescription')}</p>
+            <Button
+              className="mt-3"
+              isDisabled={isFetching}
+              onClick={() => void refetch()}
+              type="button"
+              withWrapper={false}
+            >
+              {translate('retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </Card>
+    );
   }
   const shareUrl = resolveShareUrl(data?.shareUrl ?? '');
 
@@ -132,7 +164,12 @@ export default function ReferralHubCard() {
   );
 }
 
-function ReferralStat({ label, value }: { label: string; value: number }) {
+type ReferralStatProps = {
+  label: string;
+  value: number;
+};
+
+function ReferralStat({ label, value }: ReferralStatProps) {
   return (
     <div className="rounded bg-muted/50 p-3">
       <Text size="xs" color="muted">

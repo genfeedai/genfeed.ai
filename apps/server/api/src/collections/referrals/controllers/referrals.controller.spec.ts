@@ -22,8 +22,14 @@ describe('ReferralsController', () => {
   });
 
   it('clamps admin pagination to service-supported bounds', async () => {
-    await controller.listAdmin(request, '999', '-4');
+    await controller.listAdmin(request, '999', String(Number.MAX_SAFE_INTEGER));
 
-    expect(listAdmin).toHaveBeenCalledWith({ limit: 100, page: 1 });
+    expect(listAdmin).toHaveBeenCalledWith({ limit: 100, page: 1_000_000 });
+  });
+
+  it('clamps non-positive admin pages to the first page', async () => {
+    await controller.listAdmin(request, '50', '-4');
+
+    expect(listAdmin).toHaveBeenCalledWith({ limit: 50, page: 1 });
   });
 });

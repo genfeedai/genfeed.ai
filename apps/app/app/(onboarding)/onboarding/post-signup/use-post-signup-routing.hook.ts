@@ -53,6 +53,8 @@ export type PostSignupRoutingState = {
   retryBrandOsHandoff?: (() => void) | undefined;
 };
 
+const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
+
 export function usePostSignupRouting(): PostSignupRoutingState {
   const { getToken } = useAuthIdentity();
   const { user: authUser } = useAuthUser();
@@ -215,14 +217,33 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             'Referral attribution deferred because no auth token was available',
           );
         } else {
-          try {
-            await ReferralsService.getInstance(token).claim(referralCode);
-            localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
-          } catch (error) {
-            if (signal.aborted) {
-              return;
-            }
-            logger.error('Failed to claim referral after auth', error);
+          let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+          const claimAttempt = ReferralsService.getInstance(token)
+            .claim(referralCode)
+            .then(() => {
+              localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
+              return 'settled' as const;
+            })
+            .catch((error: unknown) => {
+              logger.error('Failed to claim referral after auth', error);
+              return 'failed' as const;
+            });
+          const claimOutcome = await Promise.race([
+            claimAttempt,
+            new Promise<'timed-out'>((resolve) => {
+              timeoutId = window.setTimeout(
+                () => resolve('timed-out'),
+                REFERRAL_CLAIM_TIMEOUT_MS,
+              );
+            }),
+          ]);
+          if (timeoutId !== undefined) {
+            window.clearTimeout(timeoutId);
+          }
+          if (claimOutcome === 'timed-out') {
+            logger.warn(
+              'Referral attribution is still pending; continuing post-signup routing',
+            );
           }
         }
       }

@@ -65,7 +65,8 @@ export function parseReferralCode(value?: string | null): string | null {
   return code && REFERRAL_CODE_PATTERN.test(code) ? code : null;
 }
 
-type OnboardingHandoffStorage = Pick<Storage, 'setItem'>;
+type OnboardingHandoffStorage = Pick<Storage, 'setItem'> &
+  Partial<Pick<Storage, 'getItem'>>;
 
 function normalizeOnboardingAccessMode(
   value: unknown,
@@ -259,7 +260,10 @@ export function persistOnboardingHandoffParams(
     storage.setItem(ONBOARDING_STORAGE_KEYS.source, source);
   }
 
-  if (referralCode) {
+  const storedReferralCode = parseReferralCode(
+    storage.getItem?.(ONBOARDING_STORAGE_KEYS.referralCode),
+  );
+  if (referralCode && !storedReferralCode) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, referralCode);
   }
 }

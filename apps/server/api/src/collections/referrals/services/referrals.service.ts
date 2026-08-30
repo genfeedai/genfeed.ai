@@ -33,6 +33,18 @@ const REWARD_WINDOW_MONTHS = 12;
 const SETTLEMENT_DELAY_DAYS = 7;
 const PROCESSING_LEASE_MS = 10 * 60 * 1000;
 const MAX_SETTLEMENT_BATCH = 50;
+export const REFERRAL_ADMIN_MAX_PAGE = 1_000_000;
+
+const PENDING_REWARD_STATUSES = [
+  ReferralRewardStatus.PENDING,
+  ReferralRewardStatus.PROCESSING,
+  ReferralRewardStatus.FAILED,
+] as const;
+const CONVERSION_REWARD_STATUSES = [
+  ...PENDING_REWARD_STATUSES,
+  ReferralRewardStatus.GRANTED,
+  ReferralRewardStatus.REVERSED,
+] as const;
 
 type ReferralActor = {
   organizationId: string;
@@ -101,12 +113,7 @@ export class ReferralsService {
               some: {
                 isDeleted: false,
                 status: {
-                  in: [
-                    ReferralRewardStatus.PENDING,
-                    ReferralRewardStatus.PROCESSING,
-                    ReferralRewardStatus.GRANTED,
-                    ReferralRewardStatus.REVERSED,
-                  ],
+                  in: [...CONVERSION_REWARD_STATUSES],
                 },
               },
             },
@@ -123,7 +130,7 @@ export class ReferralsService {
           where: rewardWhere,
         }),
       ]);
-    const sumFor = (statuses: ReferralRewardStatus[]) =>
+    const sumFor = (statuses: readonly ReferralRewardStatus[]) =>
       totals
         .filter((row) => statuses.includes(row.status as ReferralRewardStatus))
         .reduce((sum, row) => sum + (row._sum.rewardCredits ?? 0), 0);
@@ -144,11 +151,7 @@ export class ReferralsService {
         reversedCredits,
       id: referralCode.id,
       isDeleted: referralCode.isDeleted,
-      pendingCredits: sumFor([
-        ReferralRewardStatus.PENDING,
-        ReferralRewardStatus.PROCESSING,
-        ReferralRewardStatus.FAILED,
-      ]),
+      pendingCredits: sumFor(PENDING_REWARD_STATUSES),
       recentRewards: recentRewards.map((reward) => this.presentReward(reward)),
       referralCount,
       reversedCredits,
@@ -194,7 +197,7 @@ export class ReferralsService {
       where: { code, isActive: true, isDeleted: false },
     });
     if (!referralCode) {
-      return { accepted: false, status: ReferralClaimStatus.INVALID };
+      return { isAccepted: false, status: ReferralClaimStatus.INVALID };
     }
     const existing = await this.prisma.referral.findFirst({
       where: {
@@ -204,12 +207,12 @@ export class ReferralsService {
     });
     if (existing) {
       return {
-        accepted: false,
+        isAccepted: false,
         status: ReferralClaimStatus.ALREADY_ATTRIBUTED,
       };
     }
     if (referralCode.rewardBillingAccountId === targetAccount.id) {
-      return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
+      return { isAccepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
     const targetMembers = await this.prisma.billingAccountMember.findMany({
@@ -229,7 +232,7 @@ export class ReferralsService {
       },
     });
     if (sharedMember) {
-      return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
+      return { isAccepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
     // tenant-scope-ignore: paid-account eligibility is billing-account scoped and must cover every authoritative organization link
@@ -277,7 +280,7 @@ export class ReferralsService {
       }),
     ]);
     if (priorPurchase || priorSubscription) {
-      return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
+      return { isAccepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
     const now = new Date();
@@ -294,11 +297,11 @@ export class ReferralsService {
           status: ReferralStatus.ACTIVE,
         },
       });
-      return { accepted: true, status: ReferralClaimStatus.ACCEPTED };
+      return { isAccepted: true, status: ReferralClaimStatus.ACCEPTED };
     } catch (error: unknown) {
       if (hasPrismaCode(error, 'P2002')) {
         return {
-          accepted: false,
+          isAccepted: false,
           status: ReferralClaimStatus.ALREADY_ATTRIBUTED,
         };
       }
@@ -376,8 +379,16 @@ export class ReferralsService {
     page?: number;
     status?: ReferralRewardStatus;
   }): Promise<{ docs: IReferralAdminReward[]; total: number }> {
-    const limit = Math.min(Math.max(input.limit ?? 50, 1), 100);
-    const page = Math.max(input.page ?? 1, 1);
+    const requestedLimit =
+      input.limit !== undefined && Number.isSafeInteger(input.limit)
+        ? input.limit
+        : 50;
+    const requestedPage =
+      input.page !== undefined && Number.isSafeInteger(input.page)
+        ? input.page
+        : 1;
+    const limit = Math.min(Math.max(requestedLimit, 1), 100);
+    const page = Math.min(Math.max(requestedPage, 1), REFERRAL_ADMIN_MAX_PAGE);
     const where = {
       isDeleted: false,
       ...(input.status ? { status: input.status } : {}),

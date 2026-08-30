@@ -2,6 +2,7 @@
 
 import { ReferralRewardStatus } from '@genfeedai/enums';
 import type { IReferralAdminReward } from '@genfeedai/interfaces';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ReferralsService } from '@services/billing/referrals.service';
@@ -11,7 +12,9 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import { Gift } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
+import { Gift, TriangleAlert } from 'lucide-react';
 import { useEffect } from 'react';
 
 const REFERRAL_REWARD_STATUS_LABELS: Record<ReferralRewardStatus, string> = {
@@ -31,11 +34,13 @@ function compactId(value: string | null): string {
 }
 
 export default function ReferralRewardsList() {
+  const { orgId, sessionId, userId } = useAuthIdentity();
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
   );
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['admin-referral-rewards'],
+    enabled: Boolean(userId),
+    queryKey: ['admin-referral-rewards', userId, sessionId, orgId],
     queryFn: async () => (await getReferralsService()).getAdminRewards(),
   });
 
@@ -105,13 +110,35 @@ export default function ReferralRewardsList() {
         />
       }
     >
-      <AppTable<IReferralAdminReward>
-        items={data ?? []}
-        isLoading={isLoading}
-        columns={columns}
-        getRowKey={(reward) => reward.id}
-        emptyLabel="No referral rewards found"
-      />
+      {error ? (
+        <Alert variant="destructive">
+          <TriangleAlert className="size-4" aria-hidden="true" />
+          <AlertTitle>Referral rewards unavailable</AlertTitle>
+          <AlertDescription>
+            <p>
+              Financial reward records could not be loaded. No empty audit
+              result is shown until the request succeeds.
+            </p>
+            <Button
+              className="mt-3"
+              isDisabled={isFetching}
+              onClick={() => void refetch()}
+              type="button"
+              withWrapper={false}
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <AppTable<IReferralAdminReward>
+          items={data ?? []}
+          isLoading={isLoading}
+          columns={columns}
+          getRowKey={(reward) => reward.id}
+          emptyLabel="No referral rewards found"
+        />
+      )}
     </Container>
   );
 }
