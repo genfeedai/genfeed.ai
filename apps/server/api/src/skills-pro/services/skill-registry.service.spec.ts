@@ -312,15 +312,29 @@ describe('SkillRegistryService', () => {
       }
     });
 
-    it('returns a separately named public storefront catalogue', async () => {
+    it('returns a smaller marketing-only storefront projection', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         json: vi.fn().mockResolvedValue(mockCdnRegistry),
         ok: true,
       });
 
-      await expect(service.getStorefrontCatalog()).resolves.toEqual(
-        await service.getMetadataRegistry(),
-      );
+      await expect(service.getStorefrontCatalog()).resolves.toEqual({
+        bundlePrice: 49,
+        skills: [
+          {
+            category: 'generation',
+            description: 'Generate images with AI',
+            name: 'Image Gen Pro',
+            slug: 'image-gen-pro',
+          },
+          {
+            category: 'editing',
+            description: 'Edit videos with AI',
+            name: 'Video Editor',
+            slug: 'video-editor',
+          },
+        ],
+      });
     });
   });
 

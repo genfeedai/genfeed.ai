@@ -33,10 +33,22 @@ describe('SkillRegistryController', () => {
     updatedAt: '2026-01-01T00:00:00Z',
   };
 
+  const mockStorefront = {
+    bundlePrice: 49,
+    skills: [
+      {
+        category: 'generation',
+        description: 'Generate images',
+        name: 'Image Gen',
+        slug: 'image-gen',
+      },
+    ],
+  };
+
   beforeEach(async () => {
     skillRegistryService = {
       getMetadataRegistry: vi.fn().mockResolvedValue(mockRegistry),
-      getStorefrontCatalog: vi.fn().mockResolvedValue(mockRegistry),
+      getStorefrontCatalog: vi.fn().mockResolvedValue(mockStorefront),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -105,7 +117,7 @@ describe('SkillRegistryController', () => {
 
   it('returns the separately typed public storefront catalogue', async () => {
     await expect(controller.getStorefrontCatalog()).resolves.toEqual(
-      mockRegistry,
+      mockStorefront,
     );
     expect(skillRegistryService.getStorefrontCatalog).toHaveBeenCalledOnce();
   });
