@@ -641,6 +641,20 @@ describe('AdsResearchPageClient', () => {
     );
   });
 
+  it('keeps table save controls from bubbling keyboard selection to the row', () => {
+    render(<AdsResearchPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table view' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Save Google lead gen winner' }),
+      { key: 'Enter' },
+    );
+
+    expect(
+      screen.queryByRole('heading', { name: 'Ad Detail' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
     render(<AdsResearchPageClient initialPlatform="google" />);
 
@@ -766,6 +780,78 @@ describe('AdsResearchPageClient', () => {
       kind: 'saved_ad',
       savedAdId: 'saved-1',
     });
+  });
+
+  it('keeps live detail open after unsaving a matched snapshot', async () => {
+    savedAdsState.savedAds = [
+      {
+        brandId: 'brand-1',
+        capturedAt: '2026-08-30T10:00:00.000Z',
+        channel: 'all',
+        createdAt: '2026-08-30T10:00:00.000Z',
+        explanation: 'Saved evidence',
+        id: 'saved-1',
+        imageUrls: [],
+        isDeleted: false,
+        metrics: {},
+        organizationId: 'org-1',
+        patternSummary: [],
+        platform: 'meta',
+        source: 'public',
+        sourceAdId: 'public-1',
+        title: 'Meta hook story',
+        updatedAt: '2026-08-30T10:00:00.000Z',
+        usagePolicy: 'remix_allowed',
+        userId: 'opaque-user',
+        videoUrls: [],
+      },
+    ];
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave from swipe file' }),
+    );
+
+    expect(unsaveSavedAdsMock).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'saved-1' }),
+    ]);
+    expect(
+      screen.getByRole('heading', { name: 'Ad Detail' }),
+    ).toBeInTheDocument();
+  });
+
+  it('catches a rejected save mutation inside the detail surface', async () => {
+    saveSavedAdsMock.mockRejectedValueOnce(new Error('save failed'));
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save to swipe file' }));
+
+    expect(await screen.findByText('save failed')).toBeInTheDocument();
+  });
+
+  it('does not submit an empty save for a stale saved identifier', () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      publicAds: [{ ...publicAd, savedAdId: 'stale-saved-id' }],
+    };
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Unsave Meta hook story' }),
+    );
+
+    expect(saveSavedAdsMock).not.toHaveBeenCalled();
+    expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
   });
 
   it('inherits selected account scope when a connected result omits it', () => {
@@ -918,6 +1004,23 @@ describe('AdsResearchPageClient', () => {
     expect(await screen.findByText('workflow failed')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close detail/i }));
     expect(screen.queryByRole('heading', { name: 'Ad Detail' })).toBeNull();
+  });
+
+  it('shows an unavailable detail state after a selected ad disappears', () => {
+    useQueryStates[2].data = null;
+    useQueryStates[2].isLoading = false;
+    render(<AdsResearchPageClient initialPlatform="meta" />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^Select Meta hook story for research context$/i,
+      }),
+    );
+
+    expect(
+      screen.getByText('This ad is no longer available.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Loading ad detail…')).not.toBeInTheDocument();
   });
 
   it('shows a full connect empty state when there are no credentials and no ads', () => {

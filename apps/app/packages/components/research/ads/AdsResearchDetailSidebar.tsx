@@ -296,8 +296,12 @@ export function DetailSidebar({
         </div>
 
         <div className="space-y-5 p-5">
-          {detailLoading || !detail ? (
+          {detailLoading ? (
             <p className="text-sm text-muted-foreground">Loading ad detail…</p>
+          ) : !detail ? (
+            <p className="text-sm text-muted-foreground">
+              {translate('unavailable')}
+            </p>
           ) : (
             <>
               <div className="space-y-3">

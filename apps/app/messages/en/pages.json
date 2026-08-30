@@ -43,7 +43,9 @@
       "snapshotBadge": "Saved snapshot",
       "sourceLabel": "Saved swipe file",
       "unsaveAction": "Unsave from swipe file",
-      "unsaveAria": "Unsave {title}"
+      "unsaveAria": "Unsave {title}",
+      "unavailable": "This ad is no longer available.",
+      "updateFailed": "Swipe file update failed. Try again."
     },
     "watchlist": {
       "archivesUnavailable": "Archives we cannot poll yet",

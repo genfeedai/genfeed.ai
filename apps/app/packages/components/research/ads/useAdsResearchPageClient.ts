@@ -766,30 +766,34 @@ export function useAdsResearchPageClient(
   };
 
   const toggleSaved = async (items: AdsResearchItem[]) => {
+    if (items.length === 0) return;
     if (!brandId) {
       setActionError(translate('swipeFile.brandRequired'));
       return;
     }
-    const snapshots = items
-      .map((item) =>
-        saved.savedAds.find((snapshot) => snapshot.id === item.savedAdId),
-      )
-      .filter((item): item is ISavedAd => Boolean(item));
-    if (snapshots.length === items.length) {
-      await saved.unsave(snapshots);
-      if (
-        selectedAd?.savedAdId &&
-        snapshots.some((item) => item.id === selectedAd.savedAdId)
-      ) {
-        handleCloseDetail();
-      }
-      return;
-    }
-
-    await saved.save(
-      items
-        .filter((item) => !item.savedAdId)
+    setActionError(null);
+    try {
+      const snapshots = items
         .map((item) =>
+          saved.savedAds.find((snapshot) => snapshot.id === item.savedAdId),
+        )
+        .filter((item): item is ISavedAd => Boolean(item));
+      if (snapshots.length === items.length) {
+        await saved.unsave(snapshots);
+        if (
+          source === 'saved' &&
+          selectedAd?.savedAdId &&
+          snapshots.some((item) => item.id === selectedAd.savedAdId)
+        ) {
+          handleCloseDetail();
+        }
+        return;
+      }
+
+      const unsavedItems = items.filter((item) => !item.savedAdId);
+      if (unsavedItems.length === 0) return;
+      await saved.save(
+        unsavedItems.map((item) =>
           buildSaveAdInput(item, {
             adAccountId,
             brandId,
@@ -797,12 +801,28 @@ export function useAdsResearchPageClient(
             loginCustomerId,
           }),
         ),
-    );
+      );
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : translate('swipeFile.updateFailed'),
+      );
+    }
   };
 
   const updateSavedNote = async (id: string, note: string) => {
     if (!brandId) return;
-    await saved.updateNotes([{ brandId, id, note }]);
+    setActionError(null);
+    try {
+      await saved.updateNotes([{ brandId, id, note }]);
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : translate('swipeFile.updateFailed'),
+      );
+    }
   };
 
   const selectedKey = selectedAd
