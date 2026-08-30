@@ -25,9 +25,9 @@ describe('workflow_execution_node_results (#2512)', () => {
 
   it('promotes progress and ETA onto WorkflowExecution scalars', () => {
     expect(schema).toContain('progress             Int       @default(0)');
-    expect(schema).toContain('estimatedDurationMs Int?');
-    expect(schema).toContain('remainingDurationMs Int?');
-    expect(schema).toContain('etaCurrentPhase     String?');
+    expect(schema).toContain('estimatedDurationMs  Int?');
+    expect(schema).toContain('remainingDurationMs  Int?');
+    expect(schema).toContain('etaCurrentPhase      String?');
     expect(migration).toContain('ADD COLUMN IF NOT EXISTS "progress"');
     expect(migration).toContain(
       'ADD COLUMN IF NOT EXISTS "estimatedDurationMs"',
