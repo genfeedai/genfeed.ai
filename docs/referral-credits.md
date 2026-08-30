@@ -20,9 +20,10 @@ and the credit ledger portable across supported deployments.
   bounded negative balance.
 
 The customer Referral Hub is on the organization Credits settings page. It
-shows aggregate counts and credit totals, never referred-customer identity.
-Platform administrators can audit reward records under **Administration →
-Referral Rewards**.
+shows aggregate counts, credit totals, and the referrer's own reward values;
+it never returns referred-customer identity, purchase amounts, or purchased
+credit quantities. Platform administrators can audit full reward records under
+**Administration → Referral Rewards**.
 
 ## Attribution and abuse controls
 
@@ -39,17 +40,22 @@ membership and all claim/read routes are rate limited.
 ## Settlement operations
 
 `ReferralReward` is the durable source of truth. Checkout-session uniqueness,
-credit-ledger idempotency keys, a processing lease, and retry backoff make both
-Stripe retries and scheduled settlement safe. The API scheduler scans due rows
-every five minutes, recovers expired leases, grants expiring credits, and links
-the resulting ledger transaction to the reward.
+database-unique credit-ledger idempotency keys, a shared settlement/reversal
+lease, and retry backoff make Stripe retries, cumulative refunds, disputes, and
+scheduled settlement safe. The API scheduler scans due rows every five minutes,
+recovers expired leases, grants expiring credits, and links the resulting ledger
+transaction to the reward. Tax-inclusive Stripe refunds are normalized back to
+the stored pre-tax purchase basis before reward credits are adjusted.
 
 Operators should investigate `FAILED` rewards in the admin audit view. The
 failure reason is bounded and contains no referral link or customer email.
 
 ## Deployment boundary
 
-Referral code and attribution code ships in every image. Rewards are created
-only by the organization PAYG Stripe webhook, so Community deployments using
-managed cloud-credit checkout do not create local referral rewards. Licensed
+Referral code and attribution code ships in every image. Community deployments
+without organization billing register no referral HTTP routes, skip the
+settlement scheduler, and ignore organization-PAYG reward events. Licensed
 self-hosted deployments with organization billing use the same native path.
+Share links use the configured `GENFEEDAI_APP_URL`; when it is absent the API
+returns a portable relative signup URL that the customer app resolves against
+its own origin.

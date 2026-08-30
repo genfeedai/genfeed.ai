@@ -422,6 +422,26 @@ describe('PostSignupPage behavior', () => {
     ).toBeNull();
   });
 
+  it('continues signup when referral attribution is temporarily unavailable', async () => {
+    hasOrganizationBillingMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    searchParamsState.value = new URLSearchParams(
+      'ref=friend_2345&credits=1000',
+    );
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'friend_2345');
+    claimReferralMock.mockRejectedValue(new Error('API unavailable'));
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(claimReferralMock).toHaveBeenCalledWith('friend_2345');
+      expect(createCheckoutSessionMock).toHaveBeenCalled();
+    });
+    expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
+      'friend_2345',
+    );
+  });
+
   it('starts an EE plan checkout from a post-signup plan query', async () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);

@@ -9,6 +9,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { ActivitySource } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
@@ -187,7 +188,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
         'org_1',
         100,
-        'pay-as-you-go',
+        ActivitySource.PAY_AS_YOU_GO,
         expect.stringContaining('100 credits'),
         {
           referenceId: 'cs_payg_1',
@@ -214,6 +215,7 @@ describe('StripeCheckoutWebhookHandler', () => {
         'user_1',
       );
       expect(referralsService.recordPaygPurchase).toHaveBeenCalledWith({
+        grossAmountCents: 1_080,
         netAmountCents: 1_000,
         organizationId: 'org_1',
         purchasedCredits: 100,
@@ -250,7 +252,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       expect(supportService.addPurchasedCredits).toHaveBeenCalledWith(
         'org_1',
         100,
-        'pay-as-you-go',
+        ActivitySource.PAY_AS_YOU_GO,
         expect.stringContaining('100 credits'),
         {
           referenceId: 'cs_payg_1',

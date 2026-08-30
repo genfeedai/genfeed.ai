@@ -1,3 +1,4 @@
+import { hasOrganizationBilling } from '@genfeedai/config';
 import {
   ActivityKey,
   ActivitySource,
@@ -39,12 +40,15 @@ type ReferralActor = {
 };
 
 type PurchaseReferralInput = {
+  grossAmountCents: number;
   netAmountCents: number;
   organizationId: string;
   purchasedCredits: number;
   stripeCheckoutSessionId: string;
   stripePaymentIntentId: string | null;
 };
+
+const LEGACY_PAYG_ACTIVITY_SOURCE = 'pay-as-you-go';
 
 function hasPrismaCode(error: unknown, code: string): boolean {
   return (
@@ -123,8 +127,8 @@ export class ReferralsService {
       (sum, row) => sum + (row._sum.reversedCredits ?? 0),
       0,
     );
-    const baseUrl = String(
-      this.configService.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai',
+    const configuredBaseUrl = String(
+      this.configService.get('GENFEEDAI_APP_URL') ?? '',
     ).replace(/\/$/, '');
 
     return {
@@ -147,7 +151,7 @@ export class ReferralsService {
       rewardRatePercent: REWARD_RATE_PERCENT,
       rewardWindowMonths: REWARD_WINDOW_MONTHS,
       settlementDelayDays: SETTLEMENT_DELAY_DAYS,
-      shareUrl: `${baseUrl}/sign-up?ref=${referralCode.code}`,
+      shareUrl: `${configuredBaseUrl}/sign-up?ref=${referralCode.code}`,
       updatedAt: referralCode.updatedAt.toISOString(),
     };
   }
@@ -224,15 +228,13 @@ export class ReferralsService {
       return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
 
-    const [priorPurchase, priorSubscription] = await Promise.all([
-      // tenant-scope-ignore: eligibility is billing-account scoped and must cover every linked organization
-      this.prisma.creditTransaction.findFirst({
+    const [targetOrganizations, priorSubscription] = await Promise.all([
+      // tenant-scope-ignore: paid-account eligibility is billing-account scoped and must cover every linked organization
+      this.prisma.organization.findMany({
         select: { id: true },
         where: {
-          amount: { gt: 0 },
           billingAccountId: targetAccount.id,
           isDeleted: false,
-          source: ActivitySource.PAY_AS_YOU_GO,
         },
       }),
       // tenant-scope-ignore: eligibility is billing-account scoped and must cover every linked organization
@@ -245,6 +247,22 @@ export class ReferralsService {
         },
       }),
     ]);
+    const targetOrganizationIds = targetOrganizations.map(
+      (organization) => organization.id,
+    );
+    const priorPurchase = targetOrganizationIds.length
+      ? await this.prisma.creditTransaction.findFirst({
+          select: { id: true },
+          where: {
+            amount: { gt: 0 },
+            isDeleted: false,
+            organizationId: { in: targetOrganizationIds },
+            source: {
+              in: [ActivitySource.PAY_AS_YOU_GO, LEGACY_PAYG_ACTIVITY_SOURCE],
+            },
+          },
+        })
+      : null;
     if (priorPurchase || priorSubscription) {
       return { accepted: false, status: ReferralClaimStatus.INELIGIBLE };
     }
@@ -276,6 +294,9 @@ export class ReferralsService {
   }
 
   async recordPaygPurchase(input: PurchaseReferralInput): Promise<void> {
+    if (!hasOrganizationBilling()) {
+      return;
+    }
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );
@@ -298,6 +319,7 @@ export class ReferralsService {
       await this.prisma.referralReward.create({
         data: {
           eligibleAt,
+          grossAmountCents: Math.max(0, Math.floor(input.grossAmountCents)),
           netAmountCents,
           nextAttemptAt: eligibleAt,
           purchasedCredits: Math.max(0, Math.floor(input.purchasedCredits)),
@@ -320,91 +342,18 @@ export class ReferralsService {
     refundedAmountCents: number;
     stripePaymentIntentId: string;
   }): Promise<void> {
+    if (!hasOrganizationBilling()) {
+      return;
+    }
     const rewards = await this.prisma.referralReward.findMany({
-      include: { referral: { include: { code: true } } },
+      select: { id: true },
       where: {
         isDeleted: false,
         stripePaymentIntentId: input.stripePaymentIntentId,
       },
     });
-    for (const reward of rewards) {
-      if (reward.status === ReferralRewardStatus.PROCESSING) {
-        throw new Error(
-          `Referral reward ${reward.id} is settling; retry payment reversal`,
-        );
-      }
-      const refundedAmountCents = input.disputed
-        ? reward.netAmountCents
-        : Math.min(
-            reward.netAmountCents,
-            Math.max(reward.refundedAmountCents, input.refundedAmountCents),
-          );
-      const retainedCredits = Math.floor(
-        (reward.netAmountCents - refundedAmountCents) * REWARD_RATE,
-      );
-      if (
-        reward.status === ReferralRewardStatus.GRANTED ||
-        reward.status === ReferralRewardStatus.REVERSED
-      ) {
-        const desiredReversedCredits = Math.max(
-          0,
-          reward.rewardCredits - retainedCredits,
-        );
-        const creditsToReverse = Math.max(
-          0,
-          desiredReversedCredits - reward.reversedCredits,
-        );
-        if (creditsToReverse > 0) {
-          const idempotencyKey = `referral-reward-reversal:${reward.id}:${refundedAmountCents}`;
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            reward.referral.code.rewardOrganizationId,
-            reward.referral.code.ownerUserId,
-            creditsToReverse,
-            'Referral reward reversal',
-            ActivitySource.REFERRAL,
-            {
-              idempotencyKey,
-              maxOverdraftCredits: creditsToReverse,
-              metadata: {
-                referralRewardId: reward.id,
-                refundedAmountCents,
-                stripePaymentIntentId: input.stripePaymentIntentId,
-              },
-              referenceId: `${reward.id}:${refundedAmountCents}`,
-              referenceType: 'referral-reward-reversal',
-            },
-          );
-        }
-        await this.prisma.referralReward.update({
-          data: {
-            refundedAmountCents,
-            reversedAt:
-              desiredReversedCredits >= reward.rewardCredits
-                ? new Date()
-                : reward.reversedAt,
-            reversedCredits: desiredReversedCredits,
-            status:
-              desiredReversedCredits >= reward.rewardCredits
-                ? ReferralRewardStatus.REVERSED
-                : ReferralRewardStatus.GRANTED,
-          },
-          where: { id: reward.id },
-        });
-        continue;
-      }
-
-      await this.prisma.referralReward.update({
-        data: {
-          cancelledAt: retainedCredits < 1 ? new Date() : null,
-          refundedAmountCents,
-          rewardCredits: retainedCredits,
-          status:
-            retainedCredits < 1
-              ? ReferralRewardStatus.CANCELLED
-              : ReferralRewardStatus.PENDING,
-        },
-        where: { id: reward.id },
-      });
+    for (const candidate of rewards) {
+      await this.reverseReward(candidate.id, input);
     }
   }
 
@@ -434,11 +383,15 @@ export class ReferralsService {
         ...this.presentReward(reward),
         attemptCount: reward.attemptCount,
         failureReason: reward.failureReason,
+        grossAmountCents: reward.grossAmountCents,
+        netAmountCents: reward.netAmountCents,
+        purchasedCredits: reward.purchasedCredits,
         referredBillingAccountId: reward.referral.referredBillingAccountId,
         referredOrganizationId: reward.referral.referredOrganizationId,
         referralId: reward.referralId,
         referrerBillingAccountId: reward.referral.referrerBillingAccountId,
         referrerOrganizationId: reward.referral.referrerOrganizationId,
+        refundedAmountCents: reward.refundedAmountCents,
         stripeCheckoutSessionId: reward.stripeCheckoutSessionId,
         stripePaymentIntentId: reward.stripePaymentIntentId,
       })),
@@ -448,7 +401,11 @@ export class ReferralsService {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async settleDueRewards(): Promise<void> {
+    if (!hasOrganizationBilling()) {
+      return;
+    }
     const now = new Date();
+    const expiredLease = new Date(now.getTime() - PROCESSING_LEASE_MS);
     await this.prisma.referralReward.updateMany({
       data: {
         failureReason: 'Settlement lease expired',
@@ -458,8 +415,16 @@ export class ReferralsService {
       },
       where: {
         isDeleted: false,
-        lockedAt: { lt: new Date(now.getTime() - PROCESSING_LEASE_MS) },
+        lockedAt: { lt: expiredLease },
         status: ReferralRewardStatus.PROCESSING,
+      },
+    });
+    await this.prisma.referralReward.updateMany({
+      data: { lockedAt: null },
+      where: {
+        isDeleted: false,
+        lockedAt: { lt: expiredLease },
+        status: { not: ReferralRewardStatus.PROCESSING },
       },
     });
     const due = await this.prisma.referralReward.findMany({
@@ -489,6 +454,7 @@ export class ReferralsService {
       where: {
         id: rewardId,
         isDeleted: false,
+        lockedAt: null,
         nextAttemptAt: { lte: lockedAt },
         status: {
           in: [ReferralRewardStatus.PENDING, ReferralRewardStatus.FAILED],
@@ -606,16 +572,157 @@ export class ReferralsService {
     }
   }
 
+  private async reverseReward(
+    rewardId: string,
+    input: {
+      disputed: boolean;
+      refundedAmountCents: number;
+      stripePaymentIntentId: string;
+    },
+  ): Promise<void> {
+    const lockedAt = new Date();
+    const claimed = await this.prisma.referralReward.updateMany({
+      data: { lockedAt },
+      where: {
+        id: rewardId,
+        isDeleted: false,
+        lockedAt: null,
+        status: { not: ReferralRewardStatus.PROCESSING },
+      },
+    });
+    if (claimed.count !== 1) {
+      throw new Error(
+        `Referral reward ${rewardId} changed state; retry payment reversal`,
+      );
+    }
+
+    try {
+      const reward = await this.prisma.referralReward.findFirst({
+        include: {
+          grantTransaction: { select: { organizationId: true } },
+          referral: { include: { code: true } },
+        },
+        where: { id: rewardId, isDeleted: false, lockedAt },
+      });
+      if (!reward) {
+        throw new Error(`Referral reward ${rewardId} lease was lost`);
+      }
+
+      const grossAmountCents = Math.max(reward.grossAmountCents, 1);
+      const normalizedRefundCents = Math.round(
+        (Math.max(0, input.refundedAmountCents) * reward.netAmountCents) /
+          grossAmountCents,
+      );
+      const refundedAmountCents = input.disputed
+        ? reward.netAmountCents
+        : Math.min(
+            reward.netAmountCents,
+            Math.max(reward.refundedAmountCents, normalizedRefundCents),
+          );
+      const retainedCredits = Math.floor(
+        (reward.netAmountCents - refundedAmountCents) * REWARD_RATE,
+      );
+      const wasGranted = Boolean(reward.grantTransactionId || reward.grantedAt);
+
+      if (wasGranted) {
+        const desiredReversedCredits = Math.max(
+          0,
+          reward.rewardCredits - retainedCredits,
+        );
+        const creditsToReverse = Math.max(
+          0,
+          desiredReversedCredits - reward.reversedCredits,
+        );
+        if (creditsToReverse > 0) {
+          const destinationOrganizationId =
+            reward.grantTransaction?.organizationId ??
+            reward.referral.code.rewardOrganizationId;
+          const currentBalance =
+            await this.creditsUtilsService.getOrganizationCreditsBalance(
+              destinationOrganizationId,
+            );
+          const idempotencyKey = `referral-reward-reversal:${reward.id}:${refundedAmountCents}`;
+          await this.creditsUtilsService.deductCreditsFromOrganization(
+            destinationOrganizationId,
+            reward.referral.code.ownerUserId,
+            creditsToReverse,
+            'Referral reward reversal',
+            ActivitySource.REFERRAL,
+            {
+              idempotencyKey,
+              maxOverdraftCredits:
+                creditsToReverse + Math.max(0, -currentBalance),
+              metadata: {
+                referralRewardId: reward.id,
+                refundedAmountCents,
+                stripePaymentIntentId: input.stripePaymentIntentId,
+              },
+              referenceId: `${reward.id}:${refundedAmountCents}`,
+              referenceType: 'referral-reward-reversal',
+            },
+          );
+        }
+        await this.prisma.referralReward.update({
+          data: {
+            refundedAmountCents,
+            lockedAt: null,
+            reversedAt:
+              desiredReversedCredits >= reward.rewardCredits
+                ? new Date()
+                : reward.reversedAt,
+            reversedCredits: desiredReversedCredits,
+            status:
+              desiredReversedCredits >= reward.rewardCredits
+                ? ReferralRewardStatus.REVERSED
+                : ReferralRewardStatus.GRANTED,
+          },
+          where: { id: reward.id },
+        });
+        return;
+      }
+
+      await this.prisma.referralReward.update({
+        data: {
+          cancelledAt: retainedCredits < 1 ? new Date() : null,
+          refundedAmountCents,
+          lockedAt: null,
+          rewardCredits: retainedCredits,
+          status:
+            retainedCredits < 1
+              ? ReferralRewardStatus.CANCELLED
+              : ReferralRewardStatus.PENDING,
+        },
+        where: { id: reward.id },
+      });
+    } catch (error: unknown) {
+      await this.prisma.referralReward.updateMany({
+        data: { lockedAt: null },
+        where: { id: rewardId, lockedAt },
+      });
+      throw new Error(`Referral reward ${rewardId} reversal failed`, {
+        cause: error,
+      });
+    }
+  }
+
   private async ensureCode(actor: ReferralActor, billingAccountId: string) {
     const existing = await this.prisma.referralCode.findFirst({
       where: {
-        isDeleted: false,
         ownerUserId: actor.userId,
         rewardBillingAccountId: billingAccountId,
       },
     });
     if (existing) {
-      return existing;
+      return existing.isDeleted
+        ? this.prisma.referralCode.update({
+            data: {
+              isActive: true,
+              isDeleted: false,
+              rewardOrganizationId: actor.organizationId,
+            },
+            where: { id: existing.id },
+          })
+        : existing;
     }
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
@@ -633,13 +740,21 @@ export class ReferralsService {
         }
         const concurrent = await this.prisma.referralCode.findFirst({
           where: {
-            isDeleted: false,
             ownerUserId: actor.userId,
             rewardBillingAccountId: billingAccountId,
           },
         });
         if (concurrent) {
-          return concurrent;
+          return concurrent.isDeleted
+            ? this.prisma.referralCode.update({
+                data: {
+                  isActive: true,
+                  isDeleted: false,
+                  rewardOrganizationId: actor.organizationId,
+                },
+                where: { id: concurrent.id },
+              })
+            : concurrent;
         }
       }
     }
@@ -700,9 +815,6 @@ export class ReferralsService {
       grantedAt: reward.grantedAt?.toISOString() ?? null,
       id: reward.id,
       isDeleted: reward.isDeleted,
-      netAmountCents: reward.netAmountCents,
-      purchasedCredits: reward.purchasedCredits,
-      refundedAmountCents: reward.refundedAmountCents,
       reversedAt: reward.reversedAt?.toISOString() ?? null,
       reversedCredits: reward.reversedCredits,
       rewardCredits: reward.rewardCredits,

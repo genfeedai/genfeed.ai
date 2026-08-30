@@ -13,6 +13,13 @@ import { Input } from '@ui/primitives/input';
 import { Text } from '@ui/typography/text';
 import { Copy, Gift } from 'lucide-react';
 
+function resolveShareUrl(value: string): string {
+  if (!value.startsWith('/') || typeof window === 'undefined') {
+    return value;
+  }
+  return new URL(value, window.location.origin).toString();
+}
+
 export default function ReferralHubCard() {
   const getReferralsService = useAuthedService((token: string) =>
     ReferralsService.getInstance(token),
@@ -26,12 +33,13 @@ export default function ReferralHubCard() {
   if (error) {
     logger.error('GET /referrals/me failed', error);
   }
+  const shareUrl = resolveShareUrl(data?.shareUrl ?? '');
 
   const copyLink = async () => {
-    if (!data?.shareUrl) {
+    if (!shareUrl) {
       return;
     }
-    await ClipboardService.getInstance().copyToClipboard(data.shareUrl);
+    await ClipboardService.getInstance().copyToClipboard(shareUrl);
     NotificationsService.getInstance().success('Referral link copied');
   };
 
@@ -55,12 +63,12 @@ export default function ReferralHubCard() {
         <Input
           aria-label="Referral link"
           isReadOnly
-          value={isLoading ? 'Loading referral link…' : (data?.shareUrl ?? '')}
+          value={isLoading ? 'Loading referral link…' : shareUrl}
         />
         <Button
           type="button"
           onClick={copyLink}
-          isDisabled={isLoading || !data?.shareUrl}
+          isDisabled={isLoading || !shareUrl}
           icon={<Copy className="size-4" aria-hidden="true" />}
           withWrapper={false}
         >

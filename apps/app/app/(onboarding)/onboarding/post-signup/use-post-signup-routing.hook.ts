@@ -211,23 +211,19 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       if (referralCode) {
         const token = await resolveAuthToken(getToken);
         if (!token) {
-          setStatusMessage('Finishing your referral setup...');
-          setShowFallback(true);
-          return;
-        }
-        try {
-          await ReferralsService.getInstance(token).claim(referralCode);
-          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
-        } catch (error) {
-          if (signal.aborted) {
-            return;
-          }
-          logger.error('Failed to claim referral after auth', error);
-          setStatusMessage(
-            'We could not finish your referral setup. Retry before continuing.',
+          logger.warn(
+            'Referral attribution deferred because no auth token was available',
           );
-          setShowFallback(true);
-          return;
+        } else {
+          try {
+            await ReferralsService.getInstance(token).claim(referralCode);
+            localStorage.removeItem(ONBOARDING_STORAGE_KEYS.referralCode);
+          } catch (error) {
+            if (signal.aborted) {
+              return;
+            }
+            logger.error('Failed to claim referral after auth', error);
+          }
         }
       }
 

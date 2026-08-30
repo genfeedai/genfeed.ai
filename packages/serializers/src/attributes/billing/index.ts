@@ -5,6 +5,7 @@ export * from '@serializers/attributes/billing/cost-report-summary.attributes';
 export * from '@serializers/attributes/billing/credit-transaction.attributes';
 export * from '@serializers/attributes/billing/credit-usage.attributes';
 export * from '@serializers/attributes/billing/last-purchase-baseline.attributes';
+export * from '@serializers/attributes/billing/referral-admin-reward.attributes';
 export * from '@serializers/attributes/billing/referral-program.attributes';
 export * from '@serializers/attributes/billing/referral-reward.attributes';
 export * from '@serializers/attributes/billing/subscription.attributes';

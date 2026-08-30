@@ -5,6 +5,7 @@ export * from '@serializers/server/billing/cost-report-summary.serializer';
 export * from '@serializers/server/billing/credit-transaction.serializer';
 export * from '@serializers/server/billing/credit-usage.serializer';
 export * from '@serializers/server/billing/last-purchase-baseline.serializer';
+export * from '@serializers/server/billing/referral-admin-reward.serializer';
 export * from '@serializers/server/billing/referral-program.serializer';
 export * from '@serializers/server/billing/referral-reward.serializer';
 export * from '@serializers/server/billing/subscription.serializer';

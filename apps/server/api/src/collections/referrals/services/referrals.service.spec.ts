@@ -1,5 +1,6 @@
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import {
+  ActivitySource,
   ReferralClaimStatus,
   ReferralRewardStatus,
   ReferralStatus,
@@ -12,14 +13,18 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/config', () => ({
+  hasOrganizationBilling: () => true,
+}));
+
 type MockFn = ReturnType<typeof vi.fn>;
 
 type PrismaMock = {
   billingAccountMember: { findFirst: MockFn; findMany: MockFn };
   creditTransaction: { findFirst: MockFn };
-  organization: { findFirst: MockFn };
+  organization: { findFirst: MockFn; findMany: MockFn };
   referral: { count: MockFn; create: MockFn; findFirst: MockFn };
-  referralCode: { create: MockFn; findFirst: MockFn };
+  referralCode: { create: MockFn; findFirst: MockFn; update: MockFn };
   referralReward: {
     count: MockFn;
     create: MockFn;
@@ -42,11 +47,13 @@ function reward(overrides: Record<string, unknown> = {}) {
     createdAt: NOW,
     eligibleAt: NOW,
     failureReason: null,
+    grantTransaction: null,
     grantTransactionId: null,
     grantedAt: null,
     id: 'reward_1',
     isDeleted: false,
     lockedAt: null,
+    grossAmountCents: 10_000,
     netAmountCents: 10_000,
     purchasedCredits: 10_000,
     nextAttemptAt: NOW,
@@ -85,6 +92,7 @@ describe('ReferralsService', () => {
   let credits: {
     addOrganizationCreditsWithExpiration: MockFn;
     deductCreditsFromOrganization: MockFn;
+    getOrganizationCreditsBalance: MockFn;
   };
 
   beforeEach(() => {
@@ -94,7 +102,10 @@ describe('ReferralsService', () => {
         findMany: vi.fn().mockResolvedValue([{ userId: ACTOR.userId }]),
       },
       creditTransaction: { findFirst: vi.fn().mockResolvedValue(null) },
-      organization: { findFirst: vi.fn() },
+      organization: {
+        findFirst: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([{ id: ACTOR.organizationId }]),
+      },
       referral: {
         count: vi.fn(),
         create: vi.fn(),
@@ -103,6 +114,7 @@ describe('ReferralsService', () => {
       referralCode: {
         create: vi.fn(),
         findFirst: vi.fn(),
+        update: vi.fn(),
       },
       referralReward: {
         count: vi.fn(),
@@ -111,13 +123,14 @@ describe('ReferralsService', () => {
         findMany: vi.fn(),
         groupBy: vi.fn(),
         update: vi.fn(),
-        updateMany: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       subscription: { findFirst: vi.fn().mockResolvedValue(null) },
     };
     credits = {
       addOrganizationCreditsWithExpiration: vi.fn(),
       deductCreditsFromOrganization: vi.fn(),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
     };
     const billing = {
       resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_referred' }),
@@ -194,11 +207,38 @@ describe('ReferralsService', () => {
     });
   });
 
+  it('rejects an account with a prior PAYG purchase in any linked organization', async () => {
+    prisma.referralCode.findFirst.mockResolvedValue({
+      id: 'code_1',
+      rewardBillingAccountId: 'ba_referrer',
+      rewardOrganizationId: 'org_referrer',
+    });
+    prisma.billingAccountMember.findFirst
+      .mockResolvedValueOnce({ id: 'target_member' })
+      .mockResolvedValueOnce(null);
+    prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'tx_paid' });
+
+    const result = await service.claim(ACTOR, 'validcode1');
+
+    expect(result.status).toBe(ReferralClaimStatus.INELIGIBLE);
+    expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: expect.objectContaining({
+        organizationId: { in: [ACTOR.organizationId] },
+        source: {
+          in: [ActivitySource.PAY_AS_YOU_GO, 'pay-as-you-go'],
+        },
+      }),
+    });
+    expect(prisma.referral.create).not.toHaveBeenCalled();
+  });
+
   it('creates a seven-day pending reward worth ten percent of net PAYG spend', async () => {
     prisma.referral.findFirst.mockResolvedValue({ id: 'referral_1' });
     prisma.referralReward.create.mockResolvedValue(reward());
 
     await service.recordPaygPurchase({
+      grossAmountCents: 14_814,
       netAmountCents: 12_345,
       organizationId: ACTOR.organizationId,
       purchasedCredits: 12_345,
@@ -208,6 +248,7 @@ describe('ReferralsService', () => {
 
     expect(prisma.referralReward.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
+        grossAmountCents: 14_814,
         netAmountCents: 12_345,
         referralId: 'referral_1',
         rewardCredits: 1_234,
@@ -220,7 +261,8 @@ describe('ReferralsService', () => {
   });
 
   it('adjusts a pending reward to the remaining net purchase after a partial refund', async () => {
-    prisma.referralReward.findMany.mockResolvedValue([reward()]);
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(reward());
 
     await service.applyPaymentReversal({
       disputed: false,
@@ -240,13 +282,16 @@ describe('ReferralsService', () => {
   });
 
   it('debits only the newly reversed portion of a granted reward', async () => {
-    prisma.referralReward.findMany.mockResolvedValue([
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(
       reward({
         refundedAmountCents: 2_000,
+        grantedAt: NOW,
+        grantTransactionId: 'tx_grant',
         reversedCredits: 200,
         status: ReferralRewardStatus.GRANTED,
       }),
-    ]);
+    );
 
     await service.applyPaymentReversal({
       disputed: false,
@@ -272,6 +317,92 @@ describe('ReferralsService', () => {
         status: ReferralRewardStatus.GRANTED,
       }),
       where: { id: 'reward_1' },
+    });
+  });
+
+  it('normalizes tax-inclusive partial refunds to the pre-tax reward basis', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(
+      reward({ grossAmountCents: 12_000 }),
+    );
+
+    await service.applyPaymentReversal({
+      disputed: false,
+      refundedAmountCents: 6_000,
+      stripePaymentIntentId: 'pi_1',
+    });
+
+    expect(prisma.referralReward.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        refundedAmountCents: 5_000,
+        rewardCredits: 500,
+      }),
+      where: { id: 'reward_1' },
+    });
+  });
+
+  it('composes the overdraft allowance with an existing negative balance', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.findFirst.mockResolvedValue(
+      reward({ grantedAt: NOW, grantTransactionId: 'tx_grant' }),
+    );
+    credits.getOrganizationCreditsBalance.mockResolvedValue(-100);
+
+    await service.applyPaymentReversal({
+      disputed: true,
+      refundedAmountCents: 10_000,
+      stripePaymentIntentId: 'pi_1',
+    });
+
+    expect(credits.deductCreditsFromOrganization).toHaveBeenCalledWith(
+      'org_referrer',
+      'user_referrer',
+      1_000,
+      'Referral reward reversal',
+      expect.any(String),
+      expect.objectContaining({ maxOverdraftCredits: 1_100 }),
+    );
+  });
+
+  it('fails with a retryable error when settlement owns the reward lease', async () => {
+    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
+    prisma.referralReward.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(
+      service.applyPaymentReversal({
+        disputed: false,
+        refundedAmountCents: 5_000,
+        stripePaymentIntentId: 'pi_1',
+      }),
+    ).rejects.toThrow('retry payment reversal');
+    expect(credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+  });
+
+  it('reactivates a soft-deleted code instead of violating its unique key', async () => {
+    prisma.referralCode.findFirst.mockResolvedValue({
+      id: 'code_1',
+      isDeleted: true,
+    });
+    prisma.referralCode.update.mockResolvedValue({
+      code: 'restoredcode',
+      createdAt: NOW,
+      id: 'code_1',
+      isDeleted: false,
+      updatedAt: NOW,
+    });
+    prisma.referral.count.mockResolvedValue(0);
+    prisma.referralReward.groupBy.mockResolvedValue([]);
+    prisma.referralReward.findMany.mockResolvedValue([]);
+
+    await service.getMine(ACTOR);
+
+    expect(prisma.referralCode.update).toHaveBeenCalledWith({
+      data: {
+        isActive: true,
+        isDeleted: false,
+        rewardOrganizationId: ACTOR.organizationId,
+      },
+      where: { id: 'code_1' },
     });
   });
 });

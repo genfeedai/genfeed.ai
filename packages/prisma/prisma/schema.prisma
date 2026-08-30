@@ -2911,6 +2911,7 @@ model CreditTransaction {
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
   @@index([reservationId])
+  @@unique([organizationId, idempotencyKey], map: "credit_transactions_org_idempotency_key")
   @@map("credit_transactions")
 }
 
@@ -2998,6 +2999,7 @@ model ReferralReward {
   referral                Referral             @relation(fields: [referralId], references: [id])
   stripeCheckoutSessionId String               @unique
   stripePaymentIntentId   String?
+  grossAmountCents        Int
   netAmountCents          Int
   purchasedCredits        Int
   refundedAmountCents     Int                  @default(0)

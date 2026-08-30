@@ -70,6 +70,15 @@ Use approach 3. Vincent explicitly selected the native, full end-to-end program 
   net value. Client DTOs cannot submit reward or billing fields.
 - Refunds and disputes append compensating ledger transactions; history is never
   edited or deleted to conceal the original grant.
+- Settlement and payment reversal share a durable row lease. Only one may
+  mutate a reward at a time; expired leases recover from Postgres after crashes.
+- Persist both Stripe gross and net purchase cents. Cumulative gross refunds are
+  scaled to the pre-tax basis before calculating the compensating credit debit.
+- Customer serializers expose reward state and earned-credit values only. Exact
+  purchase amounts and purchased-credit quantities are admin-only audit fields.
+- Community deployments without organization billing expose no referral routes
+  and run no settlement work; configured or relative app URLs keep licensed
+  self-hosted referral links portable.
 
 ## Abuse Decisions
 

@@ -6,9 +6,6 @@ import type { IBaseEntity } from '../core/base.interface';
 
 export interface IReferralReward extends IBaseEntity {
   status: ReferralRewardStatus;
-  netAmountCents: number;
-  purchasedCredits: number;
-  refundedAmountCents: number;
   rewardCredits: number;
   reversedCredits: number;
   eligibleAt: string;
@@ -38,6 +35,10 @@ export interface IReferralClaimResult {
 
 export interface IReferralAdminReward extends IReferralReward {
   attemptCount: number;
+  grossAmountCents: number;
+  netAmountCents: number;
+  purchasedCredits: number;
+  refundedAmountCents: number;
   referralId: string;
   referrerBillingAccountId: string;
   referredBillingAccountId: string;

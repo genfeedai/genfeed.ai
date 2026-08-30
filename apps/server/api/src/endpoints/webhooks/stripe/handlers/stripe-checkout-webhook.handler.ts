@@ -226,7 +226,7 @@ export class StripeCheckoutWebhookHandler {
         const didAddCredits = await this.supportService.addPurchasedCredits(
           subscription.organizationId,
           creditsToAdd,
-          'pay-as-you-go',
+          ActivitySource.PAY_AS_YOU_GO,
           `Credit pack purchase (${creditsToAdd} credits)`,
           this.supportService.buildCheckoutSessionCreditReference(
             'organization-payment',
@@ -295,17 +295,18 @@ export class StripeCheckoutWebhookHandler {
 
     const amountTax = session.total_details?.amount_tax ?? 0;
     const amountDiscount = session.total_details?.amount_discount ?? 0;
-    const netAmountCents = Math.max(
+    const grossAmountCents = Math.max(
       0,
-      session.amount_total !== null
-        ? session.amount_total - amountTax
-        : (session.amount_subtotal ?? 0) - amountDiscount,
+      session.amount_total ??
+        (session.amount_subtotal ?? 0) - amountDiscount + amountTax,
     );
+    const netAmountCents = Math.max(0, grossAmountCents - amountTax);
     const stripePaymentIntentId =
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent?.id ?? null);
     await this.referralsService.recordPaygPurchase({
+      grossAmountCents,
       netAmountCents,
       organizationId: subscription.organizationId,
       purchasedCredits: this.supportService.resolveCheckoutCredits(

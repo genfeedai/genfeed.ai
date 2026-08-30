@@ -44,7 +44,7 @@ describe('ReferralHubCard', () => {
       rewardRatePercent: 10,
       rewardWindowMonths: 12,
       settlementDelayDays: 7,
-      shareUrl: 'https://app.example.test/sign-up?ref=friend_2345',
+      shareUrl: '/sign-up?ref=friend_2345',
     });
   });
 
@@ -59,19 +59,16 @@ describe('ReferralHubCard', () => {
     );
 
     const input = await screen.findByLabelText('Referral link');
+    const expectedShareUrl = `${window.location.origin}/sign-up?ref=friend_2345`;
     await waitFor(() => {
-      expect(input).toHaveValue(
-        'https://app.example.test/sign-up?ref=friend_2345',
-      );
+      expect(input).toHaveValue(expectedShareUrl);
     });
     expect(screen.getByText('500')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
 
     await waitFor(() => {
-      expect(copyMock).toHaveBeenCalledWith(
-        'https://app.example.test/sign-up?ref=friend_2345',
-      );
+      expect(copyMock).toHaveBeenCalledWith(expectedShareUrl);
     });
     expect(successMock).toHaveBeenCalledWith('Referral link copied');
   });

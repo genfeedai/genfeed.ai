@@ -12,6 +12,7 @@ import {
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { ReferralRewardStatus } from '@genfeedai/enums';
 import {
+  ReferralAdminRewardSerializer,
   ReferralProgramSerializer,
   ReferralRewardSerializer,
 } from '@genfeedai/serializers';
@@ -87,7 +88,7 @@ export class ReferralsController {
       page,
       ...(status ? { status } : {}),
     });
-    return serializeCollection(request, ReferralRewardSerializer, {
+    return serializeCollection(request, ReferralAdminRewardSerializer, {
       docs: result.docs,
       limit,
       page,

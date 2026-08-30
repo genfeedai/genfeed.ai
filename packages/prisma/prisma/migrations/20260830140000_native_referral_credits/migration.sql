@@ -43,6 +43,7 @@ CREATE TABLE "referral_rewards" (
   "referralId" TEXT NOT NULL,
   "stripeCheckoutSessionId" TEXT NOT NULL,
   "stripePaymentIntentId" TEXT,
+  "grossAmountCents" INTEGER NOT NULL,
   "netAmountCents" INTEGER NOT NULL,
   "purchasedCredits" INTEGER NOT NULL,
   "refundedAmountCents" INTEGER NOT NULL DEFAULT 0,
@@ -63,7 +64,9 @@ CREATE TABLE "referral_rewards" (
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "referral_rewards_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "referral_rewards_amount_check" CHECK (
-    "netAmountCents" >= 0
+    "grossAmountCents" >= 0
+    AND "netAmountCents" >= 0
+    AND "netAmountCents" <= "grossAmountCents"
     AND "purchasedCredits" >= 0
     AND "refundedAmountCents" >= 0
     AND "rewardCredits" >= 0
@@ -74,6 +77,9 @@ CREATE TABLE "referral_rewards" (
     "failureReason" IS NULL OR char_length("failureReason") <= 500
   )
 );
+
+CREATE UNIQUE INDEX "credit_transactions_org_idempotency_key"
+  ON "credit_transactions"("organizationId", "idempotencyKey");
 
 CREATE UNIQUE INDEX "referral_codes_code_key" ON "referral_codes"("code");
 CREATE UNIQUE INDEX "referral_codes_owner_billing_account_key" ON "referral_codes"("ownerUserId", "rewardBillingAccountId");
