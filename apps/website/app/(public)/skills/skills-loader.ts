@@ -6,7 +6,7 @@ export const getSkillsRegistry = cache(
   async (): Promise<SkillRegistry | null> => {
     try {
       const response = await fetch(
-        `${EnvironmentService.apiEndpoint}/skills-pro/registry`,
+        `${EnvironmentService.apiEndpoint}/skills-pro/storefront`,
         {
           next: { revalidate: 300 },
         },

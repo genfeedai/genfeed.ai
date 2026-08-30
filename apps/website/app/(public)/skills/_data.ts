@@ -522,9 +522,7 @@ export interface SkillRegistryEntry {
   name: string;
   description: string;
   version: string;
-  s3Key: string;
   category: string;
-  checksum?: string;
 }
 
 export interface SkillRegistry {

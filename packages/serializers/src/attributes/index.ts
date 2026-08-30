@@ -11,6 +11,7 @@ export * from '@serializers/attributes/integrations';
 export * from '@serializers/attributes/management';
 
 export * from '@serializers/attributes/organizations';
+export * from '@serializers/attributes/skills-pro';
 export * from '@serializers/attributes/social';
 export * from '@serializers/attributes/threads';
 export * from '@serializers/attributes/users';

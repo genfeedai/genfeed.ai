@@ -68,12 +68,7 @@ describe('SkillRegistryService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((key: string) => {
-              const config: Record<string, string> = {
-                GENFEEDAI_CDN_URL: 'https://cdn.genfeed.ai',
-              };
-              return config[key];
-            }),
+            cdnUrl: 'https://cdn.genfeed.ai',
           },
         },
         {

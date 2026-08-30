@@ -1,7 +1,11 @@
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import type {
+  SkillsProRegistryEntryDto,
+  SkillsProStorefrontCatalogDto,
+} from '@api/skills-pro/contracts/skill-registry.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 
 interface SkillRegistryEntry {
   slug: string;
@@ -47,8 +51,7 @@ export class SkillRegistryService {
       return this.cachedRegistry;
     }
 
-    const cdnUrl = this.configService.get('GENFEEDAI_CDN_URL');
-    const registryUrl = `${cdnUrl}/skills/registry.json`;
+    const registryUrl = `${this.configService.cdnUrl}/registry/skills-pro.json`;
 
     this.loggerService.log(`${this.constructorName} fetching registry`, {
       url: registryUrl,
@@ -81,6 +84,20 @@ export class SkillRegistryService {
     });
 
     return registry;
+  }
+
+  async getMetadataRegistry(): Promise<SkillsProStorefrontCatalogDto> {
+    const registry = await this.getRegistry();
+
+    return {
+      bundlePrice: registry.bundlePrice,
+      skills: registry.skills.map((skill) => this.toMetadata(skill)),
+      updatedAt: registry.updatedAt,
+    };
+  }
+
+  async getStorefrontCatalog(): Promise<SkillsProStorefrontCatalogDto> {
+    return this.getMetadataRegistry();
   }
 
   async getBundleStripePriceId(): Promise<string | undefined> {
@@ -127,5 +144,16 @@ export class SkillRegistryService {
     }
 
     return bundlePriceCents ? bundlePriceCents / 100 : 0;
+  }
+
+  private toMetadata(skill: SkillRegistryEntry): SkillsProRegistryEntryDto {
+    return {
+      category: skill.category,
+      description: skill.description,
+      id: skill.slug,
+      name: skill.name,
+      slug: skill.slug,
+      version: skill.version,
+    };
   }
 }

@@ -11,6 +11,7 @@ export * from '@serializers/configs/integrations';
 export * from '@serializers/configs/management';
 
 export * from '@serializers/configs/organizations';
+export * from '@serializers/configs/skills-pro';
 export * from '@serializers/configs/social';
 export * from '@serializers/configs/threads';
 export * from '@serializers/configs/users';
