@@ -154,6 +154,22 @@ describe('SocialIntelligenceInbox', () => {
     }
   });
 
+  it('renders the page shell while the inbox is loading', () => {
+    mockInbox({ items: [], state: 'loading' });
+
+    render(
+      <SocialIntelligenceInbox organizationId="org-1" brandId="brand-1" />,
+    );
+
+    expect(screen.getByText('Social intelligence inbox')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Review attributable listening themes before creating downstream work.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByText('Loading social intelligence…')).toBeVisible();
+  });
+
   it('acknowledges and defers a theme through the durable review mutation', async () => {
     const user = userEvent.setup();
     render(

@@ -129,6 +129,7 @@ vi.mock('@ui/display/table/Table', () => ({
   default: <T,>({
     columns,
     getRowKey,
+    isLoading,
     items,
   }: {
     columns: Array<{
@@ -136,29 +137,36 @@ vi.mock('@ui/display/table/Table', () => ({
       render?: (item: T) => ReactNode;
     }>;
     getRowKey: (item: T) => string;
+    isLoading?: boolean;
     items: T[];
-  }) => (
-    <table>
-      <thead>
-        <tr>
-          {columns.map((column) => (
-            <th key={column.header}>{column.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => (
-          <tr key={getRowKey(item)}>
+  }) => {
+    if (isLoading) {
+      return <div data-testid="hooks-table-skeleton" />;
+    }
+
+    return (
+      <table>
+        <thead>
+          <tr>
             {columns.map((column) => (
-              <td key={column.header}>
-                {column.render ? column.render(item) : null}
-              </td>
+              <th key={column.header}>{column.header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  ),
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={getRowKey(item)}>
+              {columns.map((column) => (
+                <td key={column.header}>
+                  {column.render ? column.render(item) : null}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  },
 }));
 
 vi.mock('@ui/layout/container/Container', () => ({
@@ -177,10 +185,6 @@ vi.mock('@ui/layout/container/Container', () => ({
       {children}
     </main>
   ),
-}));
-
-vi.mock('@ui/loading/default/Loading', () => ({
-  default: () => <div data-testid="loading">Loading</div>,
 }));
 
 function hookResponse() {
@@ -254,8 +258,8 @@ describe('AnalyticsHooks', () => {
   it('renders hook analytics and refreshes with brand query params', async () => {
     render(analyticsHooksTree());
 
-    expect(screen.getByTestId('loading')).toBeVisible();
-    expect(await screen.findByText('Viral Hooks')).toBeVisible();
+    expect(screen.getByText('Viral Hooks')).toBeVisible();
+    expect(await screen.findByText('Winning hook video')).toBeVisible();
     expect(
       screen.getByText('Analyze hooks and engagement patterns.'),
     ).toBeVisible();
@@ -290,6 +294,23 @@ describe('AnalyticsHooks', () => {
     await waitFor(() => expect(mocks.getViralHooks).toHaveBeenCalledTimes(2));
   });
 
+  it('renders the page shell while hook data is loading', () => {
+    mocks.getViralHooks.mockReturnValue(new Promise(() => {}));
+
+    render(analyticsHooksTree());
+
+    expect(screen.getByText('Viral Hooks')).toBeVisible();
+    expect(
+      screen.getByText('Analyze hooks and engagement patterns.'),
+    ).toBeVisible();
+    expect(screen.getByText('Total Videos Analyzed')).toBeVisible();
+    expect(screen.getByText('Total Time Tracked')).toBeVisible();
+    expect(screen.getByText('Avg Time per Video')).toBeVisible();
+    expect(screen.getByText('Top Platform')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    expect(screen.getByTestId('hooks-table-skeleton')).toBeVisible();
+  });
+
   it('uses an explicit brand id and renders default empty data', async () => {
     mocks.getViralHooks.mockResolvedValueOnce({});
 
@@ -311,7 +332,7 @@ describe('AnalyticsHooks', () => {
     mocks.organizationId = null;
     const { rerender } = render(analyticsHooksTree());
 
-    expect(screen.getByTestId('loading')).toBeVisible();
+    expect(screen.getByText('Viral Hooks')).toBeVisible();
     expect(mocks.getAnalyticsService).not.toHaveBeenCalled();
 
     mocks.organizationId = 'org-1';

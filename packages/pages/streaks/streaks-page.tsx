@@ -58,14 +58,6 @@ export default function StreaksPage() {
     [],
   );
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="size-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
-      </div>
-    );
-  }
-
   const currentStreak = streak?.currentStreak ?? 0;
   const longestStreak = streak?.longestStreak ?? 0;
   const streakFreezes = streak?.streakFreezes ?? 0;
@@ -97,15 +89,31 @@ export default function StreaksPage() {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <MetricCard label="Current streak" size="md" value={currentStreak} />
-          <MetricCard label="Longest streak" size="md" value={longestStreak} />
-          <MetricCard label="Freezes" size="md" value={streakFreezes} />
+          <MetricCard
+            isLoading={isLoading}
+            label="Current streak"
+            size="md"
+            value={currentStreak}
+          />
+          <MetricCard
+            isLoading={isLoading}
+            label="Longest streak"
+            size="md"
+            value={longestStreak}
+          />
+          <MetricCard
+            isLoading={isLoading}
+            label="Freezes"
+            size="md"
+            value={streakFreezes}
+          />
           <MetricCard
             description={
               nextMilestone
                 ? `${nextMilestone.remaining} day${nextMilestone.remaining === 1 ? '' : 's'} remaining`
                 : 'All milestone tiers reached'
             }
+            isLoading={isLoading}
             label="Next milestone"
             size="md"
             value={nextMilestone ? `${nextMilestone.days}` : 'Done'}
@@ -129,30 +137,44 @@ export default function StreaksPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18">
-            {heatmapDays.map((dayKey) => {
-              const count = calendar[dayKey]?.count ?? 0;
-              const intensityClass =
-                count >= 4
-                  ? 'bg-foreground/80'
-                  : count >= 2
-                    ? 'bg-foreground/45'
-                    : count >= 1
-                      ? 'bg-foreground/25'
-                      : 'bg-secondary';
-
-              return (
+          {isLoading ? (
+            <div
+              className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18"
+              data-testid="streaks-heatmap-skeleton"
+            >
+              {heatmapDays.map((dayKey) => (
                 <div
                   key={dayKey}
-                  className={cn(
-                    'aspect-square rounded transition-colors',
-                    intensityClass,
-                  )}
-                  title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
+                  className="aspect-square animate-pulse rounded bg-secondary"
                 />
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-9 gap-2 md:grid-cols-15 lg:grid-cols-18">
+              {heatmapDays.map((dayKey) => {
+                const count = calendar[dayKey]?.count ?? 0;
+                const intensityClass =
+                  count >= 4
+                    ? 'bg-foreground/80'
+                    : count >= 2
+                      ? 'bg-foreground/45'
+                      : count >= 1
+                        ? 'bg-foreground/25'
+                        : 'bg-secondary';
+
+                return (
+                  <div
+                    key={dayKey}
+                    className={cn(
+                      'aspect-square rounded transition-colors',
+                      intensityClass,
+                    )}
+                    title={`${dayKey}${count > 0 ? `: ${count} item${count === 1 ? '' : 's'}` : ''}`}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="rounded-3xl bg-secondary p-5 shadow-border">
@@ -163,77 +185,90 @@ export default function StreaksPage() {
             Earned streak rewards
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {badgeMilestones.length > 0 ? (
-              badgeMilestones.map((milestone) => (
-                <Badge
-                  className="px-3 py-1 text-xs font-semibold"
-                  key={milestone}
-                  variant="success"
-                >
-                  <Gift className="size-3.5" />
-                  {milestone}-day badge
-                </Badge>
-              ))
-            ) : (
-              <span className="text-sm text-foreground/60">
-                Badge milestones unlock at 30, 100, and 365 days.
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {milestoneStates.map((milestone) => (
-              <div
-                key={milestone.days}
-                className={cn(
-                  'rounded-2xl p-4',
-                  milestone.isAchieved
-                    ? 'bg-success/10 shadow-border'
-                    : milestone.isNext
-                      ? 'bg-warning/10 shadow-border'
-                      : 'bg-secondary shadow-border',
+          {isLoading ? (
+            <div
+              className="mt-6 animate-pulse space-y-3"
+              data-testid="streaks-milestones-skeleton"
+            >
+              <div className="h-16 rounded-2xl bg-secondary" />
+              <div className="h-16 rounded-2xl bg-secondary" />
+              <div className="h-16 rounded-2xl bg-secondary" />
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {badgeMilestones.length > 0 ? (
+                  badgeMilestones.map((milestone) => (
+                    <Badge
+                      className="px-3 py-1 text-xs font-semibold"
+                      key={milestone}
+                      variant="success"
+                    >
+                      <Gift className="size-3.5" />
+                      {milestone}-day badge
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-foreground/60">
+                    Badge milestones unlock at 30, 100, and 365 days.
+                  </span>
                 )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-semibold text-foreground">
-                        {milestone.days} days
-                      </span>
-                      {milestone.days === 7 ? (
-                        <ShieldCheck className="size-4 text-muted-foreground" />
-                      ) : milestone.rewardCredits > 0 ? (
-                        <Gift className="size-4 text-muted-foreground" />
-                      ) : (
-                        <Flame className="size-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <p className="mt-1 text-sm text-foreground/65">
-                      {rewardLabel(milestone)}
-                    </p>
-                  </div>
-
-                  <Badge
-                    className="px-2.5 py-1 text-xs font-semibold"
-                    variant={
-                      milestone.isAchieved
-                        ? 'success'
-                        : milestone.isNext
-                          ? 'warning'
-                          : 'ghost'
-                    }
-                  >
-                    {milestone.isAchieved
-                      ? 'Unlocked'
-                      : milestone.isNext
-                        ? 'Next'
-                        : 'Locked'}
-                  </Badge>
-                </div>
               </div>
-            ))}
-          </div>
+
+              <div className="mt-6 space-y-3">
+                {milestoneStates.map((milestone) => (
+                  <div
+                    key={milestone.days}
+                    className={cn(
+                      'rounded-2xl p-4',
+                      milestone.isAchieved
+                        ? 'bg-success/10 shadow-border'
+                        : milestone.isNext
+                          ? 'bg-warning/10 shadow-border'
+                          : 'bg-secondary shadow-border',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-semibold text-foreground">
+                            {milestone.days} days
+                          </span>
+                          {milestone.days === 7 ? (
+                            <ShieldCheck className="size-4 text-muted-foreground" />
+                          ) : milestone.rewardCredits > 0 ? (
+                            <Gift className="size-4 text-muted-foreground" />
+                          ) : (
+                            <Flame className="size-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm text-foreground/65">
+                          {rewardLabel(milestone)}
+                        </p>
+                      </div>
+
+                      <Badge
+                        className="px-2.5 py-1 text-xs font-semibold"
+                        variant={
+                          milestone.isAchieved
+                            ? 'success'
+                            : milestone.isNext
+                              ? 'warning'
+                              : 'ghost'
+                        }
+                      >
+                        {milestone.isAchieved
+                          ? 'Unlocked'
+                          : milestone.isNext
+                            ? 'Next'
+                            : 'Locked'}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
     </div>

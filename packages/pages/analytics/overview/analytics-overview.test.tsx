@@ -251,12 +251,6 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
   default: ({ title }: { title: string }) => <div>{title}</div>,
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: ({ variant }: { variant?: string }) => (
-    <div data-testid="lazy-loading-fallback">{variant}</div>
-  ),
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   buttonVariants: () => '',
 }));
@@ -315,13 +309,23 @@ describe('AnalyticsOverview', () => {
     expect(markup).not.toContain('font-serif');
   });
 
-  it('renders the grid skeleton while analytics data is loading', () => {
+  it('renders the page shell while analytics data is loading', () => {
     mockAnalyticsReturn.isLoading = true;
 
     const markup = renderOverview();
 
-    expect(markup).toContain('lazy-loading-fallback');
-    expect(markup).toContain('grid');
+    // The hero status strip depends on the loaded dashboard state, so it
+    // stays suppressed rather than flashing incorrect "First run" copy.
+    expect(markup).not.toContain('First run');
+    // Chrome that is independent of the primary analytics fetch renders
+    // immediately, driven by its own loading flags.
+    expect(markup).toContain(
+      'Trend lines will appear here once performance data lands',
+    );
+    expect(markup).toContain('Top posts will surface here');
+    expect(markup).toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
   });
 
   it('mounts agent dashboard persistence before the customized dashboard is visible', async () => {

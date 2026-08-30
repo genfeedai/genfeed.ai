@@ -112,4 +112,21 @@ describe('OutreachCampaignDetail', () => {
       'aria-disabled',
     );
   });
+
+  it('renders the page chrome while the campaign is still loading', () => {
+    mockDetail(null);
+    mockUseOutreachCampaignDetail.mockReturnValue({
+      ...mockUseOutreachCampaignDetail(),
+      isLoading: true,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    expect(screen.getByText('Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Target Statistics')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('outreach-campaign-body-skeleton'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Campaign Not Found')).not.toBeInTheDocument();
+  });
 });

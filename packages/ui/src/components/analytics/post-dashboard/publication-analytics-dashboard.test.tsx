@@ -58,4 +58,18 @@ describe('PublicationAnalyticsDashboard', () => {
     const rootElement = container.firstChild;
     expect(rootElement).toBeInTheDocument();
   });
+
+  it('renders the header chrome while analytics data is loading', () => {
+    const Wrapper = createWrapper();
+    render(
+      <Wrapper>
+        <PublicationAnalyticsDashboard publicationId="post-1" />
+      </Wrapper>,
+    );
+
+    expect(screen.getByText('Post Analytics')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No analytics data available'),
+    ).not.toBeInTheDocument();
+  });
 });

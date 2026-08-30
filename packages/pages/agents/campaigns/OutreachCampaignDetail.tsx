@@ -16,6 +16,15 @@ import OutreachCampaignDetailHeader from './OutreachCampaignDetailHeader';
 import OutreachCampaignTargetsTable from './OutreachCampaignTargetsTable';
 import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
 
+const CAMPAIGN_KPI_PLACEHOLDERS = [
+  { description: 'All targets', label: 'Total', value: '-' },
+  { description: 'Waiting', label: 'Pending', value: '-' },
+  { description: 'In progress', label: 'Processing', value: '-' },
+  { description: 'Successfully replied', label: 'Replied', value: '-' },
+  { description: 'Skipped', label: 'Skipped', value: '-' },
+  { description: 'Errors', label: 'Failed', value: '-' },
+];
+
 export default function OutreachCampaignDetail() {
   const {
     campaign,
@@ -35,21 +44,7 @@ export default function OutreachCampaignDetail() {
     urlInput,
   } = useOutreachCampaignDetail();
 
-  if (isLoading) {
-    return (
-      <Container
-        label="Loading..."
-        description="Loading campaign details"
-        icon={Rocket}
-      >
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin text-4xl text-primary">⏳</div>
-        </div>
-      </Container>
-    );
-  }
-
-  if (!campaign) {
+  if (!isLoading && !campaign) {
     return (
       <Container
         label="Campaign Not Found"
@@ -69,17 +64,69 @@ export default function OutreachCampaignDetail() {
     );
   }
 
-  const pairEvaluation = evaluateOutreachCapability({
-    campaignType: campaign.campaignType,
-    platform: campaign.platform,
-  });
-  const isPairExecutable = isOutreachPairExecutable(pairEvaluation);
+  const pairEvaluation = campaign
+    ? evaluateOutreachCapability({
+        campaignType: campaign.campaignType,
+        platform: campaign.platform,
+      })
+    : null;
+  const isPairExecutable = pairEvaluation
+    ? isOutreachPairExecutable(pairEvaluation)
+    : false;
   const unavailableReasonId = 'outreach-campaign-unavailable-reason';
+
+  const kpiItems = campaign
+    ? [
+        {
+          description: 'All targets',
+          label: 'Total',
+          value: targetStats.total,
+        },
+        {
+          description: 'Waiting',
+          label: 'Pending',
+          value: targetStats.pending,
+        },
+        {
+          description: 'In progress',
+          label: 'Processing',
+          value: targetStats.processing,
+          valueClassName: 'text-warning',
+        },
+        {
+          description: 'Successfully replied',
+          label: 'Replied',
+          value: targetStats.replied,
+          valueClassName: 'text-success',
+        },
+        ...(campaign.campaignType === CampaignType.DM_OUTREACH
+          ? [
+              {
+                description: 'DMs successfully sent',
+                label: 'DMs Sent',
+                value: campaign.totalDmsSent || 0,
+                valueClassName: 'text-success',
+              },
+            ]
+          : []),
+        {
+          description: 'Skipped',
+          label: 'Skipped',
+          value: targetStats.skipped,
+        },
+        {
+          description: 'Errors',
+          label: 'Failed',
+          value: targetStats.failed,
+          valueClassName: 'text-destructive',
+        },
+      ]
+    : CAMPAIGN_KPI_PLACEHOLDERS;
 
   return (
     <Container
-      label={campaign.label}
-      description={campaign.description || 'Campaign details and targets'}
+      label={campaign?.label ?? 'Campaign'}
+      description={campaign?.description || 'Campaign details and targets'}
       icon={Rocket}
       right={
         <>
@@ -88,7 +135,7 @@ export default function OutreachCampaignDetail() {
             isRefreshing={isRefreshing}
           />
 
-          {campaign.status === CampaignStatus.ACTIVE ? (
+          {campaign?.status === CampaignStatus.ACTIVE ? (
             <Button
               label={
                 <>
@@ -98,7 +145,7 @@ export default function OutreachCampaignDetail() {
               variant={ButtonVariant.DESTRUCTIVE}
               onClick={handlePauseCampaign}
             />
-          ) : campaign.status !== CampaignStatus.COMPLETED ? (
+          ) : campaign && campaign.status !== CampaignStatus.COMPLETED ? (
             <Button
               aria-describedby={
                 isPairExecutable ? undefined : unavailableReasonId
@@ -119,7 +166,7 @@ export default function OutreachCampaignDetail() {
             />
           ) : null}
 
-          {campaign.status !== CampaignStatus.COMPLETED && (
+          {campaign && campaign.status !== CampaignStatus.COMPLETED && (
             <Button
               label={
                 <>
@@ -134,7 +181,7 @@ export default function OutreachCampaignDetail() {
       }
     >
       <div className="space-y-6">
-        {!isPairExecutable ? (
+        {campaign && !isPairExecutable && pairEvaluation ? (
           <div
             className="border border-border bg-card p-4 text-sm"
             id={unavailableReasonId}
@@ -145,80 +192,50 @@ export default function OutreachCampaignDetail() {
           </div>
         ) : null}
 
-        <OutreachCampaignDetailHeader
-          platform={campaign.platform}
-          status={campaign.status}
-          onBack={handleBack}
-        />
+        {campaign ? (
+          <OutreachCampaignDetailHeader
+            platform={campaign.platform}
+            status={campaign.status}
+            onBack={handleBack}
+          />
+        ) : null}
 
         <KPISection
           title="Target Statistics"
           gridCols={{ desktop: 6, mobile: 2, tablet: 3 }}
-          items={[
-            {
-              description: 'All targets',
-              label: 'Total',
-              value: targetStats.total,
-            },
-            {
-              description: 'Waiting',
-              label: 'Pending',
-              value: targetStats.pending,
-            },
-            {
-              description: 'In progress',
-              label: 'Processing',
-              value: targetStats.processing,
-              valueClassName: 'text-warning',
-            },
-            {
-              description: 'Successfully replied',
-              label: 'Replied',
-              value: targetStats.replied,
-              valueClassName: 'text-success',
-            },
-            ...(campaign.campaignType === CampaignType.DM_OUTREACH
-              ? [
-                  {
-                    description: 'DMs successfully sent',
-                    label: 'DMs Sent',
-                    value: campaign.totalDmsSent || 0,
-                    valueClassName: 'text-success',
-                  },
-                ]
-              : []),
-            {
-              description: 'Skipped',
-              label: 'Skipped',
-              value: targetStats.skipped,
-            },
-            {
-              description: 'Errors',
-              label: 'Failed',
-              value: targetStats.failed,
-              valueClassName: 'text-destructive',
-            },
-          ]}
+          items={kpiItems}
+          isLoading={isLoading}
         />
 
-        <OutreachCampaignAddTargets
-          campaignType={campaign.campaignType}
-          isUnavailable={!isPairExecutable}
-          urlInput={urlInput}
-          isAddingUrls={isAddingUrls}
-          unavailableReason={
-            isPairExecutable ? undefined : pairEvaluation.ui.body
-          }
-          onUrlInputChange={setUrlInput}
-          onAddUrls={handleAddUrls}
-          onAddDmRecipients={handleAddDmRecipients}
-        />
+        {campaign ? (
+          <>
+            <OutreachCampaignAddTargets
+              campaignType={campaign.campaignType}
+              isUnavailable={!isPairExecutable}
+              urlInput={urlInput}
+              isAddingUrls={isAddingUrls}
+              unavailableReason={
+                isPairExecutable ? undefined : pairEvaluation?.ui.body
+              }
+              onUrlInputChange={setUrlInput}
+              onAddUrls={handleAddUrls}
+              onAddDmRecipients={handleAddDmRecipients}
+            />
 
-        <OutreachCampaignTargetsTable
-          campaignType={campaign.campaignType}
-          targets={targets}
-          isRefreshing={isRefreshing}
-        />
+            <OutreachCampaignTargetsTable
+              campaignType={campaign.campaignType}
+              targets={targets}
+              isRefreshing={isRefreshing}
+            />
+          </>
+        ) : (
+          <div
+            className="flex items-center justify-center py-20"
+            data-testid="outreach-campaign-body-skeleton"
+          >
+            <div className="animate-spin text-4xl text-primary">⏳</div>
+          </div>
+        )}
       </div>
     </Container>
   );
