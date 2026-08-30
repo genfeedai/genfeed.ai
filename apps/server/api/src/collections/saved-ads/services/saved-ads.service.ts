@@ -7,6 +7,7 @@ import type {
   UpdateSavedAdNoteInput,
 } from '@genfeedai/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -106,11 +107,11 @@ export class SavedAdsService {
       if (result.count !== 1) {
         const existing = await this.prisma.savedAd.findFirst({
           select: { id: true },
-          where: {
+          where: scopedWhere(organizationId, {
             brandId: input.brandId,
             id: input.id,
-            organizationId,
-          },
+            isDeleted: true,
+          }),
         });
         if (!existing) throw new NotFoundException('Saved ad', input.id);
       }
@@ -155,15 +156,22 @@ export class SavedAdsService {
     }
 
     const sourceAdId = detail.sourceId || detail.id;
-    const existing = await this.prisma.savedAd.findFirst({
-      where: {
-        brandId: input.brandId,
-        organizationId,
-        platform: detail.platform,
-        sourceAdId,
-      },
+    const identityWhere = {
+      brandId: input.brandId,
+      platform: detail.platform,
+      sourceAdId,
+    };
+    const activeSnapshot = await this.prisma.savedAd.findFirst({
+      where: scopedWhere(organizationId, identityWhere),
     });
-    if (existing && !existing.isDeleted) return existing;
+    if (activeSnapshot) return activeSnapshot;
+
+    const deletedSnapshot = await this.prisma.savedAd.findFirst({
+      where: scopedWhere(organizationId, {
+        ...identityWhere,
+        isDeleted: true,
+      }),
+    });
 
     const sourceImageUrls = detail.imageUrls?.length
       ? detail.imageUrls
@@ -233,14 +241,14 @@ export class SavedAdsService {
       videoUrls,
     };
 
-    if (existing) {
+    if (deletedSnapshot) {
       return this.prisma.savedAd.update({
-        data,
-        where: {
+        data: { ...data, userId: deletedSnapshot.userId },
+        where: scopedWhere(organizationId, {
           brandId: input.brandId,
-          id: existing.id,
-          organizationId,
-        },
+          id: deletedSnapshot.id,
+          isDeleted: true,
+        }),
       });
     }
     try {
@@ -252,23 +260,25 @@ export class SavedAdsService {
         'code' in error &&
         error.code === 'P2002'
       ) {
-        const winner = await this.prisma.savedAd.findFirst({
-          where: {
-            brandId: input.brandId,
-            organizationId,
-            platform: detail.platform,
-            sourceAdId,
-          },
+        const activeWinner = await this.prisma.savedAd.findFirst({
+          where: scopedWhere(organizationId, identityWhere),
         });
-        if (winner && !winner.isDeleted) return winner;
-        if (winner) {
+        if (activeWinner) return activeWinner;
+
+        const deletedWinner = await this.prisma.savedAd.findFirst({
+          where: scopedWhere(organizationId, {
+            ...identityWhere,
+            isDeleted: true,
+          }),
+        });
+        if (deletedWinner) {
           return this.prisma.savedAd.update({
-            data,
-            where: {
+            data: { ...data, userId: deletedWinner.userId },
+            where: scopedWhere(organizationId, {
               brandId: input.brandId,
-              id: winner.id,
-              organizationId,
-            },
+              id: deletedWinner.id,
+              isDeleted: true,
+            }),
           });
         }
       }

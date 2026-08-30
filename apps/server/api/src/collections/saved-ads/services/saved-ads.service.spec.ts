@@ -278,11 +278,14 @@ describe('SavedAdsService', () => {
   });
 
   it('restores a soft-deleted snapshot instead of creating a duplicate', async () => {
-    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 'saved-1',
-      isDeleted: true,
-      note: 'Keep this note',
-    });
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'saved-1',
+        isDeleted: true,
+        note: 'Keep this note',
+        userId: 'original-user',
+      });
     adsResearch.getAdDetail.mockResolvedValue({
       body: 'Saved body',
       explanation: 'Strong proof',
@@ -305,10 +308,14 @@ describe('SavedAdsService', () => {
     expect(prisma.savedAd.create).not.toHaveBeenCalled();
     expect(prisma.savedAd.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ isDeleted: false }),
+        data: expect.objectContaining({
+          isDeleted: false,
+          userId: 'original-user',
+        }),
         where: {
           brandId: 'brand-1',
           id: 'saved-1',
+          isDeleted: true,
           organizationId: 'org-1',
         },
       }),
@@ -321,6 +328,7 @@ describe('SavedAdsService', () => {
   it('returns the concurrent winner after a unique-key race', async () => {
     const winner = { id: 'saved-winner', isDeleted: false };
     (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(winner);
     adsResearch.getAdDetail.mockResolvedValue({
@@ -345,6 +353,7 @@ describe('SavedAdsService', () => {
     expect(prisma.savedAd.findFirst).toHaveBeenLastCalledWith({
       where: {
         brandId: 'brand-1',
+        isDeleted: false,
         organizationId: 'org-1',
         platform: 'meta',
         sourceAdId: 'source-1',
@@ -425,6 +434,7 @@ describe('SavedAdsService', () => {
       where: {
         brandId: 'brand-1',
         id: 'saved-1',
+        isDeleted: true,
         organizationId: 'org-1',
       },
     });
