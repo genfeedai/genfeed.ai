@@ -1,3 +1,4 @@
+import type { AdsResearchDetail } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -456,6 +457,7 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
+import { DetailSidebar } from './AdsResearchDetailSidebar';
 import AdsResearchPageClient from './AdsResearchPageClient';
 import { buildSaveAdInput } from './useAdsResearchPageClient';
 
@@ -852,6 +854,81 @@ describe('AdsResearchPageClient', () => {
 
     expect(saveSavedAdsMock).not.toHaveBeenCalled();
     expect(unsaveSavedAdsMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(
+        'This saved snapshot is no longer available. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('clears an unsaved note draft when the selected snapshot changes', () => {
+    const firstDetail: AdsResearchDetail = {
+      channel: 'all',
+      creative: {},
+      explanation: 'Saved evidence',
+      id: 'source-1',
+      metrics: {},
+      platform: 'meta',
+      savedAdId: 'saved-1',
+      source: 'public',
+      sourceId: 'source-1',
+      title: 'Saved A',
+      usagePolicy: 'remix_allowed',
+    };
+    const sharedProps = {
+      actionError: null,
+      adPackResult: null,
+      brandLabel: 'Moonrise',
+      busyAction: null,
+      detailLoading: false,
+      href: (path: string) => path,
+      launchPrepResult: null,
+      onClose: vi.fn(),
+      onOpenRemix: vi.fn(),
+      onRunAction: vi.fn(),
+      onToggleSaved: vi.fn(),
+      onUpdateSavedNote: updateSavedNotesMock,
+      savedMutating: false,
+      workflowResult: null,
+    };
+    const { rerender } = render(
+      <DetailSidebar
+        {...sharedProps}
+        detail={firstDetail}
+        selectedAd={{
+          id: 'source-1',
+          platform: 'meta',
+          savedAdId: 'saved-1',
+          source: 'public',
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Brand note'), {
+      target: { value: 'Draft for A' },
+    });
+    expect(screen.getByLabelText('Brand note')).toHaveValue('Draft for A');
+
+    rerender(
+      <DetailSidebar
+        {...sharedProps}
+        detail={{
+          ...firstDetail,
+          id: 'source-2',
+          savedAdId: 'saved-2',
+          sourceId: 'source-2',
+          title: 'Saved B',
+        }}
+        selectedAd={{
+          id: 'source-2',
+          platform: 'meta',
+          savedAdId: 'saved-2',
+          source: 'public',
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText('Brand note')).toHaveValue('');
   });
 
   it('inherits selected account scope when a connected result omits it', () => {

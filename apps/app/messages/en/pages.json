@@ -42,9 +42,10 @@
       "saved": "Saved",
       "snapshotBadge": "Saved snapshot",
       "sourceLabel": "Saved swipe file",
+      "staleSnapshot": "This saved snapshot is no longer available. Refresh and try again.",
+      "unavailable": "This ad is no longer available.",
       "unsaveAction": "Unsave from swipe file",
       "unsaveAria": "Unsave {title}",
-      "unavailable": "This ad is no longer available.",
       "updateFailed": "Swipe file update failed. Try again."
     },
     "watchlist": {

@@ -249,6 +249,12 @@ export default function AdsResearchPageClient({
         </Alert>
       )}
 
+      {actionError && !selectedAd ? (
+        <Alert type={AlertCategory.ERROR} className="mb-4">
+          <div className="text-xs">{actionError}</div>
+        </Alert>
+      ) : null}
+
       {isSetupEmpty ? (
         <CardEmpty
           icon={Megaphone}

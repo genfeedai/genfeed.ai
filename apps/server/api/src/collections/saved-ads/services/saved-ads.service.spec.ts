@@ -93,6 +93,78 @@ describe('SavedAdsService', () => {
     expect(saved.imageUrls).toEqual(['https://files.example/copied.jpg']);
   });
 
+  it('copies a provider preview when it is the only available media', async () => {
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null,
+    );
+    adsResearch.getAdDetail.mockResolvedValue({
+      explanation: 'Preview evidence',
+      id: 'record-1',
+      metrics: {},
+      platform: 'meta',
+      previewUrl: 'https://source.example/preview.jpg',
+      sourceId: 'source-1',
+      title: 'Preview only',
+      usagePolicy: 'remix_allowed',
+    });
+    files.uploadToS3.mockResolvedValue({
+      publicUrl: 'https://files.example/preview.jpg',
+    });
+    (prisma.savedAd.create as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ data }) => ({ id: 'saved-1', ...data }),
+    );
+
+    const [saved] = await service.saveMany('org-1', 'opaque-user', [
+      { adId: 'record-1', brandId: 'brand-1', source: 'public' },
+    ]);
+
+    expect(saved.imageUrls).toEqual(['https://files.example/preview.jpg']);
+    expect(files.uploadToS3).toHaveBeenCalledWith(
+      expect.stringMatching(/\/image-0$/),
+      'saved-ad-references',
+      expect.objectContaining({
+        url: 'https://source.example/preview.jpg',
+      }),
+    );
+  });
+
+  it('bounds copied media for each saved ad', async () => {
+    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      null,
+    );
+    adsResearch.getAdDetail.mockResolvedValue({
+      explanation: 'Gallery evidence',
+      id: 'record-1',
+      imageUrls: Array.from(
+        { length: 6 },
+        (_, index) => `https://source.example/image-${index}.jpg`,
+      ),
+      metrics: {},
+      platform: 'meta',
+      sourceId: 'source-1',
+      title: 'Gallery',
+      usagePolicy: 'remix_allowed',
+      videoUrls: Array.from(
+        { length: 6 },
+        (_, index) => `https://source.example/video-${index}.mp4`,
+      ),
+    });
+    files.uploadToS3.mockResolvedValue({
+      publicUrl: 'https://files.example/copied-media',
+    });
+    (prisma.savedAd.create as ReturnType<typeof vi.fn>).mockImplementation(
+      ({ data }) => ({ id: 'saved-1', ...data }),
+    );
+
+    const [saved] = await service.saveMany('org-1', 'opaque-user', [
+      { adId: 'record-1', brandId: 'brand-1', source: 'public' },
+    ]);
+
+    expect(files.uploadToS3).toHaveBeenCalledTimes(8);
+    expect(saved.imageUrls).toHaveLength(4);
+    expect(saved.videoUrls).toHaveLength(4);
+  });
+
   it('lists only active snapshots in the requested tenant and brand', async () => {
     const rows = [{ id: 'saved-2' }, { id: 'saved-1' }];
     (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
@@ -209,6 +281,7 @@ describe('SavedAdsService', () => {
     (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'saved-1',
       isDeleted: true,
+      note: 'Keep this note',
     });
     adsResearch.getAdDetail.mockResolvedValue({
       body: 'Saved body',
@@ -240,6 +313,9 @@ describe('SavedAdsService', () => {
         },
       }),
     );
+    expect(
+      (prisma.savedAd.update as ReturnType<typeof vi.fn>).mock.calls[0][0].data,
+    ).not.toHaveProperty('note');
   });
 
   it('returns the concurrent winner after a unique-key race', async () => {

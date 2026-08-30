@@ -482,9 +482,11 @@ export function useAdsResearchPageClient(
                 (!showChannelFilter ||
                   channel === 'all' ||
                   item.channel === channel) &&
-                (!credentialId || item.credentialId === credentialId) &&
-                (!adAccountId || item.adAccountId === adAccountId) &&
-                (!loginCustomerId || item.loginCustomerId === loginCustomerId),
+                (item.source === 'public' ||
+                  ((!credentialId || item.credentialId === credentialId) &&
+                    (!adAccountId || item.adAccountId === adAccountId) &&
+                    (!loginCustomerId ||
+                      item.loginCustomerId === loginCustomerId))),
             )
             .map((item) => toSavedAdResearchItem(item, savedSourceLabel))
         : [...results.publicAds, ...results.connectedAds].map((item) => {
@@ -791,7 +793,10 @@ export function useAdsResearchPageClient(
       }
 
       const unsavedItems = items.filter((item) => !item.savedAdId);
-      if (unsavedItems.length === 0) return;
+      if (unsavedItems.length === 0) {
+        setActionError(translate('swipeFile.staleSnapshot'));
+        return;
+      }
       await saved.save(
         unsavedItems.map((item) =>
           buildSaveAdInput(item, {

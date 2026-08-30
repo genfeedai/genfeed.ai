@@ -15,7 +15,7 @@ import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-crede
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
-const MAX_SNAPSHOT_MEDIA = 12;
+const MAX_SNAPSHOT_MEDIA_PER_KIND = 4;
 const STORAGE_TYPE = 'saved-ad-references';
 
 function isHttpUrl(value: string): boolean {
@@ -167,10 +167,16 @@ export class SavedAdsService {
 
     const sourceImageUrls = detail.imageUrls?.length
       ? detail.imageUrls
-      : (detail.creative?.imageUrls ?? []);
+      : detail.creative?.imageUrls?.length
+        ? detail.creative.imageUrls
+        : detail.previewUrl
+          ? [detail.previewUrl]
+          : [];
     const sourceVideoUrls = detail.videoUrls?.length
       ? detail.videoUrls
       : (detail.creative?.videoUrls ?? []);
+    const body = detail.body ?? detail.creative?.body;
+    const headline = detail.headline ?? detail.creative?.headline;
     const imageUrls = await this.copyMedia(
       organizationId,
       input.brandId,
@@ -178,6 +184,7 @@ export class SavedAdsService {
       sourceAdId,
       'image',
       sourceImageUrls,
+      MAX_SNAPSHOT_MEDIA_PER_KIND,
     );
     const videoUrls = await this.copyMedia(
       organizationId,
@@ -186,13 +193,9 @@ export class SavedAdsService {
       sourceAdId,
       'video',
       sourceVideoUrls,
+      MAX_SNAPSHOT_MEDIA_PER_KIND,
     );
-    if (
-      !imageUrls.length &&
-      !videoUrls.length &&
-      !detail.body &&
-      !detail.headline
-    ) {
+    if (!imageUrls.length && !videoUrls.length && !body && !headline) {
       throw new BadRequestException(
         'The selected ad has no available creative',
       );
@@ -202,7 +205,7 @@ export class SavedAdsService {
       adAccountId: input.adAccountId,
       advertiserId: detail.accountId,
       advertiserName: detail.accountName,
-      body: detail.body ?? detail.creative?.body,
+      body,
       brandId: input.brandId,
       capturedAt: new Date(),
       channel: detail.channel,
@@ -210,7 +213,7 @@ export class SavedAdsService {
       cta: detail.cta ?? detail.creative?.cta,
       explanation: detail.explanation,
       firstSeenAt: optionalDate(detail.firstSeenAt),
-      headline: detail.headline ?? detail.creative?.headline,
+      headline,
       imageUrls,
       isDeleted: false,
       landingPageUrl: detail.landingPageUrl ?? detail.creative?.landingPageUrl,
@@ -318,10 +321,9 @@ export class SavedAdsService {
     sourceAdId: string,
     kind: 'image' | 'video',
     urls: string[],
+    maxItems: number,
   ): Promise<string[]> {
-    const uniqueUrls = [...new Set(urls)]
-      .filter(isHttpUrl)
-      .slice(0, MAX_SNAPSHOT_MEDIA);
+    const uniqueUrls = [...new Set(urls)].filter(isHttpUrl).slice(0, maxItems);
     return Promise.all(
       uniqueUrls.map(async (url, index) => {
         assertUrlNotPrivate(url);

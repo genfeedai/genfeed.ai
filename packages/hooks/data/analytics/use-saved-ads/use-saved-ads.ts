@@ -44,19 +44,15 @@ export function useSavedAds() {
 
   return {
     brandId,
-    error:
-      query.error ??
-      saveMutation.error ??
-      noteMutation.error ??
-      unsaveMutation.error,
+    error: query.error,
     isLoading: query.isLoading,
     isMutating:
       saveMutation.isPending ||
       noteMutation.isPending ||
       unsaveMutation.isPending,
     refetch: query.refetch,
-    savedAds: query.data ?? [],
     save: saveMutation.mutateAsync,
+    savedAds: query.data ?? [],
     unsave: unsaveMutation.mutateAsync,
     updateNotes: noteMutation.mutateAsync,
   };

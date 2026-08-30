@@ -265,8 +265,12 @@ export function DetailSidebar({
   const [note, setNote] = useState('');
 
   useEffect(() => {
+    if (!detail?.savedAdId) {
+      setNote('');
+      return;
+    }
     setNote(detail?.savedNote ?? '');
-  }, [detail?.savedNote]);
+  }, [detail?.savedAdId, detail?.savedNote]);
 
   return (
     <>
