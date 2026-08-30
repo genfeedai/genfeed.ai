@@ -1,4 +1,7 @@
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiMeta,
+} from '@genfeedai/interfaces';
 
 export interface SkillsProRegistryEntryDto {
   category: string;
@@ -17,7 +20,7 @@ export interface SkillsProRegistryEntryAttributes {
   version: string;
 }
 
-export interface SkillsProRegistryMeta {
+export interface SkillsProRegistryMeta extends JsonApiMeta {
   bundlePrice: number;
   updatedAt: string;
 }

@@ -27,7 +27,7 @@ export class SkillRegistryController {
       request,
       SkillsProRegistryEntrySerializer,
       { docs: registry.skills },
-    ) as SkillsProRegistryResponse;
+    ) as unknown as SkillsProRegistryResponse;
 
     return {
       ...serialized,
