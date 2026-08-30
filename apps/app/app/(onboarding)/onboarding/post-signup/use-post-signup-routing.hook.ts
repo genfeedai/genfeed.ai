@@ -217,7 +217,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             'Referral attribution deferred because no auth token was available',
           );
         } else {
-          let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+          let timeoutId: number | undefined;
           const claimAttempt = ReferralsService.getInstance(token)
             .claim(referralCode)
             .then(() => {
