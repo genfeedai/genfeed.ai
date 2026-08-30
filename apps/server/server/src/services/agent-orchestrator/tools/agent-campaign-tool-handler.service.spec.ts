@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AgentCampaignToolHandler } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentCampaignToolHandler', () => {
@@ -21,17 +22,41 @@ describe('AgentCampaignToolHandler', () => {
     pause: vi.fn(),
     start: vi.fn(),
   };
+  const cachedResults = new Map<string, unknown>();
+  const heldLocks = new Set<string>();
+  const cacheService = {
+    acquireLock: vi.fn(async (key: string) => {
+      if (heldLocks.has(key)) {
+        return false;
+      }
+      heldLocks.add(key);
+      return true;
+    }),
+    get: vi.fn(async (key: string) => cachedResults.get(key) ?? null),
+    releaseLock: vi.fn(async (key: string) => {
+      heldLocks.delete(key);
+    }),
+    set: vi.fn(async (key: string, value: unknown) => {
+      cachedResults.set(key, value);
+    }),
+  };
 
   let handler: AgentCampaignToolHandler;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    cachedResults.clear();
+    heldLocks.clear();
     const module = await Test.createTestingModule({
       providers: [
         AgentCampaignToolHandler,
         {
           provide: OutreachCampaignsService,
           useValue: campaignsService,
+        },
+        {
+          provide: CacheService,
+          useValue: cacheService,
         },
       ],
     }).compile();
@@ -185,5 +210,82 @@ describe('AgentCampaignToolHandler', () => {
       riskLevel: 'medium',
       success: true,
     });
+  });
+
+  it('starts a confirmed prepared campaign exactly once across retries', async () => {
+    campaignsService.start.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'active',
+    });
+    const confirmedContext: ToolExecutionContext = {
+      ...ctx,
+      confirmationOrigin: 'thread-ui-action',
+      sourceActionId: 'campaign-transition-1',
+    };
+    const params = {
+      campaignId: 'campaign-1',
+      confirmed: true,
+      sourceActionId: 'campaign-transition-1',
+    };
+
+    const first = await handler.startCampaign(params, confirmedContext);
+    const retry = await handler.startCampaign(params, confirmedContext);
+
+    expect(campaignsService.start).toHaveBeenCalledTimes(1);
+    expect(campaignsService.start).toHaveBeenCalledWith(
+      'campaign-1',
+      ctx.organizationId,
+      ctx.brandId,
+    );
+    expect(retry).toEqual(first);
+    expect(first).toMatchObject({
+      data: {
+        campaignId: 'campaign-1',
+        sourceActionId: 'campaign-transition-1',
+        status: 'active',
+        transition: 'start',
+      },
+      success: true,
+    });
+    expect(first.requiresConfirmation).toBeUndefined();
+  });
+
+  it('pauses only the exact server-confirmed prepared campaign intent', async () => {
+    campaignsService.pause.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'paused',
+    });
+    const confirmedContext: ToolExecutionContext = {
+      ...ctx,
+      confirmationOrigin: 'thread-ui-action',
+      sourceActionId: 'campaign-transition-2',
+    };
+
+    const result = await handler.pauseCampaign(
+      {
+        campaignId: 'campaign-1',
+        confirmed: true,
+        sourceActionId: 'campaign-transition-2',
+      },
+      confirmedContext,
+    );
+
+    expect(campaignsService.pause).toHaveBeenCalledWith(
+      'campaign-1',
+      ctx.organizationId,
+      ctx.brandId,
+    );
+    expect(result).toMatchObject({
+      data: {
+        campaignId: 'campaign-1',
+        sourceActionId: 'campaign-transition-2',
+        status: 'paused',
+        transition: 'pause',
+      },
+      success: true,
+    });
+    expect(result.requiresConfirmation).toBeUndefined();
   });
 });

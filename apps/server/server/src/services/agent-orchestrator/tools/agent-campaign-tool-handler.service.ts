@@ -1,12 +1,46 @@
+import { randomUUID } from 'node:crypto';
+import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  CampaignPlatform,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { CreateOutreachCampaignDto } from '@server/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { runIdempotent } from '@server/helpers/utils/idempotency/idempotency.util';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { CacheService } from '@server/services/cache/cache.service';
 import { requireExecutableOutreachPair } from '@server/services/campaign/outreach-capability.util';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+
+export type CampaignTransition = 'pause' | 'start';
+
+export type PreparedCampaignTransition = {
+  campaignId: string;
+  confirmationPrompt: string;
+  currentStatus: string;
+  intendedStatus: CampaignStatus.ACTIVE | CampaignStatus.PAUSED;
+  label: string;
+  pendingConfirmation: true;
+  sourceActionId: string;
+  transition: CampaignTransition;
+};
+
+export function buildCampaignConfirmationPrompt(params: {
+  campaignId: string;
+  sourceActionId: string;
+  transition: CampaignTransition;
+}): string {
+  return `Confirm campaign ${params.transition} for campaign ${params.campaignId}. Intent: ${params.sourceActionId}.`;
+}
 
 /**
  * Outreach campaign tools (`create_campaign`, `start_campaign`,
@@ -15,7 +49,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class AgentCampaignToolHandler {
-  constructor(private readonly campaignsService: OutreachCampaignsService) {}
+  constructor(
+    private readonly campaignsService: OutreachCampaignsService,
+    @Optional() private readonly cacheService?: CacheService,
+  ) {}
 
   async createCampaign(
     params: Record<string, unknown>,
@@ -63,9 +100,11 @@ export class AgentCampaignToolHandler {
               label: 'Open campaign',
             },
             {
-              action: 'start_campaign',
-              label: 'Start campaign',
-              payload: { campaignId },
+              action: 'send_prompt',
+              label: 'Prepare start',
+              payload: {
+                prompt: `Prepare to start campaign ${campaignId}.`,
+              },
             },
           ],
           data: {
@@ -87,40 +126,166 @@ export class AgentCampaignToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const campaign = await this.campaignsService.start(
-      campaignId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        campaignId,
-        status: campaign.status,
-      },
-      requiresConfirmation: true,
-      riskLevel: 'medium',
-      success: true,
-    };
+    return this.transitionCampaign('start', params, ctx);
   }
 
   async pauseCampaign(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const campaignId = String(params.campaignId || '');
-    const campaign = await this.campaignsService.pause(
+    return this.transitionCampaign('pause', params, ctx);
+  }
+
+  private async transitionCampaign(
+    transition: CampaignTransition,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const campaignId = readOptionalString(params.campaignId);
+    if (!campaignId) {
+      throw new BadRequestException('campaignId is required');
+    }
+
+    const sourceActionId = readOptionalString(params.sourceActionId);
+    const isConfirmed =
+      params.confirmed === true &&
+      ctx.confirmationOrigin === 'thread-ui-action' &&
+      sourceActionId !== undefined &&
+      sourceActionId === ctx.sourceActionId;
+
+    if (!isConfirmed) {
+      return this.prepareCampaignTransition(transition, campaignId, ctx);
+    }
+
+    if (!this.cacheService) {
+      throw new InternalServerErrorException(
+        'Campaign confirmation idempotency is unavailable.',
+      );
+    }
+
+    const idempotencyKey = [
+      'agent-campaign-confirmation',
+      ctx.organizationId,
+      ctx.threadId ?? 'no-thread',
+      transition,
+      campaignId,
+      sourceActionId,
+    ].join(':');
+
+    return runIdempotent(
+      this.cacheService,
+      idempotencyKey,
+      async () => {
+        const campaign =
+          transition === 'start'
+            ? await this.campaignsService.start(
+                campaignId,
+                ctx.organizationId,
+                ctx.brandId,
+              )
+            : await this.campaignsService.pause(
+                campaignId,
+                ctx.organizationId,
+                ctx.brandId,
+              );
+
+        return {
+          creditsUsed: 0,
+          data: {
+            campaignId,
+            sourceActionId,
+            status: campaign.status,
+            transition,
+          },
+          nextActions: [
+            {
+              ctas: [
+                {
+                  href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
+                  label: 'Open campaign',
+                },
+              ],
+              data: {
+                campaignId,
+                sourceActionId,
+                status: campaign.status,
+                transition,
+              },
+              id: `${sourceActionId}-completed`,
+              title:
+                transition === 'start' ? 'Campaign started' : 'Campaign paused',
+              type: 'campaign_control_card' as const,
+            },
+          ],
+          riskLevel: 'medium' as const,
+          success: true,
+        };
+      },
+      { lockTtlSeconds: 86_400, resultTtlSeconds: 86_400 },
+    );
+  }
+
+  private async prepareCampaignTransition(
+    transition: CampaignTransition,
+    campaignId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const campaign = await this.campaignsService.findOneById(
       campaignId,
       ctx.organizationId,
+      ctx.brandId,
     );
+    if (!campaign) {
+      throw new NotFoundException(`Campaign ${campaignId} not found`);
+    }
+
+    const sourceActionId = `campaign-transition-${randomUUID()}`;
+    const preparation: PreparedCampaignTransition = {
+      campaignId,
+      confirmationPrompt: buildCampaignConfirmationPrompt({
+        campaignId,
+        sourceActionId,
+        transition,
+      }),
+      currentStatus: String(campaign.status),
+      intendedStatus:
+        transition === 'start' ? CampaignStatus.ACTIVE : CampaignStatus.PAUSED,
+      label: String(campaign.label),
+      pendingConfirmation: true,
+      sourceActionId,
+      transition,
+    };
 
     return {
       creditsUsed: 0,
-      data: {
-        campaignId,
-        status: campaign.status,
-      },
+      data: preparation,
+      nextActions: [
+        {
+          ctas: [
+            {
+              action: 'send_prompt',
+              label: transition === 'start' ? 'Confirm start' : 'Confirm pause',
+              payload: { prompt: preparation.confirmationPrompt },
+            },
+            {
+              href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
+              label: 'Open campaign',
+            },
+          ],
+          data: preparation,
+          description: `Review ${preparation.label} and confirm the transition from ${preparation.currentStatus} to ${preparation.intendedStatus}.`,
+          id: sourceActionId,
+          requiresConfirmation: true,
+          riskLevel: 'medium',
+          title:
+            transition === 'start'
+              ? `Start ${preparation.label}?`
+              : `Pause ${preparation.label}?`,
+          type: 'campaign_control_card',
+        },
+      ],
+      requiresConfirmation: true,
+      riskLevel: 'medium',
       success: true,
     };
   }

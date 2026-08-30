@@ -163,6 +163,12 @@ export type ExecuteToolRoundResult = {
   terminalToolName?: AgentToolName;
 };
 
+type ConfirmedCampaignIntent = {
+  campaignId: string;
+  sourceActionId: string;
+  transition: 'pause' | 'start';
+};
+
 function summarizeToolResult(result: {
   data?: Record<string, unknown>;
   error?: string;
@@ -513,6 +519,27 @@ export class AgentTurnRoundRunnerService {
         }
       }
 
+      const confirmedCampaignIntent = this.resolveConfirmedCampaignIntent(
+        toolName,
+        messages,
+      );
+      if (this.isCampaignConfirmationTool(toolName)) {
+        if (confirmedCampaignIntent) {
+          toolParams = {
+            campaignId: confirmedCampaignIntent.campaignId,
+            confirmed: true,
+            sourceActionId: confirmedCampaignIntent.sourceActionId,
+          };
+        } else {
+          const {
+            confirmed: _untrustedConfirmed,
+            sourceActionId: _untrustedSourceActionId,
+            ...unconfirmedParams
+          } = toolParams;
+          toolParams = unconfirmedParams;
+        }
+      }
+
       const result = await this.toolExecutorService.executeTool(
         toolName,
         toolParams,
@@ -532,6 +559,12 @@ export class AgentTurnRoundRunnerService {
           qualityTier: policy.qualityTier,
           reviewModelOverride: policy.reviewModelOverride,
           runId: context.executionId,
+          ...(confirmedCampaignIntent
+            ? {
+                confirmationOrigin: 'thread-ui-action' as const,
+                sourceActionId: confirmedCampaignIntent.sourceActionId,
+              }
+            : {}),
           strategyId: context.strategyId,
           thinkingModel,
           threadId,
@@ -667,6 +700,122 @@ export class AgentTurnRoundRunnerService {
           }
         : {}),
     };
+  }
+
+  private isCampaignConfirmationTool(toolName: AgentToolName): boolean {
+    return (
+      toolName === AgentToolName.START_CAMPAIGN ||
+      toolName === AgentToolName.PAUSE_CAMPAIGN
+    );
+  }
+
+  private resolveConfirmedCampaignIntent(
+    toolName: AgentToolName,
+    messages: OpenRouterMessage[],
+  ): ConfirmedCampaignIntent | null {
+    const transition =
+      toolName === AgentToolName.START_CAMPAIGN
+        ? 'start'
+        : toolName === AgentToolName.PAUSE_CAMPAIGN
+          ? 'pause'
+          : null;
+    if (!transition) {
+      return null;
+    }
+
+    let latestUserIndex = -1;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index]?.role === 'user') {
+        latestUserIndex = index;
+        break;
+      }
+    }
+    if (latestUserIndex < 0) {
+      return null;
+    }
+
+    const confirmationMessage = messages[latestUserIndex]?.content;
+    if (typeof confirmationMessage !== 'string') {
+      return null;
+    }
+
+    for (let index = latestUserIndex - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role !== 'tool' || typeof message.content !== 'string') {
+        continue;
+      }
+
+      const preparation = this.readPreparedCampaignIntent(message.content);
+      if (
+        preparation?.transition === transition &&
+        preparation.confirmationPrompt === confirmationMessage
+      ) {
+        return {
+          campaignId: preparation.campaignId,
+          sourceActionId: preparation.sourceActionId,
+          transition,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private readPreparedCampaignIntent(content: string):
+    | (ConfirmedCampaignIntent & {
+        confirmationPrompt: string;
+      })
+    | null {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      return null;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+
+    const result = parsed as Record<string, unknown>;
+    const data = result.data;
+    if (
+      result.requiresConfirmation !== true ||
+      !data ||
+      typeof data !== 'object' ||
+      Array.isArray(data)
+    ) {
+      return null;
+    }
+
+    const preparation = data as Record<string, unknown>;
+    const campaignId = this.readNonEmptyString(preparation.campaignId);
+    const confirmationPrompt = this.readNonEmptyString(
+      preparation.confirmationPrompt,
+    );
+    const sourceActionId = this.readNonEmptyString(preparation.sourceActionId);
+    const transition = preparation.transition;
+    if (
+      preparation.pendingConfirmation !== true ||
+      !campaignId ||
+      !confirmationPrompt ||
+      !sourceActionId ||
+      (transition !== 'start' && transition !== 'pause')
+    ) {
+      return null;
+    }
+
+    return {
+      campaignId,
+      confirmationPrompt,
+      sourceActionId,
+      transition,
+    };
+  }
+
+  private readNonEmptyString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : null;
   }
 
   private buildUnknownToolError(
