@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@genfeedai/libs": "workspace:*",
-    "@aws-sdk/client-cloudwatch": "3.1120.0",
-    "@aws-sdk/client-ec2": "3.1120.0",
+    "@aws-sdk/client-cloudwatch": "3.1121.0",
+    "@aws-sdk/client-ec2": "3.1121.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -17,7 +17,7 @@
     "@nestjs/axios": "12.0.0",
     "@nestjs/bullmq": "12.0.0",
     "@nestjs/event-emitter": "12.0.0",
-    "bullmq": "6.3.1",
+    "bullmq": "6.3.2",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0"
   },

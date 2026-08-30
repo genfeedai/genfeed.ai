@@ -479,6 +479,12 @@ describe('useAgentChatInput draft restore selection', () => {
     }
 
     await act(async () => {
+      await new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
+
+    await act(async () => {
       editor.commands.selectAll();
     });
 

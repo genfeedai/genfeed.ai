@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "description": "Auto-generated TypeScript types from OpenAPI spec with Zod validation schemas",
   "devDependencies": {

@@ -13,7 +13,7 @@
     "ora": "9.4.1",
     "react": "19.2.8",
     "socket.io-client": "4.8.3",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
   "devDependencies": {
