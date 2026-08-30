@@ -4309,7 +4309,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'rewardOrganizationId',
       'updatedAt',
     ],
-    listFields: ['referrals'],
+    listFields: ['referrals', 'rewards'],
     enumFields: {},
     relationIdFields: {
       ownerUser: 'ownerUserId',
@@ -4335,6 +4335,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'nextAttemptAt',
       'purchasedCredits',
       'referral',
+      'referralCode',
+      'referralCodeId',
       'referralId',
       'refundedAmountCents',
       'reversedAt',
@@ -4352,6 +4354,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     relationIdFields: {
       grantTransaction: 'grantTransactionId',
       referral: 'referralId',
+      referralCode: 'referralCodeId',
     },
   },
   ReplyBotConfig: {
