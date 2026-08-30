@@ -30,7 +30,7 @@ function getModelAspectRatioConfig(
   default: string;
   usesOrientation?: boolean;
 } {
-  const cap = capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey as string];
+  const cap = capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey];
   if (!cap) {
     return { available: ['1:1', '9:16', '16:9'], default: '16:9' };
   }
