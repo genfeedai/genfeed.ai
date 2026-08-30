@@ -8,8 +8,8 @@ const mocks = vi.hoisted(() => ({
   getPostAnalyticsService: vi.fn(() => new Promise(() => undefined)),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({ isSignedIn: true }),
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ isSignedIn: true }),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
