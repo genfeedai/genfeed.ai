@@ -21,9 +21,23 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
+// The real hook returns a referentially stable callback; the mock must too,
+// or every render re-fires the load effect and it never settles.
+const getServiceStable = vi.hoisted(() => {
+  let factoryRef: (token: string) => unknown;
+  const getService = async () => factoryRef('test-token');
+  return {
+    getService,
+    setFactory: (factory: (token: string) => unknown) => {
+      factoryRef = factory;
+    },
+  };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
-    return async () => factory('test-token');
+    getServiceStable.setFactory(factory);
+    return getServiceStable.getService;
   },
 }));
 
