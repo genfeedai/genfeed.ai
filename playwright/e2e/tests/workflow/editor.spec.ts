@@ -247,7 +247,13 @@ test.describe('Workflow Editor', () => {
       '**/workflow-executions/exec-review-001',
       async (route) => {
         await route.fulfill({
-          body: JSON.stringify(buildReviewGateExecution(executionState)),
+          body: JSON.stringify({
+            data: {
+              attributes: buildReviewGateExecution(executionState),
+              id: 'exec-review-001',
+              type: 'workflow-executions',
+            },
+          }),
           contentType: 'application/json',
           status: 200,
         });
@@ -320,7 +326,13 @@ test.describe('Workflow Editor', () => {
       '**/workflow-executions/exec-review-001',
       async (route) => {
         await route.fulfill({
-          body: JSON.stringify(buildReviewGateExecution(executionState)),
+          body: JSON.stringify({
+            data: {
+              attributes: buildReviewGateExecution(executionState),
+              id: 'exec-review-001',
+              type: 'workflow-executions',
+            },
+          }),
           contentType: 'application/json',
           status: 200,
         });

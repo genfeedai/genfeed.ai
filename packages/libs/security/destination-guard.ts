@@ -411,8 +411,8 @@ function nodeReadableToResponseBody(
 
   return new ReadableStream<Uint8Array>({
     async cancel(reason) {
-      await iterator.return?.();
       readable.destroy(reason instanceof Error ? reason : undefined);
+      await iterator.return?.();
     },
     async pull(controller) {
       try {

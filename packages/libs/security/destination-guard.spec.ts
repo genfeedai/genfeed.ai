@@ -186,6 +186,57 @@ describe('destination guard', () => {
     await expect(response.text()).resolves.toBe('hello world');
   });
 
+  it('settles cancellation while a response stream read is pending', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    let pinnedResponse: Readable | undefined;
+    httpRequestMock.mockImplementation(
+      (
+        _url: URL,
+        _options: unknown,
+        callback: (response: Readable) => void,
+      ) => {
+        const request = new EventEmitter() as EventEmitter & {
+          destroy: (error?: Error) => void;
+          end: (body?: unknown) => void;
+        };
+        request.destroy = (error?: Error) => {
+          if (error) request.emit('error', error);
+        };
+        request.end = vi.fn();
+
+        pinnedResponse = new Readable({ read() {} });
+        Object.assign(pinnedResponse, {
+          rawHeaders: [],
+          statusCode: 200,
+          statusMessage: 'OK',
+        });
+        callback(pinnedResponse);
+        return request;
+      },
+    );
+
+    const response = await safeFetch('http://public.example/asset');
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+
+    const pendingRead = reader?.read();
+    const cancellation = reader?.cancel();
+    const settled = await Promise.race([
+      cancellation?.then(() => 'cancelled'),
+      new Promise<'timed-out'>((resolve) =>
+        setTimeout(() => resolve('timed-out'), 250),
+      ),
+    ]);
+    if (settled === 'timed-out') pinnedResponse?.destroy();
+
+    expect(settled).toBe('cancelled');
+    expect(pinnedResponse?.destroyed).toBe(true);
+    await expect(pendingRead).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+  });
+
   it('rechecks redirect destinations before issuing the next request', async () => {
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mockHttpResponse(302, [

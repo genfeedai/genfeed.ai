@@ -1,8 +1,6 @@
 import { ConfigService } from '@files/config/config.service';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
-import type { JobPriority, JobType } from '@files/queues/queue.constants';
-import { JOB_PRIORITY, JOB_TYPES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
@@ -16,6 +14,12 @@ import type {
   VideoProcessingParams,
   YoutubeCredential,
 } from '@files/shared/interfaces/job.interface';
+import {
+  FILE_JOB_PRIORITY as JOB_PRIORITY,
+  FILE_JOB_TYPES as JOB_TYPES,
+  type FileJobPriority as JobPriority,
+  type FileJobType as JobType,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {

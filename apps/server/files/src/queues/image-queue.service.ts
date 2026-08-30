@@ -1,12 +1,12 @@
-import {
-  JOB_PRIORITY,
-  JOB_TYPES,
-  type JobConfig,
-  type JobType,
-  QUEUE_NAMES,
-} from '@files/queues/queue.constants';
 import type { ImageJobData } from '@files/shared/interfaces/job.interface';
+import type { JobConfig } from '@files/shared/interfaces/job-config.interface';
 import { BaseQueueService } from '@files/shared/services/base-queue/base-queue.service';
+import {
+  FILE_JOB_PRIORITY as JOB_PRIORITY,
+  FILE_JOB_TYPES as JOB_TYPES,
+  type FileJobType as JobType,
+  FILE_QUEUE_NAMES as QUEUE_NAMES,
+} from '@genfeedai/queue-contracts';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';

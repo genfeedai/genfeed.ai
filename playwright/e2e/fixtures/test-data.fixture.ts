@@ -508,25 +508,40 @@ export const testWorkflows: TestWorkflow[] = [
     name: 'Social Media Pipeline',
     nodes: [
       {
-        data: { model: 'gpt-4' },
+        data: {
+          config: {
+            actionId: 'promptConstructor',
+            parameters: { model: 'gpt-4' },
+          },
+          label: 'Generate Text',
+        },
         id: 'node-1',
         label: 'Generate Text',
         position: { x: 100, y: 100 },
-        type: 'text-generation',
+        type: 'genfeedAction',
       },
       {
-        data: { model: 'flux' },
+        data: {
+          config: { actionId: 'imageGen', parameters: { model: 'flux' } },
+          label: 'Generate Image',
+        },
         id: 'node-2',
         label: 'Generate Image',
         position: { x: 400, y: 100 },
-        type: 'image-generation',
+        type: 'genfeedAction',
       },
       {
-        data: { platform: 'instagram' },
+        data: {
+          config: {
+            actionId: 'publish',
+            parameters: { platform: 'instagram' },
+          },
+          label: 'Publish',
+        },
         id: 'node-3',
         label: 'Publish',
         position: { x: 700, y: 100 },
-        type: 'publish',
+        type: 'genfeedAction',
       },
     ],
     status: 'published',
@@ -540,18 +555,27 @@ export const testWorkflows: TestWorkflow[] = [
     name: 'Video Content Creator',
     nodes: [
       {
-        data: { model: 'gpt-4' },
+        data: {
+          config: {
+            actionId: 'promptConstructor',
+            parameters: { model: 'gpt-4' },
+          },
+          label: 'Script Writer',
+        },
         id: 'node-1',
         label: 'Script Writer',
         position: { x: 100, y: 200 },
-        type: 'text-generation',
+        type: 'genfeedAction',
       },
       {
-        data: { model: 'minimax' },
+        data: {
+          config: { actionId: 'videoGen', parameters: { model: 'minimax' } },
+          label: 'Video Generator',
+        },
         id: 'node-2',
         label: 'Video Generator',
         position: { x: 400, y: 200 },
-        type: 'video-generation',
+        type: 'genfeedAction',
       },
     ],
     status: 'draft',

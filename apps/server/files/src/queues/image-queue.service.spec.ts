@@ -1,5 +1,5 @@
 import { ImageQueueService } from '@files/queues/image-queue.service';
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 

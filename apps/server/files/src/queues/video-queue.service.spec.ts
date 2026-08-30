@@ -1,6 +1,9 @@
-import { JOB_TYPES, QUEUE_NAMES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
+import {
+  FILE_JOB_TYPES as JOB_TYPES,
+  FILE_QUEUE_NAMES as QUEUE_NAMES,
+} from '@genfeedai/queue-contracts';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 

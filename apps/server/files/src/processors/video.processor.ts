@@ -1,6 +1,5 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
-import { JOB_TYPES, QUEUE_NAMES } from '@files/queues/queue.constants';
 import { ClipReferenceFrameExtractionService } from '@files/services/clip-reference-frames/clip-reference-frame-extraction.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
@@ -18,6 +17,10 @@ import {
 } from '@files/shared/interfaces/job.interface';
 import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
 import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
+import {
+  FILE_JOB_TYPES as JOB_TYPES,
+  FILE_QUEUE_NAMES as QUEUE_NAMES,
+} from '@genfeedai/queue-contracts';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';

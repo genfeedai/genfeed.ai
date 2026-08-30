@@ -9,7 +9,6 @@ import { FilesStorageController } from '@files/controllers/files-storage.control
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
-import { JOB_TYPES } from '@files/queues/queue.constants';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
@@ -21,6 +20,7 @@ import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnai
 import { UploadService } from '@files/services/upload/upload.service';
 import { IngredientFormat } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, StreamableFile } from '@nestjs/common';

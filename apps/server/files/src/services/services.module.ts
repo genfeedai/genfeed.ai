@@ -1,5 +1,4 @@
 import { ConfigModule } from '@files/config/config.module';
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
 import { AudioOverlayService } from '@files/services/audio-overlay/audio-overlay.service';
 import { ClipReferenceFramesModule } from '@files/services/clip-reference-frames/clip-reference-frames.module';
 import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
@@ -15,6 +14,7 @@ import { UploadModule } from '@files/services/upload/upload.module';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpModule } from '@files/services/ytdlp/ytdlp.module';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
