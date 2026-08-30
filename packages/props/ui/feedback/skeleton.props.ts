@@ -21,10 +21,6 @@ export interface SkeletonListProps {
   count?: number;
 }
 
-export interface SkeletonVideoGridProps {
-  count?: number;
-}
-
 export interface SkeletonProps {
   className?: string;
   width?: string | number;

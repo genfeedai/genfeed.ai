@@ -51,13 +51,6 @@ export default mergeConfig(
           ),
         },
         {
-          find: /^@components\/loading\/skeleton\/SkeletonFallbacks$/,
-          replacement: path.resolve(
-            __dirname,
-            '../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
-          ),
-        },
-        {
           find: /^@components\/modals\/actions\/ModalActions$/,
           replacement: path.resolve(
             __dirname,
