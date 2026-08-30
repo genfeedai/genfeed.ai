@@ -414,14 +414,14 @@ describe('PostSignupPage behavior', () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams(
-      'ref=frend2345xyz&credits=1000',
+      'ref=frtesttestaa&credits=1000',
     );
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz');
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frtesttestaa');
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
+      expect(claimReferralMock).toHaveBeenCalledWith('frtesttestaa');
       expect(createCheckoutSessionMock).toHaveBeenCalled();
     });
     expect(claimReferralMock.mock.invocationCallOrder[0]).toBeLessThan(
@@ -436,19 +436,19 @@ describe('PostSignupPage behavior', () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     searchParamsState.value = new URLSearchParams(
-      'ref=frend2345xyz&credits=1000',
+      'ref=frtesttestaa&credits=1000',
     );
-    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz');
+    localStorage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, 'frtesttestaa');
     claimReferralMock.mockRejectedValue(new Error('API unavailable'));
 
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
+      expect(claimReferralMock).toHaveBeenCalledWith('frtesttestaa');
       expect(createCheckoutSessionMock).toHaveBeenCalled();
     });
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
-      'frend2345xyz',
+      'frtesttestaa',
     );
   });
 
@@ -458,11 +458,11 @@ describe('PostSignupPage behavior', () => {
       hasOrganizationBillingMock.mockReturnValue(true);
       isSelfHostedMock.mockReturnValue(false);
       searchParamsState.value = new URLSearchParams(
-        'ref=frend2345xyz&credits=1000',
+        'ref=frtesttestaa&credits=1000',
       );
       localStorage.setItem(
         ONBOARDING_STORAGE_KEYS.referralCode,
-        'frend2345xyz',
+        'frtesttestaa',
       );
       claimReferralMock.mockReturnValue(new Promise(() => undefined));
 
@@ -472,10 +472,10 @@ describe('PostSignupPage behavior', () => {
         await vi.advanceTimersByTimeAsync(2_000);
       });
 
-      expect(claimReferralMock).toHaveBeenCalledWith('frend2345xyz');
+      expect(claimReferralMock).toHaveBeenCalledWith('frtesttestaa');
       expect(createCheckoutSessionMock).toHaveBeenCalled();
       expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
-        'frend2345xyz',
+        'frtesttestaa',
       );
     } finally {
       vi.useRealTimers();
