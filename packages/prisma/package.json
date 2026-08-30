@@ -35,7 +35,7 @@
     "db:studio": "prisma studio",
     "db:validate": "prisma validate",
     "clean": "rm -rf dist",
-    "postinstall": "prisma generate",
+    "postinstall": "bun run db:generate",
     "test": "vitest run",
     "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.build.json"
   },

@@ -1,5 +1,4 @@
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
-import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -16,6 +15,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

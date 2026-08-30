@@ -1,9 +1,10 @@
+import { AgentToolName } from '@genfeedai/interfaces';
 import {
+  buildAgentChatCompletionParams,
   buildToolDefinitions,
   CLOUD_ONLY_ONBOARDING_TOOLS,
   resolveBlockedTools,
 } from '@server/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { AgentToolName } from '@genfeedai/interfaces';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function resolveToolNames(source?: string): AgentToolName[] {
@@ -76,5 +77,43 @@ describe('self-hosted onboarding tool boundary', () => {
     ).map((tool) => tool.function.name);
 
     expect(tools).toEqual([AgentToolName.CREATE_BRAND]);
+  });
+});
+
+describe('provider-compatible tool definitions', () => {
+  const buildParams = (model: string) =>
+    buildAgentChatCompletionParams({
+      defaultModelKey: model,
+      messages: [{ content: 'Hello', role: 'user' }],
+      model,
+      prompt: 'Hello',
+      tools: buildToolDefinitions(),
+    });
+
+  it('removes keywords outside the Gemini function schema subset', () => {
+    const params = buildParams('google/gemini-3.5-flash-lite');
+    const serializedTools = JSON.stringify(params.tools);
+
+    expect(serializedTools).not.toContain('additionalProperties');
+    expect(serializedTools).not.toContain('"default"');
+    expect(serializedTools).not.toContain('maxItems');
+    expect(serializedTools).not.toContain('maxLength');
+    expect(serializedTools).not.toContain('maximum');
+    expect(serializedTools).not.toContain('minimum');
+    expect(serializedTools).toContain('anyOf');
+  });
+
+  it('preserves canonical schemas for non-Gemini providers', () => {
+    const tools = buildToolDefinitions();
+    const params = buildAgentChatCompletionParams({
+      defaultModelKey: 'anthropic/claude-sonnet-5',
+      messages: [{ content: 'Hello', role: 'user' }],
+      model: 'anthropic/claude-sonnet-5',
+      prompt: 'Hello',
+      tools,
+    });
+
+    expect(params.tools).toBe(tools);
+    expect(JSON.stringify(params.tools)).toContain('additionalProperties');
   });
 });

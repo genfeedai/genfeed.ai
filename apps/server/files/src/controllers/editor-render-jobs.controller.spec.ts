@@ -1,5 +1,5 @@
 import { EditorRenderJobsController } from '@files/controllers/editor-render-jobs.controller';
-import { JOB_TYPES } from '@files/queues/queue.constants';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import { HttpException } from '@nestjs/common';
 
 describe('EditorRenderJobsController', () => {

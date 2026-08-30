@@ -7,6 +7,7 @@ const ENGINE_NATIVE_NODE_TYPES = [
   'commentTrigger',
   'engagementTrigger',
   'keywordTrigger',
+  'reviewGate',
   'workflowInput',
 ] as const;
 

@@ -1,4 +1,4 @@
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { RedisService } from '@libs/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';

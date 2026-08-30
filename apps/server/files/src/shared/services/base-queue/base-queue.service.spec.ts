@@ -1,9 +1,12 @@
-import { JOB_PRIORITY, JOB_TYPES } from '@files/queues/queue.constants';
 import {
   type BaseJobDataWithPriority,
   BaseQueueService,
   DEFAULT_JOB_CONFIG,
 } from '@files/shared/services/base-queue/base-queue.service';
+import {
+  FILE_JOB_PRIORITY as JOB_PRIORITY,
+  FILE_JOB_TYPES as JOB_TYPES,
+} from '@genfeedai/queue-contracts';
 import type { Job, Queue } from 'bullmq';
 
 interface TestJobData extends BaseJobDataWithPriority {

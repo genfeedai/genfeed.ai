@@ -1,9 +1,9 @@
+import type { JobConfig } from '@files/shared/interfaces/job-config.interface';
 import {
-  JOB_PRIORITY,
-  type JobConfig,
-  type JobPriority,
-  type JobType,
-} from '@files/queues/queue.constants';
+  FILE_JOB_PRIORITY as JOB_PRIORITY,
+  type FileJobPriority as JobPriority,
+  type FileJobType as JobType,
+} from '@genfeedai/queue-contracts';
 import { Logger } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 

@@ -6,12 +6,12 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { rm } from 'node:fs/promises';
-import { JOB_TYPES } from '@files/queues/queue.constants';
 import { BRANDED_AVATAR_RENDER_FIXTURE } from '@files/services/remotion/fixtures/branded-avatar.fixture';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { EditorRenderCancelledError } from '@files/services/remotion/remotion-renderer.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import type { Job } from 'bullmq';
 
 describe('RemotionRenderJobService', () => {
