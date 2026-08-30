@@ -73,7 +73,7 @@ describe('SkillRegistryController', () => {
     const context = {
       getClass: () => SkillRegistryController,
       getHandler: () => handler,
-    } as ExecutionContext;
+    } as unknown as ExecutionContext;
 
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('registry');
     expect(isPublicRoute(new Reflector(), context)).toBe(false);
@@ -84,7 +84,7 @@ describe('SkillRegistryController', () => {
     const context = {
       getClass: () => SkillRegistryController,
       getHandler: () => handler,
-    } as ExecutionContext;
+    } as unknown as ExecutionContext;
 
     expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe('storefront');
     expect(isPublicRoute(new Reflector(), context)).toBe(true);
