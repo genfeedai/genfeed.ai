@@ -584,6 +584,7 @@
       },
       "executions": {
         "actions": "Actions",
+        "allExecutions": "All executions",
         "duration": "Duration",
         "emptyAction": "Go to Automations",
         "emptyDescription": "Run a workflow to see execution history here",

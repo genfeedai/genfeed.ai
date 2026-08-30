@@ -8,6 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type {
   ExecutionNodeResult,
@@ -88,6 +89,7 @@ export default function ExecutionDetailPage({
   executionId: runId,
 }: ExecutionLogsProps) {
   const [execution, setExecution] = useState<ExecutionDetail | null>(null);
+  const translate = useTranslations('common.automation.workflows.executions');
   const { href } = useOrgUrl();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +156,7 @@ export default function ExecutionDetailPage({
             href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS)}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
-            All executions
+            {translate('allExecutions')}
           </Link>
         </div>
         <div
