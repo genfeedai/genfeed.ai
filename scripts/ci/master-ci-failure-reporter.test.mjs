@@ -298,6 +298,51 @@ test('reportMasterCiFailure keeps Project membership when native metadata verifi
   assert.deepEqual(mutationOrder, ['project', 'metadata']);
 });
 
+test('reportMasterCiFailure still writes native metadata when Project membership fails', async () => {
+  const { github, created } = createGithubMock({ openIssues: [] });
+  const mutationOrder = [];
+  github.graphql = async (query, vars) => {
+    if (query.includes('addProjectV2ItemById')) {
+      mutationOrder.push('project');
+      throw new Error('Project is unavailable');
+    }
+    mutationOrder.push('metadata');
+    return {
+      updateIssue: {
+        issue: {
+          id: vars.issueId,
+          issueType: { id: ISSUE_TYPE_BUG },
+          issueFieldValues: {
+            nodes: [
+              { field: { name: 'Priority' }, value: PRIORITY_P0 },
+              { field: { name: 'Area' }, value: AREA_INFRA },
+              {
+                field: { name: 'Blast radius' },
+                value: BLAST_RADIUS_INFRA,
+              },
+            ],
+          },
+        },
+      },
+    };
+  };
+
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: { info: () => {}, warning: () => {} },
+    }),
+    /Project #12 membership failed: Project is unavailable/,
+  );
+
+  assert.equal(created.length, 1);
+  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+});
+
 test('resolveMasterCiFailure closes all open trackers', async () => {
   const { github, comments, updates } = createGithubMock({
     openIssues: [{ number: 2600 }, { number: 2601 }],
