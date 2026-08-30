@@ -68,8 +68,8 @@ type ReleaseListPagination = {
 export interface ReleasePostsListProps extends ContentProps {
   contentTypes?: PostCategory[];
   executionStates?: TargetExecutionState[];
-  initialPagination: ReleaseListPagination;
-  initialReleases: IReleaseGroup[];
+  initialPagination?: ReleaseListPagination;
+  initialReleases?: IReleaseGroup[];
   platform?: string;
   publicationState?: ReleasePostsPublicationState;
   search: string;
@@ -161,12 +161,27 @@ export default function ReleasePostsList({
     search,
     sort,
   });
-  const initialData = {
-    pagination: initialPagination,
-    releases: initialReleases,
-  };
+  const initialData =
+    initialPagination != null && initialReleases != null
+      ? {
+          pagination: initialPagination,
+          releases: initialReleases,
+        }
+      : undefined;
+  const emptyData = useMemo(
+    () => ({
+      pagination: {
+        page: currentPage,
+        pageSize: ITEMS_PER_PAGE,
+        total: 0,
+        totalPages: 1,
+      },
+      releases: [] as IReleaseGroup[],
+    }),
+    [currentPage],
+  );
   const {
-    data = initialData,
+    data = initialData ?? emptyData,
     error,
     isLoading,
     refetch,
