@@ -45,7 +45,7 @@ export default function ReferralRewardsList() {
       header: 'Reward',
       key: 'rewardCredits',
       render: (reward) =>
-        `${(reward.rewardCredits - reward.reversedCredits).toLocaleString()} credits`,
+        `${(reward.rewardCredits - reward.reversedCredits).toLocaleString('en-US')} credits`,
     },
     {
       header: 'Purchase',
@@ -70,12 +70,12 @@ export default function ReferralRewardsList() {
     {
       header: 'Eligible',
       key: 'eligibleAt',
-      render: (reward) => new Date(reward.eligibleAt).toLocaleString(),
+      render: (reward) => new Date(reward.eligibleAt).toLocaleString('en-US'),
     },
     {
       header: 'Attempts',
       key: 'attemptCount',
-      render: (reward) => reward.attemptCount.toLocaleString(),
+      render: (reward) => reward.attemptCount.toLocaleString('en-US'),
     },
   ];
 

@@ -103,6 +103,13 @@ export type CronBoundaryOptions = {
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
   {
+    file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
+    id: 'referral-reward-settlement',
+    methodName: 'settleDueRewards',
+    reason:
+      'Platform billing-ledger maintenance for durable, idempotent referral reward settlement. The schedule is not tenant-configurable and must recover pending Postgres state after API restarts.',
+  },
+  {
     file: 'apps/server/workers/src/processors/api/queues/notification-delivery/notification-delivery-recovery.service.ts',
     id: 'notification-delivery-recovery',
     methodName: 'recover',

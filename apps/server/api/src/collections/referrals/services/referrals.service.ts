@@ -517,7 +517,8 @@ export class ReferralsService {
       });
       const fallbackLink = pinnedDestination
         ? null
-        : await this.prisma.billingAccountOrganization.findFirst({
+        : // tenant-scope-ignore: destination recovery is scoped by the immutable billing account and selects only a linked, live organization
+          await this.prisma.billingAccountOrganization.findFirst({
             include: { organization: true },
             where: {
               billingAccountId: code.rewardBillingAccountId,

@@ -86,10 +86,10 @@ export default function ReferralHubCard() {
             >
               <div>
                 <Text size="sm" weight="medium">
-                  {reward.rewardCredits.toLocaleString()} credits
+                  {reward.rewardCredits.toLocaleString('en-US')} credits
                 </Text>
                 <Text size="xs" color="muted">
-                  {new Date(reward.createdAt).toLocaleDateString()}
+                  {new Date(reward.createdAt).toLocaleDateString('en-US')}
                 </Text>
               </div>
               <Badge status={reward.status.toLowerCase()} />
@@ -108,7 +108,7 @@ function ReferralStat({ label, value }: { label: string; value: number }) {
         {label}
       </Text>
       <Text as="span" size="lg" weight="bold">
-        {value.toLocaleString()}
+        {value.toLocaleString('en-US')}
       </Text>
     </div>
   );
