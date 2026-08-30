@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/enums';
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -260,7 +261,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
         });
       } catch (error: unknown) {
         this.logger.error(`${url} failed to clone child for repeat`, {
-          error: (error as Error)?.message,
+          error: getErrorMessage(error, { fallback: () => undefined }),
           newParentId,
           originalChildId: String(child.id),
         });

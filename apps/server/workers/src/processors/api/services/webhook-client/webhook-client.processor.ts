@@ -1,11 +1,4 @@
 import * as crypto from 'node:crypto';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import {
-  assertSafeWebhookEndpoint,
-  createPinnedWebhookAgent,
-  type ValidatedWebhookEndpoint,
-  WebhookEndpointValidationError,
-} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
@@ -13,8 +6,16 @@ import {
   WebhookJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import {
+  assertSafeWebhookEndpoint,
+  createPinnedWebhookAgent,
+  type ValidatedWebhookEndpoint,
+  WebhookEndpointValidationError,
+} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { Job, UnrecoverableError } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
@@ -51,7 +52,14 @@ export class WebhookClientProcessor extends WorkerHost {
         validatedEndpoint = await assertSafeWebhookEndpoint(endpoint);
       } catch (error: unknown) {
         if (error instanceof WebhookEndpointValidationError) {
-          throw new UnrecoverableError(redactPublishWebhookText(error.message));
+          throw new UnrecoverableError(
+            redactPublishWebhookText(
+              getErrorMessage(error, {
+                fallback: () => '',
+                messageSource: 'error-instance',
+              }),
+            ),
+          );
         }
         throw error;
       }
@@ -186,8 +194,7 @@ function readHttpStatusCode(error: unknown): number | undefined {
 }
 
 function readErrorMessage(error: unknown): string | undefined {
-  const message = (error as { message?: unknown })?.message;
-  return typeof message === 'string' ? message : undefined;
+  return getErrorMessage(error, { fallback: () => undefined });
 }
 
 function readErrorCode(error: unknown): string | undefined {

@@ -6,6 +6,7 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import {
   Body,
@@ -69,7 +70,10 @@ export class FilesProcessingController {
     } catch (error: unknown) {
       this.logger.error('Failed to generate thumbnail:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to generate thumbnail',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to generate thumbnail',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -145,7 +149,10 @@ export class FilesProcessingController {
 
       this.logger.error('Failed to resize image:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to resize image',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to resize image',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -221,7 +228,10 @@ export class FilesProcessingController {
 
       this.logger.error('Failed to split image:', error);
       throw new HttpException(
-        (error as Error)?.message || 'Failed to split image',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to split image',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -328,7 +338,10 @@ export class FilesProcessingController {
       }
 
       throw new HttpException(
-        (error as Error)?.message || 'Failed to inspect video QA',
+        getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Failed to inspect video QA',
+        }),
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     } finally {
@@ -341,9 +354,10 @@ export class FilesProcessingController {
         } catch (cleanupError) {
           this.logger.warn(
             `Failed to cleanup temp file: ${file}`,
-            cleanupError instanceof Error
-              ? cleanupError.message
-              : String(cleanupError),
+            getErrorMessage(cleanupError, {
+              fallback: String,
+              messageSource: 'error-instance',
+            }),
           );
         }
       }

@@ -22,6 +22,7 @@ import { toPrismaJson } from '@genfeedai/prisma';
 import { type IPublisher, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -361,12 +362,10 @@ export class CronEngagementTriggersService implements OnModuleInit {
     request: RuleRequest,
     failure: unknown,
   ): Promise<{ completed: boolean }> {
-    const message =
-      failure instanceof Error
-        ? failure.message
-        : typeof failure === 'object' && failure && 'message' in failure
-          ? String((failure as { message: unknown }).message)
-          : 'Engagement action failed';
+    const message = getErrorMessage(failure, {
+      coerceMessage: true,
+      fallback: () => 'Engagement action failed',
+    });
     const result = await this.prisma.engagementRule.updateMany({
       data: { lastError: message, state: EngagementRuleState.COMPLETED },
       where: scopedWhere(request.organizationId, { id: request.ruleId }),
