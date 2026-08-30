@@ -142,8 +142,7 @@ function deriveEtaFields(
             : 'Processing'),
       estimatedDurationMs: existingTask?.estimatedDurationMs,
       etaConfidence: existingTask?.etaConfidence,
-      lastEtaUpdateAt:
-        event.lastEtaUpdateAt ?? existingTask?.lastEtaUpdateAt ?? undefined,
+      lastEtaUpdateAt: event.lastEtaUpdateAt ?? existingTask?.lastEtaUpdateAt,
       remainingDurationMs:
         event.status === 'completed' || event.status === 'failed'
           ? 0

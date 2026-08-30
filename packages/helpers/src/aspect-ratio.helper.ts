@@ -23,7 +23,7 @@ const DEFAULT_ASPECT_RATIO_BY_CATEGORY: Record<string, string> = {
 };
 
 function getModelAspectRatioConfig(
-  modelKey: string | string,
+  modelKey: string,
   capability?: ModelOutputCapability | null,
 ): {
   available: readonly string[];
@@ -58,21 +58,21 @@ function getModelAspectRatioConfig(
 }
 
 export function getDefaultAspectRatio(
-  modelKey: string | string,
+  modelKey: string,
   capability?: ModelOutputCapability | null,
 ): string {
   return getModelAspectRatioConfig(modelKey, capability).default;
 }
 
 export function getAspectRatiosForModel(
-  modelKey: string | string,
+  modelKey: string,
   capability?: ModelOutputCapability | null,
 ): readonly string[] {
   return getModelAspectRatioConfig(modelKey, capability).available;
 }
 
 export function normalizeAspectRatioForModel(
-  modelKey: string | string,
+  modelKey: string,
   aspectRatio: string,
   capability?: ModelOutputCapability | null,
 ): string {
@@ -128,7 +128,7 @@ function calculateGCD(a: number, b: number): number {
 }
 
 export function isAspectRatioSupported(
-  modelKey: string | string,
+  modelKey: string,
   aspectRatio: string,
   capability?: ModelOutputCapability | null,
 ): boolean {

@@ -115,7 +115,6 @@ function ModalContent({
       <ModalContext.Provider value={modalContextValue}>
         <DialogPrimitive.Content
           ref={ref}
-          aria-describedby={props['aria-describedby'] ?? undefined}
           className={cn(
             'fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%]',
             'gap-4 rounded-xl bg-card p-6 text-card-foreground shadow-dialog duration-200',

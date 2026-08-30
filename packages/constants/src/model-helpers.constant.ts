@@ -80,7 +80,7 @@ export function hasEndFrame(
   if (!cap || cap.category !== ModelCategory.VIDEO) {
     return false;
   }
-  return (cap as VideoModelCapability).hasEndFrame ?? false;
+  return cap.hasEndFrame ?? false;
 }
 
 export function hasNativeExtend(
