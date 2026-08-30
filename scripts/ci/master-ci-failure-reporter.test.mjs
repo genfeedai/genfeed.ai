@@ -257,6 +257,47 @@ test('reportMasterCiFailure files the issue but fails when triage GraphQL is den
   assert.ok(warnings.some((w) => w.includes('Could not triage')));
 });
 
+test('reportMasterCiFailure keeps Project membership when native metadata verification fails', async () => {
+  const { github, created } = createGithubMock({ openIssues: [] });
+  const mutationOrder = [];
+  github.graphql = async (query, vars) => {
+    if (query.includes('addProjectV2ItemById')) {
+      mutationOrder.push('project');
+      return { addProjectV2ItemById: { item: { id: 'PROJECT_ITEM_1' } } };
+    }
+    mutationOrder.push('metadata');
+    return {
+      updateIssue: {
+        issue: {
+          id: vars.issueId,
+          issueType: { id: ISSUE_TYPE_BUG },
+          issueFieldValues: {
+            nodes: [
+              { field: { name: 'Priority' }, value: PRIORITY_P0 },
+              { field: { name: 'Blast radius' }, value: BLAST_RADIUS_INFRA },
+            ],
+          },
+        },
+      },
+    };
+  };
+
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: { info: () => {}, warning: () => {} },
+    }),
+    /did not persist the required native issue type and triage fields/,
+  );
+
+  assert.equal(created.length, 1);
+  assert.deepEqual(mutationOrder, ['project', 'metadata']);
+});
+
 test('resolveMasterCiFailure closes all open trackers', async () => {
   const { github, comments, updates } = createGithubMock({
     openIssues: [{ number: 2600 }, { number: 2601 }],

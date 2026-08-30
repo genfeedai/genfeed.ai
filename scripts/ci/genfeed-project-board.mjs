@@ -2,13 +2,14 @@
  * Shared native issue metadata and Project #12 wiring for CI failure trackers.
  *
  * Both red-CI reporters (self-hosted release E2E, master push Tests Gate) file
- * a tracking issue, set its organization-native metadata, and add it to the
- * canonical board. Native fields keep one value on the issue across every
+ * a tracking issue, add it to the canonical board, and set its
+ * organization-native metadata. Native fields keep one value on the issue across every
  * project; Project #12 remains responsible for workflow Status only.
  *
- * Issue creation happens before triage, but a denied metadata or Project
- * mutation is fatal to the reporter job. A red reporter is deliberate: P0 is
- * an operational contract, not optional metadata that may disappear.
+ * Issue creation and Project membership happen before metadata triage, so the
+ * tracker remains board-visible even when a native field write fails. A denied
+ * metadata or Project mutation is still fatal to the reporter job: P0 is an
+ * operational contract, not optional metadata that may disappear.
  */
 
 /** Org project #12 — genfeed.ai */
@@ -20,10 +21,10 @@ export const AREA_INFRA = 'Infra';
 export const BLAST_RADIUS_INFRA = 'Infra';
 
 /**
- * Set native issue triage metadata, verify it landed, and add the issue to
- * Project #12. Throws after logging when either write fails. Reporter callers
- * create or update the issue first, so the tracker remains available while
- * Actions stays visibly red until the credential/permission boundary is fixed.
+ * Add the issue to Project #12, set native issue triage metadata, and verify it
+ * landed. Throws after logging when either write fails. Reporter callers create
+ * or update the issue first, so the tracker remains available while Actions
+ * stays visibly red until the credential/permission boundary is fixed.
  *
  * @param {object} github Octokit-compatible client (rest + graphql)
  * @param {{ owner: string, repo: string, issueNumber: number, trackerName: string, core?: object }} input
@@ -39,6 +40,19 @@ export async function triageCiFailureOnProject(
       issue_number: issueNumber,
     });
     const contentId = issue.data.node_id;
+
+    const addResult = await github.graphql(
+      `mutation($projectId: ID!, $contentId: ID!) {
+        addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+          item { id }
+        }
+      }`,
+      {
+        projectId: GENFEED_PROJECT_ID,
+        contentId,
+      },
+    );
+    const itemId = addResult.addProjectV2ItemById.item.id;
 
     const metadataResult = await github.graphql(
       `mutation(
@@ -60,7 +74,7 @@ export async function triageCiFailureOnProject(
           issue {
             id
             issueType { id }
-            issueFieldValues(first: 10) {
+            issueFieldValues(first: 100) {
               nodes {
                 ... on IssueFieldSingleSelectValue {
                   field { ... on IssueFieldSingleSelect { name } }
@@ -102,19 +116,6 @@ export async function triageCiFailureOnProject(
         'GitHub did not persist the required native issue type and triage fields',
       );
     }
-
-    const addResult = await github.graphql(
-      `mutation($projectId: ID!, $contentId: ID!) {
-        addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-          item { id }
-        }
-      }`,
-      {
-        projectId: GENFEED_PROJECT_ID,
-        contentId,
-      },
-    );
-    const itemId = addResult.addProjectV2ItemById.item.id;
 
     core.info?.(
       `Triaged ${trackerName} #${issueNumber} as Bug / Priority P0 / Area Infra and added it to Project #12`,
