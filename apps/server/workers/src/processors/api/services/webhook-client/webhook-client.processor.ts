@@ -53,7 +53,9 @@ export class WebhookClientProcessor extends WorkerHost {
       } catch (error: unknown) {
         if (error instanceof WebhookEndpointValidationError) {
           throw new UnrecoverableError(
-            redactPublishWebhookText(getErrorMessage(error)),
+            redactPublishWebhookText(
+              error.message ? getErrorMessage(error) : '',
+            ),
           );
         }
         throw error;
@@ -127,7 +129,7 @@ export class WebhookClientProcessor extends WorkerHost {
       }
     } catch (error: unknown) {
       const errorMessage = redactPublishWebhookText(
-        getErrorMessage(error) || 'Webhook delivery failed',
+        readErrorMessage(error) || 'Webhook delivery failed',
       );
       const errorCode = readErrorCode(error);
 
@@ -174,7 +176,7 @@ export class WebhookClientProcessor extends WorkerHost {
       this.logger.warn(`${this.constructorName} failed to record status`, {
         deliveryId: status.deliveryId,
         error: redactPublishWebhookText(
-          getErrorMessage(error) || 'Failed to record webhook delivery status',
+          readErrorMessage(error) || 'Failed to record webhook delivery status',
         ),
         organizationId,
       });
@@ -186,6 +188,14 @@ function readHttpStatusCode(error: unknown): number | undefined {
   const status = (error as { response?: { status?: unknown } })?.response
     ?.status;
   return typeof status === 'number' ? status : undefined;
+}
+
+function readErrorMessage(error: unknown): string | undefined {
+  const message = (error as { message?: unknown })?.message;
+  if (typeof message !== 'string' || !message) {
+    return typeof message === 'string' ? '' : undefined;
+  }
+  return getErrorMessage(error);
 }
 
 function readErrorCode(error: unknown): string | undefined {

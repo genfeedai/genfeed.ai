@@ -44,7 +44,13 @@ export type QueuedPostPublishSkip = {
 };
 
 export function getPublishErrorMessage(error: unknown): string {
-  return getErrorMessage(error || 'Post failed');
+  if (error instanceof Error) {
+    return error.message ? getErrorMessage(error) : '';
+  }
+  if (typeof error === 'string' && error) {
+    return getErrorMessage(error);
+  }
+  return String(error || 'Post failed');
 }
 
 export function getPublishErrorCode(error: unknown): string {

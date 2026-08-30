@@ -111,9 +111,10 @@ export class CreditDeductionProcessor extends WorkerHost {
         type,
       });
     } catch (error: unknown) {
+      const message = (error as Error)?.message;
       this.logger.error(`${this.constructorName} job failed`, {
         attempt: job.attemptsMade + 1,
-        error: getErrorMessage(error),
+        error: message ? getErrorMessage(error) : message,
         jobId: job.id,
         maxAttempts: job.opts.attempts,
         organizationId,
@@ -123,7 +124,9 @@ export class CreditDeductionProcessor extends WorkerHost {
       // BusinessLogicException = permanent failure (e.g. "insufficient credits"
       // on retry means deduction already committed but side effects failed)
       if (error instanceof BusinessLogicException) {
-        throw new UnrecoverableError(getErrorMessage(error));
+        throw new UnrecoverableError(
+          error.message ? getErrorMessage(error) : '',
+        );
       }
 
       // Transient error — BullMQ retries

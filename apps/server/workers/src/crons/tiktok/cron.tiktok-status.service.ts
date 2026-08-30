@@ -326,9 +326,12 @@ export class CronTiktokStatusService implements OnModuleInit {
         );
       }
     } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error);
+      const rawErrorMessage = (error as TiktokError)?.message;
+      const errorMessage = rawErrorMessage
+        ? getErrorMessage(error)
+        : (rawErrorMessage ?? '');
       this.logger.error(`${url} failed for post ${post.id}`, {
-        error: errorMessage,
+        error: rawErrorMessage ? errorMessage : rawErrorMessage,
         publishId,
       });
 

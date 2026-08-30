@@ -231,7 +231,12 @@ export class CronYoutubeStatusService implements OnModuleInit {
       }
     } catch (error: unknown) {
       // If video not found on YouTube, mark post as deleted
-      const errorMessage = getErrorMessage(error);
+      const errorMessage =
+        error instanceof Error && error.message
+          ? getErrorMessage(error)
+          : error instanceof Error
+            ? ''
+            : String(error);
       if (
         errorMessage.includes('Video not found') ||
         errorMessage.includes('status not available')

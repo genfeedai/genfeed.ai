@@ -260,8 +260,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
           visibility: resolvePostVisibility(originalParent.visibility),
         });
       } catch (error: unknown) {
+        const message = (error as Error)?.message;
         this.logger.error(`${url} failed to clone child for repeat`, {
-          error: getErrorMessage(error),
+          error: message ? getErrorMessage(error) : message,
           newParentId,
           originalChildId: String(child.id),
         });

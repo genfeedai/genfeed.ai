@@ -204,7 +204,12 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     post: PostEntity,
     error: unknown,
   ): Promise<PublishResult> {
-    const errorMessage = getErrorMessage(error) || 'Publish validation failed';
+    const errorMessage =
+      error instanceof Error && error.message
+        ? getErrorMessage(error)
+        : error instanceof Error
+          ? ''
+          : 'Publish validation failed';
 
     this.logger.error('Durable validation rejected queued publishing', {
       error: errorMessage,
@@ -970,10 +975,16 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         );
       })
       .catch((error: unknown) => {
+        const errorMessage =
+          error instanceof Error && error.message
+            ? getErrorMessage(error)
+            : error instanceof Error
+              ? ''
+              : 'unknown';
         this.logger.warn(
           `${this.constructorName} failed to schedule reply post-watch`,
           {
-            error: getErrorMessage(error) || 'unknown',
+            error: errorMessage,
             externalId: result.externalId,
             postId: post.id.toString(),
           },
@@ -1059,9 +1070,15 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       try {
         await this.postsService.patch(child.id.toString(), {});
       } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error && error.message
+            ? getErrorMessage(error)
+            : error instanceof Error
+              ? ''
+              : undefined;
         this.logger.error(`${url} failed to mark child as failed`, {
           childPostId: child.id.toString(),
-          error: getErrorMessage(error),
+          error: errorMessage,
           parentPostId: post.id.toString(),
         });
       }

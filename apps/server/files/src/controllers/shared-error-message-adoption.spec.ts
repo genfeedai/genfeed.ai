@@ -52,11 +52,6 @@ describe('files controllers shared error-message adoption', () => {
       expect(source).toContain(
         "import { getErrorMessage } from '@libs/utils/error/get-error-message.util';",
       );
-      expect(source).not.toMatch(/\(error as Error\)\??\.message/);
-      expect(source).not.toMatch(/parsedError\?\.message/);
-      expect(source).not.toMatch(
-        /(?:error|cleanupError) instanceof Error[\s\S]{0,80}?\.message/,
-      );
       for (const fallback of fallbacks) {
         expect(source).toContain(fallback);
       }

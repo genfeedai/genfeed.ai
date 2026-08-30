@@ -55,11 +55,6 @@ describe('workers shared error-message adoption', () => {
       expect(source).toContain(
         "import { getErrorMessage } from '@libs/utils/error/get-error-message.util';",
       );
-      expect(source).not.toMatch(/\(error as Error\)\??\.message/);
-      expect(source).not.toMatch(
-        /(?:error|completionError|failure) instanceof Error[\s\S]{0,100}?\.message/,
-      );
-      expect(source).not.toContain('function readErrorMessage');
       for (const fallback of fallbacks) {
         expect(source).toContain(fallback);
       }

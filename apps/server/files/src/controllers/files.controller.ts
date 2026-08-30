@@ -204,8 +204,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to process video:', error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to process video',
+        message ? getErrorMessage(error) : 'Failed to process video',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -263,8 +264,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to process image:', error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to process image',
+        message ? getErrorMessage(error) : 'Failed to process image',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -331,8 +333,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to process file:', error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to process file',
+        message ? getErrorMessage(error) : 'Failed to process file',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -376,8 +379,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to process YouTube upload:', error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to process YouTube upload',
+        message ? getErrorMessage(error) : 'Failed to process YouTube upload',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -414,8 +418,9 @@ export class FilesController {
         throw error;
       }
 
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to process hook remix',
+        message ? getErrorMessage(error) : 'Failed to process hook remix',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -451,8 +456,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error(`Failed to get job status for ${jobId}:`, error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to get job status',
+        message ? getErrorMessage(error) : 'Failed to get job status',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -475,8 +481,9 @@ export class FilesController {
       };
     } catch (error: unknown) {
       this.logger.error('Failed to get queue stats:', error);
+      const message = (error as Error)?.message;
       throw new HttpException(
-        getErrorMessage(error) || 'Failed to get queue statistics',
+        message ? getErrorMessage(error) : 'Failed to get queue statistics',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

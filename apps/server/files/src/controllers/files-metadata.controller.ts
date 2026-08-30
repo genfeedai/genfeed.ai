@@ -119,7 +119,7 @@ export class FilesMetadataController {
           }
 
           throw new HttpException(
-            `Failed to download file from URL: ${getErrorMessage(error) || 'Unknown error'}`,
+            `Failed to download file from URL: ${parsedError?.message ? getErrorMessage(error) : 'Unknown error'}`,
             HttpStatus.BAD_REQUEST,
           );
         }
@@ -143,11 +143,13 @@ export class FilesMetadataController {
         }),
       };
     } catch (error: unknown) {
-      const parsedError = error as { name?: string };
-      const errorMessage = getErrorMessage(error);
+      const parsedError = error as { name?: string; message?: string };
+      const errorMessage = parsedError?.message
+        ? getErrorMessage(error)
+        : undefined;
       if (
         parsedError?.name === 'ValidationException' ||
-        errorMessage.includes('does not exist')
+        (error instanceof Error && errorMessage?.includes('does not exist'))
       ) {
         this.logger.error(`File not accessible: ${filePath}`, parsedError);
         throw new HttpException(
@@ -173,9 +175,15 @@ export class FilesMetadataController {
           fs.unlinkSync(tempFilePath);
           this.logger.log(`Cleaned up temporary file: ${tempFilePath}`);
         } catch (cleanupError: unknown) {
+          const cleanupMessage =
+            cleanupError instanceof Error && cleanupError.message
+              ? getErrorMessage(cleanupError)
+              : cleanupError instanceof Error
+                ? ''
+                : String(cleanupError);
           this.logger.warn(
             `Failed to cleanup temporary file: ${tempFilePath}`,
-            getErrorMessage(cleanupError),
+            cleanupMessage,
           );
         }
       }
