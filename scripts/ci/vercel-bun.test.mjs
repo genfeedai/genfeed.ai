@@ -16,6 +16,10 @@ test('skips a second bun install when node_modules is already present', () => {
 });
 
 test('uses the repository Bun policy for install and build', () => {
-  assert.match(script, /\.bun-version/);
-  assert.doesNotMatch(script, /bun@[0-9]+\.[0-9]+\.[0-9]+/);
+  assert.match(
+    script,
+    /BUN_VERSION=\$\(xargs < "\$SCRIPT_DIR\/\.\.\/\.\.\/\.bun-version"\)/,
+  );
+  assert.match(script, /exec bunx "bun@\$BUN_VERSION" "\$@"/);
+  assert.doesNotMatch(script, /bun@(?:latest|\d+\.\d+\.\d+)/);
 });
