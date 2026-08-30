@@ -142,6 +142,7 @@ export function AdGridCard({
         className="absolute bottom-3 right-3 size-8 p-0"
         disabled={savedMutating || item.usagePolicy === 'disclosure_only'}
         onClick={() => onToggleSaved([item])}
+        withWrapper={false}
         icon={
           <Bookmark
             className={cn('size-4', item.savedAdId && 'fill-current')}
