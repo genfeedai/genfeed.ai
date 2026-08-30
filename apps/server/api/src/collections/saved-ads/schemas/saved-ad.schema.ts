@@ -1,3 +1,3 @@
-import type { SavedAd } from '@prisma/client';
+import type { SavedAd } from '@genfeedai/prisma';
 
 export type SavedAdDocument = SavedAd;

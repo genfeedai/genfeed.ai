@@ -5,6 +5,7 @@ import type {
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
 } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -175,9 +176,9 @@ export class SavedAdsService {
       landingPageUrl: detail.landingPageUrl ?? detail.creative?.landingPageUrl,
       lastSeenAt: optionalDate(detail.lastSeenAt),
       loginCustomerId: input.loginCustomerId,
-      metrics: detail.metrics,
+      metrics: toPrismaJson(detail.metrics),
       organizationId,
-      patternSummary: detail.patternSummary ?? [],
+      patternSummary: toPrismaJson(detail.patternSummary ?? []),
       platform: detail.platform,
       previewUrl: imageUrls[0] ?? videoUrls[0],
       source: input.source,

@@ -12,6 +12,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { SavedAdSerializer } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -48,9 +49,10 @@ export class SavedAdsController {
   async save(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body(new ParseArrayPipe({ items: SaveAdDto, maxItems: 50 }))
+    @Body(new ParseArrayPipe({ items: SaveAdDto }))
     inputs: SaveAdDto[],
   ) {
+    this.assertBatchSize(inputs);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -67,9 +69,10 @@ export class SavedAdsController {
   async updateNotes(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body(new ParseArrayPipe({ items: UpdateSavedAdNoteDto, maxItems: 50 }))
+    @Body(new ParseArrayPipe({ items: UpdateSavedAdNoteDto }))
     inputs: UpdateSavedAdNoteDto[],
   ) {
+    this.assertBatchSize(inputs);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -84,9 +87,10 @@ export class SavedAdsController {
   @Delete()
   async unsave(
     @CurrentUser() user: User,
-    @Body(new ParseArrayPipe({ items: UnsaveSavedAdDto, maxItems: 50 }))
+    @Body(new ParseArrayPipe({ items: UnsaveSavedAdDto }))
     inputs: UnsaveSavedAdDto[],
   ) {
+    this.assertBatchSize(inputs);
     const authorized = inputs.map((input) => ({
       ...input,
       brandId: this.resolveBrand(user, input.brandId),
@@ -111,6 +115,12 @@ export class SavedAdsController {
       throw new ForbiddenException('A brand is required');
     }
     return authorized;
+  }
+
+  private assertBatchSize(inputs: unknown[]): void {
+    if (inputs.length === 0 || inputs.length > 50) {
+      throw new BadRequestException('Saved ad mutations require 1 to 50 items');
+    }
   }
 
   private resolveUserId(user: User): string {
