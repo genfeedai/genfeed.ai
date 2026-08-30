@@ -72,6 +72,7 @@ import { AgentStreamEffectsService } from '@server/services/agent-orchestrator/a
 import { AgentThreadEventRecorderService } from '@server/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentTurnAcceptanceService } from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
+import { AgentTurnWorkflowExecutionService } from '@server/services/agent-orchestrator/agent-turn-workflow-execution.service';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@server/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -213,6 +214,7 @@ import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/to
     AgentTurnAcceptanceService,
     AgentToolExecutorService,
     AgentTurnRoundRunnerService,
+    AgentTurnWorkflowExecutionService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,

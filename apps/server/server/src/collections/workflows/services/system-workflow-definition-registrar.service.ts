@@ -3,6 +3,7 @@ import {
   AD_BULK_UPLOAD_CHILD_WORKFLOWS,
   buildAdBulkUploadWorkflowDefinition,
 } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
+import { AGENT_RUNTIME_WORKFLOW_DEFINITIONS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import {
   AUTOMATION_CHILD_WORKFLOWS,
   AUTOMATION_PARENT_WORKFLOWS,
@@ -21,6 +22,7 @@ export class SystemWorkflowDefinitionRegistrarService implements OnModuleInit {
 
   onModuleInit(): void {
     const definitions = [
+      ...AGENT_RUNTIME_WORKFLOW_DEFINITIONS,
       ...AD_SYNC_CHILD_WORKFLOWS,
       buildAdBulkUploadWorkflowDefinition(),
       ...AD_BULK_UPLOAD_CHILD_WORKFLOWS,

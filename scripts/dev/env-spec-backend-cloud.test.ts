@@ -28,4 +28,22 @@ describe('env-spec backend cloud flag', () => {
     expect(filesTarget).toBeDefined();
     expect(filesTarget?.directKeys).toContain('AWS_PROFILE');
   });
+
+  it('copies worker-consumed provider configuration onto the workers service', () => {
+    const workersTarget = ENV_TARGETS.find((target) => target.id === 'workers');
+    const workerProviderKeys = [
+      'AWS_ACCESS_KEY_ID',
+      'AWS_REGION',
+      'AWS_SECRET_ACCESS_KEY',
+      'FAL_API_KEY',
+      'GPU_LLM_INSTANCE_ID',
+      'OPENROUTER_API_KEY',
+      'REPLICATE_KEY',
+    ];
+
+    expect(workersTarget).toBeDefined();
+    for (const key of workerProviderKeys) {
+      expect(workersTarget?.directKeys).toContain(key);
+    }
+  });
 });

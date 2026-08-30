@@ -8,11 +8,21 @@ import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorBatchService } from '@server/services/agent-orchestrator/agent-orchestrator-batch.service';
@@ -145,7 +155,7 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
 }
 
 @Injectable()
-export class AgentTurnWorkflowExecutionService {
+export class AgentTurnWorkflowExecutionService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
@@ -164,7 +174,93 @@ export class AgentTurnWorkflowExecutionService {
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly executionLaneService: AgentExecutionLaneService,
     private readonly runtimeSessionService: AgentRuntimeSessionService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    const registerAction = this.workflowRunner.registerAction.bind(
+      this.workflowRunner,
+    );
+    registerAction(AGENT_RUNTIME_ACTION_IDS.TURN_PREPARE, (request) =>
+      this.prepare(request.input.request, {
+        executionId: request.provenance.executionId,
+        organizationId: request.context.organizationId,
+        userId: request.context.userId,
+      }),
+    );
+    registerAction(AGENT_RUNTIME_ACTION_IDS.TURN_INFER, async ({ input }) => {
+      const state = input.state as PreparedAgentTurnState;
+      return {
+        decision: 'final' as const,
+        final: await this.execute(state),
+        state,
+        toolItems: [],
+      };
+    });
+    registerAction(
+      AGENT_RUNTIME_ACTION_IDS.TURN_FINALIZE,
+      ({ input }) => input.final as AgentTurnWorkflowResult,
+    );
+    registerAction(AGENT_RUNTIME_ACTION_IDS.TURN_FAIL, (request) =>
+      this.recordWorkflowFailure(request),
+    );
+    registerAction(
+      AGENT_RUNTIME_ACTION_IDS.UI_ACTION,
+      ({ context, input, provenance }) =>
+        this.executeUiAction(
+          readRecord(input.request) as unknown as AgentThreadUiActionRequest,
+          {
+            executionId: provenance.executionId,
+            organizationId: context.organizationId,
+            userId: context.userId,
+          },
+        ),
+    );
+    registerAction(
+      AGENT_RUNTIME_ACTION_IDS.INPUT_RESPONSE,
+      ({ context, input, provenance }) => {
+        const request = readRecord(input.request);
+        return this.resumeInput({
+          answer: requiredString(request.answer, 'request.answer'),
+          executionId: provenance.executionId,
+          ...(optionalString(request.fieldId)
+            ? { fieldId: optionalString(request.fieldId) }
+            : {}),
+          organizationId: context.organizationId,
+          scope: readRecord(request.scope) as unknown as ValidatedAgentScope,
+          threadId: requiredString(request.threadId, 'request.threadId'),
+          userId: context.userId,
+        });
+      },
+    );
+  }
+
+  private async recordWorkflowFailure(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{ error: string; threadId: string | null }> {
+    const failure = readRecord(request.input.failure);
+    const error =
+      optionalString(failure.error) ??
+      optionalString(failure.message) ??
+      optionalString(request.input.failure);
+    if (!error) {
+      throw new BadRequestException('Agent workflow failure requires an error');
+    }
+    const state = readRecord(request.input.state);
+    const originalRequest = readRecord(request.input.request);
+    const threadId =
+      optionalString(state.threadId) ??
+      optionalString(originalRequest.threadId) ??
+      null;
+    await this.recordFailure({
+      error,
+      executionId: request.provenance.executionId,
+      organizationId: request.context.organizationId,
+      ...(threadId ? { threadId } : {}),
+      userId: request.context.userId,
+    });
+    return { error, threadId };
+  }
 
   async prepare(
     value: unknown,
@@ -450,12 +546,6 @@ export class AgentTurnWorkflowExecutionService {
       organizationId: params.organizationId,
       userId: params.userId,
     };
-    await this.threadEventRecorder.recordRunFailed({
-      context,
-      error: params.error,
-      runId: params.executionId,
-      threadId: params.threadId,
-    });
     await runEffectPromise(
       this.streamEffects.publishStreamFailureEffect({
         context,
