@@ -928,9 +928,19 @@ describe('SubscriptionsService', () => {
         stripeCustomerId: 'cus_1',
       });
       stripeService.getUpcomingInvoice.mockResolvedValue({
-        amount_due: 45_000,
+        amount_due: 32_500,
         currency: 'usd',
-        lines: { data: [{ description: 'Remaining time on Scale' }] },
+        lines: {
+          data: [
+            {
+              amount: 15_000,
+              description: 'Remaining time on Scale',
+              parent: {
+                subscription_item_details: { proration: true },
+              },
+            },
+          ],
+        },
       });
       stripeService.getSubscription.mockResolvedValue(
         buildStripeSubscription({ priceId: 'price_pro', unitAmount: 4_900 }),
@@ -938,8 +948,6 @@ describe('SubscriptionsService', () => {
     });
 
     it('flags an upgrade and returns the Stripe-computed upcoming invoice', async () => {
-      stripeService.getPrice.mockResolvedValue({ unit_amount: 49_900 });
-
       const preview = (await service.previewSubscriptionChange(
         ORGANIZATION_ID,
         'price_scale',
@@ -954,31 +962,60 @@ describe('SubscriptionsService', () => {
         'cus_1',
         'sub_stripe_1',
         'price_scale',
+        1,
       );
-      expect(preview.prorationAmount).toBe(45_000);
+      expect(preview.prorationAmount).toBe(15_000);
       expect(preview.isUpgrade).toBe(true);
       expect(preview.isDowngrade).toBe(false);
-      expect(preview.upcomingInvoice.amount_due).toBe(45_000);
+      expect(preview.upcomingInvoice.amount_due).toBe(32_500);
       expect(preview.upcomingInvoice.currency).toBe('usd');
     });
 
     it('flags a downgrade when the new price is cheaper', async () => {
-      stripeService.getPrice.mockResolvedValue({ unit_amount: 900 });
+      stripeService.getUpcomingInvoice.mockResolvedValue({
+        amount_due: 900,
+        currency: 'usd',
+        lines: {
+          data: [
+            {
+              amount: -1_200,
+              parent: {
+                subscription_item_details: { proration: true },
+              },
+            },
+          ],
+        },
+      });
 
       const preview = (await service.previewSubscriptionChange(
         ORGANIZATION_ID,
         'price_starter',
-      )) as { isDowngrade: boolean; isUpgrade: boolean };
+      )) as {
+        isDowngrade: boolean;
+        isUpgrade: boolean;
+        prorationAmount: number;
+      };
 
       expect(preview.isDowngrade).toBe(true);
       expect(preview.isUpgrade).toBe(false);
+      expect(preview.prorationAmount).toBe(-1_200);
     });
 
-    it('treats a missing unit_amount as zero on both sides', async () => {
-      stripeService.getSubscription.mockResolvedValue(
-        buildStripeSubscription({ unitAmount: null }),
-      );
-      stripeService.getPrice.mockResolvedValue({ unit_amount: null });
+    it('ignores non-proration invoice lines when classifying the change', async () => {
+      stripeService.getUpcomingInvoice.mockResolvedValue({
+        amount_due: 49_900,
+        currency: 'usd',
+        lines: {
+          data: [
+            {
+              amount: 49_900,
+              parent: {
+                subscription_item_details: { proration: false },
+              },
+            },
+          ],
+        },
+      });
 
       const preview = (await service.previewSubscriptionChange(
         ORGANIZATION_ID,

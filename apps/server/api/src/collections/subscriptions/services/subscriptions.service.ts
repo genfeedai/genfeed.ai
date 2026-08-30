@@ -1,24 +1,14 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PopulateInput,
-} from '@server/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import {
   SubscriptionPlan,
   SubscriptionStatus,
   toPrismaSubscriptionStatus,
 } from '@genfeedai/enums';
+import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
 import type {
   ISubscriptionFindAllOptions,
   ISubscriptionFindAllResult,
@@ -35,6 +25,17 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@server/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 type SubscriptionsFindAllResult =
   AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;
@@ -443,7 +444,7 @@ export class SubscriptionsService
   async previewSubscriptionChange(
     organizationId: string,
     newPriceId: string,
-  ): Promise<unknown> {
+  ): Promise<SubscriptionChangePreview> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -469,6 +470,7 @@ export class SubscriptionsService
         ),
         subscription.stripeSubscriptionId,
         newPriceId,
+        1,
       );
 
       // Get current subscription details from Stripe
@@ -477,16 +479,14 @@ export class SubscriptionsService
           subscription.stripeSubscriptionId,
         );
 
-      // Calculate the proration amount
       const currentPrice = currentStripeSubscription.items.data[0]?.price;
-
-      // Calculate proration based on price difference
-      const currentPriceAmount = currentPrice?.unit_amount || 0;
-      const newPrice = await this.stripeService.getPrice(newPriceId);
-      const newPriceAmount = newPrice.unit_amount || 0;
-
-      // Simple proration calculation (in a real scenario, you'd want to factor in the billing cycle)
-      const prorationAmount = newPriceAmount - currentPriceAmount;
+      const prorationAmount = upcomingInvoice.lines.data.reduce(
+        (amount, line) =>
+          line.parent?.subscription_item_details?.proration
+            ? amount + line.amount
+            : amount,
+        0,
+      );
       const isUpgrade = prorationAmount > 0;
       const isDowngrade = prorationAmount < 0;
 

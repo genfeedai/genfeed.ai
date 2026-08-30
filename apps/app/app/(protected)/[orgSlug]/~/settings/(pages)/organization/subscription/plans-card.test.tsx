@@ -135,8 +135,8 @@ describe('PlansCard', () => {
       isDowngrade: false,
       isUpgrade: true,
       newPriceId: 'price_scale',
-      prorationAmount: 45_000,
-      upcomingInvoice: { amount_due: 45_000, currency: 'usd', lines: [] },
+      prorationAmount: 15_000,
+      upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
     });
 
     render(<PlansCard />);
@@ -145,7 +145,11 @@ describe('PlansCard', () => {
     await waitFor(() => {
       expect(previewPlanChange).toHaveBeenCalledWith('price_scale');
     });
-    expect(await screen.findByText(/\$450\.00 more per month/)).toBeVisible();
+    expect(
+      await screen.findByText(
+        /Stripe estimates your next invoice at \$325\.00/,
+      ),
+    ).toBeVisible();
     expect(createCheckoutSession).not.toHaveBeenCalled();
     expect(changeSubscriptionPlan).not.toHaveBeenCalled();
 

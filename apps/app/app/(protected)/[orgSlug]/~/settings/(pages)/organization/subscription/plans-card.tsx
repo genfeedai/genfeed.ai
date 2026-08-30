@@ -49,7 +49,10 @@ function formatCurrencyFromCents(amountInCents: number, currency: string) {
  */
 function describeProration(preview: SubscriptionChangePreview) {
   const currency = preview.upcomingInvoice?.currency || 'usd';
-  const amount = formatCurrencyFromCents(preview.prorationAmount, currency);
+  const amount = formatCurrencyFromCents(
+    preview.upcomingInvoice.amount_due,
+    currency,
+  );
 
   if (preview.isUpgrade) {
     return { amount, key: 'subscription.plans.prorationUpgrade' };

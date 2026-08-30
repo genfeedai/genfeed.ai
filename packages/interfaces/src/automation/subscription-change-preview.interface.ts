@@ -1,5 +1,10 @@
+export interface SubscriptionPreviewPrice {
+  id: string;
+  unit_amount: number | null;
+}
+
 export interface SubscriptionChangePreview {
-  currentPrice?: number;
+  currentPrice?: SubscriptionPreviewPrice;
   newPriceId: string;
   prorationAmount: number;
   isUpgrade: boolean;
@@ -9,8 +14,7 @@ export interface SubscriptionChangePreview {
     currency: string;
     lines: Array<{
       amount: number;
-      description?: string;
-      [key: string]: unknown;
+      description?: string | null;
     }>;
   };
 }
