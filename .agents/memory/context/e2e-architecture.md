@@ -1,6 +1,6 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-08-27 (isolated-publish lane is nightly/`workflow_dispatch` only; core/authed deploy gates unchanged)
+> **Last verified:** 2026-08-30 (rolling Bun policy; isolated-publish lane is nightly/`workflow_dispatch` only; core/authed deploy gates unchanged)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
 >
 > **Tier contract (`core` / `authed` / `full`):** [`docs/e2e-tiers.md`](../../../docs/e2e-tiers.md).
@@ -83,7 +83,7 @@ failed shard + gate carries the green shards forward. The old single `e2e-fronte
 - **Job env:** `NODE_ENV=test`, `DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/test`,
   `REDIS_URL=redis://localhost:6379`. All external keys mocked
   (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY`, and auth secrets use test-safe values).
-- **Steps:** checkout → Bun 1.3.14 via `.github/actions/setup-bun-env` → cache bun/turbo → `bun install` →
+- **Steps:** checkout → rolling stable Bun via `.bun-version` and `.github/actions/setup-bun-env` → cache bun/turbo → `bun install` →
   `bunx turbo run build --filter="./packages/*"` →
   `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:core` → lcov artifact upload.
 - `e2e-api-full` uses the same hermetic Postgres/Redis/migration boundary, runs `test:e2e:full`,

@@ -33,10 +33,10 @@
     "apps/extensions/ide/app",
     "packages/*"
   ],
-  "packageManager": "bun@1.4.0",
   "engines": {
     "node": ">=24 <25"
   },
+  "packageManager": "bun@1.4.0",
   "scripts": {
     "audit:api": "bun run audit:api:endpoints && bun run audit:api:sql",
     "audit:api:endpoints": "bun run scripts/api-audit/endpoint-inventory.ts",

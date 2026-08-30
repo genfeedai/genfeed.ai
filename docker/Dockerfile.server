@@ -11,6 +11,9 @@
 # ==================================================
 FROM node:24-slim AS toolchain
 
+# Docker cannot read `.bun-version` before selecting/installing its toolchain.
+# The unpinned installer intentionally mirrors that rolling policy, and the CI
+# policy contract keeps both installer stages aligned with it.
 # Install bun and build dependencies. node-pty in @genfeedai/notifications
 # compiles during bun install and expects node-gyp on PATH.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" \
+    && curl -fsSL https://bun.sh/install | bash \
     && cp /root/.bun/bin/bun /usr/local/bin/bun \
     && cp /root/.bun/bin/bunx /usr/local/bin/bunx \
     && chmod +x /usr/local/bin/bun /usr/local/bin/bunx \
@@ -328,7 +331,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV FFMPEG_BIN=/usr/bin/ffmpeg
 
 # Install bun for running production scripts
-RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.14" && \
+RUN curl -fsSL https://bun.sh/install | bash && \
     cp /root/.bun/bin/bun /usr/local/bin/bun && \
     chmod +x /usr/local/bin/bun
 ENV PATH="/usr/local/bin:${PATH}"

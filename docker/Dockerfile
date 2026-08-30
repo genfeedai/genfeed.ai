@@ -5,7 +5,9 @@
 #          clips, mcp, discord, slack, telegram, images, videos, voices
 
 # ─── Base ───────────────────────────────────────────────────────────
-FROM oven/bun:1.3.14 AS base
+# Docker resolves FROM before repository files are available, so this explicit
+# latest selector mirrors `.bun-version`; the CI policy contract keeps them aligned.
+FROM oven/bun:latest AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/*
 
