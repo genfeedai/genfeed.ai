@@ -8,6 +8,7 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
+  PostCategory,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import {
@@ -477,6 +478,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const targetValidation = validateChannelTargetSettings({
       caption: post.description,
       credentialId: ids.credentialId ?? undefined,
+      media: this.toValidationMedia(post),
       platform,
       publishMode: 'publish_now',
       settings: resolvedSettings,
@@ -532,6 +534,30 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         publisher,
       },
     };
+  }
+
+  private toValidationMedia(
+    post: PostEntity,
+  ): Array<{ id: string; kind: 'image' | 'video' }> | undefined {
+    const ingredients = Array.isArray(post.ingredients)
+      ? (post.ingredients as unknown[])
+      : [];
+    const kind =
+      post.category === PostCategory.VIDEO ||
+      post.category === PostCategory.REEL
+        ? 'video'
+        : 'image';
+    const media = ingredients.flatMap((ingredient) => {
+      const id =
+        typeof ingredient === 'string'
+          ? ingredient
+          : ingredient && typeof ingredient === 'object' && 'id' in ingredient
+            ? (ingredient as { id?: unknown }).id
+            : undefined;
+      return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
+    });
+
+    return media.length > 0 ? media : undefined;
   }
 
   private async executeProviderPublish(
