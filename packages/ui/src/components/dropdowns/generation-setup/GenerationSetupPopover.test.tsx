@@ -6,7 +6,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { GenerationSetup } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { describe, expect, it, vi } from 'vitest';
@@ -115,13 +115,19 @@ vi.mock('@ui/primitives/command', async () => {
     CommandItem: ({
       children,
       onSelect,
+      onPointerDown,
       value,
     }: {
       children: React.ReactNode;
       onSelect?: (value: string) => void;
+      onPointerDown?: React.PointerEventHandler<HTMLButtonElement>;
       value?: string;
     }) => (
-      <button onClick={() => onSelect?.(value ?? '')} type="button">
+      <button
+        onClick={() => onSelect?.(value ?? '')}
+        onPointerDown={onPointerDown}
+        type="button"
+      >
         {children}
       </button>
     ),
@@ -340,6 +346,38 @@ describe('GenerationSetupPopover', () => {
       screen.getByRole('button', { name: 'Search setup fields' }),
     ).toBeInTheDocument();
     expect(screen.getByText('No saved presets yet.')).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('img', { name: 'Type: Set by the agent' })
+        .querySelector('svg'),
+    ).not.toBeNull();
+  });
+
+  it('keeps customization open when an Auto routing priority is selected', async () => {
+    const user = userEvent.setup();
+    const onSetField = vi.fn();
+    renderPopover({ onSetField });
+
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Customize setup' }));
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Best Quality' }),
+      {
+        button: 0,
+      },
+    );
+
+    expect(onSetField).toHaveBeenNthCalledWith(1, 'modelKey', '');
+    expect(onSetField).toHaveBeenNthCalledWith(
+      2,
+      'prioritize',
+      RouterPriority.QUALITY,
+    );
+    expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Model tab' })).toHaveClass(
+      'bg-background-tertiary',
+    );
   });
 
   it('switches to the customize panel and resets every field on Reset all', async () => {

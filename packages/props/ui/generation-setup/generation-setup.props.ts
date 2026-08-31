@@ -83,7 +83,8 @@ export interface GenerationSetupTriggerProps {
   className?: string;
 }
 
-export interface GenerationSetupProvenanceDotProps {
+export interface GenerationSetupFieldIconProps {
+  fieldKey: GenerationSetupFieldKey;
   reason?: string;
   source: GenerationSetupSource;
 }

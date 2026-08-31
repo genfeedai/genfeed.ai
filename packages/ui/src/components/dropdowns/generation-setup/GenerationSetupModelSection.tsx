@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupModelSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import {
   AUTO_PRIORITY_LABELS,
@@ -68,7 +68,8 @@ export default function GenerationSetupModelSection({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <GenerationSetupProvenanceDot
+          <GenerationSetupFieldIcon
+            fieldKey="modelKey"
             reason={reasons.modelKey ?? reasons.prioritize}
             source={source}
           />
@@ -83,7 +84,7 @@ export default function GenerationSetupModelSection({
           {canReset ? (
             <Button
               ariaLabel="Reset model to agent"
-              className="size-6 p-0 text-muted-foreground [&_svg]:size-3"
+              className="size-5 p-0 text-muted-foreground [&_svg]:size-3"
               icon={<Undo2 />}
               onClick={() => onResetField('modelKey')}
               size={ButtonSize.ICON}
@@ -117,6 +118,14 @@ export default function GenerationSetupModelSection({
                   disabled={isDisabled}
                   key={priorityOption}
                   onSelect={() => {
+                    onSetField('modelKey', '');
+                    onSetField('prioritize', priorityOption);
+                  }}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0) {
+                      return;
+                    }
+                    event.preventDefault();
                     onSetField('modelKey', '');
                     onSetField('prioritize', priorityOption);
                   }}

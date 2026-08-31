@@ -7,7 +7,7 @@ import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -144,7 +144,8 @@ export default function GenerationSetupFrontDoor({
               withWrapper={false}
             >
               <span className="flex items-center gap-1.5 text-muted-foreground">
-                <GenerationSetupProvenanceDot
+                <GenerationSetupFieldIcon
+                  fieldKey={row.key}
                   reason={reasons[row.key as keyof typeof reasons]}
                   source={
                     setup.sources[row.key as keyof typeof setup.sources] ??
