@@ -1,11 +1,11 @@
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { ApifyAdsService } from '@server/services/integrations/apify/services/modules/apify-ads.service';
 import { GoogleAdsTransparencyProvider } from '@server/services/paid-creative-research/providers/google-ads-transparency.provider';
 import { MetaAdLibraryProvider } from '@server/services/paid-creative-research/providers/meta-ad-library.provider';
 import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { TikTokCreativeCenterProvider } from '@server/services/paid-creative-research/providers/tiktok-creative-center.provider';
 import { XAdsRepositoryProvider } from '@server/services/paid-creative-research/providers/x-ads-repository.provider';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 function buildConfig(values: Record<string, string> = {}): ConfigService {
   return {
@@ -123,6 +123,23 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     expect(
       readiness.find((entry) => entry.platform === 'google')?.blockers,
     ).toEqual(['google_ads_transparency_contract_fixtures_missing']);
+  });
+
+  it('requires both X repository approval flags to be explicitly true', () => {
+    const { registry } = buildRegistry(
+      buildConfig({
+        X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED: 'false',
+        X_ADS_REPOSITORY_ENTITLEMENT_CONFIRMED: 'false',
+      }),
+    );
+
+    expect(
+      registry.getReadiness().find((entry) => entry.platform === 'x')?.blockers,
+    ).toEqual([
+      'x_ads_repository_entitlement_not_confirmed',
+      'x_ads_repository_commercial_use_not_approved',
+      'x_ads_repository_contract_fixtures_missing',
+    ]);
   });
 
   it('refuses to fetch from a fail-closed archive instead of returning an empty archive', async () => {

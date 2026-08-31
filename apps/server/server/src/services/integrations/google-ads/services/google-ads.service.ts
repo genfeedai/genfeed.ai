@@ -28,7 +28,7 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class GoogleAdsService {
-  private readonly API_VERSION = 'v18';
+  private readonly API_VERSION = 'v25';
   private readonly BASE_URL = 'https://googleads.googleapis.com';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRIES = 3;
@@ -264,7 +264,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      let query = `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign_budget.amount_micros, campaign.start_date, campaign.end_date FROM campaign`;
+      let query = `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign_budget.amount_micros, campaign.start_date_time, campaign.end_date_time FROM campaign`;
       if (params?.status) {
         query += ` WHERE campaign.status = '${params.status}'`;
       }
@@ -279,8 +279,8 @@ export class GoogleAdsService {
           name: string;
           status: string;
           advertisingChannelType: string;
-          startDate?: string;
-          endDate?: string;
+          startDateTime?: string;
+          endDateTime?: string;
         };
         campaignBudget?: { amountMicros?: string };
       }>(accessToken, customerId, query, loginCustomerId);
@@ -288,10 +288,10 @@ export class GoogleAdsService {
       return results.map((r) => ({
         advertisingChannelType: r.campaign.advertisingChannelType,
         budgetAmountMicros: r.campaignBudget?.amountMicros,
-        endDate: r.campaign.endDate,
+        endDate: r.campaign.endDateTime,
         id: r.campaign.id,
         name: r.campaign.name,
-        startDate: r.campaign.startDate,
+        startDate: r.campaign.startDateTime,
         status: r.campaign.status,
       }));
     } catch (error: unknown) {
@@ -309,7 +309,7 @@ export class GoogleAdsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const query = `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date, campaign.end_date, campaign_budget.amount_micros FROM campaign WHERE campaign.id = ${campaignId} LIMIT 1`;
+      const query = `SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, campaign.start_date_time, campaign.end_date_time, campaign_budget.amount_micros FROM campaign WHERE campaign.id = ${campaignId} LIMIT 1`;
 
       const results = await this.executeGaql<{
         campaign: {
@@ -317,8 +317,8 @@ export class GoogleAdsService {
           name: string;
           status: string;
           advertisingChannelType: string;
-          startDate?: string;
-          endDate?: string;
+          startDateTime?: string;
+          endDateTime?: string;
         };
         campaignBudget?: { amountMicros?: string };
       }>(accessToken, customerId, query, loginCustomerId);
@@ -331,10 +331,10 @@ export class GoogleAdsService {
       return {
         advertisingChannelType: row.campaign.advertisingChannelType,
         budgetAmountMicros: row.campaignBudget?.amountMicros,
-        endDate: row.campaign.endDate,
+        endDate: row.campaign.endDateTime,
         id: row.campaign.id,
         name: row.campaign.name,
-        startDate: row.campaign.startDate,
+        startDate: row.campaign.startDateTime,
         status: row.campaign.status,
       };
     } catch (error: unknown) {
