@@ -3,31 +3,45 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IssueDetail from './issue-detail';
 
-const mocks = vi.hoisted(() => ({
-  addComment: vi.fn(),
-  findOne: vi.fn(),
-  getChildren: vi.fn(),
-  listComments: vi.fn(),
-  loggerError: vi.fn(),
-  notificationsError: vi.fn(),
-  updateTask: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const addComment = vi.fn();
+  const findOne = vi.fn();
+  const getChildren = vi.fn();
+  const listComments = vi.fn();
+  const updateTask = vi.fn();
+
+  return {
+    addComment,
+    findOne,
+    getChildren,
+    getCommentsService: vi.fn(async () => ({
+      addComment,
+      list: listComments,
+    })),
+    getTasksService: vi.fn(async () => ({
+      findOne,
+      getByIdentifier: findOne,
+      getChildren,
+      updateTask,
+    })),
+    listComments,
+    loggerError: vi.fn(),
+    notificationsService: {
+      error: vi.fn(),
+      success: vi.fn(),
+      warning: vi.fn(),
+    },
+    updateTask,
+  };
+});
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const created = factory('test-token') as { findOne?: unknown };
     if (created && typeof created === 'object' && 'findOne' in created) {
-      return async () => ({
-        findOne: mocks.findOne,
-        getByIdentifier: mocks.findOne,
-        getChildren: mocks.getChildren,
-        updateTask: mocks.updateTask,
-      });
+      return mocks.getTasksService;
     }
-    return async () => ({
-      addComment: mocks.addComment,
-      list: mocks.listComments,
-    });
+    return mocks.getCommentsService;
   },
 }));
 
@@ -37,11 +51,7 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({
-      error: mocks.notificationsError,
-      success: vi.fn(),
-      warning: vi.fn(),
-    }),
+    getInstance: () => mocks.notificationsService,
   },
 }));
 
