@@ -513,20 +513,22 @@ describe('WorkspacePageContent', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /refresh/i })[0]);
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
 
-    realtimeHandler?.({
-      event: {
-        id: 'event-2',
-        payload: { message: 'Queued from realtime' },
-        timestamp: '2026-01-01T03:00:00.000Z',
-        type: 'task_queued',
-      },
-      organizationId: 'org-1',
-      task: makeTask({
-        id: 'task-3',
-        identifier: 'TASK-3',
-        title: 'Realtime video task',
-      }),
-      taskId: 'task-3',
+    act(() => {
+      realtimeHandler?.({
+        event: {
+          id: 'event-2',
+          payload: { message: 'Queued from realtime' },
+          timestamp: '2026-01-01T03:00:00.000Z',
+          type: 'task_queued',
+        },
+        organizationId: 'org-1',
+        task: makeTask({
+          id: 'task-3',
+          identifier: 'TASK-3',
+          title: 'Realtime video task',
+        }),
+        taskId: 'task-3',
+      });
     });
 
     expect(await screen.findByText('Realtime video task')).toBeVisible();
