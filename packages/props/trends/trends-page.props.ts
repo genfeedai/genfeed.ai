@@ -46,6 +46,50 @@ export interface TrendsResponse {
   trends: TrendItem[];
 }
 
+export type TrendCorpusFreshnessStatus =
+  | 'degraded'
+  | 'empty'
+  | 'healthy'
+  | 'stale';
+
+export interface TrendCorpusFreshnessSegment {
+  id: string;
+  latestSeenAt?: string;
+  platform: string;
+  provider: string;
+  status: TrendCorpusFreshnessStatus;
+}
+
+export interface TrendCorpusFreshnessProviderFailure {
+  affectedTrendCount: number;
+  latestObservedAt?: string;
+  message: string;
+  platform: string;
+  provider: string;
+  reason:
+    | 'empty_source_preview'
+    | 'fallback_source_preview'
+    | 'stale_source_preview';
+  retryAction: string;
+  severity: 'error' | 'warning';
+}
+
+export interface TrendCorpusFreshnessHealth {
+  generatedAt: string;
+  providerFailures: TrendCorpusFreshnessProviderFailure[];
+  segments: TrendCorpusFreshnessSegment[];
+  status: TrendCorpusFreshnessStatus;
+  summary: {
+    activeTrends: number;
+    failingProviders: number;
+    freshSegments: number;
+    platforms: string[];
+    referenceRecords: number;
+    staleSegments: number;
+    totalSegments: number;
+  };
+}
+
 export interface RefreshTrendsResponse {
   success: boolean;
   message: string;

@@ -26,7 +26,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/CrossPlatformLeaderboardSection.tsx": 9,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/PlaybookSection.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendingTopicsSection.tsx": 3,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendsPageHeader.tsx": 9,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendsPageHeader.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentDetailPage.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentOpportunityPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/agents/new/AgentWizardStepConfigure.tsx": 19,

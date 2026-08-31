@@ -1,6 +1,7 @@
 import {
+  buildScopedTrendsRefreshWorkflowDefinition,
+  buildScopedTrendTaskWorkflowDefinition,
   buildTrendDatasetTaskWorkflowDefinition,
-  buildTrendsBackfillWorkflowDefinition,
   buildTrendsRefreshWorkflowDefinition,
   TRENDS_MAINTENANCE_ACTION_IDS,
 } from '@server/collections/trends/services/trends-maintenance-workflow-definition';
@@ -21,24 +22,31 @@ describe('trends maintenance workflow definitions', () => {
     expect(definition.definition.edges.length).toBeGreaterThan(1);
   });
 
-  it('uses an executable condition for backfill instead of cron branching', () => {
-    const definition = buildTrendsBackfillWorkflowDefinition();
-    expect(definition.definition.nodes).toEqual(
-      expect.arrayContaining([expect.objectContaining({ type: 'condition' })]),
-    );
-    expect(definition.definition.edges).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ sourceHandle: 'true' }),
-        expect.objectContaining({ sourceHandle: 'false' }),
-      ]),
-    );
-  });
-
   it('keeps each dataset fetch in its child workflow', () => {
     const definition = buildTrendDatasetTaskWorkflowDefinition();
     expect(definition.definition.nodes).toHaveLength(1);
     expect(definition.definition.nodes[0]).toEqual(
       expect.objectContaining({ type: 'genfeedAction' }),
     );
+  });
+
+  it('fans connected scopes into tenant-isolated native child workflows', () => {
+    const sweep = buildScopedTrendsRefreshWorkflowDefinition();
+    const task = buildScopedTrendTaskWorkflowDefinition();
+
+    expect(sweep.definition.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: expect.objectContaining({
+              actionId: 'workflow.for-each-tenant',
+            }),
+          }),
+        }),
+      ]),
+    );
+    expect(task.definition.nodes).toEqual([
+      expect.objectContaining({ type: 'genfeedAction' }),
+    ]);
   });
 });
