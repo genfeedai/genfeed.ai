@@ -409,6 +409,10 @@ describe('WorkspacePageContent', () => {
   });
 
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {
+    // Opening is optimistic: the inspector must not disappear while the
+    // router is still applying the taskId query update.
+    mocks.replace.mockImplementation(() => {});
+
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
@@ -420,6 +424,10 @@ describe('WorkspacePageContent', () => {
 
     fireEvent.click(screen.getByText('Campaign image'));
 
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/workspace/inbox/unread?taskId=task-1',
+      { scroll: false },
+    );
     expect(
       await screen.findByTestId(
         'workspace-task-inspector',
