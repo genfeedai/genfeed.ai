@@ -2,9 +2,9 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import type {
   GenerationSetupCustomizeSectionId,
-  GenerationSetupFieldKey,
   GenerationSetupFrontDoorProps,
 } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
