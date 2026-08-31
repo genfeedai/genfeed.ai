@@ -12,6 +12,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 type PostSidebarScheduleCardProps = {
   scheduleDraft: string;
@@ -34,11 +35,13 @@ export default function PostSidebarScheduleCard({
   onPublishNow,
   onPublishViaTikTokApp,
 }: PostSidebarScheduleCardProps) {
+  const translate = useTranslations('agent.postSidebarSchedule');
+
   return (
     <Card bodyClassName="space-y-3 p-4">
       <div className="space-y-0.5">
         <h3 className="text-sm font-semibold text-foreground">
-          Scheduled time
+          {translate('scheduledTime')}
         </h3>
         <p className="text-xs text-muted-foreground">
           {browserTimezone || 'Local timezone'}
@@ -89,10 +92,11 @@ export default function PostSidebarScheduleCard({
                 <DropdownMenuContent align="end" className="w-72">
                   <DropdownMenuItem onSelect={onPublishViaTikTokApp}>
                     <div className="space-y-0.5">
-                      <p className="font-medium">Publish via TikTok App</p>
+                      <p className="font-medium">
+                        {translate('publishViaTikTokApp')}
+                      </p>
                       <p className="text-muted-foreground text-xs normal-case">
-                        Add TikTok-licensed music or make final edits before
-                        publishing.
+                        {translate('publishViaTikTokAppDescription')}
                       </p>
                     </div>
                   </DropdownMenuItem>
@@ -100,14 +104,14 @@ export default function PostSidebarScheduleCard({
               </DropdownMenu>
             </div>
             <p className="text-muted-foreground text-xs">
-              By publishing, you agree to TikTok&apos;s{' '}
+              {translate('musicConfirmationPrefix')}{' '}
               <Link
                 className="text-foreground underline underline-offset-2"
                 href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"
                 rel="noreferrer"
                 target="_blank"
               >
-                Music Usage Confirmation
+                {translate('musicConfirmation')}
               </Link>
               .
             </p>

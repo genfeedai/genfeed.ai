@@ -95,6 +95,14 @@ const UI_TEST_MESSAGES = {
       selectAria: 'Saved posting set',
       signatures: 'Posting signature',
     },
+    postSidebarSchedule: {
+      musicConfirmation: 'Music Usage Confirmation',
+      musicConfirmationPrefix: 'By publishing, you agree to TikTok’s',
+      publishViaTikTokApp: 'Publish via TikTok App',
+      publishViaTikTokAppDescription:
+        'Add TikTok-licensed music or make final edits before publishing.',
+      scheduledTime: 'Scheduled time',
+    },
     schedulePostCard: {
       cannotSchedule: 'Cannot confirm this channel',
       channels: 'Channels',

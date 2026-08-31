@@ -1335,6 +1335,7 @@ describe('PostGroupsService', () => {
         publishApproval: null,
         publishApprovalId: null,
         scheduledDate: null,
+        targetSettings: { privacyLevel: 'public' },
         targetExecutionState: TargetExecutionState.DRAFT,
       }),
     );
@@ -1350,6 +1351,7 @@ describe('PostGroupsService', () => {
           operationId: 'operation-1',
         },
         scheduledDate: now,
+        targetSettings: { privacyLevel: 'public' },
         targetExecutionState: TargetExecutionState.SCHEDULED,
       }),
     ]);

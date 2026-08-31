@@ -106,6 +106,13 @@
     "selectAria": "Saved posting set",
     "signatures": "Posting signature"
   },
+  "postSidebarSchedule": {
+    "musicConfirmation": "Music Usage Confirmation",
+    "musicConfirmationPrefix": "By publishing, you agree to TikTok’s",
+    "publishViaTikTokApp": "Publish via TikTok App",
+    "publishViaTikTokAppDescription": "Add TikTok-licensed music or make final edits before publishing.",
+    "scheduledTime": "Scheduled time"
+  },
   "publishPostCard": {
     "cannotPublish": "Cannot confirm this channel",
     "caption": "Caption",

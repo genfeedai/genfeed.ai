@@ -2,6 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import PostSidebarScheduleCard from '@ui/posts/post-detail-sidebar/PostSidebarScheduleCard';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const baseProps = {
   browserTimezone: 'Europe/Malta',
   isSavingSchedule: false,
@@ -51,7 +57,7 @@ describe('PostSidebarScheduleCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('explains and triggers the TikTok app handoff from the dropdown', () => {
+  it('explains and triggers the TikTok app handoff from the dropdown', async () => {
     const onPublishViaTikTokApp = vi.fn();
     render(
       <PostSidebarScheduleCard
@@ -60,13 +66,14 @@ describe('PostSidebarScheduleCard', () => {
       />,
     );
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', {
         name: 'More TikTok publishing options',
       }),
+      { button: 0 },
     );
 
-    expect(screen.getByText('Publish via TikTok App')).toBeVisible();
+    expect(await screen.findByText('Publish via TikTok App')).toBeVisible();
     expect(
       screen.getByText(
         'Add TikTok-licensed music or make final edits before publishing.',
