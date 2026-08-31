@@ -198,12 +198,12 @@ export default function GenerationSetupCustomizePanel({
       <div className="flex shrink-0 flex-col gap-2 border-t border-border p-2.5">
         <Button
           ariaLabel="Reset all fields to agent"
-          className="w-full justify-center gap-1.5 text-muted-foreground text-xs"
+          className="self-end text-muted-foreground"
           icon={<RotateCcw className="size-3.5" />}
           isDisabled={isDisabled}
           label="Reset all"
           onClick={onResetAll}
-          size={ButtonSize.SM}
+          size={ButtonSize.XS}
           textTransform="none"
           variant={ButtonVariant.GHOST}
         />
