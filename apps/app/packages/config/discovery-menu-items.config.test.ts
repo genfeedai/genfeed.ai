@@ -1,14 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DISCOVERY_LOGO_HREF,
-  DISCOVERY_MENU_ITEMS,
-} from './discovery-menu-items.config';
+import { DISCOVERY_MENU_ITEMS } from './discovery-menu-items.config';
 
 describe('DISCOVERY_MENU_ITEMS', () => {
-  it('points the logo at Discovery Overview', () => {
-    expect(DISCOVERY_LOGO_HREF).toBe('/discovery/overview');
-  });
-
   it('renders Discovery peers then platform feeds (no Socials peer)', () => {
     expect(DISCOVERY_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',

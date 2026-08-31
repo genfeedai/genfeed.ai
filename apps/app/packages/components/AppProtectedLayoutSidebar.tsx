@@ -1,20 +1,7 @@
 'use client';
 
 import SettingsSearch from '@app-components/settings-search/SettingsSearch';
-import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
-import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
-import { AUTOMATION_LOGO_HREF } from '@app-config/automation-menu-items.config';
-import { DISCOVERY_LOGO_HREF } from '@app-config/discovery-menu-items.config';
-import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
-import { APP_LOGO_HREF } from '@app-config/menu-items.config';
-import { MESSAGES_LOGO_HREF } from '@app-config/messages-menu-items.config';
-import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
-import { PUBLISHING_LOGO_HREF } from '@app-config/publishing-menu-items.config';
-import {
-  SETTINGS_LOGO_HREF,
-  type SettingsScope,
-} from '@app-config/settings-menu-items.config';
-import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
+import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_DISPLAY_LABELS } from '@genfeedai/constants';
 import { SettingsSurface } from '@genfeedai/enums';
@@ -23,7 +10,6 @@ import type {
   MenuSharedProps,
   SidebarNavPanel,
 } from '@genfeedai/props/navigation/menu.props';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
@@ -31,15 +17,11 @@ import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearch
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
 
-import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
-
-type TaskContextSearchParams = URLSearchParams;
 
 type AppSidebarSurface = {
   active: boolean;
   items: MenuItemConfig[];
-  logoHref: string;
   currentApp?: MenuSharedProps['currentApp'];
   sectionLabel?: string;
   showOrgSwitcher?: boolean;
@@ -47,10 +29,8 @@ type AppSidebarSurface = {
 };
 
 type Props = {
-  taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
-  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   /**
    * Live rail width from AppLayout (resize + localStorage). Must be accepted
    * here — cloneElement injects it; hardcoding 280 leaves MenuShared stuck
@@ -94,10 +74,8 @@ type Props = {
 };
 
 export default function AppProtectedLayoutSidebar({
-  taskContextSearchParams,
   currentApp,
   isCollapsed,
-  onToggleCollapse,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
@@ -127,7 +105,6 @@ export default function AppProtectedLayoutSidebar({
   navPanel,
   onOpenCommandPalette,
 }: Props) {
-  const { href: buildHref, orgHref } = useOrgUrl();
   const { settings } = useBrand();
   // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher is ALWAYS
   // visible because it is the entry point to org-scoped surfaces (settings,
@@ -140,9 +117,8 @@ export default function AppProtectedLayoutSidebar({
   const orgSwitcherSlot = (
     <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
   );
-  const collapseProps = {
+  const sidebarStateProps = {
     isCollapsed,
-    onToggleCollapse,
   };
 
   if (isFocusedOnboardingRoute) {
@@ -171,7 +147,6 @@ export default function AppProtectedLayoutSidebar({
         active: isConversationRoute,
         currentApp,
         items: [],
-        logoHref: buildHref(APP_LOGO_HREF),
         sectionLabel: 'Workspace',
         showOrgSwitcher: true,
       },
@@ -179,7 +154,6 @@ export default function AppProtectedLayoutSidebar({
         active: isLibraryRoute,
         currentApp,
         items: libraryMenuItems,
-        logoHref: buildHref(LIBRARY_LOGO_HREF),
         sectionLabel: 'Library',
         showOrgSwitcher: true,
       },
@@ -187,21 +161,18 @@ export default function AppProtectedLayoutSidebar({
         active: isStudioRoute,
         currentApp,
         items: studioMenuItems,
-        logoHref: buildHref(STUDIO_LOGO_HREF),
         sectionLabel: 'Studio',
         showOrgSwitcher: true,
       },
       {
         active: isAdminRoute,
         items: adminMenuItems,
-        logoHref: ADMIN_LOGO_HREF,
         showUserProfile: true,
       },
       {
         active: isPublishingRoute,
         currentApp,
         items: publishingMenuItems,
-        logoHref: buildHref(PUBLISHING_LOGO_HREF),
         sectionLabel: APP_DISPLAY_LABELS.publishing,
         showOrgSwitcher: true,
       },
@@ -209,7 +180,6 @@ export default function AppProtectedLayoutSidebar({
         active: isAutomationRoute,
         currentApp,
         items: automationMenuItems,
-        logoHref: buildHref(AUTOMATION_LOGO_HREF),
         sectionLabel: APP_DISPLAY_LABELS.automation,
         showOrgSwitcher: true,
       },
@@ -217,7 +187,6 @@ export default function AppProtectedLayoutSidebar({
         active: isMessagesRoute,
         currentApp,
         items: messagesMenuItems,
-        logoHref: buildHref(MESSAGES_LOGO_HREF),
         sectionLabel: 'Messages',
         showOrgSwitcher: true,
       },
@@ -225,7 +194,6 @@ export default function AppProtectedLayoutSidebar({
         active: isAnalyticsRoute,
         currentApp,
         items: analyticsMenuItems,
-        logoHref: buildHref(ANALYTICS_LOGO_HREF),
         sectionLabel: 'Analytics',
         showOrgSwitcher: true,
       },
@@ -233,7 +201,6 @@ export default function AppProtectedLayoutSidebar({
         active: isDiscoveryRoute,
         currentApp,
         items: discoveryMenuItems,
-        logoHref: buildHref(DISCOVERY_LOGO_HREF),
         sectionLabel: APP_DISPLAY_LABELS.discovery,
         showOrgSwitcher: true,
       },
@@ -241,7 +208,6 @@ export default function AppProtectedLayoutSidebar({
         active: isOrgRoute,
         currentApp,
         items: orgMenuItems,
-        logoHref: orgHref(ORG_LOGO_HREF),
         sectionLabel: 'Organization',
         showOrgSwitcher: true,
       },
@@ -249,7 +215,6 @@ export default function AppProtectedLayoutSidebar({
         active: isSettingsRoute,
         currentApp,
         items: settingsMenuItems,
-        logoHref: buildHref(SETTINGS_LOGO_HREF),
         // No top-level "Settings" shell header — org/brand switcher + group
         // labels (Organization / Access, Brand / Automation) are enough.
         sectionLabel: undefined,
@@ -261,13 +226,9 @@ export default function AppProtectedLayoutSidebar({
   if (surface) {
     return (
       <AppSidebar
-        {...collapseProps}
+        {...sidebarStateProps}
         currentApp={surface.currentApp}
         items={surface.items}
-        logoHref={withTaskContextHref(
-          surface.logoHref,
-          taskContextSearchParams,
-        )}
         sectionLabel={navPanel?.sectionLabel ?? surface.sectionLabel}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
@@ -284,13 +245,9 @@ export default function AppProtectedLayoutSidebar({
 
   return (
     <AppSidebar
-      {...collapseProps}
+      {...sidebarStateProps}
       currentApp={currentApp}
       items={menuItems}
-      logoHref={withTaskContextHref(
-        buildHref(APP_LOGO_HREF),
-        taskContextSearchParams,
-      )}
       sectionLabel="Workspace"
       collapsedSidebarWidth={0}
       mobileSidebarWidth={304}

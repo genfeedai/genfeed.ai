@@ -13,10 +13,10 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
+import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
@@ -108,6 +108,7 @@ function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
+  onSidebarToggle,
   currentApp,
   orgSlug,
   brandSlug,
@@ -244,12 +245,19 @@ function AppProtectedTopbarContent({
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className={cn(
-          'grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3',
-          isSidebarCollapsed && 'pl-14',
-        )}
+        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3"
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
+          {onSidebarToggle ? (
+            <SidebarToggleButton
+              ariaLabel={
+                isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+              }
+              className="hidden md:flex"
+              onClick={onSidebarToggle}
+            />
+          ) : null}
+
           {onMenuToggle ? (
             <Button
               type="button"

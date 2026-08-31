@@ -1,17 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import {
-  AUTOMATION_LOGO_HREF,
-  AUTOMATION_MENU_ITEMS,
-} from './automation-menu-items.config';
+import { AUTOMATION_MENU_ITEMS } from './automation-menu-items.config';
 
 describe('AUTOMATION_MENU_ITEMS', () => {
   it('is non-empty', () => {
     expect(AUTOMATION_MENU_ITEMS.length).toBeGreaterThan(0);
-    expect(AUTOMATION_LOGO_HREF).toBe('/automation/overview');
-  });
-
-  it("has a logo href pointing back to Automation's own overview", () => {
-    expect(AUTOMATION_LOGO_HREF).toBe('/automation/overview');
   });
 
   it('has no duplicate hrefs', () => {

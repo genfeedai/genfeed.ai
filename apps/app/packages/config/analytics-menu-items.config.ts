@@ -131,5 +131,3 @@ export function getAnalyticsMenuItemsForScope(
   // Org scope only has Overview. Keep it ungrouped under Analytics.
   return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand');
 }
-
-export const ANALYTICS_LOGO_HREF = APP_ROUTES.ANALYTICS.OVERVIEW;

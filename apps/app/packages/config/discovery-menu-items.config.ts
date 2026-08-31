@@ -115,5 +115,3 @@ export const DISCOVERY_MENU_ITEMS: MenuItemConfig[] = [
     solid: PinterestIcon,
   },
 ];
-
-export const DISCOVERY_LOGO_HREF = APP_ROUTES.DISCOVERY.OVERVIEW;

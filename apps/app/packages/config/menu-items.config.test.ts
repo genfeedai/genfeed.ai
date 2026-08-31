@@ -1,7 +1,6 @@
 import { LEGACY_APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import {
-  APP_LOGO_HREF,
   APP_MENU_ITEMS,
   AppMenuGroup,
   getAppSecondaryMenuItems,
@@ -12,7 +11,6 @@ describe('APP_MENU_ITEMS', () => {
     const primaryItems = APP_MENU_ITEMS.filter((item) => item.isPrimary);
 
     expect(primaryItems).toHaveLength(0);
-    expect(APP_LOGO_HREF).toBe('/workspace/overview');
   });
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {

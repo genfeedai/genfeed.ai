@@ -126,9 +126,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     collapsedSidebarWidth?: number;
     isCollapsed?: boolean;
     items?: { href: string; hrefScope?: string; label: string }[];
-    logoHref?: string;
     mobileSidebarWidth?: number;
-    onToggleCollapse?: () => void;
     orgSwitcherSlot?: ReactNode;
     primaryAction?:
       | { href: string; label: string }
@@ -214,7 +212,6 @@ vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
-  APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
@@ -230,7 +227,6 @@ vi.mock('@app-config/menu-items.config', () => ({
 }));
 
 vi.mock('@app-config/discovery-menu-items.config', () => ({
-  DISCOVERY_LOGO_HREF: '/discovery/overview',
   DISCOVERY_MENU_ITEMS: [
     { href: '/discovery/overview', label: 'Overview' },
     { href: '/discovery/following', label: 'Following' },
@@ -1268,15 +1264,11 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('forwards collapse controls into the dedicated Library sidebar', () => {
-    const onToggleCollapse = vi.fn();
-
+  it('forwards collapsed state into the dedicated Library sidebar', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
-        isCollapsed={false}
-        onToggleCollapse={onToggleCollapse}
+        isCollapsed
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
@@ -1308,17 +1300,18 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',
-        isCollapsed: false,
-        onToggleCollapse,
+        isCollapsed: true,
         sectionLabel: 'Library',
       }),
+    );
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'onToggleCollapse',
     );
   });
 
   it('mounts settings search on the settings sidebar', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="workspace"
         isAdminRoute={false}
         isAnalyticsRoute={false}
@@ -1358,7 +1351,6 @@ describe('AppProtectedLayout', () => {
   it('lets a module swap its own nav panel in for the surface menu items', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
         isAdminRoute={false}
         isAnalyticsRoute={false}

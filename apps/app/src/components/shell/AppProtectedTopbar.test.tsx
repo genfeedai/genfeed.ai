@@ -480,13 +480,15 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
-  it('renders mobile close control and reserves space for the collapsed sidebar logo', () => {
+  it('renders separate mobile and desktop navigation controls', () => {
+    const onSidebarToggle = vi.fn();
+
     render(
       <AppProtectedTopbar
         isMenuOpen
         isSidebarCollapsed
         onMenuToggle={vi.fn()}
-        onSidebarToggle={vi.fn()}
+        onSidebarToggle={onSidebarToggle}
       />,
     );
 
@@ -494,11 +496,22 @@ describe('AppProtectedTopbar', () => {
       screen.getByRole('button', { name: 'Close navigation menu' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Expand sidebar' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('app-protected-topbar-inner')).toHaveClass(
+      screen.getByRole('button', { name: 'Expand sidebar' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('app-protected-topbar-inner')).not.toHaveClass(
       'pl-14',
     );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    expect(onSidebarToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the desktop sidebar control mounted while the sidebar is expanded', () => {
+    render(<AppProtectedTopbar onSidebarToggle={vi.fn()} />);
+
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toBeInTheDocument();
   });
 
   it('does not mount a topbar account menu when the sidebar is collapsed', () => {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  LIBRARY_LOGO_HREF,
   LIBRARY_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
   LIBRARY_SHELF_MENU_ITEMS,
@@ -52,10 +51,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
     expect(
       LIBRARY_SHELF_MENU_ITEMS.every((item) => item.group === 'Shelves'),
     ).toBe(true);
-  });
-
-  it('points the library logo at the canonical asset browser', () => {
-    expect(LIBRARY_LOGO_HREF).toBe('/library/assets');
   });
 
   it('does not resurrect the retired overview tile grid', () => {

@@ -91,7 +91,7 @@ export default function AppLayout({
             >
               {desktopMenuContent}
             </DesktopSidebar>
-            {isDesktopCollapsed ? (
+            {isDesktopCollapsed && !topbarContent ? (
               <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
             ) : null}
 

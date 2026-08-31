@@ -464,8 +464,6 @@ export function useAppProtectedLayout(
     studioMenuItems,
     automationMenuItems,
     messagesMenuItems,
-    // task context
-    taskContextSearchParams,
     // handlers
     handleNavigate,
     handleOpenCommandPalette,

@@ -166,7 +166,6 @@ function AppLayoutWithDynamicMenu({
     automationMenuItems,
     messagesMenuItems,
     isPublishingRoute,
-    taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
@@ -297,7 +296,6 @@ function AppLayoutWithDynamicMenu({
 
     return (
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={taskContextSearchParams}
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
@@ -357,7 +355,6 @@ function AppLayoutWithDynamicMenu({
     settingsMenuItems,
     settingsScope,
     studioMenuItems,
-    taskContextSearchParams,
     automationMenuItems,
   ]);
 

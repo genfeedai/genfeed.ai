@@ -1,17 +1,10 @@
 import { LEGACY_APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
-import {
-  PUBLISHING_LOGO_HREF,
-  PUBLISHING_MENU_ITEMS,
-} from './publishing-menu-items.config';
+import { PUBLISHING_MENU_ITEMS } from './publishing-menu-items.config';
 
 describe('PUBLISHING_MENU_ITEMS', () => {
   it('is non-empty', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
-  });
-
-  it('has a logo href set to complete-path overview home', () => {
-    expect(PUBLISHING_LOGO_HREF).toBe('/publishing/overview');
   });
 
   it('leads with Overview → Posts → Calendar, then Pipeline', () => {

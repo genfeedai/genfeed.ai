@@ -68,5 +68,3 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     solid: Film,
   },
 ];
-
-export const STUDIO_LOGO_HREF = APP_ROUTES.STUDIO.GENERATE;

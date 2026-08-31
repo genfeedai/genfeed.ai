@@ -90,6 +90,3 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     solid: Megaphone,
   },
 ];
-
-/** The module logo returns to Automation's own overview. */
-export const AUTOMATION_LOGO_HREF = APP_ROUTES.AUTOMATION.OVERVIEW;

@@ -20,9 +20,6 @@ import {
   Volume2,
 } from 'lucide-react';
 
-/** Canonical admin home — complete path under Overview (not bare `/admin`). */
-export const ADMIN_LOGO_HREF = APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD;
-
 /**
  * Admin nav is long — mark the first item of each named group collapsible so
  * CollapsibleGroup shows a chevron header. Other app shells leave

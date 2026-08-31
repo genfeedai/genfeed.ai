@@ -54,5 +54,3 @@ export function getAppSecondaryMenuItems(
 ): MenuItemConfig[] {
   return [];
 }
-
-export const APP_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;

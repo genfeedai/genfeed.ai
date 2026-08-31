@@ -318,23 +318,22 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders one stable collapse icon without a layered logo', () => {
-    const onToggleCollapse = vi.fn();
+  it('renders the logo as a stable home link instead of a hover-only toggle', () => {
+    mockLogoUrl.value = '/logo.svg';
 
-    render(<MenuShared config={config} onToggleCollapse={onToggleCollapse} />);
+    render(<MenuShared config={config} />);
 
-    const collapseButton = screen.getByRole('button', {
-      name: 'Collapse sidebar',
+    const logoLink = screen.getByRole('link', {
+      name: 'Genfeed home',
     });
 
-    expect(collapseButton).toHaveClass('group');
-    expect(collapseButton).not.toHaveClass('overflow-hidden');
-    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
-    expect(collapseButton.querySelector('img')).toBeNull();
-    fireEvent.mouseEnter(collapseButton);
-    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
-    fireEvent.click(collapseButton);
-    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
+    expect(logoLink).toHaveAttribute('href', '/');
+    expect(logoLink.querySelector('img')).toBeInTheDocument();
+    fireEvent.mouseEnter(logoLink);
+    expect(logoLink.querySelector('img')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Collapse sidebar' }),
+    ).not.toBeInTheDocument();
   });
 
   it('omits the org switcher slot when not provided', () => {

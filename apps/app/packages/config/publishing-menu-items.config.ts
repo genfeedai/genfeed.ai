@@ -90,5 +90,3 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     solid: Send,
   },
 ];
-
-export const PUBLISHING_LOGO_HREF = APP_ROUTES.PUBLISHING.OVERVIEW;

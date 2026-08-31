@@ -32,5 +32,3 @@ export const ORG_MENU_ITEMS: MenuItemConfig[] = [
     solid: MessageSquare,
   },
 ];
-
-export const ORG_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;
