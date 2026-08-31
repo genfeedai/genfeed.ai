@@ -40,6 +40,7 @@ export default function GenerationSetupCustomizePanel({
   creditQuoteLabel,
   creditsAvailable,
   favoriteModelKeys,
+  initialSection,
   isDisabled = false,
   lookOptions,
   models,
@@ -79,7 +80,7 @@ export default function GenerationSetupCustomizePanel({
 
   const [activeSection, setActiveSection] =
     useState<GenerationSetupCustomizeSectionId>(
-      availableSections[0] ?? 'brand',
+      initialSection ?? availableSections[0] ?? 'brand',
     );
 
   const resolvedSection = availableSections.includes(activeSection)

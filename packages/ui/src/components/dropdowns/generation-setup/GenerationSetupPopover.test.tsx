@@ -357,6 +357,21 @@ describe('GenerationSetupPopover', () => {
     expect(onResetAll).toHaveBeenCalledOnce();
   });
 
+  it('opens the nested section directly from an agent-pick value', async () => {
+    const user = userEvent.setup();
+    renderPopover();
+
+    await openPopover(user);
+    await user.click(screen.getByRole('button', { name: 'Edit Aspect ratio' }));
+
+    expect(screen.getByRole('button', { name: 'Output tab' })).toHaveClass(
+      'bg-background-tertiary',
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Aspect ratio' }),
+    ).toBeInTheDocument();
+  });
+
   it('shows a pinned-preset banner and unpins via onClearPreset', async () => {
     const user = userEvent.setup();
     const onClearPreset = vi.fn();

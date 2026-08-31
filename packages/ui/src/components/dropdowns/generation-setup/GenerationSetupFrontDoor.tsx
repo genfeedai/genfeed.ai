@@ -2,7 +2,11 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { GenerationSetupFrontDoorProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import type {
+  GenerationSetupCustomizeSectionId,
+  GenerationSetupFieldKey,
+  GenerationSetupFrontDoorProps,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
@@ -10,9 +14,8 @@ import { useTranslations } from 'next-intl';
 
 /**
  * Layer 1 of the popover: the agent's summary of what it picked and why, the
- * preset list (apply = pin), and the entry point into the search layer.
- * Structural sibling of the Customize tabs, but read-only — editing always
- * routes through `onCustomize`.
+ * preset list (apply = pin), and the entry point into the search layer. Every
+ * summary field routes directly to the nested section that owns it.
  */
 export default function GenerationSetupFrontDoor({
   capabilities,
@@ -40,15 +43,26 @@ export default function GenerationSetupFrontDoor({
       : (models.find((model) => model.key === setup.values.modelKey)?.label ??
         setup.values.modelKey);
 
-  const summaryRows: Array<{ key: string; label: string; value: string }> = [
-    { key: 'type', label: 'Type', value: typeLabel },
-    { key: 'modelKey', label: 'Model', value: modelLabel },
+  const summaryRows: Array<{
+    key: GenerationSetupFieldKey;
+    label: string;
+    section: GenerationSetupCustomizeSectionId;
+    value: string;
+  }> = [
+    { key: 'type', label: 'Type', section: 'model', value: typeLabel },
+    {
+      key: 'modelKey',
+      label: 'Model',
+      section: 'model',
+      value: modelLabel,
+    },
   ];
 
   if (capabilities.hasAspectRatio) {
     summaryRows.push({
       key: 'aspectRatio',
       label: 'Aspect ratio',
+      section: 'output',
       value: setup.values.aspectRatio,
     });
   }
@@ -56,6 +70,7 @@ export default function GenerationSetupFrontDoor({
     summaryRows.push({
       key: 'duration',
       label: 'Duration',
+      section: 'output',
       value: `${setup.values.duration}s`,
     });
   }
@@ -63,17 +78,20 @@ export default function GenerationSetupFrontDoor({
     summaryRows.push({
       key: 'outputs',
       label: 'Outputs',
+      section: 'output',
       value: String(setup.values.outputs),
     });
   }
   summaryRows.push({
     key: 'brandingMode',
     label: 'Brand voice',
+    section: 'brand',
     value: setup.values.brandingMode === 'brand' ? 'On' : 'Off',
   });
   summaryRows.push({
     key: 'isPromptEnhanceEnabled',
     label: 'Prompt enhance',
+    section: 'brand',
     value: setup.values.isPromptEnhanceEnabled ? 'On' : 'Off',
   });
 
@@ -92,29 +110,38 @@ export default function GenerationSetupFrontDoor({
       />
 
       <div className="flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 font-medium text-primary text-xs">
+        <Button
+          ariaLabel="Customize setup"
+          className="h-control-sm w-full justify-between gap-2 px-1 text-xs hover:bg-background-tertiary"
+          isDisabled={isDisabled}
+          onClick={() => onCustomize()}
+          size={ButtonSize.SM}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <span className="flex items-center gap-1.5 font-medium text-primary">
             <Sparkles className="size-3.5 shrink-0" />
             {translate('agentPick')}
           </span>
-          <Button
-            ariaLabel="Customize setup"
-            className="h-control-sm gap-1 px-1.5 text-2xs text-muted-foreground hover:text-foreground"
-            icon={<ChevronRight className="size-3" />}
-            isDisabled={isDisabled}
-            label="Customize"
-            onClick={onCustomize}
-            size={ButtonSize.XS}
-            textTransform="none"
-            variant={ButtonVariant.GHOST}
-          />
-        </div>
+          <span className="flex items-center gap-1 text-2xs text-muted-foreground">
+            Customize
+            <ChevronRight className="size-3" />
+          </span>
+        </Button>
 
         <div className="flex flex-col gap-1.5">
           {summaryRows.map((row) => (
-            <div
-              className="flex items-center justify-between gap-3 text-xs"
+            <Button
+              ariaLabel={`Edit ${row.label}`}
+              className="group h-auto w-full justify-between gap-3 rounded-sm px-1 py-1 text-xs hover:bg-background-tertiary"
+              isDisabled={isDisabled}
               key={row.key}
+              onClick={() => onCustomize(row.section)}
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
             >
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <GenerationSetupProvenanceDot
@@ -126,10 +153,11 @@ export default function GenerationSetupFrontDoor({
                 />
                 {row.label}
               </span>
-              <span className="truncate font-medium text-foreground">
-                {row.value}
+              <span className="flex min-w-0 items-center gap-1 font-medium text-foreground">
+                <span className="truncate">{row.value}</span>
+                <ChevronRight className="size-3 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground group-focus-visible:text-muted-foreground" />
               </span>
-            </div>
+            </Button>
           ))}
         </div>
 
