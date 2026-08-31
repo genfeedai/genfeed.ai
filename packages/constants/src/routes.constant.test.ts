@@ -48,6 +48,7 @@ describe('routes.constant', () => {
     '/onboarding/brand',
     '/oauth/cli',
     '/settings/personal',
+    '/acme',
     '/acme/~',
     '/acme/moonrise/workspace/overview',
   ])('recognizes the user-facing auth continuation %s', (pathname) => {
@@ -64,7 +65,6 @@ describe('routes.constant', () => {
     '/serwist/sw.js',
     '/ingest',
     '/monitoring',
-    '/acme',
     '/robots.txt',
     '/.well-known/openid-configuration',
     '/acme/.well-known/workspace',

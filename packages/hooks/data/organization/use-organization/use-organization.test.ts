@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock dependencies
 const mockRefreshSettings = vi.fn();
 const mockPatchSettings = vi.fn();
-const mockClearClientProtectedBootstrapCache = vi.fn();
+const mockClearClientProtectedBootstrapCache = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap',

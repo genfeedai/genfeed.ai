@@ -71,7 +71,8 @@ describe('TimelineStreamingRow', () => {
 
     // T3 density: a running tool paints the turn as a work entry, so the
     // status header is suppressed and raw reasoning text never renders.
-    expect(screen.getByText('get_sources')).toBeTruthy();
+    expect(screen.getByText('Get Sources')).toBeTruthy();
+    expect(screen.queryByText('get_sources')).toBeNull();
     expect(
       screen.queryByText('Then comparing results line by line.'),
     ).toBeNull();

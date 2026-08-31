@@ -333,7 +333,8 @@ describe('AgentChatMessage', () => {
     );
 
     const copyButton = screen.getByRole('button', { name: 'Copy message' });
-    const actions = copyButton.parentElement;
+    const actions = copyButton.closest('.opacity-0');
+    expect(actions).toBeTruthy();
     expect(actions).toHaveClass('opacity-0');
     expect(actions).toHaveClass('group-hover:opacity-100');
     expect(actions).toHaveClass('group-focus-within:opacity-100');

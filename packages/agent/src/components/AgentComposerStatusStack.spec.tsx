@@ -81,7 +81,8 @@ describe('AgentComposerStatusStack', () => {
       />,
     );
 
-    expect(screen.getByText('Researching sources')).toBeInTheDocument();
+    expect(screen.getByText('Research')).toBeInTheDocument();
+    expect(screen.queryByText('research')).not.toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
