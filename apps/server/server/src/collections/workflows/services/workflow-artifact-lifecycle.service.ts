@@ -306,7 +306,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         await this.prisma.workflowArtifact.updateMany({
           data: {
             cleanupClaimedAt: null,
-            deletedAt: new Date(),
+            isDeleted: true,
             lastError: null,
             state: 'DELETED',
           },

@@ -13,7 +13,9 @@ import { Injectable } from '@nestjs/common';
 import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
+const LISTENING_SOURCE_COLLECTION_CONCURRENCY = 3;
 const finalTopicInclude = {
   sources: {
     orderBy: { createdAt: 'asc' as const },
@@ -98,9 +100,14 @@ export class ListeningTopicCollectorService {
       throw new NotFoundException({ message: 'Listening topic not found' });
     }
 
-    for (const topicSource of topic.sources) {
-      await this.collectSource(topic, topicSource, dto.limit ?? 25);
-    }
+    const limit = createConcurrencyLimit(
+      LISTENING_SOURCE_COLLECTION_CONCURRENCY,
+    );
+    await Promise.all(
+      topic.sources.map((topicSource) =>
+        limit(() => this.collectSource(topic, topicSource, dto.limit ?? 25)),
+      ),
+    );
 
     const updated = await this.prisma.listeningTopic.findFirst({
       include: finalTopicInclude,

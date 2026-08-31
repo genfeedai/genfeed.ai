@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { FileInputType, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type {
-  AdsResearchPlatform,
   SaveAdInput,
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
@@ -15,7 +14,9 @@ import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
 import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
+const MAX_SAVE_CONCURRENCY = 4;
 const MAX_SNAPSHOT_MEDIA_PER_KIND = 4;
 const STORAGE_TYPE = 'saved-ad-references';
 
@@ -55,69 +56,55 @@ export class SavedAdsService {
     userId: string,
     inputs: SaveAdInput[],
   ) {
-    const saved = [];
-    for (const input of inputs) {
-      saved.push(await this.saveOne(organizationId, userId, input));
-    }
-    return saved;
+    if (inputs.length === 0) return [];
+    await this.assertBrands(
+      organizationId,
+      inputs.map((input) => input.brandId),
+    );
+    await this.assertConnectedCredentials(organizationId, inputs);
+
+    const limit = createConcurrencyLimit(MAX_SAVE_CONCURRENCY);
+    return Promise.all(
+      inputs.map((input) =>
+        limit(() => this.saveOne(organizationId, userId, input)),
+      ),
+    );
   }
 
   async updateNotes(organizationId: string, inputs: UpdateSavedAdNoteInput[]) {
-    const updated = [];
-    for (const input of inputs) {
-      await this.assertBrand(organizationId, input.brandId);
-      const note = input.note?.trim() || null;
-      const result = await this.prisma.savedAd.updateMany({
-        data: { note },
-        where: {
-          brandId: input.brandId,
-          id: input.id,
-          isDeleted: false,
-          organizationId,
-        },
-      });
-      if (result.count !== 1) throw new NotFoundException('Saved ad', input.id);
-      const row = await this.prisma.savedAd.findFirst({
-        where: {
-          brandId: input.brandId,
-          id: input.id,
-          isDeleted: false,
-          organizationId,
-        },
-      });
-      if (!row) throw new NotFoundException('Saved ad', input.id);
-      updated.push(row);
-    }
-    return updated;
+    if (inputs.length === 0) return [];
+    await this.assertSavedAdsExist(organizationId, inputs, false);
+
+    return this.prisma.$transaction(
+      inputs.map((input) =>
+        this.prisma.savedAd.update({
+          data: { note: input.note?.trim() || null },
+          where: {
+            brandId: input.brandId,
+            id: input.id,
+            isDeleted: false,
+            organizationId,
+          },
+        }),
+      ),
+    );
   }
 
   async unsaveMany(organizationId: string, inputs: UnsaveSavedAdInput[]) {
-    const removed = [];
-    for (const input of inputs) {
-      await this.assertBrand(organizationId, input.brandId);
-      const result = await this.prisma.savedAd.updateMany({
-        data: { isDeleted: true },
-        where: {
+    if (inputs.length === 0) return [];
+    await this.assertSavedAdsExist(organizationId, inputs, true);
+    await this.prisma.savedAd.updateMany({
+      data: { isDeleted: true },
+      where: {
+        isDeleted: false,
+        organizationId,
+        OR: inputs.map((input) => ({
           brandId: input.brandId,
           id: input.id,
-          isDeleted: false,
-          organizationId,
-        },
-      });
-      if (result.count !== 1) {
-        const existing = await this.prisma.savedAd.findFirst({
-          select: { id: true },
-          where: scopedWhere(organizationId, {
-            brandId: input.brandId,
-            id: input.id,
-            isDeleted: true,
-          }),
-        });
-        if (!existing) throw new NotFoundException('Saved ad', input.id);
-      }
-      removed.push(input.id);
-    }
-    return removed;
+        })),
+      },
+    });
+    return inputs.map((input) => input.id);
   }
 
   private async saveOne(
@@ -125,20 +112,6 @@ export class SavedAdsService {
     userId: string,
     input: SaveAdInput,
   ) {
-    await this.assertBrand(organizationId, input.brandId);
-    if (input.source === 'my_accounts') {
-      if (!input.credentialId || !input.platform) {
-        throw new BadRequestException(
-          'Connected ads require a credential and platform',
-        );
-      }
-      await this.assertConnectedCredential(
-        organizationId,
-        input.brandId,
-        input.credentialId,
-        input.platform,
-      );
-    }
     const detail = await this.adsResearchService.getAdDetail(organizationId, {
       adAccountId: input.adAccountId,
       brandId: input.brandId,
@@ -161,17 +134,15 @@ export class SavedAdsService {
       platform: detail.platform,
       sourceAdId,
     };
-    const activeSnapshot = await this.prisma.savedAd.findFirst({
-      where: scopedWhere(organizationId, identityWhere),
-    });
-    if (activeSnapshot) return activeSnapshot;
-
-    const deletedSnapshot = await this.prisma.savedAd.findFirst({
-      where: scopedWhere(organizationId, {
+    const existingSnapshot = await this.prisma.savedAd.findFirst({
+      where: {
         ...identityWhere,
-        isDeleted: true,
-      }),
+        organizationId,
+        OR: [{ isDeleted: false }, { isDeleted: true }],
+      },
     });
+    if (existingSnapshot && !existingSnapshot.isDeleted)
+      return existingSnapshot;
 
     const sourceImageUrls = detail.imageUrls?.length
       ? detail.imageUrls
@@ -241,12 +212,12 @@ export class SavedAdsService {
       videoUrls,
     };
 
-    if (deletedSnapshot) {
+    if (existingSnapshot) {
       return this.prisma.savedAd.update({
-        data: { ...data, userId: deletedSnapshot.userId },
+        data: { ...data, userId: existingSnapshot.userId },
         where: scopedWhere(organizationId, {
           brandId: input.brandId,
-          id: deletedSnapshot.id,
+          id: existingSnapshot.id,
           isDeleted: true,
         }),
       });
@@ -260,23 +231,20 @@ export class SavedAdsService {
         'code' in error &&
         error.code === 'P2002'
       ) {
-        const activeWinner = await this.prisma.savedAd.findFirst({
-          where: scopedWhere(organizationId, identityWhere),
-        });
-        if (activeWinner) return activeWinner;
-
-        const deletedWinner = await this.prisma.savedAd.findFirst({
-          where: scopedWhere(organizationId, {
+        const winner = await this.prisma.savedAd.findFirst({
+          where: {
             ...identityWhere,
-            isDeleted: true,
-          }),
+            organizationId,
+            OR: [{ isDeleted: false }, { isDeleted: true }],
+          },
         });
-        if (deletedWinner) {
+        if (winner && !winner.isDeleted) return winner;
+        if (winner) {
           return this.prisma.savedAd.update({
-            data: { ...data, userId: deletedWinner.userId },
+            data: { ...data, userId: winner.userId },
             where: scopedWhere(organizationId, {
               brandId: input.brandId,
-              id: deletedWinner.id,
+              id: winner.id,
               isDeleted: true,
             }),
           });
@@ -294,34 +262,102 @@ export class SavedAdsService {
     if (!brand) throw new NotFoundException('Brand', brandId);
   }
 
-  private async assertConnectedCredential(
+  private async assertBrands(
     organizationId: string,
-    brandId: string,
-    credentialId: string,
-    platform: AdsResearchPlatform,
-  ) {
-    const platformValue = toPrismaCredentialPlatform(
-      mapAdsCredentialPlatform(platform),
-    );
-    if (!platformValue) {
-      throw new BadRequestException('Unsupported ads credential platform');
-    }
-    const credential = await this.prisma.credential.findFirst({
+    brandIds: string[],
+  ): Promise<void> {
+    const uniqueBrandIds = [...new Set(brandIds)];
+    const brands = await this.prisma.brand.findMany({
       select: { id: true },
       where: {
-        brandId,
-        id: credentialId,
+        id: { in: uniqueBrandIds },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+    const found = new Set(brands.map((brand) => brand.id));
+    const missing = uniqueBrandIds.find((brandId) => !found.has(brandId));
+    if (missing) throw new NotFoundException('Brand', missing);
+  }
+
+  private async assertConnectedCredentials(
+    organizationId: string,
+    inputs: SaveAdInput[],
+  ): Promise<void> {
+    const expected = inputs.flatMap((input) => {
+      if (input.source !== 'my_accounts') return [];
+      if (!input.credentialId || !input.platform) {
+        throw new BadRequestException(
+          'Connected ads require a credential and platform',
+        );
+      }
+      const platform = toPrismaCredentialPlatform(
+        mapAdsCredentialPlatform(input.platform),
+      );
+      if (!platform) {
+        throw new BadRequestException('Unsupported ads credential platform');
+      }
+      return [{ brandId: input.brandId, id: input.credentialId, platform }];
+    });
+    if (expected.length === 0) return;
+
+    const credentials = await this.prisma.credential.findMany({
+      select: { brandId: true, id: true, platform: true },
+      where: {
         isConnected: true,
         isDeleted: false,
         organizationId,
-        platform: platformValue,
+        OR: expected,
       },
     });
-    if (!credential) {
+    const found = new Set(
+      credentials.map(
+        (credential) =>
+          `${credential.brandId}:${credential.id}:${credential.platform}`,
+      ),
+    );
+    const missing = expected.find(
+      (credential) =>
+        !found.has(
+          `${credential.brandId}:${credential.id}:${credential.platform}`,
+        ),
+    );
+    if (missing) {
       throw new BadRequestException(
         'The selected ads credential is unavailable for this brand',
       );
     }
+  }
+
+  private async assertSavedAdsExist(
+    organizationId: string,
+    inputs: Array<{ brandId: string; id: string }>,
+    includeDeleted: boolean,
+  ): Promise<void> {
+    const identities = inputs.map((input) => ({
+      brandId: input.brandId,
+      id: input.id,
+    }));
+    const rows = includeDeleted
+      ? await this.prisma.savedAd.findMany({
+          select: { brandId: true, id: true },
+          where: {
+            organizationId,
+            AND: [
+              { OR: identities },
+              { OR: [{ isDeleted: false }, { isDeleted: true }] },
+            ],
+          },
+        })
+      : await this.prisma.savedAd.findMany({
+          select: { brandId: true, id: true },
+          where: scopedWhere(organizationId, { OR: identities }),
+        });
+    const found = new Set(rows.map((row) => `${row.brandId}:${row.id}`));
+    const missing = inputs.find(
+      (input) => !found.has(`${input.brandId}:${input.id}`),
+    );
+    if (missing) throw new NotFoundException('Saved ad', missing.id);
   }
 
   private async copyMedia(

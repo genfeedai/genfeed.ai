@@ -362,7 +362,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'source',
     'status',
     'stripeCustomerId',
-    'stripeSubscriptionId',
     'subscribedAt',
     'utm',
   ],

@@ -1,4 +1,7 @@
-import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentChatMessage,
+  AgentThread,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/enums';
@@ -30,6 +33,21 @@ function makeResponse(overrides: Record<string, unknown> = {}) {
     toolCalls: [],
     ...overrides,
   };
+}
+
+function seedUiAction(actionId: string): void {
+  useAgentChatStore.getState().setMessages([
+    {
+      content: 'Review this action.',
+      createdAt: '2026-03-20T10:00:00.000Z',
+      id: 'message-1',
+      metadata: {
+        uiActions: [{ id: actionId, type: 'brand_voice_profile_card' }],
+      },
+      role: 'assistant',
+      threadId: 'thread-1',
+    } as AgentChatMessage,
+  ]);
 }
 
 function makeDeps(
@@ -208,6 +226,7 @@ describe('handleAgentUiAction', () => {
 
   it('marks the source UI action completed after a successful response', async () => {
     const deps = makeDeps();
+    seedUiAction('brand-voice-card-1');
 
     await handleAgentUiAction(
       'confirm_save_brand_voice_profile',
@@ -216,7 +235,8 @@ describe('handleAgentUiAction', () => {
     );
 
     expect(
-      useAgentChatStore.getState().uiActionStatusById['brand-voice-card-1'],
+      useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
+        ?.status,
     ).toBe('completed');
   });
 
@@ -270,6 +290,7 @@ describe('handleAgentUiAction', () => {
   });
 
   it('surfaces API failures and clears the active action', async () => {
+    seedUiAction('failed-source-action');
     const deps = makeDeps({
       apiService: {
         respondToUiActionEffect: vi.fn(() =>
@@ -288,7 +309,8 @@ describe('handleAgentUiAction', () => {
     expect(deps.setActiveUiAction).toHaveBeenLastCalledWith(null);
     expect(deps.addMessage).not.toHaveBeenCalled();
     expect(
-      useAgentChatStore.getState().uiActionStatusById['failed-source-action'],
+      useAgentChatStore.getState().messages[0]?.metadata?.uiActions?.[0]
+        ?.status,
     ).toBeUndefined();
   });
 });

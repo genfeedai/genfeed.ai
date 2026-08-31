@@ -110,6 +110,17 @@ describe('WorkflowArtifactLifecycleService', () => {
     expect(filesClient.deleteStoredObject).toHaveBeenCalledWith(
       'audio/execution-1.mp3',
     );
+    expect(workflowArtifact.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: {
+          cleanupClaimedAt: null,
+          isDeleted: true,
+          lastError: null,
+          state: 'DELETED',
+        },
+      }),
+    );
   });
 
   it('scrubs selected node payloads and preserves only execution metadata', async () => {

@@ -20,10 +20,10 @@ const baseRelationships = {
 };
 
 export const credentialSerializerConfig = {
+  attributeTransforms: { platform: mapSerializedCredentialPlatform },
   attributes: credentialAttributes,
   type: 'credential',
   ...baseRelationships,
-  platform: mapSerializedCredentialPlatform,
 };
 
 export const credentialOAuthSerializerConfig = simpleConfig(
@@ -33,5 +33,5 @@ export const credentialOAuthSerializerConfig = simpleConfig(
 
 export const credentialInstagramPagesSerializerConfig = {
   ...simpleConfig('credential-instagram-pages', credentialInstagramAttributes),
-  platform: mapSerializedCredentialPlatform,
+  attributeTransforms: { platform: mapSerializedCredentialPlatform },
 };

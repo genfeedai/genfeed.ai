@@ -96,6 +96,7 @@ import { AgentReviewToolHandler } from '@server/services/agent-orchestrator/tool
 import { AgentRouteRewriteService } from '@server/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnToolHandler } from '@server/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@server/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
+import { AgentToolConfirmationService } from '@server/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { AgentTransferToolHandler } from '@server/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
@@ -213,6 +214,7 @@ import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/to
     AgentThreadEventRecorderService,
     AgentTurnAcceptanceService,
     AgentToolExecutorService,
+    AgentToolConfirmationService,
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
     {

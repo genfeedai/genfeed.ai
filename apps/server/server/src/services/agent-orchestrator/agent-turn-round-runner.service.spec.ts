@@ -7,6 +7,7 @@ import {
 } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
 import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { buildCampaignPreparationCacheKey } from '@server/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
+import { AgentToolConfirmationService } from '@server/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,7 +42,10 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       loggerService as never,
       creditsUtilsService as never,
       toolExecutorService as never,
-      cacheService as never,
+      new AgentToolConfirmationService(
+        loggerService as never,
+        cacheService as never,
+      ),
     );
   });
 
@@ -153,7 +157,10 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
       loggerService as never,
       creditsUtilsService as never,
       toolExecutorService as never,
-      cacheService as never,
+      new AgentToolConfirmationService(
+        loggerService as never,
+        cacheService as never,
+      ),
     );
 
     await executeCampaignRound({

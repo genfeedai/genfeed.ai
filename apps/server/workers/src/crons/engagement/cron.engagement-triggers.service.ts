@@ -247,12 +247,14 @@ export class CronEngagementTriggersService implements OnModuleInit {
     });
     if (!target) return { outcome: 'skip' };
 
-    const snapshot = await this.loadSnapshot(rule);
-    const eligibility = await this.loadEligibility(
-      rule.organizationId,
-      target.credentialId,
-      target.platform,
-    );
+    const [snapshot, eligibility] = await Promise.all([
+      this.loadSnapshot(rule),
+      this.loadEligibility(
+        rule.organizationId,
+        target.credentialId,
+        target.platform,
+      ),
+    ]);
     const verdict = evaluateEngagementRule({
       eligibility,
       now: new Date(),
