@@ -46,4 +46,26 @@ describe('env-spec backend cloud flag', () => {
       expect(workersTarget?.directKeys).toContain(key);
     }
   });
+
+  it('copies every Connect-menu OAuth setting onto the API service', () => {
+    const apiTarget = ENV_TARGETS.find((target) => target.id === 'api');
+    const oauthKeys = [
+      'FANVUE_CLIENT_ID',
+      'FANVUE_CLIENT_SECRET',
+      'FANVUE_REDIRECT_URI',
+      'GOOGLE_ADS_CLIENT_ID',
+      'GOOGLE_ADS_CLIENT_SECRET',
+      'GOOGLE_ADS_DEVELOPER_TOKEN',
+      'GOOGLE_ADS_REDIRECT_URI',
+      'THREADS_CLIENT_ID',
+      'THREADS_CLIENT_SECRET',
+      'THREADS_REDIRECT_URI',
+      'YOUTUBE_API_KEY',
+    ];
+
+    expect(apiTarget).toBeDefined();
+    for (const key of oauthKeys) {
+      expect(apiTarget?.directKeys).toContain(key);
+    }
+  });
 });

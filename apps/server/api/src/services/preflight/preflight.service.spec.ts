@@ -14,8 +14,8 @@ function stubReadyEnv(overrides: Record<string, string> = {}) {
     AWS_ACCESS_KEY_ID: 'test-key',
     AWS_S3_BUCKET: 'test-bucket',
     DATABASE_URL: 'postgresql://localhost/genfeed_test',
-    INSTAGRAM_CLIENT_ID: 'ig-id',
-    INSTAGRAM_CLIENT_SECRET: 'ig-secret',
+    INSTAGRAM_APP_ID: 'ig-id',
+    INSTAGRAM_APP_SECRET: 'ig-secret',
     OPENAI_API_KEY: 'sk-test',
     ...overrides,
   };
@@ -49,8 +49,8 @@ describe('PreflightService', () => {
       AWS_ACCESS_KEY_ID: 'test-key',
       AWS_S3_BUCKET: 'test-bucket',
       DATABASE_URL: 'postgresql://localhost/genfeed_test',
-      INSTAGRAM_CLIENT_ID: 'ig-id',
-      INSTAGRAM_CLIENT_SECRET: 'ig-secret',
+      INSTAGRAM_APP_ID: 'ig-id',
+      INSTAGRAM_APP_SECRET: 'ig-secret',
       OPENAI_API_KEY: 'sk-test',
     });
   });
@@ -82,5 +82,24 @@ describe('PreflightService', () => {
     service = await buildModule({ OPENAI_API_KEY: 'sk' });
     const r = await service.checkReadiness('studio');
     expect(r.status).toBe('degraded');
+  });
+
+  it('uses the Instagram app credentials consumed by the OAuth controller', async () => {
+    vi.stubEnv('INSTAGRAM_APP_ID', '');
+    vi.stubEnv('INSTAGRAM_APP_SECRET', '');
+    vi.stubEnv('INSTAGRAM_CLIENT_ID', 'legacy-id');
+    vi.stubEnv('INSTAGRAM_CLIENT_SECRET', 'legacy-secret');
+    service = await buildModule({});
+
+    const result = await service.checkReadiness('publish');
+
+    expect(result.ready).toBe(false);
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        message: 'Missing: INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET',
+        name: 'instagram',
+        ok: false,
+      }),
+    );
   });
 });

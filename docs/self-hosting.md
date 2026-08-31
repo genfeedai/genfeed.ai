@@ -116,6 +116,13 @@ https://your-api.example.com/v1/auth/callback/google
 Better Auth runs inside your Genfeed API against your Postgres database. A
 Better Auth dashboard/API key is optional and not required for Community.
 
+## Publishing-provider OAuth
+
+To connect social, video, creator, or advertising accounts, create the
+provider-side applications and register the callbacks documented in the
+[OAuth provider provisioning runbook](./integrations/oauth-provider-provisioning.md).
+Unconfigured providers fail closed; they are not required to run Community.
+
 ## Local MCP authentication
 
 Turning off the login wall (`BETTER_AUTH_ENABLED=false`) does **not** disable

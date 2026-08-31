@@ -34,7 +34,7 @@ const FEATURE_REQUIREMENTS: Record<FeatureKey, string[]> = {
  */
 const ENV_CHECKS: Record<string, string[]> = {
   database: ['DATABASE_URL'],
-  instagram: ['INSTAGRAM_CLIENT_ID', 'INSTAGRAM_CLIENT_SECRET'],
+  instagram: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
   openai: ['OPENAI_API_KEY'],
   storage: ['AWS_S3_BUCKET', 'AWS_ACCESS_KEY_ID'],
 };
@@ -44,7 +44,7 @@ export class PreflightService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly config: ConfigService,
+    _config: ConfigService,
     private readonly logger: LoggerService,
   ) {}
 
