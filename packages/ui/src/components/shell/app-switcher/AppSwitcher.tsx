@@ -417,7 +417,7 @@ function AppSwitcherGridItem({
         aria-label={
           isLocked
             ? `${app.label} — locked. Generate your first asset to unlock.`
-            : undefined
+            : app.label
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
         onFocus={(event) => onPreviewShow(app, event.currentTarget)}
@@ -458,7 +458,6 @@ function AppSwitcherGridItem({
         </span>
         <span id={`app-switcher-desc-${app.itemKey}`} className="sr-only">
           {app.description}
-          {isLocked ? ' Generate your first asset to unlock.' : null}
         </span>
       </Link>
     </DropdownMenuItem>

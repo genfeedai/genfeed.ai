@@ -223,6 +223,8 @@ describe('AppSwitcher', () => {
     expect(iconTrigger.className).not.toContain('focus-visible:!ring-0');
 
     const workspaceLink = screen.getByRole('link', { name: 'Workspace' });
+    expect(workspaceLink).toHaveAccessibleName('Workspace');
+    expect(workspaceLink).toHaveAccessibleDescription('Command center.');
     const workspaceIconTile = workspaceLink.querySelector('span');
     expect(workspaceLink).toHaveClass(
       '!bg-transparent',
@@ -272,7 +274,7 @@ describe('AppSwitcher', () => {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(
-      screen.queryByRole('link', { name: 'Discovery' }),
+      screen.queryByRole('link', { name: 'Research' }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Batch' }),
