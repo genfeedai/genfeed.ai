@@ -2,7 +2,7 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 import { Suspense } from 'react';
 import OrganizationAutomationOverviewPage from './OrganizationAutomationOverviewPage';
 
-export const generateMetadata = createPageMetadata('Automate Overview');
+export const generateMetadata = createPageMetadata('Automation Overview');
 
 /**
  * Org-level Automate home. The app switcher sends brandless users here, so this

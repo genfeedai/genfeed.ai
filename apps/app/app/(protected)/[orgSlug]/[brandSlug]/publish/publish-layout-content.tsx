@@ -221,7 +221,7 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
-        label="Publish"
+        label="Publishing"
         description="Manage and publish across platforms."
         icon={Newspaper}
         titleVisibility="sr-only"

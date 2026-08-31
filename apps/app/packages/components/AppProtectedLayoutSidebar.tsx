@@ -16,6 +16,7 @@ import {
 } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { APP_DISPLAY_LABELS } from '@genfeedai/constants';
 import { SettingsSurface } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type {
@@ -201,7 +202,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: publishMenuItems,
         logoHref: buildHref(PUBLISH_LOGO_HREF),
-        sectionLabel: 'Publish',
+        sectionLabel: APP_DISPLAY_LABELS.publish,
         showOrgSwitcher: true,
       },
       {
@@ -209,7 +210,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: automateMenuItems,
         logoHref: buildHref(AUTOMATE_LOGO_HREF),
-        sectionLabel: 'Automate',
+        sectionLabel: APP_DISPLAY_LABELS.automate,
         showOrgSwitcher: true,
       },
       {
@@ -233,7 +234,7 @@ export default function AppProtectedLayoutSidebar({
         currentApp,
         items: discoverMenuItems,
         logoHref: buildHref(DISCOVER_LOGO_HREF),
-        sectionLabel: 'Discover',
+        sectionLabel: APP_DISPLAY_LABELS.discover,
         showOrgSwitcher: true,
       },
       {

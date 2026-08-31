@@ -88,7 +88,7 @@ export function WorkspaceTaskInspectorFooter({
         </Button>
         <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
           <Link href={buildTaskLaunchHref(task, 'automate')}>
-            Open in Automate
+            Open in Automation
           </Link>
         </Button>
         {linkedIssueSummary.href ? (

@@ -2,7 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import {
+  APP_DISPLAY_LABELS,
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -53,7 +57,7 @@ interface OrganizationAutomationBrandCardProps {
 }
 
 /**
- * Org-level Automate home at `/:orgSlug/~/automate`.
+ * Org-level Automation home at `/:orgSlug/~/automate`.
  *
  * The app switcher routes here whenever no brand is selected, so this is the
  * global view: every brand's automation entry points in one place.
@@ -90,7 +94,7 @@ export default function OrganizationAutomationOverviewPage() {
 
   return (
     <OverviewLayout
-      label="Automate"
+      label={APP_DISPLAY_LABELS.automate}
       description="Workflows, autopilot, and run history across every brand in this organization"
       icon={Workflow}
     >
@@ -98,11 +102,11 @@ export default function OrganizationAutomationOverviewPage() {
         <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
           <Workflow className="size-10 text-foreground/20" />
           <h2 className="text-lg font-semibold text-foreground">
-            Automate needs a brand
+            Automation needs a brand
           </h2>
           <p className="max-w-md text-sm text-foreground/55">
             Automation runs against a brand. Create your first brand, then open
-            Automate to build workflows and autopilot policies for it.
+            Automation to build workflows and autopilot policies for it.
           </p>
           <Button
             asChild
@@ -183,7 +187,7 @@ function OrganizationAutomationBrandCard({
           size={ButtonSize.SM}
           className="text-xs tracking-[0.12em]"
         >
-          <Link href={brand.href}>Open Automate</Link>
+          <Link href={brand.href}>Open Automation</Link>
         </Button>
       </div>
     </Card>

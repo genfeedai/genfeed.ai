@@ -261,7 +261,7 @@ export default function PublishOverviewPage() {
         </div>
       }
       icon={LayoutDashboard}
-      label="Publish"
+      label="Publishing"
     />
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  APP_DISPLAY_LABELS,
   APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAGS,
   type AppSwitcherFeatureFlagKey,
@@ -75,7 +76,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish → Analytics.
+ * Operate tools → Create assets → Trends → Publishing → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -88,7 +89,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: LayoutGrid,
         id: 'workspace',
         itemKey: 'workspace',
-        label: 'Workspace',
+        label: APP_DISPLAY_LABELS.workspace,
         route: createScopedAppRoute({
           brandPath: '/workspace',
           organizationPath: '/workspace/overview',
@@ -101,7 +102,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Terminal,
         id: 'agent',
         itemKey: 'agent',
-        label: 'Agent',
+        label: APP_DISPLAY_LABELS.agent,
         route: createScopedAppRoute({ brandPath: '/agent' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.agent,
       },
@@ -111,7 +112,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: MessageSquare,
         id: 'messages',
         itemKey: 'messages',
-        label: 'Messages',
+        label: APP_DISPLAY_LABELS.messages,
         route: createScopedAppRoute({ brandPath: '/messages' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
@@ -121,7 +122,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Workflow,
         id: 'automate',
         itemKey: 'automate',
-        label: 'Automate',
+        label: APP_DISPLAY_LABELS.automate,
         route: createScopedAppRoute({
           brandPath: '/automate',
         }),
@@ -133,7 +134,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
-        label: 'Studio',
+        label: APP_DISPLAY_LABELS.studio,
         // Studio production tools require a brand. The org route hands one-off
         // generation to Agent while preserving a stable switcher destination.
         route: createScopedAppRoute({
@@ -148,7 +149,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Layers,
         id: 'library',
         itemKey: 'library',
-        label: 'Library',
+        label: APP_DISPLAY_LABELS.library,
         route: createScopedAppRoute({
           brandPath: '/library',
           organizationPath: '/library',
@@ -161,7 +162,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: TrendingUp,
         id: 'discover',
         itemKey: 'discover',
-        label: 'Discover',
+        label: APP_DISPLAY_LABELS.discover,
         route: createScopedAppRoute({ brandPath: '/discover/overview' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
       },
@@ -171,7 +172,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Send,
         id: 'publish',
         itemKey: 'publish',
-        label: 'Publish',
+        label: APP_DISPLAY_LABELS.publish,
         route: createScopedAppRoute({ brandPath: '/publish' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
       },
@@ -181,7 +182,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: ChartNoAxesColumn,
         id: 'analytics',
         itemKey: 'analytics',
-        label: 'Analytics',
+        label: APP_DISPLAY_LABELS.analytics,
         route: createScopedAppRoute({ brandPath: '/analytics' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
       },
@@ -199,7 +200,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
       icon: ShieldCheck,
       id: 'admin',
       itemKey: 'admin',
-      label: 'Admin',
+      label: APP_DISPLAY_LABELS.admin,
       route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
     },
   ],

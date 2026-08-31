@@ -1,5 +1,6 @@
 import { isSaaS } from '@genfeedai/config/deployment';
 import {
+  APP_DISPLAY_LABELS,
   APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAG_KEYS,
   type AppSwitcherFeatureFlagKey,
@@ -30,16 +31,16 @@ export const CORE_APPS: CoreAppDefinition[] = [
       'Control content creation from a full-page agent conversation.',
     href: APP_ROUTES.AGENT.ROOT,
     id: 'agent',
-    label: 'Agent',
-    shortLabel: 'Agent',
+    label: APP_DISPLAY_LABELS.agent,
+    shortLabel: APP_DISPLAY_LABELS.agent,
   },
   {
     description:
       'Workflows, autopilot, skills, and your automated content team.',
     href: APP_ROUTES.AUTOMATE.ROOT,
     id: 'automate',
-    label: 'Automate',
-    shortLabel: 'Automate',
+    label: APP_DISPLAY_LABELS.automate,
+    shortLabel: APP_DISPLAY_LABELS.automate,
   },
   {
     description:
@@ -50,8 +51,8 @@ export const CORE_APPS: CoreAppDefinition[] = [
     },
     href: APP_ROUTES.STUDIO.GENERATE,
     id: 'studio',
-    label: 'Studio',
-    shortLabel: 'Studio',
+    label: APP_DISPLAY_LABELS.studio,
+    shortLabel: APP_DISPLAY_LABELS.studio,
   },
 ];
 

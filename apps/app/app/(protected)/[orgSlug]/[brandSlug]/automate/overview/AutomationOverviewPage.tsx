@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -150,7 +150,7 @@ export default function AutomationOverviewPage() {
 
   return (
     <OverviewLayout
-      label="Agents Overview"
+      label={APP_DISPLAY_LABELS.automate}
       description="Operate brand agents, inspect runs, use Workflows for fixed automations, and use Autopilot for adaptive agent policies"
       icon={Home}
       cards={cards}

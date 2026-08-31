@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import type { PostsListSearchParams } from '../publish-list-page';
 import PublishOverviewPage from './PublishOverviewPage';
 
-export const generateMetadata = createPageMetadata('Publish Overview');
+export const generateMetadata = createPageMetadata('Publishing Overview');
 
 /**
  * Publish home — module dashboard (pulse + launch cards).

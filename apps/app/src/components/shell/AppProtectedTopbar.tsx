@@ -1,6 +1,10 @@
 'use client';
 
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_DISPLAY_LABELS,
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -39,16 +43,16 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
   string
 > = {
-  admin: 'Admin',
-  agent: 'Agent',
-  analytics: 'Analytics',
-  automate: 'Automate',
-  library: 'Library',
-  messages: 'Messages',
-  publish: 'Publish',
-  discover: 'Discover',
-  studio: 'Studio',
-  workspace: 'Workspace',
+  admin: APP_DISPLAY_LABELS.admin,
+  agent: APP_DISPLAY_LABELS.agent,
+  analytics: APP_DISPLAY_LABELS.analytics,
+  automate: APP_DISPLAY_LABELS.automate,
+  library: APP_DISPLAY_LABELS.library,
+  messages: APP_DISPLAY_LABELS.messages,
+  publish: APP_DISPLAY_LABELS.publish,
+  discover: APP_DISPLAY_LABELS.discover,
+  studio: APP_DISPLAY_LABELS.studio,
+  workspace: APP_DISPLAY_LABELS.workspace,
 };
 
 type AppProtectedTopbarChrome = 'app' | 'admin';

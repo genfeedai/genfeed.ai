@@ -1,3 +1,4 @@
+import { APP_DISPLAY_LABELS } from '@genfeedai/constants';
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
@@ -107,21 +108,21 @@ const LAUNCH_TARGET_BY_MODE = Object.freeze({
 >);
 
 const BREADCRUMB_ROOT_LABELS = Object.freeze({
-  admin: 'Admin',
-  agent: 'Agent',
-  analytics: 'Analytics',
-  automate: 'Automate',
+  admin: APP_DISPLAY_LABELS.admin,
+  agent: APP_DISPLAY_LABELS.agent,
+  analytics: APP_DISPLAY_LABELS.analytics,
+  automate: APP_DISPLAY_LABELS.automate,
   edit: 'Edit',
   lab: 'Lab',
-  library: 'Library',
-  messages: 'Messages',
-  overview: 'Workspace',
+  library: APP_DISPLAY_LABELS.library,
+  messages: APP_DISPLAY_LABELS.messages,
+  overview: APP_DISPLAY_LABELS.workspace,
   platforms: 'Platforms',
-  publish: 'Publish',
-  discover: 'Discover',
+  publish: APP_DISPLAY_LABELS.publish,
+  discover: APP_DISPLAY_LABELS.discover,
   settings: 'Settings',
-  studio: 'Studio',
-  workspace: 'Workspace',
+  studio: APP_DISPLAY_LABELS.studio,
+  workspace: APP_DISPLAY_LABELS.workspace,
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_WORD_LABELS = Object.freeze({
