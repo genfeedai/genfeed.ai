@@ -54,14 +54,16 @@ const BLOCKED_READINESS: IPublishingProviderReadiness & {
 
 type DeliveryMocks = ReturnType<typeof createDeliveryMocks>;
 
-type RegisteredAction = (request: {
+type RegisteredActionRequest = {
   input: Record<string, unknown>;
   provenance: {
     executionId: string;
     workflowId: string;
     workflowLabel: string;
   };
-}) => Promise<unknown>;
+};
+
+type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 
 function createDeliveryMocks() {
   const registeredActions = new Map<string, RegisteredAction>();

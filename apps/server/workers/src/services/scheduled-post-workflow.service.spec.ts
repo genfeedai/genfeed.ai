@@ -5,9 +5,11 @@ import {
 } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 
-type RegisteredAction = (request: {
+type RegisteredActionRequest = {
   input: Record<string, unknown>;
-}) => Promise<unknown>;
+};
+
+type RegisteredAction = (request: RegisteredActionRequest) => Promise<unknown>;
 
 function createHarness() {
   const registeredActions = new Map<string, RegisteredAction>();

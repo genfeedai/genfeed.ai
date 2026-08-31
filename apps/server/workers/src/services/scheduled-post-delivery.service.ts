@@ -1,6 +1,7 @@
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import {
   resolveChannelTargetSettings,
+  type ValidateChannelTargetSettingsInput,
   validateChannelTargetSettings,
 } from '@api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
@@ -78,6 +79,10 @@ type PreparedPostDelivery = {
 type DeliveryLoad<T> =
   | { ok: true; value: T }
   | { ok: false; result: PublishResult };
+
+type ChannelValidationMedia = NonNullable<
+  ValidateChannelTargetSettingsInput['media']
+>;
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -538,11 +543,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
 
   private toValidationMedia(
     post: PostEntity,
-  ): Array<{ id: string; kind: 'image' | 'video' }> | undefined {
+  ): ChannelValidationMedia | undefined {
     const ingredients = Array.isArray(post.ingredients)
       ? (post.ingredients as unknown[])
       : [];
-    const kind: 'image' | 'video' =
+    const kind: ChannelValidationMedia[number]['kind'] =
       post.category === PostCategory.VIDEO ||
       post.category === PostCategory.REEL
         ? 'video'
@@ -552,7 +557,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         typeof ingredient === 'string'
           ? ingredient
           : ingredient && typeof ingredient === 'object' && 'id' in ingredient
-            ? (ingredient as { id?: unknown }).id
+            ? ingredient.id
             : undefined;
       return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
     });
