@@ -39,7 +39,7 @@ export default function GenerationSetupFrontDoor({
 
   const modelLabel =
     setup.values.modelKey === ''
-      ? 'Auto'
+      ? translate('auto')
       : (models.find((model) => model.key === setup.values.modelKey)?.label ??
         setup.values.modelKey);
 
@@ -49,10 +49,15 @@ export default function GenerationSetupFrontDoor({
     section: GenerationSetupCustomizeSectionId;
     value: string;
   }> = [
-    { key: 'type', label: 'Type', section: 'model', value: typeLabel },
+    {
+      key: 'type',
+      label: translate('type'),
+      section: 'model',
+      value: typeLabel,
+    },
     {
       key: 'modelKey',
-      label: 'Model',
+      label: translate('model'),
       section: 'model',
       value: modelLabel,
     },
@@ -61,7 +66,7 @@ export default function GenerationSetupFrontDoor({
   if (capabilities.hasAspectRatio) {
     summaryRows.push({
       key: 'aspectRatio',
-      label: 'Aspect ratio',
+      label: translate('aspectRatio'),
       section: 'output',
       value: setup.values.aspectRatio,
     });
@@ -69,7 +74,7 @@ export default function GenerationSetupFrontDoor({
   if (capabilities.hasDuration && setup.values.duration) {
     summaryRows.push({
       key: 'duration',
-      label: 'Duration',
+      label: translate('duration'),
       section: 'output',
       value: `${setup.values.duration}s`,
     });
@@ -77,32 +82,37 @@ export default function GenerationSetupFrontDoor({
   if (capabilities.hasOutputs) {
     summaryRows.push({
       key: 'outputs',
-      label: 'Outputs',
+      label: translate('outputs'),
       section: 'output',
       value: String(setup.values.outputs),
     });
   }
   summaryRows.push({
     key: 'brandingMode',
-    label: 'Brand voice',
+    label: translate('brandVoice'),
     section: 'brand',
-    value: setup.values.brandingMode === 'brand' ? 'On' : 'Off',
+    value:
+      setup.values.brandingMode === 'brand'
+        ? translate('on')
+        : translate('off'),
   });
   summaryRows.push({
     key: 'isPromptEnhanceEnabled',
-    label: 'Prompt enhance',
+    label: translate('promptEnhance'),
     section: 'brand',
-    value: setup.values.isPromptEnhanceEnabled ? 'On' : 'Off',
+    value: setup.values.isPromptEnhanceEnabled
+      ? translate('on')
+      : translate('off'),
   });
 
   return (
     <div className="flex min-h-0 flex-col gap-3 p-3">
       <Button
-        ariaLabel="Search setup fields"
+        ariaLabel={translate('searchSetupFields')}
         className="w-full justify-start gap-2 rounded-md border border-border bg-background-secondary px-2.5 text-xs text-muted-foreground hover:text-foreground"
         icon={<Search className="size-3.5 shrink-0" />}
         isDisabled={isDisabled}
-        label="Search fields…"
+        label={translate('searchFields')}
         onClick={onSearch}
         size={ButtonSize.SM}
         textTransform="none"
@@ -111,7 +121,7 @@ export default function GenerationSetupFrontDoor({
 
       <div className="flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-2.5">
         <Button
-          ariaLabel="Customize setup"
+          ariaLabel={translate('customizeSetup')}
           className="h-control-sm w-full justify-between gap-2 px-1 text-xs hover:bg-background-tertiary"
           isDisabled={isDisabled}
           onClick={() => onCustomize()}
@@ -125,7 +135,7 @@ export default function GenerationSetupFrontDoor({
             {translate('agentPick')}
           </span>
           <span className="flex items-center gap-1 text-2xs text-muted-foreground">
-            Customize
+            {translate('customize')}
             <ChevronRight className="size-3" />
           </span>
         </Button>
@@ -133,7 +143,7 @@ export default function GenerationSetupFrontDoor({
         <div className="flex flex-col gap-1.5">
           {summaryRows.map((row) => (
             <Button
-              ariaLabel={`Edit ${row.label}`}
+              ariaLabel={translate('editField', { field: row.label })}
               className="group h-auto w-full justify-between gap-3 rounded-sm px-1 py-1 text-xs hover:bg-background-tertiary"
               isDisabled={isDisabled}
               key={row.key}
@@ -195,7 +205,7 @@ export default function GenerationSetupFrontDoor({
             key={preset.id}
           >
             <Button
-              ariaLabel={`Apply preset ${preset.label}`}
+              ariaLabel={translate('applyPreset', { label: preset.label })}
               className="min-w-0 flex-1 justify-start truncate text-left text-foreground"
               isDisabled={isDisabled}
               label={preset.label}
@@ -207,7 +217,7 @@ export default function GenerationSetupFrontDoor({
             />
             {onDeletePreset ? (
               <Button
-                ariaLabel={`Delete preset ${preset.label}`}
+                ariaLabel={translate('deletePreset', { label: preset.label })}
                 className="size-6 shrink-0 p-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                 icon={<Trash2 className="size-3.5" />}
                 isDisabled={isDisabled}

@@ -7,10 +7,12 @@ import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 function OrganizationUnavailable() {
   const pathname = usePathname() ?? APP_ROUTES.ROOT;
   const { organizations } = useRoutedOrganization();
+  const translate = useTranslations('pages.organizationRouting.unavailable');
 
   return (
     <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
@@ -22,23 +24,24 @@ function OrganizationUnavailable() {
           />
         </div>
         <h1 className="text-xl font-semibold text-foreground">
-          Organization unavailable
+          {translate('title')}
         </h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          This organization does not exist or your account is not authorized to
-          access it.
+          {translate('description')}
         </p>
 
         {organizations.length > 0 ? (
           <div className="mt-7 w-full">
             <p className="mb-2 text-left text-xs font-medium text-foreground/55">
-              Choose an organization you can access
+              {translate('chooseOrganization')}
             </p>
             <ul className="flex flex-col gap-2">
               {organizations.map((organization) => (
                 <li key={organization.id}>
                   <Link
-                    aria-label={`Open ${organization.label} workspace`}
+                    aria-label={translate('openWorkspaceAria', {
+                      organization: organization.label,
+                    })}
                     className="group flex w-full items-center gap-3 rounded-card bg-card px-4 py-3 text-left shadow-border transition hover:bg-foreground/[0.04] hover:shadow-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     href={getOrgSwitchHref(organization.slug, pathname)}
                   >
@@ -51,8 +54,8 @@ function OrganizationUnavailable() {
                       </span>
                       <span className="block text-xs text-muted-foreground">
                         {organization.isActive
-                          ? 'Current workspace'
-                          : 'Open workspace'}
+                          ? translate('currentWorkspace')
+                          : translate('openWorkspace')}
                       </span>
                     </span>
                   </Link>
@@ -65,7 +68,7 @@ function OrganizationUnavailable() {
             className="mt-6 text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             href={APP_ROUTES.ROOT}
           >
-            Return to workspace setup
+            {translate('returnSetup')}
           </Link>
         )}
       </div>
@@ -75,6 +78,7 @@ function OrganizationUnavailable() {
 
 export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
   const { isRouteConfirmed, retry, status } = useRoutedOrganization();
+  const translate = useTranslations('pages.organizationRouting');
 
   if (isRouteConfirmed) {
     return <>{children}</>;
@@ -87,8 +91,8 @@ export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
   if (status === 'failed') {
     return (
       <ErrorFallback
-        title="Organization switch failed"
-        description="The requested organization could not be confirmed. No tenant data was loaded."
+        title={translate('failure.title')}
+        description={translate('failure.description')}
         resetErrorBoundary={retry}
       />
     );
@@ -97,8 +101,8 @@ export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
   if (status === 'stale') {
     return (
       <ErrorFallback
-        title="Organization context changed"
-        description="Another tab changed organization context. Synchronize this tab before continuing."
+        title={translate('stale.title')}
+        description={translate('stale.description')}
         resetErrorBoundary={retry}
       />
     );

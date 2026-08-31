@@ -25,6 +25,7 @@ vi.mock('next-intl', () => ({
       running: 'Running…',
       schedule: 'Schedule',
       scheduleTooltip: 'Set a recurring schedule',
+      title: 'Workflows',
     };
 
     return labels[key] ?? key;

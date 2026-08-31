@@ -2,6 +2,7 @@
 
 import { getActionDefinition } from '@genfeedai/actions';
 import type { NodeProps } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { memo, useMemo } from 'react';
 import { BaseNode } from '../BaseNode';
 import {
@@ -16,15 +17,8 @@ function readRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function formatParameterValue(value: unknown): string {
-  if (Array.isArray(value)) return `${value.length} items`;
-  if (value !== null && typeof value === 'object') return 'Configured';
-  if (typeof value === 'boolean') return value ? 'On' : 'Off';
-  if (value === undefined || value === '') return 'Not set';
-  return String(value);
-}
-
 function GenfeedActionNodeComponent(props: NodeProps) {
+  const translate = useTranslations('pages.workflows.actionNode');
   const data = readRecord(props.data);
   const actionId = typeof data.actionId === 'string' ? data.actionId : '';
   const action = getActionDefinition(actionId);
@@ -39,12 +33,27 @@ function GenfeedActionNodeComponent(props: NodeProps) {
   const inputCount = action
     ? Object.keys(readActionObjectSchema(action.inputSchema).properties).length
     : 0;
+  const formatParameterValue = (value: unknown): string => {
+    if (Array.isArray(value)) {
+      return translate('items', { count: value.length });
+    }
+    if (value !== null && typeof value === 'object') {
+      return translate('configured');
+    }
+    if (typeof value === 'boolean') {
+      return value ? translate('on') : translate('off');
+    }
+    if (value === undefined || value === '') {
+      return translate('notSet');
+    }
+    return String(value);
+  };
 
   return (
     <BaseNode
       {...props}
       nodeDefinition={definition}
-      title={action?.label ?? 'Unavailable action'}
+      title={action?.label ?? translate('unavailableTitle')}
     >
       <div className="space-y-1.5 px-0.5 text-xs">
         {configuredParameters.length > 0 ? (
@@ -64,17 +73,19 @@ function GenfeedActionNodeComponent(props: NodeProps) {
         ) : action ? (
           <p className="text-muted-foreground">
             {inputCount > 0
-              ? `${inputCount} inputs · Select to configure`
-              : 'No configuration required'}
+              ? translate('inputsToConfigure', { count: inputCount })
+              : translate('noConfigurationRequired')}
           </p>
         ) : (
           <p className="text-destructive">
-            This node references an action that is no longer available.
+            {translate('unavailableDescription')}
           </p>
         )}
         {configuredParameters.length > 4 ? (
           <p className="text-muted-foreground">
-            +{configuredParameters.length - 4} more values
+            {translate('moreValues', {
+              count: configuredParameters.length - 4,
+            })}
           </p>
         ) : null}
       </div>

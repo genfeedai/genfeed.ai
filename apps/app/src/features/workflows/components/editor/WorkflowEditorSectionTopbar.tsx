@@ -45,6 +45,9 @@ export function WorkflowEditorSectionTopbar({
   title,
 }: WorkflowEditorSectionTopbarProps) {
   const translate = useTranslations('common.automation.workflows.actions');
+  const translateLibrary = useTranslations(
+    'common.automation.workflows.library',
+  );
   const { href } = useOrgUrl();
   const canArchive = lifecycle !== 'archived';
   const canPublish = lifecycle === 'draft';
@@ -67,7 +70,7 @@ export function WorkflowEditorSectionTopbar({
           >
             <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}>
               <ArrowLeft className="size-4" aria-hidden="true" />
-              Workflows
+              {translateLibrary('title')}
             </Link>
           </Button>
         </nav>

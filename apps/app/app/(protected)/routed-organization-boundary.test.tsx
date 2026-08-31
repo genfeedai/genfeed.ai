@@ -21,6 +21,11 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/missing-organization',
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
   () => ({

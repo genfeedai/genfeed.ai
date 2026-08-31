@@ -26,6 +26,20 @@ vi.mock('@genfeedai/actions', () => ({
       : undefined,
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => {
+    const messages: Record<string, string> = {
+      invalidJson: 'Enter valid JSON.',
+      noConfigurableInputs: 'This action has no configurable inputs.',
+      required: '(required)',
+      select: 'Select…',
+      separateValues: 'Separate values with commas',
+    };
+
+    return messages[key] ?? key;
+  },
+}));
+
 vi.mock('../stores/uiStore', () => ({
   useUIStore: (selector: (state: object) => unknown) =>
     selector({ selectedNodeId: 'node-1', selectNode: mocks.selectNode }),

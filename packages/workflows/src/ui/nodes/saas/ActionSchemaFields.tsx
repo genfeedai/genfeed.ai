@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import {
   type ReactNode,
   useCallback,
@@ -47,6 +48,7 @@ function JsonField({
   onChange,
   value,
 }: Pick<ActionFieldProps, 'disabled' | 'field' | 'onChange' | 'value'>) {
+  const translate = useTranslations('pages.workflows.actionSchema');
   const serializedValue = useMemo(
     () => (value === undefined ? '' : JSON.stringify(value, null, 2)),
     [value],
@@ -70,9 +72,9 @@ function JsonField({
       onChange(JSON.parse(draft));
       setError(null);
     } catch {
-      setError('Enter valid JSON.');
+      setError(translate('invalidJson'));
     }
-  }, [draft, onChange]);
+  }, [draft, onChange, translate]);
 
   return (
     <>
@@ -98,6 +100,7 @@ function ActionField({
   required,
   value,
 }: ActionFieldProps) {
+  const translate = useTranslations('pages.workflows.actionSchema');
   const resolved = unwrapActionSchemaProperty(property);
   const label = formatActionFieldLabel(field, property.title);
   const fieldId = `action-field-${field}`;
@@ -119,7 +122,7 @@ function ActionField({
         onValueChange={onChange}
       >
         <SelectTrigger id={fieldId} className="nodrag h-8 w-full">
-          <SelectValue placeholder="Select…" />
+          <SelectValue placeholder={translate('select')} />
         </SelectTrigger>
         <SelectContent>
           {enumOptions.map((option) => (
@@ -162,7 +165,7 @@ function ActionField({
         className="nodrag nopan h-8"
         disabled={disabled}
         value={Array.isArray(value) ? value.join(', ') : ''}
-        placeholder="Separate values with commas"
+        placeholder={translate('separateValues')}
         onChange={(event) =>
           onChange(
             event.target.value
@@ -220,7 +223,7 @@ function ActionField({
               <span className="ml-1 text-destructive" aria-hidden="true">
                 *
               </span>
-              <span className="sr-only"> (required)</span>
+              <span className="sr-only"> {translate('required')}</span>
             </>
           ) : null}
         </Label>
@@ -241,13 +244,14 @@ export function ActionSchemaFields({
   schema,
   values,
 }: ActionSchemaFieldsProps) {
+  const translate = useTranslations('pages.workflows.actionSchema');
   const { properties, required } = readActionObjectSchema(schema);
   const entries = Object.entries(properties);
 
   if (entries.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        This action has no configurable inputs.
+        {translate('noConfigurableInputs')}
       </p>
     );
   }
