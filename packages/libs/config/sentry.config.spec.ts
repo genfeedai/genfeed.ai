@@ -43,6 +43,7 @@ describe('getSentryConfig', () => {
       environment: 'production',
       release: '3.2.1',
       sendDefaultPii: false,
+      tracesSampleRate: 0,
     });
   });
 
@@ -59,6 +60,7 @@ describe('getSentryConfig', () => {
       environment: 'development',
       release: '1.0.0',
       sendDefaultPii: false,
+      tracesSampleRate: 0,
     });
   });
 
@@ -86,6 +88,26 @@ describe('getSentryConfig', () => {
 
       expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
         sendDefaultPii: false,
+      });
+    }
+  });
+
+  it('keeps tracing disabled in every environment', () => {
+    vi.stubEnv('SENTRY_ENABLED', 'true');
+    vi.stubEnv('SENTRY_DEV', 'true');
+    vi.stubEnv('SENTRY_DSN', 'https://shared@sentry.io/1');
+    vi.stubEnv('SENTRY_DSN_API', '');
+
+    for (const nodeEnv of [
+      'development',
+      'test',
+      'staging',
+      'production',
+    ] as const) {
+      vi.stubEnv('NODE_ENV', nodeEnv);
+
+      expect(getSentryConfig({ serviceName: 'api' })).toMatchObject({
+        tracesSampleRate: 0,
       });
     }
   });
