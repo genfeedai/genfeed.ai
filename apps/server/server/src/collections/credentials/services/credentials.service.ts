@@ -5,7 +5,7 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
-import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
+import { Prisma, TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -300,7 +300,7 @@ export class CredentialsService
         data: {
           analyticsCollectedAt: null,
           analyticsCollectionAttemptKey: null,
-          analyticsCollectionError: null,
+          analyticsCollectionError: Prisma.DbNull,
           analyticsCollectionRequestedAt: null,
           analyticsCollectionState: 'unavailable',
           externalId: null,
