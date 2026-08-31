@@ -184,8 +184,15 @@ vi.mock('@ui/primitives/select', async () => {
         {children}
       </button>
     ),
-    SelectTrigger: ({ children, ...props }: { children: React.ReactNode }) => (
-      <button type="button" {...props}>
+    SelectTrigger: ({
+      children,
+      __onValueChange: _onValueChange,
+      ...props
+    }: {
+      children: React.ReactNode;
+      __onValueChange?: (value: string) => void;
+    }) => (
+      <button aria-expanded={false} role="combobox" type="button" {...props}>
         {children}
       </button>
     ),
