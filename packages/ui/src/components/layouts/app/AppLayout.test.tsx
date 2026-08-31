@@ -172,7 +172,9 @@ describe('AppLayout', () => {
     expect(expandToggle).toBeInTheDocument();
     const logoImage = expandToggle.querySelector('img');
     expect(logoImage).not.toBeNull();
-    expect(expandToggle.querySelectorAll('svg')).toHaveLength(0);
+    expect(expandToggle).toHaveClass('group');
+    expect(expandToggle).not.toHaveClass('overflow-hidden');
+    expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
 
     fireEvent.error(logoImage as HTMLImageElement);
 
