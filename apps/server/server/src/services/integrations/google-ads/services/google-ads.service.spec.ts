@@ -146,6 +146,15 @@ describe('GoogleAdsService', () => {
 
       const result = await service.listAccessibleCustomers(accessToken);
 
+      expect(httpService.get).toHaveBeenCalledWith(
+        'https://googleads.googleapis.com/v25/customers:listAccessibleCustomers',
+        expect.any(Object),
+      );
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://googleads.googleapis.com/v25/customers/111/googleAds:searchStream',
+        expect.any(Object),
+        expect.any(Object),
+      );
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         currencyCode: 'USD',

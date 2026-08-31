@@ -28,7 +28,7 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class GoogleAdsService {
-  private readonly API_VERSION = 'v18';
+  private readonly API_VERSION = 'v25';
   private readonly BASE_URL = 'https://googleads.googleapis.com';
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRIES = 3;
