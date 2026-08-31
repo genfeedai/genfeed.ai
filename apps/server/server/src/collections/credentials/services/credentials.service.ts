@@ -275,6 +275,7 @@ export class CredentialsService
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // tenant-scope-ignore: Meta's verified app-scoped user id is the global identity boundary; the signed callback contains no organization id
       const credentials = await tx.credential.findMany({
         select: { id: true },
         where: {
@@ -296,6 +297,7 @@ export class CredentialsService
           post: { credentialId: { in: credentialIds } },
         },
       });
+      // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally cover live and deleted rows across organizations
       await tx.post.updateMany({
         data: {
           analyticsCollectedAt: null,
@@ -313,6 +315,7 @@ export class CredentialsService
         },
       });
 
+      // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally sanitize live and deleted credentials across organizations
       const result = await tx.credential.updateMany({
         data: {
           accessToken: null,
