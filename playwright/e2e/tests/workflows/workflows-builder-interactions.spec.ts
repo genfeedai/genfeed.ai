@@ -161,8 +161,11 @@ test.describe('Workflows builder & canvas interactions', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Publish' }).first(),
     ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', { name: 'Workflow actions' })
+      .click();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Archive' }).first(),
+      authenticatedPage.getByRole('menuitem', { name: 'Archive' }),
     ).toBeVisible();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

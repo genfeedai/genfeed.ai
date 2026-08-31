@@ -1,4 +1,4 @@
-import type { IngredientCategory } from '@genfeedai/enums';
+import { ActivityKey, type IngredientCategory } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -967,14 +967,18 @@ async function handleAnalyticsRoutes(route: Route): Promise<void> {
         wrapCollectionInJsonApi(
           [
             {
-              metadata: { videoId: 'mock-video-1' },
-              timestamp: new Date().toISOString(),
-              type: 'video_generated',
+              createdAt: new Date().toISOString(),
+              isRead: false,
+              key: ActivityKey.VIDEO_GENERATED,
+              source: 'video-generate',
+              value: '',
             },
             {
-              metadata: { imageId: 'mock-image-1' },
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
-              type: 'image_generated',
+              createdAt: new Date(Date.now() - 3600000).toISOString(),
+              isRead: true,
+              key: ActivityKey.IMAGE_GENERATED,
+              source: 'image-generate',
+              value: '',
             },
           ],
           'activities',

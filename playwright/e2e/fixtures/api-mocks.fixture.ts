@@ -1,4 +1,4 @@
-import { IngredientCategory, PostStatus } from '@genfeedai/enums';
+import { ActivityKey, IngredientCategory, PostStatus } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -1017,27 +1017,33 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
         data: [
           {
             attributes: {
-              metadata: { title: 'Product Demo', videoId: 'mock-video-1' },
-              timestamp: periodEnd,
-              type: 'video_generated',
+              createdAt: periodEnd,
+              isRead: false,
+              key: ActivityKey.VIDEO_GENERATED,
+              source: 'video-generate',
+              value: '',
             },
             id: 'activity-1',
             type: 'activities',
           },
           {
             attributes: {
-              metadata: { imageId: 'mock-image-1', title: 'Banner Design' },
-              timestamp: '2025-03-01T11:00:00.000Z',
-              type: 'image_generated',
+              createdAt: '2025-03-01T11:00:00.000Z',
+              isRead: true,
+              key: ActivityKey.IMAGE_GENERATED,
+              source: 'image-generate',
+              value: '',
             },
             id: 'activity-2',
             type: 'activities',
           },
           {
             attributes: {
-              metadata: { from: 'starter', to: 'pro' },
-              timestamp: '2025-02-28T12:00:00.000Z',
-              type: 'subscription_upgraded',
+              createdAt: '2025-02-28T12:00:00.000Z',
+              isRead: true,
+              key: ActivityKey.CREDITS_ADD,
+              source: 'credits-subscription',
+              value: '250',
             },
             id: 'activity-3',
             type: 'activities',

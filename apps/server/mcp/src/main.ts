@@ -8,7 +8,10 @@ import '@mcp/instrument';
 bootstrap({ app: 'mcp' });
 
 import process from 'node:process';
-import { getGenfeedCorsOptions } from '@libs/config/cors.config';
+import {
+  getGenfeedCorsOptions,
+  shouldAllowLocalCorsOrigins,
+} from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
@@ -83,7 +86,7 @@ async function main(): Promise<void> {
     ...getGenfeedCorsOptions({
       additionalOrigins: ['https://mcp.genfeed.ai'],
       chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
-      isDevelopment: configService.get('NODE_ENV') === 'development',
+      isDevelopment: shouldAllowLocalCorsOrigins(configService.get('NODE_ENV')),
     }),
     allowedHeaders: MCP_CORS_ALLOWED_HEADERS,
     exposedHeaders: MCP_CORS_EXPOSED_HEADERS,

@@ -22,15 +22,12 @@ import {
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 import {
   buildStableOpenApiDocument,
   createOpenApiBuilderOptions,
 } from '@api/helpers/utils/openapi/openapi-document.util';
 import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
-import { buildOAuthAuthorizationServerMetadata } from '@server/oauth/oauth-metadata.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
@@ -40,7 +37,10 @@ import {
 } from '@genfeedai/config/license-server';
 import { assertLiveArticleColumnContract } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
-import { getGenfeedCorsOptions } from '@libs/config/cors.config';
+import {
+  getGenfeedCorsOptions,
+  shouldAllowLocalCorsOrigins,
+} from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
@@ -50,6 +50,9 @@ import {
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
+import { buildOAuthAuthorizationServerMetadata } from '@server/oauth/oauth-metadata.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Queue } from 'bullmq';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -154,7 +157,7 @@ async function main() {
     app.enableCors(
       getGenfeedCorsOptions({
         chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
-        isDevelopment: nodeEnv === 'development',
+        isDevelopment: shouldAllowLocalCorsOrigins(nodeEnv),
       }),
     );
 

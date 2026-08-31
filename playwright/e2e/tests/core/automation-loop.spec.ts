@@ -97,8 +97,11 @@ test.describe('Core Automation Loop', () => {
     await expect(
       automationPage.getByText(/draft|published|archived/i).first(),
     ).toBeVisible();
+    await automationPage
+      .getByRole('button', { name: 'Workflow actions' })
+      .click();
     await expect(
-      automationPage.getByRole('button', { name: 'Archive' }).first(),
+      automationPage.getByRole('menuitem', { name: 'Archive' }),
     ).toBeVisible();
     await expect(
       automationPage.getByRole('button', { name: 'Run' }).first(),

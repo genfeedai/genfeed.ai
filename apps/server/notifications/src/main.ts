@@ -10,7 +10,10 @@ bootstrap({ app: 'notifications' });
 import process from 'node:process';
 import type { IEnvConfig } from '@genfeedai/config';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
-import { getGenfeedCorsOptions } from '@libs/config/cors.config';
+import {
+  getGenfeedCorsOptions,
+  shouldAllowLocalCorsOrigins,
+} from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -49,7 +52,9 @@ async function main() {
     app.enableCors(
       getGenfeedCorsOptions({
         chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
-        isDevelopment: configService.get('NODE_ENV') === 'development',
+        isDevelopment: shouldAllowLocalCorsOrigins(
+          configService.get('NODE_ENV'),
+        ),
       }),
     );
 

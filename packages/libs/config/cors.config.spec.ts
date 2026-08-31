@@ -4,6 +4,7 @@ import {
   GENFEED_SUBDOMAINS,
   getGenfeedCorsOptions,
   getGenfeedCorsOrigins,
+  shouldAllowLocalCorsOrigins,
 } from '@libs/config/cors.config';
 
 describe('CORS Configuration', () => {
@@ -253,6 +254,34 @@ describe('CORS Configuration', () => {
       expect(options.origin).toEqual(
         getGenfeedCorsOrigins({ isDevelopment: false }),
       );
+    });
+  });
+
+  describe('shouldAllowLocalCorsOrigins', () => {
+    it.each(['development', 'test'])('allows %s runtimes', (nodeEnv) => {
+      expect(shouldAllowLocalCorsOrigins(nodeEnv)).toBe(true);
+    });
+
+    it.each(['production', 'staging', undefined])(
+      'rejects deployed or unknown runtime %s',
+      (nodeEnv) => {
+        expect(shouldAllowLocalCorsOrigins(nodeEnv)).toBe(false);
+      },
+    );
+
+    it('admits the hermetic browser origin in test without widening production', () => {
+      const appOrigin = 'http://localhost:3000';
+      const accepts = (nodeEnv: string) =>
+        getGenfeedCorsOrigins({
+          isDevelopment: shouldAllowLocalCorsOrigins(nodeEnv),
+        }).some((origin) =>
+          typeof origin === 'string'
+            ? origin === appOrigin
+            : origin.test(appOrigin),
+        );
+
+      expect(accepts('test')).toBe(true);
+      expect(accepts('production')).toBe(false);
     });
   });
 
