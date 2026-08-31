@@ -1131,10 +1131,12 @@ describe('AppProtectedLayout', () => {
             label: 'Reply drip',
           }),
         ]),
-        renderBody: expect.any(Function),
         sectionLabel: 'Messages',
-        showPrimaryItems: true,
       }),
+    );
+    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty('renderBody');
+    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty(
+      'showPrimaryItems',
     );
     expect(
       screen.queryByRole('button', { name: 'New Task' }),

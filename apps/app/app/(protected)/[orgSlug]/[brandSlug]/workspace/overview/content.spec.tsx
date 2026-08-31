@@ -43,10 +43,6 @@ vi.mock('@genfeedai/agent/components', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div data-testid="dashboard-loading-fallback" />,
-}));
-
 vi.mock('@app/(protected)/home/content', () => ({
   default: () => <div data-testid="operational-home-fallback" />,
 }));
@@ -66,7 +62,7 @@ describe('WorkspaceOverviewContent', () => {
     });
   });
 
-  it('renders the loading fallback while the persisted layout query is in flight', () => {
+  it('keeps the operational overview available while the persisted layout query is in flight', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: true,
       layout: undefined,
@@ -75,12 +71,7 @@ describe('WorkspaceOverviewContent', () => {
 
     render(<WorkspaceOverviewContent />);
 
-    expect(
-      screen.getByTestId('dashboard-loading-fallback'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('operational-home-fallback'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
     ).not.toBeInTheDocument();
