@@ -19,6 +19,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { XaiModule } from '@api/services/integrations/xai/xai.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { ConfigModule } from '@libs/config/config.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 import { TrendAnalysisService } from '@server/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@server/collections/trends/services/modules/trend-content-ideas.service';
@@ -34,6 +35,17 @@ import { TrendPreferencesService } from '@server/collections/trends/services/tre
 import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import { CacheModule } from '@server/services/cache/cache.module';
+import { CacheService } from '@server/services/cache/cache.service';
+import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
+import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { XaiService } from '@server/services/integrations/xai/services/xai.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Module({
   controllers: [
@@ -69,7 +81,51 @@ import { CacheModule } from '@server/services/cache/cache.module';
     TrendAnalysisService,
     TrendCorpusFreshnessService,
     TrendContentIdeasService,
-    TrendFetchService,
+    {
+      inject: [
+        PrismaService,
+        LoggerService,
+        CacheService,
+        ApifyService,
+        InstagramService,
+        LinkedInService,
+        XaiService,
+        TwitterService,
+        RedditService,
+        YoutubeService,
+        PinterestService,
+        TiktokService,
+      ],
+      provide: TrendFetchService,
+      useFactory: (
+        prisma: PrismaService,
+        loggerService: LoggerService,
+        cacheService: CacheService,
+        apifyService: ApifyService,
+        instagramService: InstagramService,
+        linkedinService: LinkedInService,
+        xaiService: XaiService,
+        twitterService: TwitterService,
+        redditService: RedditService,
+        youtubeService: YoutubeService,
+        pinterestService: PinterestService,
+        tiktokService: TiktokService,
+      ) =>
+        new TrendFetchService(
+          prisma,
+          loggerService,
+          cacheService,
+          apifyService,
+          instagramService,
+          linkedinService,
+          xaiService,
+          twitterService,
+          redditService,
+          youtubeService,
+          pinterestService,
+          tiktokService,
+        ),
+    },
     TrendFilteringService,
     TrendPreferencesService,
     TrendQueryService,

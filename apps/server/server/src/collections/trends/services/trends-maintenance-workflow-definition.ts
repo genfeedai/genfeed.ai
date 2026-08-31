@@ -6,7 +6,7 @@ import type {
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const TRENDS_MAINTENANCE_ACTION_IDS = {
-  EVALUATE_BACKFILL: 'trends.maintenance.evaluate-backfill',
+  DISCOVER_SCOPED: 'trends.maintenance.discover-scoped',
   EXPIRE_HASHTAGS: 'trends.maintenance.expire-hashtags',
   EXPIRE_SOUNDS: 'trends.maintenance.expire-sounds',
   EXPIRE_TRENDS: 'trends.maintenance.expire-trends',
@@ -14,14 +14,15 @@ export const TRENDS_MAINTENANCE_ACTION_IDS = {
   FETCH_DATASET: 'trends.maintenance.fetch-dataset',
   FETCH_GLOBAL: 'trends.maintenance.fetch-global',
   FETCH_SOUNDS: 'trends.maintenance.fetch-sounds',
-  FINALIZE_BACKFILL: 'trends.maintenance.finalize-backfill',
+  FETCH_SCOPED: 'trends.maintenance.fetch-scoped',
   PRECOMPUTE_PREVIEW: 'trends.maintenance.precompute-preview',
 } as const;
 
 export const TRENDS_MAINTENANCE_WORKFLOW_IDS = {
-  BACKFILL: 'trends.maintenance.backfill',
   DATASET_TASK: 'trends.maintenance.dataset-task',
   REFRESH: 'trends.maintenance.refresh',
+  SCOPED_REFRESH: 'trends.maintenance.scoped-refresh',
+  SCOPED_TASK: 'trends.maintenance.scoped-task',
 } as const;
 
 export type TrendDatasetTask = {
@@ -32,6 +33,12 @@ export type TrendDatasetTask = {
 export type TrendsMaintenanceRequest = {
   requestedAt: string;
   source: string;
+};
+
+export type ScopedTrendRefreshTask = {
+  brandId: string;
+  organizationId: string;
+  platform: string;
 };
 
 const DATASET_TASKS: TrendDatasetTask[] = [
@@ -204,85 +211,76 @@ export function buildTrendsRefreshWorkflowDefinition(): SystemWorkflowGraphDefin
   );
 }
 
-export function buildTrendsBackfillWorkflowDefinition(): SystemWorkflowGraphDefinition {
-  const shouldBackfill: WorkflowVisualNode = {
-    data: {
-      config: {
-        customField: 'shouldBackfill',
-        field: 'custom',
-        operator: 'isTrue',
-      },
-      label: 'Backfill required?',
-    },
-    id: 'should-backfill',
-    position: { x: 0, y: 120 },
-    type: 'condition',
-  };
-  const refresh = refreshNodes(true).map((node) => ({
-    ...node,
-    position: { x: 0, y: node.position.y + 240 },
-  }));
+export function buildScopedTrendTaskWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
-    canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.BACKFILL,
+    canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_TASK,
     definition: {
-      edges: [
-        {
-          id: 'evaluate-to-condition',
-          source: 'evaluate-backfill',
-          target: 'should-backfill',
-          targetHandle: 'value',
-        },
-        {
-          id: 'condition-to-expire',
-          source: 'should-backfill',
-          sourceHandle: 'true',
-          target: 'expire-trends',
-          targetHandle: 'evaluation',
-        },
-        ...refreshEdges(true),
-        {
-          id: 'condition-skip-to-finalize',
-          source: 'should-backfill',
-          sourceHandle: 'false',
-          target: 'finalize-backfill',
-          targetHandle: 'evaluation',
-        },
-        {
-          id: 'refresh-to-finalize',
-          source: 'precompute-preview',
-          target: 'finalize-backfill',
-          targetHandle: 'refresh',
-        },
-      ],
+      edges: [],
       inputVariables: [
         {
-          key: 'request',
-          label: 'Trend backfill request',
+          key: 'task',
+          label: 'Scoped trend task',
           required: true,
           type: 'json',
         },
       ],
       nodes: [
         actionNode(
-          TRENDS_MAINTENANCE_ACTION_IDS.EVALUATE_BACKFILL,
-          'evaluate-backfill',
+          TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED,
+          'fetch-scoped',
           0,
-          ['request'],
-        ),
-        shouldBackfill,
-        ...refresh,
-        actionNode(
-          TRENDS_MAINTENANCE_ACTION_IDS.FINALIZE_BACKFILL,
-          'finalize-backfill',
-          1200,
-          ['request'],
+          ['task'],
         ),
       ],
     },
     description:
-      'Evaluates corpus health, conditionally refreshes datasets, and records adaptive backfill state.',
-    label: 'Global Trends Backfill',
-    resultNodeId: 'finalize-backfill',
+      'Refreshes one connected account scope through native providers only.',
+    label: 'Scoped Native Trend Task',
+    resultNodeId: 'fetch-scoped',
+    version: 1,
+  };
+}
+
+export function buildScopedTrendsRefreshWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_REFRESH,
+    definition: {
+      edges: [
+        {
+          id: 'discover-to-refresh',
+          source: 'discover-scoped',
+          sourceHandle: 'items',
+          target: 'refresh-scoped',
+          targetHandle: 'items',
+        },
+      ],
+      inputVariables: [
+        {
+          key: 'request',
+          label: 'Scoped refresh request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        actionNode(
+          TRENDS_MAINTENANCE_ACTION_IDS.DISCOVER_SCOPED,
+          'discover-scoped',
+          0,
+          ['request'],
+        ),
+        actionNode('workflow.for-each-tenant', 'refresh-scoped', 180, [], {
+          childWorkflowId: TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_TASK,
+          itemInputKey: 'task',
+          maxConcurrency: 3,
+          mode: 'await',
+        }),
+      ],
+    },
+    description:
+      'Discovers connected social accounts and schedules tenant-isolated native trend refreshes.',
+    label: 'Scoped Native Trends Refresh',
+    resultNodeId: 'refresh-scoped',
     version: 1,
   };
 }

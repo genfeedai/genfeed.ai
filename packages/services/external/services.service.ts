@@ -3,10 +3,7 @@ import {
   Credential,
   CredentialOAuth,
 } from '@genfeedai/models/auth/credential.model';
-import {
-  CredentialOAuthSerializer,
-  ServiceSerializer,
-} from '@genfeedai/serializers';
+import { CredentialOAuthSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -26,9 +23,8 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   // Note: getInstance pattern doesn't apply here due to platform parameter in constructor
 
   public async postConnect(body: unknown): Promise<ICredentialOAuth> {
-    const data = ServiceSerializer.serialize(body);
     return await this.instance
-      .post<JsonApiResponseDocument>(`connect`, data)
+      .post<JsonApiResponseDocument>(`connect`, body)
       .then((res) => res.data)
       .then(
         (res) =>
@@ -39,9 +35,8 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   public async postVerify(body: unknown): Promise<ICredential> {
-    const data = ServiceSerializer.serialize(body);
     return await this.instance
-      .post<JsonApiResponseDocument>(`verify`, data)
+      .post<JsonApiResponseDocument>(`verify`, body)
       .then((res) => res.data)
       .then(
         (res) =>

@@ -27,6 +27,12 @@ describe('TrendFetchService', () => {
   const mockLinkedInService = {
     getTrends: vi.fn(),
   };
+  const mockInstagramService = {
+    getTrends: vi.fn(),
+  };
+  const mockTiktokService = {
+    getTrends: vi.fn(),
+  };
   const mockXaiService = {
     getTrends: vi.fn(),
   };
@@ -54,6 +60,8 @@ describe('TrendFetchService', () => {
     mockApifyService.getTwitterTrends.mockResolvedValue([]);
     mockXaiService.getTrends.mockResolvedValue([]);
     mockLinkedInService.getTrends.mockResolvedValue([]);
+    mockInstagramService.getTrends.mockResolvedValue([]);
+    mockTiktokService.getTrends.mockResolvedValue([]);
     mockTwitterService.getTrends.mockResolvedValue([]);
     mockRedditService.getTrends.mockResolvedValue([]);
     mockYoutubeService.getTrends.mockResolvedValue([]);
@@ -64,12 +72,14 @@ describe('TrendFetchService', () => {
       mockLoggerService as never,
       mockCacheService as never,
       mockApifyService as never,
+      mockInstagramService as never,
       mockLinkedInService as never,
       mockXaiService as never,
       mockTwitterService as never,
       mockRedditService as never,
       mockYoutubeService as never,
       mockPinterestService as never,
+      mockTiktokService as never,
     );
   });
 
@@ -297,6 +307,79 @@ describe('TrendFetchService', () => {
   });
 
   describe('native-first platform discovery', () => {
+    it('returns authorized TikTok account signals before Apify for scoped refreshes', async () => {
+      mockTiktokService.getTrends.mockResolvedValue([
+        {
+          growthRate: 18,
+          mentions: 12_000,
+          metadata: { videoId: 'video-1' },
+          topic: '#native-tiktok',
+        },
+      ]);
+
+      const result = await service.fetchPlatformTrends(
+        'tiktok',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(mockTiktokService.getTrends).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+      );
+      expect(mockApifyService.getTikTokTrends).not.toHaveBeenCalled();
+      expect(result[0]).toMatchObject({
+        metadata: expect.objectContaining({
+          provider: 'tiktok-api',
+          source: 'native-api',
+        }),
+        platform: 'tiktok',
+        topic: '#native-tiktok',
+      });
+    });
+
+    it('returns authorized Instagram account signals before Apify for scoped refreshes', async () => {
+      mockInstagramService.getTrends.mockResolvedValue([
+        { growthRate: 12, mentions: 900, topic: '#native-instagram' },
+      ]);
+
+      const result = await service.fetchPlatformTrends(
+        'instagram',
+        'org-1',
+        'brand-1',
+      );
+
+      expect(mockInstagramService.getTrends).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+      );
+      expect(mockApifyService.getInstagramTrends).not.toHaveBeenCalled();
+      expect(result[0]).toMatchObject({
+        metadata: expect.objectContaining({
+          provider: 'instagram-graph-api',
+          source: 'native-api',
+        }),
+        platform: 'instagram',
+        topic: '#native-instagram',
+      });
+    });
+
+    it('uses Apify only for unsupported global TikTok public discovery', async () => {
+      mockApifyService.getTikTokTrends.mockResolvedValue([
+        {
+          growthRate: 20,
+          mentions: 1_000,
+          platform: 'tiktok',
+          topic: '#public-tiktok',
+        },
+      ]);
+
+      await service.fetchPlatformTrends('tiktok');
+
+      expect(mockTiktokService.getTrends).not.toHaveBeenCalled();
+      expect(mockApifyService.getTikTokTrends).toHaveBeenCalledOnce();
+    });
+
     it('returns native Reddit trends without running the Apify actor', async () => {
       mockRedditService.getTrends.mockResolvedValue([
         {
@@ -355,6 +438,18 @@ describe('TrendFetchService', () => {
       expect(mockApifyService.getRedditTrends).toHaveBeenCalledWith({
         limit: 20,
       });
+    });
+
+    it('does not run Apify when a scheduled native-only refresh has no signal', async () => {
+      mockRedditService.getTrends.mockResolvedValue([]);
+
+      await expect(
+        service.fetchPlatformTrends('reddit', 'org-1', 'brand-1', {
+          allowApifyFallback: false,
+        }),
+      ).resolves.toEqual([]);
+
+      expect(mockApifyService.getRedditTrends).not.toHaveBeenCalled();
     });
 
     it('falls back to Apify when native Reddit errors', async () => {

@@ -1,4 +1,7 @@
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
+import { assertCanIncludeSystemWorkflows } from '@api/collections/workflows/utils/workflow-system-access.util';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { Request } from 'express';
 
 describe('WorkflowCrudController RBAC', () => {
   it('should require owner, admin, or creator role for create', () => {
@@ -25,10 +28,31 @@ describe('WorkflowCrudController RBAC', () => {
     expect(metadata).toEqual(['owner', 'admin', 'creator']);
   });
 
-  it('should not require a role for findAll, exportComfyUI, or findOne', () => {
+  it('keeps ordinary findAll access open to organization members', () => {
     expect(
       Reflect.getMetadata('roles', WorkflowCrudController.prototype.findAll),
     ).toBeUndefined();
+  });
+
+  it('rejects the includeSystem flag without platform-superadmin context', () => {
+    expect(() =>
+      assertCanIncludeSystemWorkflows(
+        {} as Request,
+        { isSuperAdmin: false } as User,
+        true,
+      ),
+    ).toThrow();
+
+    expect(() =>
+      assertCanIncludeSystemWorkflows(
+        {} as Request,
+        { isSuperAdmin: true } as User,
+        true,
+      ),
+    ).not.toThrow();
+  });
+
+  it('should not require a role for exportComfyUI or findOne', () => {
     expect(
       Reflect.getMetadata(
         'roles',

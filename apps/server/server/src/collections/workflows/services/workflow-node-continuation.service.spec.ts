@@ -216,7 +216,12 @@ describe('WorkflowNodeContinuationService', () => {
     });
     expect(prisma.workflowNodeClaim.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { error: 'provider rejected submission', status: 'failed' },
+        data: {
+          error: 'provider rejected submission',
+          leaseExpiresAt: null,
+          leaseOwnerId: null,
+          status: 'failed',
+        },
       }),
     );
     expect(prisma.workflowExecutionNodeResult.updateMany).toHaveBeenCalledWith(

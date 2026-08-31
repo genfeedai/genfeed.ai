@@ -34,7 +34,8 @@ Sentry.init({
   // every session is disproportionate overhead. Error-triggered replay only.
   replaysSessionSampleRate: 0,
 
-  tracesSampleRate: 0.2,
+  // Sentry is used for error reporting only; performance spans are disabled.
+  tracesSampleRate: 0,
 });
 
 // Product analytics (Genfeed Cloud only). No-ops — and never loads posthog-js —

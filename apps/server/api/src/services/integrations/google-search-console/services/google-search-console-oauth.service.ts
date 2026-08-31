@@ -22,7 +22,7 @@ export class GoogleSearchConsoleOAuthService {
   ) {}
 
   generateAuthUrl(state: string): string {
-    const clientId = this.configService.get('GOOGLE_SEARCH_CONSOLE_CLIENT_ID');
+    const clientId = this.configService.get('GOOGLE_OAUTH_CLIENT_ID');
     const redirectUri = this.configService.get(
       'GOOGLE_SEARCH_CONSOLE_REDIRECT_URI',
     );
@@ -54,10 +54,8 @@ export class GoogleSearchConsoleOAuthService {
           refresh_token?: string;
           token_type?: string;
         }>(this.GOOGLE_TOKEN_URL, {
-          client_id: this.configService.get('GOOGLE_SEARCH_CONSOLE_CLIENT_ID'),
-          client_secret: this.configService.get(
-            'GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET',
-          ),
+          client_id: this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
+          client_secret: this.configService.get('GOOGLE_OAUTH_CLIENT_SECRET'),
           code,
           grant_type: 'authorization_code',
           redirect_uri: this.configService.get(
@@ -95,10 +93,8 @@ export class GoogleSearchConsoleOAuthService {
           expires_in?: number;
           token_type?: string;
         }>(this.GOOGLE_TOKEN_URL, {
-          client_id: this.configService.get('GOOGLE_SEARCH_CONSOLE_CLIENT_ID'),
-          client_secret: this.configService.get(
-            'GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET',
-          ),
+          client_id: this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
+          client_secret: this.configService.get('GOOGLE_OAUTH_CLIENT_SECRET'),
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
         }),

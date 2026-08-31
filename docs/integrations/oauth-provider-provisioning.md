@@ -8,8 +8,9 @@ because it remains hidden until Genfeed has approved Data API access.
 The current Connect catalog is defined in
 `packages/ui/src/components/constants/oauth-connect-platforms.ts`. Runtime
 environment keys are defined by `packages/config/src/schemas/social.schema.ts`
-and copied from the root environment by `scripts/env-spec.ts`. Check those
-files before changing a provider's products, scopes, or callback.
+and `packages/config/src/schemas/google-oauth.schema.ts`, then copied from the
+root environment by `scripts/env-spec.ts`. Check those files before changing a
+provider's products, scopes, or callback.
 
 ## Secret and environment handling
 
@@ -55,8 +56,11 @@ is handled by the app and then verified through
 
 Meta Ads reuses the Facebook credential and its ads scopes. YouTube Ads reuses
 the Google Ads credential because YouTube campaigns are managed through Google
-Ads. TikTok derives its callback from `GENFEEDAI_APP_URL`; every other row uses
-the provider-specific redirect environment key listed below.
+Ads. Google sign-in, YouTube, Google Ads, and Search Console share one Google
+Cloud web client through `GOOGLE_OAUTH_CLIENT_ID` and
+`GOOGLE_OAUTH_CLIENT_SECRET`; each connector still has its own redirect URI.
+TikTok derives its callback from `GENFEEDAI_APP_URL`; every other row uses the
+provider-specific redirect environment key listed below.
 
 ## Provider setup
 
@@ -140,8 +144,11 @@ Reference: [Threads API getting started](https://developers.facebook.com/docs/th
 3. Genfeed requests YouTube read, upload, force-SSL, and analytics-read scopes.
    Add test users while the consent screen is in Testing and complete Google
    OAuth verification before production use of sensitive scopes.
-4. Set `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, and
-   `YOUTUBE_REDIRECT_URI`. `YOUTUBE_API_KEY` is optional for public reads.
+4. Set the shared `GOOGLE_OAUTH_CLIENT_ID` and
+   `GOOGLE_OAUTH_CLIENT_SECRET`, plus `YOUTUBE_REDIRECT_URI`.
+   `YOUTUBE_API_KEY` is optional for public reads. If the same client also
+   powers Google sign-in, Google Ads, or Search Console, register all enabled
+   callbacks on that client.
 
 Reference: [YouTube authorization credentials](https://developers.google.com/youtube/registering_an_application).
 
@@ -193,8 +200,10 @@ and [testing an app](https://api.fanvue.com/docs/introduction/testing-your-app).
 3. Obtain a developer token from the
    [Google Ads API Center](https://ads.google.com/aw/apicenter). OAuth client
    credentials alone are not enough to call Google Ads API.
-4. Set `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`,
-   `GOOGLE_ADS_REDIRECT_URI`, and `GOOGLE_ADS_DEVELOPER_TOKEN`.
+4. Set the shared `GOOGLE_OAUTH_CLIENT_ID` and
+   `GOOGLE_OAUTH_CLIENT_SECRET`, plus `GOOGLE_ADS_REDIRECT_URI` and
+   `GOOGLE_ADS_DEVELOPER_TOKEN`. Do not create connector-specific Google OAuth
+   aliases; the shared client is the canonical credential.
 
 Reference: [Google Ads OAuth](https://developers.google.com/google-ads/api/docs/oauth/overview).
 

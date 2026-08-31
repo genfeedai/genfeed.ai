@@ -106,8 +106,8 @@ describe('YoutubeService — extended coverage', () => {
             get: vi.fn().mockImplementation((key: string) => {
               const map: Record<string, string> = {
                 YOUTUBE_API_KEY: 'test-api-key',
-                YOUTUBE_CLIENT_ID: 'test-client-id',
-                YOUTUBE_CLIENT_SECRET: 'test-client-secret',
+                GOOGLE_OAUTH_CLIENT_ID: 'test-client-id',
+                GOOGLE_OAUTH_CLIENT_SECRET: 'test-client-secret',
                 YOUTUBE_REDIRECT_URI: 'https://redirect.uri',
               };
               return map[key] ?? '';

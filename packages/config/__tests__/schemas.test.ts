@@ -22,6 +22,7 @@ import {
   internalAuthSchema,
   microservicesSchema,
 } from '@config/schemas/genfeedai.schema';
+import { googleOAuthSchema } from '@config/schemas/google-oauth.schema';
 import {
   discordBotSchema,
   resendSchema,
@@ -737,6 +738,19 @@ describe('Config Schemas', () => {
     });
   });
 
+  describe('googleOAuthSchema', () => {
+    it('declares one shared Google OAuth client pair', () => {
+      expect(Object.keys(googleOAuthSchema)).toEqual([
+        'GOOGLE_OAUTH_CLIENT_ID',
+        'GOOGLE_OAUTH_CLIENT_SECRET',
+      ]);
+      expect(Joi.isSchema(googleOAuthSchema.GOOGLE_OAUTH_CLIENT_ID)).toBe(true);
+      expect(Joi.isSchema(googleOAuthSchema.GOOGLE_OAUTH_CLIENT_SECRET)).toBe(
+        true,
+      );
+    });
+  });
+
   describe('tiktokSchema', () => {
     it('should be a non-empty object of Joi schemas', () => {
       expect(typeof tiktokSchema).toBe('object');
@@ -1142,6 +1156,16 @@ describe('Config Schemas', () => {
       const keys = Object.keys(allSocialSchema);
       expect(keys).not.toContain('MASTODON_DEFAULT_INSTANCE_URL');
       expect(keys).not.toContain('GHOST_DEFAULT_API_URL');
+    });
+
+    it('does not reintroduce per-integration Google OAuth client aliases', () => {
+      const keys = Object.keys(allSocialSchema);
+      expect(keys).not.toContain('YOUTUBE_CLIENT_ID');
+      expect(keys).not.toContain('YOUTUBE_CLIENT_SECRET');
+      expect(keys).not.toContain('GOOGLE_ADS_CLIENT_ID');
+      expect(keys).not.toContain('GOOGLE_ADS_CLIENT_SECRET');
+      expect(keys).not.toContain('GOOGLE_SEARCH_CONSOLE_CLIENT_ID');
+      expect(keys).not.toContain('GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET');
     });
   });
 

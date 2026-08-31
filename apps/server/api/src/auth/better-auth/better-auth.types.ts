@@ -199,8 +199,8 @@ export interface IBetterAuthEnvValues {
   BETTER_AUTH_URL?: string;
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
   NODE_ENV?: string;
   PORT?: number | string;
 }

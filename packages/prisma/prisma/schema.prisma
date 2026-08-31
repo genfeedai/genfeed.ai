@@ -4320,6 +4320,8 @@ model WorkflowNodeClaim {
   status         String
   output         Json?
   error          String?
+  leaseOwnerId   String?
+  leaseExpiresAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

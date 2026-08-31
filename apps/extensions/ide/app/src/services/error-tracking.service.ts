@@ -21,7 +21,7 @@ export function initializeErrorTracking(entrypoint: string): void {
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV,
     release: `ide-extension@${extensionVersion}`,
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 0,
   });
 
   Sentry.setTag('app', 'ide-extension');

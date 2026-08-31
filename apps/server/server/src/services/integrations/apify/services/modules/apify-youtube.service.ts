@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import type {
   ApifyNormalizedYouTubeComment,
   ApifyTrendData,
@@ -7,7 +8,6 @@ import type {
   TrendOptions,
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * ApifyYouTubeService
@@ -65,6 +65,7 @@ export class ApifyYouTubeService {
         publishedAfter: new Date(
           Date.now() - 7 * 24 * 60 * 60 * 1000,
         ).toISOString(),
+        searchQueries: ['trending'],
         sortBy: 'viewCount',
       };
 
@@ -151,7 +152,7 @@ export class ApifyYouTubeService {
     try {
       const input = {
         maxResults: options?.limit || 50,
-        searchKeywords: query,
+        searchQueries: [query],
       };
 
       const rawVideos = await this.baseService.runActor<ApifyYouTubeVideo>(
