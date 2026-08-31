@@ -26,9 +26,8 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   // Note: getInstance pattern doesn't apply here due to platform parameter in constructor
 
   public async postConnect(body: unknown): Promise<ICredentialOAuth> {
-    const data = ServiceSerializer.serialize(body);
     return await this.instance
-      .post<JsonApiResponseDocument>(`connect`, data)
+      .post<JsonApiResponseDocument>(`connect`, body)
       .then((res) => res.data)
       .then(
         (res) =>
