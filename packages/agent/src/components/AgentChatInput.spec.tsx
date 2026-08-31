@@ -457,7 +457,7 @@ describe('AgentChatInput', () => {
     // entries are menuitems, not buttons.
     fireEvent.pointerDown(screen.getByLabelText('Open workspace shortcuts'));
     fireEvent.click(
-      await screen.findByRole('menuitem', { name: /\/publishing/i }),
+      await screen.findByRole('menuitem', { name: /\/publish/i }),
     );
     fireEvent.click(await screen.findByLabelText('Send message'));
 
@@ -469,7 +469,7 @@ describe('AgentChatInput', () => {
       );
     });
     expect(onSend).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox')).toHaveTextContent('/publishing');
+    expect(screen.getByRole('textbox')).toHaveTextContent('/publish');
     expect(
       screen.getByText(
         'Opened Publishing. Explicit approval is still required.',

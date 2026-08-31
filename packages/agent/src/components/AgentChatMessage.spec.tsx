@@ -518,7 +518,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('3 ad variations')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review Draft' })).toHaveAttribute(
       'href',
-      '/publishing/review',
+      '/publishing/posts?publicationState=not-posted',
     );
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(
