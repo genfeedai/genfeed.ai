@@ -37,8 +37,8 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
-    const created = factory('test-token') as { findOne?: unknown };
-    if (created && typeof created === 'object' && 'findOne' in created) {
+    const created = factory('test-token') as { getChildren?: unknown };
+    if (created && typeof created === 'object' && 'getChildren' in created) {
       return mocks.getTasksService;
     }
     return mocks.getCommentsService;
