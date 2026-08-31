@@ -1,6 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { DetailPageProps } from '@props/pages/page.props';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import NewsletterEditorContent from './content';
 
@@ -12,7 +11,7 @@ export default async function NewsletterEditorPage({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <NewsletterEditorContent artifactId={id} />
     </Suspense>
   );

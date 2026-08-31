@@ -1,3 +1,5 @@
+import { formatEnumLabel } from '@genfeedai/enums';
+
 export const TOOL_LABELS: Record<string, string> = {
   ai_action: 'AI Action',
   batch_approve_reject: 'Batch Review Action',
@@ -54,6 +56,12 @@ export const TOOL_LABELS: Record<string, string> = {
   schedule_post: 'Schedule Post',
   search_x_posts: 'Search X Posts',
   start_campaign: 'Start Campaign',
+  suggest_ingredient_alternatives: 'Find Stronger Alternatives',
   suggest_next_steps: 'Suggest Next Steps',
   upscale_image: 'Upscale Image',
 };
+
+/** Product copy for tool activity; provider identifiers never reach the UI. */
+export function getAgentToolLabel(toolName: string): string {
+  return TOOL_LABELS[toolName] ?? formatEnumLabel(toolName) ?? 'Working';
+}

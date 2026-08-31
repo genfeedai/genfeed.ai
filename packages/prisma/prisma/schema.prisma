@@ -1200,7 +1200,7 @@ model StudioLook {
   @@map("studio_looks")
 }
 
-/// Durable research-only creative snapshot saved from Discover → Ads.
+/// Durable research-only creative snapshot saved from Discovery → Ads.
 /// Copied media lives in files storage and is never promoted to Library assets.
 model SavedAd {
   id              String       @id @default(cuid())

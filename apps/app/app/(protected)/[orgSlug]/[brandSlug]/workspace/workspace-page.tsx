@@ -12,13 +12,13 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
+
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
@@ -311,7 +311,7 @@ function WorkspacePageContentContent({
           reviewInbox={initialReviewInbox}
           executions={recentExecutions}
           stats={executionStats}
-          trendsHref={href('/discover/overview')}
+          trendsHref={href('/discovery/overview')}
           trendItems={trendItems}
           workspaceTasks={workspaceTasks}
         />
@@ -410,7 +410,7 @@ export default function WorkspacePageContent(
   props: Parameters<typeof WorkspacePageContentContent>[0],
 ) {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <WorkspacePageContentContent {...props} />
     </Suspense>
   );

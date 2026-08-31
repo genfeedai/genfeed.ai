@@ -1,6 +1,5 @@
 import { PageScope } from '@genfeedai/enums';
 import ModelsList from '@pages/models/list/models-list';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export default function ModelsTypePage({
@@ -9,7 +8,7 @@ export default function ModelsTypePage({
   params: Promise<{ type: string }>;
 }) {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <ModelsTypePageContent params={params} />
     </Suspense>
   );

@@ -1,12 +1,13 @@
 import { isSaaS } from '@genfeedai/config/deployment';
 import {
+  APP_DISPLAY_LABELS,
   APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAG_KEYS,
   type AppSwitcherFeatureFlagKey,
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/constants';
 
-export type CoreAppId = 'agent' | 'automate' | 'studio';
+export type CoreAppId = 'agent' | 'automation' | 'studio';
 export type CoreAppFeatureFlagKey =
   | 'studio'
   | typeof REPLY_BOT_FEATURE_FLAG
@@ -30,16 +31,16 @@ export const CORE_APPS: CoreAppDefinition[] = [
       'Control content creation from a full-page agent conversation.',
     href: APP_ROUTES.AGENT.ROOT,
     id: 'agent',
-    label: 'Agent',
-    shortLabel: 'Agent',
+    label: APP_DISPLAY_LABELS.agent,
+    shortLabel: APP_DISPLAY_LABELS.agent,
   },
   {
     description:
       'Workflows, autopilot, skills, and your automated content team.',
-    href: APP_ROUTES.AUTOMATE.ROOT,
-    id: 'automate',
-    label: 'Automate',
-    shortLabel: 'Automate',
+    href: APP_ROUTES.AUTOMATION.ROOT,
+    id: 'automation',
+    label: APP_DISPLAY_LABELS.automation,
+    shortLabel: APP_DISPLAY_LABELS.automation,
   },
   {
     description:
@@ -50,8 +51,8 @@ export const CORE_APPS: CoreAppDefinition[] = [
     },
     href: APP_ROUTES.STUDIO.GENERATE,
     id: 'studio',
-    label: 'Studio',
-    shortLabel: 'Studio',
+    label: APP_DISPLAY_LABELS.studio,
+    shortLabel: APP_DISPLAY_LABELS.studio,
   },
 ];
 

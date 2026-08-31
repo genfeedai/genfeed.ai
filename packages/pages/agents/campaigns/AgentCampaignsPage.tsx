@@ -151,7 +151,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`)}
+            href={href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${campaign.id}`)}
             aria-label={`Open ${campaign.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -217,7 +217,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS)}>View All</Link>
+            <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS)}>View All</Link>
           </Button>
         )}
       </div>
@@ -268,7 +268,7 @@ export default function AgentCampaignsPage() {
           <div className="flex flex-col">
             <Link
               className="font-medium hover:underline"
-              href={href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`)}
+              href={href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${campaign.id}`)}
             >
               {campaign.label}
             </Link>
@@ -347,7 +347,7 @@ export default function AgentCampaignsPage() {
       icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW)}>
+          <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
             <Plus /> New Program
           </Link>
         </Button>
@@ -391,7 +391,7 @@ export default function AgentCampaignsPage() {
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href={href(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW)}>
+            <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW)}>
               <Plus /> New Program
             </Link>
           </Button>

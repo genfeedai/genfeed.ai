@@ -215,7 +215,7 @@ function WorkflowTemplatesPageContent() {
           if (!isCancelled) {
             replace(
               hrefRef.current(
-                `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
+                `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
               ),
             );
           }
@@ -236,7 +236,9 @@ function WorkflowTemplatesPageContent() {
 
         if (!isCancelled) {
           replace(
-            hrefRef.current(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`),
+            hrefRef.current(
+              `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
+            ),
           );
         }
       } catch (err) {
@@ -265,7 +267,9 @@ function WorkflowTemplatesPageContent() {
     async (entry: SystemWorkflowCatalogEntry) => {
       if (entry.installed && entry.installedWorkflowId) {
         replace(
-          href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${entry.installedWorkflowId}`),
+          href(
+            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${entry.installedWorkflowId}`,
+          ),
         );
         return;
       }
@@ -280,7 +284,7 @@ function WorkflowTemplatesPageContent() {
           canonicalId: entry.canonicalId,
           installedWorkflowId: workflow.id,
         });
-        replace(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`));
+        replace(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`));
       } catch (err) {
         logger.error('Failed to install system workflow', {
           canonicalId: entry.canonicalId,
@@ -350,188 +354,163 @@ function WorkflowTemplatesPageContent() {
         className="mx-auto max-w-7xl space-y-10 px-6 py-8"
         data-testid="templates-content"
       >
-        {isContentLoading ? (
-          <div
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-            data-testid="templates-skeleton"
-          >
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="overflow-hidden border border-border bg-card"
+        {!isContentLoading && error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        {!isContentLoading && showSystemSection ? (
+          <section aria-labelledby="system-catalog-heading">
+            <div className="mb-4">
+              <h2
+                id="system-catalog-heading"
+                className="text-lg font-semibold tracking-tight"
               >
-                <div className="aspect-video animate-pulse bg-muted" />
-                <div className="space-y-2 p-4">
-                  <div className="h-5 w-40 animate-pulse rounded bg-muted" />
-                  <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            {error ? (
-              <p className="text-sm text-destructive" role="alert">
-                {error}
+                System workflows
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                App-owned automations. Install the ones you want — nothing is
+                copied into your org until you install.
               </p>
-            ) : null}
+            </div>
 
-            {showSystemSection ? (
-              <section aria-labelledby="system-catalog-heading">
-                <div className="mb-4">
-                  <h2
-                    id="system-catalog-heading"
-                    className="text-lg font-semibold tracking-tight"
-                  >
-                    System workflows
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    App-owned automations. Install the ones you want — nothing
-                    is copied into your org until you install.
-                  </p>
-                </div>
+            {systemCatalog.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No installable system workflows are available.
+              </p>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {systemCatalog.map((entry) => {
+                  const isInstalling =
+                    installingCanonicalId === entry.canonicalId;
 
-                {systemCatalog.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No installable system workflows are available.
-                  </p>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {systemCatalog.map((entry) => {
-                      const isInstalling =
-                        installingCanonicalId === entry.canonicalId;
-
-                      return (
-                        <div
-                          key={entry.canonicalId}
-                          className="group relative overflow-hidden bg-card shadow-border"
-                        >
-                          <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                            <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                              {entry.icon || '⚙'}
-                            </div>
-                          </div>
-                          <div className="p-4">
-                            <div className="mb-1 flex items-center gap-2">
-                              <h3 className="font-semibold">{entry.label}</h3>
-                              {entry.installed ? (
-                                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
-                                  Installed
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
-                              {entry.description}
-                            </p>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs text-muted-foreground">
-                                {entry.family}
-                                {entry.schedule ? ` · ${entry.schedule}` : ''}
-                              </span>
-                              <Button
-                                variant={ButtonVariant.DEFAULT}
-                                withWrapper={false}
-                                disabled={isInstalling}
-                                onClick={() => {
-                                  void handleInstallSystem(entry);
-                                }}
-                                className="px-4 py-2 text-sm"
-                              >
-                                {isInstalling
-                                  ? 'Installing…'
-                                  : entry.installed
-                                    ? 'Open'
-                                    : 'Install'}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            ) : null}
-
-            {showGenerationSection ? (
-              <section aria-labelledby="generation-templates-heading">
-                {selectedCategory === 'all' ? (
-                  <div className="mb-4">
-                    <h2
-                      id="generation-templates-heading"
-                      className="text-lg font-semibold tracking-tight"
+                  return (
+                    <div
+                      key={entry.canonicalId}
+                      className="group relative overflow-hidden bg-card shadow-border"
                     >
-                      Templates
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Starting points for custom workflows.
-                    </p>
-                  </div>
-                ) : null}
-
-                {filteredTemplates.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <h2 className="mb-2 text-xl font-semibold">
-                      No templates found
-                    </h2>
-                    <p className="mb-6 text-muted-foreground">
-                      {selectedCategory === 'all'
-                        ? 'No workflow templates are available yet.'
-                        : 'No templates match the selected category.'}
-                    </p>
-                    {selectedCategory !== 'all' && (
-                      <Button
-                        variant={ButtonVariant.SECONDARY}
-                        onClick={() =>
-                          dispatch({ type: 'SET_CATEGORY', category: 'all' })
-                        }
-                      >
-                        View All Templates
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {filteredTemplates.map((template) => (
-                      <div
-                        key={template.id}
-                        className="group relative overflow-hidden bg-card shadow-border"
-                      >
-                        <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
-                          <div className="flex h-full items-center justify-center text-4xl opacity-50">
-                            {template.icon || ''}
-                          </div>
-                        </div>
-                        <div className="p-4">
-                          <h3 className="mb-1 font-semibold">
-                            {template.name}
-                          </h3>
-                          <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
-                            {template.description}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {template.steps.length} steps
-                            </span>
-                            <Link
-                              href={href(
-                                `${APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES}?template=${template.id}`,
-                              )}
-                              className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100"
-                            >
-                              Use Template
-                            </Link>
-                          </div>
+                      <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                        <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                          {entry.icon || '⚙'}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+                      <div className="p-4">
+                        <div className="mb-1 flex items-center gap-2">
+                          <h3 className="font-semibold">{entry.label}</h3>
+                          {entry.installed ? (
+                            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide text-primary">
+                              Installed
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                          {entry.description}
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-muted-foreground">
+                            {entry.family}
+                            {entry.schedule ? ` · ${entry.schedule}` : ''}
+                          </span>
+                          <Button
+                            variant={ButtonVariant.DEFAULT}
+                            withWrapper={false}
+                            disabled={isInstalling}
+                            onClick={() => {
+                              void handleInstallSystem(entry);
+                            }}
+                            className="px-4 py-2 text-sm"
+                          >
+                            {isInstalling
+                              ? 'Installing…'
+                              : entry.installed
+                                ? 'Open'
+                                : 'Install'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {!isContentLoading && showGenerationSection ? (
+          <section aria-labelledby="generation-templates-heading">
+            {selectedCategory === 'all' ? (
+              <div className="mb-4">
+                <h2
+                  id="generation-templates-heading"
+                  className="text-lg font-semibold tracking-tight"
+                >
+                  Templates
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Starting points for custom workflows.
+                </p>
+              </div>
             ) : null}
-          </>
-        )}
+
+            {filteredTemplates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <h2 className="mb-2 text-xl font-semibold">
+                  No templates found
+                </h2>
+                <p className="mb-6 text-muted-foreground">
+                  {selectedCategory === 'all'
+                    ? 'No workflow templates are available yet.'
+                    : 'No templates match the selected category.'}
+                </p>
+                {selectedCategory !== 'all' && (
+                  <Button
+                    variant={ButtonVariant.SECONDARY}
+                    onClick={() =>
+                      dispatch({ type: 'SET_CATEGORY', category: 'all' })
+                    }
+                  >
+                    View All Templates
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredTemplates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="group relative overflow-hidden bg-card shadow-border"
+                  >
+                    <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5">
+                      <div className="flex h-full items-center justify-center text-4xl opacity-50">
+                        {template.icon || ''}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="mb-1 font-semibold">{template.name}</h3>
+                      <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                        {template.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {template.steps.length} steps
+                        </span>
+                        <Link
+                          href={href(
+                            `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+                          )}
+                          className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100"
+                        >
+                          Use Template
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
       </main>
     </div>
   );

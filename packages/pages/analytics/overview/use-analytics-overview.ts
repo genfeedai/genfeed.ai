@@ -57,7 +57,6 @@ const DB_DASHBOARD_SCOPE_KEY = 'organization';
 
 export interface UseAnalyticsOverviewParams {
   analytics?: Partial<IAnalytics>;
-  basePath: string;
   brandsLeaderboard: IBrandWithStats[];
   cachedAt: string;
   orgsLeaderboard: IOrgLeaderboardItem[];
@@ -68,7 +67,6 @@ export interface UseAnalyticsOverviewParams {
 
 export function useAnalyticsOverview({
   analytics: initialAnalytics,
-  basePath,
   brandsLeaderboard: initialBrandsLeaderboard,
   cachedAt: initialCachedAt,
   orgsLeaderboard: initialOrgsLeaderboard,
@@ -379,7 +377,7 @@ export function useAnalyticsOverview({
         description:
           'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
         primaryAction: {
-          href: APP_ROUTES.PUBLISH.OVERVIEW,
+          href: APP_ROUTES.PUBLISHING.OVERVIEW,
           label: 'Create content',
           variant: ButtonVariant.DEFAULT,
         },

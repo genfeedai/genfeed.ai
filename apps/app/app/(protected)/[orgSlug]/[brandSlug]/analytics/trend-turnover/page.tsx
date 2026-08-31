@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import AnalyticsTrendTurnover from './analytics-trend-turnover';
 
@@ -7,7 +6,7 @@ export const generateMetadata = createPageMetadata('Trend Turnover');
 
 export default function TrendTurnoverPage() {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <AnalyticsTrendTurnover />
     </Suspense>
   );

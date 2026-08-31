@@ -45,7 +45,7 @@ test.describe('Posts — Publishing', () => {
 
     // Should be on post detail page
     const url = authenticatedPage.url();
-    expect(url).toContain('/publish/posts/pub-draft-001');
+    expect(url).toContain('/publishing/posts/pub-draft-001');
 
     // Post detail page should show breadcrumb
     await postsPage.assertPostDetailVisible().catch(() => {});
@@ -55,7 +55,9 @@ test.describe('Posts — Publishing', () => {
     const _sidebarVisible = await sidebar.isVisible().catch(() => false);
 
     // Detail page should be loaded
-    await expect(authenticatedPage).toHaveURL(/publish\/posts\/pub-draft-001/);
+    await expect(authenticatedPage).toHaveURL(
+      /publishing\/posts\/pub-draft-001/,
+    );
   });
 
   test('should show platform selection for publishing', async ({
@@ -78,7 +80,7 @@ test.describe('Posts — Publishing', () => {
 
     // Post detail should display platform information
     await expect(authenticatedPage).toHaveURL(
-      /publish\/posts\/pub-platform-001/,
+      /publishing\/posts\/pub-platform-001/,
     );
 
     // Page should show the platform badge or platform
@@ -95,7 +97,7 @@ test.describe('Posts — Publishing', () => {
       .catch(() => false);
 
     // Platform display is expected on detail page
-    await expect(authenticatedPage).toHaveURL(/publish\//);
+    await expect(authenticatedPage).toHaveURL(/publishing\//);
   });
 
   test('should schedule a post for future date', async ({
@@ -117,7 +119,9 @@ test.describe('Posts — Publishing', () => {
     await postsPage.gotoPostDetail('pub-sched-001');
 
     // Should be on the post detail page
-    await expect(authenticatedPage).toHaveURL(/publish\/posts\/pub-sched-001/);
+    await expect(authenticatedPage).toHaveURL(
+      /publishing\/posts\/pub-sched-001/,
+    );
 
     // The sidebar should have schedule controls
     const schedulePicker = postsPage.scheduleDatePicker;
@@ -134,7 +138,7 @@ test.describe('Posts — Publishing', () => {
     }
 
     // Page should remain on post detail
-    await expect(authenticatedPage).toHaveURL(/publish\//);
+    await expect(authenticatedPage).toHaveURL(/publishing\//);
   });
 
   test('should show publishing status', async ({ authenticatedPage }) => {
@@ -178,7 +182,9 @@ test.describe('Posts — Publishing', () => {
     await postsPage.gotoDrafts();
 
     // Posts list should be visible
-    await expect(authenticatedPage).toHaveURL(/publish\/drafts/);
+    await expect(authenticatedPage).toHaveURL(
+      /publishing\/posts\?publicationState=not-posted/,
+    );
 
     // Navigate to published to see public posts
     await postsPage.switchToPublished();
@@ -209,7 +215,7 @@ test.describe('Posts — Publishing', () => {
     await postsPage.gotoPostDetail('detail-full-001');
 
     await expect(authenticatedPage).toHaveURL(
-      /publish\/posts\/detail-full-001/,
+      /publishing\/posts\/detail-full-001/,
     );
 
     // Breadcrumb should show navigation back to posts

@@ -22,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   listPage: vi.fn(),
   postReply: vi.fn(),
   replace: vi.fn(),
+  seedComposer: vi.fn(),
+  setAgentOpen: vi.fn(),
   syncInstagram: vi.fn(),
   syncInstagramDms: vi.fn(),
   syncLinkedIn: vi.fn(),
@@ -35,6 +37,8 @@ vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
     selector({
       activeThreadId: 'agent-thread-1',
+      seedComposer: mocks.seedComposer,
+      setIsOpen: mocks.setAgentOpen,
       threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
     }),
 }));
@@ -90,10 +94,6 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div>Loading messages</div>,
-}));
-
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
   default: () => <div>Loading messages</div>,
 }));
 
@@ -325,13 +325,12 @@ describe('SocialMessagesPage', () => {
       await screen.findByRole('heading', { level: 1, name: 'Messages' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sync comments' }),
+      screen.getByRole('button', { name: 'Sync inbox' }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(
         {
           brandId: 'brand-1',
-          conversationType: 'comment',
           limit: 50,
           page: 1,
           status: 'open',
@@ -348,8 +347,8 @@ describe('SocialMessagesPage', () => {
     expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
-    expect(screen.getByText(/separate from agent thread/i)).toBeInTheDocument();
-    expect(screen.getByText('Social reply composer')).toBeInTheDocument();
+    expect(screen.getByText('Comment · youtube')).toBeInTheDocument();
+    expect(screen.getByText('Reply composer')).toBeInTheDocument();
     const conversationButton = screen.getByRole('button', {
       name: 'Open social conversation with Taylor',
     });
@@ -363,7 +362,7 @@ describe('SocialMessagesPage', () => {
     const automationLink = screen.getByRole('link', { name: /Automation/i });
     expect(automationLink).toHaveAttribute(
       'href',
-      expect.stringContaining('/automate/workflows/new?'),
+      expect.stringContaining('/automation/workflows/new?'),
     );
     expect(automationLink).toHaveAttribute(
       'href',
@@ -373,6 +372,13 @@ describe('SocialMessagesPage', () => {
       'href',
       expect.stringContaining('trigger=commentTrigger'),
     );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Draft with Agent' }));
+    expect(mocks.seedComposer).toHaveBeenCalledWith(
+      expect.stringContaining('Draft a concise public reply'),
+      'agent-thread-1',
+    );
+    expect(mocks.setAgentOpen).toHaveBeenCalledWith(true);
 
     fireEvent.change(screen.getByPlaceholderText('Write a reply or DM'), {
       target: { value: 'Thanks for the detail.' },
@@ -411,11 +417,11 @@ describe('SocialMessagesPage', () => {
 
     const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
     expect(
-      within(sidebarEmpty).getByText('No comments yet'),
+      within(sidebarEmpty).getByText('No inbox items yet'),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('messages-empty-state')).getByText(
-        'No comments yet',
+        'Select a conversation',
       ),
     ).toBeInTheDocument();
     expect(
@@ -431,7 +437,7 @@ describe('SocialMessagesPage', () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Sync comments' }),
+      screen.getByRole('button', { name: 'Sync inbox' }),
     ).toBeInTheDocument();
 
     expect(screen.getByTestId('messages-surface-layout')).toHaveClass(
@@ -464,7 +470,7 @@ describe('SocialMessagesPage', () => {
 
     render(<SocialMessagesPage />);
 
-    await screen.findByRole('button', { name: 'Sync comments' });
+    await screen.findByRole('button', { name: 'Sync inbox' });
 
     fireEvent.click(screen.getByRole('button', { name: 'DMs' }));
 
@@ -504,6 +510,8 @@ describe('SocialMessagesPage', () => {
   it('sweeps every comment platform when syncing the comments surface', async () => {
     render(<SocialMessagesPage />);
 
+    await screen.findByRole('button', { name: 'Sync inbox' });
+    fireEvent.click(screen.getByRole('button', { name: 'Comments' }));
     fireEvent.click(
       await screen.findByRole('button', { name: 'Sync comments' }),
     );
@@ -516,13 +524,13 @@ describe('SocialMessagesPage', () => {
     expect(mocks.syncXDms).not.toHaveBeenCalled();
   });
 
-  it('keeps remaining platform enqueues and shows a partial-failure notice', async () => {
+  it('syncs the unified mailbox and keeps remaining platform enqueues after a partial failure', async () => {
     mocks.syncX.mockRejectedValue(new Error('X is not connected'));
 
     render(<SocialMessagesPage />);
 
     const syncButton = await screen.findByRole('button', {
-      name: 'Sync comments',
+      name: 'Sync inbox',
     });
     const callsAfterLoad = mocks.listPage.mock.calls.length;
 
@@ -532,6 +540,9 @@ describe('SocialMessagesPage', () => {
     expect(mocks.syncInstagram).toHaveBeenCalledTimes(1);
     expect(mocks.syncX).toHaveBeenCalledTimes(1);
     expect(mocks.syncLinkedIn).toHaveBeenCalledTimes(1);
+    expect(mocks.syncInstagramDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncXDms).toHaveBeenCalledTimes(1);
+    expect(mocks.syncLinkedInDms).toHaveBeenCalledTimes(1);
     await waitFor(() =>
       expect(mocks.listPage.mock.calls.length).toBeGreaterThan(callsAfterLoad),
     );

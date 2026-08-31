@@ -1,4 +1,4 @@
-import { TOOL_LABELS } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
+import { getAgentToolLabel } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
 import {
   AgentWorkEventStatus,
@@ -76,7 +76,7 @@ function getEventLabel(event: EnrichedWorkEvent): string {
     return 'Input Required';
   if (event.event === AgentWorkEventType.INPUT_SUBMITTED)
     return 'Input Submitted';
-  if (event.toolName) return TOOL_LABELS[event.toolName] ?? event.toolName;
+  if (event.toolName) return getAgentToolLabel(event.toolName);
   if (event.event === AgentWorkEventType.STARTED) return 'Run Started';
   if (event.event === AgentWorkEventType.COMPLETED) return 'Run Completed';
   if (event.event === AgentWorkEventType.FAILED) return 'Run Failed';

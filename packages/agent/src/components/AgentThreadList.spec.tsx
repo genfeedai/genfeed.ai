@@ -1012,7 +1012,7 @@ describe('AgentThreadList', () => {
     expect(ids).toContain('conv-2');
   });
 
-  it('shows a labelled iconic status pill for the active thread while working', async () => {
+  it('shows an accessible animated dot for the active thread while working', async () => {
     const thread = createThread('conv-1', 'Assess desktop app readiness');
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'running';
@@ -1027,13 +1027,13 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByText('Assess desktop app readiness'),
     ).toBeInTheDocument();
-    const status = screen.getByText('Running');
+    const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status.querySelector('svg')).not.toBeNull();
-    expect(status.querySelector('.animate-ping')).toBeNull();
+    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
+    expect(screen.queryByText('Running')).toBeNull();
   });
 
-  it('shows a labelled iconic status pill for a non-active running thread', async () => {
+  it('shows an accessible animated dot for a non-active running thread', async () => {
     const thread = createThread('conv-1', 'Background run', {
       attentionState: 'running',
       runStatus: 'running',
@@ -1049,9 +1049,9 @@ describe('AgentThreadList', () => {
     render(<AgentThreadList apiService={apiService as never} />);
 
     expect(await screen.findByText('Background run')).toBeInTheDocument();
-    const status = screen.getByText('Running');
-    expect(status.querySelector('svg')).not.toBeNull();
-    expect(status.querySelector('.animate-ping')).toBeNull();
+    const status = screen.getByRole('status', { name: 'Running' });
+    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
+    expect(screen.queryByText('Running')).toBeNull();
   });
 
   it('shows failed state as an accessible red dot without a text badge', async () => {
@@ -1220,7 +1220,7 @@ describe('AgentThreadList', () => {
     expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 
-  it('shows a labelled iconic status pill while a local ui action is busy', async () => {
+  it('shows an accessible animated dot while a local ui action is busy', async () => {
     const thread = createThread('conv-1', 'Generate launch creative');
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'idle';
@@ -1236,9 +1236,9 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByText('Generate launch creative'),
     ).toBeInTheDocument();
-    const status = screen.getByText('Running');
+    const status = screen.getByRole('status', { name: 'Running' });
     expect(status).toBeInTheDocument();
-    expect(status.querySelector('svg')).not.toBeNull();
-    expect(status.querySelector('.animate-ping')).toBeNull();
+    expect(status).toHaveClass('animate-pulse', 'rounded-full', 'bg-info');
+    expect(screen.queryByText('Running')).toBeNull();
   });
 });

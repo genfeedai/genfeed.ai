@@ -80,12 +80,12 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/studio/edit/projects',
   '/:orgSlug/~/studio/edit/new',
   '/:orgSlug/~/studio/edit/:id',
-  '/:orgSlug/~/publish',
-  '/:orgSlug/~/publish/overview',
-  '/:orgSlug/~/publish/pending',
-  '/:orgSlug/~/publish/processing',
-  '/:orgSlug/~/publish/published',
-  '/:orgSlug/~/publish/scheduled',
+  '/:orgSlug/~/publishing',
+  '/:orgSlug/~/publishing/overview',
+  '/:orgSlug/~/publishing/pending',
+  '/:orgSlug/~/publishing/processing',
+  '/:orgSlug/~/publishing/published',
+  '/:orgSlug/~/publishing/scheduled',
 ] as const);
 
 export const PROTECTED_HARD_CUT_PREFIXES = Object.freeze([
@@ -174,7 +174,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/linkedin-content',
     '/podcast-to-content',
     '/pricing',
-    '/publisher',
+    '/publishing',
     '/research',
     '/retainer',
     '/self-hosted',

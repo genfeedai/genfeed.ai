@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/discover/overview');
+const mockUsePathname = vi.fn(() => '/discovery/overview');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
@@ -65,7 +65,7 @@ vi.mock('next/link', () => ({
 describe('TrendsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/discover/overview');
+    mockUsePathname.mockReturnValue('/discovery/overview');
 
     mockUseTrendContent.mockReturnValue({
       error: null,

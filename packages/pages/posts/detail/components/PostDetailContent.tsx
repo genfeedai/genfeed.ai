@@ -141,7 +141,7 @@ export default function PostDetailContent({
   getPostsService,
   notificationsService,
 }: PostDetailContentProps) {
-  const isEditable = scope === PageScope.PUBLISHER;
+  const isEditable = scope === PageScope.PUBLISHING;
 
   // Preview mode - clean read-only view
   if (viewMode === 'preview') {
@@ -200,7 +200,7 @@ export default function PostDetailContent({
         notificationsService={notificationsService}
       />
 
-      {/* Thread extras - only in Publisher scope */}
+      {/* Thread extras - only in Publishing scope */}
       {isEditable && (canAddThread || canAddFirstComment) && (
         <PostDetailThreadExtras
           canAddThread={canAddThread}

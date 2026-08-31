@@ -3,7 +3,7 @@
  *
  * OUTPUT category node that publishes content to social platforms.
  * Requires brand input connection for credentials.
- * Creates Post entities that are trackable in the Publisher app.
+ * Creates Post entities that are trackable in the Publishing app.
  */
 
 import type { BaseNodeData } from '../types';

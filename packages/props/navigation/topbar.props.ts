@@ -18,4 +18,5 @@ export interface TopbarProps {
 
 export interface TopbarLogoProps {
   logoHref: string;
+  size?: 'compact' | 'default';
 }

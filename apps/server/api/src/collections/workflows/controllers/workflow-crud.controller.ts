@@ -150,7 +150,7 @@ export class WorkflowCrudController {
 
     // `referencable=true` widens the list to every tenant workflow in the org
     // (workflow-reference pickers). `includeSystem=true` is the admin list of
-    // persisted system-workflow clones. Customer Automate never sees those.
+    // persisted system-workflow clones. Customer Automation never sees those.
     const where = buildWorkflowListWhere({
       brandId: query.brandId,
       includeSystem: query.includeSystem === true,

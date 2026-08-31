@@ -200,28 +200,28 @@ export default function AdsResearchPageClient({
               fullWidth: false,
               items: [
                 {
-                  href: APP_ROUTES.DISCOVER.ADS,
+                  href: APP_ROUTES.DISCOVERY.ADS,
                   id: 'all',
                   label: 'Overview',
                   matchMode: 'exact',
                 },
                 {
-                  href: APP_ROUTES.DISCOVER.ADS_META,
+                  href: APP_ROUTES.DISCOVERY.ADS_META,
                   id: 'meta',
                   label: 'Meta',
                 },
                 {
-                  href: APP_ROUTES.DISCOVER.ADS_GOOGLE,
+                  href: APP_ROUTES.DISCOVERY.ADS_GOOGLE,
                   id: 'google',
                   label: 'Google + YouTube',
                 },
                 {
-                  href: APP_ROUTES.DISCOVER.ADS_TIKTOK,
+                  href: APP_ROUTES.DISCOVERY.ADS_TIKTOK,
                   id: 'tiktok',
                   label: 'TikTok',
                 },
                 {
-                  href: APP_ROUTES.DISCOVER.ADS_X,
+                  href: APP_ROUTES.DISCOVERY.ADS_X,
                   id: 'x',
                   label: 'X',
                 },

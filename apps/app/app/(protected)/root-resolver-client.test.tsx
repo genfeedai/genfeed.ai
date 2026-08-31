@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -48,12 +54,6 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
     accessState: mocks.accessState,
     isLoading: mocks.isAccessStateLoading,
   }),
-}));
-
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: ({ message }: { message: string }) => (
-    <div data-testid="page-loading-state">{message}</div>
-  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -344,7 +344,7 @@ describe('ProtectedRootResolver', () => {
       screen.queryByRole('link', { name: 'Continue setup' }),
     ).not.toBeInTheDocument();
 
-    screen.getByRole('button', { name: 'Retry workspace' }).click();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry workspace' }));
 
     expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
   });

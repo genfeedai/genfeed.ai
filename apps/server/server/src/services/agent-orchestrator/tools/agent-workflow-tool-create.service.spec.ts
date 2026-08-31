@@ -79,7 +79,7 @@ describe('AgentWorkflowToolCreateService', () => {
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
       brandId: 'brand-1',
-      editorUrl: '/automate/workflows/wf-1',
+      editorUrl: '/automation/workflows/wf-1',
       id: 'wf-1',
       label: 'Launch pack',
     });

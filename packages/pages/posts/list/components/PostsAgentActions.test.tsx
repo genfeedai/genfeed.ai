@@ -27,7 +27,7 @@ describe('Posts agent actions', () => {
       ...baseHandlers,
       onRewriteWithAgent,
       onSuggestScheduleWithAgent,
-      scope: PageScope.PUBLISHER,
+      scope: PageScope.PUBLISHING,
     });
 
     const rewriteAction = actions.find(
@@ -53,7 +53,7 @@ describe('Posts agent actions', () => {
       editableStatuses: [PostStatus.DRAFT],
       onRewriteWithAgent,
       onSuggestScheduleWithAgent,
-      scope: PageScope.PUBLISHER,
+      scope: PageScope.PUBLISHING,
     });
 
     const rewriteAction = secondaryCardActions.find(

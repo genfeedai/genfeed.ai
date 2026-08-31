@@ -1,6 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import VoicesPage from '@protected/fleet/voices/voices-page';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Fleet Voices');
@@ -10,7 +9,7 @@ export default function FleetVoicesPage() {
   // It is intentionally separate from /admin/library/voices, which manages
   // the DB-backed shared voice catalog and curation toggles.
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <VoicesPage />
     </Suspense>
   );

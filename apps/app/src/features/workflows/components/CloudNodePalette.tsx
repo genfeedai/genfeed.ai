@@ -16,14 +16,22 @@ const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 export function CloudNodePalette() {
   const additionalNodes = useMemo((): PaletteNodeDefinition[] => {
     return ALL_ACTIONS.filter((action) => action.visibility === 'workflow').map(
-      (action) => ({
-        actionId: action.id,
-        category: 'processing',
-        description: action.description,
-        icon: 'Workflow',
-        label: action.label,
-        type: 'genfeedAction',
-      }),
+      (action) => {
+        if (!action.workflowCategory || !action.workflowIcon) {
+          throw new Error(
+            `Workflow action ${action.id} is missing presentation metadata`,
+          );
+        }
+
+        return {
+          actionId: action.id,
+          category: action.workflowCategory,
+          description: action.description,
+          icon: action.workflowIcon,
+          label: action.label,
+          type: 'genfeedAction',
+        };
+      },
     );
   }, []);
 

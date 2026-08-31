@@ -1,10 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  getPlaywrightJwtToken,
   normalizeAuthAvatarUrl,
   resolveAuthToken,
   resolveRequiredAuthToken,
 } from './auth.helper';
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+
+  return {
+    clear: () => {
+      store = {};
+    },
+    getItem: (key: string) => store[key] ?? null,
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+  };
+})();
+
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: localStorageMock,
+  writable: true,
+});
+
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: localStorageMock,
+  writable: true,
+});
 
 describe('normalizeAuthAvatarUrl', () => {
   it.each([
@@ -32,7 +62,7 @@ describe('normalizeAuthAvatarUrl', () => {
 
 describe('resolveAuthToken', () => {
   beforeEach(() => {
-    localStorage.clear();
+    localStorageMock.clear();
   });
 
   it('uses the provider token getter as the single acquisition choke point', async () => {
@@ -57,11 +87,22 @@ describe('resolveAuthToken', () => {
 
   it('falls back to the Playwright token when the provider has no token', async () => {
     const getToken = vi.fn().mockResolvedValue(null);
-    localStorage.setItem('__better_auth_client_jwt', 'playwright-token');
+    localStorageMock.setItem('__better_auth_client_jwt', 'playwright-token');
 
     await expect(resolveAuthToken(getToken)).resolves.toBe('playwright-token');
 
     expect(getToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores an unavailable browser storage implementation', () => {
+    const getItem = vi
+      .spyOn(localStorageMock, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('Storage unavailable');
+      });
+
+    expect(getPlaywrightJwtToken()).toBeNull();
+    getItem.mockRestore();
   });
 
   it('throws the boundary-specific error when no token is available', async () => {

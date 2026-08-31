@@ -7,7 +7,7 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import type {
   TrendContentItem,
@@ -120,7 +120,7 @@ export default function TrendContentCard({
   const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
   const router = useRouter();
-  const remixSurface = useOptionalDiscoverRemix();
+  const remixSurface = useOptionalDiscoveryRemix();
   const { href } = useOrgUrl();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);

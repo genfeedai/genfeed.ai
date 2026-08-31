@@ -4,6 +4,7 @@ import type { VisualNodeDefinition } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { BaseNode } from '../BaseNode';
+import { GenfeedActionNode } from './GenfeedActionNode';
 
 export const workflowSaaSNodeDefinitions = {
   genfeedAction: {
@@ -145,4 +146,6 @@ export const workflowSaaSNodeTypes = Object.fromEntries(
     nodeType,
     SaaSNode,
   ]),
-) as Record<WorkflowSaaSNodeType, typeof SaaSNode>;
+) as Record<WorkflowSaaSNodeType, typeof SaaSNode | typeof GenfeedActionNode>;
+
+workflowSaaSNodeTypes.genfeedAction = GenfeedActionNode;

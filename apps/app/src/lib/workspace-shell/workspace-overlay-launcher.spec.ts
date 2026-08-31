@@ -21,13 +21,13 @@ describe('workspace overlay launcher', () => {
 
     expect(
       resolveWorkspaceOverlayLaunch({
-        currentHref: '/acme/moonrise/automate/workflows?thread=thread-1',
+        currentHref: '/acme/moonrise/automation/workflows?thread=thread-1',
         invocation: 'user',
         overlay,
       }),
     ).toMatchObject({
       history: 'push',
-      href: '/acme/moonrise/automate/workflows?thread=thread-1&overlay=workflow-picker',
+      href: '/acme/moonrise/automation/workflows?thread=thread-1&overlay=workflow-picker',
       overlay,
     });
   });

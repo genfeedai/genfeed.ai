@@ -1,16 +1,16 @@
 import { ADMIN_MENU_ITEMS } from '@app-config/admin-menu-items.config';
 import { getAnalyticsMenuItemsForScope } from '@app-config/analytics-menu-items.config';
-import { AUTOMATE_MENU_ITEMS } from '@app-config/automate-menu-items.config';
-import { DISCOVER_MENU_ITEMS } from '@app-config/discover-menu-items.config';
+import { AUTOMATION_MENU_ITEMS } from '@app-config/automation-menu-items.config';
+import { DISCOVERY_MENU_ITEMS } from '@app-config/discovery-menu-items.config';
 import { LIBRARY_MENU_ITEMS } from '@app-config/library-menu-items.config';
 import {
   APP_MENU_ITEMS,
   getAppSecondaryMenuItems,
-  PUBLISH_INSERT_AFTER_LABEL,
+  PUBLISHING_INSERT_AFTER_LABEL,
 } from '@app-config/menu-items.config';
 import { getMessagesMenuItemsForScope } from '@app-config/messages-menu-items.config';
 import { ORG_MENU_ITEMS } from '@app-config/org-menu-items.config';
-import { PUBLISH_MENU_ITEMS } from '@app-config/publish-menu-items.config';
+import { PUBLISHING_MENU_ITEMS } from '@app-config/publishing-menu-items.config';
 import {
   buildSettingsMenuItems,
   type SettingsScope,
@@ -52,15 +52,19 @@ import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
-const AUTOMATE_WORKFLOW_RESERVED = new Set(['executions', 'new', 'templates']);
+const AUTOMATION_WORKFLOW_RESERVED = new Set([
+  'executions',
+  'new',
+  'templates',
+]);
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
     pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
     /^\/studio\/edit\/[^/]+$/.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_NEW ||
-    (/^\/automate\/workflows\/([^/]+)$/.test(pathname) &&
-      !AUTOMATE_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
+    pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
+    (/^\/automation\/workflows\/([^/]+)$/.test(pathname) &&
+      !AUTOMATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
   );
 }
 
@@ -91,29 +95,29 @@ export function useAppProtectedLayout(
     pathname === APP_ROUTES.ADMIN.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.ADMIN}/`);
   const isFocusedOnboardingRoute = isFocusedOnboardingPath(pathname);
-  const isDiscoverRoute =
-    pathname === APP_ROUTES.DISCOVER.ROOT ||
-    pathname.startsWith(`${APP_ROUTES.DISCOVER.ROOT}/`);
+  const isDiscoveryRoute =
+    pathname === APP_ROUTES.DISCOVERY.ROOT ||
+    pathname.startsWith(`${APP_ROUTES.DISCOVERY.ROOT}/`);
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.ASSETS;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
   const isMessagesInboxRoute = pathname === APP_ROUTES.MESSAGES.ROOT;
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
-  const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
+  const isPublishingRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISHING);
   // Dense studio canvases + mission-control runs: hide shell low-credits strip
   // so it does not steal vertical space under fixed chrome.
   const suppressShellLowCreditsBanner =
     /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname) ||
-    pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
-    pathname === APP_ROUTES.AUTOMATE.RUNS;
+    pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS ||
+    pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
-  const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
+  const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for leftover org destinations (Connect, etc.). Module
-  // routes under `/:org/~/workspace|publish|studio|…` keep their own app
-  // sidebars — otherwise Workspace/Publish steal the Organization menu.
+  // routes under `/:org/~/workspace|publishing|studio|…` keep their own app
+  // sidebars — otherwise Workspace/Publishing steal the Organization menu.
   const isOrgRoute = (() => {
     const parts = rawPathname.split('/').filter(Boolean);
     return (
@@ -122,12 +126,12 @@ export function useAppProtectedLayout(
       !pathname.startsWith(APP_ROUTE_PREFIXES.WORKSPACE) &&
       !pathname.startsWith(APP_ROUTE_PREFIXES.OVERVIEW) &&
       !isConversationRoute &&
-      !isPublishRoute &&
+      !isPublishingRoute &&
       !isAnalyticsRoute &&
       !isStudioRoute &&
       !isLibraryRoute &&
-      !isDiscoverRoute &&
-      !isAutomateRoute &&
+      !isDiscoveryRoute &&
+      !isAutomationRoute &&
       !isMessagesRoute
     );
   })();
@@ -142,12 +146,12 @@ export function useAppProtectedLayout(
     ? 'studio'
     : isLibraryRoute
       ? 'library'
-      : isDiscoverRoute
-        ? 'discover'
-        : isPublishRoute
-          ? 'publish'
-          : isAutomateRoute
-            ? 'automate'
+      : isDiscoveryRoute
+        ? 'discovery'
+        : isPublishingRoute
+          ? 'publishing'
+          : isAutomationRoute
+            ? 'automation'
             : isAnalyticsRoute
               ? 'analytics'
               : isMessagesRoute
@@ -183,7 +187,7 @@ export function useAppProtectedLayout(
   }, [getToken]);
 
   const dynamicMenuItems = useMenuItems({
-    insertAfterLabel: PUBLISH_INSERT_AFTER_LABEL,
+    insertAfterLabel: PUBLISHING_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
   const { orgSlug, brandSlug } = useOrgUrl();
@@ -299,9 +303,9 @@ export function useAppProtectedLayout(
     [isFastlaneEnabled, isFastlaneLoading, taskContextSearchParams],
   );
 
-  const publishMenuItems = useMemo(
+  const publishingMenuItems = useMemo(
     () =>
-      PUBLISH_MENU_ITEMS.map(
+      PUBLISHING_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -321,9 +325,9 @@ export function useAppProtectedLayout(
     [taskContextSearchParams],
   );
 
-  const automateMenuItems = useMemo(
+  const automationMenuItems = useMemo(
     () =>
-      AUTOMATE_MENU_ITEMS.map(
+      AUTOMATION_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -354,9 +358,9 @@ export function useAppProtectedLayout(
     [brandSlug, taskContextSearchParams],
   );
 
-  const discoverMenuItems = useMemo(
+  const discoveryMenuItems = useMemo(
     () =>
-      DISCOVER_MENU_ITEMS.map(
+      DISCOVERY_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
@@ -429,12 +433,12 @@ export function useAppProtectedLayout(
     isMessagesInboxRoute,
     isMoodboardRoute,
     isOrgRoute,
-    isPublishRoute,
+    isPublishingRoute,
     suppressShellLowCreditsBanner,
-    isDiscoverRoute,
+    isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
-    isAutomateRoute,
+    isAutomationRoute,
     isWorkspaceRoute,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
@@ -453,15 +457,13 @@ export function useAppProtectedLayout(
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    publishMenuItems,
-    discoverMenuItems,
+    publishingMenuItems,
+    discoveryMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    automateMenuItems,
+    automationMenuItems,
     messagesMenuItems,
-    // task context
-    taskContextSearchParams,
     // handlers
     handleNavigate,
     handleOpenCommandPalette,

@@ -211,7 +211,7 @@ The system includes 25+ default commands:
 
 - Go to Studio (`⌘1`)
 - Go to Manager (`⌘2`)
-- Go to Publisher (`⌘3`)
+- Go to Publishing (`⌘3`)
 - Go to Analytics (`⌘4`)
 - Go to Automation (`⌘5`)
 - Go to Dashboard (`⌘H`)

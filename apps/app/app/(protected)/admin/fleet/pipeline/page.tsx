@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
@@ -10,7 +9,7 @@ const PipelinePage = dynamic(
 
 export default function FleetPipelinePage() {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <PipelinePage />
     </Suspense>
   );

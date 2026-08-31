@@ -33,8 +33,8 @@ const DIVIDER_SOURCES = [
 ] as const;
 
 const WORKFLOW_ROUTE_SOURCES = [
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/workflows/[id]/WorkflowDetailPageClient.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/workflows/new/WorkflowNewPageClient.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/[id]/WorkflowDetailPageClient.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/new/WorkflowNewPageClient.tsx',
 ] as const;
 
 const LIGHT_THEME_CRITICAL_SOURCES = [
@@ -53,7 +53,7 @@ const CARD_MIGRATION_SOURCES = [
   'app/(onboarding)/onboarding/(wizard)/providers/providers-server-list.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-status-card.tsx',
   'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/autopilot/AgentStrategiesEmptyState.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/autopilot/AgentStrategiesEmptyState.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-list.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
@@ -67,9 +67,9 @@ const OVERLAY_MENU_SOURCES = [
 ] as const;
 
 const ICONIC_STATUS_SOURCES = [
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/AgentHubPage.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/runs/ActiveRunsPanel.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/runs/WorkflowExecutionCard.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/agents/AgentHubPage.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/runs/ActiveRunsPanel.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automation/runs/WorkflowExecutionCard.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx',
   'app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx',
   'src/features/workflows/components/editor/CloudCreditsIndicator.tsx',

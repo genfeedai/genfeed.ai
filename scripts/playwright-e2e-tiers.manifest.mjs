@@ -141,15 +141,16 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/discover/discovery.spec.ts',
+    file: 'playwright/e2e/tests/discovery/discovery.spec.ts',
     reason:
-      'Discover heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
+      'Discovery heading/copy drifted after overview canonicalization. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
   {
     file: 'playwright/e2e/tests/calendar/scheduling.spec.ts',
-    reason: 'Publish calendar assertions drifted. Evidence: run 31991510270.',
+    reason:
+      'Publishing calendar assertions drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -202,8 +203,8 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/discover/discover-interactions.spec.ts',
-    reason: 'Discover interaction copy drifted. Evidence: run 31991510270.',
+    file: 'playwright/e2e/tests/discovery/discovery-interactions.spec.ts',
+    reason: 'Discovery interaction copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -223,7 +224,7 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
   },
   {
     file: 'playwright/e2e/tests/automation/overview.spec.ts',
-    reason: 'Automate overview copy/nav drifted. Evidence: run 31991510270.',
+    reason: 'Automation overview copy/nav drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -235,13 +236,13 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
   },
   {
     file: 'playwright/e2e/tests/posts/posts-interactions.spec.ts',
-    reason: 'Publish desk interactions drifted. Evidence: run 31991510270.',
+    reason: 'Publishing desk interactions drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
   {
     file: 'playwright/e2e/tests/posts/publishing.spec.ts',
-    reason: 'Publish flow copy drifted. Evidence: run 31991510270.',
+    reason: 'Publishing flow copy drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },
@@ -295,7 +296,7 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
   {
     file: 'playwright/e2e/tests/posts/management.spec.ts',
     reason:
-      'Publish list tabs/cards still assert pre-desk copy after the POM prefix fix. Evidence: run 31991510270.',
+      'Publishing list tabs/cards still assert pre-desk copy after the POM prefix fix. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

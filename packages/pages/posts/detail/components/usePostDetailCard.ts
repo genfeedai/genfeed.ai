@@ -43,7 +43,7 @@ export function usePostDetailCard({
 }: UsePostDetailCardParams) {
   const { openConfirm } = useConfirmModal();
 
-  const isEditable = scope === PageScope.PUBLISHER;
+  const isEditable = scope === PageScope.PUBLISHING;
   const isParent = index === 0;
 
   const [localDescription, setLocalDescription] = useState(
@@ -82,7 +82,7 @@ export function usePostDetailCard({
     }
   }, [descriptionValue]);
 
-  // Auto-save effect (only in Publisher scope)
+  // Auto-save effect (only in Publishing scope)
   useEffect(() => {
     if (!isEditable || !performAutoSaveForPost) {
       return;

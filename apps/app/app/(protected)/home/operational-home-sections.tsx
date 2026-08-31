@@ -163,7 +163,7 @@ function ApprovalsSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const reviewHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.REVIEW)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REVIEW)
     : brandSetupHref;
 
   return (
@@ -282,7 +282,7 @@ function PublishingSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const postsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.OVERVIEW)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.OVERVIEW)
     : brandSetupHref;
   const recentExecutions = [...activeExecutions, ...executions]
     .filter(
@@ -472,7 +472,7 @@ function UpcomingScheduleSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const calendarHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.CALENDAR)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.CALENDAR)
     : brandSetupHref;
   const totalScheduled =
     scheduleDays?.reduce((total, day) => total + day.count, 0) ?? 0;

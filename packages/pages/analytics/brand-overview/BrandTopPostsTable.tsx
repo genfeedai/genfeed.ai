@@ -1,7 +1,7 @@
 'use client';
 
 import { PostStatus } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,
@@ -41,7 +41,7 @@ export default function BrandTopPostsTable({
       bodyClassName="gap-3 p-4 pb-0"
       headerAction={
         <Link
-          href={getPublisherPostsHref({ status: PostStatus.PUBLIC })}
+          href={getPublishingPostsHref({ status: PostStatus.PUBLIC })}
           className="text-sm text-primary hover:underline flex items-center gap-1"
         >
           View All

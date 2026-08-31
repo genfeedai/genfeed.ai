@@ -28,7 +28,7 @@ const ORG_BRAND = '/test-org/brand-1';
 // carries the inline composer that these failure paths exercise.
 const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
 const WRITE_ROUTE = `${ORG_BRAND}/agent/new`;
-const AUTOMATE_ROUTE = `${ORG_BRAND}/automate`;
+const AUTOMATE_ROUTE = `${ORG_BRAND}/automation`;
 
 type Page = Parameters<typeof mockInsufficientCredits>[0];
 
@@ -107,7 +107,7 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('automate stays healthy on insufficient credits', async ({
+  test('Automation stays healthy on insufficient credits', async ({
     authenticatedPage,
   }) => {
     await mockInsufficientCredits(authenticatedPage);
@@ -128,7 +128,7 @@ test.describe('Billing limits — credit and subscription gating', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('automate stays healthy under an expired subscription', async ({
+  test('Automation stays healthy under an expired subscription', async ({
     authenticatedPage,
   }) => {
     await mockExpiredSubscription(authenticatedPage);

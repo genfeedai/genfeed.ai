@@ -1,3 +1,4 @@
+import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import type { UseOrganizationReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
@@ -41,7 +42,10 @@ export function useOrganization(): UseOrganizationReturn {
           [key]: value,
         });
 
-        // Refresh settings from context to get updated values
+        // Organization settings are part of the protected bootstrap payload.
+        // Clear its 60s snapshot before refetching so the saved value is not
+        // immediately replaced by stale bootstrap data.
+        clearClientProtectedBootstrapCache();
         await refresh();
 
         logger.info(`${url} success`);

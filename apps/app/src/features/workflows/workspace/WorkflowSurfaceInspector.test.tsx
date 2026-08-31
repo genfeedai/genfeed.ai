@@ -111,7 +111,7 @@ describe('WorkflowSurfaceInspector', () => {
     render(
       <WorkflowSurfaceInspector
         contextVersion={4}
-        pathname="/acme/moonrise/automate/workflows/executions/run-1"
+        pathname="/acme/moonrise/automation/workflows/executions/run-1"
         searchParams={new URLSearchParams({ thread: 'thread-1' })}
         threadId="thread-1"
       />,
@@ -157,7 +157,7 @@ describe('WorkflowSurfaceInspector', () => {
     render(
       <WorkflowSurfaceInspector
         contextVersion={4}
-        pathname="/acme/moonrise/automate/workflows/executions/run-1"
+        pathname="/acme/moonrise/automation/workflows/executions/run-1"
         searchParams={new URLSearchParams({ thread: 'thread-1' })}
         threadId="thread-1"
       />,
@@ -174,7 +174,7 @@ describe('WorkflowSurfaceInspector', () => {
         { expectedContextVersion: 4, threadId: 'thread-1' },
       );
       expect(router.push).toHaveBeenCalledWith(
-        '/acme/moonrise/automate/workflows/executions/run-2?thread=thread-1',
+        '/acme/moonrise/automation/workflows/executions/run-2?thread=thread-1',
       );
     });
   });

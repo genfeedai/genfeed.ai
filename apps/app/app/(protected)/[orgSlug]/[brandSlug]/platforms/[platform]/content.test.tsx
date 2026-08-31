@@ -228,7 +228,7 @@ describe('PlatformHomePage', () => {
     expect(screen.getByText('Healthy')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Queue' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/publish/scheduled?platform=instagram',
+      '/acme/moonrise/publishing/scheduled?platform=instagram',
     );
     expect(screen.getByRole('link', { name: 'Open Create' })).toHaveAttribute(
       'href',
@@ -268,7 +268,7 @@ describe('PlatformHomePage', () => {
 
     expect(screen.getByRole('link', { name: 'Open Live' })).toHaveAttribute(
       'href',
-      '/acme/moonrise/automate/library/youtube-chat',
+      '/acme/moonrise/automation/library/youtube-chat',
     );
     expect(screen.getByRole('link', { name: 'Open Replies' })).toHaveAttribute(
       'href',

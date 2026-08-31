@@ -1,4 +1,3 @@
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import ModelsTypePageClientContent from './page-content';
 
@@ -8,7 +7,7 @@ export default function ModelsTypePage({
   params: Promise<{ type: string }>;
 }) {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <ModelsTypePageLoader params={params} />
     </Suspense>
   );

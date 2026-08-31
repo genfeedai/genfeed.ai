@@ -244,7 +244,7 @@ export function useArticleDetail({
       const service = await getArticlesService();
       await service.delete(resolvedId);
       notificationsService.success('Article deleted');
-      router.push(href(APP_ROUTES.PUBLISH.ROOT));
+      router.push(href(APP_ROUTES.PUBLISHING.ROOT));
     } catch (err) {
       logger.error('Failed to delete article', err);
       notificationsService.error('Failed to delete article');

@@ -5,7 +5,7 @@ import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =
   | 'auto'
-  | 'automate'
+  | 'automation'
   | 'edit'
   | 'generate'
   | 'write';
@@ -23,18 +23,18 @@ const KNOWN_PROTECTED_PREFIXES = [
   'studio',
   'settings',
   'agents',
-  'publish',
+  'publishing',
   'analytics',
   'library',
   'agent',
   'messages',
-  'discover',
+  'discovery',
   'overview',
   'platforms',
   'ingredients',
   'videos',
   'edit',
-  'automate',
+  'automation',
   'elements',
   'bots',
   'admin',
@@ -165,19 +165,19 @@ export function normalizeProtectedPathname(
  * (post-{@link normalizeProtectedPathname}), so pass a normalized pathname.
  *
  * Covers the five product sections plus their canonical route aliases: Workspace
- * (`/workspace`, `/overview`), Library, Analytics, Automate
- * (`/automate`, including merged workflows), and the Calendar
- * (`/publish/calendar`). The agent, settings, studio, discover,
+ * (`/workspace`, `/overview`), Library, Analytics, Automation
+ * (`/automation`, including merged workflows), and the Calendar
+ * (`/publishing/calendar`). The agent, settings, studio, discovery,
  * messages, and admin surfaces are intentionally NOT gated — nor is the rest of
- * Publish outside its Calendar.
+ * Publishing outside its Calendar.
  */
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
   '/overview',
   '/library',
   '/analytics',
-  '/automate',
-  '/publish/calendar',
+  '/automation',
+  '/publishing/calendar',
 ] as const;
 
 export function isAssetGateSectionPath(normalizedPathname: string): boolean {
@@ -359,8 +359,8 @@ function getTaskLaunchPath(
     return capabilities.studio ? APP_ROUTES.STUDIO.EDIT : APP_ROUTES.AGENT.NEW;
   }
 
-  if (mode === 'automate') {
-    return APP_ROUTES.AUTOMATE.WORKFLOWS;
+  if (mode === 'automation') {
+    return APP_ROUTES.AUTOMATION.WORKFLOWS;
   }
 
   switch (task.executionPathUsed) {
@@ -370,7 +370,7 @@ function getTaskLaunchPath(
     case 'video_generation':
       return APP_ROUTES.AGENT.NEW;
     default:
-      return APP_ROUTES.AUTOMATE.WORKFLOWS;
+      return APP_ROUTES.AUTOMATION.WORKFLOWS;
   }
 }
 

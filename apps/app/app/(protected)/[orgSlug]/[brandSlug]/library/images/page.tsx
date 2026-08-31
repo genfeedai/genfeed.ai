@@ -4,7 +4,6 @@ import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Images');
@@ -24,7 +23,7 @@ export default function LibraryImagesPage() {
       scope={PageScope.BRAND}
       seededCategories={PRESET.categories}
     >
-      <Suspense fallback={<PageLoadingState />}>
+      <Suspense fallback={null}>
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

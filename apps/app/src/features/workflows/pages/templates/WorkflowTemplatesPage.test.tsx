@@ -85,7 +85,7 @@ describe('WorkflowTemplatesPage', () => {
       screen.getByRole('button', { name: 'All Templates' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('templates-content')).toBeInTheDocument();
-    expect(screen.getByTestId('templates-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('templates-skeleton')).toBeNull();
 
     resolveTemplates([]);
     await waitFor(() => {

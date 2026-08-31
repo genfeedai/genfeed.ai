@@ -134,7 +134,7 @@ describe('handleFormModEnterSubmit', () => {
           type="submit"
           name="intent"
           value="publish"
-          formaction="/publish"
+          formaction="/publishing"
           formmethod="post"
         >
           Publish
@@ -159,7 +159,7 @@ describe('handleFormModEnterSubmit', () => {
     expect(requestSubmit).toHaveBeenCalledWith(submitter);
     expect(submitter).toHaveAttribute('name', 'intent');
     expect(submitter).toHaveAttribute('value', 'publish');
-    expect(submitter).toHaveAttribute('formaction', '/publish');
+    expect(submitter).toHaveAttribute('formaction', '/publishing');
     expect(submitter).toHaveAttribute('formmethod', 'post');
   });
 

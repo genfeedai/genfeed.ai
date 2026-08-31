@@ -135,7 +135,10 @@ export async function fetchPosts({
   };
 
   // Load posts based on scope (collection endpoints with brand/org query filters)
-  if ((scope === PageScope.BRAND || scope === PageScope.PUBLISHER) && brandId) {
+  if (
+    (scope === PageScope.BRAND || scope === PageScope.PUBLISHING) &&
+    brandId
+  ) {
     const service = await getBrandsService();
     url = `GET /posts?brandId=${brandId}`;
     data = await service.findBrandPostsPage(brandId, query);

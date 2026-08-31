@@ -10,7 +10,7 @@ export { AnalyticsPage } from './analytics.page';
 export { BrandsPage } from './brands.page';
 export { CalendarPage } from './calendar.page';
 export { ACTIVITY_URL, DashboardPage } from './dashboard.page';
-export { DiscoverPage } from './discover.page';
+export { DiscoveryPage } from './discovery.page';
 export { LoginPage } from './login.page';
 export { MarketplacePage } from './marketplace.page';
 export { OnboardingPage } from './onboarding.page';

@@ -2,7 +2,11 @@ import { ActivityKey, getActivityMessageDescriptor } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getActivityDescription } from './activities-list.utils';
+import {
+  getActivityCreditAmount,
+  getActivityDescription,
+  getActivitySourceLabel,
+} from './activities-list.utils';
 
 describe('getActivityDescription', () => {
   it('delegates catalog-backed activity copy to the supplied formatter', () => {
@@ -49,5 +53,16 @@ describe('getActivityDescription', () => {
         }),
       }),
     );
+  });
+
+  it('exposes structured source and credit metadata for compact activity feeds', () => {
+    const activity = {
+      key: ActivityKey.CREDITS_REMOVE,
+      source: 'prompt-create',
+      value: JSON.stringify({ value: 1 }),
+    } as IActivity;
+
+    expect(getActivitySourceLabel(activity.source)).toBe('Prompt creation');
+    expect(getActivityCreditAmount(activity)).toBe(1);
   });
 });

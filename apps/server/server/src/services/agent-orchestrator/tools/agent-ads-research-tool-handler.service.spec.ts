@@ -1,6 +1,6 @@
+import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { AgentToolResult } from '@genfeedai/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 const CONTEXT: ToolExecutionContext = {
@@ -62,7 +62,7 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
   // `/{orgSlug}/{brandSlug}` (or `/{orgSlug}/~`) before the result reaches the
   // UI. The bare path must therefore match a real route segment — the app has
   // no compatibility redirect for retired surfaces.
-  it('points ads CTAs at the discover ads routes', async () => {
+  it('points ads CTAs at the discovery ads routes', async () => {
     const { adsResearchService, handler } = createHandler({
       listAds: vi.fn().mockResolvedValue({
         connectedAds: [],
@@ -81,8 +81,8 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
 
     expect(adsResearchService.listAds).toHaveBeenCalled();
     expect(readCtaHrefs(result)).toEqual([
-      '/discover/ads/meta',
-      '/discover/ads',
+      '/discovery/ads/meta',
+      '/discovery/ads',
     ]);
   });
 
@@ -127,7 +127,7 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
     );
   });
 
-  it('points remix workflow CTAs at the automate workflows routes', async () => {
+  it('points remix workflow CTAs at the automation workflows routes', async () => {
     const { handler } = createHandler();
 
     const result = await handler.createAdRemixWorkflow(
@@ -136,12 +136,12 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
     );
 
     expect(readCtaHrefs(result)).toEqual([
-      '/automate/workflows/workflow-1',
-      '/automate/workflows',
+      '/automation/workflows/workflow-1',
+      '/automation/workflows',
     ]);
   });
 
-  it('points launch prep CTAs at the automate workflows and ads routes', async () => {
+  it('points launch prep CTAs at the automation workflows and ads routes', async () => {
     const { handler } = createHandler();
 
     const result = await handler.prepareAdLaunchReview(
@@ -150,8 +150,8 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
     );
 
     expect(readCtaHrefs(result)).toEqual([
-      '/automate/workflows/workflow-1',
-      '/discover/ads',
+      '/automation/workflows/workflow-1',
+      '/discovery/ads',
     ]);
   });
 

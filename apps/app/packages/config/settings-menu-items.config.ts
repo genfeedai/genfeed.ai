@@ -345,5 +345,3 @@ export function buildSettingsMenuItems({
 
   return buildPersonalMenuItems();
 }
-
-export const SETTINGS_LOGO_HREF = APP_ROUTES.WORKSPACE.OVERVIEW;

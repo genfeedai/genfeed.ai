@@ -3,7 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IStudioLook } from '@genfeedai/interfaces';
-import type { GenerationSetupPopoverProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import type {
+  GenerationSetupCustomizeSectionId,
+  GenerationSetupPopoverProps,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupCustomizePanel from '@ui/dropdowns/generation-setup/GenerationSetupCustomizePanel';
 import GenerationSetupFrontDoor from '@ui/dropdowns/generation-setup/GenerationSetupFrontDoor';
 import GenerationSetupSearch from '@ui/dropdowns/generation-setup/GenerationSetupSearch';
@@ -58,6 +61,8 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   const translate = useTranslations('agent.generationSetup');
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<GenerationSetupView>('front-door');
+  const [customizeSection, setCustomizeSection] =
+    useState<GenerationSetupCustomizeSectionId>();
 
   function handleOpenChange(open: boolean): void {
     if (isDisabled) {
@@ -66,7 +71,13 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
     setIsOpen(open);
     if (!open) {
       setView('front-door');
+      setCustomizeSection(undefined);
     }
+  }
+
+  function handleCustomize(section?: GenerationSetupCustomizeSectionId): void {
+    setCustomizeSection(section);
+    setView('customize');
   }
 
   function handleApplyPreset(preset: IStudioLook): void {
@@ -137,7 +148,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 isPresetsLoading={isPresetsLoading}
                 models={models}
                 onApplyPreset={handleApplyPreset}
-                onCustomize={() => setView('customize')}
+                onCustomize={handleCustomize}
                 onDeletePreset={onDeletePreset}
                 onSearch={() => setView('search')}
                 presets={presets}
@@ -165,6 +176,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 creditQuoteLabel={creditQuoteLabel}
                 creditsAvailable={creditsAvailable}
                 favoriteModelKeys={favoriteModelKeys}
+                initialSection={customizeSection}
                 isDisabled={isDisabled}
                 lookOptions={lookOptions}
                 models={models}

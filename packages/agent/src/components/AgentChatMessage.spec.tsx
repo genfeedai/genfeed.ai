@@ -184,23 +184,26 @@ describe('AgentChatMessage', () => {
     );
 
     expect(screen.getByText('Show more')).toBeTruthy();
+    expect(screen.getByText('Show more').previousElementSibling).toHaveClass(
+      'max-h-24',
+    );
   });
 
-  it('does not collapse a user prompt at the 600-character cap', () => {
+  it('does not collapse a user prompt at the 320-character cap', () => {
     render(
-      <AgentChatMessage message={buildMessage('user', 'C'.repeat(600))} />,
+      <AgentChatMessage message={buildMessage('user', 'C'.repeat(320))} />,
     );
 
     expect(screen.queryByText('Show more')).toBeNull();
   });
 
-  it('collapses a short user prompt that exceeds eight lines', () => {
-    const nineLinePrompt = Array.from(
-      { length: 9 },
+  it('collapses a short user prompt that exceeds four lines', () => {
+    const fiveLinePrompt = Array.from(
+      { length: 5 },
       (_, index) => `line ${index + 1}`,
     ).join('\n');
 
-    render(<AgentChatMessage message={buildMessage('user', nineLinePrompt)} />);
+    render(<AgentChatMessage message={buildMessage('user', fiveLinePrompt)} />);
 
     expect(screen.getByText('Show more')).toBeTruthy();
   });
@@ -314,10 +317,65 @@ describe('AgentChatMessage', () => {
     expect(surface).toBeTruthy();
     expect(surface).toHaveClass('bg-tertiary');
     expect(surface).toHaveClass('rounded-xl');
+    expect(surface).toHaveClass('shadow-none');
     expect(surface?.parentElement).toHaveClass('sticky');
     expect(surface?.parentElement).toHaveClass('bg-background');
     expect(surface?.parentElement).not.toHaveClass('justify-end');
     expect(surface?.parentElement).toHaveClass('justify-start');
+  });
+
+  it('keeps user prompt actions available but reveals them on hover or focus', () => {
+    render(
+      <AgentChatMessage
+        message={buildMessage('user', 'Copy this prompt')}
+        onCopy={vi.fn()}
+      />,
+    );
+
+    const copyButton = screen.getByRole('button', { name: 'Copy message' });
+    const actions = copyButton.closest('.opacity-0');
+    expect(actions).toBeTruthy();
+    expect(actions).toHaveClass('opacity-0');
+    expect(actions).toHaveClass('group-hover:opacity-100');
+    expect(actions).toHaveClass('group-focus-within:opacity-100');
+    expect(actions).toHaveClass('[@media(hover:none)]:opacity-100');
+  });
+
+  it('offers retry only when the user prompt owns the terminal failure', () => {
+    const onRetry = vi.fn();
+    const message = buildMessage('user', 'Try this prompt');
+    const { rerender } = render(
+      <AgentChatMessage message={message} onRetry={onRetry} />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Retry message' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <AgentChatMessage
+        isRetryableUserPrompt
+        message={message}
+        onRetry={onRetry}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Retry message' }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not apply scroll-focus shadow to a highlighted user prompt', () => {
+    const { container } = render(
+      <AgentChatMessage
+        isHighlighted
+        message={buildMessage('user', 'Focused prompt')}
+      />,
+    );
+
+    const surface = container.querySelector('[data-message-role="user"]');
+    expect(surface).toHaveClass('shadow-none');
+    expect(surface?.className).not.toContain(SCROLL_FOCUS_SURFACE_CLASS);
   });
 
   it('renders publish success CTA links from content preview cards', () => {
@@ -329,7 +387,7 @@ describe('AgentChatMessage', () => {
             uiActions: [
               {
                 ctas: [
-                  { href: '/publish', label: 'Open posts' },
+                  { href: '/publishing', label: 'Open posts' },
                   {
                     href: '/analytics/posts?postId=post-1',
                     label: 'Open analytics',
@@ -347,7 +405,7 @@ describe('AgentChatMessage', () => {
 
     expect(screen.getByRole('link', { name: 'Open posts' })).toHaveAttribute(
       'href',
-      '/publish',
+      '/publishing',
     );
     expect(
       screen.getByRole('link', { name: 'Open analytics' }),
@@ -483,7 +541,7 @@ describe('AgentChatMessage', () => {
                   },
                 ],
                 primaryCta: {
-                  href: '/publish/drafts',
+                  href: '/publishing/posts?publicationState=not-posted',
                   label: 'Review Draft',
                 },
                 secondaryCtas: [
@@ -518,7 +576,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('3 ad variations')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review Draft' })).toHaveAttribute(
       'href',
-      '/publish/review',
+      '/publishing/posts?publicationState=not-posted',
     );
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(
@@ -551,7 +609,7 @@ describe('AgentChatMessage', () => {
                 id: 'completion-card-2',
                 outcomeBullets: ['Workflow scheduled for weekdays at 5pm'],
                 primaryCta: {
-                  href: '/automate/workflows/workflow-1',
+                  href: '/automation/workflows/workflow-1',
                   label: 'Use in Workflow',
                 },
                 status: 'completed',
@@ -573,7 +631,7 @@ describe('AgentChatMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Use in Workflow' }),
-    ).toHaveAttribute('href', '/automate/workflows/workflow-1');
+    ).toHaveAttribute('href', '/automation/workflows/workflow-1');
     expect(screen.queryByRole('img', { name: /Variant/i })).toBeNull();
   });
 

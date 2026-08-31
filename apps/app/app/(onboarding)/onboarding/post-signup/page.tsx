@@ -1,32 +1,23 @@
 'use client';
 
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import PostSignupFallback from './PostSignupFallback';
 import { usePostSignupRouting } from './use-post-signup-routing.hook';
 
 function PostSignupPageContent() {
-  const {
-    showFallback,
-    statusMessage,
-    resolveOnboardingHref,
-    retryBrandOsHandoff,
-  } = usePostSignupRouting();
+  const { showFallback, resolveOnboardingHref, retryBrandOsHandoff } =
+    usePostSignupRouting();
 
-  return (
-    <PageLoadingState
-      className="bg-primary"
-      fullScreen={true}
-      message={statusMessage}
-    >
-      {showFallback ? (
+  return showFallback ? (
+    <main className="flex min-h-dvh items-center justify-center bg-primary px-6 py-10">
+      <div className="w-full max-w-md">
         <PostSignupFallback
           resolveOnboardingHref={resolveOnboardingHref}
           retryBrandOsHandoff={retryBrandOsHandoff}
         />
-      ) : null}
-    </PageLoadingState>
-  );
+      </div>
+    </main>
+  ) : null;
 }
 
 export default function PostSignupPage() {

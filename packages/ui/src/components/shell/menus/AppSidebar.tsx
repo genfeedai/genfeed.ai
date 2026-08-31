@@ -24,7 +24,6 @@ export interface AppSidebarProps extends BaseMenuProps {
   secondaryItems?: MenuShellConfig['secondaryItems'];
   sectionLabel?: string;
   isCollapsed?: MenuSharedProps['isCollapsed'];
-  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   showPrimaryItems?: MenuSharedProps['showPrimaryItems'];
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   conversationActions?: MenuSharedProps['conversationActions'];
@@ -32,7 +31,6 @@ export interface AppSidebarProps extends BaseMenuProps {
   showUserProfile?: MenuSharedProps['showUserProfile'];
   orgSwitcherSlot?: MenuSharedProps['orgSwitcherSlot'];
   items: MenuShellConfig['items'];
-  logoHref?: string;
 }
 
 export default function AppSidebar({
@@ -49,7 +47,6 @@ export default function AppSidebar({
   secondaryItems,
   sectionLabel,
   isCollapsed,
-  onToggleCollapse,
   showPrimaryItems,
   sidebarWidth,
   conversationActions,
@@ -57,16 +54,15 @@ export default function AppSidebar({
   showUserProfile = false,
   orgSwitcherSlot,
   items,
-  logoHref = '/',
 }: AppSidebarProps) {
   const config = useMemo<MenuShellConfig>(
     () => ({
       items,
-      logoHref,
+      logoHref: '/',
       primaryAction,
       secondaryItems,
     }),
-    [items, logoHref, primaryAction, secondaryItems],
+    [items, primaryAction, secondaryItems],
   );
 
   return (
@@ -83,7 +79,6 @@ export default function AppSidebar({
       backLabel={backLabel}
       sectionLabel={sectionLabel}
       isCollapsed={isCollapsed}
-      onToggleCollapse={onToggleCollapse}
       showPrimaryItems={showPrimaryItems}
       sidebarWidth={sidebarWidth}
       conversationActions={conversationActions}

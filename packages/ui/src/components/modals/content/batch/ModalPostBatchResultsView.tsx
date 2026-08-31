@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCategory, ButtonVariant, PostStatus } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
+import { getPublishingPostsHref } from '@genfeedai/helpers/content/posts.helper';
 import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
@@ -146,7 +146,7 @@ export default function ModalPostBatchResultsView({
                   variant={ButtonVariant.DEFAULT}
                   onClick={() => {
                     push(
-                      `${EnvironmentService.apps.app}${getPublisherPostsHref({
+                      `${EnvironmentService.apps.app}${getPublishingPostsHref({
                         status: PostStatus.SCHEDULED,
                       })}`,
                     );

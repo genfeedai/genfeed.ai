@@ -1,9 +1,3 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { InstagramInspirationService } from '@server/services/instagram-inspiration/instagram-inspiration.service';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -15,6 +9,12 @@ import type {
 } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { InstagramInspirationService } from '@server/services/instagram-inspiration/instagram-inspiration.service';
 
 function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
@@ -155,7 +155,7 @@ export class AgentInstagramInspirationToolHandler {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${result.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${result.workflowId}`,
               label: 'Review workflow',
             },
           ],

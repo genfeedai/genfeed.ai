@@ -4,6 +4,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import {
   act,
   fireEvent,
@@ -74,6 +75,7 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: function MockPromptBarContainer(props: {
     children?: ReactNode;
+    containerRef?: (node: HTMLDivElement | null) => void;
     layoutMode?: string;
     maxWidth?: string;
     showTopFade?: boolean;
@@ -84,6 +86,7 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
         data-layout-mode={props.layoutMode}
         data-max-width={props.maxWidth}
         data-show-top-fade={props.showTopFade ? 'true' : 'false'}
+        ref={props.containerRef}
       >
         {props.topContent}
         {props.children}
@@ -137,11 +140,17 @@ vi.mock('../utils/extract-thread-assets', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: {
     density?: string;
+    onStop?: () => void | Promise<void>;
     showStop?: boolean;
   }) {
     return (
       <div data-density={props.density} data-testid="chat-input">
-        chat-input{props.showStop ? ' stop-visible' : ''}
+        chat-input
+        {props.showStop ? (
+          <button type="button" onClick={props.onStop}>
+            Stop agent
+          </button>
+        ) : null}
       </div>
     );
   },
@@ -149,6 +158,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
+    isRetryableUserPrompt?: boolean;
     message?: {
       role?: string;
       metadata?: {
@@ -172,7 +182,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
     return (
       <div>
         message
-        {props.message?.role === 'assistant' ? (
+        {props.isRetryableUserPrompt ? (
           <button
             type="button"
             onClick={() => {
@@ -269,6 +279,7 @@ type StoreState = {
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
+  clearStaleActiveRun: ReturnType<typeof vi.fn>;
   draftPlanModeEnabled: boolean;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
@@ -334,6 +345,7 @@ const storeState: StoreState = {
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
+  clearStaleActiveRun: vi.fn(),
   draftPlanModeEnabled: false,
   error: null,
   hasMoreMessages: false,
@@ -482,6 +494,7 @@ describe('AgentChatContainer', () => {
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
+    storeState.clearStaleActiveRun.mockReset();
     storeState.prependOlderMessages.mockClear();
     storeState.setActiveThread.mockReset();
     storeState.setActiveRun.mockReset();
@@ -514,11 +527,74 @@ describe('AgentChatContainer', () => {
     storeState.runStartedAt = null;
     storeState.stream.pendingUiActions = [];
     storeState.stream.streamingContent = '';
+    storeState.workEvents = [];
     storeState.threads = [];
     storeState.isGenerating = false;
     storeState.error = null;
     storeState.activeRunId = 'run-1';
     storeState.activeRunStatus = 'running';
+  });
+
+  it('clears a stale local run when the server has no active execution for the thread', async () => {
+    const apiService = createApiService();
+    storeState.activeRunId = 'run-stale';
+    storeState.activeRunStatus = 'running';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('reconciles a terminal snapshot run that arrives after the first active execution query', async () => {
+    const apiService = createApiService();
+    storeState.activeRunId = null;
+
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(1);
+    });
+    expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
+
+    storeState.activeRunId = 'run-from-terminal-snapshot';
+    view.rerender(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(2);
+      expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('does not clear a newer run that starts while active execution recovery is pending', async () => {
+    let resolveExecutions: (executions: []) => void = () => undefined;
+    const apiService = createApiService({
+      getActiveWorkflowExecutions: vi.fn(
+        () =>
+          new Promise<[]>((resolve) => {
+            resolveExecutions = resolve;
+          }),
+      ),
+    });
+    storeState.activeRunId = 'run-stale';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(1);
+    });
+    storeState.activeRunId = 'run-new';
+    resolveExecutions([]);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
   });
 
   it('submits pending input through the response endpoint instead of chat send', async () => {
@@ -715,6 +791,40 @@ describe('AgentChatContainer', () => {
     ).not.toBeNull();
 
     portalTarget.remove();
+  });
+
+  it('includes the surface dock inset when padding the transcript', async () => {
+    const apiService = createApiService();
+    const composerDock = document.createElement('div');
+    const portalTarget = document.createElement('div');
+    composerDock.append(portalTarget);
+    document.body.append(composerDock);
+    vi.spyOn(composerDock, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ height: 297 }),
+    );
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-composer-padding="313"]'),
+      ).not.toBeNull();
+    });
+
+    composerDock.remove();
   });
 
   it('does not render a conversation composer when the product surface owns the primary input', () => {
@@ -1104,7 +1214,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('queues retry from an older message while a turn is in flight', async () => {
+  it('does not offer retry on a completed historical turn while busy', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1125,15 +1235,10 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    const retryButton = await screen.findByRole('button', {
-      name: 'Retry message',
-    });
-    fireEvent.click(retryButton);
-
+    expect(
+      screen.queryByRole('button', { name: 'Retry message' }),
+    ).not.toBeInTheDocument();
     expect(sendNonStreaming).not.toHaveBeenCalled();
-    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
-      'Original prompt',
-    );
   });
 
   it('dispatches queued follow-ups in FIFO order after a successful response', async () => {
@@ -1270,6 +1375,40 @@ describe('AgentChatContainer', () => {
     });
     expect(sendNonStreaming.mock.calls[0]?.[0]).toBe(
       'Review the current branch',
+    );
+  });
+
+  it('treats a missing execution as an already-settled stop', async () => {
+    const apiService = createApiService({
+      cancelWorkflowExecution: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          detail: 'Execution not found',
+          message: 'Failed to cancel workflow execution: 404',
+          source: 'api',
+          status: 404,
+        }),
+      ),
+      getActiveWorkflowExecutions: vi.fn().mockResolvedValue([
+        {
+          id: 'run-1',
+          metadata: { threadId: 'thread-1' },
+          status: 'RUNNING',
+        },
+      ]),
+    });
+    isStreamingHookActive = true;
+    storeState.activeRunId = 'run-1';
+    storeState.activeRunStatus = 'running';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+    fireEvent.click(screen.getByRole('button', { name: 'Stop agent' }));
+
+    await waitFor(() => {
+      expect(apiService.cancelWorkflowExecution).toHaveBeenCalledWith('run-1');
+    });
+    expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to stop the active agent run.',
     );
   });
 
@@ -1416,7 +1555,7 @@ describe('AgentChatContainer', () => {
     expect(sendStreaming.mock.calls[0]?.[0]).toBe('Stream first');
   });
 
-  it('scrolls to the latest turn when retrying from an older message', async () => {
+  it('retries the user prompt that owns the terminal failure', async () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1428,21 +1567,26 @@ describe('AgentChatContainer', () => {
         role: 'user',
         threadId: 'thread-1',
       },
-      buildAssistantMessage({
-        content: 'Initial failed result',
-        id: 'assistant-retry-target',
-      }),
+    ];
+    storeState.workEvents = [
+      {
+        createdAt: '2026-03-10T10:00:00.000Z',
+        detail: 'Provider unavailable',
+        event: AgentWorkEventType.FAILED,
+        id: 'failed-run-event',
+        label: 'Generation failed',
+        runId: 'run-failed',
+        status: AgentWorkEventStatus.FAILED,
+        threadId: 'thread-1',
+        toolName: 'generate_image',
+      },
     ];
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    const retryButton = screen.getAllByRole('button', {
+    const retryButton = screen.getByRole('button', {
       name: 'Retry message',
-    })[0];
-
-    if (!retryButton) {
-      throw new Error('Retry message button not found');
-    }
+    });
 
     fireEvent.click(retryButton);
 
@@ -1506,7 +1650,9 @@ describe('AgentChatContainer', () => {
     );
 
     expect(screen.getByText('message')).toBeInTheDocument();
-    expect(screen.getByText('chat-input stop-visible')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Stop agent' }),
+    ).toBeInTheDocument();
   });
 
   it('renders a streaming row when the agent is active and keeps stop visible in the composer', () => {
@@ -1521,7 +1667,9 @@ describe('AgentChatContainer', () => {
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
 
     expect(screen.getByText(/streaming-row/)).toBeInTheDocument();
-    expect(screen.getByText('chat-input stop-visible')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Stop agent' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the latest proposed plan inline for review', () => {
@@ -1618,7 +1766,7 @@ describe('AgentChatContainer', () => {
             {
               ctas: [
                 {
-                  href: '/automate/workflows/wf-42',
+                  href: '/automation/workflows/wf-42',
                   label: 'Open workflow',
                 },
               ],
@@ -1635,7 +1783,7 @@ describe('AgentChatContainer', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Open workflow' }),
-    ).toHaveAttribute('href', '/automate/workflows/wf-42');
+    ).toHaveAttribute('href', '/automation/workflows/wf-42');
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
@@ -1651,7 +1799,7 @@ describe('AgentChatContainer', () => {
               {
                 ctas: [
                   {
-                    href: '/automate/workflows/wf-99',
+                    href: '/automation/workflows/wf-99',
                     label: 'Open workflow',
                   },
                 ],

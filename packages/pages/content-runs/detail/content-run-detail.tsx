@@ -465,11 +465,15 @@ function NavigationPanel({
   const { href } = useOrgUrl();
   const links = [
     {
-      href: href(APP_ROUTES.AUTOMATE.CONTENT_RUNS),
+      href: href(APP_ROUTES.AUTOMATION.CONTENT_RUNS),
       label: 'All Content Runs',
       icon: CirclePlay,
     },
-    { href: href(APP_ROUTES.PUBLISH.OVERVIEW), label: 'Publish', icon: Send },
+    {
+      href: href(APP_ROUTES.PUBLISHING.OVERVIEW),
+      label: 'Publish',
+      icon: Send,
+    },
     { href: href('/analytics/posts'), label: 'Analytics', icon: ChartColumn },
   ];
 

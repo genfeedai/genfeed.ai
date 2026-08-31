@@ -17,7 +17,7 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import {
   useOptionalResearchWorkSurface,
   useResearchQueryState,
@@ -196,7 +196,7 @@ export function useAdsResearchPageClient(
   const { href } = useOrgUrl();
   const translate = useTranslations('pages.adsResearch');
   const savedSourceLabel = translate('swipeFile.sourceLabel');
-  const remixSurface = useOptionalDiscoverRemix();
+  const remixSurface = useOptionalDiscoveryRemix();
   const surface = useOptionalResearchWorkSurface();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
   const getAdsResearchService = useAuthedService((token: string) =>

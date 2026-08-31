@@ -39,16 +39,22 @@ function isThreadWorking(
     isStreaming?: boolean;
   },
 ): boolean {
+  if (
+    thread.id === options?.activeThreadId &&
+    options.activeRunStatus !== undefined
+  ) {
+    return (
+      options.isStreaming === true ||
+      options.activeRunStatus === 'running' ||
+      options.activeRunStatus === 'cancelling'
+    );
+  }
+
   if (thread.runStatus === 'queued' || thread.runStatus === 'running') {
     return true;
   }
 
-  return (
-    thread.id === options?.activeThreadId &&
-    (options.isStreaming === true ||
-      options.activeRunStatus === 'running' ||
-      options.activeRunStatus === 'cancelling')
-  );
+  return false;
 }
 
 function matchesThreadSearch(
@@ -217,6 +223,16 @@ function isThreadActivelyRunning(
     activeThreadId?: string | null;
   },
 ): boolean {
+  if (
+    options?.activeThreadId === thread.id &&
+    options.activeRunStatus !== undefined
+  ) {
+    return (
+      options.activeRunStatus === 'running' ||
+      options.activeRunStatus === 'cancelling'
+    );
+  }
+
   // Prefer explicit attention from stream/API over bare runStatus — the latter
   // can linger as stale local state after a run ends.
   if (thread.attentionState === 'running') {
@@ -227,12 +243,7 @@ function isThreadActivelyRunning(
     return false;
   }
 
-  return (
-    thread.runStatus === 'queued' ||
-    thread.runStatus === 'running' ||
-    options.activeRunStatus === 'running' ||
-    options.activeRunStatus === 'cancelling'
-  );
+  return thread.runStatus === 'queued' || thread.runStatus === 'running';
 }
 
 export function getThreadStatusMeta(
@@ -269,7 +280,11 @@ export function getThreadStatusMeta(
     };
   }
 
-  if (thread.runStatus === 'failed' || options?.activeRunStatus === 'failed') {
+  const isActiveThreadFailure =
+    options?.activeThreadId === thread.id &&
+    options.activeRunStatus === 'failed';
+
+  if (thread.runStatus === 'failed' || isActiveThreadFailure) {
     return {
       label: 'Failed',
       tone: 'failed',

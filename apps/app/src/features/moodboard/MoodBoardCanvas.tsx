@@ -131,7 +131,7 @@ function MoodBoardCanvasInner({
             nodeStrokeColor="hsl(var(--border-strong, var(--border)))"
             maskColor="hsl(var(--background) / 0.55)"
             style={{ backgroundColor: 'hsl(var(--secondary))' }}
-            className="!m-3 overflow-hidden rounded-lg !border !border-border !bg-secondary !shadow-dropdown"
+            className="!m-3 overflow-hidden rounded-lg !bg-secondary !shadow-dropdown"
           />
         </ReactFlow>
       </MediaCanvasShell>

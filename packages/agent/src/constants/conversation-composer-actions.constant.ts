@@ -30,7 +30,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Remix',
     name: 'remix',
     requiredScope: 'brand',
-    route: APP_ROUTES.PUBLISH.REMIX,
+    route: APP_ROUTES.PUBLISHING.REMIX,
   },
   {
     description: 'Find trends and inspiration',
@@ -38,7 +38,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Discover',
     name: 'discover',
     requiredScope: 'brand',
-    route: APP_ROUTES.DISCOVER.ROOT,
+    route: APP_ROUTES.DISCOVERY.ROOT,
   },
   {
     description: 'Browse and run workflows',
@@ -46,7 +46,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Workflows',
     name: 'workflow',
     requiredScope: 'brand',
-    route: APP_ROUTES.AUTOMATE.WORKFLOWS,
+    route: APP_ROUTES.AUTOMATION.WORKFLOWS,
   },
   {
     description: 'Content calendar',
@@ -54,7 +54,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Schedule',
     name: 'schedule',
     requiredScope: 'brand',
-    route: APP_ROUTES.PUBLISH.CALENDAR,
+    route: APP_ROUTES.PUBLISHING.CALENDAR,
   },
   {
     description: 'Review before publishing',
@@ -62,7 +62,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     label: 'Publish',
     name: 'publish',
     requiredScope: 'brand',
-    route: APP_ROUTES.PUBLISH.REVIEW,
+    route: APP_ROUTES.PUBLISHING.REVIEW,
   },
   {
     description: 'Content analytics',

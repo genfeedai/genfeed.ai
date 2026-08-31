@@ -23,11 +23,11 @@ describe('contextual-remix-url.util', () => {
   it('preserves opaque route state and pins the selected record version', () => {
     expect(
       buildContextualRemixHref(
-        '/acme/moonrise/publish/remix?thread=thread-1&overlay=library-picker',
+        '/acme/moonrise/publishing/remix?thread=thread-1&overlay=library-picker',
         reference,
       ),
     ).toBe(
-      '/acme/moonrise/publish/remix?thread=thread-1&sourceArtifact=ingredient%3Aingredient-1&sourceVersion=7',
+      '/acme/moonrise/publishing/remix?thread=thread-1&sourceArtifact=ingredient%3Aingredient-1&sourceVersion=7',
     );
   });
 });

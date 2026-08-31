@@ -2,17 +2,20 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { GenerationSetupFrontDoorProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
+import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import type {
+  GenerationSetupCustomizeSectionId,
+  GenerationSetupFrontDoorProps,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 /**
  * Layer 1 of the popover: the agent's summary of what it picked and why, the
- * preset list (apply = pin), and the entry point into the search layer.
- * Structural sibling of the Customize tabs, but read-only — editing always
- * routes through `onCustomize`.
+ * preset list (apply = pin), and the entry point into the search layer. Every
+ * summary field routes directly to the nested section that owns it.
  */
 export default function GenerationSetupFrontDoor({
   capabilities,
@@ -36,55 +39,80 @@ export default function GenerationSetupFrontDoor({
 
   const modelLabel =
     setup.values.modelKey === ''
-      ? 'Auto'
+      ? translate('auto')
       : (models.find((model) => model.key === setup.values.modelKey)?.label ??
         setup.values.modelKey);
 
-  const summaryRows: Array<{ key: string; label: string; value: string }> = [
-    { key: 'type', label: 'Type', value: typeLabel },
-    { key: 'modelKey', label: 'Model', value: modelLabel },
+  const summaryRows: Array<{
+    key: GenerationSetupFieldKey;
+    label: string;
+    section: GenerationSetupCustomizeSectionId;
+    value: string;
+  }> = [
+    {
+      key: 'type',
+      label: translate('type'),
+      section: 'model',
+      value: typeLabel,
+    },
+    {
+      key: 'modelKey',
+      label: translate('model'),
+      section: 'model',
+      value: modelLabel,
+    },
   ];
 
   if (capabilities.hasAspectRatio) {
     summaryRows.push({
       key: 'aspectRatio',
-      label: 'Aspect ratio',
+      label: translate('aspectRatio'),
+      section: 'output',
       value: setup.values.aspectRatio,
     });
   }
   if (capabilities.hasDuration && setup.values.duration) {
     summaryRows.push({
       key: 'duration',
-      label: 'Duration',
+      label: translate('duration'),
+      section: 'output',
       value: `${setup.values.duration}s`,
     });
   }
   if (capabilities.hasOutputs) {
     summaryRows.push({
       key: 'outputs',
-      label: 'Outputs',
+      label: translate('outputs'),
+      section: 'output',
       value: String(setup.values.outputs),
     });
   }
   summaryRows.push({
     key: 'brandingMode',
-    label: 'Brand voice',
-    value: setup.values.brandingMode === 'brand' ? 'On' : 'Off',
+    label: translate('brandVoice'),
+    section: 'brand',
+    value:
+      setup.values.brandingMode === 'brand'
+        ? translate('on')
+        : translate('off'),
   });
   summaryRows.push({
     key: 'isPromptEnhanceEnabled',
-    label: 'Prompt enhance',
-    value: setup.values.isPromptEnhanceEnabled ? 'On' : 'Off',
+    label: translate('promptEnhance'),
+    section: 'brand',
+    value: setup.values.isPromptEnhanceEnabled
+      ? translate('on')
+      : translate('off'),
   });
 
   return (
     <div className="flex min-h-0 flex-col gap-3 p-3">
       <Button
-        ariaLabel="Search setup fields"
+        ariaLabel={translate('searchSetupFields')}
         className="w-full justify-start gap-2 rounded-md border border-border bg-background-secondary px-2.5 text-xs text-muted-foreground hover:text-foreground"
         icon={<Search className="size-3.5 shrink-0" />}
         isDisabled={isDisabled}
-        label="Search fields…"
+        label={translate('searchFields')}
         onClick={onSearch}
         size={ButtonSize.SM}
         textTransform="none"
@@ -92,32 +120,42 @@ export default function GenerationSetupFrontDoor({
       />
 
       <div className="flex flex-col gap-2 rounded-md border border-border bg-background-secondary p-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 font-medium text-primary text-xs">
+        <Button
+          ariaLabel={translate('customizeSetup')}
+          className="h-control-sm w-full justify-between gap-2 px-1 text-xs hover:bg-background-tertiary"
+          isDisabled={isDisabled}
+          onClick={() => onCustomize()}
+          size={ButtonSize.SM}
+          textTransform="none"
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        >
+          <span className="flex items-center gap-1.5 font-medium text-primary">
             <Sparkles className="size-3.5 shrink-0" />
             {translate('agentPick')}
           </span>
-          <Button
-            ariaLabel="Customize setup"
-            className="h-control-sm gap-1 px-1.5 text-2xs text-muted-foreground hover:text-foreground"
-            icon={<ChevronRight className="size-3" />}
-            isDisabled={isDisabled}
-            label="Customize"
-            onClick={onCustomize}
-            size={ButtonSize.XS}
-            textTransform="none"
-            variant={ButtonVariant.GHOST}
-          />
-        </div>
+          <span className="flex items-center gap-1 text-2xs text-muted-foreground">
+            {translate('customize')}
+            <ChevronRight className="size-3" />
+          </span>
+        </Button>
 
         <div className="flex flex-col gap-1.5">
           {summaryRows.map((row) => (
-            <div
-              className="flex items-center justify-between gap-3 text-xs"
+            <Button
+              ariaLabel={translate('editField', { field: row.label })}
+              className="group h-auto w-full justify-between gap-3 rounded-sm px-1 py-1 text-xs hover:bg-background-tertiary"
+              isDisabled={isDisabled}
               key={row.key}
+              onClick={() => onCustomize(row.section)}
+              size={ButtonSize.SM}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
             >
               <span className="flex items-center gap-1.5 text-muted-foreground">
-                <GenerationSetupProvenanceDot
+                <GenerationSetupFieldIcon
+                  fieldKey={row.key}
                   reason={reasons[row.key as keyof typeof reasons]}
                   source={
                     setup.sources[row.key as keyof typeof setup.sources] ??
@@ -126,10 +164,11 @@ export default function GenerationSetupFrontDoor({
                 />
                 {row.label}
               </span>
-              <span className="truncate font-medium text-foreground">
-                {row.value}
+              <span className="flex min-w-0 items-center gap-1 font-medium text-foreground">
+                <span className="truncate">{row.value}</span>
+                <ChevronRight className="size-3 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground group-focus-visible:text-muted-foreground" />
               </span>
-            </div>
+            </Button>
           ))}
         </div>
 
@@ -166,7 +205,7 @@ export default function GenerationSetupFrontDoor({
             key={preset.id}
           >
             <Button
-              ariaLabel={`Apply preset ${preset.label}`}
+              ariaLabel={translate('applyPreset', { label: preset.label })}
               className="min-w-0 flex-1 justify-start truncate text-left text-foreground"
               isDisabled={isDisabled}
               label={preset.label}
@@ -178,7 +217,7 @@ export default function GenerationSetupFrontDoor({
             />
             {onDeletePreset ? (
               <Button
-                ariaLabel={`Delete preset ${preset.label}`}
+                ariaLabel={translate('deletePreset', { label: preset.label })}
                 className="size-6 shrink-0 p-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
                 icon={<Trash2 className="size-3.5" />}
                 isDisabled={isDisabled}

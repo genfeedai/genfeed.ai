@@ -19,9 +19,9 @@ test.describe('Workflow Execution Runs', () => {
   test('loads the runs page with execution stats and history', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.RUNS));
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.RUNS));
 
-    await expect(authenticatedPage).toHaveURL(/automate\/runs/);
+    await expect(authenticatedPage).toHaveURL(/automation\/runs/);
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Workflow Executions' }),
     ).toBeAttached();
@@ -36,7 +36,7 @@ test.describe('Workflow Execution Runs', () => {
   test('filters execution history from the search box', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.RUNS));
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.RUNS));
 
     await expect(authenticatedPage.getByText('Caption draft')).toBeVisible();
 
@@ -52,7 +52,7 @@ test.describe('Workflow Execution Runs', () => {
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.RUNS);
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.RUNS);
 
     await unauthenticatedPage.waitForURL(/\/login/, { timeout: 15000 });
     expect(unauthenticatedPage.url()).toMatch(/\/login/);

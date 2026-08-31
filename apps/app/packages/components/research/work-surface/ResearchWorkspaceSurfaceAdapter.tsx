@@ -80,7 +80,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
     () => ({
       inspectorContent: <ResearchFindingInspector />,
       references,
-      surfaceKey: 'discover',
+      surfaceKey: 'discovery',
     }),
     [references],
   );

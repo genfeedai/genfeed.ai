@@ -9,7 +9,7 @@ import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';
 import type { PostsListResult } from '@pages/posts/list/components/posts-query.helpers';
 import type {
   PostsPublicationState,
-  PublisherPostsView,
+  PublishingPostsView,
 } from '@pages/posts/list/posts-list-query';
 import {
   getDefaultSort,
@@ -91,7 +91,7 @@ export default function PostsList({
     onRewriteWithAgent,
     onSuggestScheduleWithAgent,
   });
-  const publisherView: PublisherPostsView | undefined =
+  const publishingView: PublishingPostsView | undefined =
     statusProp === PostStatus.FAILED ||
     statusProp === PostStatus.PENDING ||
     statusProp === PostStatus.PROCESSING
@@ -146,8 +146,8 @@ export default function PostsList({
         searchValue={toolbarSearchValue}
         sortValue={filterSort || getDefaultSort(status)}
         sortOptions={sortOptions}
-        publisherView={publisherView}
-        onPublisherViewChange={handlePublicationStateChange}
+        publishingView={publishingView}
+        onPublishingViewChange={handlePublicationStateChange}
         onSearchChange={setToolbarSearchValue}
         onSortChange={handleToolbarSortChange}
       />,
@@ -156,7 +156,7 @@ export default function PostsList({
     filterSort,
     handlePublicationStateChange,
     handleToolbarSortChange,
-    publisherView,
+    publishingView,
     setFiltersNode,
     setToolbarSearchValue,
     sortOptions,
@@ -184,28 +184,28 @@ export default function PostsList({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">
-            {publisherView === 'posted'
+            {publishingView === 'posted'
               ? 'Posted'
-              : publisherView === PostStatus.FAILED
+              : publishingView === PostStatus.FAILED
                 ? 'Failed'
-                : publisherView === PostStatus.PENDING
+                : publishingView === PostStatus.PENDING
                   ? 'Pending'
-                  : publisherView === PostStatus.PROCESSING
+                  : publishingView === PostStatus.PROCESSING
                     ? 'Publishing'
-                    : publisherView === 'not-posted'
+                    : publishingView === 'not-posted'
                       ? 'Not posted'
                       : 'All posts'}
           </h2>
           <p className="mt-1 text-sm text-foreground/55">
-            {publisherView === 'posted'
+            {publishingView === 'posted'
               ? 'Posts already live on their destination platforms.'
-              : publisherView === PostStatus.FAILED
+              : publishingView === PostStatus.FAILED
                 ? 'Posts that could not be published. Fix the issue and retry.'
-                : publisherView === PostStatus.PENDING
+                : publishingView === PostStatus.PENDING
                   ? 'Posts queued to enter the publishing pipeline.'
-                  : publisherView === PostStatus.PROCESSING
+                  : publishingView === PostStatus.PROCESSING
                     ? 'Posts currently being sent to destination platforms.'
-                    : publisherView === 'not-posted'
+                    : publishingView === 'not-posted'
                       ? 'Drafts, scheduled posts, and publishing work in progress.'
                       : 'Posts across every publishing state.'}
           </p>

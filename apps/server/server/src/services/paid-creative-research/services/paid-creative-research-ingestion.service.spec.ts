@@ -168,7 +168,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
     });
   });
 
-  it('stamps every snapshot with the paid_creative_reference classification Discover reads (#3537)', async () => {
+  it('stamps every snapshot with the paid_creative_reference classification Discovery reads (#3537)', async () => {
     const harness = buildHarness([META_ADVERTISER]);
     harness.adapter.fetchCreatives.mockResolvedValue([
       buildCreative({

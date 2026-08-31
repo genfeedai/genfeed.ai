@@ -28,7 +28,6 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import {
@@ -42,10 +41,7 @@ import {
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import {
-  useWorkspaceNavPanel,
-  WorkspaceNavPanelProvider,
-} from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { WorkspaceNavPanelProvider } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   isFocusedOnboardingPath,
   normalizeProtectedPathname,
@@ -90,7 +86,7 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
-    loading: () => <PageLoadingState />,
+    loading: () => null,
   },
 );
 
@@ -143,13 +139,12 @@ function AppLayoutWithDynamicMenu({
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
-    isMessagesInboxRoute,
     isOrgRoute,
     suppressShellLowCreditsBanner,
-    isDiscoverRoute,
+    isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
-    isAutomateRoute,
+    isAutomationRoute,
     currentApp,
     orgSlug,
     brandSlug,
@@ -162,15 +157,14 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    publishMenuItems,
-    discoverMenuItems,
+    publishingMenuItems,
+    discoveryMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    automateMenuItems,
+    automationMenuItems,
     messagesMenuItems,
-    isPublishRoute,
-    taskContextSearchParams,
+    isPublishingRoute,
     handleNavigate,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
@@ -268,35 +262,6 @@ function AppLayoutWithDynamicMenu({
       ),
     };
   }, [isConversationRoute]);
-  const workspaceNavPanel = useWorkspaceNavPanel();
-  const setWorkspaceNavPanelPortalTarget =
-    workspaceNavPanel?.setPortalTarget ?? null;
-  const setWorkspaceNavPanelPortalTargetRef = useRef(
-    setWorkspaceNavPanelPortalTarget,
-  );
-  setWorkspaceNavPanelPortalTargetRef.current =
-    setWorkspaceNavPanelPortalTarget;
-  // Identity-stable portal ref — inline arrows on each renderBody() call would
-  // re-bind the ref every MenuShared pass (null → node flicker on consumers).
-  const workspaceNavPortalRef = useCallback((node: HTMLDivElement | null) => {
-    setWorkspaceNavPanelPortalTargetRef.current?.(node);
-  }, []);
-  const messagesNavPanel = useMemo<SidebarNavPanel | null>(
-    () =>
-      isMessagesInboxRoute
-        ? {
-            render: () => (
-              <div
-                className="flex h-full min-h-0 flex-col"
-                data-testid="messages-nav-panel"
-                ref={workspaceNavPortalRef}
-              />
-            ),
-            sectionLabel: 'Messages',
-          }
-        : null,
-    [isMessagesInboxRoute, workspaceNavPortalRef],
-  );
   // Render Library nav in-shell (not via portal). The empty-portal pattern left
   // the column blank when portalTarget never attached (refresh, race, layout
   // order). LibrarySidebarNav is self-contained and does not need the page tree.
@@ -317,12 +282,11 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isLibraryRoute],
   );
-  const activeNavPanel =
-    conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
+  const activeNavPanel = conversationNavPanel ?? libraryNavPanel;
 
   const menuComponent = useMemo(() => {
     // Focused onboarding has no module nav. Editor/workflow canvas routes also
-    // suppress the Automate/module sidebar so the surface can own the left rail
+    // suppress the Automation/module sidebar so the surface can own the left rail
     // (nodes palette, graph chrome) instead of stacking module menu items under
     // a second logo topbar.
     if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
@@ -331,7 +295,6 @@ function AppLayoutWithDynamicMenu({
 
     return (
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={taskContextSearchParams}
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
         isAnalyticsRoute={isAnalyticsRoute}
@@ -340,23 +303,23 @@ function AppLayoutWithDynamicMenu({
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
-        isPublishRoute={isPublishRoute}
-        isDiscoverRoute={isDiscoverRoute}
+        isPublishingRoute={isPublishingRoute}
+        isDiscoveryRoute={isDiscoveryRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
-        isAutomateRoute={isAutomateRoute}
+        isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
-        publishMenuItems={publishMenuItems}
-        discoverMenuItems={discoverMenuItems}
+        publishingMenuItems={publishingMenuItems}
+        discoveryMenuItems={discoveryMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
-        automateMenuItems={automateMenuItems}
+        automationMenuItems={automationMenuItems}
         messagesMenuItems={messagesMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
@@ -376,23 +339,22 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPublishRoute,
-    isDiscoverRoute,
+    isPublishingRoute,
+    isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
-    isAutomateRoute,
+    isAutomationRoute,
     libraryMenuItems,
     menuItems,
     messagesMenuItems,
     orgMenuItems,
-    publishMenuItems,
-    discoverMenuItems,
+    publishingMenuItems,
+    discoveryMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     settingsScope,
     studioMenuItems,
-    taskContextSearchParams,
-    automateMenuItems,
+    automationMenuItems,
   ]);
 
   const topbarComponent = isFocusedOnboardingRoute
@@ -410,14 +372,14 @@ function AppLayoutWithDynamicMenu({
           ? libraryMenuItems
           : isStudioRoute
             ? studioMenuItems
-            : isAutomateRoute
-              ? automateMenuItems
+            : isAutomationRoute
+              ? automationMenuItems
               : isMessagesRoute
                 ? messagesMenuItems
                 : isAnalyticsRoute
                   ? analyticsMenuItems
-                  : isDiscoverRoute
-                    ? discoverMenuItems
+                  : isDiscoveryRoute
+                    ? discoveryMenuItems
                     : isOrgRoute
                       ? orgMenuItems
                       : menuItems;
@@ -550,9 +512,7 @@ function AppLayoutWithDynamicMenu({
             <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
               {children}
             </LazyUniversalWorkspaceShell>
-          ) : (
-            <PageLoadingState />
-          )
+          ) : null
         ) : (
           children
         )}
@@ -643,7 +603,7 @@ export default function AppProtectedLayout(
   props: Parameters<typeof AppProtectedLayoutContent>[0],
 ) {
   return (
-    <Suspense fallback={<PageLoadingState fullScreen />}>
+    <Suspense fallback={null}>
       <AppProtectedLayoutContent {...props} />
     </Suspense>
   );

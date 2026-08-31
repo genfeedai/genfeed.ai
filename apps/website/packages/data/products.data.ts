@@ -116,13 +116,13 @@ export const products: Product[] = [
       'Discord',
       'Twitch',
     ],
-    name: 'Publisher',
+    name: 'Publishing',
     pricing: {
       recommended: 'scale',
       why: 'Includes unlimited scheduling, multi-platform publishing, and team collaboration for agencies and brands.',
     },
     relatedProducts: ['studio', 'workflows', 'hire-agents'],
-    slug: 'publisher',
+    slug: 'publishing',
     tagline: 'Publish your content, everywhere, instantly',
     targetAudience: [
       'Content creators posting daily',
@@ -301,7 +301,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes the full agent library, autonomous scheduled execution, and the workflow capacity needed to run deterministic agentic systems in production.',
     },
-    relatedProducts: ['workflows', 'publisher', 'studio'],
+    relatedProducts: ['workflows', 'publishing', 'studio'],
     slug: 'hire-agents',
     tagline: 'One interface, many agents, deterministic execution',
     targetAudience: [
@@ -395,7 +395,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes ChatGPT integration, unlimited commands, and advanced workflow automation.',
     },
-    relatedProducts: ['mcp', 'studio', 'publisher'],
+    relatedProducts: ['mcp', 'studio', 'publishing'],
     seoTitle: 'ChatGPT Integration for Genfeed',
     slug: 'chatgpt',
     tagline: 'Access Genfeed data from ChatGPT',
@@ -518,7 +518,7 @@ export const products: Product[] = [
       {
         description: 'Connect multiple AIs to your Genfeed workspace',
         example:
-          'Research agent finds trends → Writer agent creates content → Publisher agent schedules posts',
+          'Research agent finds trends → Writer agent creates content → Publishing agent schedules posts',
         title: 'Multi-Agent Systems',
       },
     ],
@@ -590,7 +590,7 @@ export const products: Product[] = [
       recommended: 'pro',
       why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
-    relatedProducts: ['publisher', 'workflows', 'intelligence'],
+    relatedProducts: ['publishing', 'workflows', 'intelligence'],
     slug: 'studio',
     tagline: 'AI content creation workspace',
     targetAudience: [
@@ -693,7 +693,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes the workflow capacity, trigger volume, and execution controls needed to run deterministic agent-driven systems in production.',
     },
-    relatedProducts: ['hire-agents', 'studio', 'publisher'],
+    relatedProducts: ['hire-agents', 'studio', 'publishing'],
     slug: 'workflows',
     tagline: 'Deterministic workflows for controllable AI execution',
     targetAudience: [
@@ -794,7 +794,7 @@ export const products: Product[] = [
       recommended: 'scale',
       why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
     },
-    relatedProducts: ['studio', 'publisher', 'hire-agents'],
+    relatedProducts: ['studio', 'publishing', 'hire-agents'],
     seoTitle: 'Analytics: Trends & Content Performance',
     slug: 'intelligence',
     tagline: 'Track trends, analyze performance, optimize content',
@@ -986,7 +986,7 @@ export const products: Product[] = [
       recommended: 'payg',
       why: 'Open-source mobile app. Free to use with any Genfeed account.',
     },
-    relatedProducts: ['publisher', 'studio', 'extension'],
+    relatedProducts: ['publishing', 'studio', 'extension'],
     seoTitle: 'Mobile App: Approve & Publish On the Go',
     slug: 'mobile',
     status: 'alpha',
@@ -1132,7 +1132,7 @@ export const products: Product[] = [
       {
         problem: 'Limited integration with browser workflows',
         solution:
-          'Full Genfeed Studio and Publisher features accessible as a browser extension',
+          'Full Genfeed Studio and Publishing features accessible as a browser extension',
       },
     ],
     category: 'Browser Extension',
@@ -1173,7 +1173,7 @@ export const products: Product[] = [
       recommended: 'payg',
       why: 'Open-source Chrome extension. Free to install and use with any Genfeed account.',
     },
-    relatedProducts: ['studio', 'publisher', 'mobile'],
+    relatedProducts: ['studio', 'publishing', 'mobile'],
     slug: 'extension',
     status: 'alpha',
     tagline: 'Genfeed in your browser',

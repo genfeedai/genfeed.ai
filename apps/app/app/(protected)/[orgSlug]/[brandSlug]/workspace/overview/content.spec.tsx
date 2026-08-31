@@ -62,7 +62,7 @@ describe('WorkspaceOverviewContent', () => {
     });
   });
 
-  it('renders an in-region loading placeholder while the persisted layout query is in flight', () => {
+  it('keeps the operational overview available while the persisted layout query is in flight', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: true,
       layout: undefined,
@@ -71,21 +71,13 @@ describe('WorkspaceOverviewContent', () => {
 
     render(<WorkspaceOverviewContent />);
 
-    expect(
-      screen.getByTestId('workspace-overview-loading'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('operational-home-fallback'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /reset to default/i }),
-    ).not.toBeInTheDocument();
   });
 
-  it('keeps the reset toolbar mounted while the persisted layout bundle is still loading', () => {
+  it('keeps the reset toolbar mounted while dashboard data is loading', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: false,
       layout: {
@@ -105,13 +97,10 @@ describe('WorkspaceOverviewContent', () => {
     expect(
       screen.getByRole('button', { name: /reset to default/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('workspace-dashboard-loading'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
     ).not.toBeInTheDocument();
-    expect(mocks.hydrateLayout).not.toHaveBeenCalled();
   });
 
   it('renders the operational overview when no custom layout is persisted', () => {

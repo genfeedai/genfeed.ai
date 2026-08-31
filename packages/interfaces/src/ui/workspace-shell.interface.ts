@@ -71,13 +71,13 @@ export type WorkspaceShellSurfaceKey =
   | 'agent-onboarding'
   | 'analytics'
   | 'artifact-editor'
-  | 'automate'
-  | 'automate-management'
-  | 'automate-workflows-editor'
+  | 'automation'
+  | 'automation-management'
+  | 'automation-workflows-editor'
   | 'brand-settings'
   | 'connect-genfeed'
   | 'connect-genfeed-resolver'
-  | 'discover'
+  | 'discovery'
   | 'lab'
   | 'library'
   | 'messages'
@@ -88,7 +88,7 @@ export type WorkspaceShellSurfaceKey =
   | 'platform-admin'
   | 'platforms'
   | 'protected-bootstrap'
-  | 'publish'
+  | 'publishing'
   | 'studio-edit'
   | 'studio-specialized'
   | 'workspace'
@@ -154,10 +154,10 @@ export interface WorkspaceShellAdapterSeam {
 export interface WorkspaceShellBreadcrumbMetadata {
   readonly leafLabel: string;
   readonly parentLabel?: string;
-  /** App-relative href for the parent segment (e.g. `/publish/scheduled`). */
+  /** App-relative href for the parent segment (e.g. `/publishing/scheduled`). */
   readonly parentHref?: string;
   readonly rootLabel: string;
-  /** App-relative href for the root segment (e.g. `/publish/overview`). */
+  /** App-relative href for the root segment (e.g. `/publishing/overview`). */
   readonly rootHref?: string;
 }
 

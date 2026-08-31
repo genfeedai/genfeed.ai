@@ -189,4 +189,52 @@ describe('AgentThreadsService Prisma row contract', () => {
       }),
     );
   });
+
+  it('falls back to the latest meaningful timeline response for list previews', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        id: 'thread-1',
+        organizationId: 'org-1',
+        title: 'Publish-ready post',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: {
+          lastAssistantMessage: {
+            content: '   ',
+            createdAt: '2026-08-19T12:05:00.000Z',
+            metadata: {},
+          },
+          timeline: [
+            {
+              createdAt: '2026-08-19T12:00:00.000Z',
+              detail: 'Your publish-ready draft is complete.',
+              kind: 'assistant',
+            },
+            {
+              createdAt: '2026-08-19T12:05:00.000Z',
+              detail: '   ',
+              kind: 'assistant',
+            },
+          ],
+        },
+        threadId: 'thread-1',
+      },
+    ]);
+
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+    );
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        lastActivityAt: '2026-08-19T12:00:00.000Z',
+        lastAssistantPreview: 'Your publish-ready draft is complete.',
+      }),
+    );
+  });
 });

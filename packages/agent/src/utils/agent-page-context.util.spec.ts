@@ -51,7 +51,7 @@ describe('toAgentRequestPageContext', () => {
         draftTitle: 'Launch recap',
         postAuthor: '   ',
         researchReferences,
-        route: '/publish/review',
+        route: '/publishing/review',
         socialReferences,
         suggestedActions: [],
         url: '',
@@ -60,7 +60,7 @@ describe('toAgentRequestPageContext', () => {
       analyticsQuery,
       draftTitle: 'Launch recap',
       researchReferences,
-      route: '/publish/review',
+      route: '/publishing/review',
       socialReferences,
     });
   });

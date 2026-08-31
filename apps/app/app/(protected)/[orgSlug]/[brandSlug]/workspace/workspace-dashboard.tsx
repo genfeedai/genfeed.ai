@@ -121,7 +121,7 @@ function WorkflowExecutionCard({
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={href(`${APP_ROUTES.AUTOMATE.RUNS}/${execution.id}`)}
+            href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}
             aria-label={`Open ${label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -185,7 +185,7 @@ export function DashboardAgentCards({
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={href(APP_ROUTES.AUTOMATE.RUNS)}>View All</Link>
+            <Link href={href(APP_ROUTES.AUTOMATION.RUNS)}>View All</Link>
           </Button>
         )}
       </div>
@@ -562,7 +562,7 @@ export function WorkspaceDashboard({
 }: DashboardProps) {
   const { href } = useOrgUrl();
   const scopedTrendsHref =
-    providedTrendsHref ?? href(APP_ROUTES.DISCOVER.OVERVIEW);
+    providedTrendsHref ?? href(APP_ROUTES.DISCOVERY.OVERVIEW);
   // A brand with nothing in it used to render six empty bands stacked on top of
   // each other. Collapse the whole thing into one guided block instead.
   if (
@@ -582,7 +582,7 @@ export function WorkspaceDashboard({
 
   // Overview lives inside the conversation canvas, so it stays a centered,
   // hard-capped 3/6/9 card grid. The dense back-office chart grid now lives in
-  // the operations module (`automate/runs/RunChartsGrid`), not here.
+  // the operations module (`automation/runs/RunChartsGrid`), not here.
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <DashboardStatsStrip

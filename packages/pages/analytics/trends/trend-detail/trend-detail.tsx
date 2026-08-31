@@ -79,7 +79,7 @@ const TREND_KPI_PLACEHOLDERS = [
 ];
 
 export default function TrendDetail({
-  backHref = '/discover/overview',
+  backHref = '/discovery/overview',
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();
@@ -244,15 +244,7 @@ export default function TrendDetail({
         isLoading={isLoading}
       />
 
-      {!trend ? (
-        <div
-          className="mt-6 animate-pulse space-y-6"
-          data-testid="trend-detail-body-skeleton"
-        >
-          <div className="h-32 bg-background" />
-          <div className="h-64 bg-background" />
-        </div>
-      ) : (
+      {trend ? (
         <>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button
@@ -303,12 +295,12 @@ export default function TrendDetail({
           <TrendDetailRelatedTable
             relatedTrends={relatedTrends}
             getRowLink={(item) => ({
-              href: `/discover/${item.id}`,
+              href: `/discovery/${item.id}`,
               label: `Open ${item.topic}`,
             })}
           />
         </>
-      )}
+      ) : null}
     </Container>
   );
 }

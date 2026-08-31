@@ -6,7 +6,7 @@ import { createContext, type ReactNode, useContext, useEffect } from 'react';
 export interface ResearchWorkspaceSurfaceAdapterRegistration {
   readonly inspectorContent: ReactNode;
   readonly references: readonly ConversationComposerContextReference[];
-  readonly surfaceKey: 'discover';
+  readonly surfaceKey: 'discovery';
 }
 
 export type RegisterResearchWorkspaceSurfaceAdapter = (

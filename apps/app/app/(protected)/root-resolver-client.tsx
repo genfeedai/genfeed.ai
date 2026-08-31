@@ -13,7 +13,6 @@ import {
 } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAccessState } from '@providers/access-state/access-state.provider';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -32,9 +31,6 @@ export default function ProtectedRootResolver() {
   const { replace } = useRouter();
   const searchParams = useSearchParams();
   const hasStartedRef = useRef(false);
-  const [statusMessage, setStatusMessage] = useState(
-    'Checking workspace state...',
-  );
   const [needsWorkspaceAction, setNeedsWorkspaceAction] = useState(false);
 
   useEffect(() => {
@@ -82,7 +78,6 @@ export default function ProtectedRootResolver() {
       ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 
     if (!hasCompletedOnboarding) {
-      setStatusMessage('Opening onboarding...');
       const agentOrgSlug = resolveOperationalHomeScope({
         accessOrganizationId: accessState?.organizationId,
         brands,
@@ -116,7 +111,6 @@ export default function ProtectedRootResolver() {
     });
 
     if (scope.organizationId && scope.orgSlug) {
-      setStatusMessage('Opening your workspace...');
       const nextSearchParams = new URLSearchParams(searchParams.toString());
       // The permanent shell no longer accepts thread identity in query state.
       // Root bootstrap preserves task/checkout handoff params while dropping
@@ -198,5 +192,5 @@ export default function ProtectedRootResolver() {
     );
   }
 
-  return <PageLoadingState className="bg-background" message={statusMessage} />;
+  return null;
 }

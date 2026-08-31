@@ -5,9 +5,9 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
-import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -30,7 +30,6 @@ export default function MenuShared({
   currentApp,
   sectionLabel,
   isCollapsed,
-  onToggleCollapse,
   showPrimaryItems = true,
   conversationActions,
   renderFooterSlot,
@@ -147,15 +146,6 @@ export default function MenuShared({
     </>
   );
 
-  const sharedCollapseControl = onToggleCollapse ? (
-    <SidebarLogoToggleButton
-      ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      direction={isCollapsed ? 'expand' : 'collapse'}
-      onClick={onToggleCollapse}
-      className="bg-transparent hover:bg-foreground/[0.06]"
-    />
-  ) : null;
-
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
      Fill the DesktopSidebar rail (CSS-var width). Do not pin a React pixel
      width here — drag updates `--desktop-sidebar-width` without re-cloning
@@ -178,7 +168,7 @@ export default function MenuShared({
           data-testid="sidebar-header-shell"
           className="flex h-12 flex-shrink-0 items-center gap-1.5 border-b border-border px-3"
         >
-          {sharedCollapseControl}
+          <TopbarLogo logoHref={config.logoHref} size="compact" />
           {orgSwitcherSlot ? (
             <div
               className={cn(

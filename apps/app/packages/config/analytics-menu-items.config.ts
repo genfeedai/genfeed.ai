@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Analytics is the single home for measurement — the Publish module no longer
+ * Analytics is the single home for measurement — the Publishing module no longer
  * carries its own analytics page.
  *
  * Shell already labels the module Analytics. What-happened destinations sit
@@ -131,5 +131,3 @@ export function getAnalyticsMenuItemsForScope(
   // Org scope only has Overview. Keep it ungrouped under Analytics.
   return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand');
 }
-
-export const ANALYTICS_LOGO_HREF = APP_ROUTES.ANALYTICS.OVERVIEW;

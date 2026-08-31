@@ -29,75 +29,77 @@ describe('PostsHelper', () => {
   });
 
   it('should normalize publisher post status values', () => {
-    expect(PostsHelper.normalizePublisherPostsStatus('scheduled')).toBe(
+    expect(PostsHelper.normalizePublishingPostsStatus('scheduled')).toBe(
       'scheduled',
     );
-    expect(PostsHelper.normalizePublisherPostsStatus('public')).toBe('public');
-    expect(PostsHelper.normalizePublisherPostsStatus(PostStatus.FAILED)).toBe(
+    expect(PostsHelper.normalizePublishingPostsStatus('public')).toBe('public');
+    expect(PostsHelper.normalizePublishingPostsStatus(PostStatus.FAILED)).toBe(
       PostStatus.FAILED,
     );
-    expect(PostsHelper.normalizePublisherPostsStatus(PostStatus.PENDING)).toBe(
+    expect(PostsHelper.normalizePublishingPostsStatus(PostStatus.PENDING)).toBe(
       PostStatus.PENDING,
     );
     expect(
-      PostsHelper.normalizePublisherPostsStatus(PostStatus.PROCESSING),
+      PostsHelper.normalizePublishingPostsStatus(PostStatus.PROCESSING),
     ).toBe(PostStatus.PROCESSING);
-    expect(PostsHelper.normalizePublisherPostsStatus('invalid')).toBe('draft');
-    expect(PostsHelper.normalizePublisherPostsStatus(undefined)).toBe('draft');
+    expect(PostsHelper.normalizePublishingPostsStatus('invalid')).toBe('draft');
+    expect(PostsHelper.normalizePublishingPostsStatus(undefined)).toBe('draft');
   });
 
   it('should build canonical publisher post hrefs', () => {
     // No status → Posts library. Draft/scheduled → Drafts pipeline list.
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish/posts');
+    expect(PostsHelper.getPublishingPostsHref()).toBe('/publishing/posts');
     expect(
-      PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/publish/scheduled');
-    expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/publish/scheduled',
+      PostsHelper.getPublishingPostsHref({ platform: 'all', status: 'draft' }),
+    ).toBe('/publishing/scheduled');
+    expect(PostsHelper.getPublishingPostsHref({ status: 'scheduled' })).toBe(
+      '/publishing/scheduled',
     );
     expect(
-      PostsHelper.getPublisherPostsHref({
+      PostsHelper.getPublishingPostsHref({
         platform: Platform.YOUTUBE,
         status: 'public',
       }),
-    ).toBe('/publish/published?platform=youtube');
+    ).toBe('/publishing/published?platform=youtube');
     expect(
-      PostsHelper.getPublisherPostsHref({ status: PostStatus.FAILED }),
-    ).toBe('/publish/failed');
+      PostsHelper.getPublishingPostsHref({ status: PostStatus.FAILED }),
+    ).toBe('/publishing/failed');
     expect(
-      PostsHelper.getPublisherPostsHref({ status: PostStatus.PENDING }),
-    ).toBe('/publish/pending');
+      PostsHelper.getPublishingPostsHref({ status: PostStatus.PENDING }),
+    ).toBe('/publishing/pending');
     expect(
-      PostsHelper.getPublisherPostsHref({ status: PostStatus.PROCESSING }),
-    ).toBe('/publish/processing');
-    expect(PostsHelper.getPublisherPostHref('post-1')).toBe(
-      '/publish/posts/post-1',
+      PostsHelper.getPublishingPostsHref({ status: PostStatus.PROCESSING }),
+    ).toBe('/publishing/processing');
+    expect(PostsHelper.getPublishingPostHref('post-1')).toBe(
+      '/publishing/posts/post-1',
     );
   });
 
   it('should infer publisher status from canonical post paths', () => {
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish/scheduled'),
+      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/scheduled'),
     ).toBe('scheduled');
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname(
-        '/acme/brand/publish/published?platform=youtube',
+      PostsHelper.getPublishingPostsStatusFromPathname(
+        '/acme/brand/publishing/published?platform=youtube',
       ),
     ).toBe('public');
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish'),
+      PostsHelper.getPublishingPostsStatusFromPathname('/publishing'),
     ).toBeNull();
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish/posts'),
+      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/posts'),
     ).toBeNull();
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish/failed'),
+      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/failed'),
     ).toBe(PostStatus.FAILED);
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish/pending'),
+      PostsHelper.getPublishingPostsStatusFromPathname('/publishing/pending'),
     ).toBe(PostStatus.PENDING);
     expect(
-      PostsHelper.getPublisherPostsStatusFromPathname('/publish/processing'),
+      PostsHelper.getPublishingPostsStatusFromPathname(
+        '/publishing/processing',
+      ),
     ).toBe(PostStatus.PROCESSING);
   });
 

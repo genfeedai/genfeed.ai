@@ -7,7 +7,7 @@ import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
 import { cloneElement, type ReactElement, type ReactNode } from 'react';
-import CollapsedSidebarLogoToggle from './CollapsedSidebarLogoToggle';
+import CollapsedSidebarToggle from './CollapsedSidebarToggle';
 import DesktopSidebar from './DesktopSidebar';
 import { useAppLayout } from './useAppLayout';
 
@@ -91,10 +91,8 @@ export default function AppLayout({
             >
               {desktopMenuContent}
             </DesktopSidebar>
-            {isDesktopCollapsed ? (
-              <CollapsedSidebarLogoToggle
-                onClick={handleToggleDesktopSidebar}
-              />
+            {isDesktopCollapsed && !topbarContent ? (
+              <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
             ) : null}
 
             {/* Mobile sidebar drawer */}

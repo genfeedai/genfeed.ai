@@ -7,6 +7,7 @@
  * @module test-data.fixture
  */
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { PostStatus } from '@genfeedai/enums';
 
 // ----------------------------------------------------------------------------
@@ -987,8 +988,8 @@ export const testRoutes = {
   activities: '/activities',
   billing: '/billing',
   calendar: {
-    articles: '/publish/posts?type=article',
-    posts: '/publish/calendar',
+    articles: '/publishing/posts?type=article',
+    posts: '/publishing/calendar',
   },
   editor: '/studio/edit',
   generation: {
@@ -1002,19 +1003,19 @@ export const testRoutes = {
   logout: '/logout',
   overview: '/overview',
   posts: {
-    detail: (id: string) => `/publish/posts/${id}`,
-    drafts: '/publish/drafts',
-    engage: '/publish/engage',
-    published: '/publish/published',
-    scheduled: '/publish/scheduled',
+    detail: (id: string) => `/publishing/posts/${id}`,
+    drafts: `${APP_ROUTES.PUBLISHING.POSTS}?publicationState=not-posted`,
+    engage: APP_ROUTES.ANALYTICS.POSTS,
+    published: '/publishing/published',
+    scheduled: '/publishing/scheduled',
   },
   settings: '/settings',
   studio: '/studio',
   workflow: {
-    editor: '/automate/workflows/new',
-    executions: '/automate/workflows/executions',
-    library: '/automate/workflows',
-    templates: '/automate/workflows/templates',
+    editor: '/automation/workflows/new',
+    executions: '/automation/workflows/executions',
+    library: '/automation/workflows',
+    templates: '/automation/workflows/templates',
   },
 };
 

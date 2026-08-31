@@ -48,6 +48,7 @@ describe('routes.constant', () => {
     '/onboarding/brand',
     '/oauth/cli',
     '/settings/personal',
+    '/acme',
     '/acme/~',
     '/acme/moonrise/workspace/overview',
   ])('recognizes the user-facing auth continuation %s', (pathname) => {
@@ -64,7 +65,6 @@ describe('routes.constant', () => {
     '/serwist/sw.js',
     '/ingest',
     '/monitoring',
-    '/acme',
     '/robots.txt',
     '/.well-known/openid-configuration',
     '/acme/.well-known/workspace',
@@ -81,51 +81,53 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
-    expect(APP_ROUTES.PUBLISH.POSTS).toBe('/publish/posts');
+    expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
     expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
   });
 
-  it('keeps the retired Publish newsletters path compatibility-only', () => {
-    expect(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS).toBe('/publish/newsletters');
+  it('keeps the retired Publishing newsletters path compatibility-only', () => {
+    expect(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS).toBe(
+      '/publishing/newsletters',
+    );
     expect(APP_ROUTES.AGENT.NEW).toBe('/agent/new');
-    expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
+    expect('NEWSLETTERS' in APP_ROUTES.PUBLISHING).toBe(false);
   });
 
-  it('does not keep a /automate/strategies route', () => {
-    expect('STRATEGIES' in APP_ROUTES.AUTOMATE).toBe(false);
-    expect(APP_ROUTES.AUTOMATE.AUTOPILOT).toBe('/automate/autopilot');
+  it('does not keep a /automation/strategies route', () => {
+    expect('STRATEGIES' in APP_ROUTES.AUTOMATION).toBe(false);
+    expect(APP_ROUTES.AUTOMATION.AUTOPILOT).toBe('/automation/autopilot');
   });
 
   it('nests agent detail under the agents list', () => {
-    expect(APP_ROUTES.AUTOMATE.AGENTS).toBe('/automate/agents');
-    expect(APP_ROUTES.AUTOMATE.NEW).toBe('/automate/agents/new');
-    expect(APP_ROUTES.AUTOMATE.LIBRARY).toBe('/automate/library');
+    expect(APP_ROUTES.AUTOMATION.AGENTS).toBe('/automation/agents');
+    expect(APP_ROUTES.AUTOMATION.NEW).toBe('/automation/agents/new');
+    expect(APP_ROUTES.AUTOMATION.LIBRARY).toBe('/automation/library');
   });
 
   it('keeps the retired cron-jobs lab path compatibility-only', () => {
     expect(LEGACY_APP_ROUTES.LAB_CRON_JOBS).toBe('/lab/cron-jobs');
-    expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');
+    expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
   });
 
-  it('aliases /workflows onto Automate workflows instead of a new app', () => {
+  it('aliases /workflows onto Automation workflows instead of a new app', () => {
     expect(LEGACY_APP_ROUTES.WORKFLOWS).toBe('/workflows');
-    expect(APP_ROUTES.AUTOMATE.WORKFLOWS).toBe('/automate/workflows');
-    expect(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES).toBe(
-      '/automate/workflows/templates',
+    expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
+    expect(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES).toBe(
+      '/automation/workflows/templates',
     );
   });
 
-  it('builds canonical Publish editor paths without a kind query param', () => {
+  it('builds canonical Publishing editor paths without a kind query param', () => {
     // Kind lives on the entity (which table the id hits), not the URL.
     expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
-      '/publish/posts/article-1',
+      '/publishing/posts/article-1',
     );
     expect(createArtifactEditorRoute('newsletter', 'newsletter-1')).toBe(
-      '/publish/posts/newsletter-1',
+      '/publishing/posts/newsletter-1',
     );
     expect(createArtifactEditorRoute('post', 'post-1')).toBe(
-      '/publish/posts/post-1',
+      '/publishing/posts/post-1',
     );
     expect(
       createBrandAppRoute(
@@ -133,37 +135,37 @@ describe('routes.constant', () => {
         'paperclip',
         createArtifactEditorRoute('post', 'post-1'),
       ),
-    ).toBe('/genfeed-ai/paperclip/publish/posts/post-1');
+    ).toBe('/genfeed-ai/paperclip/publishing/posts/post-1');
   });
 
   it('round-trips the originating list through the return parameter', () => {
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publish/posts/post-1',
-        '/genfeed-ai/paperclip/publish/posts?status=draft',
+        '/genfeed-ai/paperclip/publishing/posts/post-1',
+        '/genfeed-ai/paperclip/publishing/posts?status=draft',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts%3Fstatus%3Ddraft',
+      '/genfeed-ai/paperclip/publishing/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing%2Fposts%3Fstatus%3Ddraft',
     );
     expect(
       resolveArtifactEditorBackHref(
-        '/genfeed-ai/paperclip/publish?status=draft',
-        '/genfeed-ai/paperclip/publish',
+        '/genfeed-ai/paperclip/publishing?status=draft',
+        '/genfeed-ai/paperclip/publishing',
       ),
-    ).toBe('/genfeed-ai/paperclip/publish?status=draft');
+    ).toBe('/genfeed-ai/paperclip/publishing?status=draft');
 
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publish/posts/article-1',
-        '/genfeed-ai/paperclip/publish/posts',
+        '/genfeed-ai/paperclip/publishing/posts/article-1',
+        '/genfeed-ai/paperclip/publishing/posts',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/publish/posts/article-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
+      '/genfeed-ai/paperclip/publishing/posts/article-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing%2Fposts',
     );
   });
 
   it('falls back to the owning list for unusable return targets', () => {
-    const fallbackHref = '/genfeed-ai/paperclip/publish';
+    const fallbackHref = '/genfeed-ai/paperclip/publishing';
 
     expect(resolveArtifactEditorBackHref(null, fallbackHref)).toBe(
       fallbackHref,
@@ -229,12 +231,15 @@ describe('routes.constant', () => {
     expect(APP_ROUTE_PREFIXES.PLATFORMS).toBe('/platforms');
     expect(createPlatformHomeRoute('instagram')).toBe('/platforms/instagram');
     expect(createPlatformHomeRoute('google_ads')).toBe('/platforms/google_ads');
-    expect(withPlatformQuery(APP_ROUTES.PUBLISH.SCHEDULED, 'instagram')).toBe(
-      '/publish/scheduled?platform=instagram',
-    );
     expect(
-      withPlatformQuery(`${APP_ROUTES.PUBLISH.POSTS}?status=draft`, 'youtube'),
-    ).toBe('/publish/posts?status=draft&platform=youtube');
+      withPlatformQuery(APP_ROUTES.PUBLISHING.SCHEDULED, 'instagram'),
+    ).toBe('/publishing/scheduled?platform=instagram');
+    expect(
+      withPlatformQuery(
+        `${APP_ROUTES.PUBLISHING.POSTS}?status=draft`,
+        'youtube',
+      ),
+    ).toBe('/publishing/posts?status=draft&platform=youtube');
   });
 
   it('keeps Tasks inside the Workspace route family', () => {
@@ -271,6 +276,10 @@ describe('routes.constant', () => {
   });
 
   it('parses org/brand scope from the URL when layout params are missing', () => {
+    expect(parseScopedAppPath('/demo')).toEqual({
+      brandSlug: '',
+      orgSlug: 'demo',
+    });
     expect(parseScopedAppPath('/demo/FUDNEWS/library/images')).toEqual({
       brandSlug: 'FUDNEWS',
       orgSlug: 'demo',
@@ -284,6 +293,10 @@ describe('routes.constant', () => {
       orgSlug: '',
     });
     expect(parseScopedAppPath('/library/assets')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
+    expect(parseScopedAppPath('/library')).toEqual({
       brandSlug: '',
       orgSlug: '',
     });

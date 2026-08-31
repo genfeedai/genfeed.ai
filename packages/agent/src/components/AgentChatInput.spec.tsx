@@ -139,6 +139,20 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
+  it('keeps the agent glass surface without an outer shadow', () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
+
+    const shell = screen.getByTestId('agent-chat-input-shell');
+
+    expect(shell).toHaveClass(
+      'bg-background/70',
+      'backdrop-blur-xl',
+      '!shadow-none',
+      'focus-within:!shadow-none',
+    );
+    expect(shell).toHaveClass('border', 'border-border-strong/70');
+  });
+
   it('renders the generation setup chip in the leading toolbar slot', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
@@ -422,7 +436,7 @@ describe('AgentChatInput', () => {
 
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {
     const dispatchAction = vi.fn(() => ({
-      message: 'Opened Publish. Explicit approval is still required.',
+      message: 'Opened Publishing. Explicit approval is still required.',
       status: 'dispatched' as const,
     }));
     const onSend = vi.fn();
@@ -457,7 +471,9 @@ describe('AgentChatInput', () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox')).toHaveTextContent('/publish');
     expect(
-      screen.getByText('Opened Publish. Explicit approval is still required.'),
+      screen.getByText(
+        'Opened Publishing. Explicit approval is still required.',
+      ),
     ).toBeInTheDocument();
   });
 

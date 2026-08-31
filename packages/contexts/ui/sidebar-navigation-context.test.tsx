@@ -86,7 +86,12 @@ describe('SidebarNavigationProvider', () => {
       'Insights',
     ],
     ['/acme/brand/workspace/inbox', '/workspace', '/workspace/inbox', 'Inbox'],
-    ['/acme/brand/publish/posts/post-1', '/publish', '/publish/posts', 'Post'],
+    [
+      '/acme/brand/publishing/posts/post-1',
+      '/publishing',
+      '/publishing/posts',
+      'Post',
+    ],
   ])(
     'prefers the most specific match for %s',
     (pathname, rootPath, childPath, childLabel) => {
@@ -127,14 +132,14 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it('prefers a query-specific Pipeline item over the generic Posts item', () => {
-    pathnameState.value = '/acme/brand/publish/posts';
+    pathnameState.value = '/acme/brand/publishing/posts';
     searchParamsState.value = 'publicationState=posted&platform=linkedin';
 
     renderNavigation([
-      { href: '/publish/posts', label: 'Posts' },
+      { href: '/publishing/posts', label: 'Posts' },
       {
         group: 'Pipeline',
-        href: '/publish/posts?publicationState=not-posted',
+        href: '/publishing/posts?publicationState=not-posted',
         label: 'Drafts',
         matchSearchParams: {
           publicationState: 'not-posted',
@@ -143,7 +148,7 @@ describe('SidebarNavigationProvider', () => {
       },
       {
         group: 'Pipeline',
-        href: '/publish/posts?publicationState=posted',
+        href: '/publishing/posts?publicationState=posted',
         label: 'Published',
         matchSearchParams: { publicationState: 'posted', status: null },
       },
@@ -188,14 +193,14 @@ describe('SidebarNavigationProvider', () => {
   });
 
   it('forwards the optional canonical breadcrumb parent', () => {
-    pathnameState.value = '/acme/brand/discover/ads/google';
+    pathnameState.value = '/acme/brand/discovery/ads/google';
 
     render(
       <SidebarNavigationProvider
         breadcrumb={{
           leafLabel: 'Google',
           parentLabel: 'Ads',
-          rootLabel: 'Discover',
+          rootLabel: 'Discovery',
         }}
         items={[]}
       >

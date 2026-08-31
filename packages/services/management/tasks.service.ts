@@ -197,6 +197,25 @@ export class Task {
   }
 }
 
+export function isTaskInWorkspaceInboxQueue(
+  task: Pick<Task, 'dismissedAt' | 'reviewState'>,
+): boolean {
+  return task.dismissedAt == null && task.reviewState !== 'dismissed';
+}
+
+export function isUnreadWorkspaceInboxTask(
+  task: Pick<Task, 'reviewState' | 'status'>,
+): boolean {
+  return (
+    task.reviewState === 'pending_approval' ||
+    task.reviewState === 'changes_requested' ||
+    task.status === 'backlog' ||
+    task.status === 'in_progress' ||
+    task.status === 'in_review' ||
+    task.status === 'failed'
+  );
+}
+
 export class TasksService extends BaseService<
   Task,
   CreateTaskInput,

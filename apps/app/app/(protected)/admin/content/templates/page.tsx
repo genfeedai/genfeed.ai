@@ -1,13 +1,12 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import TemplatesPage from '@protected/content/templates/templates-page';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Templates');
 
 export default function TemplatesPageWrapper() {
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <TemplatesPage />
     </Suspense>
   );

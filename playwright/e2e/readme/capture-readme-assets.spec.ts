@@ -152,12 +152,12 @@ const CAPTURE_TARGETS: CaptureTarget[] = [
       '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
   },
   {
-    fileName: 'publish-desk.png',
-    path: brandPath('/publish/overview'),
+    fileName: 'publishing-desk.png',
+    path: brandPath('/publishing/overview'),
   },
   {
-    fileName: 'automate-workflows.png',
-    path: `${brandPath('/automate/workflows')}/workflow-001`,
+    fileName: 'automation-workflows.png',
+    path: `${brandPath('/automation/workflows')}/workflow-001`,
   },
 ];
 

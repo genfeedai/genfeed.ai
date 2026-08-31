@@ -141,14 +141,14 @@ const INSPECTOR_TRANSITION_DURATION_MS = 300;
 const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
-// The workflow inspector belongs to the Automate module's workflow family: the
+// The workflow inspector belongs to the Automation module's workflow family: the
 // graph canvas (`workflows/new`, `workflows/:id`) plus the list, templates and
 // executions routes that share the module surface key. Both keys are checked
 // because the canvas routes are registered as their own surface; the pathname
-// still has to carry a `workflows` segment so sibling Automate routes (runs,
+// still has to carry a `workflows` segment so sibling Automation routes (runs,
 // skills, autopilot) keep the generic inspector.
 const WORKFLOW_INSPECTOR_SURFACE_KEYS: ReadonlySet<WorkspaceShellSurfaceKey> =
-  new Set(['automate', 'automate-workflows-editor']);
+  new Set(['automation', 'automation-workflows-editor']);
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -437,7 +437,7 @@ function UniversalWorkspaceShellContent({
   // Brand binding priority for inspector conversations on product routes:
   // 1) product surface adapter (studio/review scoped brand)
   // 2) workspace surface adapter
-  // 3) topbar-selected brand — so Publish/Overview threads get a brand without
+  // 3) topbar-selected brand — so Publishing/Overview threads get a brand without
   //    an adapter. Without this, chat runs brandless and the model asks "which
   //    brand?" even though the brand switcher already has a selection.
   const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
@@ -834,7 +834,7 @@ function UniversalWorkspaceShellContent({
       }
 
       const destinationHref = buildLibraryRemixIntentHref(
-        href(APP_ROUTES.PUBLISH.REMIX),
+        href(APP_ROUTES.PUBLISHING.REMIX),
         reference,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
@@ -880,8 +880,8 @@ function UniversalWorkspaceShellContent({
     (workflow?: WorkflowSummary) => {
       const destinationHref = href(
         workflow
-          ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`
-          : APP_ROUTES.AUTOMATE.WORKFLOWS,
+          ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`
+          : APP_ROUTES.AUTOMATION.WORKFLOWS,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,
@@ -926,7 +926,7 @@ function UniversalWorkspaceShellContent({
     ? expandedInspectorWidth
     : INSPECTOR_COLLAPSED_WIDTH;
 
-  // The rail is fixed-positioned, so it no longer occupies a grid track. Publish
+  // The rail is fixed-positioned, so it no longer occupies a grid track. Publishing
   // its width on the AppLayout root instead — the topbar and main content offset
   // themselves by it, exactly as they do for the left sidebar. Consumers apply the
   // offset only at `xl:`, which is also the only breakpoint where the rail renders.

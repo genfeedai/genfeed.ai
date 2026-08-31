@@ -15,7 +15,12 @@
     "label": "Activity",
     "loading": "Loading activity...",
     "open": "Open activity",
-    "viewAll": "View all",
+    "recentLabel": "Recent activity",
+    "viewAll": "View all activity",
+    "creditAdded": "{count, plural, one {# credit added} other {# credits added}}",
+    "creditBalanceLabel": "Credit balance",
+    "creditUsage": "{count, plural, one {# credit used} other {# credits used}}",
+    "creditUsageLabel": "Credit usage",
     "credits": {
       "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
       "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} · {amount} credits used}}}}",
@@ -489,9 +494,9 @@
     },
     "contentRuns": {
       "allStatuses": "All statuses",
-      "emptyDescription": "Save a brief from Discover to start a content run. It will appear here with its variants, publish events, and analytics.",
+      "emptyDescription": "Save a brief from Discovery to start a content run. It will appear here with its variants, publish events, and analytics.",
       "emptyTitle": "No content runs yet",
-      "goToDiscover": "Go to Discover",
+      "goToDiscovery": "Go to Discovery",
       "loadError": "Content runs could not be loaded.",
       "selectBrand": "Select a brand to view content runs."
     },

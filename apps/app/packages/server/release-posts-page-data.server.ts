@@ -77,7 +77,7 @@ export const loadReleasePostsPageData = cache(
 
     try {
       const page = await ReleaseGroupsService.getInstance(token).findAllPage({
-        ...((scope === PageScope.BRAND || scope === PageScope.PUBLISHER) &&
+        ...((scope === PageScope.BRAND || scope === PageScope.PUBLISHING) &&
         bootstrap.brandId
           ? { brandId: bootstrap.brandId }
           : {}),

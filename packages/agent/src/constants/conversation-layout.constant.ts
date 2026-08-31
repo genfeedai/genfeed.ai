@@ -16,12 +16,14 @@ export const AGENT_CONVERSATION_STICKY_TOP_CLASS =
   'top-[var(--agent-conversation-sticky-top,0px)]';
 
 /**
- * Scroll region: contain overscroll, disable browser scroll anchoring.
+ * Scroll region: contain overscroll, disable browser scroll anchoring, and
+ * reserve equal scrollbar gutters so the transcript stays centered on the
+ * docked composer when a vertical scrollbar is present.
  * `--agent-conversation-sticky-top` is the Cursor-style inset for sticky
  * user prompts; override on this node when a banner sits above the transcript.
  */
 export const AGENT_CONVERSATION_SCROLL_CLASS =
-  'min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] [--agent-conversation-sticky-top:0.75rem]';
+  'min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:none] [scrollbar-gutter:stable_both-edges] [--agent-conversation-sticky-top:0.75rem]';
 
 /**
  * Off-screen assistant/work rows skip paint via content-visibility while
@@ -38,7 +40,7 @@ export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
  * occludes scrolling assistant text; no "You" label — the card is the highlight.
  */
 export const AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS = [
-  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground sm:-mx-4 sm:w-[calc(100%+2rem)]',
+  '-mx-3 w-[calc(100%+1.5rem)] max-w-none border border-border-strong bg-tertiary px-3 py-2.5 text-md leading-6 text-foreground shadow-none sm:-mx-4 sm:w-[calc(100%+2rem)]',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
 

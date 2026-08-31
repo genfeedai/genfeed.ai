@@ -115,12 +115,21 @@ export function getPlaywrightJwtToken(): string | null {
     return null;
   }
 
-  for (const key of PLAYWRIGHT_JWT_STORAGE_KEYS) {
-    const token = window.localStorage.getItem(key)?.trim();
-
-    if (token) {
-      return token;
+  try {
+    const storage = window.localStorage;
+    if (!storage || typeof storage.getItem !== 'function') {
+      return null;
     }
+
+    for (const key of PLAYWRIGHT_JWT_STORAGE_KEYS) {
+      const token = storage.getItem(key)?.trim();
+
+      if (token) {
+        return token;
+      }
+    }
+  } catch {
+    return null;
   }
 
   return null;

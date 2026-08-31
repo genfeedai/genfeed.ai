@@ -2,14 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   getMessagesMenuItemsForScope,
   isOrgMessagesRouteScope,
-  MESSAGES_LOGO_HREF,
   MESSAGES_MENU_ITEMS,
 } from './messages-menu-items.config';
 
 describe('MESSAGES_MENU_ITEMS', () => {
   it('is non-empty', () => {
     expect(MESSAGES_MENU_ITEMS.length).toBeGreaterThan(0);
-    expect(MESSAGES_LOGO_HREF).toBe('/messages');
   });
 
   it('leads with Inbox, then Engage destinations', () => {

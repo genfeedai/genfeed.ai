@@ -210,7 +210,7 @@ export class AgentCompletionCardBuilderService {
 
     // Content completions always need a review destination.
     if (label === 'Review Draft') {
-      return { href: APP_ROUTES.PUBLISH.REVIEW, label };
+      return { href: APP_ROUTES.PUBLISHING.REVIEW, label };
     }
 
     return undefined;
@@ -231,15 +231,18 @@ export class AgentCompletionCardBuilderService {
     const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
 
     if (path === '/review') {
-      return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+      return `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
     }
 
     if (path === '/calendar' || path === '/calendar/posts') {
-      return `${APP_ROUTES.PUBLISH.CALENDAR}${suffix}`;
+      return `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
     }
 
-    if (path === '/publish/drafts' || path === '/drafts') {
-      return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+    if (path === '/drafts') {
+      const draftSuffix = suffix.startsWith('?')
+        ? `&${suffix.slice(1)}`
+        : suffix;
+      return `${APP_ROUTES.PUBLISHING.POSTS}?publicationState=not-posted${draftSuffix}`;
     }
 
     return trimmed;
@@ -271,8 +274,8 @@ export class AgentCompletionCardBuilderService {
           this.selectInstalledWorkflowHrefCta(workflowAction),
         ) ?? {
           href: workflowAction.workflowId
-            ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowAction.workflowId}`
-            : APP_ROUTES.AUTOMATE.WORKFLOWS,
+            ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowAction.workflowId}`
+            : APP_ROUTES.AUTOMATION.WORKFLOWS,
           label: 'Use in Workflow',
         },
         secondaryCtas: this.buildCompletionSecondaryCtas(

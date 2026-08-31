@@ -116,7 +116,7 @@ export const loadPostsPageData = cache(
     };
 
     const postsPromise =
-      (scope === PageScope.BRAND || scope === PageScope.PUBLISHER) && brandId
+      (scope === PageScope.BRAND || scope === PageScope.PUBLISHING) && brandId
         ? BrandsService.getInstance(token)
             .findBrandPostsPage(brandId, query)
             .catch((error) => {
@@ -136,7 +136,7 @@ export const loadPostsPageData = cache(
           : Promise.resolve(emptyPostsPage);
 
     const postPresetsPromise =
-      scope === PageScope.PUBLISHER
+      scope === PageScope.PUBLISHING
         ? PresetsService.getInstance(token)
             .findAllPages({
               category: ModelCategory.TEXT,

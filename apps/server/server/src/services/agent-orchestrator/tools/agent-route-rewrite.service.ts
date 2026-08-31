@@ -1,8 +1,8 @@
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -35,11 +35,10 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
 
 /** Legacy unscoped paths that 404 after brand-scoping if left alone. */
 const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
-  '/calendar': '/publish/calendar',
-  '/calendar/posts': '/publish/calendar',
-  '/drafts': '/publish/review',
-  '/publish/drafts': '/publish/review',
-  '/review': '/publish/review',
+  '/calendar': '/publishing/calendar',
+  '/calendar/posts': '/publishing/calendar',
+  '/drafts': '/publishing/posts?publicationState=not-posted',
+  '/review': '/publishing/review',
 };
 
 @Injectable()

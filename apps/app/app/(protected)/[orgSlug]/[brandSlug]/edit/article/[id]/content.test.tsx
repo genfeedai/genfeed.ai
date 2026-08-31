@@ -46,7 +46,7 @@ describe('ArticleEditorContent', () => {
   it('renders the article editor for the deep-linked artifact', () => {
     mocks.params.set(
       'returnTo',
-      '/acme/main/publish/posts?type=article&status=draft',
+      '/acme/main/publishing/posts?type=article&status=draft',
     );
     mocks.params.set('credentialId', 'credential-1');
 
@@ -59,7 +59,7 @@ describe('ArticleEditorContent', () => {
       screen.getByRole('link', { name: /back to articles/i }),
     ).toHaveAttribute(
       'href',
-      '/acme/main/publish/posts?type=article&status=draft',
+      '/acme/main/publishing/posts?type=article&status=draft',
     );
   });
 
@@ -69,6 +69,6 @@ describe('ArticleEditorContent', () => {
     expect(screen.getByTestId('article-detail')).toHaveTextContent('article-1');
     expect(
       screen.getByRole('link', { name: /back to articles/i }),
-    ).toHaveAttribute('href', '/acme/main/publish/posts?type=article');
+    ).toHaveAttribute('href', '/acme/main/publishing/posts?type=article');
   });
 });
