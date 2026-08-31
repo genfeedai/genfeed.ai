@@ -18,12 +18,8 @@ vi.mock('twitter-api-v2', () => ({
   }),
 }));
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -34,6 +30,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import type { Request } from 'express';
 
 describe('TwitterController', () => {
@@ -154,6 +154,16 @@ describe('TwitterController', () => {
         'twitter',
         { isConnected: false },
       );
+      expect(mockGenerateOAuth2AuthLink).toHaveBeenCalledWith('test-val', {
+        scope: [
+          'tweet.read',
+          'tweet.write',
+          'users.read',
+          'media.write',
+          'offline.access',
+        ],
+        state: 'opaque-oauth-state',
+      });
       expect(mockCredentialsService.patch).toHaveBeenCalledWith('cred', {
         oauthTokenSecret: 'test-code-verifier',
       });
