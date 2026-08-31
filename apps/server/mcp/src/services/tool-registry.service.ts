@@ -30,6 +30,10 @@ import {
   SCHEDULER_TOOL_NAMES,
 } from '@mcp/tools/scheduler.tool';
 import {
+  handleSkillsProTool,
+  SKILLS_PRO_TOOL_NAMES,
+} from '@mcp/tools/skills-pro.tool';
+import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
@@ -144,6 +148,7 @@ type ExecutorKind =
   | 'social-messages'
   | 'clip-projects'
   | 'scheduler'
+  | 'skills-pro'
   | 'unknown';
 
 /**
@@ -180,6 +185,8 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'create_scheduled_release',
   'update_scheduled_release',
   'control_scheduled_release',
+  // Proprietary pack installs write the tenant runtime skill store.
+  'install_skills_pro_skill',
 ]);
 
 @Injectable()
@@ -349,6 +356,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
+    if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
     return 'unknown';
   }
 
@@ -384,6 +392,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleClipProjectsTool(this.clientService, name, args);
       case 'scheduler':
         return handleSchedulerTool(this.clientService, name, args);
+      case 'skills-pro':
+        return handleSkillsProTool(this.clientService, name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

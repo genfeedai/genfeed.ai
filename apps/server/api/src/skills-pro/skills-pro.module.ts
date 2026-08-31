@@ -1,3 +1,5 @@
+import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
+import { billingControllers } from '@api/common/subscriptions/billing.providers';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { SkillCheckoutController } from '@api/skills-pro/controllers/skill-checkout.controller';
@@ -10,12 +12,11 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
-    SkillCheckoutController,
-    SkillDownloadController,
     SkillRegistryController,
+    ...billingControllers([SkillCheckoutController, SkillDownloadController]),
   ],
   exports: [SkillCheckoutService, SkillDownloadService, SkillRegistryService],
-  imports: [FilesClientModule, StripeModule],
+  imports: [FilesClientModule, SkillsCoreModule, StripeModule],
   providers: [SkillCheckoutService, SkillDownloadService, SkillRegistryService],
 })
 export class SkillsProModule {}
