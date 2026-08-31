@@ -10,6 +10,10 @@ export const MAX_EXECUTION_NODES = 500;
  */
 export const WORKFLOW_NODE_CLAIM_LEASE_MS = 30 * 60 * 1000;
 
+/** Renew active synchronous node claims well before their lease expires. */
+export const WORKFLOW_NODE_CLAIM_HEARTBEAT_MS =
+  WORKFLOW_NODE_CLAIM_LEASE_MS / 3;
+
 /** Map from trigger event types to executor node types. */
 export const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   comment: 'commentTrigger',

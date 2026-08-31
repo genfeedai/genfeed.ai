@@ -1,9 +1,21 @@
 import { Prisma } from '@genfeedai/prisma';
-import { WORKFLOW_NODE_CLAIM_LEASE_MS } from '@server/collections/workflows/services/workflow-executor.constants';
+import {
+  WORKFLOW_NODE_CLAIM_HEARTBEAT_MS,
+  WORKFLOW_NODE_CLAIM_LEASE_MS,
+} from '@server/collections/workflows/services/workflow-executor.constants';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowNodeClaimService (#2359)', () => {
+  const expectedClaim = (nodeId = 'publish') => ({
+    action: 'claimed',
+    lease: {
+      executionId: 'exec-1',
+      leaseOwnerId: expect.any(String),
+      nodeId,
+      organizationId: 'org-1',
+    },
+  });
   const workflowNodeClaim = {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -35,11 +47,13 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         nodeId: 'publish',
         organizationId: 'org-1',
       }),
-    ).resolves.toEqual({ action: 'claimed' });
+    ).resolves.toEqual(expectedClaim());
 
     expect(workflowNodeClaim.create).toHaveBeenCalledWith({
       data: {
         executionId: 'exec-1',
+        leaseExpiresAt: expect.any(Date),
+        leaseOwnerId: expect.any(String),
         nodeId: 'publish',
         organizationId: 'org-1',
         status: 'running',
@@ -155,11 +169,13 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         nodeId: 'publish',
         organizationId: 'org-1',
       }),
-    ).resolves.toEqual({ action: 'claimed' });
+    ).resolves.toEqual(expectedClaim());
 
     expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
       data: {
         error: null,
+        leaseExpiresAt: expect.any(Date),
+        leaseOwnerId: expect.any(String),
         output: Prisma.DbNull,
         status: 'running',
       },
@@ -177,15 +193,14 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       clientVersion: 'test',
       code: 'P2002',
     });
-    const staleUpdatedAt = new Date(
-      Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1,
-    );
+    const expiredAt = new Date(Date.now() - 1);
     workflowNodeClaim.create.mockRejectedValue(conflict);
     workflowNodeClaim.findFirst.mockResolvedValue({
       error: 'worker terminated',
+      leaseExpiresAt: expiredAt,
       output: { partial: true },
       status: 'running',
-      updatedAt: staleUpdatedAt,
+      updatedAt: new Date(),
     });
     workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
 
@@ -195,11 +210,13 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         nodeId: 'publish',
         organizationId: 'org-1',
       }),
-    ).resolves.toEqual({ action: 'claimed' });
+    ).resolves.toEqual(expectedClaim());
 
     expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
       data: {
         error: null,
+        leaseExpiresAt: expect.any(Date),
+        leaseOwnerId: expect.any(String),
         output: Prisma.DbNull,
         status: 'running',
       },
@@ -208,9 +225,42 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         nodeId: 'publish',
         organizationId: 'org-1',
         status: 'running',
-        updatedAt: { lt: expect.any(Date) },
+        leaseExpiresAt: { lte: expect.any(Date) },
       },
     });
+  });
+
+  it('reclaims legacy running claims by updatedAt when no lease expiry exists', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst.mockResolvedValue({
+      error: null,
+      leaseExpiresAt: null,
+      output: null,
+      status: 'running',
+      updatedAt: new Date(Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1),
+    });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual(expectedClaim());
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          leaseExpiresAt: null,
+          updatedAt: { lt: expect.any(Date) },
+        }),
+      }),
+    );
   });
 
   it('returns the winning worker state when a stale reclaim loses its race', async () => {
@@ -222,9 +272,10 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     workflowNodeClaim.findFirst
       .mockResolvedValueOnce({
         error: 'worker terminated',
+        leaseExpiresAt: new Date(Date.now() - 1),
         output: { partial: true },
         status: 'running',
-        updatedAt: new Date(Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1),
+        updatedAt: new Date(),
       })
       .mockResolvedValueOnce({
         error: null,
@@ -266,7 +317,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         executionId: 'exec-1',
         nodeId: 'videoGen',
         organizationId: 'org-1',
-        reclaimStaleRunning: false,
+        isStaleRunningReclaimEnabled: false,
       }),
     ).resolves.toEqual({
       action: 'skip',
@@ -311,7 +362,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     });
   });
 
-  it('re-claims when the unique conflict row is missing (race / purge)', async () => {
+  it('fails closed when the unique conflict row is missing', async () => {
     const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
       clientVersion: 'test',
       code: 'P2002',
@@ -325,7 +376,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         nodeId: 'publish',
         organizationId: 'org-1',
       }),
-    ).resolves.toEqual({ action: 'claimed' });
+    ).rejects.toThrow('disappeared after a unique conflict');
 
     expect(logger.warn).toHaveBeenCalledWith(
       'Workflow node claim unique conflict but row missing',
@@ -353,6 +404,91 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     ).rejects.toBe(other);
   });
 
+  it('renews an active claim only for its current owner and tenant', async () => {
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.renewLease({
+        executionId: 'exec-1',
+        leaseOwnerId: 'owner-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(true);
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
+      data: { leaseExpiresAt: expect.any(Date) },
+      where: {
+        executionId: 'exec-1',
+        leaseOwnerId: 'owner-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+        status: 'running',
+      },
+    });
+  });
+
+  it('heartbeats while a synchronous node remains active', async () => {
+    vi.useFakeTimers();
+    try {
+      workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+      let finishOperation!: (value: string) => void;
+      const operation = new Promise<string>((resolve) => {
+        finishOperation = resolve;
+      });
+      const running = service.runWithLeaseHeartbeat(
+        {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+        },
+        () => operation,
+      );
+
+      await vi.advanceTimersByTimeAsync(WORKFLOW_NODE_CLAIM_HEARTBEAT_MS);
+
+      expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ leaseOwnerId: 'owner-1' }),
+        }),
+      );
+      finishOperation('done');
+      await expect(running).resolves.toBe('done');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects when a heartbeat observes that lease ownership was lost', async () => {
+    vi.useFakeTimers();
+    try {
+      workflowNodeClaim.updateMany.mockResolvedValue({ count: 0 });
+      let finishOperation!: () => void;
+      const operation = new Promise<void>((resolve) => {
+        finishOperation = resolve;
+      });
+      const running = service.runWithLeaseHeartbeat(
+        {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+        },
+        () => operation,
+      );
+
+      await vi.advanceTimersByTimeAsync(WORKFLOW_NODE_CLAIM_HEARTBEAT_MS);
+      finishOperation();
+
+      await expect(running).rejects.toThrow(
+        'Workflow node claim lease lost for exec-1/publish',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('completes a claim with terminal status and output', async () => {
     workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
 
@@ -367,6 +503,8 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
       data: {
         error: null,
+        leaseExpiresAt: null,
+        leaseOwnerId: null,
         output: { postId: 'p1' },
         status: 'completed',
       },
@@ -392,6 +530,8 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
       data: {
         error: 'node threw',
+        leaseExpiresAt: null,
+        leaseOwnerId: null,
         output: undefined,
         status: 'failed',
       },
@@ -401,5 +541,29 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('completes only the claim still owned by the caller', async () => {
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.complete({
+      executionId: 'exec-1',
+      leaseOwnerId: 'owner-1',
+      nodeId: 'publish',
+      organizationId: 'org-1',
+      status: 'completed',
+    });
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+          status: 'running',
+        },
+      }),
+    );
   });
 });

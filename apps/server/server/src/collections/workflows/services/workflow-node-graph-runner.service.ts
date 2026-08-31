@@ -20,7 +20,10 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.types';
-import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import {
+  type WorkflowNodeClaimLease,
+  WorkflowNodeClaimService,
+} from '@server/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
@@ -287,6 +290,7 @@ export class WorkflowNodeGraphRunnerService {
       // Per-node claim (#2359): durable unique row first, then process-local
       // map. Duplicate insert / prior completion re-emits instead of re-running
       // side effects (publish, DM, credit spend).
+      let durableLease: WorkflowNodeClaimLease | undefined;
       if (this.nodeClaimService && workflow.organizationId) {
         const actionId = getExecutableNodeOperationId(node);
         const action = getActionDefinition(actionId);
@@ -297,7 +301,8 @@ export class WorkflowNodeGraphRunnerService {
           // Provider-callback nodes have their own durable continuation lease
           // and may legitimately remain running beyond the synchronous claim
           // window. Their continuation recovery owns that path.
-          reclaimStaleRunning: action?.completionMode !== 'provider-callback',
+          isStaleRunningReclaimEnabled:
+            action?.completionMode !== 'provider-callback',
         });
         if (durable.action === 'skip') {
           if (durable.status === 'running') {
@@ -359,6 +364,7 @@ export class WorkflowNodeGraphRunnerService {
           }
           continue;
         }
+        durableLease = durable.lease;
       }
 
       const claim = claimNodeOnce(this.nodeClaims, executionId, nodeId);
@@ -416,12 +422,15 @@ export class WorkflowNodeGraphRunnerService {
       });
 
       try {
-        let nodeResult = await this.executeSingleNode(
-          node,
-          inputs,
-          workflow,
-          executionId,
-        );
+        const executeNode = () =>
+          this.executeSingleNode(node, inputs, workflow, executionId);
+        let nodeResult =
+          this.nodeClaimService && durableLease
+            ? await this.nodeClaimService.runWithLeaseHeartbeat(
+                durableLease,
+                executeNode,
+              )
+            : await executeNode();
 
         const actionId = getExecutableNodeOperationId(node);
         const action = getActionDefinition(actionId);
@@ -500,6 +509,7 @@ export class WorkflowNodeGraphRunnerService {
           await this.nodeClaimService.complete({
             error: nodeResult.error,
             executionId,
+            leaseOwnerId: durableLease?.leaseOwnerId,
             nodeId,
             organizationId: workflow.organizationId,
             output: nodeResult.output,
@@ -609,6 +619,7 @@ export class WorkflowNodeGraphRunnerService {
           await this.nodeClaimService.complete({
             error: errorMessage,
             executionId,
+            leaseOwnerId: durableLease?.leaseOwnerId,
             nodeId,
             organizationId: workflow.organizationId,
             status: 'failed',
