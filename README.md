@@ -241,4 +241,4 @@ duplicates the other.
 - [Website](https://genfeed.ai) · [Hosted app](https://app.genfeed.ai) · [Product docs](https://docs.genfeed.ai)
 - [Releases](https://github.com/genfeedai/genfeed.ai/releases) · [Project board](https://github.com/orgs/genfeedai/projects/12)
 - [Issues](https://github.com/genfeedai/genfeed.ai/issues) · [Discussions](https://github.com/genfeedai/genfeed.ai/discussions)
-- [Sponsor](https://github.com/sponsors/genfeedai)
+- [Pricing and credits](https://genfeed.ai/pricing)
