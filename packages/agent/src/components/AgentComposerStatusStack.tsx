@@ -297,7 +297,12 @@ export function AgentComposerStatusStack({
       aria-label="Conversation status and pending input"
       // Cap height so status cards scroll instead of growing into the
       // overflow-hidden workspace canvas and clipping during reconnect thrash.
-      className="max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain"
+      className={cn(
+        'max-h-[min(40dvh,20rem)] space-y-2 overflow-x-hidden overflow-y-auto overscroll-contain',
+        // Terminal errors are notices, not part of the composer chrome. Keep
+        // them visibly separate from the prompt instead of fusing both cards.
+        composerError && 'pb-2',
+      )}
       role="region"
     >
       {pendingInputRequest ? (
@@ -314,7 +319,10 @@ export function AgentComposerStatusStack({
         <div
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex items-start gap-2 border-destructive/50 bg-destructive/15 text-destructive',
+            // T3-style hierarchy: a compact, solid notice with destructive
+            // accents. The entire card should not become a translucent red
+            // extension of the prompt bar.
+            'mx-auto flex w-full max-w-2xl items-start gap-2 border-destructive/35 bg-background-secondary text-foreground shadow-border backdrop-blur-none',
           )}
           role="alert"
         >
@@ -323,16 +331,16 @@ export function AgentComposerStatusStack({
             <p className="font-medium text-sm leading-5 text-destructive">
               {composerError.title}
             </p>
-            <p className="text-xs leading-5 text-destructive/85">
+            <p className="text-xs leading-5 text-foreground/80">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-destructive/80">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-5 text-foreground/65">
                 {composerError.detail}
               </p>
             ) : null}
             {composerError.recovery ? (
-              <p className="text-2xs leading-5 text-destructive/75">
+              <p className="text-2xs leading-5 text-muted-foreground">
                 {composerError.recovery}
               </p>
             ) : null}

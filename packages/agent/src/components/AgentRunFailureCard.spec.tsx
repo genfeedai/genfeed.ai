@@ -67,4 +67,14 @@ describe('AgentRunFailureCard', () => {
     expect(text).toContain('Connection interrupted');
     expect(text).toContain('Failed to fetch');
   });
+
+  it('uses a compact solid surface instead of a translucent destructive fill', () => {
+    render(<AgentRunFailureCard error="Failed to fetch" />);
+
+    const card = screen.getByRole('alert');
+    expect(card).toHaveClass('max-w-2xl');
+    expect(card).toHaveClass('bg-background-secondary');
+    expect(card).toHaveClass('shadow-border');
+    expect(card).not.toHaveClass('bg-destructive/15');
+  });
 });

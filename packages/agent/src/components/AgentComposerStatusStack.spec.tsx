@@ -124,6 +124,27 @@ describe('AgentComposerStatusStack', () => {
     expect(card?.className).toMatch(/border-warning/);
   });
 
+  it('separates a solid compact failure notice from the composer', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        error="Failed to stop the active agent run."
+      />,
+    );
+
+    const notice = screen.getByRole('alert');
+    expect(notice).toHaveClass('max-w-2xl');
+    expect(notice).toHaveClass('bg-background-secondary');
+    expect(notice).toHaveClass('shadow-border');
+    expect(notice).not.toHaveClass('bg-destructive/15');
+    expect(
+      screen.getByRole('region', {
+        name: 'Conversation status and pending input',
+      }),
+    ).toHaveClass('pb-2');
+  });
+
   it('renders approved plan steps as a compact running task list', () => {
     render(
       <AgentComposerStatusStack

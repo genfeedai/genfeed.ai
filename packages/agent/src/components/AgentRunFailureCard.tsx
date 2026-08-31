@@ -67,13 +67,13 @@ export function AgentRunFailureCard({
   return (
     <div
       className={cn(
-        'mb-3 w-full rounded-lg border border-destructive/50 bg-destructive/15 px-4 py-3 text-destructive shadow-[0_1px_0_rgba(0,0,0,0.18)]',
+        'mx-auto mb-4 w-full max-w-2xl rounded-lg bg-background-secondary px-4 py-3 text-foreground shadow-border',
         className,
       )}
       role="alert"
     >
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-destructive/40 bg-destructive/20 text-destructive">
+        <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-destructive/12 text-destructive shadow-border">
           <TriangleAlert className="size-3.5" aria-hidden />
         </div>
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
@@ -81,16 +81,16 @@ export function AgentRunFailureCard({
             <p className="text-sm font-medium text-destructive">
               {formatted.title}
             </p>
-            <p className="text-xs leading-snug text-destructive/85">
+            <p className="text-xs leading-snug text-foreground/80">
               {formatted.summary}
             </p>
             {formatted.detail ? (
-              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-snug text-destructive/70">
+              <p className="line-clamp-3 max-h-24 overflow-y-auto whitespace-pre-wrap break-words font-mono text-2xs leading-snug text-foreground/65">
                 {formatted.detail}
               </p>
             ) : null}
             {formatted.recovery ? (
-              <p className="text-2xs leading-snug text-destructive/75">
+              <p className="text-2xs leading-snug text-muted-foreground">
                 {formatted.recovery}
               </p>
             ) : null}
