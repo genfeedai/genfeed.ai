@@ -42,8 +42,8 @@ export function AgentInputRequestOverlay({
           isComposer
             ? 'max-h-[min(50dvh,24rem)] w-full overflow-y-auto rounded-lg border border-primary/25 bg-background-secondary/96 p-3 shadow-border'
             : variant === 'inline'
-              ? 'w-full border border-primary/30 bg-background-secondary p-6 shadow-dialog'
-              : 'w-full max-w-4xl border border-primary/50 bg-background-secondary p-6 shadow-dialog'
+              ? 'w-full border border-primary/30 bg-background-secondary p-6 shadow-ambient-lg'
+              : 'w-full max-w-4xl border border-primary/50 bg-background-secondary p-6 shadow-ambient-lg'
         }
       >
         <div className={isComposer ? 'mb-3' : 'mb-4'}>

@@ -51,7 +51,7 @@ function FanItem({
       variant="ghost"
       draggable
       onDragStart={(e) => onDragStart(e, item)}
-      className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-dropdown cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
+      className="absolute size-14 overflow-hidden border-2 border-border hover:border-border-strong shadow-ambient-md cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
       style={
         {
           '--fan-x': `${x}px`,
@@ -293,7 +293,7 @@ export function GlobalImageHistory() {
         variant="secondary"
         size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-secondary hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-dropdown"
+        className="relative bg-secondary hover:bg-accent border-border text-muted-foreground hover:text-foreground shadow-ambient-md"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <Clock3 className="size-4" />
@@ -330,7 +330,7 @@ export function GlobalImageHistory() {
                   variant="secondary"
                   size="sm"
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-secondary hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-dropdown whitespace-nowrap px-2 py-1 h-auto"
+                  className="absolute animate-fan-enter bg-secondary hover:bg-accent border-border text-2xs text-foreground hover:text-foreground shadow-ambient-md whitespace-nowrap px-2 py-1 h-auto"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,

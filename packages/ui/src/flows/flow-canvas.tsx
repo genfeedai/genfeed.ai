@@ -50,7 +50,7 @@ export function FlowCanvas<
   return (
     <div
       className={cn(
-        'h-[560px] w-full overflow-hidden rounded-xl border border-border bg-secondary shadow-dropdown',
+        'h-[560px] w-full overflow-hidden rounded-xl bg-secondary shadow-dropdown',
         containerClassName,
       )}
     >

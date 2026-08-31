@@ -44,7 +44,7 @@ export default function PostDetailOverlay({
       <SheetContent
         side="right"
         className={cn(
-          'flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-dialog sm:max-w-[min(104rem,97vw)]',
+          'flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-ambient-lg sm:max-w-[min(104rem,97vw)]',
         )}
       >
         <div className="sticky top-0 z-10 border-b border-border bg-background/92 px-6 pb-5 pt-6 backdrop-blur">

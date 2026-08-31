@@ -154,7 +154,7 @@ export default function ReleaseDetailDrawer({
     >
       <SheetContent
         side="right"
-        className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-dialog sm:max-w-[min(56rem,94vw)]"
+        className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-ambient-lg sm:max-w-[min(56rem,94vw)]"
       >
         <div className="border-b border-border bg-background/95 px-6 pb-5 pt-6 backdrop-blur">
           <SheetHeader className="space-y-3 text-left">
