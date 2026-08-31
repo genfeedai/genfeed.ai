@@ -33,7 +33,7 @@ import TrendDetailHeader from './trend-detail-header';
 import TrendDetailRelatedTable from './trend-detail-related-table';
 
 export default function TrendDetail({
-  backHref = '/discover/overview',
+  backHref = '/discovery/overview',
   trendId,
 }: TrendDetailProps) {
   const router = useRouter();
@@ -227,7 +227,7 @@ export default function TrendDetail({
       <TrendDetailRelatedTable
         relatedTrends={relatedTrends}
         getRowLink={(item) => ({
-          href: `/discover/${item.id}`,
+          href: `/discovery/${item.id}`,
           label: `Open ${item.topic}`,
         })}
       />

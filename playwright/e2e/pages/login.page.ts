@@ -255,7 +255,7 @@ export class LoginPage {
       '/studio',
       '/g',
       '/studio/edit',
-      '/automate/workflows',
+      '/automation/workflows',
       '/',
     ];
     const currentUrl = this.page.url();

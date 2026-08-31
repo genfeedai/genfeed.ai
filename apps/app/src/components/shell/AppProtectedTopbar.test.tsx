@@ -30,6 +30,18 @@ vi.mock('@genfeedai/enums', () => ({
 }));
 
 vi.mock('@genfeedai/constants', () => ({
+  APP_DISPLAY_LABELS: {
+    admin: 'Admin',
+    agent: 'Agent',
+    analytics: 'Analytics',
+    automation: 'Automation',
+    discovery: 'Discovery',
+    library: 'Library',
+    messages: 'Messages',
+    publishing: 'Publishing',
+    studio: 'Studio',
+    workspace: 'Workspace',
+  },
   APP_ROUTE_PREFIXES: {
     ADMIN: '/admin',
     SETTINGS: '/settings',

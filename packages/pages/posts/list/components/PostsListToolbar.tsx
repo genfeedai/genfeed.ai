@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentSize, PostStatus } from '@genfeedai/enums';
-import type { PublisherPostsView } from '@pages/posts/list/posts-list-query';
+import type { PublishingPostsView } from '@pages/posts/list/posts-list-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -19,9 +19,9 @@ export interface PostsListToolbarOption {
   value: string;
 }
 
-const PUBLISHER_VIEW_OPTIONS: {
+const PUBLISHING_VIEW_OPTIONS: {
   messageKey: 'failed' | 'notPosted' | 'pending' | 'posted' | 'publishing';
-  value: PublisherPostsView;
+  value: PublishingPostsView;
 }[] = [
   { messageKey: 'notPosted', value: 'not-posted' },
   { messageKey: 'pending', value: PostStatus.PENDING },
@@ -36,8 +36,8 @@ export interface PostsListToolbarProps {
   sortOptions: PostsListToolbarOption[];
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
-  onPublisherViewChange?: (value: PublisherPostsView) => void;
-  publisherView?: PublisherPostsView;
+  onPublishingViewChange?: (value: PublishingPostsView) => void;
+  publishingView?: PublishingPostsView;
 }
 
 export default function PostsListToolbar({
@@ -46,8 +46,8 @@ export default function PostsListToolbar({
   sortOptions,
   onSearchChange,
   onSortChange,
-  onPublisherViewChange,
-  publisherView,
+  onPublishingViewChange,
+  publishingView,
 }: PostsListToolbarProps) {
   const translate = useTranslations('pages.posts.list');
 
@@ -68,11 +68,11 @@ export default function PostsListToolbar({
         />
       </div>
 
-      {publisherView && onPublisherViewChange ? (
+      {publishingView && onPublishingViewChange ? (
         <Select
-          value={publisherView}
+          value={publishingView}
           onValueChange={(value) =>
-            onPublisherViewChange(value as PublisherPostsView)
+            onPublishingViewChange(value as PublishingPostsView)
           }
         >
           <SelectTrigger
@@ -82,7 +82,7 @@ export default function PostsListToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PUBLISHER_VIEW_OPTIONS.map((option) => (
+            {PUBLISHING_VIEW_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {translate(`toolbar.${option.messageKey}`)}
               </SelectItem>

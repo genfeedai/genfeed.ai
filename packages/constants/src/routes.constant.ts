@@ -104,48 +104,48 @@ export const APP_ROUTES = {
     NEW: '/agent/new',
     ONBOARDING: '/agent/onboarding',
   },
-  AUTOMATE: {
+  AUTOMATION: {
     /**
      * @deprecated Legacy path — permanently redirects to Analytics Overview.
      * Prefer APP_ROUTES.ANALYTICS.OVERVIEW for links.
      */
-    ANALYTICS: '/automate/analytics',
-    AUTOPILOT: '/automate/autopilot',
+    ANALYTICS: '/automation/analytics',
+    AUTOPILOT: '/automation/autopilot',
     /** @deprecated Automation settings live under brand Settings. */
-    CONFIGURATION: '/automate/configuration',
-    /** Content-run history: briefs handed off from Discover through publish. */
-    CONTENT_RUNS: '/automate/content-runs',
+    CONFIGURATION: '/automation/configuration',
+    /** Content-run history: briefs handed off from Discovery through publish. */
+    CONTENT_RUNS: '/automation/content-runs',
     /**
-     * Agent roster. Detail pages nest at `/automate/agents/:agentId`.
+     * Agent roster. Detail pages nest at `/automation/agents/:agentId`.
      */
-    AGENTS: '/automate/agents',
-    /** @deprecated Opens the Add agent library on AUTOMATE.AGENTS. */
-    HIRE: '/automate/hire',
+    AGENTS: '/automation/agents',
+    /** @deprecated Opens the Add agent library on AUTOMATION.AGENTS. */
+    HIRE: '/automation/hire',
     /**
      * @deprecated Team list permanently redirects to AGENTS.
-     * `/automate/library/:type` remains the Twitch/YouTube chat-bot surfaces.
+     * `/automation/library/:type` remains the Twitch/YouTube chat-bot surfaces.
      */
-    LIBRARY: '/automate/library',
+    LIBRARY: '/automation/library',
     /** @deprecated Opens the custom mode of the Add agent dialog. */
-    NEW: '/automate/agents/new',
+    NEW: '/automation/agents/new',
     /** @deprecated Opens the Creator Studio template on CAMPAIGNS_NEW. */
-    ORCHESTRATOR: '/automate/orchestrator',
+    ORCHESTRATOR: '/automation/orchestrator',
     /**
-     * Canonical automate home. Bare ROOT permanently redirects here so Overview
+     * Canonical Automation home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
      */
-    OVERVIEW: '/automate/overview',
-    ROOT: '/automate',
-    RUNS: '/automate/runs',
+    OVERVIEW: '/automation/overview',
+    ROOT: '/automation',
+    RUNS: '/automation/runs',
     /** @deprecated Skill configuration lives at APP_ROUTES.SETTINGS.SKILLS. */
-    SKILLS: '/automate/skills',
+    SKILLS: '/automation/skills',
     /**
      * Agent Programs (budget/quota wrappers around strategies).
      * UI label is "Programs"; path kept for deep-link stability.
-     * Marketer multi-platform content campaigns belong in Publish (P1).
+     * Marketer multi-platform content campaigns belong in Publishing (P1).
      */
-    CAMPAIGNS: '/automate/campaigns',
-    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    CAMPAIGNS: '/automation/campaigns',
+    CAMPAIGNS_NEW: '/automation/campaigns/new',
     /**
      * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
      * Value points at Messages so stale imports land correctly.
@@ -164,50 +164,50 @@ export const APP_ROUTES = {
     /** @deprecated Use APP_ROUTES.MESSAGES.REPLIES */
     AUTHOR_REPLIES: '/messages/replies',
     /** Pipeline canvas library (merged former /workflows surface). */
-    WORKFLOWS: '/automate/workflows',
-    WORKFLOWS_EXECUTIONS: '/automate/workflows/executions',
-    WORKFLOWS_NEW: '/automate/workflows/new',
-    WORKFLOWS_TEMPLATES: '/automate/workflows/templates',
+    WORKFLOWS: '/automation/workflows',
+    WORKFLOWS_EXECUTIONS: '/automation/workflows/executions',
+    WORKFLOWS_NEW: '/automation/workflows/new',
+    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
   },
-  DISCOVER: {
-    ADS: '/discover/ads',
-    ADS_GOOGLE: '/discover/ads/google',
-    ADS_META: '/discover/ads/meta',
-    ADS_TIKTOK: '/discover/ads/tiktok',
-    ADS_X: '/discover/ads/x',
+  DISCOVERY: {
+    ADS: '/discovery/ads',
+    ADS_GOOGLE: '/discovery/ads/google',
+    ADS_META: '/discovery/ads/meta',
+    ADS_TIKTOK: '/discovery/ads/tiktok',
+    ADS_X: '/discovery/ads/x',
     /**
-     * @deprecated Use OVERVIEW. Bare `/discover/discovery` permanently redirects
-     * to `/discover/overview` (same pattern as workspace/analytics/automate).
+     * @deprecated Use OVERVIEW. Bare `/discovery/discovery` permanently redirects
+     * to `/discovery/overview` (same pattern as workspace/analytics/automation).
      */
-    DISCOVERY: '/discover/discovery',
-    FOLLOWING: '/discover/following',
+    DISCOVERY: '/discovery/discovery',
+    FOLLOWING: '/discovery/following',
     /**
-     * Canonical Discover home. Bare ROOT permanently redirects here so Overview
+     * Canonical Discovery home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
      */
-    OVERVIEW: '/discover/overview',
+    OVERVIEW: '/discovery/overview',
     /**
-     * Platform feeds. Served by the dynamic `/discover/[platform]` route, but
+     * Platform feeds. Served by the dynamic `/discovery/[platform]` route, but
      * enumerated here because they are real menu destinations — same reason
      * `ADS_*` are spelled out rather than built from a segment.
      */
-    PLATFORM_INSTAGRAM: '/discover/instagram',
-    PLATFORM_LINKEDIN: '/discover/linkedin',
-    PLATFORM_PINTEREST: '/discover/pinterest',
-    PLATFORM_REDDIT: '/discover/reddit',
-    PLATFORM_TIKTOK: '/discover/tiktok',
-    PLATFORM_TWITTER: '/discover/twitter',
-    PLATFORM_YOUTUBE: '/discover/youtube',
-    ROOT: '/discover',
+    PLATFORM_INSTAGRAM: '/discovery/instagram',
+    PLATFORM_LINKEDIN: '/discovery/linkedin',
+    PLATFORM_PINTEREST: '/discovery/pinterest',
+    PLATFORM_REDDIT: '/discovery/reddit',
+    PLATFORM_TIKTOK: '/discovery/tiktok',
+    PLATFORM_TWITTER: '/discovery/twitter',
+    PLATFORM_YOUTUBE: '/discovery/youtube',
+    ROOT: '/discovery',
     /**
      * @deprecated Same TrendsList as OVERVIEW. Permanently redirects to
-     * `/discover/overview` — keep for deep-link compatibility only.
+     * `/discovery/overview` — keep for deep-link compatibility only.
      */
-    SOCIALS: '/discover/socials',
+    SOCIALS: '/discovery/socials',
   },
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
-   * operator navigation uses the type-aware `/publish/posts/{id}` route built
+   * operator navigation uses the type-aware `/publishing/posts/{id}` route built
    * by `createArtifactEditorRoute`. Distinct from STUDIO.EDIT, which is the
    * Remotion project canvas.
    */
@@ -302,53 +302,53 @@ export const APP_ROUTES = {
      */
     ROOT: '/overview',
   },
-  PUBLISH: {
-    CALENDAR: '/publish/calendar',
+  PUBLISHING: {
+    CALENDAR: '/publishing/calendar',
     /** Posts whose latest publication attempt failed. */
-    FAILED: '/publish/failed',
+    FAILED: '/publishing/failed',
     /** Posts queued to enter the publishing pipeline. */
-    PENDING: '/publish/pending',
+    PENDING: '/publishing/pending',
     /**
-     * @deprecated Agent Programs live at APP_ROUTES.AUTOMATE.CAMPAIGNS.
-     * Legacy `/publish/campaigns` permanently redirects there.
-     * Future marketer content Campaigns reclaim this Publish prefix (P1).
+     * @deprecated Agent Programs live at APP_ROUTES.AUTOMATION.CAMPAIGNS.
+     * Legacy `/publishing/campaigns` permanently redirects there.
+     * Future marketer content Campaigns reclaim this Publishing prefix (P1).
      */
-    CAMPAIGNS: '/automate/campaigns',
-    /** @deprecated Use APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW. */
-    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    CAMPAIGNS: '/automation/campaigns',
+    /** @deprecated Use APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW. */
+    CAMPAIGNS_NEW: '/automation/campaigns/new',
     /**
      * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
-     * Legacy `/publish/outreach-campaigns` permanently redirects there.
+     * Legacy `/publishing/outreach-campaigns` permanently redirects there.
      */
     OUTREACH_CAMPAIGNS: '/messages/outreach',
     /** @deprecated Use APP_ROUTES.MESSAGES.OUTREACH_NEW. */
     OUTREACH_CAMPAIGNS_NEW: '/messages/outreach/new',
     /**
-     * Canonical Publish home (dashboard). Bare ROOT permanently redirects
+     * Canonical Publishing home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
-     * Posts / etc. (same pattern as workspace/discover/library).
+     * Posts / etc. (same pattern as workspace/discovery/library).
      */
-    OVERVIEW: '/publish/overview',
+    OVERVIEW: '/publishing/overview',
     /**
      * Canonical content library + type-aware editor.
-     * - List: `/publish/posts`
-     * - Editor: `/publish/posts/:id` (social post today; article/newsletter
+     * - List: `/publishing/posts`
+     * - Editor: `/publishing/posts/:id` (social post today; article/newsletter
      *   can share this path once kind resolution is wired)
      */
-    POSTS: '/publish/posts',
+    POSTS: '/publishing/posts',
     /** Posts currently being sent to destination platforms. */
-    PROCESSING: '/publish/processing',
-    PUBLISHED: '/publish/published',
+    PROCESSING: '/publishing/processing',
+    PUBLISHED: '/publishing/published',
     /**
-     * Remix is a contextual **action** (Discover/Library button), not a module
+     * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a
-     * Publish nav item.
+     * Publishing nav item.
      */
-    REMIX: '/publish/remix',
-    REVIEW: '/publish/review',
-    ROOT: '/publish',
+    REMIX: '/publishing/remix',
+    REVIEW: '/publishing/review',
+    ROOT: '/publishing',
     /** Pipeline shortcut: drafts + scheduled + in-progress (not live). */
-    SCHEDULED: '/publish/scheduled',
+    SCHEDULED: '/publishing/scheduled',
   },
   SETTINGS: {
     AGENT_DEFAULTS: '/settings/agent-defaults',
@@ -436,7 +436,7 @@ export const APP_ROUTES = {
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match
-     * Activity/Tasks/Inbox (same pattern as Studio → Storyboard, Discover →
+     * Activity/Tasks/Inbox (same pattern as Studio → Storyboard, Discovery →
      * Discovery).
      */
     OVERVIEW: '/workspace/overview',
@@ -449,14 +449,14 @@ export const APP_ROUTE_PREFIXES = {
   ADMIN: APP_ROUTES.ADMIN.ROOT,
   ANALYTICS: APP_ROUTES.ANALYTICS.ROOT,
   AGENT: APP_ROUTES.AGENT.ROOT,
-  AUTOMATE: APP_ROUTES.AUTOMATE.ROOT,
-  DISCOVER: APP_ROUTES.DISCOVER.ROOT,
+  AUTOMATION: APP_ROUTES.AUTOMATION.ROOT,
+  DISCOVERY: APP_ROUTES.DISCOVERY.ROOT,
   EDIT: APP_ROUTES.EDIT.ROOT,
   LIBRARY: '/library',
   MESSAGES: APP_ROUTES.MESSAGES.ROOT,
   OVERVIEW: APP_ROUTES.OVERVIEW.ROOT,
   PLATFORMS: APP_ROUTES.PLATFORMS.ROOT,
-  PUBLISH: APP_ROUTES.PUBLISH.ROOT,
+  PUBLISHING: APP_ROUTES.PUBLISHING.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
@@ -503,26 +503,26 @@ export const LEGACY_APP_ROUTES = {
    * @deprecated Newsletter writing is Agent-first. This path permanently
    * redirects to APP_ROUTES.AGENT.NEW; `?id=` links resolve to the editor.
    */
-  PUBLISH_NEWSLETTERS: '/publish/newsletters',
+  PUBLISHING_NEWSLETTERS: '/publishing/newsletters',
   /**
    * @deprecated Legacy cron-jobs lab. Permanently redirects to
-   * APP_ROUTES.AUTOMATE.WORKFLOWS. Scheduling is workflow-canonical.
+   * APP_ROUTES.AUTOMATION.WORKFLOWS. Scheduling is workflow-canonical.
    */
   LAB_CRON_JOBS: '/lab/cron-jobs',
   /**
    * @deprecated Not a standalone Workflows app. Permanently redirects to
-   * APP_ROUTES.AUTOMATE.WORKFLOWS (and nested templates/executions).
+   * APP_ROUTES.AUTOMATION.WORKFLOWS (and nested templates/executions).
    */
   WORKFLOWS: '/workflows',
   /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
   TASKS: '/tasks',
 } as const;
 
-/** Artifact type → canonical Publish editor route root. */
+/** Artifact type → canonical Publishing editor route root. */
 export const ARTIFACT_EDITOR_ROUTES = {
-  article: APP_ROUTES.PUBLISH.POSTS,
-  newsletter: APP_ROUTES.PUBLISH.POSTS,
-  post: APP_ROUTES.PUBLISH.POSTS,
+  article: APP_ROUTES.PUBLISHING.POSTS,
+  newsletter: APP_ROUTES.PUBLISHING.POSTS,
+  post: APP_ROUTES.PUBLISHING.POSTS,
 } as const;
 
 export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
@@ -534,7 +534,7 @@ export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
 export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
 
 /**
- * @deprecated Legacy query param. The Publish desk resolves editor kind from
+ * @deprecated Legacy query param. The Publishing desk resolves editor kind from
  * the entity the id belongs to (post / article / newsletter). Still accepted
  * nowhere as source of truth; kept only so old bookmarked URLs do not 404.
  */
@@ -771,7 +771,7 @@ export function getOrgSwitchHref(
  *
  * Kind is **not** encoded in the URL. Posts, articles, and newsletters are
  * separate tables with no shared `type` column; the desk at
- * `/publish/posts/:id` resolves which editor to mount by looking up the id.
+ * `/publishing/posts/:id` resolves which editor to mount by looking up the id.
  * `artifactType` is kept so callers stay explicit when constructing links.
  */
 export function createArtifactEditorRoute(

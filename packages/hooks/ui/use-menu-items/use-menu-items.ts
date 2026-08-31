@@ -36,7 +36,7 @@ export function useMenuItems({
         return {
           credentialId: cred.id,
           group: 'Posts',
-          href: `/publish?platform=${cred.platform}`,
+          href: `/publishing?platform=${cred.platform}`,
           isDynamic: true,
           label: cred.externalHandle || cred.label || cred.platform,
           outline: iconComponent,

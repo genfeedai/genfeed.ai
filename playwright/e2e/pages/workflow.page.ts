@@ -25,7 +25,7 @@ export function executionsHistoryLocator(page: Page): Locator {
  */
 export class WorkflowPage {
   readonly page: Page;
-  readonly basePath = brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS);
+  readonly basePath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS);
 
   // Layout
   readonly sidebar: Locator;
@@ -107,25 +107,25 @@ export class WorkflowPage {
     // Sidebar nav links
     this.navEditor = page
       .locator(
-        'a[href$="/automate/workflows/new"],' +
-          ' a[href*="/automate/workflows/new"],' +
+        'a[href$="/automation/workflows/new"],' +
+          ' a[href*="/automation/workflows/new"],' +
           ' [data-testid="nav-editor"]',
       )
       .first();
     this.navLibrary = page
       .locator(
-        'a[href$="/automate/workflows"],' + ' [data-testid="nav-library"]',
+        'a[href$="/automation/workflows"],' + ' [data-testid="nav-library"]',
       )
       .first();
     this.navTemplates = page
       .locator(
-        'a[href*="/automate/workflows/templates"],' +
+        'a[href*="/automation/workflows/templates"],' +
           ' [data-testid="nav-templates"]',
       )
       .first();
     this.navExecutions = page
       .locator(
-        'a[href*="/automate/workflows/executions"],' +
+        'a[href*="/automation/workflows/executions"],' +
           ' [data-testid="nav-executions"]',
       )
       .first();

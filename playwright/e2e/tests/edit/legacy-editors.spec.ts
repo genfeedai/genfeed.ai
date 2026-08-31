@@ -4,7 +4,7 @@ import { assertRouteRenders } from '../../utils/route-assertions';
 
 /**
  * Dedicated navigations for the legacy long-form editor aliases.
- * New operator navigation uses `/publish/posts/{id}`; these routes stay
+ * New operator navigation uses `/publishing/posts/{id}`; these routes stay
  * reachable for existing deep links.
  */
 const ORG_BRAND = '/test-org/brand-1';

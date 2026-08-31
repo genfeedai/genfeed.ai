@@ -40,7 +40,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   calendar: {
     ctaLabel: 'Open calendar',
-    href: APP_ROUTES.PUBLISH.CALENDAR,
+    href: APP_ROUTES.PUBLISHING.CALENDAR,
     label: 'Content calendar',
   },
   connect_accounts: {
@@ -70,7 +70,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   posts: {
     ctaLabel: 'Open posts',
-    href: APP_ROUTES.PUBLISH.POSTS,
+    href: APP_ROUTES.PUBLISHING.POSTS,
     label: 'Posts',
   },
   provider_keys: {
@@ -85,7 +85,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   review_queue: {
     ctaLabel: 'Open reviews',
-    href: APP_ROUTES.PUBLISH.REVIEW,
+    href: APP_ROUTES.PUBLISHING.REVIEW,
     label: 'Reviews',
   },
   settings: {
@@ -100,7 +100,7 @@ export const AGENT_NEXT_STEP_DESTINATIONS = {
   },
   workflows: {
     ctaLabel: 'Open workflows',
-    href: APP_ROUTES.AUTOMATE.WORKFLOWS,
+    href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Automations',
   },
 } as const satisfies Record<string, AgentNextStepDestination>;

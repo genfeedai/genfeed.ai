@@ -18,7 +18,7 @@ describe('ReleasePostsList', () => {
   it('renders target lifecycle and preserves the filtered return URL', () => {
     expect(source).toContain('target.executionState');
     expect(source).toContain('withArtifactEditorReturn');
-    expect(source).toContain('getPublisherPostHref(target.id)');
+    expect(source).toContain('getPublishingPostHref(target.id)');
     expect(source).toContain('returnUrl');
   });
 

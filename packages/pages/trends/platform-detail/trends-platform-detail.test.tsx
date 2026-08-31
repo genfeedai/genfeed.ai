@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/discover/tiktok');
+const mockUsePathname = vi.fn(() => '/discovery/tiktok');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
@@ -65,7 +65,7 @@ vi.mock('next/link', () => ({
 describe('TrendsPlatformDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/discover/tiktok');
+    mockUsePathname.mockReturnValue('/discovery/tiktok');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -152,7 +152,7 @@ describe('TrendsPlatformDetail', () => {
     render(<TrendsPlatformDetail platform="tiktok" />);
 
     expect(mockUseTrendContent).toHaveBeenCalledWith('tiktok');
-    // Discover: platform destinations are sidebar menu items, not topbar pills.
+    // Discovery: platform destinations are sidebar menu items, not topbar pills.
     expect(
       screen.queryByTestId('socials-platform-filter'),
     ).not.toBeInTheDocument();
@@ -190,7 +190,7 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
-    // Feed type is a MetricCard value now (same hierarchy as Discover overview).
+    // Feed type is a MetricCard value now (same hierarchy as Discovery overview).
     expect(screen.getByText('Feed type')).toBeInTheDocument();
     expect(screen.getByText('Public references')).toBeInTheDocument();
     expect(
@@ -199,7 +199,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('keeps LinkedIn on the public-reference feed when the feed is empty', () => {
-    mockUsePathname.mockReturnValue('/discover/linkedin');
+    mockUsePathname.mockReturnValue('/discovery/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -231,7 +231,7 @@ describe('TrendsPlatformDetail', () => {
   });
 
   it('activates the matching platform tab for reference-feed pages too', () => {
-    mockUsePathname.mockReturnValue('/discover/linkedin');
+    mockUsePathname.mockReturnValue('/discovery/linkedin');
 
     mockUseTrendContent.mockReturnValue({
       error: null,

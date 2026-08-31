@@ -9,8 +9,10 @@ const UUID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 describe('normalizeAnalyticsPathname', () => {
   it('templatizes tenant org/brand slugs', () => {
     expect(
-      normalizeAnalyticsPathname('/acme-inc/summer-brand/publish/posts/post-1'),
-    ).toBe('/:org/:brand/publish/posts/post-1');
+      normalizeAnalyticsPathname(
+        '/acme-inc/summer-brand/publishing/posts/post-1',
+      ),
+    ).toBe('/:org/:brand/publishing/posts/post-1');
   });
 
   it('keeps the org-level (~) marker and templatizes only the org slug', () => {
@@ -40,14 +42,14 @@ describe('normalizeAnalyticsPathname', () => {
     expect(normalizeAnalyticsPathname(`/acme/brand/studio/edit/${UUID}`)).toBe(
       '/:org/:brand/studio/edit/:id',
     );
-    expect(normalizeAnalyticsPathname('/acme/brand/publish/1234567')).toBe(
-      '/:org/:brand/publish/:id',
+    expect(normalizeAnalyticsPathname('/acme/brand/publishing/1234567')).toBe(
+      '/:org/:brand/publishing/:id',
     );
     expect(
       normalizeAnalyticsPathname(
-        '/acme/brand/publish/clh3k2j9p0001qa9b8c7d6e5f4',
+        '/acme/brand/publishing/clh3k2j9p0001qa9b8c7d6e5f4',
       ),
-    ).toBe('/:org/:brand/publish/:id');
+    ).toBe('/:org/:brand/publishing/:id');
   });
 
   it('preserves a long all-alpha slug (no digit -> not an id)', () => {
@@ -67,8 +69,10 @@ describe('normalizeAnalyticsPathname', () => {
 
   it('defensively strips any query or hash that slips in', () => {
     expect(
-      normalizeAnalyticsPathname('/acme/brand/publish/review?title=Secret#x'),
-    ).toBe('/:org/:brand/publish/review');
+      normalizeAnalyticsPathname(
+        '/acme/brand/publishing/review?title=Secret#x',
+      ),
+    ).toBe('/:org/:brand/publishing/review');
   });
 });
 
@@ -76,15 +80,17 @@ describe('sanitizeAnalyticsUrl', () => {
   it('drops the query string and hash from an absolute URL, keeping origin', () => {
     expect(
       sanitizeAnalyticsUrl(
-        'https://app.genfeed.ai/acme/brand/publish/review?title=My%20Secret%20Post&description=xyz',
+        'https://app.genfeed.ai/acme/brand/publishing/review?title=My%20Secret%20Post&description=xyz',
       ),
-    ).toBe('https://app.genfeed.ai/:org/:brand/publish/review');
+    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/review');
   });
 
   it('normalizes ids inside an absolute URL path', () => {
     expect(
-      sanitizeAnalyticsUrl(`https://app.genfeed.ai/acme/brand/publish/${UUID}`),
-    ).toBe('https://app.genfeed.ai/:org/:brand/publish/:id');
+      sanitizeAnalyticsUrl(
+        `https://app.genfeed.ai/acme/brand/publishing/${UUID}`,
+      ),
+    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/:id');
   });
 
   it('sanitizes a path-relative value', () => {
@@ -101,8 +107,8 @@ describe('sanitizeAnalyticsUrl', () => {
 
   it('never lets a query string survive on any value', () => {
     const values = [
-      'https://app.genfeed.ai/acme/brand/publish/x?title=Leak',
-      '/acme/brand/publish/review?description=Leak',
+      'https://app.genfeed.ai/acme/brand/publishing/x?title=Leak',
+      '/acme/brand/publishing/review?description=Leak',
     ];
     for (const value of values) {
       expect(sanitizeAnalyticsUrl(value)).not.toContain('?');

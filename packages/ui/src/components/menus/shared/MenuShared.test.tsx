@@ -603,16 +603,16 @@ describe('MenuShared', () => {
   });
 
   describe('query-specific active state', () => {
-    const publishConfig: MenuConfig = {
+    const publishingConfig: MenuConfig = {
       items: [
-        { href: '/publish/posts', label: 'Posts' },
+        { href: '/publishing/posts', label: 'Posts' },
         {
-          href: '/publish/posts?status=draft',
+          href: '/publishing/posts?status=draft',
           label: 'Review',
           matchSearchParams: { status: 'draft' },
         },
         {
-          href: '/publish/posts?publicationState=not-posted',
+          href: '/publishing/posts?publicationState=not-posted',
           label: 'Drafts',
           matchSearchParams: {
             publicationState: 'not-posted',
@@ -620,12 +620,12 @@ describe('MenuShared', () => {
           },
         },
         {
-          href: '/publish/posts?publicationState=posted',
+          href: '/publishing/posts?publicationState=posted',
           label: 'Published',
           matchSearchParams: { publicationState: 'posted', status: null },
         },
       ],
-      logoHref: '/publish/posts',
+      logoHref: '/publishing/posts',
     };
 
     const activeLabels = () =>
@@ -635,20 +635,24 @@ describe('MenuShared', () => {
         .map((node) => node.textContent);
 
     it('activates the matching Pipeline filter without also activating Posts', () => {
-      mockPathname.value = '/acme/moonrise/publish/posts';
+      mockPathname.value = '/acme/moonrise/publishing/posts';
       mockSearchParams.value =
         'publicationState=posted&platform=linkedin&taskId=task-1';
 
-      render(<MenuShared config={publishConfig} sectionLabel="Publish" />);
+      render(
+        <MenuShared config={publishingConfig} sectionLabel="Publishing" />,
+      );
 
       expect(activeLabels()).toEqual(['Published']);
     });
 
     it('keeps Posts active for filters that do not map to Pipeline', () => {
-      mockPathname.value = '/acme/moonrise/publish/posts';
+      mockPathname.value = '/acme/moonrise/publishing/posts';
       mockSearchParams.value = 'type=article&platform=linkedin';
 
-      render(<MenuShared config={publishConfig} sectionLabel="Publish" />);
+      render(
+        <MenuShared config={publishingConfig} sectionLabel="Publishing" />,
+      );
 
       expect(activeLabels()).toEqual(['Posts']);
     });

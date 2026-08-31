@@ -358,7 +358,7 @@ describe('AnalyticsOverview', () => {
     const markup = renderOverview();
 
     expect(markup).toContain('Warming up');
-    expect(markup).toContain('/publish');
+    expect(markup).toContain('/publishing');
     expect(markup).not.toContain('Data is starting to come through');
     expect(markup).not.toContain('Coverage so far');
     expect(markup).not.toContain('Setup progress');

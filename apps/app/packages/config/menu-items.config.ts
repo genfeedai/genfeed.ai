@@ -3,7 +3,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import { ClipboardList, Clock, Inbox, LayoutGrid } from 'lucide-react';
 
 /** Label after which dynamic credential items are inserted */
-export const PUBLISH_INSERT_AFTER_LABEL = 'Review';
+export const PUBLISHING_INSERT_AFTER_LABEL = 'Review';
 
 export enum AppMenuGroup {
   Root = '',

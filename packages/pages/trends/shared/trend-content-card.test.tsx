@@ -41,8 +41,8 @@ vi.mock('@services/core/notifications.service', () => ({
     getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
   },
 }));
-vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () =>
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () =>
     mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));
 
@@ -76,7 +76,7 @@ describe('TrendContentCard', () => {
 
     expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
       'href',
-      '/org-1/brand-1/publish/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
+      '/org-1/brand-1/publishing/remix?platform=twitter&sourceReferenceId=reference-1&trendId=trend-1',
     );
   });
 
@@ -145,7 +145,7 @@ describe('TrendContentCard', () => {
 
     expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
       'href',
-      '/org-1/brand-1/publish/remix?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
+      '/org-1/brand-1/publishing/remix?platform=tiktok&sourceReferenceId=tiktok-reference-1&trendId=tiktok-trend-1',
     );
     expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
   });

@@ -23,7 +23,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
-import { useOptionalDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import {
   useOptionalResearchWorkSurface,
   useResearchPagination,
@@ -128,7 +128,7 @@ export default function FollowingPage() {
   const { brandId } = collectionScope;
   const isBrandReady = isBrandResourceReady(collectionScope);
   const surface = useOptionalResearchWorkSurface();
-  const remixSurface = useOptionalDiscoverRemix();
+  const remixSurface = useOptionalDiscoveryRemix();
   const router = useRouter();
   const { href } = useOrgUrl();
   const queryClient = useQueryClient();

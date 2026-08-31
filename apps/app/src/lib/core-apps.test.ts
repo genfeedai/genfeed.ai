@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CORE_APPS, getCoreAppFeatureFlagFallbacks } from './core-apps';
 
 describe('CORE_APPS', () => {
-  it('exposes exactly Agent, Automate, and Studio', () => {
+  it('exposes exactly Agent, Automation, and Studio', () => {
     expect(CORE_APPS.map((app) => app.id)).toEqual([
       'agent',
-      'automate',
+      'automation',
       'studio',
     ]);
   });

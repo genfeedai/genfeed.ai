@@ -139,7 +139,7 @@ test.describe('Studio Edit', () => {
       await authenticatedPage.goto(APP_ROUTES.STUDIO.EDIT_NEW);
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      // Look for save/publish/export buttons
+      // Look for save/publishing/export buttons
       const savePublishControls = authenticatedPage.locator(
         'button:has-text("Save"), button:has-text("Publish"), button:has-text("Export"), button:has-text("Download"), [data-testid*="save"], [data-testid*="publish"], [data-testid*="export"]',
       );

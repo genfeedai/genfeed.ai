@@ -22,8 +22,8 @@ import {
 import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import {
-  getPublisherPostHref,
-  getPublisherPostsStatusPath,
+  getPublishingPostHref,
+  getPublishingPostsStatusPath,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -50,7 +50,7 @@ import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
   type PostsPublicationState,
-  type PublisherPostsView,
+  type PublishingPostsView,
 } from '@pages/posts/list/posts-list-query';
 import type { ContentProps } from '@props/layout/content.props';
 import {
@@ -134,7 +134,7 @@ export function usePostsList({
     publicationStateProp === null
       ? undefined
       : (publicationStateProp ??
-        (scope === PageScope.PUBLISHER && !statusProp
+        (scope === PageScope.PUBLISHING && !statusProp
           ? 'not-posted'
           : undefined));
 
@@ -206,7 +206,7 @@ export function usePostsList({
   const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
 
   const [viewType, setViewType] = useState<ViewType>(() => {
-    if (scope === PageScope.PUBLISHER) {
+    if (scope === PageScope.PUBLISHING) {
       return VIEW_TYPE_GRID;
     }
     return VIEW_TYPE_TABLE;
@@ -370,7 +370,7 @@ export function usePostsList({
   }, [posts]);
 
   const loadPostPresets = useCallback(async () => {
-    if (scope !== PageScope.PUBLISHER || initialPostPresets !== undefined) {
+    if (scope !== PageScope.PUBLISHING || initialPostPresets !== undefined) {
       return;
     }
 
@@ -486,7 +486,7 @@ export function usePostsList({
   );
 
   /**
-   * Full post surface at `/publish/posts/:id` — same PostDetail as the list
+   * Full post surface at `/publishing/posts/:id` — same PostDetail as the list
    * sheet (threads, @grok, first comment, media). Not the thin form-only shell.
    * Carry the list URL for optional return navigation.
    */
@@ -553,7 +553,7 @@ export function usePostsList({
           label,
         );
         notificationsService.success('Remix post created as draft');
-        router.push(href(getPublisherPostHref(remixPost.id)));
+        router.push(href(getPublishingPostHref(remixPost.id)));
       });
     },
     [getPostsService, notificationsService, openPostRemixModal, router, href],
@@ -573,13 +573,13 @@ export function usePostsList({
             router.push(
               href(
                 draft.reviewBatchId
-                  ? `/publish/review?batch=${draft.reviewBatchId}&filter=ready`
-                  : '/publish/review',
+                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
+                  : '/publishing/review',
               ),
             );
           } else {
             notificationsService.success('Repurposed draft created');
-            router.push(href(getPublisherPostHref(draft.id)));
+            router.push(href(getPublishingPostHref(draft.id)));
           }
         },
       );
@@ -884,17 +884,17 @@ export function usePostsList({
   );
 
   const handlePublicationStateChange = useCallback(
-    (nextView: PublisherPostsView) => {
+    (nextView: PublishingPostsView) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
       params.delete('status');
       const queryString = params.toString();
       const basePath =
         nextView === 'posted'
-          ? APP_ROUTES.PUBLISH.PUBLISHED
+          ? APP_ROUTES.PUBLISHING.PUBLISHED
           : nextView === 'not-posted'
-            ? APP_ROUTES.PUBLISH.SCHEDULED
-            : getPublisherPostsStatusPath(nextView);
+            ? APP_ROUTES.PUBLISHING.SCHEDULED
+            : getPublishingPostsStatusPath(nextView);
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),

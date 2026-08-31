@@ -136,7 +136,7 @@ export default function PostDetailCard({
         showAnalytics={showAnalytics}
       />
 
-      {/* Enhancement bar - only shown in Publisher scope */}
+      {/* Enhancement bar - only shown in Publishing scope */}
       {isEditable && onQuickAction && onPromptEnhance && (
         <PostEnhancementBar
           key={post.id}

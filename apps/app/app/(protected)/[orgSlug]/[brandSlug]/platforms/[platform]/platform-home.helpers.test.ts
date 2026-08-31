@@ -88,13 +88,13 @@ describe('platform-home helpers', () => {
 
   it('only exposes live and replies when those routes exist', () => {
     expect(getPlatformLiveHref(Platform.YOUTUBE)).toBe(
-      `${APP_ROUTES.AUTOMATE.LIBRARY}/youtube-chat`,
+      `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`,
     );
     expect(getPlatformLiveHref(Platform.RESTREAM)).toBe(
-      `${APP_ROUTES.AUTOMATE.LIBRARY}/youtube-chat`,
+      `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`,
     );
     expect(getPlatformLiveHref(Platform.TWITCH)).toBe(
-      `${APP_ROUTES.AUTOMATE.LIBRARY}/twitch-chat`,
+      `${APP_ROUTES.AUTOMATION.LIBRARY}/twitch-chat`,
     );
     expect(getPlatformLiveHref(Platform.INSTAGRAM)).toBeUndefined();
     expect(getPlatformRepliesHref(Platform.TWITTER)).toBe(
@@ -114,10 +114,10 @@ describe('platform-home helpers', () => {
 
     expect(destinations.settingsSocial).toBe(APP_ROUTES.SETTINGS.SOCIAL);
     expect(destinations.queue).toBe(
-      `${APP_ROUTES.PUBLISH.SCHEDULED}?platform=instagram`,
+      `${APP_ROUTES.PUBLISHING.SCHEDULED}?platform=instagram`,
     );
     expect(destinations.posts).toBe(
-      `${APP_ROUTES.PUBLISH.POSTS}?platform=instagram`,
+      `${APP_ROUTES.PUBLISHING.POSTS}?platform=instagram`,
     );
     expect(destinations.messages).toBe(APP_ROUTES.MESSAGES.ROOT);
     expect(destinations.analytics).toBe(

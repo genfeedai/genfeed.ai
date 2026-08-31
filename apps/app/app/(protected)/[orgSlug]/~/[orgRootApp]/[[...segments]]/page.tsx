@@ -6,8 +6,8 @@ import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
-import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/publish/publish-list-page';
+import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
+import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
@@ -125,10 +125,10 @@ export default async function OrgRootAppPage({
     notFound();
   }
 
-  if (orgRootApp === 'automate') {
-    // Automate's only org-scoped surface is the cross-brand overview at
-    // `/~/automate`; deeper automation paths are brand-scoped.
-    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AUTOMATE.ROOT));
+  if (orgRootApp === 'automation') {
+    // Automation's only org-scoped surface is the cross-brand overview at
+    // `/~/automation`; deeper automation paths are brand-scoped.
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AUTOMATION.ROOT));
   }
 
   if (orgRootApp === 'library') {
@@ -160,14 +160,14 @@ export default async function OrgRootAppPage({
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.NEW));
   }
 
-  if (orgRootApp === 'publish') {
+  if (orgRootApp === 'publishing') {
     const postsListPage = await renderPostsListPage({
       searchParams: searchParams ?? Promise.resolve({}),
       scope: PageScope.ORGANIZATION,
       statusOverride: getOrgPostsStatusOverride(segments),
     });
 
-    return <PublishLayoutContent>{postsListPage}</PublishLayoutContent>;
+    return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
   }
 
   notFound();

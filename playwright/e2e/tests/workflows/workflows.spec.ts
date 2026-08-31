@@ -19,12 +19,12 @@ import { executionsHistoryLocator } from '../../pages/workflow.page';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
- * The editor toolbar back-link renders `href(APP_ROUTES.AUTOMATE.WORKFLOWS)`
+ * The editor toolbar back-link renders `href(APP_ROUTES.AUTOMATION.WORKFLOWS)`
  * — an org/brand-scoped href, so only the suffix is stable. Built from the route
  * constant so a route rename travels with it instead of leaving a literal that
  * silently matches nothing (as `a[href="/workflows"]` did before the migration).
  */
-const workflowsBackLinkSelector = `a[href$="${APP_ROUTES.AUTOMATE.WORKFLOWS}"]`;
+const workflowsBackLinkSelector = `a[href$="${APP_ROUTES.AUTOMATION.WORKFLOWS}"]`;
 
 test.describe('Workflows', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
@@ -45,7 +45,7 @@ test.describe('Workflows', () => {
     const workflow = testWorkflows[1];
 
     const workflowPath = brandPath(
-      `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
+      `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
     );
 
     await authenticatedPage.goto(workflowPath, {
@@ -78,13 +78,16 @@ test.describe('Workflows', () => {
   test('workflow creation route renders restored navigation and draft actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW), {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW));
+      .toBe(brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW));
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
@@ -102,7 +105,9 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    const executionsPath = brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS);
+    const executionsPath = brandPath(
+      APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
+    );
 
     await authenticatedPage.goto(executionsPath, {
       waitUntil: 'domcontentloaded',
@@ -120,7 +125,7 @@ test.describe('Workflows', () => {
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -134,7 +139,7 @@ test.describe('Workflows', () => {
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS, {
       waitUntil: 'domcontentloaded',
     });
 

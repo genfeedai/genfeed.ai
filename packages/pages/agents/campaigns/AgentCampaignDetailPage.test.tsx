@@ -187,7 +187,7 @@ describe('AgentCampaignDetailPage', () => {
     expect(screen.getByText('agent-1')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to Programs' }));
-    expect(pushMock).toHaveBeenCalledWith('/acme/demo/automate/campaigns');
+    expect(pushMock).toHaveBeenCalledWith('/acme/demo/automation/campaigns');
   });
 
   it('does not render a Program from another selected brand', async () => {

@@ -1,4 +1,18 @@
 import { randomUUID } from 'node:crypto';
+import {
+  ActivityEntityModel,
+  ActivityKey,
+  ActivitySource,
+  ContentFormat,
+  IngredientCategory,
+  PersistedReviewDecision,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@server/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
@@ -36,20 +50,6 @@ import { PostsService } from '@server/collections/posts/services/posts.service';
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@server/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
-import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
-  ContentFormat,
-  IngredientCategory,
-  PersistedReviewDecision,
-  PostCategory,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AgentStrategyAutopilotExecutionService {
@@ -736,7 +736,7 @@ export class AgentStrategyAutopilotExecutionService {
     topic: string;
     userId: string;
   }): Promise<void> {
-    const href = `/publish/review?batch=${input.batchId}${
+    const href = `/publishing/review?batch=${input.batchId}${
       input.reviewItemId ? `&item=${input.reviewItemId}` : ''
     }`;
     const label = `Autopilot ${input.format} ready for review`;

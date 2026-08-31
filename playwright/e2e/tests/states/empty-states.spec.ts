@@ -106,7 +106,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publish`;
+    const route = `${ORG_BRAND}/publishing/posts?publicationState=not-posted`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -116,7 +116,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publish?status=scheduled`;
+    const route = `${ORG_BRAND}/publishing/scheduled`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -126,7 +126,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publish/review`;
+    const route = `${ORG_BRAND}/publishing/review`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -136,7 +136,7 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/workflows**');
-    const route = `${ORG_BRAND}/automate/workflows`;
+    const route = `${ORG_BRAND}/automation/workflows`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -146,18 +146,18 @@ test.describe('App surfaces — empty data states', () => {
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/executions**');
-    const route = `${ORG_BRAND}/automate/workflows/executions`;
+    const route = `${ORG_BRAND}/automation/workflows/executions`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('empty automate runs renders its zero state', async ({
+  test('empty Automation runs renders its zero state', async ({
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/agents**');
     await mockEmptyCollection(authenticatedPage, '**/tasks**');
-    const route = `${ORG_BRAND}/automate/runs`;
+    const route = `${ORG_BRAND}/automation/runs`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

@@ -53,7 +53,7 @@ vi.mock('@genfeedai/utils/carousel-validation', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: vi.fn(() => '/publisher/posts/post-1'),
+  usePathname: vi.fn(() => '/publishing/posts/post-1'),
   useParams: vi.fn(() => ({ brandSlug: 'brand-slug', orgSlug: 'acme' })),
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
 }));
@@ -90,7 +90,7 @@ describe('usePostDetail', () => {
 
   it('loads post data on mount', async () => {
     const { result } = renderHook(() =>
-      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHER }),
+      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
     );
 
     await waitFor(() => {
@@ -104,7 +104,7 @@ describe('usePostDetail', () => {
 
   it('refreshes post data when requested', async () => {
     const { result } = renderHook(() =>
-      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHER }),
+      usePostDetail({ postId: 'post-1', scope: PageScope.PUBLISHING }),
     );
 
     await waitFor(() => {

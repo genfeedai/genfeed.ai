@@ -3,13 +3,13 @@
 import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import { ADMIN_LOGO_HREF } from '@app-config/admin-menu-items.config';
 import { ANALYTICS_LOGO_HREF } from '@app-config/analytics-menu-items.config';
-import { AUTOMATE_LOGO_HREF } from '@app-config/automate-menu-items.config';
-import { DISCOVER_LOGO_HREF } from '@app-config/discover-menu-items.config';
+import { AUTOMATION_LOGO_HREF } from '@app-config/automation-menu-items.config';
+import { DISCOVERY_LOGO_HREF } from '@app-config/discovery-menu-items.config';
 import { LIBRARY_LOGO_HREF } from '@app-config/library-menu-items.config';
 import { APP_LOGO_HREF } from '@app-config/menu-items.config';
 import { MESSAGES_LOGO_HREF } from '@app-config/messages-menu-items.config';
 import { ORG_LOGO_HREF } from '@app-config/org-menu-items.config';
-import { PUBLISH_LOGO_HREF } from '@app-config/publish-menu-items.config';
+import { PUBLISHING_LOGO_HREF } from '@app-config/publishing-menu-items.config';
 import {
   SETTINGS_LOGO_HREF,
   type SettingsScope,
@@ -64,11 +64,11 @@ type Props = {
   isLibraryRoute: boolean;
   isMessagesRoute?: boolean;
   isOrgRoute: boolean;
-  isPublishRoute: boolean;
-  isDiscoverRoute: boolean;
+  isPublishingRoute: boolean;
+  isDiscoveryRoute: boolean;
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
-  isAutomateRoute: boolean;
+  isAutomationRoute: boolean;
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
   adminMenuItems: MenuItemConfig[];
@@ -76,12 +76,12 @@ type Props = {
   libraryMenuItems: MenuItemConfig[];
   menuItems: MenuItemConfig[];
   orgMenuItems: MenuItemConfig[];
-  publishMenuItems: MenuItemConfig[];
-  discoverMenuItems: MenuItemConfig[];
+  publishingMenuItems: MenuItemConfig[];
+  discoveryMenuItems: MenuItemConfig[];
   secondaryMenuItems: MenuItemConfig[];
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
-  automateMenuItems: MenuItemConfig[];
+  automationMenuItems: MenuItemConfig[];
   messagesMenuItems: MenuItemConfig[];
   /**
    * Supplied by the module that owns the active surface. When present its body
@@ -106,23 +106,23 @@ export default function AppProtectedLayoutSidebar({
   isLibraryRoute,
   isMessagesRoute = false,
   isOrgRoute,
-  isPublishRoute,
-  isDiscoverRoute,
+  isPublishingRoute,
+  isDiscoveryRoute,
   isSettingsRoute,
   isStudioRoute,
-  isAutomateRoute,
+  isAutomationRoute,
   settingsScope = SettingsSurface.PERSONAL,
   adminMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
   menuItems,
   orgMenuItems,
-  publishMenuItems,
-  discoverMenuItems,
+  publishingMenuItems,
+  discoveryMenuItems,
   secondaryMenuItems,
   settingsMenuItems,
   studioMenuItems,
-  automateMenuItems,
+  automationMenuItems,
   messagesMenuItems,
   navPanel,
   onOpenCommandPalette,
@@ -198,19 +198,19 @@ export default function AppProtectedLayoutSidebar({
         showUserProfile: true,
       },
       {
-        active: isPublishRoute,
+        active: isPublishingRoute,
         currentApp,
-        items: publishMenuItems,
-        logoHref: buildHref(PUBLISH_LOGO_HREF),
-        sectionLabel: APP_DISPLAY_LABELS.publish,
+        items: publishingMenuItems,
+        logoHref: buildHref(PUBLISHING_LOGO_HREF),
+        sectionLabel: APP_DISPLAY_LABELS.publishing,
         showOrgSwitcher: true,
       },
       {
-        active: isAutomateRoute,
+        active: isAutomationRoute,
         currentApp,
-        items: automateMenuItems,
-        logoHref: buildHref(AUTOMATE_LOGO_HREF),
-        sectionLabel: APP_DISPLAY_LABELS.automate,
+        items: automationMenuItems,
+        logoHref: buildHref(AUTOMATION_LOGO_HREF),
+        sectionLabel: APP_DISPLAY_LABELS.automation,
         showOrgSwitcher: true,
       },
       {
@@ -230,11 +230,11 @@ export default function AppProtectedLayoutSidebar({
         showOrgSwitcher: true,
       },
       {
-        active: isDiscoverRoute,
+        active: isDiscoveryRoute,
         currentApp,
-        items: discoverMenuItems,
-        logoHref: buildHref(DISCOVER_LOGO_HREF),
-        sectionLabel: APP_DISPLAY_LABELS.discover,
+        items: discoveryMenuItems,
+        logoHref: buildHref(DISCOVERY_LOGO_HREF),
+        sectionLabel: APP_DISPLAY_LABELS.discovery,
         showOrgSwitcher: true,
       },
       {

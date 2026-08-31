@@ -32,7 +32,7 @@ export default function BrandDetailLatestArticles({
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
         >
-          <NextLink href={`${href(APP_ROUTES.PUBLISH.POSTS)}?type=article`}>
+          <NextLink href={`${href(APP_ROUTES.PUBLISHING.POSTS)}?type=article`}>
             View all
           </NextLink>
         </Button>

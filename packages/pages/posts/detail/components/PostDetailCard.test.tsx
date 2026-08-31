@@ -69,7 +69,7 @@ function buildProps(
       isDeleted: false,
     } as unknown as IPost,
     publishedDisplay: '',
-    scope: PageScope.PUBLISHER,
+    scope: PageScope.PUBLISHING,
     selectedMedia: [],
     setFocusedPostId: vi.fn(),
     ...overrides,

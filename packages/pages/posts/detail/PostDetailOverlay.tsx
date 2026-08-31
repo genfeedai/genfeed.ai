@@ -2,7 +2,7 @@
 
 import type { PageScope } from '@genfeedai/enums';
 import { ButtonVariant } from '@genfeedai/enums';
-import { getPublisherPostHref } from '@helpers/content/posts.helper';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetail from '@pages/posts/detail/post-detail';
@@ -70,7 +70,7 @@ export default function PostDetailOverlay({
                 label="Open page"
                 variant={ButtonVariant.SECONDARY}
                 icon={<ExternalLink className="size-4" />}
-                onClick={() => router.push(href(getPublisherPostHref(postId)))}
+                onClick={() => router.push(href(getPublishingPostHref(postId)))}
               />
             ) : null}
           </div>

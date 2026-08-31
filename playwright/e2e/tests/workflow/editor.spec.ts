@@ -105,7 +105,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoEditor();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -116,7 +116,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoEditor();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new/);
     await expect(workflowPage.canvas).toBeVisible();
     await expect(workflowPage.canvasNode).toHaveCount(0);
   });
@@ -177,7 +177,7 @@ test.describe('Workflow Editor', () => {
     await workflowPage.clickSave().catch(() => {});
 
     // Either save was called or we're still on editor page
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows/);
   });
 
   test('should start executions through the workflow-executions endpoint', async ({
@@ -220,13 +220,13 @@ test.describe('Workflow Editor', () => {
     const execution = testWorkflowExecutions[0];
 
     await authenticatedPage.goto(
-      `/automate/workflows/${workflow.id}?execution=${execution.id}`,
+      `/automation/workflows/${workflow.id}?execution=${execution.id}`,
     );
     await workflowPage.waitForPageLoad();
 
     await expect(authenticatedPage).toHaveURL(
       new RegExp(
-        `/automate/workflows/${workflow.id}\\?execution=${execution.id}$`,
+        `/automation/workflows/${workflow.id}\\?execution=${execution.id}$`,
       ),
     );
   });
@@ -278,7 +278,7 @@ test.describe('Workflow Editor', () => {
     );
 
     await authenticatedPage.goto(
-      `/automate/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
+      `/automation/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
     );
     await workflowPage.waitForPageLoad();
 
@@ -350,7 +350,7 @@ test.describe('Workflow Editor', () => {
     );
 
     await authenticatedPage.goto(
-      `/automate/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
+      `/automation/workflows/${REVIEW_GATE_WORKFLOW.id}?execution=exec-review-001`,
     );
     await workflowPage.waitForPageLoad();
 
@@ -381,7 +381,9 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoTemplates();
 
-    await expect(authenticatedPage).toHaveURL(/automate\/workflows\/templates/);
+    await expect(authenticatedPage).toHaveURL(
+      /automation\/workflows\/templates/,
+    );
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -390,7 +392,7 @@ test.describe('Workflow Editor', () => {
 
     // Start at editor
     await workflowPage.gotoEditor();
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new/);
 
     // Navigate to library
     await workflowPage.navigateViaTab('library');
@@ -425,7 +427,7 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoLibrary();
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/workflows/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/workflows/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 });

@@ -92,12 +92,12 @@ export const ADVANCED_TOOLS = [
   },
   {
     description: 'Workflow builder for repeatable automation.',
-    href: APP_ROUTES.AUTOMATE.WORKFLOWS,
+    href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
   },
   {
     description: 'Operator view for live runs and execution state.',
-    href: APP_ROUTES.AUTOMATE.RUNS,
+    href: APP_ROUTES.AUTOMATION.RUNS,
     label: 'Runs',
   },
 ];

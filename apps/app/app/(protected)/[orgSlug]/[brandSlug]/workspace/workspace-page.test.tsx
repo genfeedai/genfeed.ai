@@ -618,7 +618,7 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/publish/review',
+      '/acme-org/acme-creator/publishing/review',
     );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();

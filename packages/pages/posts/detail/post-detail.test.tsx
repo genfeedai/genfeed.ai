@@ -134,7 +134,7 @@ describe('PostDetail', () => {
   });
 
   it('renders the header, content and sidebar for a loaded post', () => {
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByTestId('post-header')).toBeInTheDocument();
     expect(screen.getByTestId('post-content')).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('PostDetail', () => {
   it('renders skeletons while loading', () => {
     mockUsePostDetail.mockReturnValue(buildHookData({ isLoading: true }));
 
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.queryByTestId('post-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('PostDetail', () => {
       buildHookData({ error: 'Boom', post: null }),
     );
 
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByText('Boom')).toBeInTheDocument();
   });
@@ -163,7 +163,7 @@ describe('PostDetail', () => {
   it('renders a not-found message when the post is missing', () => {
     mockUsePostDetail.mockReturnValue(buildHookData({ post: null }));
 
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByText('Post not found')).toBeInTheDocument();
   });
@@ -173,20 +173,20 @@ describe('PostDetail', () => {
       buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),
     );
 
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.getByText('Publication Failed')).toBeInTheDocument();
   });
 
   it('does not warn for a healthy post', () => {
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.queryByText('Publication Failed')).not.toBeInTheDocument();
   });
 
   it('applies the page container only for the page presentation', () => {
     const { container } = render(
-      <PostDetail postId="post-1" scope={PageScope.PUBLISHER} />,
+      <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />,
     );
 
     expect(container.querySelector('.container')).not.toBeNull();
@@ -196,7 +196,7 @@ describe('PostDetail', () => {
     const { container } = render(
       <PostDetail
         postId="post-1"
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
         presentation="overlay"
       />,
     );
@@ -214,7 +214,7 @@ describe('PostDetail', () => {
     render(
       <PostDetail
         postId="post-1"
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
         renderContextSidebar={renderContextSidebar}
       />,
     );
@@ -239,7 +239,7 @@ describe('PostDetail', () => {
     render(
       <PostDetail
         postId="post-1"
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
         renderContextSidebar={renderContextSidebar}
       />,
     );
@@ -253,7 +253,7 @@ describe('PostDetail', () => {
   it('hides the engagement preview once the post is published', () => {
     mockUsePostDetail.mockReturnValue(buildHookData({ isPublished: true }));
 
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHER} />);
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.queryByTestId('engagement-preview')).not.toBeInTheDocument();
   });

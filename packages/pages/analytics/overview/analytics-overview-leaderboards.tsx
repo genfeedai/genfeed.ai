@@ -176,7 +176,7 @@ export default function AnalyticsOverviewLeaderboards({
         <TopPostsSection
           posts={topPosts}
           isLoading={isTopPostsLoading}
-          basePath="/publish"
+          basePath="/publishing"
         />
       ) : (
         <OverviewPlaceholderCard
@@ -184,12 +184,12 @@ export default function AnalyticsOverviewLeaderboards({
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
           icon={Newspaper}
           primaryAction={{
-            href: APP_ROUTES.PUBLISH.OVERVIEW,
+            href: APP_ROUTES.PUBLISHING.OVERVIEW,
             label: 'Draft content',
             variant: ButtonVariant.DEFAULT,
           }}
           secondaryAction={{
-            href: APP_ROUTES.PUBLISH.PUBLISHED,
+            href: APP_ROUTES.PUBLISHING.PUBLISHED,
             label: 'Browse published posts',
             variant: ButtonVariant.SECONDARY,
           }}

@@ -279,7 +279,7 @@ export default function AgentCampaignNewPage() {
         ]);
 
         notificationsService.success('Program created successfully');
-        router.push(href(`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${created.id}`));
+        router.push(href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${created.id}`));
       } catch (error) {
         logger.error('Failed to create agent Program', { error });
         notificationsService.error('Failed to create Program');
@@ -409,7 +409,7 @@ export default function AgentCampaignNewPage() {
               {translate('agents.noneForBrand')}{' '}
               <Link
                 className="text-foreground underline underline-offset-2"
-                href={href(`${APP_ROUTES.AUTOMATE.AGENTS}?add=library`)}
+                href={href(`${APP_ROUTES.AUTOMATION.AGENTS}?add=library`)}
               >
                 {translate('agents.add')}
               </Link>
@@ -472,7 +472,7 @@ export default function AgentCampaignNewPage() {
             label="Cancel"
             type="button"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
+            onClick={() => router.push(href(APP_ROUTES.AUTOMATION.CAMPAIGNS))}
           />
         </div>
       </form>

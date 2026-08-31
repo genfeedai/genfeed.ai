@@ -2,7 +2,7 @@
 
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
@@ -130,7 +130,7 @@ export default function PostsCalendarPage({
 
   const filterControls = (
     <Link
-      href={getPublisherPostsHref()}
+      href={getPublishingPostsHref()}
       className="inline-flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9 transition-colors"
     >
       <List />

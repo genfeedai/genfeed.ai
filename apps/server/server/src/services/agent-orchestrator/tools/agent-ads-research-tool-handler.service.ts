@@ -1,3 +1,12 @@
+import { APP_ROUTES } from '@genfeedai/constants';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import type {
+  AdsChannel,
+  AdsResearchFilters,
+  AdsResearchPlatform,
+  AdsResearchSource,
+} from '@genfeedai/interfaces/integrations/ads-research.interface';
+import { Injectable, Optional } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -10,27 +19,18 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import type {
-  AdsChannel,
-  AdsResearchFilters,
-  AdsResearchPlatform,
-  AdsResearchSource,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
-import { Injectable, Optional } from '@nestjs/common';
 
 /**
- * Discover pages that exist per ads platform. Research covers every
- * `AdsResearchPlatform`, but only platforms with their own Discover route get a
+ * Discovery pages that exist per ads platform. Research covers every
+ * `AdsResearchPlatform`, but only platforms with their own Discovery route get a
  * deep link — anything else falls back to the hub rather than a dead CTA.
  */
 const PLATFORM_ADS_HREFS: Partial<Record<AdsResearchPlatform, string>> = {
-  google: '/discover/ads/google',
-  meta: '/discover/ads/meta',
+  google: '/discovery/ads/google',
+  meta: '/discovery/ads/meta',
 };
 
-const ADS_HUB_HREF = '/discover/ads';
+const ADS_HUB_HREF = '/discovery/ads';
 
 function adsPlatformHref(platform: AdsResearchPlatform | 'all'): string {
   return platform === 'all'
@@ -101,7 +101,7 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             { href: platformHref, label: 'Open ads hub' },
-            { href: '/discover/ads', label: 'Open all ads' },
+            { href: '/discovery/ads', label: 'Open all ads' },
           ],
           description: `Found ${result.summary.publicCount} public winners and ${result.summary.connectedCount} connected-account ads. Public winners stay first, and every workflow or launch prep remains paused for review.`,
           id: `ads-search-results-${Date.now()}`,
@@ -180,7 +180,7 @@ export class AgentAdsResearchToolHandler {
               href: adsPlatformHref(detail.platform),
               label: 'Open platform ads',
             },
-            { href: '/discover/ads', label: 'Open ads hub' },
+            { href: '/discovery/ads', label: 'Open ads hub' },
           ],
           data: {
             campaignName: detail.campaignName,
@@ -239,11 +239,11 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATE.WORKFLOWS,
+              href: APP_ROUTES.AUTOMATION.WORKFLOWS,
               label: 'Open workflows',
             },
           ],
@@ -295,7 +295,7 @@ export class AgentAdsResearchToolHandler {
       },
       nextActions: [
         {
-          ctas: [{ href: '/discover/ads', label: 'Open ads hub' }],
+          ctas: [{ href: '/discovery/ads', label: 'Open ads hub' }],
           data: {
             explanation: adPack.assetCreativeBrief,
             headline: adPack.headlines[0],
@@ -350,12 +350,12 @@ export class AgentAdsResearchToolHandler {
             ...(launchPrep.workflowId
               ? [
                   {
-                    href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${launchPrep.workflowId}`,
+                    href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${launchPrep.workflowId}`,
                     label: 'Open workflow',
                   },
                 ]
               : []),
-            { href: '/discover/ads', label: 'Open ads hub' },
+            { href: '/discovery/ads', label: 'Open ads hub' },
           ],
           data: {
             channel: launchPrep.channel,

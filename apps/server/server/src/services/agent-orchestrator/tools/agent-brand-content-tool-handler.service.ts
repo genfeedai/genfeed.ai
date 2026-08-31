@@ -128,11 +128,11 @@ export class AgentBrandContentToolHandler {
           {
             ctas: [
               {
-                href: APP_ROUTES.PUBLISH.CALENDAR,
+                href: APP_ROUTES.PUBLISHING.CALENDAR,
                 label: 'View Calendar',
               },
               {
-                href: APP_ROUTES.PUBLISH.REVIEW,
+                href: APP_ROUTES.PUBLISHING.REVIEW,
                 label: 'Review Queue',
               },
             ],

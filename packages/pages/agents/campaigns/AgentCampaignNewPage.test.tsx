@@ -42,7 +42,7 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/demo/automate/campaigns/new',
+  usePathname: () => '/acme/demo/automation/campaigns/new',
   useRouter: () => ({ push: pushMock }),
   useSearchParams: () => searchParams,
 }));
@@ -243,7 +243,7 @@ describe('AgentCampaignNewPage', () => {
     resolveCampaignInvalidation();
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/acme/demo/automate/campaigns/program-one',
+        '/acme/demo/automation/campaigns/program-one',
       );
     });
   });

@@ -334,19 +334,19 @@ describe('Tabs', () => {
   });
 
   it('supports explicit matchPaths for navigation tabs', () => {
-    mockPathname = '/discover/overview';
+    mockPathname = '/discovery/overview';
     mockSearch = '';
 
     render(
       <Tabs
         items={[
           {
-            href: '/discover/socials',
+            href: '/discovery/socials',
             id: 'overview',
             label: 'Overview',
-            matchPaths: ['/discover/overview', '/discover/socials'],
+            matchPaths: ['/discovery/overview', '/discovery/socials'],
           },
-          { href: '/discover/twitter', id: 'twitter', label: 'X' },
+          { href: '/discovery/twitter', id: 'twitter', label: 'X' },
         ]}
         variant="pills"
       />,

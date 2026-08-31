@@ -11,7 +11,7 @@ type TrendsPlatformStatBarProps = {
 };
 
 /**
- * Same metric hierarchy as Discover overview: MetricCardGrid + MetricCard.
+ * Same metric hierarchy as Discovery overview: MetricCardGrid + MetricCard.
  * No bespoke label/value bar.
  */
 export default function TrendsPlatformStatBar({

@@ -14,7 +14,7 @@ import { useState } from 'react';
  *
  * **Module-local chrome** (sibling surfaces + primary tools) always renders
  * through {@link SectionTopbar}: full-bleed `border-b`, tabs left, actions
- * right — one app-wide pattern, not a Discover-only flourish. Sources:
+ * right — one app-wide pattern, not a Discovery-only flourish. Sources:
  * - explicit `headerTabs` (preferred for local nav)
  * - body `tabs` promoted when `right` actions exist
  * - body `tabs` alone (former orphan strip under the title)
@@ -23,7 +23,7 @@ import { useState } from 'react';
  * **Title-only / create CTA** rows (visible title, no local tab nav) stay in
  * the padded title toolbar — not a second full-bleed bar.
  *
- * Discover Socials may still render {@link SectionTopbar} as a sibling above a
+ * Discovery Socials may still render {@link SectionTopbar} as a sibling above a
  * chrome-less Container; both compositions must look identical.
  */
 export default function Container({

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 /**
- * Analytics is the single home for measurement — the Publish module no longer
+ * Analytics is the single home for measurement — the Publishing module no longer
  * carries its own analytics page.
  *
  * Shell already labels the module Analytics. What-happened destinations sit

@@ -1172,7 +1172,12 @@ export class AgentOnboardingToolHandler {
         },
         nextActions: [
           {
-            ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
+            ctas: [
+              {
+                href: '/publishing/posts?publicationState=not-posted',
+                label: 'View all drafts',
+              },
+            ],
             description: `Sample content generated for ${brandName}`,
             id: `onboarding-content-${Date.now()}`,
             images,

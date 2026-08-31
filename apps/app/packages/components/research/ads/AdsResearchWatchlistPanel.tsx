@@ -132,7 +132,7 @@ export type AdsResearchWatchlistPanelProps = {
 };
 
 /**
- * Operator surface for the competitor watchlist behind Discover → Ads.
+ * Operator surface for the competitor watchlist behind Discovery → Ads.
  *
  * Blocked archives are shown, not hidden: a watch row on an unreachable
  * archive produces no creative, and the difference between "we could not look"

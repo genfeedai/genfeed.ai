@@ -7,7 +7,7 @@ import {
   PostRepurposeMode,
   PostStatus,
 } from '@genfeedai/enums';
-import { getPublisherPostHref } from '@helpers/content/posts.helper';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
@@ -135,7 +135,7 @@ export default function PostDetail({
       }
     : undefined;
 
-  // Published-post variations use the same setup and review path as Discover.
+  // Published-post variations use the same setup and review path as Discovery.
   const handleCreateRemix = useCallback(() => {
     if (!post?.platform) {
       return;
@@ -169,13 +169,13 @@ export default function PostDetail({
             router.push(
               href(
                 draft.reviewBatchId
-                  ? `/publish/review?batch=${draft.reviewBatchId}&filter=ready`
-                  : '/publish/review',
+                  ? `/publishing/review?batch=${draft.reviewBatchId}&filter=ready`
+                  : '/publishing/review',
               ),
             );
           } else {
             notificationsService.success('Repurposed draft created');
-            router.push(href(getPublisherPostHref(draft.id)));
+            router.push(href(getPublishingPostHref(draft.id)));
           }
         } catch (error) {
           notificationsService.error('Failed to repurpose post');
@@ -201,7 +201,7 @@ export default function PostDetail({
       const service = await getPostsService();
       const duplicated = await service.duplicate(post.id);
       notificationsService.success('Post duplicated as draft');
-      router.push(href(getPublisherPostHref(duplicated.id)));
+      router.push(href(getPublishingPostHref(duplicated.id)));
     } catch {
       notificationsService.error('Failed to duplicate post');
     }

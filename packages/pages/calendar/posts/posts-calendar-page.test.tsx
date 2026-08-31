@@ -83,7 +83,7 @@ describe('PostsCalendarPage', () => {
   });
 
   it('opens the shared post overlay when a calendar post is clicked', async () => {
-    render(<PostsCalendarPage scope={PageScope.PUBLISHER} />);
+    render(<PostsCalendarPage scope={PageScope.PUBLISHING} />);
 
     await waitFor(() => {
       expect(findAllPagesMock).toHaveBeenCalled();
@@ -92,7 +92,7 @@ describe('PostsCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open post' }));
 
     expect(screen.getByTestId('post-detail-overlay')).toHaveTextContent(
-      `post-123:${PageScope.PUBLISHER}`,
+      `post-123:${PageScope.PUBLISHING}`,
     );
   });
 });

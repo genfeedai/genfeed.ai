@@ -45,7 +45,7 @@ const SidebarNavigationContext = createContext<
 
 /**
  * Strip the org/brand prefix from a pathname so route detection
- * works with both legacy flat paths and new /:orgSlug/:brandSlug/ paths.
+ * works with flat paths and /:orgSlug/:brandSlug/ paths.
  * URL structure: /orgSlug/brandSlug/rest or /orgSlug/~/rest
  */
 function stripOrgPrefix(path: string): string {
@@ -68,17 +68,16 @@ function stripOrgPrefix(path: string): string {
       'workflows',
       'library',
       'chat',
-      'discover',
+      'discovery',
       'issues',
       'overview',
-      'publish',
+      'publishing',
       'ingredients',
       'videos',
       'edit',
-      'automate',
+      'automation',
       'elements',
       'bots',
-      'publish',
       'lab',
       'messages',
       'tasks',

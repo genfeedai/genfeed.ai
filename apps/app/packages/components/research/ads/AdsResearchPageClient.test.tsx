@@ -189,8 +189,8 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
 }));
 
-vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () =>
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () =>
     remixAvailability.isAvailable ? { openRemix: openRemixMock } : null,
 }));
 
@@ -639,7 +639,7 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('link', { name: /open workflow editor/i }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/automate/workflows/workflow-1',
+      '/moonrise-org/moonrise-studio/automation/workflows/workflow-1',
     );
   });
 
@@ -706,7 +706,7 @@ describe('AdsResearchPageClient', () => {
       screen.getByRole('link', { name: /open linked workflow/i }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/automate/workflows/workflow-launch',
+      '/moonrise-org/moonrise-studio/automation/workflows/workflow-launch',
     );
   });
 

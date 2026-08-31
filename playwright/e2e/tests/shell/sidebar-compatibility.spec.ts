@@ -1,9 +1,9 @@
 import { AdminPage } from '@e2e/pages/admin.page';
-import { DiscoverPage } from '@e2e/pages/discover.page';
+import { DiscoveryPage } from '@e2e/pages/discovery.page';
 import { StudioPage } from '@e2e/pages/studio.page';
 import { expect, test } from '@playwright/test';
 
-const pageObjects = [AdminPage, DiscoverPage, StudioPage] as const;
+const pageObjects = [AdminPage, DiscoveryPage, StudioPage] as const;
 
 test.describe('Sidebar page-object compatibility', () => {
   for (const testId of ['sidebar-shell', 'sidebar']) {

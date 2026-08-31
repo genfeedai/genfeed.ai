@@ -18,7 +18,7 @@ import type { AgentArtifactReference, IAvatar } from '@genfeedai/interfaces';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
-import { useDiscoverRemix } from '@pages/research/remix/DiscoverRemixProvider';
+import { useDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
@@ -331,7 +331,7 @@ function AvatarIdentityFields({
 export default function RemixBriefInspector(): ReactElement {
   const translate = useTranslations('pages.remixBrief');
   const { close, confirm, error, isOpen, retry, run, status } =
-    useDiscoverRemix();
+    useDiscoveryRemix();
   const [editor, setEditor] = useState<RemixEditorState>(EMPTY_EDITOR);
   const [isPickingReference, setIsPickingReference] = useState(false);
   const [referenceRole, setReferenceRole] =

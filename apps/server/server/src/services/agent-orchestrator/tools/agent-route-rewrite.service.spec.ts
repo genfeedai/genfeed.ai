@@ -1,5 +1,5 @@
-import { AgentRouteRewriteService } from '@server/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentRouteRewriteService } from '@server/services/agent-orchestrator/tools/agent-route-rewrite.service';
 
 describe('AgentRouteRewriteService', () => {
   const loggerService = {
@@ -41,11 +41,11 @@ describe('AgentRouteRewriteService', () => {
               label: 'Open analytics',
             },
             {
-              ctaHref: '/automate/workflows/workflow-1',
+              ctaHref: '/automation/workflows/workflow-1',
               label: 'Open workflow',
             },
           ],
-          editorUrl: '/publish/review?filter=ready',
+          editorUrl: '/publishing/review?filter=ready',
           id: 'action-review',
           title: 'Review',
           type: 'content_preview_card',
@@ -62,26 +62,26 @@ describe('AgentRouteRewriteService', () => {
           href: '/genfeed-ai/launch-brand/analytics/overview?period=30d#top',
         },
         {
-          ctaHref: '/genfeed-ai/launch-brand/automate/workflows/workflow-1',
+          ctaHref: '/genfeed-ai/launch-brand/automation/workflows/workflow-1',
         },
       ],
-      editorUrl: '/genfeed-ai/launch-brand/publish/review?filter=ready',
+      editorUrl: '/genfeed-ai/launch-brand/publishing/review?filter=ready',
     });
   });
 
-  // The ads tools emit bare `/discover/ads*` paths. Discover has no org-level
+  // The ads tools emit bare `/discovery/ads*` paths. Discovery has no org-level
   // exemption, so it scopes to the brand route when a brand is resolvable and
   // to the `~` route otherwise — both exist in the app router.
-  it('scopes bare ads hub hrefs onto the brand and org discover routes', async () => {
+  it('scopes bare ads hub hrefs onto the brand and org discovery routes', async () => {
     const service = createService();
     const adsResult: AgentToolResult = {
       creditsUsed: 0,
       nextActions: [
         {
           ctas: [
-            { href: '/discover/ads/meta', label: 'Open Meta ads' },
-            { href: '/discover/ads/google', label: 'Open Google ads' },
-            { href: '/discover/ads', label: 'Open ads hub' },
+            { href: '/discovery/ads/meta', label: 'Open Meta ads' },
+            { href: '/discovery/ads/google', label: 'Open Google ads' },
+            { href: '/discovery/ads', label: 'Open ads hub' },
           ],
           id: 'ads-search-results-1',
           title: 'Ads search results',
@@ -98,21 +98,21 @@ describe('AgentRouteRewriteService', () => {
 
     expect(scopedToBrand.nextActions?.[0].ctas).toEqual([
       {
-        href: '/genfeed-ai/launch-brand/discover/ads/meta',
+        href: '/genfeed-ai/launch-brand/discovery/ads/meta',
         label: 'Open Meta ads',
       },
       {
-        href: '/genfeed-ai/launch-brand/discover/ads/google',
+        href: '/genfeed-ai/launch-brand/discovery/ads/google',
         label: 'Open Google ads',
       },
-      { href: '/genfeed-ai/launch-brand/discover/ads', label: 'Open ads hub' },
+      { href: '/genfeed-ai/launch-brand/discovery/ads', label: 'Open ads hub' },
     ]);
 
     brandsService.findOne.mockResolvedValueOnce(null);
     const scopedToOrg = await service.scopeToolResultHrefs(adsResult, context);
 
     expect(scopedToOrg.nextActions?.[0].ctas?.[0]).toMatchObject({
-      href: '/genfeed-ai/~/discover/ads/meta',
+      href: '/genfeed-ai/~/discovery/ads/meta',
     });
   });
 
@@ -177,7 +177,7 @@ describe('AgentRouteRewriteService', () => {
     const scoped = await service.scopeToolResultHrefs(
       {
         data: {
-          href: '/publish/review',
+          href: '/publishing/review',
           url: '/media/generated-image.png',
         },
         success: true,
@@ -186,7 +186,7 @@ describe('AgentRouteRewriteService', () => {
     );
 
     expect(scoped.data).toEqual({
-      href: '/genfeed-ai/launch-brand/publish/review',
+      href: '/genfeed-ai/launch-brand/publishing/review',
       url: '/media/generated-image.png',
     });
   });
@@ -215,11 +215,11 @@ describe('AgentRouteRewriteService', () => {
 
     expect(scoped.nextActions?.[0].ctas).toEqual([
       {
-        href: '/genfeed-ai/launch-brand/publish/review',
+        href: '/genfeed-ai/launch-brand/publishing/review',
         label: 'Review Queue',
       },
       {
-        href: '/genfeed-ai/launch-brand/publish/calendar',
+        href: '/genfeed-ai/launch-brand/publishing/calendar',
         label: 'View Calendar',
       },
     ]);

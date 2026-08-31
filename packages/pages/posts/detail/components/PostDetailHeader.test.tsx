@@ -35,7 +35,7 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
   render(
     <PostDetailHeader
       post={buildPost(overrides)}
-      scope={PageScope.PUBLISHER}
+      scope={PageScope.PUBLISHING}
       isPublished={false}
       hasChildren={false}
       viewMode="edit"

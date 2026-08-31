@@ -47,7 +47,7 @@ describe('APP_MENU_ITEMS', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
     expect(groups).toEqual([]);
-    expect(hrefs).not.toContain('/publish');
+    expect(hrefs).not.toContain('/publishing');
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
@@ -97,18 +97,18 @@ describe('APP_MENU_ITEMS', () => {
 
     expect(hrefs).not.toContain('/mission-control');
     expect(hrefs).not.toContain('/automations');
-    expect(hrefs).not.toContain('/automate/activities');
-    expect(hrefs).not.toContain('/automate/reply-bots');
-    expect(hrefs).not.toContain('/automate/bots');
-    expect(hrefs).not.toContain('/publish/campaigns');
-    expect(hrefs).not.toContain('/automate/runs');
-    expect(hrefs).not.toContain('/automate/workflows');
-    expect(hrefs).not.toContain('/automate/autopilot');
-    expect(hrefs).not.toContain('/automate/configuration');
+    expect(hrefs).not.toContain('/automation/activities');
+    expect(hrefs).not.toContain('/automation/reply-bots');
+    expect(hrefs).not.toContain('/automation/bots');
+    expect(hrefs).not.toContain('/publishing/campaigns');
+    expect(hrefs).not.toContain('/automation/runs');
+    expect(hrefs).not.toContain('/automation/workflows');
+    expect(hrefs).not.toContain('/automation/autopilot');
+    expect(hrefs).not.toContain('/automation/configuration');
     expect(hrefs).not.toContain('/agent');
-    expect(hrefs).not.toContain('/publish/composer');
-    expect(hrefs).not.toContain('/publish/articles');
-    expect(hrefs).not.toContain(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS);
+    expect(hrefs).not.toContain('/publishing/composer');
+    expect(hrefs).not.toContain('/publishing/articles');
+    expect(hrefs).not.toContain(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS);
     expect(groups).not.toContain('Automations');
     expect(groups).not.toContain('Chat');
     expect(groups).not.toContain('Content');
@@ -120,7 +120,7 @@ describe('APP_MENU_ITEMS', () => {
   it('does not expose Operations or Create groups (workflows now live in their own sidebar)', () => {
     const hrefs = APP_MENU_ITEMS.map((item) => item.href);
 
-    expect(hrefs).not.toContain('/automate/workflows/executions');
+    expect(hrefs).not.toContain('/automation/workflows/executions');
     expect(hrefs).not.toContain('/compose/post');
   });
 });

@@ -141,15 +141,15 @@ const protectedRouteBuckets: RouteBucket[] = [
   routeBucket('protected edit lab library', protectedRoutes, (route) =>
     /^\/test-org\/brand-1\/(edit|lab|library)(\/|$)/.test(route),
   ),
-  routeBucket('protected automate', protectedRoutes, (route) =>
-    route.startsWith('/test-org/brand-1/automate'),
+  routeBucket('protected automation', protectedRoutes, (route) =>
+    route.startsWith('/test-org/brand-1/automation'),
   ),
   routeBucket(
     'protected content operations',
     protectedRoutes,
     (route) =>
       route === '/test-org/brand-1' ||
-      /^\/test-org\/brand-1\/(agent|discover|messages|overview|platforms|publish|studio|tasks|workflows|workspace)(\/|$)/.test(
+      /^\/test-org\/brand-1\/(agent|discovery|messages|overview|platforms|publishing|studio|tasks|workflows|workspace)(\/|$)/.test(
         route,
       ),
   ),

@@ -50,7 +50,7 @@ export function WorkspaceTaskInspector({
       ? `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`
       : task
         ? getAdvancedToolHref(task)
-        : '/automate/runs';
+        : '/automation/runs';
   const taskToolLabel = linkedExecutionSummary.reportThreadId
     ? 'Open Report'
     : 'Open Tool';

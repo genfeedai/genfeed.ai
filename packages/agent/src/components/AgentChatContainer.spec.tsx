@@ -1764,7 +1764,7 @@ describe('AgentChatContainer', () => {
             {
               ctas: [
                 {
-                  href: '/automate/workflows/wf-42',
+                  href: '/automation/workflows/wf-42',
                   label: 'Open workflow',
                 },
               ],
@@ -1781,7 +1781,7 @@ describe('AgentChatContainer', () => {
 
     expect(
       await screen.findByRole('link', { name: 'Open workflow' }),
-    ).toHaveAttribute('href', '/automate/workflows/wf-42');
+    ).toHaveAttribute('href', '/automation/workflows/wf-42');
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
@@ -1797,7 +1797,7 @@ describe('AgentChatContainer', () => {
               {
                 ctas: [
                   {
-                    href: '/automate/workflows/wf-99',
+                    href: '/automation/workflows/wf-99',
                     label: 'Open workflow',
                   },
                 ],

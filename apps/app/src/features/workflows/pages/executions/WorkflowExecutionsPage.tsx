@@ -236,7 +236,7 @@ export default function WorkflowExecutionsPage() {
               {translate('emptyDescription')}
             </p>
             <Link
-              href={href(APP_ROUTES.AUTOMATE.WORKFLOWS)}
+              href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}
               className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
             >
               {translate('emptyAction')}
@@ -290,7 +290,7 @@ export default function WorkflowExecutionsPage() {
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${execution.workflowId}`,
+                              `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${execution.workflowId}`,
                             )}
                             className="font-medium hover:text-primary"
                           >
@@ -349,7 +349,7 @@ export default function WorkflowExecutionsPage() {
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${execution.workflowId}?execution=${execution.id}`,
+                              `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${execution.workflowId}?execution=${execution.id}`,
                             )}
                             className="text-sm text-primary hover:underline"
                           >

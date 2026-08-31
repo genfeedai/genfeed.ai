@@ -763,7 +763,7 @@ describe('AgentApiService', () => {
 
     // A 200 whose body is any other JSON shape (a JSON:API document, an error
     // envelope) used to succeed with `mentions: undefined` and crash the
-    // composer's ContentLibraryPicker at render — blanking /automate/*.
+    // composer's ContentLibraryPicker at render — blanking /automation/*.
     it('maps a credential mentions payload without a mentions array to a typed decode error', async () => {
       mockOk({ data: [] });
       const service = makeService();

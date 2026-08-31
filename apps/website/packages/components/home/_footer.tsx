@@ -9,7 +9,7 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: '/studio', label: 'Studio' },
-      { href: '/publisher', label: 'Publisher' },
+      { href: '/publishing', label: 'Publishing' },
       { href: '/workflows', label: 'Workflows' },
       { href: '/analytics', label: 'Analytics' },
       { href: '/hire-agents', label: 'Hire Agents' },

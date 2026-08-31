@@ -1,3 +1,15 @@
+import { APP_ROUTES } from '@genfeedai/constants';
+import { WorkflowTrigger } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { ConfigService } from '@libs/config/config.service';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import type { SystemWorkflowCatalogListItem } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
@@ -17,18 +29,6 @@ import type {
   RecurringTaskContentType,
 } from '@server/services/agent-orchestrator/tools/agent-workflow-tool.types';
 import { AgentWorkflowToolCreateService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
-import { ConfigService } from '@libs/config/config.service';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
 
 /**
  * Catalog + official-workflow install tools.
@@ -114,7 +114,7 @@ export class AgentWorkflowToolInstallService {
         creditsUsed: 0,
         data: {
           canonicalId,
-          editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
+          editorUrl: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowId}`,
           id: workflowId,
           isScheduleEnabled: workflow.isScheduleEnabled,
           label: workflow.label ?? workflow.name,
@@ -311,14 +311,14 @@ export class AgentWorkflowToolInstallService {
       data: {
         alreadyInstalled: true,
         canonicalId: source.id,
-        editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installedWorkflowId}`,
+        editorUrl: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${installedWorkflowId}`,
         id: installedWorkflowId,
       },
       nextActions: [
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installedWorkflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${installedWorkflowId}`,
               label: 'Open workflow',
             },
           ],
@@ -448,11 +448,11 @@ export class AgentWorkflowToolInstallService {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
+              href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
               label: 'Open executions',
             },
           ],
@@ -630,7 +630,7 @@ export class AgentWorkflowToolInstallService {
     return {
       creditsUsed: 0,
       data: {
-        editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${input.workflowId}`,
+        editorUrl: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${input.workflowId}`,
         id: input.workflowId,
         installedFrom: input.source.kind,
         nextRunAt: input.nextRunAt,
@@ -640,11 +640,11 @@ export class AgentWorkflowToolInstallService {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${input.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${input.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
+              href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
               label: 'Open executions',
             },
           ],

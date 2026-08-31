@@ -362,7 +362,7 @@ describe('SocialMessagesPage', () => {
     const automationLink = screen.getByRole('link', { name: /Automation/i });
     expect(automationLink).toHaveAttribute(
       'href',
-      expect.stringContaining('/automate/workflows/new?'),
+      expect.stringContaining('/automation/workflows/new?'),
     );
     expect(automationLink).toHaveAttribute(
       'href',

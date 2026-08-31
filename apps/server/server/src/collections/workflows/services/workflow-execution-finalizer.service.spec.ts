@@ -81,7 +81,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
 
     expect(notificationsPublisher.publishNotification).toHaveBeenCalledWith({
       notification: {
-        link: '/automate/workflows/executions/exec-1',
+        link: '/automation/workflows/executions/exec-1',
         message: 'Morning digest failed during a scheduled run: node exploded',
         metadata: {
           executionId: 'exec-1',

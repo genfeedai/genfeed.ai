@@ -145,7 +145,7 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
 
     expect(result.data).toMatchObject({
       alreadyInstalled: true,
-      editorUrl: '/automate/workflows/wf-existing',
+      editorUrl: '/automation/workflows/wf-existing',
       id: 'wf-existing',
     });
     expect(result.data?.confirmationRequired).toBeUndefined();
@@ -177,7 +177,7 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
     // reach the seeded-template create branch.
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
     expect(result.data).toMatchObject({
-      editorUrl: '/automate/workflows/wf-new',
+      editorUrl: '/automation/workflows/wf-new',
       id: 'wf-new',
       installedFrom: 'system-catalog',
     });

@@ -294,13 +294,13 @@ export function useClipWorkflowRunCard({
       if (firstItemId) {
         params.set('item', firstItemId);
       }
-      nextUrl = `/publish/review?${params.toString()}`;
+      nextUrl = `/publishing/review?${params.toString()}`;
     }
 
     setStep('supervised_review', 'completed');
 
     if (typeof window !== 'undefined') {
-      window.location.href = nextUrl ?? '/publish/review';
+      window.location.href = nextUrl ?? '/publishing/review';
     }
   }, [
     action.brandId,
@@ -410,8 +410,8 @@ export function useClipWorkflowRunCard({
     runOneStep,
     addAnotherClip,
     workflowExecutionUrl: hrefFn(
-      `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
+      `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${workflowExecutionId ?? ''}`,
     ),
-    humanReviewUrl: hrefFn('/publish/review'),
+    humanReviewUrl: hrefFn('/publishing/review'),
   };
 }

@@ -92,14 +92,14 @@ vi.mock('../../../[brandSlug]/studio/edit/editor-projects-page', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/publish/publish-list-page', () => ({
+vi.mock('../../../[brandSlug]/publishing/publishing-list-page', () => ({
   renderPostsListPage: (args: unknown) => {
     renderPostsListPageMock(args);
     return <div data-testid="posts-list-page" />;
   },
 }));
 
-vi.mock('../../../[brandSlug]/publish/publish-layout-content', () => ({
+vi.mock('../../../[brandSlug]/publishing/publishing-layout-content', () => ({
   default: ({ children }: { children: ReactNode }) => (
     <section data-testid="posts-layout-content">{children}</section>
   ),
@@ -189,11 +189,11 @@ describe('OrgRootAppPage', () => {
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
-  it('renders org posts with published status for /publish/published', async () => {
+  it('renders org posts with published status for /publishing/published', async () => {
     const searchParams = Promise.resolve({ page: '2' });
     const element = await OrgRootAppPage({
       params: Promise.resolve({
-        orgRootApp: 'publish',
+        orgRootApp: 'publishing',
         orgSlug: 'acme',
         segments: ['published'],
       }),
@@ -215,12 +215,12 @@ describe('OrgRootAppPage', () => {
     ['pending', PostStatus.PENDING],
     ['processing', PostStatus.PROCESSING],
   ] as const)(
-    'renders org posts with %s status for /publish/%s',
+    'renders org posts with %s status for /publishing/%s',
     async (segment, status) => {
       const searchParams = Promise.resolve({ page: '2' });
       const element = await OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'publish',
+          orgRootApp: 'publishing',
           orgSlug: 'acme',
           segments: [segment],
         }),
@@ -263,16 +263,16 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it('sends deeper org-scoped automation paths to the Automate overview', async () => {
+  it('sends deeper org-scoped automation paths to the Automation overview', async () => {
     await expect(
       OrgRootAppPage({
         params: Promise.resolve({
-          orgRootApp: 'automate',
+          orgRootApp: 'automation',
           orgSlug: 'acme',
           segments: ['workflows'],
         }),
       }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automate');
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automation');
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 

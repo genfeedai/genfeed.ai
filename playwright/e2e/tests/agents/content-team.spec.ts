@@ -23,11 +23,11 @@ test.describe('Agents — Content Team', () => {
   test('agents page owns the agent library and creation control', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.AGENTS), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.AGENTS), {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(/\/automate\/agents/);
+    await expect(authenticatedPage).toHaveURL(/\/automation\/agents/);
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Agents' }),
     ).toBeVisible();
@@ -39,12 +39,12 @@ test.describe('Agents — Content Team', () => {
   test('legacy hire route opens the agent library dialog', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.HIRE), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.HIRE), {
       waitUntil: 'domcontentloaded',
     });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automate\/agents\?add=library$/,
+      /\/automation\/agents\?add=library$/,
     );
     await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
 
@@ -58,19 +58,22 @@ test.describe('Agents — Content Team', () => {
 
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.AUTOMATE.AGENTS));
+      .toBe(brandPath(APP_ROUTES.AUTOMATION.AGENTS));
     await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
   });
 
   test('legacy orchestrator route opens the Creator Studio Program template', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.ORCHESTRATOR), {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      brandPath(APP_ROUTES.AUTOMATION.ORCHESTRATOR),
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automate\/campaigns\/new\?template=creator-studio$/,
+      /\/automation\/campaigns\/new\?template=creator-studio$/,
     );
     await expect(authenticatedPage.locator('form').first()).toBeVisible();
     await expect(
@@ -93,7 +96,7 @@ test.describe('Agents — Content Team', () => {
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(
-        `${brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS)}/agent-campaign-created`,
+        `${brandPath(APP_ROUTES.AUTOMATION.CAMPAIGNS)}/agent-campaign-created`,
       );
     await expect(
       authenticatedPage.getByRole('heading', {
@@ -110,7 +113,7 @@ test.describe('Agents — Content Team — Unauthenticated Access', () => {
   }) => {
     skipIfPlaywrightAuthBypassed();
 
-    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.ROOT, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATION.ROOT, {
       waitUntil: 'domcontentloaded',
     });
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

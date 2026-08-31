@@ -76,7 +76,7 @@
       "brandMissing": "Brand not found.",
       "calendar": {
         "cta": "Open calendar",
-        "description": "See what ships this week and reschedule from Publish.",
+        "description": "See what ships this week and reschedule from Publishing.",
         "label": "Calendar"
       },
       "connection": {
@@ -267,7 +267,7 @@
       "regionLabel": "Remix run",
       "review": {
         "open": "Open Review",
-        "openPublishDrafts": "Open Publish drafts",
+        "openPublishingDrafts": "Open Publishing drafts",
         "summaryMany": "Review batch {batchId} · {count} drafts",
         "summaryOne": "Review batch {batchId} · {count} draft"
       },
@@ -471,7 +471,7 @@
       }
     }
   },
-  "publish": {
+  "publishing": {
     "calendar": {
       "bookedHole": "Booked calendar hole",
       "bulkGenerate": "Generate missing ({count})",

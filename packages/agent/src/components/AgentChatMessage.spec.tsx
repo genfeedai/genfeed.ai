@@ -329,7 +329,7 @@ describe('AgentChatMessage', () => {
             uiActions: [
               {
                 ctas: [
-                  { href: '/publish', label: 'Open posts' },
+                  { href: '/publishing', label: 'Open posts' },
                   {
                     href: '/analytics/posts?postId=post-1',
                     label: 'Open analytics',
@@ -347,7 +347,7 @@ describe('AgentChatMessage', () => {
 
     expect(screen.getByRole('link', { name: 'Open posts' })).toHaveAttribute(
       'href',
-      '/publish',
+      '/publishing',
     );
     expect(
       screen.getByRole('link', { name: 'Open analytics' }),
@@ -483,7 +483,7 @@ describe('AgentChatMessage', () => {
                   },
                 ],
                 primaryCta: {
-                  href: '/publish/drafts',
+                  href: '/publishing/posts?publicationState=not-posted',
                   label: 'Review Draft',
                 },
                 secondaryCtas: [
@@ -518,7 +518,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('3 ad variations')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review Draft' })).toHaveAttribute(
       'href',
-      '/publish/review',
+      '/publishing/review',
     );
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(
@@ -551,7 +551,7 @@ describe('AgentChatMessage', () => {
                 id: 'completion-card-2',
                 outcomeBullets: ['Workflow scheduled for weekdays at 5pm'],
                 primaryCta: {
-                  href: '/automate/workflows/workflow-1',
+                  href: '/automation/workflows/workflow-1',
                   label: 'Use in Workflow',
                 },
                 status: 'completed',
@@ -573,7 +573,7 @@ describe('AgentChatMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Use in Workflow' }),
-    ).toHaveAttribute('href', '/automate/workflows/workflow-1');
+    ).toHaveAttribute('href', '/automation/workflows/workflow-1');
     expect(screen.queryByRole('img', { name: /Variant/i })).toBeNull();
   });
 

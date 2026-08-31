@@ -145,7 +145,7 @@ describe('AgentCampaignsPage', () => {
     expect(screen.getByText('Programs')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /new program/i })).toHaveAttribute(
       'href',
-      '/acme/demo/automate/campaigns/new',
+      '/acme/demo/automation/campaigns/new',
     );
   });
 

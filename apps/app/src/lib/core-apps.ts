@@ -7,7 +7,7 @@ import {
   REPLY_BOT_FEATURE_FLAG,
 } from '@genfeedai/constants';
 
-export type CoreAppId = 'agent' | 'automate' | 'studio';
+export type CoreAppId = 'agent' | 'automation' | 'studio';
 export type CoreAppFeatureFlagKey =
   | 'studio'
   | typeof REPLY_BOT_FEATURE_FLAG
@@ -37,10 +37,10 @@ export const CORE_APPS: CoreAppDefinition[] = [
   {
     description:
       'Workflows, autopilot, skills, and your automated content team.',
-    href: APP_ROUTES.AUTOMATE.ROOT,
-    id: 'automate',
-    label: APP_DISPLAY_LABELS.automate,
-    shortLabel: APP_DISPLAY_LABELS.automate,
+    href: APP_ROUTES.AUTOMATION.ROOT,
+    id: 'automation',
+    label: APP_DISPLAY_LABELS.automation,
+    shortLabel: APP_DISPLAY_LABELS.automation,
   },
   {
     description:

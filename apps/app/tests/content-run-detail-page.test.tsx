@@ -117,10 +117,10 @@ describe('ContentRunDetailPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /All Content Runs/i }),
-    ).toHaveAttribute('href', '/acme/main/automate/content-runs');
+    ).toHaveAttribute('href', '/acme/main/automation/content-runs');
     expect(screen.getByRole('link', { name: /Publish/i })).toHaveAttribute(
       'href',
-      '/acme/main/publish/overview',
+      '/acme/main/publishing/overview',
     );
     expect(screen.getByRole('link', { name: /Analytics/i })).toHaveAttribute(
       'href',

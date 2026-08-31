@@ -1,23 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
-import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
-import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import {
-  type SystemWorkflowCatalogListItem,
-  SystemWorkflowCatalogService,
-} from '@server/collections/workflows/services/system-workflow-catalog.service';
-import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -25,7 +13,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -47,6 +34,19 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
+import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
+import {
+  type SystemWorkflowCatalogListItem,
+  SystemWorkflowCatalogService,
+} from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { customLabels } from '@server/helpers/utils/pagination.util';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Request } from 'express';
 
 export interface SystemWorkflowCatalogResponse {
@@ -143,7 +143,7 @@ export class WorkflowCrudController {
 
     // `referencable=true` widens the list to every tenant workflow in the org
     // (workflow-reference pickers). `includeSystem=true` is the admin list of
-    // persisted system-workflow clones. Customer Automate never sees those.
+    // persisted system-workflow clones. Customer Automation never sees those.
     const where = buildWorkflowListWhere({
       brandId: query.brandId,
       includeSystem: query.includeSystem === true,

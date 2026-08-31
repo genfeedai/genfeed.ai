@@ -142,10 +142,10 @@ function AppLayoutWithDynamicMenu({
     isMessagesRoute,
     isOrgRoute,
     suppressShellLowCreditsBanner,
-    isDiscoverRoute,
+    isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
-    isAutomateRoute,
+    isAutomationRoute,
     currentApp,
     orgSlug,
     brandSlug,
@@ -158,14 +158,14 @@ function AppLayoutWithDynamicMenu({
     libraryMenuItems,
     menuItems,
     orgMenuItems,
-    publishMenuItems,
-    discoverMenuItems,
+    publishingMenuItems,
+    discoveryMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     studioMenuItems,
-    automateMenuItems,
+    automationMenuItems,
     messagesMenuItems,
-    isPublishRoute,
+    isPublishingRoute,
     taskContextSearchParams,
     handleNavigate,
     handleOpenCommandPalette,
@@ -288,7 +288,7 @@ function AppLayoutWithDynamicMenu({
 
   const menuComponent = useMemo(() => {
     // Focused onboarding has no module nav. Editor/workflow canvas routes also
-    // suppress the Automate/module sidebar so the surface can own the left rail
+    // suppress the Automation/module sidebar so the surface can own the left rail
     // (nodes palette, graph chrome) instead of stacking module menu items under
     // a second logo topbar.
     if (isFocusedOnboardingRoute || isEditorCanvasRoute) {
@@ -306,23 +306,23 @@ function AppLayoutWithDynamicMenu({
         isLibraryRoute={isLibraryRoute}
         isMessagesRoute={isMessagesRoute}
         isOrgRoute={isOrgRoute}
-        isPublishRoute={isPublishRoute}
-        isDiscoverRoute={isDiscoverRoute}
+        isPublishingRoute={isPublishingRoute}
+        isDiscoveryRoute={isDiscoveryRoute}
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
-        isAutomateRoute={isAutomateRoute}
+        isAutomationRoute={isAutomationRoute}
         settingsScope={settingsScope}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         libraryMenuItems={libraryMenuItems}
         menuItems={menuItems}
         orgMenuItems={orgMenuItems}
-        publishMenuItems={publishMenuItems}
-        discoverMenuItems={discoverMenuItems}
+        publishingMenuItems={publishingMenuItems}
+        discoveryMenuItems={discoveryMenuItems}
         secondaryMenuItems={secondaryMenuItems}
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
-        automateMenuItems={automateMenuItems}
+        automationMenuItems={automationMenuItems}
         messagesMenuItems={messagesMenuItems}
         navPanel={activeNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
@@ -342,23 +342,23 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPublishRoute,
-    isDiscoverRoute,
+    isPublishingRoute,
+    isDiscoveryRoute,
     isSettingsRoute,
     isStudioRoute,
-    isAutomateRoute,
+    isAutomationRoute,
     libraryMenuItems,
     menuItems,
     messagesMenuItems,
     orgMenuItems,
-    publishMenuItems,
-    discoverMenuItems,
+    publishingMenuItems,
+    discoveryMenuItems,
     secondaryMenuItems,
     settingsMenuItems,
     settingsScope,
     studioMenuItems,
     taskContextSearchParams,
-    automateMenuItems,
+    automationMenuItems,
   ]);
 
   const topbarComponent = isFocusedOnboardingRoute
@@ -376,14 +376,14 @@ function AppLayoutWithDynamicMenu({
           ? libraryMenuItems
           : isStudioRoute
             ? studioMenuItems
-            : isAutomateRoute
-              ? automateMenuItems
+            : isAutomationRoute
+              ? automationMenuItems
               : isMessagesRoute
                 ? messagesMenuItems
                 : isAnalyticsRoute
                   ? analyticsMenuItems
-                  : isDiscoverRoute
-                    ? discoverMenuItems
+                  : isDiscoveryRoute
+                    ? discoveryMenuItems
                     : isOrgRoute
                       ? orgMenuItems
                       : menuItems;

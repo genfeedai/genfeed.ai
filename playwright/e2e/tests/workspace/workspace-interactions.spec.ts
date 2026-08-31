@@ -138,7 +138,7 @@ test.describe('Workspace — deep interactions', () => {
     await openReview.click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(brandPath(APP_ROUTES.PUBLISH.REVIEW));
+      .toBe(brandPath(APP_ROUTES.PUBLISHING.REVIEW));
 
     await assertRouteRenders(
       authenticatedPage,

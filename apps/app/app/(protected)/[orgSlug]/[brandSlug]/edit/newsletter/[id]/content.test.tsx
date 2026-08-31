@@ -89,7 +89,7 @@ const newsletter = {
 describe('NewsletterEditorContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.returnTo = '/acme/main/publish/newsletters?status=review';
+    mocks.returnTo = '/acme/main/publishing/newsletters?status=review';
     mocks.findOne.mockResolvedValue(newsletter);
     mocks.getContext.mockResolvedValue({
       contextSources: [],
@@ -113,7 +113,10 @@ describe('NewsletterEditorContent', () => {
     expect(screen.getByText('Ready For Review')).toBeVisible();
     expect(
       screen.getByRole('link', { name: /back to agent/i }),
-    ).toHaveAttribute('href', '/acme/main/publish/newsletters?status=review');
+    ).toHaveAttribute(
+      'href',
+      '/acme/main/publishing/newsletters?status=review',
+    );
   });
 
   it('falls back to Agent without a usable return target', async () => {

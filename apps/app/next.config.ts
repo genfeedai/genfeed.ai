@@ -67,11 +67,11 @@ const selfHostedBrandRoutePrefixes = [
   APP_ROUTE_PREFIXES.WORKSPACE,
   APP_ROUTE_PREFIXES.AGENT,
   APP_ROUTE_PREFIXES.STUDIO,
-  APP_ROUTE_PREFIXES.PUBLISH,
+  APP_ROUTE_PREFIXES.PUBLISHING,
   APP_ROUTE_PREFIXES.ANALYTICS,
-  APP_ROUTE_PREFIXES.AUTOMATE,
+  APP_ROUTE_PREFIXES.AUTOMATION,
   APP_ROUTE_PREFIXES.LIBRARY,
-  APP_ROUTE_PREFIXES.DISCOVER,
+  APP_ROUTE_PREFIXES.DISCOVERY,
 ] as const;
 
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
@@ -94,7 +94,7 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
 /**
  * Complete-path app home: bare `/[app]` permanently redirects to a named child
  * so the home is a complete path that does not prefix-match its siblings.
- * Defaults to `/[app]/overview` (Workspace, Analytics, Automate, Publish);
+ * Defaults to `/[app]/overview` (Workspace, Analytics, Automation, Publishing);
  * Library passes All assets, because its home is the asset browser itself
  * rather than a tile grid. Covers unscoped, brand-scoped, and org-scoped (`~/`)
  * routes.
@@ -157,12 +157,12 @@ function legacyPathRedirects(fromPrefix: `/${string}`, toPrefix: `/${string}`) {
 }
 
 /**
- * Newsletter writing is Agent-first. Keep the old Publish list/generator URL
+ * Newsletter writing is Agent-first. Keep the old Publishing list/generator URL
  * as a permanent compatibility edge; its legacy `?id=` shape resolves directly
  * to the focused newsletter editor instead of losing the selected artifact.
  */
 function legacyNewsletterRedirects() {
-  const legacyPath = LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS;
+  const legacyPath = LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS;
 
   return [
     {
@@ -319,9 +319,9 @@ const config = createAppNextConfig({
     },
     // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
     // it to `/:org/:brand/review`) — that page never existed. Send both dead
-    // shapes to Publish Review so stored thread links stop 404ing.
+    // shapes to Publishing Review so stored thread links stop 404ing.
     {
-      destination: APP_ROUTES.PUBLISH.REVIEW,
+      destination: APP_ROUTES.PUBLISHING.REVIEW,
       permanent: true,
       source: '/review',
     },
@@ -329,7 +329,7 @@ const config = createAppNextConfig({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.PUBLISH.REVIEW,
+        APP_ROUTES.PUBLISHING.REVIEW,
       ),
       permanent: true,
       source: createBrandAppRoute(':orgSlug', ':brandSlug', '/review'),
@@ -337,7 +337,7 @@ const config = createAppNextConfig({
     {
       destination: createOrganizationAppRoute(
         ':orgSlug',
-        APP_ROUTES.PUBLISH.REVIEW,
+        APP_ROUTES.PUBLISHING.REVIEW,
       ),
       permanent: true,
       source: createOrganizationAppRoute(':orgSlug', '/review'),
@@ -387,69 +387,69 @@ const config = createAppNextConfig({
       source: createOrganizationAppRoute(':orgSlug', '/admin/:path*'),
     },
     {
-      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
       permanent: false,
-      source: APP_ROUTES.DISCOVER.ROOT,
+      source: APP_ROUTES.DISCOVERY.ROOT,
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.ROOT,
+        APP_ROUTES.DISCOVERY.ROOT,
       ),
     },
     {
-      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
       permanent: true,
-      source: APP_ROUTES.DISCOVER.DISCOVERY,
+      source: APP_ROUTES.DISCOVERY.DISCOVERY,
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.DISCOVERY,
+        APP_ROUTES.DISCOVERY.DISCOVERY,
       ),
     },
     // Retired Socials peer — same TrendsList surface as Overview.
     {
-      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
       permanent: true,
-      source: APP_ROUTES.DISCOVER.SOCIALS,
+      source: APP_ROUTES.DISCOVERY.SOCIALS,
     },
     {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.SOCIALS,
+        APP_ROUTES.DISCOVERY.SOCIALS,
       ),
     },
     {
       destination: createOrganizationAppRoute(
         ':orgSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: true,
       source: createOrganizationAppRoute(
         ':orgSlug',
-        APP_ROUTES.DISCOVER.SOCIALS,
+        APP_ROUTES.DISCOVERY.SOCIALS,
       ),
     },
     {
@@ -541,37 +541,40 @@ const config = createAppNextConfig({
       ),
     },
     ...legacyNewsletterRedirects(),
-    // Complete-path homes: bare `/[app]` → a named child. Discover/Studio
+    // Complete-path homes: bare `/[app]` → a named child. Discovery/Studio
     // already redirect ROOT to one (discovery / storyboard); Library's home is
     // the asset browser, not an overview tile grid.
     ...appHomeRedirects(APP_ROUTES.WORKSPACE.ROOT),
-    ...appHomeRedirects(APP_ROUTES.AUTOMATE.ROOT),
+    ...appHomeRedirects(APP_ROUTES.AUTOMATION.ROOT),
     ...appHomeRedirects(APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS),
     ...appHomeRedirects(APP_ROUTES.ANALYTICS.ROOT),
-    ...appHomeRedirects(APP_ROUTES.PUBLISH.ROOT),
-    // Agent Programs stay under Automate. Outreach / reply drip moved to Messages.
-    ...legacyPathRedirects('/publish/campaigns', APP_ROUTES.AUTOMATE.CAMPAIGNS),
+    ...appHomeRedirects(APP_ROUTES.PUBLISHING.ROOT),
+    // Agent Programs stay under Automation. Outreach / reply drip moved to Messages.
     ...legacyPathRedirects(
-      '/publish/outreach-campaigns',
+      '/publishing/campaigns',
+      APP_ROUTES.AUTOMATION.CAMPAIGNS,
+    ),
+    ...legacyPathRedirects(
+      '/publishing/outreach-campaigns',
       APP_ROUTES.MESSAGES.OUTREACH,
     ),
     ...legacyPathRedirects(
-      '/automate/outreach-campaigns',
+      '/automation/outreach-campaigns',
       APP_ROUTES.MESSAGES.OUTREACH,
     ),
     ...legacyPathRedirects(
-      '/automate/reply-campaigns',
+      '/automation/reply-campaigns',
       APP_ROUTES.MESSAGES.REPLY_DRIP,
     ),
-    ...legacyPathRedirects('/automate/replies', APP_ROUTES.MESSAGES.REPLIES),
+    ...legacyPathRedirects('/automation/replies', APP_ROUTES.MESSAGES.REPLIES),
     ...legacyPathRedirects(
       LEGACY_APP_ROUTES.LAB_CRON_JOBS,
-      APP_ROUTES.AUTOMATE.WORKFLOWS,
+      APP_ROUTES.AUTOMATION.WORKFLOWS,
     ),
-    // `/[org]/[brand]/workflows` is not a standalone app — land on Automate.
+    // `/[org]/[brand]/workflows` is not a standalone app — land on Automation.
     ...legacyPathRedirects(
       LEGACY_APP_ROUTES.WORKFLOWS,
-      APP_ROUTES.AUTOMATE.WORKFLOWS,
+      APP_ROUTES.AUTOMATION.WORKFLOWS,
     ),
   ],
   sentryProject: 'app-genfeed-ai',

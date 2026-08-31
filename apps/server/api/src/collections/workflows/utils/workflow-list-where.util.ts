@@ -19,7 +19,7 @@ const EXCLUDE_SYSTEM_WORKFLOW = {
 } as const;
 
 /**
- * Customer Automate library lists tenant-authored workflows only.
+ * Customer Automation lists tenant-authored workflows only.
  * Persisted system-workflow clones stay on Admin → Automation → Workflows
  * (`includeSystem=true`).
  */

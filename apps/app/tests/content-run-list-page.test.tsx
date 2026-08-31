@@ -88,25 +88,25 @@ describe('ContentRunListPage', () => {
 
     expect(firstRun).toHaveAttribute(
       'href',
-      '/acme/main/automate/content-runs/run-1',
+      '/acme/main/automation/content-runs/run-1',
     );
     expect(
       screen.getByRole('link', {
         name: /Turn the trend into a proof thread\./,
       }),
-    ).toHaveAttribute('href', '/acme/main/automate/content-runs/run-2');
+    ).toHaveAttribute('href', '/acme/main/automation/content-runs/run-2');
     expect(list).toHaveBeenCalledWith('brand-1', { status: undefined });
   });
 
-  it('points the empty state back at Discover, where content runs originate', async () => {
+  it('points the empty state back at Discovery, where content runs originate', async () => {
     list.mockResolvedValue([]);
 
     renderContentRunList();
 
     expect(await screen.findByText('No content runs yet')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Go to Discover' }),
-    ).toHaveAttribute('href', '/acme/main/discover');
+      screen.getByRole('link', { name: 'Go to Discovery' }),
+    ).toHaveAttribute('href', '/acme/main/discovery');
   });
 
   it('surfaces a retry affordance when the run list fails to load', async () => {

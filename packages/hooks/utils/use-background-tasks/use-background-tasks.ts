@@ -4,7 +4,7 @@ import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useRouter } from 'next/navigation';
@@ -23,15 +23,15 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('batch content')
   ) {
     return targetId
-      ? `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${targetId}`
-      : APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS;
+      ? `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${targetId}`
+      : APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS;
   }
 
   if (resultType === 'article' || label.includes('article')) {
     // A finished article is an artifact — send it to its own editor page.
     return event.resultId
       ? createArtifactEditorRoute('article', event.resultId)
-      : APP_ROUTES.PUBLISH.ROOT;
+      : APP_ROUTES.PUBLISHING.ROOT;
   }
 
   if (
@@ -39,7 +39,7 @@ function buildBackgroundTaskHref(event: IBackgroundTaskUpdateEvent): string {
     label.includes('post') ||
     label.includes('publish')
   ) {
-    return getPublisherPostsHref();
+    return getPublishingPostsHref();
   }
 
   if (

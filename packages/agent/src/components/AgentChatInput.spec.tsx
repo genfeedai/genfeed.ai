@@ -436,7 +436,7 @@ describe('AgentChatInput', () => {
 
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {
     const dispatchAction = vi.fn(() => ({
-      message: 'Opened Publish. Explicit approval is still required.',
+      message: 'Opened Publishing. Explicit approval is still required.',
       status: 'dispatched' as const,
     }));
     const onSend = vi.fn();
@@ -457,7 +457,7 @@ describe('AgentChatInput', () => {
     // entries are menuitems, not buttons.
     fireEvent.pointerDown(screen.getByLabelText('Open workspace shortcuts'));
     fireEvent.click(
-      await screen.findByRole('menuitem', { name: /\/publish/i }),
+      await screen.findByRole('menuitem', { name: /\/publishing/i }),
     );
     fireEvent.click(await screen.findByLabelText('Send message'));
 
@@ -469,9 +469,11 @@ describe('AgentChatInput', () => {
       );
     });
     expect(onSend).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox')).toHaveTextContent('/publish');
+    expect(screen.getByRole('textbox')).toHaveTextContent('/publishing');
     expect(
-      screen.getByText('Opened Publish. Explicit approval is still required.'),
+      screen.getByText(
+        'Opened Publishing. Explicit approval is still required.',
+      ),
     ).toBeInTheDocument();
   });
 

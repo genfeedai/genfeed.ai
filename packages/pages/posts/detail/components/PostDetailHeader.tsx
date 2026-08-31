@@ -71,7 +71,7 @@ export default function PostDetailHeader({
   onExpandToThread,
   onRepurpose,
 }: PostDetailHeaderProps) {
-  const isEditable = scope === PageScope.PUBLISHER && !isPublished;
+  const isEditable = scope === PageScope.PUBLISHING && !isPublished;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
 
   // Can expand to thread if:

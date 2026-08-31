@@ -16,7 +16,7 @@ import { expectNoErrorOverlay } from '../../utils/route-assertions';
  * bounce back to /login.
  *
  * Error mocks are scoped to resource endpoints only (posts, images, videos,
- * analytics, workflows, agents, discover) so auth / bootstrap / users traffic
+ * analytics, workflows, agents, Discovery) so auth / bootstrap / users traffic
  * still succeeds and the session stays valid.
  */
 
@@ -35,7 +35,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a server error', async ({ authenticatedPage }) => {
     await mockServerError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publish`;
+    const route = `${ORG_BRAND}/publishing/posts?publicationState=not-posted`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -43,7 +43,7 @@ test.describe('App surfaces — fetch error states', () => {
 
   test('posts list survives a network error', async ({ authenticatedPage }) => {
     await mockNetworkError(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publish`;
+    const route = `${ORG_BRAND}/publishing/posts?publicationState=not-posted`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -99,7 +99,7 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockServerError(authenticatedPage, '**/workflows**');
-    const route = '/automate/workflows';
+    const route = '/automation/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
@@ -109,36 +109,36 @@ test.describe('App surfaces — fetch error states', () => {
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/workflows**');
-    const route = '/automate/workflows';
+    const route = '/automation/workflows';
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('automate survives a server error', async ({ authenticatedPage }) => {
+  test('Automation survives a server error', async ({ authenticatedPage }) => {
     await mockServerError(authenticatedPage, '**/agents**');
     await mockServerError(authenticatedPage, '**/tasks**');
-    const route = `${ORG_BRAND}/automate`;
+    const route = `${ORG_BRAND}/automation`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('automate runs survive a network error', async ({
+  test('Automation runs survive a network error', async ({
     authenticatedPage,
   }) => {
     await mockNetworkError(authenticatedPage, '**/agents**');
-    const route = `${ORG_BRAND}/automate/runs`;
+    const route = `${ORG_BRAND}/automation/runs`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('discover discovery survives a server error', async ({
+  test('Discovery overview survives a server error', async ({
     authenticatedPage,
   }) => {
-    await mockServerError(authenticatedPage, '**/discover**');
-    const route = `${ORG_BRAND}/discover/overview`;
+    await mockServerError(authenticatedPage, '**/discovery**');
+    const route = `${ORG_BRAND}/discovery/overview`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);

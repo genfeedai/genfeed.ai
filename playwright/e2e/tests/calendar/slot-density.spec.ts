@@ -143,7 +143,7 @@ test.describe('Calendar — slot density', () => {
     authenticatedPage,
   }) => {
     await mockCadenceCalendar(authenticatedPage);
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISH.CALENDAR);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
 
     const bulk = authenticatedPage.getByRole('button', {
       name: /Generate missing \(2\)/,
@@ -167,7 +167,7 @@ test.describe('Calendar — slot density', () => {
   }) => {
     await mockCadenceCalendar(authenticatedPage);
     const calendar = new CalendarPage(authenticatedPage);
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISH.CALENDAR);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
 
     await expect(
       authenticatedPage.getByRole('button', { name: /Generate missing \(2\)/ }),

@@ -94,7 +94,7 @@ describe('useMenuItems', () => {
     ]);
     const dynamic = result.current[1];
     expect(dynamic.credentialId).toBe('cred-1');
-    expect(dynamic.href).toBe('/publish?platform=instagram');
+    expect(dynamic.href).toBe('/publishing?platform=instagram');
     expect(dynamic.isDynamic).toBe(true);
   });
 

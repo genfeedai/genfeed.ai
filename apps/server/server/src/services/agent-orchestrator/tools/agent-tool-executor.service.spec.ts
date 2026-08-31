@@ -4113,7 +4113,7 @@ describe('AgentToolExecutorService', () => {
           'LinkedIn · image · approved',
         ],
         primaryCta: {
-          href: `/publish/review?batch=${testId('batchreview')}&filter=ready`,
+          href: `/publishing/review?batch=${testId('batchreview')}&filter=ready`,
           label: 'Open reviews',
         },
         status: 'completed',
@@ -4176,7 +4176,7 @@ describe('AgentToolExecutorService', () => {
     });
     expect(result.nextActions?.[0]).toMatchObject({
       primaryCta: {
-        href: '/publish/review?filter=ready',
+        href: '/publishing/review?filter=ready',
         label: 'Open reviews',
       },
       title: 'Reviews loaded',
@@ -4238,7 +4238,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('cannot grant publish approval');
     expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     expect(result.nextActions?.[0]?.primaryCta).toEqual({
-      href: `/publish/review?batch=${testId('batchmodel')}&filter=ready`,
+      href: `/publishing/review?batch=${testId('batchmodel')}&filter=ready`,
       label: 'Review exact versions',
     });
   });
@@ -4289,7 +4289,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: testId('currentbrand'),
-        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
+        editorUrl: `/automation/workflows/${recurringWorkflowId}`,
         schedule: '0 17 * * *',
         timezone: 'Europe/Malta',
         workflowId: recurringWorkflowId,
@@ -4598,7 +4598,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
+        editorUrl: `/genfeed-ai/genfeed/automation/workflows/${recurringWorkflowId}`,
         label: 'Weekly Content Planner',
         nextRunAt: expect.any(Date),
         schedule: '0 9 * * 1',
@@ -4610,10 +4610,10 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
+            href: `/genfeed-ai/genfeed/automation/workflows/${recurringWorkflowId}`,
           }),
           expect.objectContaining({
-            href: '/genfeed-ai/genfeed/automate/workflows/executions',
+            href: '/genfeed-ai/genfeed/automation/workflows/executions',
           }),
         ],
         type: 'workflow_created_card',
@@ -4777,7 +4777,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
+        editorUrl: `/automation/workflows/${recurringWorkflowId}`,
         label: 'Generated Workflow',
       }),
     );
@@ -4817,7 +4817,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: testId('brandfallback'),
-        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
+        editorUrl: `/automation/workflows/${recurringWorkflowId}`,
       }),
     );
   });
@@ -5569,11 +5569,11 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
-      editorUrl: `/automate/workflows/${result.data?.id}`,
+      editorUrl: `/automation/workflows/${result.data?.id}`,
       installedFrom: 'seeded-template',
     });
     expect(result.nextActions?.[0]?.ctas?.[0]).toMatchObject({
-      href: `/automate/workflows/${result.data?.id}`,
+      href: `/automation/workflows/${result.data?.id}`,
       label: 'Open workflow',
     });
   });

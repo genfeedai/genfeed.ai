@@ -116,7 +116,7 @@ test.describe('Core Content Loop', () => {
     await postsPage.gotoPostDetail(String(failedPost.id));
 
     await expect(authenticatedPage).toHaveURL(
-      /\/publish\/posts\/post-core-loop-failed/,
+      /\/publishing\/posts\/post-core-loop-failed/,
     );
     // The post route renders the artifact editor shell, not the retired
     // read-only detail panel: the failed state is the status badge beside the

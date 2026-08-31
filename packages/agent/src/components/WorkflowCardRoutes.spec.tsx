@@ -41,7 +41,7 @@ describe('Workflow card route handoffs', () => {
 
     expect(
       screen.getByRole('link', { name: /create a workflow/i }),
-    ).toHaveAttribute('href', '/test-org/test-brand/automate/workflows');
+    ).toHaveAttribute('href', '/test-org/test-brand/automation/workflows');
   });
 
   it('points workflow execution links to the canonical executions route', async () => {
@@ -66,7 +66,7 @@ describe('Workflow card route handoffs', () => {
       await screen.findByRole('link', { name: /view execution/i }),
     ).toHaveAttribute(
       'href',
-      '/test-org/test-brand/automate/workflows/executions/exec-123',
+      '/test-org/test-brand/automation/workflows/executions/exec-123',
     );
 
     unmountTrigger();
@@ -89,7 +89,7 @@ describe('Workflow card route handoffs', () => {
       await screen.findByRole('link', { name: /view execution/i }),
     ).toHaveAttribute(
       'href',
-      '/test-org/test-brand/automate/workflows/executions/exec-123',
+      '/test-org/test-brand/automation/workflows/executions/exec-123',
     );
 
     unmountExecute();
@@ -113,7 +113,7 @@ describe('Workflow card route handoffs', () => {
       await screen.findByRole('link', { name: /view workflow execution/i }),
     ).toHaveAttribute(
       'href',
-      '/test-org/test-brand/automate/workflows/executions/exec-123',
+      '/test-org/test-brand/automation/workflows/executions/exec-123',
     );
   });
 });

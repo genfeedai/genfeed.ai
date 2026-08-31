@@ -49,11 +49,11 @@ export function getPlatformConnectionHealth(
 
 export function getPlatformLiveHref(platform: Platform): string | undefined {
   if (isYouTubePlatform(platform) || platform === Platform.RESTREAM) {
-    return `${APP_ROUTES.AUTOMATE.LIBRARY}/youtube-chat`;
+    return `${APP_ROUTES.AUTOMATION.LIBRARY}/youtube-chat`;
   }
 
   if (isTwitchPlatform(platform)) {
-    return `${APP_ROUTES.AUTOMATE.LIBRARY}/twitch-chat`;
+    return `${APP_ROUTES.AUTOMATION.LIBRARY}/twitch-chat`;
   }
 
   return undefined;
@@ -83,12 +83,12 @@ export function buildPlatformHomeDestinations(
 
   return {
     analytics,
-    calendar: APP_ROUTES.PUBLISH.CALENDAR,
+    calendar: APP_ROUTES.PUBLISHING.CALENDAR,
     create: buildPlatformCreateHref(formatPlatformLabel(platform) ?? platform),
     live: getPlatformLiveHref(platform),
     messages: APP_ROUTES.MESSAGES.ROOT,
-    posts: withPlatformQuery(APP_ROUTES.PUBLISH.POSTS, platform),
-    queue: withPlatformQuery(APP_ROUTES.PUBLISH.SCHEDULED, platform),
+    posts: withPlatformQuery(APP_ROUTES.PUBLISHING.POSTS, platform),
+    queue: withPlatformQuery(APP_ROUTES.PUBLISHING.SCHEDULED, platform),
     replies: getPlatformRepliesHref(platform),
     settingsSocial: APP_ROUTES.SETTINGS.SOCIAL,
   };

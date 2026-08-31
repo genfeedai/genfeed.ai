@@ -211,7 +211,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
 
       {prep.workflowId && (
         <Link
-          href={href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${prep.workflowId}`)}
+          href={href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${prep.workflowId}`)}
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
           Open linked workflow
@@ -530,7 +530,7 @@ export function DetailSidebar({
                   )}
                   <Link
                     href={href(
-                      `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowResult.workflowId}`,
+                      `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflowResult.workflowId}`,
                     )}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >

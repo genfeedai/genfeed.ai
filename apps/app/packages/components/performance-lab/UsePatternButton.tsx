@@ -18,7 +18,7 @@ export default function UsePatternButton({ pattern }: UsePatternButtonProps) {
       formula: encodeURIComponent(pattern.formula),
       patternType: pattern.patternType,
     });
-    push(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS_NEW}?${params.toString()}`));
+    push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_NEW}?${params.toString()}`));
   }, [pattern.formula, pattern.patternType, push, href]);
 
   return (

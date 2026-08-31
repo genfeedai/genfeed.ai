@@ -46,7 +46,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publishing`, `/automation`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -117,16 +117,16 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
       {
-        activePathRoots: ['/automate'],
+        activePathRoots: ['/automation'],
         description: 'Run workflows.',
         icon: Workflow,
-        id: 'automate',
-        itemKey: 'automate',
-        label: APP_DISPLAY_LABELS.automate,
+        id: 'automation',
+        itemKey: 'automation',
+        label: APP_DISPLAY_LABELS.automation,
         route: createScopedAppRoute({
-          brandPath: '/automate',
+          brandPath: '/automation',
         }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automate,
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automation,
       },
       {
         activePathRoots: ['/studio'],
@@ -157,24 +157,24 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
       {
-        activePathRoots: ['/discover'],
+        activePathRoots: ['/discovery'],
         description: 'Find winners.',
         icon: TrendingUp,
-        id: 'discover',
-        itemKey: 'discover',
-        label: APP_DISPLAY_LABELS.discover,
-        route: createScopedAppRoute({ brandPath: '/discover/overview' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
+        id: 'discovery',
+        itemKey: 'discovery',
+        label: APP_DISPLAY_LABELS.discovery,
+        route: createScopedAppRoute({ brandPath: '/discovery/overview' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discovery,
       },
       {
-        activePathRoots: ['/publish'],
+        activePathRoots: ['/publishing'],
         description: 'Drafts and posts.',
         icon: Send,
-        id: 'publish',
-        itemKey: 'publish',
-        label: APP_DISPLAY_LABELS.publish,
-        route: createScopedAppRoute({ brandPath: '/publish' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
+        id: 'publishing',
+        itemKey: 'publishing',
+        label: APP_DISPLAY_LABELS.publishing,
+        route: createScopedAppRoute({ brandPath: '/publishing' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publishing,
       },
       {
         activePathRoots: ['/analytics'],
@@ -210,7 +210,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
 const APP_SWITCHER_ICON_OVERRIDES: Partial<
   Record<string, LifecycleAppSwitcherItemConfig['icon']>
 > = {
-  automate: Workflow,
+  automation: Workflow,
   library: Briefcase,
   studio: Sparkles,
 };
@@ -267,8 +267,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.messages]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.messages,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.discover]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.discover,
+    [APP_SWITCHER_FEATURE_FLAGS.discovery]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.discovery,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.studio]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.studio,
@@ -276,14 +276,14 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.publish,
+    [APP_SWITCHER_FEATURE_FLAGS.publishing]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publishing,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.automate]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.automate,
+    [APP_SWITCHER_FEATURE_FLAGS.automation]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.automation,
     ),
   };
 }

@@ -7,7 +7,7 @@ describe('AgentCompletionCardBuilderService', () => {
   it('builds a workflow completion card with the existing CTA and suggestion priority', () => {
     const workflowAction: AgentUiAction = {
       ctas: [
-        { href: '/automate/workflows/workflow-1', label: 'Open workflow' },
+        { href: '/automation/workflows/workflow-1', label: 'Open workflow' },
       ],
       id: 'workflow-created-1',
       scheduleSummary: 'Every weekday at 17:00',
@@ -54,7 +54,7 @@ describe('AgentCompletionCardBuilderService', () => {
           'Every weekday at 17:00',
         ],
         primaryCta: {
-          href: '/automate/workflows/workflow-1',
+          href: '/automation/workflows/workflow-1',
           label: 'Use in Workflow',
         },
         secondaryCtas: [
@@ -133,7 +133,12 @@ describe('AgentCompletionCardBuilderService', () => {
   it('keeps the concrete content preview as the only result surface', () => {
     const contentAction: AgentUiAction = {
       audio: ['https://cdn.example.com/audio.mp3'],
-      ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
+      ctas: [
+        {
+          href: '/publishing/posts?publicationState=not-posted',
+          label: 'View all drafts',
+        },
+      ],
       id: 'content-preview-1',
       images: [
         'https://cdn.example.com/image-1.png',

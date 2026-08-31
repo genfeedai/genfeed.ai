@@ -29,13 +29,13 @@ describe('EmptyWorkflowState', () => {
       screen.getByRole('link', { name: 'Browse Templates' }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/automate/workflows/templates',
+      '/moonrise-org/moonrise-studio/automation/workflows/templates',
     );
     expect(
       screen.getByRole('link', { name: 'Create Workflow' }),
     ).toHaveAttribute(
       'href',
-      '/moonrise-org/moonrise-studio/automate/workflows/new',
+      '/moonrise-org/moonrise-studio/automation/workflows/new',
     );
   });
 });

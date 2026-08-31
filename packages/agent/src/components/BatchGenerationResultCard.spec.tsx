@@ -12,7 +12,7 @@ describe('BatchGenerationResultCard', () => {
           creditsUsed: 5,
           ctas: [
             {
-              href: '/publish/review?batch=batch-123&filter=ready',
+              href: '/publishing/review?batch=batch-123&filter=ready',
               label: 'Open review queue',
             },
             { href: '/calendar/posts', label: 'Open calendar' },
@@ -39,7 +39,10 @@ describe('BatchGenerationResultCard', () => {
     expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open review queue' }),
-    ).toHaveAttribute('href', '/publish/review?batch=batch-123&filter=ready');
+    ).toHaveAttribute(
+      'href',
+      '/publishing/review?batch=batch-123&filter=ready',
+    );
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Collapse batch result' }),
@@ -54,7 +57,7 @@ describe('BatchGenerationResultCard', () => {
           completedCount: 3,
           ctas: [
             {
-              href: '/publish/review?batch=b1&filter=ready',
+              href: '/publishing/review?batch=b1&filter=ready',
               label: 'View all',
             },
           ],
@@ -92,7 +95,7 @@ describe('BatchGenerationResultCard', () => {
           completedCount: 8,
           ctas: [
             {
-              href: '/publish/review?batch=batch-xyz&filter=ready',
+              href: '/publishing/review?batch=batch-xyz&filter=ready',
               label: 'View all 8 posts',
             },
           ],
@@ -138,7 +141,10 @@ describe('BatchGenerationResultCard', () => {
     ).toHaveLength(3);
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
-    ).toHaveAttribute('href', '/publish/review?batch=batch-xyz&filter=ready');
+    ).toHaveAttribute(
+      'href',
+      '/publishing/review?batch=batch-xyz&filter=ready',
+    );
   });
 
   it('emphasizes all-failed batches without Ready metrics', () => {

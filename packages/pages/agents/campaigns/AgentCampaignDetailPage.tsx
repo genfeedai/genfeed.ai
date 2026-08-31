@@ -211,7 +211,7 @@ export default function AgentCampaignDetailPage() {
             </>
           }
           variant={ButtonVariant.SECONDARY}
-          onClick={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
+          onClick={() => router.push(href(APP_ROUTES.AUTOMATION.CAMPAIGNS))}
         />
       </Container>
     );
@@ -275,7 +275,7 @@ export default function AgentCampaignDetailPage() {
         <AgentCampaignDetailHeader
           campaign={campaign}
           creditsPercent={creditsPercent}
-          onBack={() => router.push(href(APP_ROUTES.AUTOMATE.CAMPAIGNS))}
+          onBack={() => router.push(href(APP_ROUTES.AUTOMATION.CAMPAIGNS))}
           status={status}
         />
 
