@@ -74,6 +74,7 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: function MockPromptBarContainer(props: {
     children?: ReactNode;
+    containerRef?: (node: HTMLDivElement | null) => void;
     layoutMode?: string;
     maxWidth?: string;
     showTopFade?: boolean;
@@ -84,6 +85,7 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
         data-layout-mode={props.layoutMode}
         data-max-width={props.maxWidth}
         data-show-top-fade={props.showTopFade ? 'true' : 'false'}
+        ref={props.containerRef}
       >
         {props.topContent}
         {props.children}
@@ -715,6 +717,40 @@ describe('AgentChatContainer', () => {
     ).not.toBeNull();
 
     portalTarget.remove();
+  });
+
+  it('includes the surface dock inset when padding the transcript', async () => {
+    const apiService = createApiService();
+    const composerDock = document.createElement('div');
+    const portalTarget = document.createElement('div');
+    composerDock.append(portalTarget);
+    document.body.append(composerDock);
+    vi.spyOn(composerDock, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ height: 297 }),
+    );
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        container.querySelector('[data-composer-padding="313"]'),
+      ).not.toBeNull();
+    });
+
+    composerDock.remove();
   });
 
   it('does not render a conversation composer when the product surface owns the primary input', () => {
