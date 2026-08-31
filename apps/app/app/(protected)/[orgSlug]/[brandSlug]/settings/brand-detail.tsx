@@ -16,13 +16,13 @@ import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
 import { EnvironmentService } from '@services/core/environment.service';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import {
   LazyModalBrandGenerate,
   LazyModalBrandLink,
 } from '@ui/lazy/modal/LazyModal';
-import Loading from '@ui/loading/default/Loading';
 import { useParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import BrandDetailLatestArticles from './BrandDetailLatestArticles';
@@ -118,88 +118,99 @@ export default function BrandDetail() {
     );
   }
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
-
-  if (!brand) {
-    return (
-      <Container>
-        <Alert type={AlertCategory.ERROR}>Error! Account not found.</Alert>
-      </Container>
-    );
-  }
-
   return (
     <Container>
-      <BrandDetailBanner
-        brand={brand}
-        isGeneratingBanner={isGeneratingBanner}
-        onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
-        onGenerateBanner={handleGenerateBanner}
-      />
-
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-        <div className="flex flex-col gap-6 md:col-span-8">
-          <BrandDetailOverview
-            brand={brand}
-            isGeneratingLogo={isGeneratingLogo}
-            onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-            onGenerateLogo={handleGenerateLogo}
-            onUpdateBrand={(field, value) => handleUpdateAccount(field, value)}
-            onCopyPublicProfile={
-              isPublicProfile ? handleCopyPublicProfile : undefined
-            }
-          />
-
-          <BrandDetailLatestVideos videos={videos} />
-          <BrandDetailLatestImages images={images} />
-          <BrandDetailLatestArticles articles={articles} />
+      {isLoading ? (
+        <div className="flex flex-col gap-8" data-testid="brand-detail-loading">
+          <SkeletonCard showImage />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+            <div className="flex flex-col gap-6 md:col-span-8">
+              <SkeletonCard showImage={false} />
+              <SkeletonCard showImage={false} />
+            </div>
+            <div className="md:col-span-4">
+              <SkeletonCard showImage={false} />
+            </div>
+          </div>
         </div>
-
-        <div className="md:col-span-4">
-          <BrandDetailSidebar
+      ) : !brand ? (
+        <Alert type={AlertCategory.ERROR}>Error! Account not found.</Alert>
+      ) : (
+        <>
+          <BrandDetailBanner
             brand={brand}
-            brandId={brandId}
-            links={links}
-            socialConnections={socialConnections}
-            connectedPlatformsCount={connectedPlatformsCount}
-            deletingRefId={null}
-            isUpdatingPublicProfile={isUpdating}
-            manageSocialHref={manageSocialHref}
-            onTogglePublicProfile={(isPublic) => {
-              // Fire-and-forget: the hook already reverts and toasts on failure.
-              void handleUpdateAccount(
-                'scope',
-                isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
-              ).catch(() => undefined);
-            }}
-            onRefreshBrand={async () => {
-              await handleRefreshBrand(true);
-            }}
-            onOpenLinkModal={handleOpenLinkModal}
+            isGeneratingBanner={isGeneratingBanner}
             onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
-            onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-            onUploadReference={() =>
-              handleOpenUploadModal(AssetCategory.REFERENCE)
-            }
-            onDeleteReference={() => undefined}
+            onGenerateBanner={handleGenerateBanner}
           />
-        </div>
-      </div>
 
-      <LazyModalBrandGenerate
-        type={generateModalType || 'banner'}
-        cost={generateCost}
-        brandId={brandId}
-        onConfirm={handleGenerateConfirm}
-      />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+            <div className="flex flex-col gap-6 md:col-span-8">
+              <BrandDetailOverview
+                brand={brand}
+                isGeneratingLogo={isGeneratingLogo}
+                onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
+                onGenerateLogo={handleGenerateLogo}
+                onUpdateBrand={(field, value) =>
+                  handleUpdateAccount(field, value)
+                }
+                onCopyPublicProfile={
+                  isPublicProfile ? handleCopyPublicProfile : undefined
+                }
+              />
 
-      <LazyModalBrandLink
-        brandId={brandId}
-        link={selectedLink}
-        onConfirm={handleLinkConfirm}
-      />
+              <BrandDetailLatestVideos videos={videos} />
+              <BrandDetailLatestImages images={images} />
+              <BrandDetailLatestArticles articles={articles} />
+            </div>
+
+            <div className="md:col-span-4">
+              <BrandDetailSidebar
+                brand={brand}
+                brandId={brandId}
+                links={links}
+                socialConnections={socialConnections}
+                connectedPlatformsCount={connectedPlatformsCount}
+                deletingRefId={null}
+                isUpdatingPublicProfile={isUpdating}
+                manageSocialHref={manageSocialHref}
+                onTogglePublicProfile={(isPublic) => {
+                  // Fire-and-forget: the hook already reverts and toasts on failure.
+                  void handleUpdateAccount(
+                    'scope',
+                    isPublic ? AssetScope.PUBLIC : AssetScope.BRAND,
+                  ).catch(() => undefined);
+                }}
+                onRefreshBrand={async () => {
+                  await handleRefreshBrand(true);
+                }}
+                onOpenLinkModal={handleOpenLinkModal}
+                onUploadBanner={() =>
+                  handleOpenUploadModal(AssetCategory.BANNER)
+                }
+                onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
+                onUploadReference={() =>
+                  handleOpenUploadModal(AssetCategory.REFERENCE)
+                }
+                onDeleteReference={() => undefined}
+              />
+            </div>
+          </div>
+
+          <LazyModalBrandGenerate
+            type={generateModalType || 'banner'}
+            cost={generateCost}
+            brandId={brandId}
+            onConfirm={handleGenerateConfirm}
+          />
+
+          <LazyModalBrandLink
+            brandId={brandId}
+            link={selectedLink}
+            onConfirm={handleLinkConfirm}
+          />
+        </>
+      )}
     </Container>
   );
 }

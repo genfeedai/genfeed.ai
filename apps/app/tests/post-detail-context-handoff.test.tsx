@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => ({
   push: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('./next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/pages/use-post-detail/use-post-detail', () => ({
   usePostDetail: () => mocks.hookData,
 }));

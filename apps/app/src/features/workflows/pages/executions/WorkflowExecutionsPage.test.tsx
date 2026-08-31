@@ -147,6 +147,26 @@ describe('WorkflowExecutionsPage', () => {
     expect(screen.queryByText('Untitled workflow')).toBeNull();
   });
 
+  it('renders the content shell while executions are still loading', async () => {
+    let resolveExecutions: (value: unknown[]) => void = () => {};
+    mocks.listExecutions.mockReturnValue(
+      new Promise((resolve) => {
+        resolveExecutions = resolve;
+      }),
+    );
+
+    render(<WorkflowExecutionsPage />);
+
+    expect(screen.getByText('Execution History')).toBeInTheDocument();
+    expect(screen.getByTestId('executions-content')).toBeInTheDocument();
+    expect(screen.getByTestId('executions-skeleton')).toBeInTheDocument();
+
+    resolveExecutions([]);
+    await waitFor(() => {
+      expect(screen.queryByTestId('executions-skeleton')).toBeNull();
+    });
+  });
+
   it('clears the first-load skeleton when the auth token is not ready', async () => {
     mocks.getService.mockRejectedValue(
       new mocks.AuthenticationTokenUnavailableError(),

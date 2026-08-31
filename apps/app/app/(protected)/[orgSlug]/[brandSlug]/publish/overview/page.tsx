@@ -1,7 +1,7 @@
 import { createBrandAppRoute } from '@genfeedai/constants';
 import { getPublisherPostsStatusPath } from '@helpers/content/posts.helper';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import type { PostsListSearchParams } from '../publish-list-page';
@@ -44,7 +44,7 @@ export default async function PublishOverviewRoute({
   }
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <PublishOverviewPage />
     </Suspense>
   );

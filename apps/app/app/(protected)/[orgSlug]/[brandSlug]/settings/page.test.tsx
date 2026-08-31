@@ -10,8 +10,8 @@ vi.mock('./brand-detail', () => ({
   },
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: function LazyLoadingFallbackMock() {
+vi.mock('@ui/loading/page/PageLoadingState', () => ({
+  default: function PageLoadingStateMock() {
     return 'Loading brand profile';
   },
 }));

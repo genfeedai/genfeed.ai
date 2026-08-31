@@ -326,15 +326,63 @@ export default function WorkflowNewPageClient() {
     void handleRun();
   }, [handleRun, hasRunInputs]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          Loading editor…
+  const toolbarElement = (
+    <CloudWorkflowToolbar
+      isSaving={isSaving}
+      leftContent={<WorkflowEditorToolbarNavigation />}
+      middleContent={<CloudCreditsIndicator />}
+      onRename={handleRename}
+      rightContent={
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {workflowEstimateLabel && (
+              <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
+                {workflowEstimateLabel}
+              </span>
+            )}
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-medium ${getLifecycleBadgeClass(lifecycle)}`}
+            >
+              {lifecycle}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              onClick={handleRunButtonClick}
+              disabled={isRunning || isLoading}
+              icon={<Play className="size-4" />}
+            >
+              {isRunning ? 'Running…' : 'Run'}
+            </Button>
+            {lifecycle === WorkflowLifecycle.DRAFT && (
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.SM}
+                onClick={handlePublish}
+                disabled={isLoading}
+              >
+                Publish
+              </Button>
+            )}
+            {lifecycle !== WorkflowLifecycle.ARCHIVED && (
+              <Button
+                variant={ButtonVariant.DESTRUCTIVE}
+                size={ButtonSize.SM}
+                onClick={handleArchive}
+                disabled={isLoading}
+                className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
+              >
+                Archive
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    );
-  }
+      }
+    />
+  );
 
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
@@ -346,82 +394,42 @@ export default function WorkflowNewPageClient() {
             </div>
           )}
 
-          <WorkflowEditorShell
-            nodePalette={<CloudNodePalette />}
-            nodeTypes={cloudNodeTypes}
-            rightPanel={
-              showRunPanel ? (
-                <WorkflowRunPanel
-                  inputVariables={inputVariables}
-                  isRunning={isRunning}
-                  onClose={() => setShowRunPanel(false)}
-                  onRun={handleRun}
-                />
-              ) : showExecutionPanel ? (
-                <ExecutionPanel
-                  workflowId={currentWorkflowId ?? 'new'}
-                  onClose={() => setShowExecutionPanel(false)}
-                  onTerminalExecution={handleTerminalExecution}
-                  runId={activeExecutionId}
-                />
-              ) : null
-            }
-            toolbar={
-              <CloudWorkflowToolbar
-                isSaving={isSaving}
-                leftContent={<WorkflowEditorToolbarNavigation />}
-                middleContent={<CloudCreditsIndicator />}
-                onRename={handleRename}
-                rightContent={
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {workflowEstimateLabel && (
-                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
-                          {workflowEstimateLabel}
-                        </span>
-                      )}
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${getLifecycleBadgeClass(lifecycle)}`}
-                      >
-                        {lifecycle}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        onClick={handleRunButtonClick}
-                        disabled={isRunning}
-                        icon={<Play className="size-4" />}
-                      >
-                        {isRunning ? 'Running…' : 'Run'}
-                      </Button>
-                      {lifecycle === WorkflowLifecycle.DRAFT && (
-                        <Button
-                          variant={ButtonVariant.DEFAULT}
-                          size={ButtonSize.SM}
-                          onClick={handlePublish}
-                        >
-                          Publish
-                        </Button>
-                      )}
-                      {lifecycle !== WorkflowLifecycle.ARCHIVED && (
-                        <Button
-                          variant={ButtonVariant.DESTRUCTIVE}
-                          size={ButtonSize.SM}
-                          onClick={handleArchive}
-                          className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
-                        >
-                          Archive
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                }
-              />
-            }
-          />
+          {isLoading ? (
+            <main
+              className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
+              data-testid="workflow-editor-loading-shell"
+            >
+              {toolbarElement}
+              <div className="flex flex-1 items-center justify-center">
+                <div className="animate-pulse text-muted-foreground">
+                  Loading editor…
+                </div>
+              </div>
+            </main>
+          ) : (
+            <WorkflowEditorShell
+              nodePalette={<CloudNodePalette />}
+              nodeTypes={cloudNodeTypes}
+              rightPanel={
+                showRunPanel ? (
+                  <WorkflowRunPanel
+                    inputVariables={inputVariables}
+                    isRunning={isRunning}
+                    onClose={() => setShowRunPanel(false)}
+                    onRun={handleRun}
+                  />
+                ) : showExecutionPanel ? (
+                  <ExecutionPanel
+                    workflowId={currentWorkflowId ?? 'new'}
+                    onClose={() => setShowExecutionPanel(false)}
+                    onTerminalExecution={handleTerminalExecution}
+                    runId={activeExecutionId}
+                  />
+                ) : null
+              }
+              toolbar={toolbarElement}
+            />
+          )}
         </div>
       </ReactFlowProvider>
     </WorkflowUIProvider>

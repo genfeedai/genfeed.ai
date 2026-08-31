@@ -57,17 +57,21 @@ describe('IngredientDetail', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the loading state while the ingredient is in flight', () => {
+  it('renders the page shell while the ingredient is in flight', () => {
     mockUseIngredientDetail.mockReturnValue(
       buildDetailState({ isLoading: true }),
     );
 
-    const { container } = renderDetail();
+    renderDetail();
 
+    expect(screen.getByTestId('container')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('ingredient-detail-skeleton'),
+    ).toBeInTheDocument();
     expect(
       screen.queryByTestId('ingredient-detail-body'),
     ).not.toBeInTheDocument();
-    expect(container.firstChild).toBeInTheDocument();
+    expect(screen.queryByText('Ingredient Not Found')).not.toBeInTheDocument();
   });
 
   it('renders the not-found state when no ingredient resolves', () => {

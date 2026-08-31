@@ -1,5 +1,5 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
@@ -10,7 +10,7 @@ const WorkflowsPage = dynamic(
 
 export default function WorkflowsPageWrapper() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <WorkflowsPage />
     </Suspense>
   );

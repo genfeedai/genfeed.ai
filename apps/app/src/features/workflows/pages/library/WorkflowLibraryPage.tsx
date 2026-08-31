@@ -72,33 +72,7 @@ export default function WorkflowLibraryPage() {
     string | null
   >(null);
 
-  // Loading skeleton
-  if (isLoading && (workflows ?? []).length === 0) {
-    return (
-      <Container
-        label={translate('library.title')}
-        description={translate('library.description')}
-        icon={Zap}
-        right={
-          <>
-            <div className="h-10 w-28 animate-pulse rounded bg-muted" />
-            <div className="h-10 w-36 animate-pulse rounded bg-muted" />
-          </>
-        }
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
-            (skeletonId) => (
-              <div
-                key={skeletonId}
-                className="h-64 animate-pulse rounded-card bg-card shadow-border"
-              />
-            ),
-          )}
-        </div>
-      </Container>
-    );
-  }
+  const isInitialLoading = isLoading && (workflows ?? []).length === 0;
 
   // Error state
   if (error) {
@@ -203,7 +177,21 @@ export default function WorkflowLibraryPage() {
         </div>
       ) : null}
 
-      {filteredWorkflows.length === 0 && !searchInput ? (
+      {isInitialLoading ? (
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          data-testid="library-skeleton"
+        >
+          {['sk-1', 'sk-2', 'sk-3', 'sk-4', 'sk-5', 'sk-6'].map(
+            (skeletonId) => (
+              <div
+                key={skeletonId}
+                className="h-64 animate-pulse rounded-card bg-card shadow-border"
+              />
+            ),
+          )}
+        </div>
+      ) : filteredWorkflows.length === 0 && !searchInput ? (
         <EmptyWorkflowState />
       ) : filteredWorkflows.length === 0 && searchInput ? (
         <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
@@ -212,7 +200,10 @@ export default function WorkflowLibraryPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          data-testid="library-content"
+        >
           {/* New Workflow card */}
           <Button
             asChild

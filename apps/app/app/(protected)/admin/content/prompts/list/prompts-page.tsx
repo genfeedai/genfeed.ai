@@ -119,20 +119,18 @@ function PromptsPageContent() {
     [getPromptsService, notificationsService],
   );
 
-  return isLoading ? (
-    <div className="grid gap-4">
-      {PROMPT_SKELETON_KEYS.map((key) => (
-        <SkeletonCard key={key} showImage={false} />
-      ))}
-    </div>
-  ) : (
+  return (
     <WorkspaceSurface
       title="Saved Prompts"
       tone="muted"
       data-testid="content-prompts-surface"
     >
       <div className="grid gap-4">
-        {prompts.length === 0 ? (
+        {isLoading ? (
+          PROMPT_SKELETON_KEYS.map((key) => (
+            <SkeletonCard key={key} showImage={false} />
+          ))
+        ) : prompts.length === 0 ? (
           <CardEmpty label="No prompts found" />
         ) : (
           <>

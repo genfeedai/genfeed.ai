@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { DetailPageProps } from '@props/pages/page.props';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import ExecutionDetailPage from '@/features/workflows/pages/executions/ExecutionDetailPage';
 
@@ -12,7 +12,7 @@ export default async function WorkflowExecutionDetailPage({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <ExecutionDetailPage executionId={id} />
     </Suspense>
   );

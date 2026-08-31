@@ -1,4 +1,4 @@
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { type ReactNode, Suspense } from 'react';
 
 export function SettingsOrganizationRouteShell({
@@ -6,9 +6,5 @@ export function SettingsOrganizationRouteShell({
 }: {
   children: ReactNode;
 }) {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      {children}
-    </Suspense>
-  );
+  return <Suspense fallback={<PageLoadingState />}>{children}</Suspense>;
 }

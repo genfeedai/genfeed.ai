@@ -46,8 +46,13 @@ describe('YoutubeChatBot', () => {
     findAllByOrganizationMock.mockReturnValue(new Promise(() => {}));
   });
 
-  it('should render without crashing', () => {
+  it('renders the page chrome while the bot is still loading', () => {
     render(<YoutubeChatBot />);
-    expect(screen.getByText('Loading livestream bot…')).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('heading', { name: 'Livestream Chat Bot' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Runtime Controls')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start' })).toBeDisabled();
   });
 });

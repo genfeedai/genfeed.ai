@@ -52,25 +52,6 @@ export default function CharactersList() {
     }
   }, [charactersError]);
 
-  if (isLoading) {
-    return (
-      <Container
-        label="Characters"
-        description="Manage AI personas for fleet content generation"
-        icon={CircleUser}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from(
-            { length: 6 },
-            (_, index) => `character-${index + 1}`,
-          ).map((key) => (
-            <SkeletonCard key={key} showImage={false} />
-          ))}
-        </div>
-      </Container>
-    );
-  }
-
   return (
     <Container
       label="Characters"
@@ -80,7 +61,16 @@ export default function CharactersList() {
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
       }
     >
-      {charactersError ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from(
+            { length: 6 },
+            (_, index) => `character-${index + 1}`,
+          ).map((key) => (
+            <SkeletonCard key={key} showImage={false} />
+          ))}
+        </div>
+      ) : charactersError ? (
         <CardEmpty
           label="Failed to load characters"
           description="Refresh the Fleet characters list and try again."

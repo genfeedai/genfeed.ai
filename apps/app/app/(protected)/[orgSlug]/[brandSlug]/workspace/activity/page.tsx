@@ -1,7 +1,7 @@
 import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import LocalizedActivitiesList from '@/components/activity/LocalizedActivitiesList';
 
@@ -15,7 +15,7 @@ export const generateMetadata = createPageMetadata('Workspace Activity');
 export default function WorkspaceActivityPage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <Suspense fallback={<PageLoadingState />}>
         <LocalizedActivitiesList
           scope={PageScope.ORGANIZATION}
           isStatsEnabled

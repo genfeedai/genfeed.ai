@@ -21,6 +21,21 @@ describe(relativePath, () => {
     expect(source).not.toContain('execution._id');
   });
 
+  it('keeps the toolbar mounted during the initial workflow load instead of blanking the page', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    // The toolbar is built once and reused by both the loading branch and the
+    // loaded WorkflowEditorShell, so it never unmounts while data loads.
+    expect(source).toContain('const toolbarElement = (');
+    expect(source).toContain('data-testid="workflow-editor-loading-shell"');
+    expect(source).toContain('{toolbarElement}');
+    expect(source).toContain('toolbar={toolbarElement}');
+    // No full-page early return remains: the loading branch renders the same
+    // <main> chrome as the loaded shell, not a bare full-screen placeholder.
+    expect(source).not.toMatch(/if \(isLoading\) return/);
+    expect(source).not.toContain('min-h-screen items-center justify-center');
+  });
+
   it('tracks bounded workflow start and terminal outcomes', () => {
     const capture = vi.fn();
     const tracker = createEditorWorkflowRunTracker(capture);

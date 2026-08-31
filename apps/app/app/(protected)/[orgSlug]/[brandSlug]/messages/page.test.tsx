@@ -93,6 +93,10 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
   default: () => <div>Loading messages</div>,
 }));
 
+vi.mock('@ui/loading/page/PageLoadingState', () => ({
+  default: () => <div>Loading messages</div>,
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     'aria-pressed': ariaPressed,

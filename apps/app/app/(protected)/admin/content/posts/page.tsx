@@ -1,7 +1,7 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import PostsList from '@pages/posts/list/posts-list';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Posts');
@@ -16,7 +16,7 @@ export default async function AdminPostsPage({
   const { platform } = await searchParams;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <PostsList scope={PageScope.SUPERADMIN} platform={platform || 'all'} />
     </Suspense>
   );

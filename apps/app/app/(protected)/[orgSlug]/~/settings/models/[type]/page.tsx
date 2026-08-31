@@ -1,4 +1,4 @@
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import ModelsTypePageClientContent from './page-content';
 
@@ -8,7 +8,7 @@ export default function ModelsTypePage({
   params: Promise<{ type: string }>;
 }) {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <ModelsTypePageLoader params={params} />
     </Suspense>
   );

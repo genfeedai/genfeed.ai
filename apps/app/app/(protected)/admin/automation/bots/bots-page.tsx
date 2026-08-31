@@ -83,22 +83,6 @@ export default function BotsPage() {
     loadBots();
   }, [loadBots]);
 
-  if (isLoading) {
-    return (
-      <Container
-        label="Bots"
-        description="Manage automation bots for X/Twitter, Twitch, and YouTube"
-        icon={Cpu}
-      >
-        <div className="grid gap-4">
-          {BOT_SKELETON_KEYS.map((key) => (
-            <SkeletonCard key={key} showImage={false} />
-          ))}
-        </div>
-      </Container>
-    );
-  }
-
   return (
     <Container
       label="Bots"
@@ -115,7 +99,11 @@ export default function BotsPage() {
         data-testid="automation-bots-surface"
       >
         <div className="grid gap-4">
-          {bots.length === 0 ? (
+          {isLoading ? (
+            BOT_SKELETON_KEYS.map((key) => (
+              <SkeletonCard key={key} showImage={false} />
+            ))
+          ) : bots.length === 0 ? (
             <CardEmpty label="No bots yet" />
           ) : (
             bots.map((bot: Bot) => (

@@ -12,10 +12,8 @@ describe('post-login blank screen source contracts', () => {
       'packages/components/app-protected-layout.tsx',
     );
 
-    expect(source).toContain('LazyLoadingFallback');
-    expect(source).toContain(
-      'fallback={<LazyLoadingFallback variant="grid" />}',
-    );
+    expect(source).toContain('PageLoadingState');
+    expect(source).toContain('fallback={<PageLoadingState fullScreen />}');
     expect(source).not.toContain('fallback={null}');
   });
 
@@ -24,10 +22,8 @@ describe('post-login blank screen source contracts', () => {
       'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page.tsx',
     );
 
-    expect(source).toContain('LazyLoadingFallback');
-    expect(source).toContain(
-      'fallback={<LazyLoadingFallback variant="grid" />}',
-    );
+    expect(source).toContain('PageLoadingState');
+    expect(source).toContain('fallback={<PageLoadingState />}');
     expect(source).not.toContain('fallback={null}');
   });
 
@@ -36,10 +32,8 @@ describe('post-login blank screen source contracts', () => {
       'app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
     );
 
-    expect(source).toContain('LazyLoadingFallback');
-    expect(source).toContain(
-      'fallback={<LazyLoadingFallback variant="grid" />}',
-    );
+    expect(source).toContain('PageLoadingState');
+    expect(source).toContain('fallback={<PageLoadingState />}');
     expect(source).not.toContain('fallback={null}');
   });
 

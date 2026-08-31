@@ -7,7 +7,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
 import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
@@ -15,6 +15,10 @@ import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
 function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
   const { bundle, isLoading } = useWorkspaceDashboardData(layout.brandId);
   const hydration = useMemo(() => {
+    if (isLoading) {
+      return { blocks: [], isValid: true };
+    }
+
     try {
       return {
         blocks: hydrateLayout(layout.document, bundle),
@@ -23,10 +27,18 @@ function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
     } catch {
       return { blocks: [], isValid: false };
     }
-  }, [bundle, layout.document]);
+  }, [bundle, isLoading, layout.document]);
 
   if (isLoading) {
-    return <LazyLoadingFallback variant="grid" />;
+    return (
+      <div
+        className="grid gap-4 md:grid-cols-2"
+        data-testid="workspace-dashboard-loading"
+      >
+        <SkeletonCard showImage={false} />
+        <SkeletonCard showImage={false} />
+      </div>
+    );
   }
 
   if (!hydration.isValid) {
@@ -46,7 +58,15 @@ export default function WorkspaceOverviewContent() {
   } = useDashboardLayout({ brandId });
 
   if (!isReady || isLayoutLoading) {
-    return <LazyLoadingFallback variant="grid" />;
+    return (
+      <div
+        className="flex flex-col gap-6"
+        data-testid="workspace-overview-loading"
+      >
+        <SkeletonCard showImage={false} />
+        <SkeletonCard showImage={false} />
+      </div>
+    );
   }
 
   if (!layout) {

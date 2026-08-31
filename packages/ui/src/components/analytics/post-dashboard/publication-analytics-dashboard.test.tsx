@@ -4,12 +4,16 @@ import PublicationAnalyticsDashboard from '@ui/analytics/post-dashboard/publicat
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useAuth: () => ({ isSignedIn: true }),
+const mocks = vi.hoisted(() => ({
+  getPostAnalyticsService: vi.fn(() => new Promise(() => undefined)),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ isSignedIn: true }),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => mocks.getPostAnalyticsService,
 }));
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
@@ -57,5 +61,19 @@ describe('PublicationAnalyticsDashboard', () => {
     );
     const rootElement = container.firstChild;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('renders the header chrome while analytics data is loading', () => {
+    const Wrapper = createWrapper();
+    render(
+      <Wrapper>
+        <PublicationAnalyticsDashboard publicationId="post-1" />
+      </Wrapper>,
+    );
+
+    expect(screen.getByText('Post Analytics')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No analytics data available'),
+    ).not.toBeInTheDocument();
   });
 });

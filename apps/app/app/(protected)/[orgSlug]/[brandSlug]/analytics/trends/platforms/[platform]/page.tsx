@@ -5,7 +5,7 @@ import {
   isTrendPlatform,
   type TrendPlatform,
 } from '@pages/trends/shared/trends-platforms';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -35,7 +35,7 @@ export default async function AnalyticsTrendsPlatformPage({
   }
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <TrendsPlatformDetail
         platform={platform as TrendPlatform}
         basePath="/analytics/trends"
