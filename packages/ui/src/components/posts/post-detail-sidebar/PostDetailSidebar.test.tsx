@@ -10,6 +10,12 @@ import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
