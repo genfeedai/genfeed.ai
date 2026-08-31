@@ -61,4 +61,15 @@ describe('ServicesService OAuth request contract', () => {
       brandId: 'brand-1',
     });
   });
+
+  it('posts a flat verify DTO that Nest integration controllers can read', async () => {
+    const service = new ServicesService('restream', 'token');
+
+    await service.postVerify({ code: 'oauth-code', state: 'oauth-state' });
+
+    expect(mockInstance.post).toHaveBeenCalledWith('verify', {
+      code: 'oauth-code',
+      state: 'oauth-state',
+    });
+  });
 });
