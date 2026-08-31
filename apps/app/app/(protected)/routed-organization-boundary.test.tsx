@@ -7,8 +7,18 @@ import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const contextState = vi.hoisted(() => ({
   isRouteConfirmed: false,
+  organizations: [] as Array<{
+    id: string;
+    isActive: boolean;
+    label: string;
+    slug: string;
+  }>,
   retry: vi.fn(),
   status: 'loading',
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/missing-organization',
 }));
 
 vi.mock(
@@ -21,6 +31,7 @@ vi.mock(
 describe('RoutedOrganizationBoundary', () => {
   beforeEach(() => {
     contextState.isRouteConfirmed = false;
+    contextState.organizations = [];
     contextState.retry.mockReset();
     contextState.status = 'loading';
   });
@@ -70,6 +81,20 @@ describe('RoutedOrganizationBoundary', () => {
 
   it('shows an explicit authorization failure without offering a switch retry', () => {
     contextState.status = 'unauthorized';
+    contextState.organizations = [
+      {
+        id: 'org_alpha',
+        isActive: true,
+        label: 'Alpha',
+        slug: 'alpha',
+      },
+      {
+        id: 'org_bravo',
+        isActive: false,
+        label: 'Bravo',
+        slug: 'bravo',
+      },
+    ];
 
     render(
       <RoutedOrganizationBoundary>
@@ -78,6 +103,12 @@ describe('RoutedOrganizationBoundary', () => {
     );
 
     expect(screen.getByText('Organization unavailable')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /open alpha workspace/i }),
+    ).toHaveAttribute('href', '/alpha/~/workspace/overview');
+    expect(
+      screen.getByRole('link', { name: /open bravo workspace/i }),
+    ).toHaveAttribute('href', '/bravo/~/workspace/overview');
     expect(
       screen.queryByRole('button', { name: 'Try again' }),
     ).not.toBeInTheDocument();

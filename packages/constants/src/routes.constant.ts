@@ -583,6 +583,7 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     APP_ROUTES.OAUTH.replace(/^\//, ''),
     LEGACY_APP_ROUTES.TASKS.replace(/^\//, '').split('/')[0] ?? '',
     LEGACY_APP_ROUTES.LAB_CRON_JOBS.replace(/^\//, '').split('/')[0] ?? '',
+    'agent-auth',
     'api',
     'desktop',
     'forgot-password',
@@ -590,6 +591,7 @@ const RESERVED_APP_ROOT_SEGMENTS = new Set(
     'managed-credits',
     'monitoring',
     'onboarding',
+    'request-access',
     'reset-password',
     'serwist',
     'sign-in',
@@ -605,11 +607,15 @@ export function parseScopedAppPath(pathname: string): {
   const parts = pathname.split('/').filter(Boolean);
   const first = parts[0];
 
-  // Inverse of createBrandAppRoute / createOrganizationAppRoute: scope always
-  // has two segments (`/:org/:brand` or `/:org/~`). A lone product root is not
-  // an org slug.
-  if (!first || RESERVED_APP_ROOT_SEGMENTS.has(first) || parts.length < 2) {
+  // Known product roots stay unscoped. Every other lone segment is handled by
+  // the `/:orgSlug` landing route and must be reconciled as organization scope
+  // before tenant content mounts.
+  if (!first || RESERVED_APP_ROOT_SEGMENTS.has(first)) {
     return { brandSlug: '', orgSlug: '' };
+  }
+
+  if (parts.length === 1) {
+    return { brandSlug: '', orgSlug: first };
   }
 
   if (parts[1] === '~') {

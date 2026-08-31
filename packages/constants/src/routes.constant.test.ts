@@ -276,6 +276,10 @@ describe('routes.constant', () => {
   });
 
   it('parses org/brand scope from the URL when layout params are missing', () => {
+    expect(parseScopedAppPath('/demo')).toEqual({
+      brandSlug: '',
+      orgSlug: 'demo',
+    });
     expect(parseScopedAppPath('/demo/FUDNEWS/library/images')).toEqual({
       brandSlug: 'FUDNEWS',
       orgSlug: 'demo',
@@ -289,6 +293,10 @@ describe('routes.constant', () => {
       orgSlug: '',
     });
     expect(parseScopedAppPath('/library/assets')).toEqual({
+      brandSlug: '',
+      orgSlug: '',
+    });
+    expect(parseScopedAppPath('/library')).toEqual({
       brandSlug: '',
       orgSlug: '',
     });
