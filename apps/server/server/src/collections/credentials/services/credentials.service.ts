@@ -1,17 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { OAUTH_STATE_TTL_MS } from '@server/collections/credentials/constants/oauth.constants';
-import { CreateCredentialDto } from '@server/collections/credentials/dto/create-credential.dto';
-import { UpdateCredentialDto } from '@server/collections/credentials/dto/update-credential.dto';
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
-import type { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ValidationException } from '@server/exceptions/validation.exception';
-import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PopulateInput,
-} from '@server/shared/services/base/base.service';
 import {
   CredentialPlatform,
   FileInputType,
@@ -22,12 +9,25 @@ import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { OAUTH_STATE_TTL_MS } from '@server/collections/credentials/constants/oauth.constants';
 import type {
   CredentialDocument,
   ResolveBrandAccountOptions,
 } from '@server/collections/credentials/credential.types';
 import type { ServerCredentialStore } from '@server/collections/credentials/credentials.port';
+import { CreateCredentialDto } from '@server/collections/credentials/dto/create-credential.dto';
+import { UpdateCredentialDto } from '@server/collections/credentials/dto/update-credential.dto';
+import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import type { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
+import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@server/shared/services/base/base.service';
 
 export type { ResolveBrandAccountOptions } from '@server/collections/credentials/credential.types';
 
@@ -252,6 +252,102 @@ export class CredentialsService
         isConnected: true,
       }),
     );
+  }
+
+  /**
+   * Irreversibly remove provider-derived identity and connection material after
+   * an authenticated provider deauthorization or data-deletion callback.
+   *
+   * This is intentionally the only cross-tenant credential mutation in this
+   * service. The provider's app-scoped user id carries no organization id, so
+   * callers must authenticate the provider-signed request before invoking it.
+   * The `(platform, externalId)` pair is the narrow global identity boundary.
+   * User-authored schedules and content remain attached to a sanitized,
+   * soft-deleted credential so existing foreign keys are preserved.
+   */
+  async purgeProviderAccount(
+    platform: CredentialPlatform,
+    externalId: string,
+  ): Promise<number> {
+    const prismaPlatform = toPrismaCredentialPlatform(platform);
+    if (!prismaPlatform || !externalId.trim()) {
+      throw new TypeError('A persisted platform and external id are required');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const credentials = await tx.credential.findMany({
+        select: { id: true },
+        where: {
+          externalId: externalId.trim(),
+          platform: prismaPlatform,
+        },
+      });
+      const credentialIds = credentials.map(({ id }) => id);
+
+      if (credentialIds.length === 0) {
+        return 0;
+      }
+
+      // Analytics and provider publication identifiers were obtained from the
+      // provider. Preserve the user's authored post, but remove those fields.
+      await tx.postAnalytics.deleteMany({
+        where: {
+          platform: prismaPlatform,
+          post: { credentialId: { in: credentialIds } },
+        },
+      });
+      await tx.post.updateMany({
+        data: {
+          analyticsCollectedAt: null,
+          analyticsCollectionAttemptKey: null,
+          analyticsCollectionError: null,
+          analyticsCollectionRequestedAt: null,
+          analyticsCollectionState: 'unavailable',
+          externalId: null,
+          externalShortcode: null,
+          url: null,
+        },
+        where: {
+          credentialId: { in: credentialIds },
+          platform,
+        },
+      });
+
+      const result = await tx.credential.updateMany({
+        data: {
+          accessToken: null,
+          accessTokenExpiry: null,
+          accessTokenSecret: null,
+          externalAvatar: null,
+          externalHandle: null,
+          externalId: null,
+          externalName: null,
+          grantedScopes: [],
+          grantedScopesCapturedAt: null,
+          isConnected: false,
+          isDeleted: true,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenHash: null,
+          oauthTokenSecret: null,
+          refreshToken: null,
+          refreshTokenExpiry: null,
+          username: null,
+          warmupAssessedAt: null,
+          warmupHoldReason: null,
+          warmupRiskLevel: 'unknown',
+          warmupScore: 0,
+          warmupSignals: {},
+          warmupState: 'not_started',
+        },
+        where: {
+          id: { in: credentialIds },
+          platform: prismaPlatform,
+        },
+      });
+
+      return result.count;
+    });
   }
 
   /**
