@@ -33,6 +33,13 @@ export const WORKFLOW_APPROVED_SCHEDULE_SETTING =
   '__workflowApprovedScheduledAt';
 
 /**
+ * Ephemeral execution flag set by the scheduled-post workflow when a creator
+ * chooses the TikTok native-app handoff. It is never persisted as a customer
+ * channel setting; the TikTok publisher alone consumes it.
+ */
+export const TIKTOK_APP_HANDOFF_SETTING = '__tiktokAppHandoff';
+
+/**
  * Result of a publish operation
  */
 export interface PublishResult {

@@ -239,6 +239,68 @@ describe('TiktokService', () => {
     });
   });
 
+  describe('uploadVideoToInbox', () => {
+    it('uploads the video to the connected account Inbox without direct-post polling', async () => {
+      const getValidCredential = vi
+        .spyOn(service, 'getValidCredential')
+        .mockResolvedValue(asCredential({ accessToken: 'test-token' }));
+      const getPublishStatus = vi.spyOn(service, 'getPublishStatus');
+      (httpService.post as Mock).mockReturnValue(
+        of({
+          data: { data: { publish_id: 'v_inbox_file~123' } },
+          status: 200,
+        }),
+      );
+
+      const response = await service.uploadVideoToInbox(
+        'org-id',
+        'brand-id',
+        'https://cdn.genfeed.ai/video.mp4',
+        'credential-42',
+      );
+
+      expect(response.data?.publish_id).toBe('v_inbox_file~123');
+      expect(getValidCredential).toHaveBeenCalledWith(
+        'org-id',
+        'brand-id',
+        'credential-42',
+      );
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/',
+        {
+          source_info: {
+            source: 'PULL_FROM_URL',
+            video_url: 'https://cdn.genfeed.ai/video.mp4',
+          },
+        },
+        {
+          headers: {
+            Authorization: 'Bearer test-token',
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        },
+      );
+      expect(getPublishStatus).not.toHaveBeenCalled();
+    });
+
+    it('rejects an Inbox upload response without a publish id', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        asCredential({ accessToken: 'test-token' }),
+      );
+      (httpService.post as Mock).mockReturnValue(
+        of({ data: { data: {} }, status: 200 }),
+      );
+
+      await expect(
+        service.uploadVideoToInbox(
+          'org-id',
+          'brand-id',
+          'https://cdn.genfeed.ai/video.mp4',
+        ),
+      ).rejects.toThrow('TikTok app upload failed: no publish_id returned');
+    });
+  });
+
   describe('channel target settings', () => {
     /**
      * The composer's choices only reach TikTok through the publish body, so

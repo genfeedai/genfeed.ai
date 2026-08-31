@@ -91,6 +91,7 @@ export default function PostDetail({
     handleContentSave,
     handleScheduleSave,
     handlePublishNow,
+    handlePublishViaTikTokApp,
     handleAddToThread,
     handleDeletePost,
     handleDeleteChild,
@@ -266,6 +267,7 @@ export default function PostDetail({
           onScheduleChange={handleScheduleChange}
           onScheduleSave={handleScheduleSave}
           onPublishNow={handlePublishNow}
+          onPublishViaTikTokApp={handlePublishViaTikTokApp}
           onScoreSeo={handleScoreSeo}
         />
         {!isPublished ? <EngagementPreview post={post} /> : null}
@@ -277,6 +279,7 @@ export default function PostDetail({
     handleScheduleChange,
     handleScheduleSave,
     handlePublishNow,
+    handlePublishViaTikTokApp,
     handleScoreSeo,
     isContentDirty,
     isPublished,

@@ -3,14 +3,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
-import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { Request } from 'express';
 
 describe('PostGroupsController', () => {
@@ -27,6 +27,7 @@ describe('PostGroupsController', () => {
     resume: ReturnType<typeof vi.fn>;
     ensureReleaseForPost: ReturnType<typeof vi.fn>;
     publishTargetNow: ReturnType<typeof vi.fn>;
+    publishTargetViaTikTokApp: ReturnType<typeof vi.fn>;
     scheduleTarget: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
@@ -71,6 +72,9 @@ describe('PostGroupsController', () => {
             publishNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             resume: vi.fn().mockResolvedValue({ id: 'group-1' }),
             publishTargetNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            publishTargetViaTikTokApp: vi
+              .fn()
+              .mockResolvedValue({ id: 'group-1' }),
             scheduleTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
             update: vi.fn().mockResolvedValue({ id: 'group-1' }),
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
@@ -183,6 +187,74 @@ describe('PostGroupsController', () => {
     );
     expect(service.scheduleTarget).not.toHaveBeenCalled();
     expect(service.updateTarget).not.toHaveBeenCalled();
+  });
+
+  it('routes the TikTok app handoff through the dedicated target action', async () => {
+    await controller.updateTarget(req, user, 'group-1', 'target-1', {
+      action: 'publish-via-tiktok-app',
+    });
+
+    expect(service.publishTargetViaTikTokApp).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      { source: 'post-desk' },
+    );
+    expect(service.publishTargetNow).not.toHaveBeenCalled();
+    expect(service.scheduleTarget).not.toHaveBeenCalled();
+    expect(service.updateTarget).not.toHaveBeenCalled();
+  });
+
+  it.each(['publish-now', 'publish-via-tiktok-app'] as const)(
+    'rejects API-key %s with schedule-only scope before publishing',
+    async (action) => {
+      await expect(
+        controller.updateTarget(
+          req,
+          {
+            ...user,
+            isApiKey: true,
+            scopes: [ApiKeyScope.POSTS_SCHEDULE],
+          } as User,
+          'group-1',
+          'target-1',
+          { action },
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+        }),
+      });
+      expect(service.publishTargetNow).not.toHaveBeenCalled();
+      expect(service.publishTargetViaTikTokApp).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects API-key scheduling with publish-only scope before scheduling', async () => {
+    await expect(
+      controller.updateTarget(
+        req,
+        {
+          ...user,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_PUBLISH],
+        } as User,
+        'group-1',
+        'target-1',
+        {
+          action: 'schedule',
+          scheduledDate: '2026-09-01T10:00:00.000Z',
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+      }),
+    });
+    expect(service.scheduleTarget).not.toHaveBeenCalled();
   });
 
   it('wraps a desk post into a release group before schedule or publish-now', async () => {

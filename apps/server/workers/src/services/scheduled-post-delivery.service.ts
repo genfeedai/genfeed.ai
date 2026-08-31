@@ -1,6 +1,7 @@
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import {
   resolveChannelTargetSettings,
+  type ValidateChannelTargetSettingsInput,
   validateChannelTargetSettings,
 } from '@api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
@@ -8,6 +9,7 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
+  PostCategory,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import {
@@ -19,6 +21,7 @@ import {
   type ServerCredentialStore,
   type ServerPublisherFactory,
   scopedWhere,
+  TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -76,6 +79,10 @@ type PreparedPostDelivery = {
 type DeliveryLoad<T> =
   | { ok: true; value: T }
   | { ok: false; result: PublishResult };
+
+type ChannelValidationMedia = NonNullable<
+  ValidateChannelTargetSettingsInput['media']
+>;
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -476,6 +483,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const targetValidation = validateChannelTargetSettings({
       caption: post.description,
       credentialId: ids.credentialId ?? undefined,
+      media: this.toValidationMedia(post),
       platform,
       publishMode: 'publish_now',
       settings: resolvedSettings,
@@ -498,15 +506,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const settings =
-      platform === CredentialPlatform.BEEHIIV &&
-      source !== 'publish_now' &&
-      post.scheduledDate instanceof Date
+      source === 'tiktok_app'
         ? {
             ...resolvedSettings,
-            [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
-              post.scheduledDate.toISOString(),
+            [TIKTOK_APP_HANDOFF_SETTING]: true,
           }
-        : resolvedSettings;
+        : platform === CredentialPlatform.BEEHIIV &&
+            source !== 'publish_now' &&
+            post.scheduledDate instanceof Date
+          ? {
+              ...resolvedSettings,
+              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+                post.scheduledDate.toISOString(),
+            }
+          : resolvedSettings;
 
     return {
       ok: true,
@@ -526,6 +539,30 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         publisher,
       },
     };
+  }
+
+  private toValidationMedia(
+    post: PostEntity,
+  ): ChannelValidationMedia | undefined {
+    const ingredients = Array.isArray(post.ingredients)
+      ? (post.ingredients as unknown[])
+      : [];
+    const kind: ChannelValidationMedia[number]['kind'] =
+      post.category === PostCategory.VIDEO ||
+      post.category === PostCategory.REEL
+        ? 'video'
+        : 'image';
+    const media = ingredients.flatMap((ingredient) => {
+      const id =
+        typeof ingredient === 'string'
+          ? ingredient
+          : ingredient && typeof ingredient === 'object' && 'id' in ingredient
+            ? ingredient.id
+            : undefined;
+      return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
+    });
+
+    return media.length > 0 ? media : undefined;
   }
 
   private async executeProviderPublish(
@@ -1002,7 +1039,14 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   private readActionRequest(value: unknown): ScheduledPostWorkflowInput {
     const request = this.readRecord(value);
     const source = String(request.source ?? '');
-    if (!['manual_retry', 'publish_now', 'scheduled_sweep'].includes(source)) {
+    if (
+      ![
+        'manual_retry',
+        'publish_now',
+        'scheduled_sweep',
+        'tiktok_app',
+      ].includes(source)
+    ) {
       throw new Error(
         `Scheduled post delivery received invalid source ${source}`,
       );

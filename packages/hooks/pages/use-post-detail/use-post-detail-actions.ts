@@ -50,6 +50,7 @@ export interface UsePostDetailActionsReturn {
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
   handlePublishNow: () => Promise<void>;
+  handlePublishViaTikTokApp: () => Promise<void>;
   handleDeletePost: () => void;
   handleQuickAction: (
     postId: string,
@@ -244,6 +245,35 @@ export function usePostDetailActions({
     setIsSavingSchedule,
   ]);
 
+  const handlePublishViaTikTokApp = useCallback(async () => {
+    if (!post) {
+      return;
+    }
+
+    setIsSavingSchedule(true);
+    try {
+      const releases = await getReleaseGroupsService();
+      const groupId = await resolveReleaseGroupId();
+      await releases.publishTargetViaTikTokApp(groupId, requirePostId(post));
+      await fetchPost(true);
+      notificationsService.success(
+        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
+      );
+    } catch (err) {
+      logger.error('Failed to send video to TikTok app', err);
+      notificationsService.error('Failed to send video to TikTok app');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  }, [
+    fetchPost,
+    getReleaseGroupsService,
+    notificationsService,
+    post,
+    resolveReleaseGroupId,
+    setIsSavingSchedule,
+  ]);
+
   // Delete post handler
   const handleDeletePost = useCallback(() => {
     if (!post) {
@@ -406,6 +436,7 @@ export function usePostDetailActions({
     handleDeletePost,
     handlePerTweetEnhance,
     handlePublishNow,
+    handlePublishViaTikTokApp,
     handleQuickAction,
     handleScheduleSave,
   };

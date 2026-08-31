@@ -1,3 +1,8 @@
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Injectable } from '@nestjs/common';
 import { type CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { BasePublisherService } from '@server/services/integrations/publishers/base-publisher.service';
 import type {
@@ -6,12 +11,8 @@ import type {
   PublishContext,
   PublishResult,
 } from '@server/services/integrations/publishers/interfaces/publisher.interface';
+import { TIKTOK_APP_HANDOFF_SETTING } from '@server/services/integrations/publishers/interfaces/publisher.interface';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TikTokPublisherService extends BasePublisherService {
@@ -90,6 +91,8 @@ export class TikTokPublisherService extends BasePublisherService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { post, credential, organizationId, brandId, isDraft } = context;
     const mediaInfo = this.extractMediaInfo(post);
+    const shouldHandoffToTikTokApp =
+      context.settings[TIKTOK_APP_HANDOFF_SETTING] === true;
 
     // Log the attempt
     this.logPublishAttempt(context, mediaInfo);
@@ -104,10 +107,25 @@ export class TikTokPublisherService extends BasePublisherService {
       );
     }
 
+    if (shouldHandoffToTikTokApp && mediaInfo.isImagePost) {
+      return this.createFailedResult(
+        this.platform,
+        'Publish via TikTok App is only available for TikTok videos.',
+        'tiktok_app_video_required',
+      );
+    }
+
     try {
       let tiktokRes: unknown;
 
-      if (mediaInfo.isImagePost) {
+      if (shouldHandoffToTikTokApp) {
+        tiktokRes = await this.tiktokService.uploadVideoToInbox(
+          organizationId,
+          brandId,
+          mediaInfo.mediaUrls[0],
+          credential.id,
+        );
+      } else if (mediaInfo.isImagePost) {
         // TikTok photo carousel (2-35 images)
         tiktokRes = await this.tiktokService.uploadImage(
           organizationId,
@@ -134,6 +152,20 @@ export class TikTokPublisherService extends BasePublisherService {
       const postId = responseData.postId;
       const publishId = responseData.publishId;
       const isPending = responseData.isPending || !postId;
+
+      if (shouldHandoffToTikTokApp && publishId) {
+        this.logger.log(`${url} video sent to the creator's TikTok Inbox`, {
+          postId: context.postId,
+          publishId,
+        });
+        return {
+          executionState: TargetExecutionState.PUBLISHING,
+          externalId: publishId,
+          platform: this.platform,
+          success: true,
+          url: '',
+        };
+      }
 
       // Handle pending state (TikTok moderation in progress)
       if (isPending && publishId) {

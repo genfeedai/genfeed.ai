@@ -3,15 +3,6 @@
  * @description Comprehensive tests covering all public methods, error handling, and edge cases
  */
 
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
-import type {
-  MediaInfo,
-  PublishContext,
-} from '@server/services/integrations/publishers/interfaces/publisher.interface';
-import { TikTokPublisherService } from '@server/services/integrations/publishers/tiktok-publisher.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
@@ -23,6 +14,16 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
+import type {
+  MediaInfo,
+  PublishContext,
+} from '@server/services/integrations/publishers/interfaces/publisher.interface';
+import { TIKTOK_APP_HANDOFF_SETTING } from '@server/services/integrations/publishers/interfaces/publisher.interface';
+import { TikTokPublisherService } from '@server/services/integrations/publishers/tiktok-publisher.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 
 describe('TikTokPublisherService', () => {
   let service: TikTokPublisherService;
@@ -156,6 +157,7 @@ describe('TikTokPublisherService', () => {
           useValue: {
             uploadImage: vi.fn(),
             uploadVideo: vi.fn(),
+            uploadVideoToInbox: vi.fn(),
           },
         },
       ],
@@ -368,6 +370,32 @@ describe('TikTokPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPublishId);
         expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
+      });
+
+      it('hands the video to the TikTok app and keeps it pending until the user posts', async () => {
+        const context = createPublishContext(mockVideoPost, {
+          [TIKTOK_APP_HANDOFF_SETTING]: true,
+        });
+        tiktokService.uploadVideoToInbox.mockResolvedValue({
+          data: { publish_id: 'v_inbox_file~123' },
+        });
+
+        const result = await service.publish(context);
+
+        expect(tiktokService.uploadVideoToInbox).toHaveBeenCalledWith(
+          mockOrganizationId.toString(),
+          mockBrandId.toString(),
+          expect.stringContaining('/videos/'),
+          mockCredential.id,
+        );
+        expect(tiktokService.uploadVideo).not.toHaveBeenCalled();
+        expect(result).toEqual({
+          executionState: TargetExecutionState.PUBLISHING,
+          externalId: 'v_inbox_file~123',
+          platform: CredentialPlatform.TIKTOK,
+          success: true,
+          url: '',
+        });
       });
     });
 

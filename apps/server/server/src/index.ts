@@ -163,6 +163,7 @@ export {
   type ServerSocialAnalytics,
   type ServerYoutubeUploader,
   type ThreadChild,
+  TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
   type YoutubeUploadPostInput,
 } from './server.dependencies';

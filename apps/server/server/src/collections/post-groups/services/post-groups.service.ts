@@ -5,6 +5,7 @@ import type {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  PostCategory,
   PublishApprovalStatus,
   ReleaseStatus,
   TargetExecutionState,
@@ -34,6 +35,7 @@ import type {
 import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import type { ScheduledPostWorkflowSource } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -245,6 +247,24 @@ export class PostGroupsService {
     );
   }
 
+  async publishTargetViaTikTokApp(
+    organizationId: string,
+    userId: string,
+    groupId: string,
+    targetId: string,
+    provenance?: PostGroupCreateProvenance,
+  ): Promise<IReleaseGroup> {
+    return this.scheduleTargetAt(
+      organizationId,
+      userId,
+      groupId,
+      targetId,
+      new Date(),
+      provenance,
+      'tiktok_app',
+    );
+  }
+
   private async scheduleTargetAt(
     organizationId: string,
     userId: string,
@@ -252,6 +272,7 @@ export class PostGroupsService {
     targetId: string,
     scheduledDate: Date,
     provenance?: PostGroupCreateProvenance,
+    workflowSource: ScheduledPostWorkflowSource = 'publish_now',
   ): Promise<IReleaseGroup> {
     const isDueNow = scheduledDate.getTime() <= Date.now() + 5000;
 
@@ -273,6 +294,16 @@ export class PostGroupsService {
       const platform = this.contractService.parseCredentialPlatform(
         target.platform,
       );
+      if (
+        workflowSource === 'tiktok_app' &&
+        (platform !== CredentialPlatform.TIKTOK ||
+          (target.category !== PostCategory.VIDEO &&
+            target.category !== PostCategory.REEL))
+      ) {
+        throw new BadRequestException(
+          'Publish via TikTok App is only available for TikTok videos.',
+        );
+      }
       const targetInput: ChannelTargetInput = {
         credentialId: target.credentialId,
         platform,
@@ -398,7 +429,12 @@ export class PostGroupsService {
     });
 
     if (scheduled.isDueNow) {
-      await this.enqueueReleaseTargets(scheduled.release, userId, [targetId]);
+      await this.enqueueReleaseTargets(
+        scheduled.release,
+        userId,
+        [targetId],
+        workflowSource,
+      );
     }
     return scheduled.release;
   }
@@ -418,6 +454,7 @@ export class PostGroupsService {
     }
 
     const post = await this.prisma.post.findFirst({
+      include: { ingredients: { select: { id: true } } },
       where: scopedWhere(organizationId, { id: postId }),
     });
     if (!post) {
@@ -447,12 +484,22 @@ export class PostGroupsService {
         ReleaseStatus.DRAFT,
         userId,
       );
+      const mediaKind =
+        post.category === PostCategory.VIDEO ||
+        post.category === PostCategory.REEL
+          ? 'video'
+          : 'image';
+      const media = post.ingredients.map((ingredient, order) => ({
+        assetId: ingredient.id,
+        kind: mediaKind,
+        order,
+      }));
       const group = await tx.postGroup.create({
         data: {
           attachments: this.contractService.toJson([]),
           baseContent: post.description,
           brandId: post.brandId,
-          media: this.contractService.toJson([]),
+          media: this.contractService.toJson(media),
           organizationId,
           ownerId: userId,
           status: ReleaseStatus.DRAFT,
@@ -1089,6 +1136,7 @@ export class PostGroupsService {
     release: IReleaseGroup,
     userId: string,
     targetIds?: string[],
+    source: ScheduledPostWorkflowSource = 'publish_now',
   ): Promise<void> {
     const allowedIds = targetIds ? new Set(targetIds) : null;
     const targets = (release.targets ?? []).filter(
@@ -1132,7 +1180,7 @@ export class PostGroupsService {
           operationId: approval.operationId,
           organizationId: release.organizationId,
           postId: target.id,
-          source: 'publish_now',
+          source,
           userId,
           versionPinId: approval.artifactVersionPinId,
         });

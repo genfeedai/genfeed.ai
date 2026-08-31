@@ -19,7 +19,8 @@ export const SCHEDULED_POST_FAILURE_WORKFLOW_ID =
 export type ScheduledPostWorkflowSource =
   | 'manual_retry'
   | 'publish_now'
-  | 'scheduled_sweep';
+  | 'scheduled_sweep'
+  | 'tiktok_app';
 
 export type ScheduledPostWorkflowInput = {
   approvalId?: string;

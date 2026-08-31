@@ -792,6 +792,70 @@ export class TiktokService {
   }
 
   /**
+   * Upload a video to the creator's TikTok Inbox so they can add a licensed
+   * TikTok sound or make final native edits before posting. This endpoint does
+   * not publish the video, so it deliberately does not poll for a public post.
+   */
+  public async uploadVideoToInbox(
+    organizationId: string,
+    brandId: string,
+    videoUrl: string,
+    credentialId?: string,
+  ): Promise<ITikTokPublishResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      this.loggerService.log(`${url} started`, { videoUrl });
+      const credential = await this.getValidCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
+      if (!credential.accessToken) {
+        throw new Error('TikTok credential not found or invalid');
+      }
+
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.endpoint}/post/publish/inbox/video/init/`,
+          {
+            source_info: {
+              source: 'PULL_FROM_URL',
+              video_url: videoUrl,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${decryptedAccessToken}`,
+              'Content-Type': this.contentType,
+            },
+          },
+        ),
+      );
+
+      if (response.status !== 200) {
+        throw new Error('TikTok API returned non-200 status');
+      }
+
+      const publishId = response.data?.data?.publish_id;
+      if (!publishId) {
+        throw new Error('TikTok app upload failed: no publish_id returned');
+      }
+
+      this.loggerService.log(`${url} sent video to TikTok Inbox`, {
+        publishId,
+      });
+      return response.data as ITikTokPublishResponse;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  /**
    * @param credentialId - which connected TikTok account publishes this carousel.
    */
   public async uploadImage(
