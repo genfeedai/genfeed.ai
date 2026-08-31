@@ -91,7 +91,7 @@ describe('ProtectedRootResolver', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('opens the returning conversation bootstrap when org and brand are selected', async () => {
+  it('opens workspace overview when a returning user has an active brand', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
@@ -103,11 +103,13 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
     });
   });
 
-  it('opens the returning conversation bootstrap from the first org brand', async () => {
+  it('opens workspace overview from the first brand in the active organization', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
@@ -120,7 +122,9 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
     });
   });
 
@@ -142,7 +146,7 @@ describe('ProtectedRootResolver', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/~/agent?taskId=task-42&taskSource=workspace',
+        '/acme/moonrise/workspace/overview?taskId=task-42&taskSource=workspace',
       );
     });
   });
