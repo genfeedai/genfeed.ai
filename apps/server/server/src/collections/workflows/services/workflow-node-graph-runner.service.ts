@@ -288,17 +288,21 @@ export class WorkflowNodeGraphRunnerService {
       // map. Duplicate insert / prior completion re-emits instead of re-running
       // side effects (publish, DM, credit spend).
       if (this.nodeClaimService && workflow.organizationId) {
+        const actionId = getExecutableNodeOperationId(node);
+        const action = getActionDefinition(actionId);
         const durable = await this.nodeClaimService.tryClaim({
           executionId,
           nodeId,
           organizationId: workflow.organizationId,
+          // Provider-callback nodes have their own durable continuation lease
+          // and may legitimately remain running beyond the synchronous claim
+          // window. Their continuation recovery owns that path.
+          reclaimStaleRunning: action?.completionMode !== 'provider-callback',
         });
         if (durable.action === 'skip') {
           if (durable.status === 'running') {
-            const actionId = getExecutableNodeOperationId(node);
             const ownsSuspension =
-              getActionDefinition(actionId)?.completionMode ===
-                'provider-callback' &&
+              action?.completionMode === 'provider-callback' &&
               this.nodeContinuationService &&
               (await this.nodeContinuationService.ownsSuspendedNode({
                 actionId,

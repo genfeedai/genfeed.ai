@@ -3,6 +3,13 @@ import type { Prisma } from '@genfeedai/prisma';
 /** Maximum number of nodes per execution to prevent infinite loops. */
 export const MAX_EXECUTION_NODES = 500;
 
+/**
+ * A synchronous node claim older than the longest in-process provider poll
+ * (20 minutes) plus a recovery buffer is treated as abandoned. Provider-
+ * callback actions use their dedicated continuation leases instead.
+ */
+export const WORKFLOW_NODE_CLAIM_LEASE_MS = 30 * 60 * 1000;
+
 /** Map from trigger event types to executor node types. */
 export const EVENT_TYPE_TO_NODE_TYPE: Record<string, string> = {
   comment: 'commentTrigger',

@@ -1,6 +1,7 @@
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { WORKFLOW_NODE_CLAIM_LEASE_MS } from '@server/collections/workflows/services/workflow-executor.constants';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export type DurableNodeClaimOutcome =
@@ -30,6 +31,7 @@ export class WorkflowNodeClaimService {
     organizationId: string;
     executionId: string;
     nodeId: string;
+    reclaimStaleRunning?: boolean;
   }): Promise<DurableNodeClaimOutcome> {
     try {
       await this.prisma.workflowNodeClaim.create({
@@ -60,7 +62,15 @@ export class WorkflowNodeClaimService {
           );
           return { action: 'claimed' };
         }
-        if (existing.status === 'failed') {
+        // `updatedAt` is the lease timestamp. Reclaim is a single conditional
+        // update, so concurrent retries cannot both acquire the stale row.
+        const staleBefore = new Date(Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS);
+        const isFailed = existing.status === 'failed';
+        const isStaleRunning =
+          params.reclaimStaleRunning !== false &&
+          existing.status === 'running' &&
+          existing.updatedAt < staleBefore;
+        if (isFailed || isStaleRunning) {
           const reclaimed = await this.prisma.workflowNodeClaim.updateMany({
             data: {
               error: null,
@@ -71,7 +81,8 @@ export class WorkflowNodeClaimService {
               executionId: params.executionId,
               nodeId: params.nodeId,
               organizationId: params.organizationId,
-              status: 'failed',
+              status: isFailed ? 'failed' : 'running',
+              ...(isStaleRunning ? { updatedAt: { lt: staleBefore } } : {}),
             },
           });
           if (reclaimed.count === 1) {

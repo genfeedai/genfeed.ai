@@ -1,4 +1,5 @@
 import { Prisma } from '@genfeedai/prisma';
+import { WORKFLOW_NODE_CLAIM_LEASE_MS } from '@server/collections/workflows/services/workflow-executor.constants';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -90,6 +91,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       error: null,
       output: null,
       status: 'running',
+      updatedAt: new Date(),
     });
 
     await service.tryClaim({
@@ -117,6 +119,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       error: null,
       output: null,
       status: 'running',
+      updatedAt: new Date(),
     });
 
     await expect(
@@ -167,6 +170,112 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         status: 'failed',
       },
     });
+  });
+
+  it('atomically reclaims a running node whose lease is stale', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    const staleUpdatedAt = new Date(
+      Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1,
+    );
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst.mockResolvedValue({
+      error: 'worker terminated',
+      output: { partial: true },
+      status: 'running',
+      updatedAt: staleUpdatedAt,
+    });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({ action: 'claimed' });
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
+      data: {
+        error: null,
+        output: Prisma.DbNull,
+        status: 'running',
+      },
+      where: {
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+        status: 'running',
+        updatedAt: { lt: expect.any(Date) },
+      },
+    });
+  });
+
+  it('returns the winning worker state when a stale reclaim loses its race', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst
+      .mockResolvedValueOnce({
+        error: 'worker terminated',
+        output: { partial: true },
+        status: 'running',
+        updatedAt: new Date(Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1),
+      })
+      .mockResolvedValueOnce({
+        error: null,
+        output: null,
+        status: 'running',
+        updatedAt: new Date(),
+      });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      action: 'skip',
+      error: undefined,
+      output: undefined,
+      status: 'running',
+    });
+  });
+
+  it('leaves stale provider-callback claims to continuation recovery', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst.mockResolvedValue({
+      error: null,
+      output: null,
+      status: 'running',
+      updatedAt: new Date(Date.now() - WORKFLOW_NODE_CLAIM_LEASE_MS - 1),
+    });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'videoGen',
+        organizationId: 'org-1',
+        reclaimStaleRunning: false,
+      }),
+    ).resolves.toEqual({
+      action: 'skip',
+      error: undefined,
+      output: undefined,
+      status: 'running',
+    });
+
+    expect(workflowNodeClaim.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns the winning worker state when a failed reclaim loses its race', async () => {
