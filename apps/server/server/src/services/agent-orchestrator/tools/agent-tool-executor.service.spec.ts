@@ -4376,7 +4376,7 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
-  it('should retry get_trends with live fetch when the cached corpus is empty', async () => {
+  it('should keep get_trends cache-only when a live fallback would return data', async () => {
     const { service, trendsService } = createService();
 
     trendsService.getTrends.mockResolvedValueOnce([]).mockResolvedValueOnce([
@@ -4398,38 +4398,27 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(trendsService.getTrends).toHaveBeenNthCalledWith(
-      1,
+    expect(trendsService.getTrends).toHaveBeenCalledTimes(1);
+    expect(trendsService.getTrends).toHaveBeenCalledWith(
       testId('org'),
       undefined,
       'youtube',
       { allowFetchIfMissing: false },
     );
-    expect(trendsService.getTrends).toHaveBeenNthCalledWith(
-      2,
-      testId('org'),
-      undefined,
-      'youtube',
-      { allowFetchIfMissing: true },
-    );
     expect(result.data).toEqual({
-      count: 1,
-      trends: [
-        {
-          id: 'trend-3',
-          platform: 'youtube',
-          score: 88.4,
-          topic: 'Creator teardown format',
-        },
-      ],
+      count: 0,
+      trends: [],
     });
     expect(result.nextActions).toEqual([
       expect.objectContaining({
         id: expect.stringMatching(/^trends-youtube-/),
-        outcomeBullets: ['Creator teardown format · score 88'],
+        outcomeBullets: [
+          'YouTube cached corpus returned 0 trends',
+          'Live fetch fallback is disabled for this tool',
+        ],
         summaryText:
-          'Loaded 1 YouTube trend from the cached corpus. Open trends analytics to review the strongest hooks and decide what to remix.',
-        title: 'YouTube trends loaded',
+          'No YouTube trends are available in the cached corpus right now. Open trends analytics to confirm source coverage before retrying this task.',
+        title: 'YouTube trends unavailable',
         type: 'completion_summary_card',
       }),
     ]);
@@ -4450,19 +4439,12 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(trendsService.getTrends).toHaveBeenNthCalledWith(
-      1,
+    expect(trendsService.getTrends).toHaveBeenCalledTimes(1);
+    expect(trendsService.getTrends).toHaveBeenCalledWith(
       testId('org'),
       undefined,
       'tiktok',
       { allowFetchIfMissing: false },
-    );
-    expect(trendsService.getTrends).toHaveBeenNthCalledWith(
-      2,
-      testId('org'),
-      undefined,
-      'tiktok',
-      { allowFetchIfMissing: true },
     );
     expect(result.data).toEqual({
       count: 0,
