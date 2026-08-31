@@ -4,7 +4,7 @@ import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
-import { TOOL_LABELS } from './agent-tool-call-display.helpers';
+import { getAgentToolLabel } from './agent-tool-call-display.helpers';
 
 interface AgentToolCallDisplayProps {
   toolCall: AgentToolCall & {
@@ -17,7 +17,7 @@ export function AgentToolCallDisplay({
   toolCall,
 }: AgentToolCallDisplayProps): ReactElement {
   const [isExpanded, setIsExpanded] = useState(false);
-  const label = TOOL_LABELS[toolCall.name] || toolCall.name;
+  const label = getAgentToolLabel(toolCall.name);
   const isCompleted = toolCall.status === 'completed';
   const isFailed = toolCall.status === 'failed';
 

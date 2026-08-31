@@ -145,7 +145,7 @@ describe('AgentComposerStatusStack', () => {
     ).toHaveClass('pb-2');
   });
 
-  it('renders approved plan steps as a compact running task list', () => {
+  it('renders approved plan steps as compact live progress', () => {
     render(
       <AgentComposerStatusStack
         {...baseProps}
@@ -166,10 +166,146 @@ describe('AgentComposerStatusStack', () => {
     );
 
     expect(
-      screen.getByRole('region', { name: 'Tasks 1 of 3' }),
+      screen.getByRole('region', {
+        name: 'Working progress, 1 of 3 steps',
+      }),
     ).toBeInTheDocument();
     expect(screen.getByText('Inspect the current surface')).toBeInTheDocument();
     expect(screen.getByText('Implement the fix')).toBeInTheDocument();
     expect(screen.getByText('Verify the result')).toBeInTheDocument();
+  });
+
+  it('shows semantic asset stages instead of internal tool names', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'prepare_generation',
+            parameters: { generationType: 'image' },
+            status: AgentWorkEventStatus.COMPLETED,
+            threadId: 'thread-1',
+            toolCallId: 'call-1',
+            toolName: 'prepare_generation',
+          },
+          {
+            createdAt: '2026-07-13T00:00:01.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-2',
+            label: 'suggest_ingredient_alternatives',
+            parameters: { generationType: 'image' },
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolCallId: 'call-2',
+            toolName: 'suggest_ingredient_alternatives',
+          },
+          {
+            createdAt: '2026-07-13T00:00:02.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-3',
+            label: 'suggest_ingredient_alternatives',
+            parameters: { generationType: 'image' },
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolCallId: 'call-3',
+            toolName: 'suggest_ingredient_alternatives',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Creating image')).toBeInTheDocument();
+    expect(screen.getByText('Preparing image generation')).toBeInTheDocument();
+    expect(screen.getAllByText('Finding stronger alternatives')).toHaveLength(
+      1,
+    );
+    expect(screen.queryByText('prepare_generation')).not.toBeInTheDocument();
+  });
+
+  it('prefers reported execution stages over an approved plan', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        latestProposedPlan={{
+          createdAt: '2026-07-13T00:00:00.000Z',
+          id: 'plan-1',
+          status: 'approved',
+          steps: [{ status: 'in_progress', step: 'Internal planning step' }],
+          updatedAt: '2026-07-13T00:00:00.000Z',
+        }}
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'suggest_ingredient_alternatives',
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolCallId: 'call-1',
+            toolName: 'suggest_ingredient_alternatives',
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByText('Finding stronger alternatives'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Internal planning step'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides successful progress as soon as every step is complete', () => {
+    const { container } = render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_COMPLETED,
+            id: 'event-1',
+            label: 'prepare_generation',
+            status: AgentWorkEventStatus.COMPLETED,
+            threadId: 'thread-1',
+            toolCallId: 'call-1',
+            toolName: 'prepare_generation',
+          },
+        ]}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not render generic tool lifecycle copy', () => {
+    const { container } = render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'Tool completed',
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+          },
+        ]}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

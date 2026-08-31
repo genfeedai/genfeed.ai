@@ -21,6 +21,8 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 vi.mock('./agent-tool-call-display.helpers', () => ({
+  getAgentToolLabel: (name: string) =>
+    name === 'generate_image' ? 'Generate Image' : name,
   TOOL_LABELS: { generate_image: 'Generate Image' } as Record<string, string>,
 }));
 

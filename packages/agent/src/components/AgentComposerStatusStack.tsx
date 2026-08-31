@@ -1,4 +1,5 @@
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
+import { getAgentToolLabel } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
@@ -48,11 +49,63 @@ type ComposerTaskStatus =
   | 'pending';
 
 interface ComposerTask {
+  assetType?: 'audio' | 'image' | 'video';
   detail?: string;
   id: string;
   label: string;
   progress?: number;
   status: ComposerTaskStatus;
+}
+
+const GENERIC_TOOL_LABELS = new Set([
+  'tool completed',
+  'tool started',
+  'tool running',
+]);
+
+function getAssetType(event: AgentWorkEvent): ComposerTask['assetType'] {
+  const generationType = event.parameters?.generationType;
+  if (
+    generationType === 'image' ||
+    generationType === 'video' ||
+    generationType === 'audio'
+  ) {
+    return generationType;
+  }
+
+  if (event.toolName?.includes('image')) return 'image';
+  if (event.toolName?.includes('video')) return 'video';
+  if (event.toolName?.includes('voice')) return 'audio';
+  return undefined;
+}
+
+function getWorkTaskLabel(event: AgentWorkEvent): string | null {
+  if (event.toolName === 'prepare_generation') {
+    const assetType = getAssetType(event);
+    return assetType
+      ? `Preparing ${assetType} generation`
+      : 'Preparing generation';
+  }
+
+  if (event.toolName === 'suggest_ingredient_alternatives') {
+    return 'Finding stronger alternatives';
+  }
+
+  if (event.toolName) {
+    return getAgentToolLabel(event.toolName);
+  }
+
+  const label = event.label.trim();
+  if (!label || GENERIC_TOOL_LABELS.has(label.toLowerCase())) {
+    return null;
+  }
+
+  if (/[_-]/.test(label)) {
+    const words = label.replace(/[_-]+/g, ' ').toLowerCase();
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
+  return label;
 }
 
 // Composer-owned status (Claude/T3): sits above the glass bar, not in the
@@ -169,15 +222,20 @@ function buildWorkTasks(workEvents: readonly AgentWorkEvent[]): ComposerTask[] {
   const tasks = new Map<string, ComposerTask>();
 
   for (const event of workEvents) {
-    if (isGenericRunLifecycleEvent(event) || !event.label.trim()) {
+    const label = getWorkTaskLabel(event);
+    if (isGenericRunLifecycleEvent(event) || !label) {
       continue;
     }
 
-    const id = event.toolCallId ?? event.toolName ?? event.label;
+    // The composer communicates product stages, not provider call volume.
+    // Repeated calls to the same tool remain one semantic step while the full
+    // transcript retains every call for debugging and history.
+    const id = event.toolName ?? event.toolCallId ?? label;
     tasks.set(id, {
+      assetType: getAssetType(event),
       detail: event.detail,
       id,
-      label: event.label,
+      label,
       progress: getDeterminateProgress(event) ?? undefined,
       status: getWorkTaskStatus(event),
     });
@@ -199,9 +257,12 @@ export function hasRenderableComposerTasks({
     return false;
   }
 
-  return (
-    buildPlanTasks(latestProposedPlan, true).length > 0 ||
-    buildWorkTasks(workEvents).length > 0
+  const workTasks = buildWorkTasks(workEvents);
+  const tasks =
+    workTasks.length > 0 ? workTasks : buildPlanTasks(latestProposedPlan, true);
+
+  return tasks.some(
+    (task) => task.status !== 'completed' && task.status !== 'cancelled',
   );
 }
 
@@ -247,7 +308,7 @@ export function AgentComposerStatusStack({
 }: AgentComposerStatusStackProps): ReactElement | null {
   const composerError = error ? splitComposerError(error) : null;
   const [isErrorCopied, setIsErrorCopied] = useState(false);
-  const [isTasksExpanded, setIsTasksExpanded] = useState(true);
+  const [isProgressExpanded, setIsProgressExpanded] = useState(true);
   const handleCopyError = useCallback(async () => {
     if (!error) {
       return;
@@ -271,14 +332,23 @@ export function AgentComposerStatusStack({
   const determinateProgress = meaningfulWorkEvent
     ? getDeterminateProgress(meaningfulWorkEvent)
     : null;
+  const progressEventLabel = meaningfulWorkEvent
+    ? getWorkTaskLabel(meaningfulWorkEvent)
+    : null;
   const tasks = useMemo(() => {
+    const workTasks = buildWorkTasks(workEvents);
     const planTasks = buildPlanTasks(latestProposedPlan, isRunActive);
-    return planTasks.length > 0 ? planTasks : buildWorkTasks(workEvents);
+    return workTasks.length > 0 ? workTasks : planTasks;
   }, [isRunActive, latestProposedPlan, workEvents]);
-  const visibleTasks = isRunActive ? tasks : [];
+  const hasUnfinishedTask = tasks.some(
+    (task) => task.status !== 'completed' && task.status !== 'cancelled',
+  );
+  const visibleTasks = isRunActive && hasUnfinishedTask ? tasks : [];
   const completedTaskCount = visibleTasks.filter(
     (task) => task.status === 'completed',
   ).length;
+  const assetType = visibleTasks.find((task) => task.assetType)?.assetType;
+  const progressTitle = assetType ? `Creating ${assetType}` : 'Working';
   const hasConnectionWarning = socketConnectionState !== 'connected';
   const hasPlanReview = latestProposedPlan?.status === 'awaiting_approval';
 
@@ -400,7 +470,7 @@ export function AgentComposerStatusStack({
       {visibleTasks.length > 0 ? (
         <div
           aria-live="polite"
-          aria-label={`Tasks ${completedTaskCount} of ${visibleTasks.length}`}
+          aria-label={`${progressTitle} progress, ${completedTaskCount} of ${visibleTasks.length} steps`}
           className="overflow-hidden rounded-t-lg rounded-b-none border border-border/70 bg-background/72 shadow-sm backdrop-blur-xl"
           data-testid="agent-composer-tasks"
           role="region"
@@ -408,7 +478,7 @@ export function AgentComposerStatusStack({
           <div className="flex min-h-8 items-center gap-2 px-2.5 py-1">
             <ListChecks aria-hidden className="size-3.5 text-foreground/55" />
             <span className="text-xs font-medium text-foreground/82">
-              Tasks
+              {progressTitle}
             </span>
             <span className="text-2xs tabular-nums text-muted-foreground">
               {completedTaskCount}/{visibleTasks.length}
@@ -430,23 +500,27 @@ export function AgentComposerStatusStack({
               ))}
             </div>
             <Button
-              ariaLabel={isTasksExpanded ? 'Collapse tasks' : 'Expand tasks'}
+              ariaLabel={
+                isProgressExpanded ? 'Collapse progress' : 'Expand progress'
+              }
               className="size-6 shrink-0 p-0 text-muted-foreground"
               icon={
-                isTasksExpanded ? (
+                isProgressExpanded ? (
                   <ChevronUp className="size-3.5" />
                 ) : (
                   <ChevronDown className="size-3.5" />
                 )
               }
-              onClick={() => setIsTasksExpanded((current) => !current)}
+              onClick={() => setIsProgressExpanded((current) => !current)}
               size={ButtonSize.ICON}
-              tooltip={isTasksExpanded ? 'Collapse tasks' : 'Expand tasks'}
+              tooltip={
+                isProgressExpanded ? 'Collapse progress' : 'Expand progress'
+              }
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
           </div>
-          {isTasksExpanded ? (
+          {isProgressExpanded ? (
             <ol className="max-h-36 overflow-y-auto border-border/60 border-t px-2.5 py-1.5">
               {visibleTasks.map((task) => (
                 <li
@@ -475,10 +549,10 @@ export function AgentComposerStatusStack({
                   ) : null}
                 </li>
               ))}
-              {meaningfulWorkEvent && determinateProgress !== null ? (
+              {progressEventLabel && determinateProgress !== null ? (
                 <li className="pb-0.5 pt-1">
                   <Progress
-                    aria-label={`${meaningfulWorkEvent.label} progress`}
+                    aria-label={`${progressEventLabel} progress`}
                     aria-valuetext={`${Math.round(determinateProgress)} percent`}
                     className="h-1"
                     value={determinateProgress}

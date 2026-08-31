@@ -1,5 +1,5 @@
 import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
-import { TOOL_LABELS } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
+import { getAgentToolLabel } from '@genfeedai/agent/components/agent-tool-call-display.helpers';
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import {
@@ -61,7 +61,7 @@ export function TimelineStreamingRow({
         ? AgentWorkEventType.TOOL_COMPLETED
         : AgentWorkEventType.TOOL_STARTED,
     id: tc.id,
-    label: TOOL_LABELS[tc.name] ?? tc.name,
+    label: getAgentToolLabel(tc.name),
     parameters: tc.parameters ?? tc.arguments,
     phase: tc.phase,
     progress: tc.progress,
