@@ -10,7 +10,6 @@ import {
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
 import {
   ArticleGenerationType,
   type GenerateArticlesDto,
@@ -80,12 +79,6 @@ describe('ArticlesContentService generation orchestration', () => {
       get: vi.fn().mockReturnValue(4096),
     } as unknown as ConfigService;
 
-    const moduleRef = {
-      get: vi.fn(() => {
-        throw new Error('not available');
-      }),
-    } as unknown as ModuleRef;
-
     const articleTextGenerationService = {
       runTextGenerationStep: vi
         .fn()
@@ -128,7 +121,6 @@ describe('ArticlesContentService generation orchestration', () => {
             persistParams.brandId,
           ),
       ),
-      updateArticleWithEnhancedContent: vi.fn(),
     } as unknown as ArticleContentPersistenceService;
 
     const templatesService = {
@@ -145,7 +137,6 @@ describe('ArticlesContentService generation orchestration', () => {
     const service = new ArticlesContentService(
       logger,
       configService,
-      moduleRef,
       articleTextGenerationService,
       articleReviewService,
       articleContentPersistenceService,

@@ -528,12 +528,6 @@ export const ARTIFACT_EDITOR_ROUTES = {
 export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
 
 /**
- * Query parameter carrying the list an artifact editor was opened from, so
- * back-navigation returns to that list instead of a hardcoded default.
- */
-export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
-
-/**
  * @deprecated Legacy query param. The Publishing desk resolves editor kind from
  * the entity the id belongs to (post / article / newsletter). Still accepted
  * nowhere as source of truth; kept only so old bookmarked URLs do not 404.
@@ -785,37 +779,4 @@ export function createArtifactEditorRoute(
   artifactId: string,
 ): string {
   return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
-}
-
-/** Append the originating list to an artifact editor href. */
-export function withArtifactEditorReturn(
-  editorHref: string,
-  returnTo: string,
-): string {
-  const separator = editorHref.includes('?') ? '&' : '?';
-
-  return `${editorHref}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`;
-}
-
-/**
- * Resolve an artifact editor's back destination.
- *
- * Only same-origin absolute paths are honoured — a protocol-relative or
- * absolute-URL value would turn the editor into an open redirect, so anything
- * that is not a single-slash-prefixed path falls back to the owning list.
- */
-export function resolveArtifactEditorBackHref(
-  returnTo: string | null | undefined,
-  fallbackHref: string,
-): string {
-  const normalizedReturnTo = returnTo?.replace(/\\/g, '/');
-
-  if (
-    !normalizedReturnTo?.startsWith('/') ||
-    normalizedReturnTo.startsWith('//')
-  ) {
-    return fallbackHref;
-  }
-
-  return normalizedReturnTo;
 }

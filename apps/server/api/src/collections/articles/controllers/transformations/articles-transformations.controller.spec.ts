@@ -10,7 +10,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { EditArticleWithAIDto } from '@server/collections/articles/dto/generate-articles.dto';
 import type { Article } from '@server/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
@@ -65,7 +64,6 @@ describe('ArticlesTransformationsController', () => {
   const mockArticlesService = {
     analyzeVirality: vi.fn(),
     convertToTwitterThread: vi.fn(),
-    enhance: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
     generateHeaderPrompt: vi.fn(),
@@ -188,33 +186,6 @@ describe('ArticlesTransformationsController', () => {
         mockPublicMetadata.brand,
       );
       expect(result).toEqual(analysis);
-    });
-  });
-
-  describe('editWithAI', () => {
-    it('should enhance an article with AI', async () => {
-      const id = articleId;
-      const dto: EditArticleWithAIDto = {
-        prompt: 'Make it more engaging',
-      };
-
-      mockArticlesService.enhance.mockResolvedValue(mockArticle);
-
-      const result = await controller.editWithAI(
-        mockRequest,
-        id,
-        dto,
-        mockUser,
-      );
-
-      expect(service.enhance).toHaveBeenCalledWith(
-        id,
-        dto,
-        mockPublicMetadata.user,
-        mockPublicMetadata.organization,
-        mockPublicMetadata.brand,
-      );
-      expect(result).toBeDefined();
     });
   });
 

@@ -1,12 +1,12 @@
 import type {
   UsePromptBarSubmissionOptions,
   UsePromptBarSubmissionReturn,
-} from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
+} from '@genfeedai/props/prompt-bars/prompt-bar-submission.props';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Prompt text + submit lifecycle shared by every content prompt bar.
+ * Prompt text + submit lifecycle shared by instruction composers.
  *
  * Owns the four rules each surface used to reimplement: trim before submit,
  * refuse while a previous enhancement is in flight, clear only on success, and

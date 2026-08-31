@@ -37,7 +37,6 @@ export enum PromptStatus {
 
 export enum PromptTemplateCategory {
   ARTICLE_GENERATION = 'article-generation',
-  ARTICLE_EDIT = 'article-edit',
   ARTICLE_VIRALITY_ANALYSIS = 'article-virality-analysis',
   VIDEO_GENERATION = 'video-generation',
   VIDEO_CINEMATIC = 'video-cinematic',

@@ -24,7 +24,6 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import ArticleDetailHeader from './article-detail-header';
 import ArticleEditForm from './article-edit-form';
-import ArticlePreview from './article-preview';
 import ArticleSidebar from './article-sidebar';
 
 type TeaserFormat = 'post' | 'thread';
@@ -93,7 +92,6 @@ export default function ArticleDetail({
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const { push } = useRouter();
   const translate = useTranslations('common.articleDetail');
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [generatingTeaserFormat, setGeneratingTeaserFormat] =
     useState<TeaserFormat | null>(null);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
@@ -109,7 +107,6 @@ export default function ArticleDetail({
     article,
     isLoading,
     isSaving,
-    isEnhancing,
     isScoringSeo,
     isDirty,
     error,
@@ -119,7 +116,6 @@ export default function ArticleDetail({
     handlePublish,
     handleArchive,
     handleDelete,
-    handleEnhance,
     handleScoreSeo,
   } = useArticleDetail({ articleId });
 
@@ -129,7 +125,6 @@ export default function ArticleDetail({
   const isXArticle =
     hasXArticleSections || form.category === ArticleCategory.X_ARTICLE;
   const {
-    handleCopySection,
     handleCopyFullArticle,
     handleDownloadImage,
     handleGenerateHeaderImage,
@@ -235,8 +230,6 @@ export default function ArticleDetail({
         <ArticleDetailHeader
           state={{ isNew, hasXArticleSections, isDirty, isSaving }}
           permissions={{ canPublish, canArchive }}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
           formLabel={form.label}
           plainTextContent={plainTextContent}
           openConfirm={openConfirm}
@@ -286,22 +279,7 @@ export default function ArticleDetail({
                 />
               )}
 
-              {viewMode === 'edit' ? (
-                <ArticleEditForm
-                  form={form}
-                  setFormField={setFormField}
-                  isNew={isNew}
-                  isEnhancing={isEnhancing}
-                  onEnhance={handleEnhance}
-                />
-              ) : (
-                <ArticlePreview
-                  form={form}
-                  hasXArticleSections={hasXArticleSections}
-                  article={article}
-                  onCopySection={handleCopySection}
-                />
-              )}
+              <ArticleEditForm form={form} setFormField={setFormField} />
             </>
           )}
         </div>

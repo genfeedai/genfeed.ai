@@ -2,12 +2,11 @@
 
 import type { ArtifactEditorShellProps } from '@props/content/artifact-editor.props';
 import Badge from '@ui/display/badge/Badge';
-import ArtifactEditorBackLink from './artifact-editor-back-link';
 
 /**
- * Chrome shared by every dedicated artifact editor page. Owns optional back
- * navigation (when breadcrumbs do not cover it), artifact identity, and the
- * action rail — so each editor body only renders the fields it actually edits.
+ * Chrome shared by every dedicated artifact editor page. Workspace breadcrumbs
+ * own navigation; this shell owns artifact identity and the action rail so each
+ * editor body only renders the fields it actually edits.
  *
  * Compact layout: one header strip with identity + title on the left and
  * actions on the right. No tall multi-row sub-topbar.
@@ -15,28 +14,17 @@ import ArtifactEditorBackLink from './artifact-editor-back-link';
 export default function ArtifactEditorShell({
   actions,
   artifactLabel,
-  backHref,
-  backLabel,
   badges,
   children,
   description,
   isDirty = false,
   title,
 }: ArtifactEditorShellProps) {
-  const hasBackLink = Boolean(backHref && backLabel);
-
   return (
     <div className="flex flex-col">
       <div className="border-border border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-start justify-between gap-4 px-6 py-3">
           <div className="min-w-0 flex-1 space-y-1.5">
-            {hasBackLink ? (
-              <ArtifactEditorBackLink
-                backHref={backHref as string}
-                backLabel={backLabel as string}
-              />
-            ) : null}
-
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="gen-label rounded-full border border-border bg-foreground/[0.04] px-2 py-0.5 text-2xs text-foreground/55">
                 {artifactLabel}

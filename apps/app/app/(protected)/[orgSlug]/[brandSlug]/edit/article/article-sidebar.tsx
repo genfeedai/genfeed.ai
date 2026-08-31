@@ -5,13 +5,9 @@ import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
-import ContentPreviewSidebar from '@ui/preview/ContentPreviewSidebar';
 
 type ArticleSidebarProps = {
-  form: Pick<
-    ArticleFormState,
-    'label' | 'summary' | 'content' | 'status' | 'category'
-  >;
+  form: Pick<ArticleFormState, 'status' | 'category'>;
   article: Article | null;
   isDirty?: boolean;
   isScoringSeo?: boolean;
@@ -27,13 +23,6 @@ export default function ArticleSidebar({
 }: ArticleSidebarProps) {
   return (
     <div className="space-y-4">
-      <ContentPreviewSidebar
-        title={form.label}
-        subtitle={form.summary}
-        content={form.content}
-        platform="article"
-      />
-
       {article && (
         <SeoScorecard
           score={article.seoScore}

@@ -9,13 +9,9 @@ import {
   Check,
   CircleAlert,
   Clipboard,
-  Eye,
-  Pencil,
   Rocket,
   Trash2,
 } from 'lucide-react';
-
-type ViewMode = 'edit' | 'preview';
 
 type ArticleDetailHeaderState = {
   isNew: boolean;
@@ -32,8 +28,6 @@ type ArticleDetailHeaderPermissions = {
 type ArticleDetailHeaderProps = {
   state: ArticleDetailHeaderState;
   permissions: ArticleDetailHeaderPermissions;
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
   formLabel: string;
   plainTextContent: string;
   openConfirm: GlobalModalsContextValue['openConfirm'];
@@ -48,8 +42,6 @@ type ArticleDetailHeaderProps = {
 export default function ArticleDetailHeader({
   state,
   permissions,
-  viewMode,
-  setViewMode,
   formLabel,
   plainTextContent,
   openConfirm,
@@ -74,24 +66,6 @@ export default function ArticleDetailHeader({
       </div>
 
       <div className="flex gap-2">
-        {/* View mode toggle */}
-        {!isNew && (
-          <Button
-            label={viewMode === 'edit' ? 'Preview' : 'Edit'}
-            variant={ButtonVariant.SECONDARY}
-            onClick={() =>
-              setViewMode(viewMode === 'edit' ? 'preview' : 'edit')
-            }
-            icon={
-              viewMode === 'edit' ? (
-                <Eye className="size-4" />
-              ) : (
-                <Pencil className="size-4" />
-              )
-            }
-          />
-        )}
-
         {/* Publish */}
         {canPublish && (
           <Button

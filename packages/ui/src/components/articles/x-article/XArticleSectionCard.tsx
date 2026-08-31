@@ -28,7 +28,7 @@ export default function XArticleSectionCard({
 
         <h2 className="pr-20 text-xl font-semibold">{section.heading}</h2>
 
-        <div className="prose prose-sm max-w-none mt-3 text-foreground/80">
+        <div className="prose prose-sm dark:prose-invert mt-3 max-w-none text-foreground/80">
           {parse(sanitizeHtml(section.content))}
         </div>
 

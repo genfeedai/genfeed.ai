@@ -3,7 +3,6 @@
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
-  withArtifactEditorReturn,
 } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
@@ -28,7 +27,7 @@ import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ArticlesListProps {
@@ -43,9 +42,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const notificationsService = NotificationsService.getInstance();
   const { brandId, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const searchParamsString = searchParams?.toString() ?? '';
   const currentPage = Number(searchParams?.get('page')) || 1;
 
   const getArticlesService = useAuthedService(
@@ -127,10 +124,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   /** Refinement belongs to the artifact — open the article's own editor page. */
   function getRowLink(article: Article): TableRowLink {
     return {
-      href: withArtifactEditorReturn(
-        href(createArtifactEditorRoute('article', article.id)),
-        searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
-      ),
+      href: href(createArtifactEditorRoute('article', article.id)),
       label: `Open ${article.label}`,
     };
   }

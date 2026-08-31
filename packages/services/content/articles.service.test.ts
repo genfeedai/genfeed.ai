@@ -140,17 +140,6 @@ describe('ArticlesService', () => {
     expect(result).toEqual({ score: 0.8 });
   });
 
-  it('enhance POSTs the enhancement prompt and maps an Article', async () => {
-    mockArticle('post');
-
-    const result = await service.enhance(articleId, 'rephrase intro');
-
-    expect(http.post).toHaveBeenCalledWith(`/${articleId}/enhancements`, {
-      prompt: 'rephrase intro',
-    });
-    expect(result).toBeInstanceOf(Article);
-  });
-
   it('scoreSeo POSTs the seo scoring request', async () => {
     mockArticle('post');
 

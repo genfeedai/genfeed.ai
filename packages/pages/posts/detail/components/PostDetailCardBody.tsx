@@ -4,10 +4,10 @@ import { PostStatus } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
+import HtmlContent from '@ui/display/html-content/HtmlContent';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { createMarkup } from '@utils/sanitize-html';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
 import type { MutableRefObject } from 'react';
 
@@ -121,10 +121,7 @@ export default function PostDetailCardBody({
 
             {/* Read-only content display for non-publisher scopes */}
             {!isEditable && post.description && (
-              <div
-                className="prose prose-sm max-w-none text-foreground"
-                dangerouslySetInnerHTML={createMarkup(post.description)}
-              />
+              <HtmlContent content={post.description} />
             )}
 
             {/* Carousel validation errors (edit mode only) */}

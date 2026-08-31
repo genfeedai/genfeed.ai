@@ -1,11 +1,7 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import {
-  APP_ROUTES,
-  ITEMS_PER_PAGE,
-  withArtifactEditorReturn,
-} from '@genfeedai/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -222,10 +218,6 @@ export default function ReleasePostsList({
       ? PostStatus.FAILED
       : publicationState;
   const viewKey = viewMessageKey(publishingView);
-  const returnUrl = searchParamsString
-    ? `${pathname}?${searchParamsString}`
-    : pathname;
-
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParamsString);
@@ -403,10 +395,7 @@ export default function ReleasePostsList({
                   {(release.targets ?? []).map((target) => {
                     const PlatformIcon =
                       getPlatformIconComponent(target.platform) ?? ExternalLink;
-                    const targetHref = withArtifactEditorReturn(
-                      href(getPublishingPostHref(target.id)),
-                      returnUrl,
-                    );
+                    const targetHref = href(getPublishingPostHref(target.id));
                     return (
                       <div className="flex items-stretch gap-2" key={target.id}>
                         <Link

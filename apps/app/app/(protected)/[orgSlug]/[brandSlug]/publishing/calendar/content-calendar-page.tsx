@@ -2,11 +2,7 @@
 
 import { normalizePostingTimes } from '@api-types/contracts/credential-posting-times.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  APP_ROUTES,
-  createArtifactEditorRoute,
-  withArtifactEditorReturn,
-} from '@genfeedai/constants';
+import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -586,12 +582,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
 
       if (item.itemType === 'article') {
         // Refinement belongs to the artifact — open the article's editor page.
-        push(
-          withArtifactEditorReturn(
-            href(createArtifactEditorRoute('article', item.article.id)),
-            href(APP_ROUTES.PUBLISHING.CALENDAR),
-          ),
-        );
+        push(href(createArtifactEditorRoute('article', item.article.id)));
         return;
       }
 
@@ -993,12 +984,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         setSelectedSlot(null);
         if (filled.generatedItemId) {
           const kind = format === PostCategory.ARTICLE ? 'article' : 'post';
-          push(
-            withArtifactEditorReturn(
-              href(createArtifactEditorRoute(kind, filled.generatedItemId)),
-              href(APP_ROUTES.PUBLISHING.CALENDAR),
-            ),
-          );
+          push(href(createArtifactEditorRoute(kind, filled.generatedItemId)));
         }
       } catch (error) {
         notificationsService.error(mutationErrorMessage(error));

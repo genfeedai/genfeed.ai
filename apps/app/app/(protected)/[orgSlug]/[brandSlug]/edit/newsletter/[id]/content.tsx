@@ -1,16 +1,9 @@
 'use client';
 
-import {
-  APP_ROUTES,
-  ARTIFACT_EDITOR_RETURN_PARAM,
-  resolveArtifactEditorBackHref,
-} from '@genfeedai/constants';
 import { formatNewsletterStatusLabel } from '@helpers/content/newsletters.helper';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import { useSearchParams } from 'next/navigation';
 import ArtifactEditorShell from '../../artifact-editor-shell';
 import NewsletterContextReview from '../newsletter-context-review';
 import NewsletterEditor, {
@@ -21,8 +14,6 @@ import { useNewsletterEditor } from '../useNewsletterEditor';
 export default function NewsletterEditorContent({
   artifactId,
 }: ArtifactEditorPageProps) {
-  const { href } = useOrgUrl();
-  const searchParams = useSearchParams();
   const {
     contextPreview,
     isEditorDirty,
@@ -38,17 +29,10 @@ export default function NewsletterEditorContent({
     newsletter,
   } = useNewsletterEditor(artifactId);
 
-  const backHref = resolveArtifactEditorBackHref(
-    searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.AGENT.NEW),
-  );
-
   if (!newsletter) {
     return (
       <ArtifactEditorShell
         artifactLabel="Newsletter"
-        backHref={backHref}
-        backLabel="Back to Agent"
         title={isLoading ? 'Loading newsletter…' : 'Newsletter not found'}
       >
         {isLoading ? (
@@ -78,8 +62,6 @@ export default function NewsletterEditorContent({
         />
       }
       artifactLabel="Newsletter"
-      backHref={backHref}
-      backLabel="Back to Agent"
       badges={
         <Badge status={newsletter.status}>
           {formatNewsletterStatusLabel(newsletter.status)}

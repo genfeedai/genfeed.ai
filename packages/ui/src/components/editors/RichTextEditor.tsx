@@ -48,7 +48,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none p-4',
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none text-foreground focus:outline-none p-4',
         style: `--editor-min-height-mobile: ${minHeightConfig.mobile}px; --editor-min-height-desktop: ${minHeightConfig.desktop}px;`,
       },
       handleDrop: (_view: unknown, event: DragEvent) => {

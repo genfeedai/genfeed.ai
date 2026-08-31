@@ -21,7 +21,6 @@ export interface UseArticleDetailReturn {
   article: Article | null;
   isLoading: boolean;
   isSaving: boolean;
-  isEnhancing: boolean;
   isScoringSeo: boolean;
   isDirty: boolean;
   error: string | null;
@@ -34,7 +33,6 @@ export interface UseArticleDetailReturn {
   handlePublish: () => Promise<void>;
   handleArchive: () => Promise<void>;
   handleDelete: () => Promise<void>;
-  handleEnhance: (prompt: string) => Promise<void>;
   handleScoreSeo: () => Promise<void>;
   pathname: string;
   notificationsService: NotificationsService;
@@ -79,7 +77,6 @@ export function useArticleDetail({
   const [form, setForm] = useState<ArticleFormState>(DEFAULT_FORM_STATE);
   const [isLoading, setIsLoading] = useState(!!articleId);
   const [isSaving, setIsSaving] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [isScoringSeo, setIsScoringSeo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -251,42 +248,6 @@ export function useArticleDetail({
     }
   }, [resolvedId, getArticlesService, href, notificationsService, router]);
 
-  const handleEnhance = useCallback(
-    async (prompt: string) => {
-      if (!resolvedId || isEnhancing) {
-        return;
-      }
-
-      setIsEnhancing(true);
-
-      try {
-        const service = await getArticlesService();
-        const updated = await service.enhance(resolvedId, prompt);
-        setArticle(updated);
-
-        const formState: ArticleFormState = {
-          category: updated.category || form.category,
-          content: updated.content || form.content,
-          label: updated.label || form.label,
-          slug: updated.slug || form.slug,
-          status: updated.status || form.status,
-          summary: updated.summary || form.summary,
-          tags: form.tags,
-        };
-
-        setForm(formState);
-        initialFormRef.current = formState;
-        notificationsService.success('Article enhanced');
-      } catch (err) {
-        logger.error('Failed to enhance article', err);
-        notificationsService.error('Failed to enhance article');
-      } finally {
-        setIsEnhancing(false);
-      }
-    },
-    [resolvedId, isEnhancing, getArticlesService, notificationsService, form],
-  );
-
   const handleScoreSeo = useCallback(async () => {
     if (!resolvedId || isScoringSeo || isDirty) {
       return;
@@ -320,12 +281,10 @@ export function useArticleDetail({
     getArticlesService,
     handleArchive,
     handleDelete,
-    handleEnhance,
     handlePublish,
     handleSave,
     handleScoreSeo,
     isDirty,
-    isEnhancing,
     isLoading,
     isScoringSeo,
     isSaving,
