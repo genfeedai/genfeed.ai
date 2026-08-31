@@ -82,6 +82,10 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './tests/$1'),
       },
       {
+        find: /^@genfeedai\/actions$/,
+        replacement: path.resolve(repoRoot, './packages/actions/src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/agent$/,
         replacement: path.resolve(repoRoot, './packages/agent/src/index.ts'),
       },
