@@ -6,8 +6,11 @@ import { SavedAdsService } from './saved-ads.service';
 
 describe('SavedAdsService', () => {
   const prisma = {
-    brand: { findFirst: vi.fn() },
-    credential: { findFirst: vi.fn() },
+    $transaction: vi.fn((operations: Promise<unknown>[]) =>
+      Promise.all(operations),
+    ),
+    brand: { findFirst: vi.fn(), findMany: vi.fn() },
+    credential: { findFirst: vi.fn(), findMany: vi.fn() },
     savedAd: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -22,6 +25,9 @@ describe('SavedAdsService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
+      (operations: Promise<unknown>[]) => Promise.all(operations),
+    );
     service = new SavedAdsService(
       prisma,
       adsResearch as unknown as AdsResearchService,
@@ -30,9 +36,19 @@ describe('SavedAdsService', () => {
     (prisma.brand.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'brand-1',
     });
+    (prisma.brand.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'brand-1' },
+    ]);
     (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
       { id: 'credential-1' },
     );
+    (prisma.credential.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'credential-1',
+        platform: 'GOOGLE_ADS',
+      },
+    ]);
   });
 
   it('returns an active idempotent save without recopying media', async () => {
@@ -185,8 +201,8 @@ describe('SavedAdsService', () => {
   });
 
   it('rejects a connected credential outside the requested brand before provider reads', async () => {
-    (prisma.credential.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
-      null,
+    (prisma.credential.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      [],
     );
 
     await expect(
@@ -201,15 +217,19 @@ describe('SavedAdsService', () => {
       ]),
     ).rejects.toThrow('credential is unavailable');
 
-    expect(prisma.credential.findFirst).toHaveBeenCalledWith({
-      select: { id: true },
+    expect(prisma.credential.findMany).toHaveBeenCalledWith({
+      select: { brandId: true, id: true, platform: true },
       where: {
-        brandId: 'brand-1',
-        id: 'credential-other',
         isConnected: true,
         isDeleted: false,
         organizationId: 'org-1',
-        platform: 'FACEBOOK',
+        OR: [
+          {
+            brandId: 'brand-1',
+            id: 'credential-other',
+            platform: 'FACEBOOK',
+          },
+        ],
       },
     });
     expect(adsResearch.getAdDetail).not.toHaveBeenCalled();
@@ -247,15 +267,19 @@ describe('SavedAdsService', () => {
       },
     ]);
 
-    expect(prisma.credential.findFirst).toHaveBeenCalledWith({
-      select: { id: true },
+    expect(prisma.credential.findMany).toHaveBeenCalledWith({
+      select: { brandId: true, id: true, platform: true },
       where: {
-        brandId: 'brand-1',
-        id: 'credential-1',
         isConnected: true,
         isDeleted: false,
         organizationId: 'org-1',
-        platform: 'GOOGLE_ADS',
+        OR: [
+          {
+            brandId: 'brand-1',
+            id: 'credential-1',
+            platform: 'GOOGLE_ADS',
+          },
+        ],
       },
     });
     expect(adsResearch.getAdDetail).toHaveBeenCalledWith('org-1', {
@@ -278,14 +302,14 @@ describe('SavedAdsService', () => {
   });
 
   it('restores a soft-deleted snapshot instead of creating a duplicate', async () => {
-    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'saved-1',
-        isDeleted: true,
-        note: 'Keep this note',
-        userId: 'original-user',
-      });
+    (
+      prisma.savedAd.findFirst as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({
+      id: 'saved-1',
+      isDeleted: true,
+      note: 'Keep this note',
+      userId: 'original-user',
+    });
     adsResearch.getAdDetail.mockResolvedValue({
       body: 'Saved body',
       explanation: 'Strong proof',
@@ -329,7 +353,6 @@ describe('SavedAdsService', () => {
     const winner = { id: 'saved-winner', isDeleted: false };
     (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(winner);
     adsResearch.getAdDetail.mockResolvedValue({
       body: 'Saved body',
@@ -353,8 +376,8 @@ describe('SavedAdsService', () => {
     expect(prisma.savedAd.findFirst).toHaveBeenLastCalledWith({
       where: {
         brandId: 'brand-1',
-        isDeleted: false,
         organizationId: 'org-1',
+        OR: [{ isDeleted: false }, { isDeleted: true }],
         platform: 'meta',
         sourceAdId: 'source-1',
       },
@@ -362,9 +385,7 @@ describe('SavedAdsService', () => {
   });
 
   it('fails closed when a note mutation crosses brand scope', async () => {
-    (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
-      count: 0,
-    });
+    (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     await expect(
       service.updateNotes('org-1', [
@@ -372,22 +393,22 @@ describe('SavedAdsService', () => {
       ]),
     ).rejects.toThrow();
 
-    expect(prisma.savedAd.updateMany).toHaveBeenCalledWith({
-      data: { note: 'Nope' },
+    expect(prisma.savedAd.findMany).toHaveBeenCalledWith({
+      select: { brandId: true, id: true },
       where: {
-        brandId: 'brand-1',
-        id: 'saved-other',
+        OR: [{ brandId: 'brand-1', id: 'saved-other' }],
         isDeleted: false,
         organizationId: 'org-1',
       },
     });
+    expect(prisma.savedAd.update).not.toHaveBeenCalled();
   });
 
   it('updates and returns a trimmed brand note in scope', async () => {
-    (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
-      count: 1,
-    });
-    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { brandId: 'brand-1', id: 'saved-1' },
+    ]);
+    (prisma.savedAd.update as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'saved-1',
       note: 'Keep this hook',
     });
@@ -397,7 +418,7 @@ describe('SavedAdsService', () => {
     ]);
 
     expect(result).toEqual([{ id: 'saved-1', note: 'Keep this hook' }]);
-    expect(prisma.savedAd.updateMany).toHaveBeenCalledWith({
+    expect(prisma.savedAd.update).toHaveBeenCalledWith({
       data: { note: 'Keep this hook' },
       where: {
         brandId: 'brand-1',
@@ -406,22 +427,15 @@ describe('SavedAdsService', () => {
         organizationId: 'org-1',
       },
     });
-    expect(prisma.savedAd.findFirst).toHaveBeenCalledWith({
-      where: {
-        brandId: 'brand-1',
-        id: 'saved-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
   it('treats an already deleted in-scope snapshot as successfully unsaved', async () => {
+    (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { brandId: 'brand-1', id: 'saved-1' },
+    ]);
     (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
       count: 0,
-    });
-    (prisma.savedAd.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 'saved-1',
     });
 
     const result = await service.unsaveMany('org-1', [
@@ -429,34 +443,25 @@ describe('SavedAdsService', () => {
     ]);
 
     expect(result).toEqual(['saved-1']);
-    expect(prisma.savedAd.findFirst).toHaveBeenCalledWith({
-      select: { id: true },
+    expect(prisma.savedAd.findMany).toHaveBeenCalledWith({
+      select: { brandId: true, id: true },
       where: {
-        brandId: 'brand-1',
-        id: 'saved-1',
-        isDeleted: true,
+        AND: [
+          { OR: [{ brandId: 'brand-1', id: 'saved-1' }] },
+          { OR: [{ isDeleted: false }, { isDeleted: true }] },
+        ],
         organizationId: 'org-1',
       },
     });
   });
 
   it('fails closed when an unsave crosses brand scope', async () => {
-    (prisma.savedAd.updateMany as ReturnType<typeof vi.fn>).mockResolvedValue({
-      count: 0,
-    });
+    (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     await expect(
       service.unsaveMany('org-1', [{ brandId: 'brand-1', id: 'saved-other' }]),
     ).rejects.toThrow();
 
-    expect(prisma.savedAd.updateMany).toHaveBeenCalledWith({
-      data: { isDeleted: true },
-      where: {
-        brandId: 'brand-1',
-        id: 'saved-other',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
+    expect(prisma.savedAd.updateMany).not.toHaveBeenCalled();
   });
 });

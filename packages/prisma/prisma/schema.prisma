@@ -2487,6 +2487,8 @@ model Post {
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "posts_org_deleted_status_created_at_idx")
   @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
   @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
+  @@index([organizationId, credentialId, isDeleted, status, scheduledDate], map: "posts_org_credential_status_scheduled_idx")
+  @@index([organizationId, credentialId, isDeleted, status, publishedAt], map: "posts_org_credential_status_published_idx")
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
   @@index([organizationId, brandId, listeningThemeId], map: "posts_org_brand_listening_theme_idx")
@@ -2787,21 +2789,23 @@ model UserSubscription {
 }
 
 model SubscriptionAttribution {
-  id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  userId          String
-  user            User         @relation(fields: [userId], references: [id])
-  sourceContentId String?
-  sourceContent   Post?        @relation("attribution_content", fields: [sourceContentId], references: [id])
-  sourceLinkId    String?
-  sourceLink      TrackedLink? @relation("attribution_link", fields: [sourceLinkId], references: [id])
-  channel         String?
-  referrer        String?
-  metadata        Json?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id])
+  stripeSubscriptionId String?
+  sourceContentId      String?
+  sourceContent        Post?        @relation("attribution_content", fields: [sourceContentId], references: [id])
+  sourceLinkId         String?
+  sourceLink           TrackedLink? @relation("attribution_link", fields: [sourceLinkId], references: [id])
+  channel              String?
+  referrer             String?
+  metadata             Json?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
+  @@unique([organizationId, stripeSubscriptionId], map: "subscription_attributions_org_stripe_subscription_key")
   @@index([organizationId])
   @@map("subscription_attributions")
 }
@@ -4287,7 +4291,6 @@ model WorkflowArtifact {
   expiresAt           DateTime
   cleanupClaimedAt    DateTime?
   cleanupAttempts     Int                   @default(0)
-  deletedAt           DateTime?
   lastError           String?
   promotedAt          DateTime?
   promotedByUserId    String?

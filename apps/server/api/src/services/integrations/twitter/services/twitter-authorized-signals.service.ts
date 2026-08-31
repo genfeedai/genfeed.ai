@@ -1,21 +1,8 @@
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-  SCOPED_CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import {
-  getTwitterRetryAfterMs,
-  isTwitterAuthorizationError,
-  isTwitterRateLimitError,
-  isTwitterScopeOrTierError,
-} from '@server/services/integrations/twitter/utils/twitter-api-error.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+  retryProviderRequest,
+  settleProviderRequest,
+} from '@api/services/integrations/_shared/authorized-signals-request.util';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalsSnapshot,
@@ -33,6 +20,23 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@server/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import {
+  getTwitterRetryAfterMs,
+  isTwitterAuthorizationError,
+  isTwitterRateLimitError,
+  isTwitterScopeOrTierError,
+} from '@server/services/integrations/twitter/utils/twitter-api-error.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import {
   assembleTwitterAuthorizedSnapshot,
@@ -507,44 +511,22 @@ export class TwitterAuthorizedSignalsService {
   }
 
   private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt < TWITTER_SIGNAL_MAX_ATTEMPTS; attempt += 1) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isTwitterRateLimitError(error) ||
-          attempt === TWITTER_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getTwitterRetryAfterMs(
+    return retryProviderRequest(request, {
+      getDelayMs: (error, attempt) =>
+        getTwitterRetryAfterMs(
           error,
           TWITTER_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
           TWITTER_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
+        ),
+      isRetryable: isTwitterRateLimitError,
+      maxAttempts: TWITTER_SIGNAL_MAX_ATTEMPTS,
+    });
   }
 
   private async settle<T>(
     promise: Promise<T> | undefined,
   ): Promise<TwitterSettledResult<T>> {
-    if (!promise) {
-      return {};
-    }
-
-    try {
-      return { value: await promise };
-    } catch (error: unknown) {
-      return { error };
-    }
+    return settleProviderRequest(promise);
   }
 
   private isAuthorizationFailure(error: unknown): boolean {

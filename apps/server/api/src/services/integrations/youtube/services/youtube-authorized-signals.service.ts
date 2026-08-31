@@ -1,14 +1,8 @@
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-  SCOPED_CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+  retryProviderRequest,
+  settleProviderRequest,
+} from '@api/services/integrations/_shared/authorized-signals-request.util';
 import {
   getYoutubeRetryAfterMs,
   isYoutubeAuthorizationError,
@@ -17,7 +11,6 @@ import {
   isYoutubeScopeError,
   parseYoutubeGrantedScopes,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalReason,
@@ -33,6 +26,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@server/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 
 const YOUTUBE_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
@@ -850,40 +854,22 @@ export class YoutubeAuthorizedSignalsService {
   }
 
   private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt < YOUTUBE_SIGNAL_MAX_ATTEMPTS; attempt += 1) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isYoutubeRateLimitError(error) ||
-          attempt === YOUTUBE_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getYoutubeRetryAfterMs(
+    return retryProviderRequest(request, {
+      getDelayMs: (error, attempt) =>
+        getYoutubeRetryAfterMs(
           error,
           YOUTUBE_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
           YOUTUBE_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
+        ),
+      isRetryable: isYoutubeRateLimitError,
+      maxAttempts: YOUTUBE_SIGNAL_MAX_ATTEMPTS,
+    });
   }
 
   private async settle<T>(
     request: () => Promise<T>,
   ): Promise<{ error?: unknown; value?: T }> {
-    try {
-      return { value: await this.requestWithRetry(request) };
-    } catch (error: unknown) {
-      return { error };
-    }
+    return settleProviderRequest(this.requestWithRetry(request));
   }
 
   private isAuthorizationFailure(error: unknown): boolean {

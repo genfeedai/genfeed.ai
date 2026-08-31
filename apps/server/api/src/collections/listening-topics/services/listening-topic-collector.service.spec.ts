@@ -371,6 +371,51 @@ describe('ListeningTopicCollectorService', () => {
     );
   });
 
+  it('collects independent sources concurrently with a bounded provider fan-out', async () => {
+    vi.useRealTimers();
+    const harness = createHarness(createTopic(5));
+    let active = 0;
+    let maxActive = 0;
+    const releases: Array<() => void> = [];
+    harness.sourceCollector.collectTimeline.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          releases.push(() => {
+            active -= 1;
+            resolve({
+              handle: 'source',
+              platform: ListeningSourcePlatform.TWITTER,
+              posts: [],
+              provider: 'brand-oauth',
+            });
+          });
+        }),
+    );
+
+    const collection = harness.service.collectScoped('topic-1', {}, context);
+    await vi.waitFor(() =>
+      expect(harness.sourceCollector.collectTimeline).toHaveBeenCalledTimes(3),
+    );
+    expect(maxActive).toBe(3);
+
+    for (const release of releases.splice(0)) {
+      release();
+    }
+    await vi.waitFor(() =>
+      expect(harness.sourceCollector.collectTimeline).toHaveBeenCalledTimes(5),
+    );
+    for (const release of releases.splice(0)) {
+      release();
+    }
+
+    await expect(collection).resolves.toEqual(
+      expect.objectContaining({ id: 'topic-1' }),
+    );
+    expect(maxActive).toBe(3);
+  });
+
   it('records a recoverable failure without mutating the previous cursor', async () => {
     const harness = createHarness();
     harness.sourceCollector.collectTimeline.mockRejectedValue(

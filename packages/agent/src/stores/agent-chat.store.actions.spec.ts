@@ -111,19 +111,6 @@ describe('agent-chat.store messages and plans', () => {
       'completed',
     );
     expect(state.stream.pendingUiActions[0]?.status).toBe('completed');
-    expect(state.uiActionStatusById['brand-voice-card-1']).toBe('completed');
-  });
-
-  it('retains a completed UI action even after its message is replaced', () => {
-    useAgentChatStore
-      .getState()
-      .setUiActionStatus('brand-voice-card-removed', 'completed');
-
-    expect(
-      useAgentChatStore.getState().uiActionStatusById[
-        'brand-voice-card-removed'
-      ],
-    ).toBe('completed');
   });
 
   it('preserves message and stream references when an action id is absent', () => {
@@ -139,7 +126,6 @@ describe('agent-chat.store messages and plans', () => {
     const after = useAgentChatStore.getState();
     expect(after.messages).toBe(before.messages);
     expect(after.stream).toBe(before.stream);
-    expect(after.uiActionStatusById['missing-action']).toBe('completed');
   });
 
   it('updates matching message actions without replacing an unrelated pending stream', () => {

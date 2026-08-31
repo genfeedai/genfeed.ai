@@ -9,7 +9,7 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 interface AttributionDelegate {
   create: MockFn;
-  findFirst: MockFn;
+  findUnique: MockFn;
   update: MockFn;
 }
 
@@ -39,6 +39,7 @@ function buildAttribution(
     referrer: null,
     sourceContentId: null,
     sourceLinkId: null,
+    stripeSubscriptionId: null,
     updatedAt: new Date('2026-01-10T00:00:00.000Z'),
     userId: 'user_1',
     ...rest,
@@ -73,7 +74,7 @@ describe('SubscriptionAttributionsService', () => {
   beforeEach(() => {
     delegate = {
       create: vi.fn(),
-      findFirst: vi.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
     };
     queryRaw = vi.fn().mockResolvedValue([]);
@@ -104,15 +105,19 @@ describe('SubscriptionAttributionsService', () => {
         ORGANIZATION_ID,
       );
 
-      expect(delegate.findFirst).toHaveBeenCalledWith({
+      expect(delegate.findUnique).toHaveBeenCalledWith({
         where: {
-          metadata: {
-            equals: 'sub_1',
-            path: ['stripeSubscriptionId'],
+          organizationId_stripeSubscriptionId: {
+            organizationId: ORGANIZATION_ID,
+            stripeSubscriptionId: 'sub_1',
           },
-          organizationId: ORGANIZATION_ID,
         },
       });
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ stripeSubscriptionId: 'sub_1' }),
+        }),
+      );
       const metadata = metadataFromCall(delegate.create.mock.calls[0]);
       expect(metadata).toEqual(
         expect.objectContaining({
@@ -262,7 +267,7 @@ describe('SubscriptionAttributionsService', () => {
         sourceContentId: 'post_old',
         sourceLinkId: 'link_old',
       });
-      delegate.findFirst.mockResolvedValue(existing);
+      delegate.findUnique.mockResolvedValue(existing);
       delegate.update.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
           Promise.resolve(
@@ -299,7 +304,7 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('stamps subscribedAt on an existing row that never had one', async () => {
-      delegate.findFirst.mockResolvedValue(
+      delegate.findUnique.mockResolvedValue(
         buildAttribution({
           id: 'attr_existing',
           metadata: { stripeSubscriptionId: 'sub_1' },
@@ -330,6 +335,51 @@ describe('SubscriptionAttributionsService', () => {
 
       expect(delegate.create).toHaveBeenCalledTimes(1);
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('re-reads and updates the concurrent winner after a unique-key race', async () => {
+      const conflict = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+      });
+      const winner = buildAttribution({
+        id: 'attr_winner',
+        metadata: {
+          amount: 49,
+          currency: 'USD',
+          stripeSubscriptionId: 'sub_1',
+          subscribedAt: '2026-01-05T00:00:00.000Z',
+        },
+        stripeSubscriptionId: 'sub_1',
+      });
+      delegate.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(winner);
+      delegate.create.mockRejectedValue(conflict);
+      delegate.update.mockImplementation(
+        (args: { data: Record<string, unknown> }) =>
+          Promise.resolve(
+            buildAttribution({
+              id: 'attr_winner',
+              metadata: args.data.metadata as Record<string, unknown>,
+              stripeSubscriptionId: 'sub_1',
+            }),
+          ),
+      );
+
+      const result = await service.trackSubscription(
+        buildDto({ amount: 99 }),
+        ORGANIZATION_ID,
+      );
+
+      expect(delegate.findUnique).toHaveBeenCalledTimes(2);
+      expect(delegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'attr_winner' } }),
+      );
+      expect(result).toMatchObject({
+        amount: 99,
+        id: 'attr_winner',
+        stripeSubscriptionId: 'sub_1',
+      });
     });
   });
 

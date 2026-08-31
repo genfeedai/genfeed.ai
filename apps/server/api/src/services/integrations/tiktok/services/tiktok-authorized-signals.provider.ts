@@ -1,11 +1,16 @@
 import {
+  type AuthorizedSignalsSettledResult,
+  retryProviderRequest,
+  settleProviderRequest,
+} from '@api/services/integrations/_shared/authorized-signals-request.util';
+import type { TikTokOwnedVideoSignal } from '@api-types/contracts/tiktok-authorized-signals.contract';
+import { HttpService } from '@nestjs/axios';
+import {
   getTikTokRetryAfterMs,
   isTikTokAuthorizationError,
   isTikTokRateLimitError,
   isTikTokScopeError,
 } from '@server/services/integrations/tiktok/utils/tiktok-error.util';
-import type { TikTokOwnedVideoSignal } from '@api-types/contracts/tiktok-authorized-signals.contract';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 const TIKTOK_SIGNAL_MAX_ATTEMPTS = 2;
@@ -76,10 +81,7 @@ export interface TikTokVideosFetch {
   videos: TikTokOwnedVideoSignal[];
 }
 
-export interface SettledResult<T> {
-  error?: unknown;
-  value?: T;
-}
+export type SettledResult<T> = AuthorizedSignalsSettledResult<T>;
 
 export interface TikTokProviderFetchResult {
   creatorInfoResult: SettledResult<Record<string, unknown>>;
@@ -278,43 +280,21 @@ export class TiktokAuthorizedSignalsProvider {
   }
 
   private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt < TIKTOK_SIGNAL_MAX_ATTEMPTS; attempt += 1) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isTikTokRateLimitError(error) ||
-          attempt === TIKTOK_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getTikTokRetryAfterMs(
+    return retryProviderRequest(request, {
+      getDelayMs: (error, attempt) =>
+        getTikTokRetryAfterMs(
           error,
           TIKTOK_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
           TIKTOK_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
+        ),
+      isRetryable: isTikTokRateLimitError,
+      maxAttempts: TIKTOK_SIGNAL_MAX_ATTEMPTS,
+    });
   }
 
   private async settle<T>(
     promise: Promise<T> | undefined,
   ): Promise<SettledResult<T>> {
-    if (!promise) {
-      return {};
-    }
-
-    try {
-      return { value: await promise };
-    } catch (error: unknown) {
-      return { error };
-    }
+    return settleProviderRequest(promise);
   }
 }

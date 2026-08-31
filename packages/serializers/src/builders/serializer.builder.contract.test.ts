@@ -154,4 +154,24 @@ describe('server serializer wire contract (#1096)', () => {
       clientSerializer.serialize(record),
     );
   });
+
+  it('applies configured attribute transforms without mutating source records', () => {
+    const source = { id: 'credential-1', platform: 'YOUTUBE' };
+    const { CredentialSerializer } = buildSerializer('server', {
+      attributeTransforms: {
+        platform: (record) => String(record.platform).toLowerCase(),
+      },
+      attributes: ['platform'],
+      type: 'credential',
+    });
+
+    expect(CredentialSerializer.serialize(source)).toEqual({
+      data: {
+        attributes: { platform: 'youtube' },
+        id: 'credential-1',
+        type: 'credential',
+      },
+    });
+    expect(source.platform).toBe('YOUTUBE');
+  });
 });
