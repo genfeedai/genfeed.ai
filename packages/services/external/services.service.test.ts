@@ -1,15 +1,16 @@
 import { ServicesService } from '@services/external/services.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockInstance = {
-  post: vi.fn(),
-};
-
-const serializeServicePayload = vi.fn((body: unknown) => ({
-  data: {
-    attributes: body,
-    type: 'service',
+const { mockInstance, serializeServicePayload } = vi.hoisted(() => ({
+  mockInstance: {
+    post: vi.fn(),
   },
+  serializeServicePayload: vi.fn((body: unknown) => ({
+    data: {
+      attributes: body,
+      type: 'service',
+    },
+  })),
 }));
 
 vi.mock('@genfeedai/serializers', () => ({
