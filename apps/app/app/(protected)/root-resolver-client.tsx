@@ -5,6 +5,7 @@ import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
+  createBrandAppRoute,
   createOrganizationAppRoute,
   hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
@@ -115,7 +116,7 @@ export default function ProtectedRootResolver() {
     });
 
     if (scope.organizationId && scope.orgSlug) {
-      setStatusMessage('Opening your conversation...');
+      setStatusMessage('Opening your workspace...');
       const nextSearchParams = new URLSearchParams(searchParams.toString());
       // The permanent shell no longer accepts thread identity in query state.
       // Root bootstrap preserves task/checkout handoff params while dropping
@@ -123,12 +124,17 @@ export default function ProtectedRootResolver() {
       nextSearchParams.delete('overlay');
       nextSearchParams.delete('overlayRef');
       nextSearchParams.delete('thread');
-      replace(
-        appendSearchParamsToHref(
-          createOrganizationAppRoute(scope.orgSlug, APP_ROUTES.AGENT.ROOT),
-          nextSearchParams,
-        ),
-      );
+      const workspaceHref = scope.brandSlug
+        ? createBrandAppRoute(
+            scope.orgSlug,
+            scope.brandSlug,
+            APP_ROUTES.WORKSPACE.OVERVIEW,
+          )
+        : createOrganizationAppRoute(
+            scope.orgSlug,
+            APP_ROUTES.WORKSPACE.OVERVIEW,
+          );
+      replace(appendSearchParamsToHref(workspaceHref, nextSearchParams));
       return;
     }
 
