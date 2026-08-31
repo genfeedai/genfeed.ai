@@ -7,7 +7,8 @@
 
 export interface CorsOriginConfig {
   /**
-   * Whether the service is running in development mode
+   * Whether the service should admit supported local browser origins.
+   * Callers enable this for development and hermetic test runtimes only.
    */
   isDevelopment: boolean;
 
@@ -33,6 +34,17 @@ export interface GenfeedCorsOptions {
   maxAge: number;
   methods: string;
   origin: (string | RegExp)[];
+}
+
+/**
+ * Local browser origins are valid for interactive development and hermetic
+ * test stacks. Deployed environments remain fail-closed, including when
+ * NODE_ENV is missing or unknown.
+ */
+export function shouldAllowLocalCorsOrigins(
+  nodeEnv: string | undefined,
+): boolean {
+  return nodeEnv === 'development' || nodeEnv === 'test';
 }
 
 /**
