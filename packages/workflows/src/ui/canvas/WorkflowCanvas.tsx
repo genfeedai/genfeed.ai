@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../ui/button';
 import '@xyflow/react/dist/style.css';
 
+import { getActionDefinition } from '@genfeedai/actions';
 import type {
   HandleType,
   ImageGenNodeData,
@@ -37,6 +38,10 @@ import { NotificationToast } from '../components/NotificationToast';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { createIdLookup, filterItemsByIdLookup } from '../lib';
+import {
+  decodeWorkflowNodeTransfer,
+  WORKFLOW_NODE_TRANSFER_TYPE,
+} from '../lib/paletteTransfer';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
 import { useExecutionStore } from '../stores/execution';
@@ -510,10 +515,18 @@ function useWorkflowCanvasHandlers({
         return;
       }
 
-      const nodeType = event.dataTransfer.getData('nodeType') as NodeType;
-      if (!nodeType) return;
-      const actionId = event.dataTransfer.getData('actionId');
-      const actionLabel = event.dataTransfer.getData('actionLabel');
+      const transfer = decodeWorkflowNodeTransfer(
+        event.dataTransfer.getData(WORKFLOW_NODE_TRANSFER_TYPE),
+      );
+      if (!transfer) return;
+      const nodeType = transfer.type;
+
+      if (nodeType === 'genfeedAction') {
+        const action = transfer.actionId
+          ? getActionDefinition(transfer.actionId)
+          : undefined;
+        if (action?.visibility !== 'workflow') return;
+      }
 
       const position = reactFlow.screenToFlowPosition({
         x: event.clientX,
@@ -521,10 +534,10 @@ function useWorkflowCanvasHandlers({
       });
 
       const nodeId = addNode(nodeType, position);
-      if (nodeId && actionId) {
+      if (nodeId && transfer.actionId) {
         useWorkflowStore.getState().updateNodeData(nodeId, {
-          actionId,
-          label: actionLabel || actionId,
+          actionId: transfer.actionId,
+          label: transfer.label,
           parameters: {},
         });
       }

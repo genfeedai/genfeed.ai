@@ -11,6 +11,7 @@ export type {
   ActionIdempotencyPolicy,
   ActionJsonSchema,
   ActionVisibility,
+  ActionWorkflowCategory,
   CreateGenfeedActionNodeInput,
   GenfeedActionDefinition,
   GenfeedActionNodeDefinition,

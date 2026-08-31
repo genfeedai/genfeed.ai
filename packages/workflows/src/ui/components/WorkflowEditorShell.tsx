@@ -39,18 +39,18 @@ export function WorkflowEditorShell({
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         {toolbar}
 
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           {showNodePalette && (
             <div
               className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                showPalette ? 'w-64 opacity-100' : 'w-0 opacity-0'
+                showPalette ? 'w-72 opacity-100' : 'w-0 opacity-0'
               }`}
             >
               {nodePalette ?? <NodePalette />}
             </div>
           )}
 
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             {showSmallGraphViewportGuard && <SmallGraphViewportGuard />}
             <WorkflowCanvas
               nodeTypes={nodeTypes}

@@ -21,6 +21,18 @@ describe(relativePath, () => {
     expect(source).not.toContain('execution?._id');
   });
 
+  it('separates module actions from graph authoring chrome', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).toContain('<WorkflowEditorSectionTopbar');
+    expect(source).toContain('<ActionNodeInspector />');
+    expect(source).toContain(
+      'workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden',
+    );
+    expect(source).not.toContain('WorkflowEditorToolbarNavigation');
+    expect(source).not.toContain('rightContent=');
+  });
+
   it('tracks bounded workflow start and terminal outcomes', () => {
     const capture = vi.fn();
     const tracker = createEditorWorkflowRunTracker(capture);

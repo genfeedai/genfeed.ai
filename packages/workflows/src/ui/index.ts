@@ -36,6 +36,7 @@ export {
 export { BaseNode, nodeTypes } from './nodes';
 // Panels
 export {
+  ActionNodeInspector,
   DebugPanel,
   NodePalette,
   type NodePaletteProps,

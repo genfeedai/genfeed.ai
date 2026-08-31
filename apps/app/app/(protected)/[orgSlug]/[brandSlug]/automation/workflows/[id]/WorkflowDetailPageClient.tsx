@@ -1,12 +1,7 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import {
-  ButtonSize,
-  ButtonVariant,
-  type WorkflowExecutionStatus,
-  WorkflowLifecycle,
-} from '@genfeedai/enums';
+import type { WorkflowExecutionStatus } from '@genfeedai/enums';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -16,11 +11,13 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import { Button } from '@ui/primitives/button';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
+import {
+  ActionNodeInspector,
+  WorkflowEditorShell,
+} from '@genfeedai/workflows/ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
@@ -34,19 +31,18 @@ import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflows/ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
-import { CalendarClock, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CloudNodePalette } from '@/features/workflows/components/CloudNodePalette';
 import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
+import { WorkflowEditorSectionTopbar } from '@/features/workflows/components/editor/WorkflowEditorSectionTopbar';
 import { WorkflowScheduleDialog } from '@/features/workflows/components/schedule/WorkflowScheduleDialog';
 import { WorkflowRunPanel } from '@/features/workflows/components/WorkflowRunPanel';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
-import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 import {
   coerceWorkflowItems,
   getWorkflowNodeConfig,
@@ -60,7 +56,6 @@ import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
 import { postWorkflowExecution } from '@/lib/api/execution-http-client';
 import { createSettingsSyncService } from '@/lib/api/settings-sync';
 import { applyEditOperations } from '@/lib/chat/editOperations';
-import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
 interface WorkflowDetailPageClientProps {
   workflowId: string;
@@ -108,6 +103,7 @@ export default function WorkflowDetailPageClient({
     archive,
   } = useCloudWorkflow({ autoSave: true, workflowId });
   const currentWorkflowId = useWorkflowStore((state) => state.workflowId);
+  const workflowName = useWorkflowStore((state) => state.workflowName);
   const hasRunInputs = inputVariables.length > 0;
 
   const initialExecutionPanelOpen =
@@ -290,7 +286,7 @@ export default function WorkflowDetailPageClient({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full min-h-0 items-center justify-center">
         <div className="animate-pulse text-muted-foreground">
           {translate('detail.loadingEditor')}
         </div>
@@ -301,9 +297,20 @@ export default function WorkflowDetailPageClient({
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
       <ReactFlowProvider>
-        <div className="workflow-scope workflow-editor-shell flex h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 flex-col bg-background text-foreground">
+        <div className="workflow-scope workflow-editor-shell flex h-full min-h-0 flex-col overflow-hidden bg-background text-foreground">
+          <WorkflowEditorSectionTopbar
+            estimateLabel={workflowEstimateLabel}
+            isRunning={isRunning}
+            lifecycle={lifecycle}
+            onArchive={handleArchive}
+            onPublish={handlePublish}
+            onRun={handleRunButtonClick}
+            onSchedule={() => setIsScheduleDialogOpen(true)}
+            title={workflowName || 'Workflow editor'}
+          />
+
           {cloudError && (
-            <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+            <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
               {cloudError}
             </div>
           )}
@@ -326,72 +333,15 @@ export default function WorkflowDetailPageClient({
                   onTerminalExecution={handleTerminalExecution}
                   runId={visibleExecutionPanelId}
                 />
-              ) : null
+              ) : (
+                <ActionNodeInspector />
+              )
             }
             toolbar={
               <CloudWorkflowToolbar
                 isSaving={isSaving}
-                leftContent={<WorkflowEditorToolbarNavigation />}
                 middleContent={<CloudCreditsIndicator />}
                 onRename={handleRename}
-                rightContent={
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      {workflowEstimateLabel && (
-                        <span className="rounded-full border border-border/80 bg-secondary/35 px-2.5 py-1 text-2xs text-muted-foreground">
-                          {workflowEstimateLabel}
-                        </span>
-                      )}
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${getLifecycleBadgeClass(lifecycle)}`}
-                      >
-                        {lifecycle}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={ButtonVariant.SECONDARY}
-                        size={ButtonSize.SM}
-                        onClick={() => setIsScheduleDialogOpen(true)}
-                        icon={<CalendarClock className="size-4" />}
-                        tooltip={translate('actions.scheduleTooltip')}
-                      >
-                        {translate('actions.schedule')}
-                      </Button>
-                      <Button
-                        variant={ButtonVariant.DEFAULT}
-                        size={ButtonSize.SM}
-                        onClick={handleRunButtonClick}
-                        disabled={isRunning}
-                        icon={<Play className="size-4" />}
-                      >
-                        {isRunning
-                          ? translate('actions.running')
-                          : translate('actions.run')}
-                      </Button>
-                      {lifecycle === WorkflowLifecycle.DRAFT && (
-                        <Button
-                          variant={ButtonVariant.DEFAULT}
-                          size={ButtonSize.SM}
-                          onClick={handlePublish}
-                        >
-                          {translate('actions.publish')}
-                        </Button>
-                      )}
-                      {lifecycle !== WorkflowLifecycle.ARCHIVED && (
-                        <Button
-                          variant={ButtonVariant.DESTRUCTIVE}
-                          size={ButtonSize.SM}
-                          onClick={handleArchive}
-                          className="border-border bg-transparent text-muted-foreground hover:border-foreground/20 hover:bg-accent hover:text-foreground"
-                        >
-                          {translate('actions.archive')}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                }
               />
             }
           />

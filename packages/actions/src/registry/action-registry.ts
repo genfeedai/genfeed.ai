@@ -1,5 +1,6 @@
 import type {
   ActionCreditPolicy,
+  ActionWorkflowCategory,
   CreateGenfeedActionNodeInput,
   GenfeedActionDefinition,
   GenfeedActionNodeDefinition,
@@ -37,7 +38,12 @@ function internalAction(
   options: Partial<
     Pick<
       GenfeedActionDefinition,
-      'authorization' | 'credits' | 'idempotency' | 'visibility'
+      | 'authorization'
+      | 'credits'
+      | 'idempotency'
+      | 'visibility'
+      | 'workflowCategory'
+      | 'workflowIcon'
     >
   > = {},
 ): GenfeedActionDefinition {
@@ -56,6 +62,8 @@ function internalAction(
     label,
     outputSchema: contract.outputSchema,
     visibility: options.visibility ?? 'internal',
+    workflowCategory: options.workflowCategory,
+    workflowIcon: options.workflowIcon,
   };
 }
 
@@ -80,173 +88,453 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
   };
 }
 
+type WorkflowActionCatalogEntry = readonly [
+  id: string,
+  label: string,
+  description: string,
+  category: ActionWorkflowCategory,
+  icon: string,
+];
+
 const WORKFLOW_ACTIONS = [
-  ['ai-enhance', 'Enhance Media', 'Enhances media quality with AI.'],
-  ['ai-transcribe', 'Transcribe Media', 'Transcribes workflow audio or video.'],
-  ['aiAvatarVideo', 'Generate Avatar Video', 'Generates one avatar video.'],
+  [
+    'ai-enhance',
+    'Enhance Media',
+    'Enhances media quality with AI.',
+    'processing',
+    'WandSparkles',
+  ],
+  [
+    'ai-transcribe',
+    'Transcribe Media',
+    'Transcribes workflow audio or video.',
+    'ai',
+    'FileText',
+  ],
+  [
+    'aiAvatarVideo',
+    'Generate Avatar Video',
+    'Generates one avatar video.',
+    'ai',
+    'Video',
+  ],
   [
     'analyticsFeedback',
     'Read Analytics Feedback',
     'Reads performance analytics for workflow context.',
+    'input',
+    'Eye',
   ],
   [
     'attachPostIngredient',
     'Attach Post Ingredient',
     'Attaches a generated ingredient to a post draft.',
+    'composition',
+    'Puzzle',
   ],
-  ['brand', 'Read Brand', 'Reads one tenant brand for workflow context.'],
-  ['brandAsset', 'Read Brand Asset', 'Reads one tenant brand asset.'],
-  ['brandContext', 'Assemble Brand Context', 'Assembles tenant brand context.'],
-  ['castPrompt', 'Generate Cast Prompt', 'Generates one cast-aware prompt.'],
+  [
+    'brand',
+    'Read Brand',
+    'Reads one tenant brand for workflow context.',
+    'input',
+    'Layers',
+  ],
+  [
+    'brandAsset',
+    'Read Brand Asset',
+    'Reads one tenant brand asset.',
+    'input',
+    'Image',
+  ],
+  [
+    'brandContext',
+    'Assemble Brand Context',
+    'Assembles tenant brand context.',
+    'input',
+    'Layers',
+  ],
+  [
+    'castPrompt',
+    'Generate Cast Prompt',
+    'Generates one cast-aware prompt.',
+    'input',
+    'Film',
+  ],
   [
     'cinematicColorGrade',
     'Apply Cinematic Color Grade',
     'Applies cinematic color grading to media.',
+    'processing',
+    'Film',
   ],
-  ['colorGrade', 'Apply Color Grade', 'Applies color grading to media.'],
-  ['effect-captions', 'Add Captions', 'Burns captions into one video.'],
+  [
+    'colorGrade',
+    'Apply Color Grade',
+    'Applies color grading to media.',
+    'processing',
+    'WandSparkles',
+  ],
+  [
+    'effect-captions',
+    'Add Captions',
+    'Burns captions into one video.',
+    'processing',
+    'Captions',
+  ],
   [
     'effect-ken-burns',
     'Apply Ken Burns Effect',
     'Applies a zoom and pan effect.',
+    'processing',
+    'Maximize',
   ],
   [
     'effect-portrait-blur',
     'Apply Portrait Blur',
     'Creates a portrait-blur composition.',
+    'processing',
+    'Image',
   ],
   [
     'effect-split-screen',
     'Create Split Screen',
     'Creates a split-screen composition.',
+    'composition',
+    'Columns2',
   ],
-  ['effect-text-overlay', 'Add Text Overlay', 'Adds a text overlay to media.'],
-  ['effect-watermark', 'Add Watermark', 'Adds a watermark to media.'],
-  ['filmGrain', 'Apply Film Grain', 'Applies film grain to media.'],
-  ['hookGenerator', 'Generate Hook', 'Generates one content hook.'],
-  ['imageGen', 'Generate Image', 'Generates one image from workflow inputs.'],
-  ['input-template', 'Load Prompt Template', 'Loads one prompt template.'],
+  [
+    'effect-text-overlay',
+    'Add Text Overlay',
+    'Adds a text overlay to media.',
+    'composition',
+    'FileText',
+  ],
+  [
+    'effect-watermark',
+    'Add Watermark',
+    'Adds a watermark to media.',
+    'composition',
+    'Image',
+  ],
+  [
+    'filmGrain',
+    'Apply Film Grain',
+    'Applies film grain to media.',
+    'processing',
+    'Film',
+  ],
+  [
+    'hookGenerator',
+    'Generate Hook',
+    'Generates one content hook.',
+    'ai',
+    'Sparkles',
+  ],
+  [
+    'imageGen',
+    'Generate Image',
+    'Generates one image from workflow inputs.',
+    'ai',
+    'Image',
+  ],
+  [
+    'input-template',
+    'Load Prompt Template',
+    'Loads one prompt template.',
+    'input',
+    'FileText',
+  ],
   [
     'iterativeSeoRefine',
     'Refine SEO Iteratively',
     'Runs bounded SEO refinement.',
+    'ai',
+    'Brain',
   ],
-  ['lensEffects', 'Apply Lens Effects', 'Applies selected lens effects.'],
-  ['lipSync', 'Generate Lip Sync', 'Generates one lip-synced media output.'],
-  ['llm', 'Generate Text', 'Runs one language-model text generation.'],
+  [
+    'lensEffects',
+    'Apply Lens Effects',
+    'Applies selected lens effects.',
+    'processing',
+    'WandSparkles',
+  ],
+  [
+    'lipSync',
+    'Generate Lip Sync',
+    'Generates one lip-synced media output.',
+    'ai',
+    'Mic',
+  ],
+  [
+    'llm',
+    'Generate Text',
+    'Runs one language-model text generation.',
+    'ai',
+    'Brain',
+  ],
   [
     'musicSource',
     'Resolve Music Source',
     'Resolves one workflow music source.',
+    'input',
+    'AudioLines',
   ],
   [
     'newsletterGen',
     'Generate Newsletter Draft',
     'Generates one newsletter draft.',
+    'ai',
+    'FileText',
   ],
   [
     'output-export',
     'Export Workflow Output',
     'Exports a workflow output file.',
+    'output',
+    'Download',
   ],
   [
     'output-notify',
     'Notify Workflow Output',
     'Sends a workflow completion notification.',
+    'output',
+    'MessageSquare',
   ],
   [
     'output-save',
     'Save Workflow Output',
     'Saves workflow output to the asset library.',
+    'output',
+    'Download',
   ],
   [
     'output-webhook',
     'Send Workflow Webhook',
     'Sends workflow output to a webhook.',
+    'output',
+    'Navigation',
   ],
   [
     'postGen',
     'Generate Post Draft',
     'Generates and persists one social post draft.',
+    'ai',
+    'FileText',
   ],
   [
     'promptConstructor',
     'Construct Prompt',
     'Constructs one prompt from workflow inputs.',
+    'input',
+    'Puzzle',
   ],
-  ['postReply', 'Post Social Reply', 'Posts one social reply.'],
-  ['process-compress', 'Compress Video', 'Compresses one video.'],
-  ['process-extract-audio', 'Extract Audio', 'Extracts audio from one video.'],
-  ['process-merge-videos', 'Merge Videos', 'Merges workflow videos.'],
-  ['process-mirror', 'Mirror Video', 'Mirrors one video.'],
-  ['process-resize', 'Resize Media', 'Resizes workflow media.'],
-  ['process-reverse', 'Reverse Video', 'Reverses one video.'],
-  ['process-transform', 'Transform Media', 'Transforms workflow media.'],
-  ['process-trim', 'Trim Video', 'Trims one video.'],
+  [
+    'postReply',
+    'Post Social Reply',
+    'Posts one social reply.',
+    'output',
+    'MessageSquare',
+  ],
+  [
+    'process-compress',
+    'Compress Video',
+    'Compresses one video.',
+    'processing',
+    'Video',
+  ],
+  [
+    'process-extract-audio',
+    'Extract Audio',
+    'Extracts audio from one video.',
+    'processing',
+    'AudioLines',
+  ],
+  [
+    'process-merge-videos',
+    'Merge Videos',
+    'Merges workflow videos.',
+    'processing',
+    'Layers',
+  ],
+  [
+    'process-mirror',
+    'Mirror Video',
+    'Mirrors one video.',
+    'processing',
+    'Video',
+  ],
+  [
+    'process-resize',
+    'Resize Media',
+    'Resizes workflow media.',
+    'processing',
+    'Maximize',
+  ],
+  [
+    'process-reverse',
+    'Reverse Video',
+    'Reverses one video.',
+    'processing',
+    'Video',
+  ],
+  [
+    'process-transform',
+    'Transform Media',
+    'Transforms workflow media.',
+    'processing',
+    'WandSparkles',
+  ],
+  ['process-trim', 'Trim Video', 'Trims one video.', 'processing', 'Scissors'],
   [
     'publish',
     'Publish Social Content',
     'Publishes workflow content to social targets.',
+    'output',
+    'Navigation',
   ],
-  ['reframe', 'Reframe Media', 'Reframes workflow media.'],
+  [
+    'reframe',
+    'Reframe Media',
+    'Reframes workflow media.',
+    'processing',
+    'Crop',
+  ],
   [
     'reportDelivery',
     'Deliver Workflow Report',
     'Delivers one workflow report.',
+    'output',
+    'FileText',
   ],
-  ['sendDm', 'Send Direct Message', 'Sends one social direct message.'],
-  ['sendEmail', 'Send Email', 'Sends one email.'],
-  ['seoRewrite', 'Rewrite for SEO', 'Rewrites content using SEO guidance.'],
-  ['seoScore', 'Score SEO', 'Scores content for SEO.'],
+  [
+    'sendDm',
+    'Send Direct Message',
+    'Sends one social direct message.',
+    'output',
+    'MessageSquare',
+  ],
+  ['sendEmail', 'Send Email', 'Sends one email.', 'output', 'MessageSquare'],
+  [
+    'seoRewrite',
+    'Rewrite for SEO',
+    'Rewrites content using SEO guidance.',
+    'ai',
+    'Pencil',
+  ],
+  ['seoScore', 'Score SEO', 'Scores content for SEO.', 'processing', 'Eye'],
   [
     'socialRead',
     'Read Social Content',
     'Reads social content for workflow context.',
+    'input',
+    'Search',
   ],
-  ['soundOverlay', 'Overlay Sound', 'Overlays sound on one video.'],
+  [
+    'soundOverlay',
+    'Overlay Sound',
+    'Overlays sound on one video.',
+    'processing',
+    'Volume2',
+  ],
   [
     'sourceCorpus',
     'Build Source Corpus',
     'Collects recent tenant source posts.',
+    'input',
+    'Layers',
   ],
   [
     'talkingHeadScript',
     'Generate Talking-head Script',
     'Generates a duration-bounded talking-head script.',
+    'ai',
+    'FileText',
   ],
-  ['textToSpeech', 'Generate Text to Speech', 'Converts text to speech.'],
-  ['trendDigest', 'Build Trend Digest', 'Builds one trends digest.'],
+  [
+    'textToSpeech',
+    'Generate Text to Speech',
+    'Converts text to speech.',
+    'ai',
+    'AudioLines',
+  ],
+  [
+    'trendDigest',
+    'Build Trend Digest',
+    'Builds one trends digest.',
+    'composition',
+    'Layers',
+  ],
   [
     'trendHashtagInspiration',
     'Find Hashtag Inspiration',
     'Finds trend hashtag inspiration.',
+    'ai',
+    'Search',
   ],
   [
     'trendSoundInspiration',
     'Find Sound Inspiration',
     'Finds trend sound inspiration.',
+    'ai',
+    'AudioLines',
   ],
   [
     'trendTrigger',
     'Resolve Matching Trend',
     'Resolves one matching trend for workflow execution.',
+    'input',
+    'Search',
   ],
   [
     'trendVideoInspiration',
     'Find Video Inspiration',
     'Finds trend video inspiration.',
+    'ai',
+    'Video',
   ],
-  ['upscale', 'Upscale Media', 'Upscales one media asset.'],
+  [
+    'upscale',
+    'Upscale Media',
+    'Upscales one media asset.',
+    'processing',
+    'Maximize',
+  ],
   [
     'videoFrameExtract',
     'Extract Video Frames',
     'Extracts selected frames from one video.',
+    'processing',
+    'Film',
   ],
-  ['videoGen', 'Generate Video', 'Generates one video from workflow inputs.'],
-  ['videoQa', 'Validate Video Quality', 'Validates one generated video.'],
-  ['videoStitch', 'Stitch Videos', 'Stitches workflow video segments.'],
-  ['voiceChange', 'Change Voice', 'Changes the voice in one audio asset.'],
-] as const;
+  [
+    'videoGen',
+    'Generate Video',
+    'Generates one video from workflow inputs.',
+    'ai',
+    'Video',
+  ],
+  [
+    'videoQa',
+    'Validate Video Quality',
+    'Validates one generated video.',
+    'processing',
+    'CircleCheckBig',
+  ],
+  [
+    'videoStitch',
+    'Stitch Videos',
+    'Stitches workflow video segments.',
+    'processing',
+    'Layers',
+  ],
+  [
+    'voiceChange',
+    'Change Voice',
+    'Changes the voice in one audio asset.',
+    'ai',
+    'AudioLines',
+  ],
+] as const satisfies readonly WorkflowActionCatalogEntry[];
 
 const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
   Record<string, ActionCreditPolicy>
@@ -282,13 +570,15 @@ const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
 };
 
 const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
-  ([id, label, description]) =>
+  ([id, label, description, workflowCategory, workflowIcon]) =>
     internalAction(id, label, description, {
       credits: WORKFLOW_ACTION_CREDIT_POLICIES[id] ?? {
         amount: 0,
         mode: 'fixed',
       },
       visibility: 'workflow',
+      workflowCategory,
+      workflowIcon,
     }),
 );
 
@@ -2256,6 +2546,20 @@ const duplicateIds = definitions
 if (duplicateIds.length > 0) {
   throw new Error(
     `Duplicate Genfeed action definitions: ${[...new Set(duplicateIds)].join(', ')}`,
+  );
+}
+
+const workflowActionsMissingPresentation = definitions.filter(
+  (definition) =>
+    definition.visibility === 'workflow' &&
+    (!definition.workflowCategory || !definition.workflowIcon),
+);
+
+if (workflowActionsMissingPresentation.length > 0) {
+  throw new Error(
+    `Workflow actions missing presentation metadata: ${workflowActionsMissingPresentation
+      .map((definition) => definition.id)
+      .join(', ')}`,
   );
 }
 

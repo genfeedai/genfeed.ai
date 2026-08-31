@@ -4,6 +4,12 @@ export type ActionApprovalPolicy = 'none' | 'required';
 export type ActionCompletionMode = 'provider-callback' | 'synchronous';
 export type ActionIdempotencyPolicy = 'none' | 'run-node';
 export type ActionVisibility = 'internal' | 'public' | 'tool' | 'workflow';
+export type ActionWorkflowCategory =
+  | 'input'
+  | 'ai'
+  | 'processing'
+  | 'composition'
+  | 'output';
 export type ActionJsonSchema = object;
 
 export type ActionCreditPolicy =
@@ -22,6 +28,8 @@ export interface GenfeedActionDefinition {
   label: string;
   outputSchema: ActionJsonSchema;
   visibility: ActionVisibility;
+  workflowCategory?: ActionWorkflowCategory;
+  workflowIcon?: string;
 }
 
 export interface CreateGenfeedActionNodeInput {
