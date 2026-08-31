@@ -163,8 +163,8 @@ describe('BotsLivestreamDeliveryService', () => {
     );
 
     expect(oauth2ConstructorMock).toHaveBeenCalledWith(
-      'youtube-client-id',
-      'youtube-client-secret',
+      'google-oauth-client-id',
+      'google-oauth-client-secret',
       'https://genfeed.ai/oauth/youtube/callback',
     );
     expect(setCredentialsMock).toHaveBeenCalledWith({
