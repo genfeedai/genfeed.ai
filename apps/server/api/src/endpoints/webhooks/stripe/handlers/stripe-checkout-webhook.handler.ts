@@ -917,6 +917,7 @@ export class StripeCheckoutWebhookHandler {
   private async findSkillsProReceiptBySessionId(
     sessionId: string,
   ): Promise<SkillReceiptDocument | null> {
+    // tenant-scope-ignore: Stripe session ids are globally unique and Skills Pro receipts remain organization-less until their first authenticated claim.
     return this.prisma.skillReceipt.findFirst({
       where: {
         data: { equals: sessionId, path: ['stripeSessionId'] },
@@ -948,15 +949,26 @@ export class StripeCheckoutWebhookHandler {
 
           const receiptId = `sk_rcpt_${nanoid(16)}`;
           const email = session.customer_details?.email || '';
+          const productType =
+            session.metadata?.productType === 'skill' ? 'skill' : 'bundle';
+          const skillSlugs = this.parseSkillsProSlugs(
+            session.metadata?.skillSlugs,
+            session.metadata?.skillSlug,
+          );
 
           await this.prisma.skillReceipt.create({
             data: {
+              productType,
+              receiptId,
+              skillSlugs,
+              status: 'completed',
               data: {
                 amountPaid: session.amount_total || 0,
                 currency: session.currency || 'usd',
                 email,
-                productType: 'bundle',
+                productType,
                 receiptId,
+                skills: skillSlugs,
                 status: 'completed',
                 stripePaymentIntentId: session.payment_intent
                   ? String(session.payment_intent)
@@ -968,8 +980,7 @@ export class StripeCheckoutWebhookHandler {
 
           this.loggerService.log(`${url} skills-pro receipt created`, {
             ...getEmailLogMetadata(email),
-            productType: 'bundle',
-            receiptId,
+            productType,
             sessionId: session.id,
           });
 
@@ -990,5 +1001,20 @@ export class StripeCheckoutWebhookHandler {
       );
       throw error;
     }
+  }
+
+  private parseSkillsProSlugs(
+    serializedSlugs: string | undefined,
+    singleSlug: string | undefined,
+  ): string[] {
+    const values = serializedSlugs?.split(',') ?? [singleSlug];
+
+    return [
+      ...new Set(
+        values
+          .map((slug) => slug?.trim())
+          .filter((slug): slug is string => Boolean(slug)),
+      ),
+    ];
   }
 }

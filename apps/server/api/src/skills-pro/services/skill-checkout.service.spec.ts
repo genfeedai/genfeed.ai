@@ -1,4 +1,3 @@
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkout.dto';
 import { SkillCheckoutService } from '@api/skills-pro/services/skill-checkout.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
@@ -10,6 +9,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type Stripe from 'stripe';
 
 describe('SkillCheckoutService', () => {
@@ -88,6 +88,11 @@ describe('SkillCheckoutService', () => {
     loggerService = module.get(LoggerService);
     skillRegistryService = module.get(SkillRegistryService);
     stripeService = module.get(StripeService);
+    skillRegistryService.getRegistry.mockResolvedValue({
+      bundlePrice: 49,
+      skills: [],
+      updatedAt: '2026-08-31T00:00:00.000Z',
+    });
   });
 
   afterEach(() => {
@@ -132,7 +137,13 @@ describe('SkillCheckoutService', () => {
           allow_promotion_codes: true,
           customer_email: 'buyer@example.com',
           line_items: [{ price: 'price_env_123', quantity: 1 }],
-          metadata: { bundle: 'true', type: 'skills-pro' },
+          metadata: {
+            bundle: 'true',
+            productType: 'bundle',
+            skillSlug: '',
+            skillSlugs: '',
+            type: 'skills-pro',
+          },
           mode: 'payment',
           payment_method_types: ['card'],
         }),
@@ -173,6 +184,53 @@ describe('SkillCheckoutService', () => {
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           line_items: [{ price: 'price_registry_456', quantity: 1 }],
+        }),
+      );
+    });
+
+    it('creates a single-skill checkout with an exact entitlement grant', async () => {
+      const selectedSkill = {
+        category: 'generation',
+        description: 'Generate images',
+        name: 'Image Gen Pro',
+        price: 1900,
+        s3Key: 'skills/image-gen-pro.zip',
+        slug: 'image-gen-pro',
+        version: '1.0.0',
+      };
+      skillRegistryService.getRegistry.mockResolvedValue({
+        bundlePrice: 49,
+        skills: [selectedSkill],
+        updatedAt: '2026-08-31T00:00:00.000Z',
+      });
+      skillRegistryService.getSkillBySlug.mockReturnValue(selectedSkill);
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_single',
+        url: 'https://checkout.stripe.com/session/cs_single',
+      } as unknown as Stripe.Checkout.Session);
+
+      await service.createCheckoutSession({ skillSlug: 'image-gen-pro' });
+
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [
+            {
+              price_data: {
+                currency: 'usd',
+                product_data: { name: 'Image Gen Pro' },
+                unit_amount: 1900,
+              },
+              quantity: 1,
+            },
+          ],
+          metadata: expect.objectContaining({
+            bundle: 'false',
+            productType: 'skill',
+            skillSlug: 'image-gen-pro',
+            skillSlugs: 'image-gen-pro',
+          }),
         }),
       );
     });

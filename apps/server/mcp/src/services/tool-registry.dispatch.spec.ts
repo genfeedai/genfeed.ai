@@ -63,6 +63,8 @@ describe('ToolRegistryService.classify', () => {
     ['list_scheduler_capabilities', 'scheduler'],
     ['update_scheduled_release', 'scheduler'],
     ['validate_scheduler_target', 'scheduler'],
+    ['verify_skills_pro_entitlement', 'skills-pro'],
+    ['install_skills_pro_skill', 'skills-pro'],
     ['brands__create', 'unknown'],
     ['content_plans__find_all', 'unknown'],
     ['a_tool_that_does_not_exist', 'unknown'],
@@ -102,6 +104,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'create_scheduled_release',
       'update_scheduled_release',
       'control_scheduled_release',
+      'install_skills_pro_skill',
     ];
     mockState.tools = [
       { name: 'generate_image' },

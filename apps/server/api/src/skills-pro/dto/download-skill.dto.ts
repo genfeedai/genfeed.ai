@@ -1,18 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class DownloadSkillDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
   @ApiProperty({
     description: 'Receipt ID for download authorization (format: sk_rcpt_<id>)',
   })
   readonly receiptId!: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
+  @MaxLength(120)
   @ApiProperty({
-    description: 'Skill slug to download (required for bundle receipts)',
-    required: false,
+    description: 'Entitled skill slug to download or install',
   })
-  readonly skillSlug?: string;
+  readonly skillSlug!: string;
 }
