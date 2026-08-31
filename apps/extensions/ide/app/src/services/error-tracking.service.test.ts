@@ -21,8 +21,11 @@ describe('IDE extension error tracking', () => {
 
   beforeEach(() => {
     sentry.init.mockClear();
-    process.env.NODE_ENV = 'production';
-    process.env.SENTRY_DSN = 'https://public@example.ingest.sentry.io/1';
+    process.env = {
+      ...process.env,
+      NODE_ENV: 'production',
+      SENTRY_DSN: 'https://public@example.ingest.sentry.io/1',
+    };
   });
 
   afterEach(() => {

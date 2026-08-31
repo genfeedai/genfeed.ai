@@ -6,8 +6,5 @@ const config = getSentryConfig({
 });
 
 if (config) {
-  init({
-    ...config,
-    tracesSampleRate: 0.1,
-  });
+  init(config);
 }
