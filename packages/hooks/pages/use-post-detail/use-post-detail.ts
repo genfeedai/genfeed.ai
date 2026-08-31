@@ -76,6 +76,7 @@ export interface UsePostDetailReturn {
   handleContentSave: () => Promise<void>;
   handleScheduleSave: () => Promise<void>;
   handlePublishNow: () => Promise<void>;
+  handlePublishViaTikTokApp: () => Promise<void>;
   handleAddToThread: () => Promise<void>;
   handleDeletePost: () => void;
   handleDeleteChild: (childId: string) => void;
@@ -246,9 +247,10 @@ export function usePostDetail({
     handleExpandToThread: thread.handleExpandToThread,
     handleGenerateIllustration: media.handleGenerateIllustration,
     handlePerTweetEnhance: actions.handlePerTweetEnhance,
+    handlePublishNow: actions.handlePublishNow,
+    handlePublishViaTikTokApp: actions.handlePublishViaTikTokApp,
     handleQuickAction: actions.handleQuickAction,
     handleScheduleSave: actions.handleScheduleSave,
-    handlePublishNow: actions.handlePublishNow,
     handleSelectMedia: media.handleSelectMedia,
     handleToggleFirstComment: thread.handleToggleFirstComment,
     handleToggleGrokFeedback: thread.handleToggleGrokFeedback,

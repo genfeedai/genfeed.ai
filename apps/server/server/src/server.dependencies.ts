@@ -19,7 +19,10 @@ export type {
   PublishResult,
   ThreadChild,
 } from './services/integrations/publishers/interfaces/publisher.interface';
-export { WORKFLOW_APPROVED_SCHEDULE_SETTING } from './services/integrations/publishers/interfaces/publisher.interface';
+export {
+  TIKTOK_APP_HANDOFF_SETTING,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
+} from './services/integrations/publishers/interfaces/publisher.interface';
 export type { ServerPublisherFactory } from './services/integrations/publishers/publisher-factory.port';
 export type {
   ServerYoutubeUploader,

@@ -1,8 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -24,6 +20,10 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -246,6 +246,16 @@ export class PostGroupsController {
     }
     if (action === 'publish-now') {
       const data = await this.postGroupsService.publishTargetNow(
+        metadata.organizationId,
+        user.id,
+        id,
+        targetId,
+        { source: 'post-desk' },
+      );
+      return serializeSingle(req, ReleaseGroupSerializer, data);
+    }
+    if (action === 'publish-via-tiktok-app') {
+      const data = await this.postGroupsService.publishTargetViaTikTokApp(
         metadata.organizationId,
         user.id,
         id,

@@ -357,6 +357,43 @@ describe('PostGroupsService', () => {
     );
   });
 
+  it('preserves an ungrouped video post media when wrapping it as a release', async () => {
+    const media = [
+      { assetId: 'ingredient-1', kind: 'video', order: 0 },
+      { assetId: 'ingredient-2', kind: 'video', order: 1 },
+    ];
+    prisma.post.findFirst.mockResolvedValue({
+      ...makeTarget({
+        category: PostCategory.VIDEO,
+        groupId: null,
+        id: 'post-1',
+        platform: CredentialPlatform.TIKTOK,
+      }),
+      ingredients: [{ id: 'ingredient-1' }, { id: 'ingredient-2' }],
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup({ media }));
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        category: PostCategory.VIDEO,
+        id: 'post-1',
+        platform: CredentialPlatform.TIKTOK,
+      }),
+    ]);
+
+    await service.ensureReleaseForPost('org-1', 'user-1', 'post-1');
+
+    expect(prisma.post.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { ingredients: { select: { id: true } } },
+      }),
+    );
+    expect(prisma.postGroup.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ media }),
+      }),
+    );
+  });
+
   it('treats a partially published release as posted and not as not-posted', async () => {
     prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
     prisma.post.findMany.mockResolvedValue([
@@ -1276,6 +1313,101 @@ describe('PostGroupsService', () => {
         source: 'publish_now',
       }),
     );
+  });
+
+  it('queues a TikTok video app handoff through the scheduled-post workflow', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        id: 'group-1',
+        media: [{ assetId: 'video-1', kind: 'video' }],
+        status: ReleaseStatus.DRAFT,
+      }),
+    );
+    prisma.credential.findMany.mockResolvedValue([
+      makeCredential({ platform: CredentialPlatform.TIKTOK }),
+    ]);
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        category: PostCategory.VIDEO,
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: CredentialPlatform.TIKTOK,
+        publishApproval: null,
+        publishApprovalId: null,
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        category: PostCategory.VIDEO,
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: CredentialPlatform.TIKTOK,
+        publishApproval: {
+          artifactVersionPinId: 'pin-1',
+          id: 'approval-1',
+          operationId: 'operation-1',
+        },
+        scheduledDate: now,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.publishTargetViaTikTokApp(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      { source: 'post-desk' },
+    );
+
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        postId: 'target-1',
+        source: 'tiktok_app',
+        userId: 'user-1',
+      }),
+    );
+  });
+
+  it('rejects a native-app handoff for non-TikTok targets', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        category: PostCategory.VIDEO,
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: CredentialPlatform.INSTAGRAM,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.publishTargetViaTikTokApp(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        { source: 'post-desk' },
+      ),
+    ).rejects.toThrow(
+      'Publish via TikTok App is only available for TikTok videos.',
+    );
+    expect(postLifecycleService.transition).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
   });
 
   it('replays an exact canonical schedule without mutating the target or creating a second queue job', async () => {

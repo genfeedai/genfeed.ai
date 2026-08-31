@@ -48,6 +48,7 @@ describe('usePostDetailActions', () => {
   const mockEnsureFromPost = vi.fn();
   const mockScheduleTarget = vi.fn();
   const mockPublishNow = vi.fn();
+  const mockPublishViaTikTokApp = vi.fn();
   const mockGetReleaseGroupsService = vi.fn();
   const mockNotificationsService = {
     error: vi.fn(),
@@ -108,9 +109,11 @@ describe('usePostDetailActions', () => {
     mockEnsureFromPost.mockResolvedValue({ id: 'group-1' });
     mockScheduleTarget.mockResolvedValue({ id: 'group-1' });
     mockPublishNow.mockResolvedValue({ id: 'group-1' });
+    mockPublishViaTikTokApp.mockResolvedValue({ id: 'group-1' });
     mockGetReleaseGroupsService.mockResolvedValue({
       ensureFromPost: mockEnsureFromPost,
       publishTargetNow: mockPublishNow,
+      publishTargetViaTikTokApp: mockPublishViaTikTokApp,
       scheduleTarget: mockScheduleTarget,
     });
   });
@@ -223,6 +226,26 @@ describe('usePostDetailActions', () => {
       expect(mockScheduleTarget).not.toHaveBeenCalled();
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Publishing now',
+      );
+    });
+
+    it('hands a TikTok video to the native app for music and final edits', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          post: { ...POST, groupId: 'group-9' } as IPost,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handlePublishViaTikTokApp();
+      });
+
+      expect(mockEnsureFromPost).not.toHaveBeenCalled();
+      expect(mockPublishViaTikTokApp).toHaveBeenCalledWith('group-9', 'post-1');
+      expect(mockPublishNow).not.toHaveBeenCalled();
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Sent to TikTok. Open your TikTok Inbox to add music or final edits, then publish.',
       );
     });
 

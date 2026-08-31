@@ -7,6 +7,7 @@ import {
 import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
 import {
   type PublishResult,
+  TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@genfeedai/server';
 import {
@@ -368,6 +369,34 @@ describe('ScheduledPostDeliveryService', () => {
     expect(
       mocks.publishEventWebhookService.emitLegacyPostPublished,
     ).not.toHaveBeenCalled();
+  });
+
+  it('marks a TikTok app workflow delivery as a native-app handoff', async () => {
+    const publish = mockSuccessfulPublisher(mocks, {
+      executionState: TargetExecutionState.PUBLISHING,
+      externalId: 'v_inbox_file~123',
+      platform: CredentialPlatform.TIKTOK,
+      url: '',
+    });
+    mocks.credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TIKTOK,
+    });
+    const post = createScheduledPost({
+      category: 'VIDEO',
+      ingredients: [{ id: 'video-1' }],
+      platform: CredentialPlatform.TIKTOK,
+    });
+
+    await executeDelivery(mocks, post, 'tiktok_app');
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          [TIKTOK_APP_HANDOFF_SETTING]: true,
+        }),
+      }),
+    );
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {

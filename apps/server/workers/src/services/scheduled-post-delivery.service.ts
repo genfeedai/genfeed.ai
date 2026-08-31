@@ -19,6 +19,7 @@ import {
   type ServerCredentialStore,
   type ServerPublisherFactory,
   scopedWhere,
+  TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -498,15 +499,20 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const settings =
-      platform === CredentialPlatform.BEEHIIV &&
-      source !== 'publish_now' &&
-      post.scheduledDate instanceof Date
+      source === 'tiktok_app'
         ? {
             ...resolvedSettings,
-            [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
-              post.scheduledDate.toISOString(),
+            [TIKTOK_APP_HANDOFF_SETTING]: true,
           }
-        : resolvedSettings;
+        : platform === CredentialPlatform.BEEHIIV &&
+            source !== 'publish_now' &&
+            post.scheduledDate instanceof Date
+          ? {
+              ...resolvedSettings,
+              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+                post.scheduledDate.toISOString(),
+            }
+          : resolvedSettings;
 
     return {
       ok: true,
@@ -1002,7 +1008,14 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   private readActionRequest(value: unknown): ScheduledPostWorkflowInput {
     const request = this.readRecord(value);
     const source = String(request.source ?? '');
-    if (!['manual_retry', 'publish_now', 'scheduled_sweep'].includes(source)) {
+    if (
+      ![
+        'manual_retry',
+        'publish_now',
+        'scheduled_sweep',
+        'tiktok_app',
+      ].includes(source)
+    ) {
       throw new Error(
         `Scheduled post delivery received invalid source ${source}`,
       );

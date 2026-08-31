@@ -315,4 +315,13 @@ export class ReleaseGroupsService extends HTTPBaseService {
       action: 'publish-now',
     } as UpdateChannelTargetInput);
   }
+
+  async publishTargetViaTikTokApp(
+    groupId: string,
+    targetId: string,
+  ): Promise<IReleaseGroup> {
+    return this.updateTarget(groupId, targetId, {
+      action: 'publish-via-tiktok-app',
+    } as UpdateChannelTargetInput);
+  }
 }

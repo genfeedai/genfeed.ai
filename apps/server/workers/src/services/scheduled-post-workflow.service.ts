@@ -232,7 +232,12 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     const record = Object.keys(source).length > 0 ? source : input;
     const rawSource = this.requiredString(record.source, 'source');
     if (
-      !['manual_retry', 'publish_now', 'scheduled_sweep'].includes(rawSource)
+      ![
+        'manual_retry',
+        'publish_now',
+        'scheduled_sweep',
+        'tiktok_app',
+      ].includes(rawSource)
     ) {
       throw new Error(`Scheduled publish received invalid source ${rawSource}`);
     }

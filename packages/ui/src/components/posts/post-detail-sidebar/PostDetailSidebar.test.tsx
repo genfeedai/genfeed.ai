@@ -1,4 +1,9 @@
-import { PostStatus, ReviewDecision } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
@@ -135,5 +140,54 @@ describe('PostDetailSidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Re-score SEO' }));
 
     expect(onScoreSeo).toHaveBeenCalledTimes(1);
+  });
+
+  it('only offers the TikTok app publishing handoff for TikTok videos', () => {
+    const onPublishViaTikTokApp = vi.fn();
+    const { rerender } = render(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.VIDEO,
+            id: 'post-1',
+            ingredients: [{ id: 'video-1' }],
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.DRAFT,
+          } as never
+        }
+        onPublishNow={vi.fn()}
+        onPublishViaTikTokApp={onPublishViaTikTokApp}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: 'More TikTok publishing options',
+      }),
+    ).toBeVisible();
+
+    rerender(
+      <PostDetailSidebar
+        {...baseProps}
+        post={
+          {
+            category: PostCategory.IMAGE,
+            id: 'post-2',
+            ingredients: [{ id: 'image-1' }],
+            platform: CredentialPlatform.TIKTOK,
+            status: PostStatus.DRAFT,
+          } as never
+        }
+        onPublishNow={vi.fn()}
+        onPublishViaTikTokApp={onPublishViaTikTokApp}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'More TikTok publishing options',
+      }),
+    ).not.toBeInTheDocument();
   });
 });

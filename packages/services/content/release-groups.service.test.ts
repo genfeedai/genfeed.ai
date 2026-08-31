@@ -241,6 +241,22 @@ describe('ReleaseGroupsService', () => {
     });
   });
 
+  it('publishes a TikTok target through the native app handoff action', async () => {
+    const document = { data: { id: 'release-1' } };
+    mockPatch.mockResolvedValue({ data: document });
+    mockDeserializeResource.mockReturnValue({ id: 'release-1' });
+
+    await new ReleaseGroupsService('token').publishTargetViaTikTokApp(
+      'release-1',
+      'target-9',
+    );
+
+    expect(mockPatch).toHaveBeenCalledWith('/release-1/targets/target-9', {
+      action: 'publish-via-tiktok-app',
+    });
+    expect(mockDeserializeResource).toHaveBeenCalledWith(document);
+  });
+
   it('creates a release group through POST /', async () => {
     const document = { data: { id: 'release-1' } };
     const release = { id: 'release-1', title: 'Hook' };

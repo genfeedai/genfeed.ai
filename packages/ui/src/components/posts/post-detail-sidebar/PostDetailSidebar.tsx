@@ -1,7 +1,11 @@
 'use client';
 
 import type { IEvaluation } from '@genfeedai/client/models';
-import { TargetExecutionState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { IImage, IVideo } from '@genfeedai/interfaces';
@@ -38,6 +42,7 @@ export default function PostDetailSidebar({
   onScheduleChange,
   onScheduleSave,
   onPublishNow,
+  onPublishViaTikTokApp,
   onScoreSeo,
   className = '',
 }: PostDetailSidebarProps) {
@@ -73,6 +78,12 @@ export default function PostDetailSidebar({
     Boolean(reviewSummary?.sourceWorkflowName) ||
     Boolean(reviewSummary?.sourceActionId) ||
     Boolean(reviewSummary?.generationId);
+  const canPublishViaTikTokApp =
+    Boolean(onPublishViaTikTokApp) &&
+    post.platform === CredentialPlatform.TIKTOK &&
+    (post.category === PostCategory.VIDEO ||
+      post.category === PostCategory.REEL) &&
+    post.ingredients.length > 0;
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -98,6 +109,7 @@ export default function PostDetailSidebar({
           onScheduleChange={onScheduleChange}
           onScheduleSave={onScheduleSave}
           onPublishNow={onPublishNow}
+          {...(canPublishViaTikTokApp ? { onPublishViaTikTokApp } : {})}
         />
       )}
 

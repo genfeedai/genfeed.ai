@@ -3,14 +3,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
-import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { Request } from 'express';
 
 describe('PostGroupsController', () => {
@@ -27,6 +27,7 @@ describe('PostGroupsController', () => {
     resume: ReturnType<typeof vi.fn>;
     ensureReleaseForPost: ReturnType<typeof vi.fn>;
     publishTargetNow: ReturnType<typeof vi.fn>;
+    publishTargetViaTikTokApp: ReturnType<typeof vi.fn>;
     scheduleTarget: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     updateTarget: ReturnType<typeof vi.fn>;
@@ -71,6 +72,9 @@ describe('PostGroupsController', () => {
             publishNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             resume: vi.fn().mockResolvedValue({ id: 'group-1' }),
             publishTargetNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            publishTargetViaTikTokApp: vi
+              .fn()
+              .mockResolvedValue({ id: 'group-1' }),
             scheduleTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
             update: vi.fn().mockResolvedValue({ id: 'group-1' }),
             updateTarget: vi.fn().mockResolvedValue({ id: 'group-1' }),
@@ -181,6 +185,23 @@ describe('PostGroupsController', () => {
       'target-1',
       { source: 'post-desk' },
     );
+    expect(service.scheduleTarget).not.toHaveBeenCalled();
+    expect(service.updateTarget).not.toHaveBeenCalled();
+  });
+
+  it('routes the TikTok app handoff through the dedicated target action', async () => {
+    await controller.updateTarget(req, user, 'group-1', 'target-1', {
+      action: 'publish-via-tiktok-app',
+    });
+
+    expect(service.publishTargetViaTikTokApp).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      { source: 'post-desk' },
+    );
+    expect(service.publishTargetNow).not.toHaveBeenCalled();
     expect(service.scheduleTarget).not.toHaveBeenCalled();
     expect(service.updateTarget).not.toHaveBeenCalled();
   });

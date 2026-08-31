@@ -34,6 +34,7 @@ export interface PostDetailSidebarProps {
   onScheduleChange: (value: string) => void;
   onScheduleSave: () => void;
   onPublishNow?: () => void;
+  onPublishViaTikTokApp?: () => void;
   onScoreSeo?: () => void | Promise<void>;
   className?: string;
 }
