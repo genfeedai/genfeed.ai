@@ -1,7 +1,3 @@
-import type { UpdateCredentialDto } from '@server/collections/credentials/dto/update-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { YoutubeOAuth2Util } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
 import { JobState } from '@genfeedai/enums';
 import type {
   IFileProcessingJob,
@@ -18,6 +14,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { ConflictException, Injectable } from '@nestjs/common';
+import type { UpdateCredentialDto } from '@server/collections/credentials/dto/update-credential.dto';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { YoutubeOAuth2Util } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
 import { firstValueFrom } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;
@@ -80,12 +80,12 @@ export class FileQueueService {
       // Use centralized OAuth2 client factory
       const oauth2Client = YoutubeOAuth2Util.createClient(
         this.requireConfigString(
-          this.configService.get('YOUTUBE_CLIENT_ID'),
-          'YOUTUBE_CLIENT_ID',
+          this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
+          'GOOGLE_OAUTH_CLIENT_ID',
         ),
         this.requireConfigString(
-          this.configService.get('YOUTUBE_CLIENT_SECRET'),
-          'YOUTUBE_CLIENT_SECRET',
+          this.configService.get('GOOGLE_OAUTH_CLIENT_SECRET'),
+          'GOOGLE_OAUTH_CLIENT_SECRET',
         ),
         this.requireConfigString(
           this.configService.get('YOUTUBE_REDIRECT_URI'),
@@ -399,8 +399,10 @@ export class FileQueueService {
             brandId: data.brandId,
             credential: {
               accessToken: decryptedAccessToken,
-              clientId: this.configService.get('YOUTUBE_CLIENT_ID'),
-              clientSecret: this.configService.get('YOUTUBE_CLIENT_SECRET'),
+              clientId: this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
+              clientSecret: this.configService.get(
+                'GOOGLE_OAUTH_CLIENT_SECRET',
+              ),
               redirectUri: this.configService.get('YOUTUBE_REDIRECT_URI'),
               refreshToken: decryptedRefreshToken,
             },

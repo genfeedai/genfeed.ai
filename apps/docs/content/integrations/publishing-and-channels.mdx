@@ -51,9 +51,13 @@ an implemented OAuth path.
 Self-hosted deployments must register their own provider applications and set
 the callback URI to the corresponding Genfeed verification route.
 
+Google sign-in, YouTube, Google Ads, and Search Console share
+`GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`. Their redirect URIs
+and API-specific credentials remain separate.
+
 | Integration           | Server configuration                                                                                                 |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| YouTube               | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URI`; optional `YOUTUBE_API_KEY`                     |
+| YouTube               | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URI`; optional `YOUTUBE_API_KEY`            |
 | Instagram             | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`, `INSTAGRAM_REDIRECT_URI`                                                 |
 | TikTok                | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`                                                                          |
 | Facebook / Meta       | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET`, `FACEBOOK_REDIRECT_URI`                                                    |
@@ -69,8 +73,8 @@ the callback URI to the corresponding Genfeed verification route.
 | Snapchat              | `SNAPCHAT_CLIENT_ID`, `SNAPCHAT_CLIENT_SECRET`, `SNAPCHAT_REDIRECT_URI`                                              |
 | Discord               | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_REDIRECT_URI`                                                 |
 | Slack                 | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URI`                                                       |
-| Google Ads            | `GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_REDIRECT_URI`          |
-| Google Search Console | `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`, `GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`, `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`       |
+| Google Ads            | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, `GOOGLE_ADS_REDIRECT_URI`       |
+| Google Search Console | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`                          |
 | Restream              | `RESTREAM_CLIENT_ID`, `RESTREAM_CLIENT_SECRET`, `RESTREAM_REDIRECT_URI`                                              |
 
 Provider dashboards require an exact redirect URI match. Use the public API URL

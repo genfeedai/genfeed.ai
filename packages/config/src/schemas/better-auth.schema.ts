@@ -76,12 +76,6 @@ export const betterAuthSchema = {
     .optional()
     .default('false'),
 
-  /**
-   * Google OAuth credentials for the day-one social sign-in. Optional so the
-   * provider is simply absent when unset; presence enables the Google button.
-   */
-  GOOGLE_CLIENT_ID: Joi.string().optional().allow(''),
-  GOOGLE_CLIENT_SECRET: Joi.string().optional().allow(''),
   GITHUB_CLIENT_ID: Joi.string().optional().allow(''),
   GITHUB_CLIENT_SECRET: Joi.string().optional().allow(''),
 };

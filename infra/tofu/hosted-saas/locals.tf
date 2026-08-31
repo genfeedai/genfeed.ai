@@ -41,6 +41,17 @@ locals {
     "CLERK_SECRET_KEY",
     "CLERK_WEBHOOK_SIGNING_SECRET",
     "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+    # Google integrations now share one provider-level OAuth client. Exclude
+    # every retired per-consumer alias so a legacy SSM parameter cannot keep an
+    # obsolete env contract in newly registered task definitions.
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "YOUTUBE_CLIENT_ID",
+    "YOUTUBE_CLIENT_SECRET",
+    "GOOGLE_ADS_CLIENT_ID",
+    "GOOGLE_ADS_CLIENT_SECRET",
+    "GOOGLE_SEARCH_CONSOLE_CLIENT_ID",
+    "GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET",
     # Retired Vercel deployment-notification gate. Keep it out of task definitions
     # even if a stale temporary parameter is present under the production path.
     "VERCEL_DEPLOYMENT_NOTIFICATIONS_ENABLED",

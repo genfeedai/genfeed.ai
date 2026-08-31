@@ -11,8 +11,8 @@ describe('GoogleSearchConsoleOAuthService', () => {
   let loggerService: vi.Mocked<LoggerService>;
 
   const configValues: Record<string, string> = {
-    GOOGLE_SEARCH_CONSOLE_CLIENT_ID: 'gsc-client-id',
-    GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: 'gsc-client-secret',
+    GOOGLE_OAUTH_CLIENT_ID: 'gsc-client-id',
+    GOOGLE_OAUTH_CLIENT_SECRET: 'gsc-client-secret',
     GOOGLE_SEARCH_CONSOLE_REDIRECT_URI:
       'https://app.genfeed.ai/oauth/google-search-console',
   };

@@ -1,10 +1,10 @@
+import type { ConfigService } from '@libs/config/config.service';
 import {
   type BotDocument,
   type BotTarget,
 } from '@server/collections/bots/schemas/bot.schema';
 import { BotsLivestreamDeliveryService } from '@server/collections/bots/services/bots-livestream-delivery.service';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import type { ConfigService } from '@libs/config/config.service';
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -84,8 +84,8 @@ describe('BotsLivestreamDeliveryService', () => {
     configService.get.mockImplementation((key: string) => {
       const values: Record<string, string> = {
         TWITCH_CLIENT_ID: 'twitch-client-id',
-        YOUTUBE_CLIENT_ID: 'youtube-client-id',
-        YOUTUBE_CLIENT_SECRET: 'youtube-client-secret',
+        GOOGLE_OAUTH_CLIENT_ID: 'google-oauth-client-id',
+        GOOGLE_OAUTH_CLIENT_SECRET: 'google-oauth-client-secret',
         YOUTUBE_REDIRECT_URI: 'https://genfeed.ai/oauth/youtube/callback',
       };
 

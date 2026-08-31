@@ -37,8 +37,8 @@ export const PUBLISHING_PROVIDER_ENV_DESCRIPTORS: readonly PublishingProviderEnv
   [
     {
       appReviewProgram: 'Google OAuth verification',
-      clientIdKeys: ['YOUTUBE_CLIENT_ID'],
-      clientSecretKeys: ['YOUTUBE_CLIENT_SECRET'],
+      clientIdKeys: ['GOOGLE_OAUTH_CLIENT_ID'],
+      clientSecretKeys: ['GOOGLE_OAUTH_CLIENT_SECRET'],
       label: 'YouTube',
       platform: CredentialPlatform.YOUTUBE,
       redirectUriKeys: ['YOUTUBE_REDIRECT_URI'],

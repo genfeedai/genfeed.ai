@@ -93,24 +93,31 @@ RESEND_FROM_EMAIL=updates@example.com
 RESEND_REPLY_TO_EMAIL=support@example.com
 ```
 
-Google sign-in is also optional. If enabled, use the API auth callback as the
-Google OAuth redirect URI:
+Google sign-in and the Google API connectors share one Google Cloud OAuth web
+client. Register every enabled connector callback on that client:
 
 ```env
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
+GOOGLE_OAUTH_CLIENT_ID=...
+GOOGLE_OAUTH_CLIENT_SECRET=...
 ```
 
-Local redirect URI:
+Register the callbacks for each Google feature you enable. For local self-hosting:
 
 ```text
 http://localhost:3010/v1/auth/callback/google
+http://localhost:3000/oauth/youtube
+http://localhost:3000/oauth/google-ads
+http://localhost:3000/oauth/google-search-console
 ```
 
-Production self-host redirect URI:
+For a production self-host, replace those hosts with your public API and app
+origins while preserving each path.
 
 ```text
 https://your-api.example.com/v1/auth/callback/google
+https://your-app.example.com/oauth/youtube
+https://your-app.example.com/oauth/google-ads
+https://your-app.example.com/oauth/google-search-console
 ```
 
 Better Auth runs inside your Genfeed API against your Postgres database. A
