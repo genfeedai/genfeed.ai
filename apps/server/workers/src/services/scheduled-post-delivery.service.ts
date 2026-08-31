@@ -542,7 +542,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const ingredients = Array.isArray(post.ingredients)
       ? (post.ingredients as unknown[])
       : [];
-    const kind =
+    const kind: 'image' | 'video' =
       post.category === PostCategory.VIDEO ||
       post.category === PostCategory.REEL
         ? 'video'
