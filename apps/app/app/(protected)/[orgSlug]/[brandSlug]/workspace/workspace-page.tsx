@@ -12,7 +12,6 @@ import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -411,7 +410,7 @@ export default function WorkspacePageContent(
   props: Parameters<typeof WorkspacePageContentContent>[0],
 ) {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <WorkspacePageContentContent {...props} />
     </Suspense>
   );

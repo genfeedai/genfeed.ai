@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import TwitterReplyBot from '@/features/workflows/components/bots/TwitterReplyBot';
@@ -31,7 +30,7 @@ export default async function AutomateLibraryTypeRoute({
   }
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <Component />
     </Suspense>
   );

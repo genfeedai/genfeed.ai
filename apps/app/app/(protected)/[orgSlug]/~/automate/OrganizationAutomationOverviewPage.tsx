@@ -8,7 +8,6 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import OverviewLayout from '@ui/overview/OverviewLayout';
 import { Button } from '@ui/primitives/button';
 import { ChartLine, Cpu, MessageSquare, Workflow } from 'lucide-react';
@@ -95,8 +94,6 @@ export default function OrganizationAutomationOverviewPage() {
       description="Workflows, autopilot, and run history across every brand in this organization"
       icon={Workflow}
     >
-      {!isReady ? <LazyLoadingFallback variant="grid" /> : null}
-
       {isReady && brandCards.length === 0 ? (
         <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
           <Workflow className="size-10 text-foreground/20" />

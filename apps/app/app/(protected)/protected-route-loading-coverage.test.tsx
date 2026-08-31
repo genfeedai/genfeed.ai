@@ -3,11 +3,7 @@ import { dirname, join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const appRouterDirs = ['apps/app/app', 'apps/website/app'] as const;
-const routeLoadingShells = [
-  'apps/app/app/(protected)/[orgSlug]/[brandSlug]/loading.tsx',
-  'apps/app/app/(protected)/admin/loading.tsx',
-  'apps/website/app/(content)/loading.tsx',
-] as const;
+const routeLoadingShells = ['apps/website/app/(content)/loading.tsx'] as const;
 
 function findRepoRoot(startDirectory: string): string {
   let currentDirectory = startDirectory;
@@ -44,8 +40,20 @@ function collectRouteLoadingFiles(
   });
 }
 
+function collectTsxFiles(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      return collectTsxFiles(entryPath);
+    }
+
+    return entry.name.endsWith('.tsx') ? [entryPath] : [];
+  });
+}
+
 describe('route loading shell coverage', () => {
-  it('defines loading shells only at the shared route-group boundaries', () => {
+  it('keeps product routes free of page-level loading shells', () => {
     const routeLoadingFiles = appRouterDirs.flatMap((appRouterDir) => {
       const absoluteAppRouterDir = join(repoRoot, appRouterDir);
 
@@ -69,5 +77,18 @@ describe('route loading shell coverage', () => {
       "import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback'",
     );
     expect(source).toContain('return <LazyLoadingFallback variant="grid" />;');
+  });
+
+  it('keeps full-page skeletons out of protected Suspense boundaries', () => {
+    const protectedRoutes = join(repoRoot, 'apps/app/app/(protected)');
+    const violations = collectTsxFiles(protectedRoutes)
+      .filter((file) =>
+        /fallback=\{<(?:LazyLoadingFallback|SkeletonLoadingFallback)\b/u.test(
+          readFileSync(file, 'utf8'),
+        ),
+      )
+      .map((file) => relative(repoRoot, file));
+
+    expect(violations).toEqual([]);
   });
 });

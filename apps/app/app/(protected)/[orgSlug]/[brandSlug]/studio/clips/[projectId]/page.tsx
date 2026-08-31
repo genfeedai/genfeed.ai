@@ -1,7 +1,6 @@
 'use client';
 
 import FeatureGate from '@ui/guards/feature/FeatureGate';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useParams } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -12,7 +11,7 @@ export default function StudioClipProjectPage() {
 
   return (
     <FeatureGate flagKey="studio">
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <Suspense fallback={null}>
         <ClipsWorkspace projectId={params.projectId} />
       </Suspense>
     </FeatureGate>

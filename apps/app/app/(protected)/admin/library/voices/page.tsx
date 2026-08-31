@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import VoicesLibraryPage from '@protected/library/voices/voices-library-page';
 import { Suspense } from 'react';
@@ -10,7 +9,7 @@ export default function AdminLibraryVoicesPage() {
   // It is intentionally separate from /admin/fleet/voices, which stays
   // dedicated to experimental/local TTS generation workflows.
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <VoicesLibraryPage />
     </Suspense>
   );

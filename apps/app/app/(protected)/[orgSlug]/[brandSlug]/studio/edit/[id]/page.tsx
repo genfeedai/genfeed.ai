@@ -1,7 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { DetailPageProps } from '@props/pages/page.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
@@ -13,7 +12,7 @@ export default async function EditorDetailPage({ params }: DetailPageProps) {
 
   return (
     <ErrorBoundary>
-      <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <Suspense fallback={null}>
         <EditorPageContent projectId={id} />
       </Suspense>
     </ErrorBoundary>

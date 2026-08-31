@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import AnalyticsBrandsList from '@pages/analytics/brands-list/analytics-brands-list';
@@ -8,7 +7,7 @@ export const generateMetadata = createPageMetadata('Brands Analytics');
 
 export default function BrandsAnalyticsPage() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="table" />}>
+    <Suspense fallback={null}>
       <AnalyticsBrandsList basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS} />
     </Suspense>
   );

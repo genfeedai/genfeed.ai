@@ -1,6 +1,7 @@
 import 'server-only';
 
 import {
+  defaultShouldDehydrateQuery,
   dehydrate,
   HydrationBoundary,
   type QueryClient,
@@ -18,8 +19,13 @@ export function setServerQueryData<TData>(queryKey: QueryKey, data: TData) {
   getServerQueryClient().setQueryData(queryKey, data);
 }
 
+/**
+ * Start protected-route prefetch without holding the RSC response open.
+ * Pending promises are serialized by the hydration boundary below, allowing
+ * the route shell to paint while TanStack Query streams the result.
+ */
 export function prefetchServerQuery(options: PrefetchQueryOptions) {
-  return getServerQueryClient().prefetchQuery(options);
+  void getServerQueryClient().prefetchQuery({ ...options, retry: false });
 }
 
 export function ServerQueryHydrationBoundary({
@@ -28,7 +34,13 @@ export function ServerQueryHydrationBoundary({
   children: ReactNode;
 }) {
   return (
-    <HydrationBoundary state={dehydrate(getServerQueryClient())}>
+    <HydrationBoundary
+      state={dehydrate(getServerQueryClient(), {
+        shouldDehydrateQuery: (query) =>
+          defaultShouldDehydrateQuery(query) ||
+          query.state.status === 'pending',
+      })}
+    >
       {children}
     </HydrationBoundary>
   );

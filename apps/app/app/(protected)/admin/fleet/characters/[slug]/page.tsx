@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import CharacterDetail from '@protected/fleet/characters/[slug]/character-detail';
 import { Suspense } from 'react';
@@ -13,7 +12,7 @@ export default async function CharacterDetailPage({
   const { slug } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <CharacterDetail slug={slug} />
     </Suspense>
   );

@@ -27,7 +27,6 @@ import {
 } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { UsersService } from '@services/organization/users.service';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type PropsWithChildren,
@@ -512,7 +511,7 @@ export function AgentWorkspaceLayoutClient({
   children,
 }: AgentWorkspaceLayoutClientProps) {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <AgentWorkspaceLayoutClientContent agentApiService={agentApiService}>
         {children}
       </AgentWorkspaceLayoutClientContent>

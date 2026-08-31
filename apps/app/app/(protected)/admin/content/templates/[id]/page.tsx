@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { DetailPageProps } from '@props/pages/page.props';
 import TemplateDetail from '@protected/content/templates/[id]/template-detail';
@@ -10,7 +9,7 @@ export default async function TemplateDetailPage({ params }: DetailPageProps) {
   const { id } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <TemplateDetail templateId={id} />
     </Suspense>
   );

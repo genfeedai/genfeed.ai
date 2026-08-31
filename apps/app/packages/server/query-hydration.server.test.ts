@@ -10,7 +10,9 @@ describe('query-hydration.server', () => {
     );
 
     expect(source).toContain('makeQueryClient');
-    expect(source).toContain('dehydrate(getServerQueryClient())');
+    expect(source).toContain('defaultShouldDehydrateQuery');
+    expect(source).toContain("query.state.status === 'pending'");
+    expect(source).toContain('void getServerQueryClient().prefetchQuery');
     expect(source).toContain('HydrationBoundary');
     expect(source).toContain('setServerQueryData');
     expect(source).toContain('prefetchServerQuery');

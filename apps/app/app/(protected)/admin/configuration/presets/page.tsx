@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
@@ -8,7 +7,7 @@ export const generateMetadata = createPageMetadata('Presets');
 
 export default function PresetsPage() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <PresetsList scope={PageScope.SUPERADMIN} />
     </Suspense>
   );

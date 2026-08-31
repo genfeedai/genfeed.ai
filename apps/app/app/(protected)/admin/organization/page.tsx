@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { OrganizationConfigPageProps } from '@props/pages/page.props';
 import OrganizationConfigPage from '@protected/organization/organization-config-page';
@@ -13,14 +12,14 @@ export default async function OrganizationConfigPageWrapper({
   const { id } = await searchParams;
   if (!id) {
     return (
-      <Suspense fallback={<LazyLoadingFallback variant="table" />}>
+      <Suspense fallback={null}>
         <AdminOrganizationsLanding />
       </Suspense>
     );
   }
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <OrganizationConfigPage />
     </Suspense>
   );

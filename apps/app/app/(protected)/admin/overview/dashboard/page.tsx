@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
@@ -10,7 +9,7 @@ const OverviewPageContent = dynamic(
 
 export default function OverviewPage() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <OverviewPageContent />
     </Suspense>
   );

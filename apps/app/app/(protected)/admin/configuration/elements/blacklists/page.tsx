@@ -1,6 +1,5 @@
 'use client';
 
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { PageScope } from '@genfeedai/enums';
 import { useElementsContext } from '@providers/elements/elements.context';
 import { Suspense } from 'react';
@@ -10,7 +9,7 @@ export default function BlacklistsPage() {
   const { onRefresh, setIsRefreshing } = useElementsContext();
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <BlacklistsList
         scope={PageScope.SUPERADMIN}
         onRefresh={onRefresh}

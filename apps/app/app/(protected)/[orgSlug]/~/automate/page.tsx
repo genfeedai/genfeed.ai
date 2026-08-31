@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import OrganizationAutomationOverviewPage from './OrganizationAutomationOverviewPage';
 
@@ -11,7 +10,7 @@ export const generateMetadata = createPageMetadata('Automate Overview');
  */
 export default function OrganizationAutomateRoute() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <OrganizationAutomationOverviewPage />
     </Suspense>
   );

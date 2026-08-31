@@ -1,4 +1,3 @@
-import { SkeletonLoadingFallback } from '@components/loading/skeleton/SkeletonFallbacks';
 import { PageScope } from '@genfeedai/enums';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
@@ -14,7 +13,7 @@ export default async function IngredientsListPage({
   const { type } = await params;
 
   return (
-    <Suspense fallback={<SkeletonLoadingFallback type="masonry" count={25} />}>
+    <Suspense fallback={null}>
       <IngredientsList type={type} scope={PageScope.SUPERADMIN} />
     </Suspense>
   );

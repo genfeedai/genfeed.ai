@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import AgentDetailPage from './AgentDetailPage';
 
@@ -12,7 +11,7 @@ export default async function AutomateAgentDetailRoute({
 }) {
   const { agentId } = await params;
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <AgentDetailPage agentId={agentId} />
     </Suspense>
   );

@@ -6,7 +6,6 @@ import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-c
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -81,11 +80,11 @@ export function DiscoverOrgBrandGate({ children }: { children: ReactNode }) {
   }
 
   if (!isReady) {
-    return <LazyLoadingFallback variant="grid" />;
+    return null;
   }
 
   if (brandChoices.length === 1) {
-    return <LazyLoadingFallback variant="grid" />;
+    return null;
   }
 
   if (brandChoices.length === 0) {

@@ -4,7 +4,6 @@ import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
-import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import PublishLayoutContent from '../../../[brandSlug]/publish/publish-layout-content';
@@ -64,9 +63,7 @@ function OrgIngredientListPage({
       defaultType={type}
       hideTypeTabs={hideTypeTabs}
     >
-      <Suspense
-        fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
-      >
+      <Suspense fallback={null}>
         <IngredientsList type={type} scope={PageScope.ORGANIZATION} />
       </Suspense>
     </IngredientsLayout>

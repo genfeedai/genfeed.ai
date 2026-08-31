@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import SettingsProfilePage from './settings-profile-page';
 
@@ -7,7 +6,7 @@ export const generateMetadata = createPageMetadata('Personal Settings');
 
 export default function SettingsPersonalPage() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <SettingsProfilePage />
     </Suspense>
   );

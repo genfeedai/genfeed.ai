@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
 import type { IngredientDetailPageProps } from '@props/content/ingredient.props';
 import type { Metadata } from 'next';
@@ -17,7 +16,7 @@ export default async function IngredientDetailPage({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <IngredientDetail type={'images'} id={id} />
     </Suspense>
   );

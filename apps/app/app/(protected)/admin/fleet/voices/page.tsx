@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import VoicesPage from '@protected/fleet/voices/voices-page';
 import { Suspense } from 'react';
@@ -10,7 +9,7 @@ export default function FleetVoicesPage() {
   // It is intentionally separate from /admin/library/voices, which manages
   // the DB-backed shared voice catalog and curation toggles.
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <VoicesPage />
     </Suspense>
   );

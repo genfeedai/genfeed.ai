@@ -110,7 +110,7 @@ export async function renderPostsListPage({
       releases: initialData.releases,
     };
 
-    await prefetchServerQuery({
+    prefetchServerQuery({
       queryFn: () => initialReleaseResult,
       queryKey: buildReleasePostsListQueryKey({
         brandId: initialData.brandId,
@@ -158,7 +158,7 @@ export async function renderPostsListPage({
     posts: initialData.posts,
   };
 
-  await prefetchServerQuery({
+  prefetchServerQuery({
     queryFn: () => initialPostsResult,
     queryKey: buildPostsListQueryKey({
       adminBrand: '',

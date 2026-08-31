@@ -1,4 +1,3 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { Suspense } from 'react';
@@ -8,7 +7,7 @@ export const generateMetadata = createPageMetadata('Organizations Analytics');
 
 export default function OrganizationsAnalyticsPage() {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="table" />}>
+    <Suspense fallback={null}>
       <AnalyticsOrganizationsList
         basePath={APP_ROUTES.ADMIN.OVERVIEW.ANALYTICS}
       />
