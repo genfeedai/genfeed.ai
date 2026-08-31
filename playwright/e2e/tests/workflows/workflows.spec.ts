@@ -70,8 +70,11 @@ test.describe('Workflows', () => {
     await expect(
       editorToolbar.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
+    await editorToolbar
+      .getByRole('button', { name: 'Workflow actions' })
+      .click();
     await expect(
-      editorToolbar.getByRole('button', { name: 'Archive' }),
+      authenticatedPage.getByRole('menuitem', { name: 'Archive' }),
     ).toBeVisible();
   });
 
@@ -97,8 +100,11 @@ test.describe('Workflows', () => {
     await expect(
       authenticatedPage.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
+    await authenticatedPage
+      .getByRole('button', { name: 'Workflow actions' })
+      .click();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Archive' }),
+      authenticatedPage.getByRole('menuitem', { name: 'Archive' }),
     ).toBeVisible();
   });
 
