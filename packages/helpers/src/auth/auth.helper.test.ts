@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  getPlaywrightJwtToken,
   normalizeAuthAvatarUrl,
   resolveAuthToken,
   resolveRequiredAuthToken,
@@ -62,6 +63,17 @@ describe('resolveAuthToken', () => {
     await expect(resolveAuthToken(getToken)).resolves.toBe('playwright-token');
 
     expect(getToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores an unavailable browser storage implementation', () => {
+    const getItem = vi
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation(() => {
+        throw new Error('Storage unavailable');
+      });
+
+    expect(getPlaywrightJwtToken()).toBeNull();
+    getItem.mockRestore();
   });
 
   it('throws the boundary-specific error when no token is available', async () => {
