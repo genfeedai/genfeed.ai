@@ -1,14 +1,14 @@
+import { Platform } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { Injectable } from '@nestjs/common';
 import type {
   BotDocument,
   BotTarget,
 } from '@server/collections/bots/schemas/bot.schema';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Platform } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { google } from 'googleapis';
 
@@ -116,8 +116,8 @@ export class BotsLivestreamDeliveryService {
     }
 
     const auth = new google.auth.OAuth2(
-      this.getConfigValue('YOUTUBE_CLIENT_ID'),
-      this.getConfigValue('YOUTUBE_CLIENT_SECRET'),
+      this.getConfigValue('GOOGLE_OAUTH_CLIENT_ID'),
+      this.getConfigValue('GOOGLE_OAUTH_CLIENT_SECRET'),
       this.getConfigValue('YOUTUBE_REDIRECT_URI'),
     );
     auth.setCredentials({

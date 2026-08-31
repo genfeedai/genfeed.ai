@@ -72,8 +72,10 @@ export interface IEnvConfig {
   BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION?: 'true' | 'false';
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
-  GOOGLE_CLIENT_ID?: string;
-  GOOGLE_CLIENT_SECRET?: string;
+
+  // === Shared Google OAuth ===
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
 
   // === Sentry ===
   SENTRY_DSN?: string;
@@ -186,8 +188,6 @@ export interface IEnvConfig {
   SOLANA_URL?: string;
 
   // === YouTube ===
-  YOUTUBE_CLIENT_ID?: string;
-  YOUTUBE_CLIENT_SECRET?: string;
   YOUTUBE_REDIRECT_URI?: string;
   YOUTUBE_API_KEY?: string;
 
@@ -281,12 +281,8 @@ export interface IEnvConfig {
   SHOPIFY_REDIRECT_URI?: string;
 
   // === Google Ads ===
-  GOOGLE_ADS_CLIENT_ID?: string;
-  GOOGLE_ADS_CLIENT_SECRET?: string;
   GOOGLE_ADS_REDIRECT_URI?: string;
   GOOGLE_ADS_DEVELOPER_TOKEN?: string;
-  GOOGLE_SEARCH_CONSOLE_CLIENT_ID?: string;
-  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET?: string;
   GOOGLE_SEARCH_CONSOLE_REDIRECT_URI?: string;
 
   // === Beehiiv ===

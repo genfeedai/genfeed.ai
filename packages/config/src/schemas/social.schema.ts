@@ -7,8 +7,6 @@ import { conditionalRequired, UNCONFIGURED_SECRET_SENTINEL } from '../helpers';
  */
 export const youtubeSchema = {
   YOUTUBE_API_KEY: Joi.string().optional().allow(''),
-  YOUTUBE_CLIENT_ID: conditionalRequired(),
-  YOUTUBE_CLIENT_SECRET: conditionalRequired(),
   YOUTUBE_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };
 
@@ -43,58 +41,20 @@ export const facebookSchema = {
 };
 
 /**
- * Google Ads OAuth (optional everywhere — the integration is not provisioned
- * in cloud production, and GoogleAdsOAuthService already degrades gracefully
- * when credentials are absent)
+ * Google Ads connector-specific configuration. The provider-level OAuth client
+ * is validated separately by googleOAuthSchema.
  */
 export const googleAdsSchema = {
-  GOOGLE_ADS_CLIENT_ID: Joi.string().optional().allow(''),
-  GOOGLE_ADS_CLIENT_SECRET: Joi.string().optional().allow(''),
   GOOGLE_ADS_REDIRECT_URI: Joi.string().uri().optional().allow(''),
   GOOGLE_ADS_DEVELOPER_TOKEN: Joi.string().optional().allow(''),
 };
 
 /**
- * Google Search Console OAuth (optional everywhere — GSC is user-provided
- * OAuth data and should not block Community/self-hosted boot when absent).
- *
- * All-or-none: if any one of the three vars is set, all three are required.
- * A partial configuration (e.g. CLIENT_ID without CLIENT_SECRET) will fail
- * validation at boot time with a clear message rather than silently at runtime.
+ * Google Search Console connector-specific configuration. The provider-level
+ * OAuth client is validated separately by googleOAuthSchema.
  */
 export const googleSearchConsoleSchema = {
-  /**
-   * CLIENT_ID is the anchor for all-or-none validation.
-   * If CLIENT_ID is set, CLIENT_SECRET and REDIRECT_URI are required.
-   * If CLIENT_ID is absent, all three are optional (no circular dep needed).
-   * A partial config that includes only CLIENT_SECRET or REDIRECT_URI will fail
-   * at runtime with a clear service-boot error rather than silently passing Joi.
-   */
-  GOOGLE_SEARCH_CONSOLE_CLIENT_ID: Joi.string().optional().allow(''),
-  GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET: Joi.when(
-    'GOOGLE_SEARCH_CONSOLE_CLIENT_ID',
-    {
-      is: Joi.string().min(1).required(),
-      otherwise: Joi.string().optional().allow(''),
-      // biome-ignore lint/suspicious/noThenProperty: Joi.when API requires `then`
-      then: Joi.string().required().messages({
-        'any.required':
-          'GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET is required when GOOGLE_SEARCH_CONSOLE_CLIENT_ID is set',
-      }),
-    },
-  ),
-  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: Joi.when(
-    'GOOGLE_SEARCH_CONSOLE_CLIENT_ID',
-    {
-      is: Joi.string().min(1).required(),
-      otherwise: Joi.string().uri().optional().allow(''),
-      // biome-ignore lint/suspicious/noThenProperty: Joi.when API requires `then`
-      then: Joi.string().uri().required().messages({
-        'any.required':
-          'GOOGLE_SEARCH_CONSOLE_REDIRECT_URI is required when GOOGLE_SEARCH_CONSOLE_CLIENT_ID is set',
-      }),
-    },
-  ),
+  GOOGLE_SEARCH_CONSOLE_REDIRECT_URI: Joi.string().uri().optional().allow(''),
 };
 
 /**
