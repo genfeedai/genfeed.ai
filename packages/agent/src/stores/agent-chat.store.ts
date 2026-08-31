@@ -307,6 +307,7 @@ interface AgentChatActions {
   addWorkEvent: (event: AgentWorkEvent) => void;
   addMessage: (message: AgentChatMessage) => void;
   setUiActionStatus: (actionId: string, status: string) => void;
+  clearStaleActiveRun: () => void;
   clearPendingInputRequest: () => void;
   setMessages: (messages: AgentChatMessage[]) => void;
   setMessagesPage: (page: AgentMessagesPage) => void;
@@ -741,6 +742,16 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       threadUiBusyById: {},
       workEvents: [],
     }),
+  clearStaleActiveRun: () => {
+    discardPendingStreamTokens();
+    set({
+      activeRunId: null,
+      activeRunStatus: 'idle',
+      isGenerating: false,
+      runStartedAt: null,
+      stream: { ...DEFAULT_STREAM_STATE },
+    });
+  },
   clearPendingInputRequest: () => set({ pendingInputRequest: null }),
   clearThreadAttention: (threadId) =>
     set((state) => ({

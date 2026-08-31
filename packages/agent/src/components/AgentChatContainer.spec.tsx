@@ -4,6 +4,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import {
   act,
   fireEvent,
@@ -139,11 +140,17 @@ vi.mock('../utils/extract-thread-assets', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: {
     density?: string;
+    onStop?: () => void | Promise<void>;
     showStop?: boolean;
   }) {
     return (
       <div data-density={props.density} data-testid="chat-input">
-        chat-input{props.showStop ? ' stop-visible' : ''}
+        chat-input
+        {props.showStop ? (
+          <button type="button" onClick={props.onStop}>
+            Stop agent
+          </button>
+        ) : null}
       </div>
     );
   },
@@ -271,6 +278,7 @@ type StoreState = {
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
+  clearStaleActiveRun: ReturnType<typeof vi.fn>;
   draftPlanModeEnabled: boolean;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
@@ -336,6 +344,7 @@ const storeState: StoreState = {
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
+  clearStaleActiveRun: vi.fn(),
   draftPlanModeEnabled: false,
   error: null,
   hasMoreMessages: false,
@@ -484,6 +493,7 @@ describe('AgentChatContainer', () => {
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
+    storeState.clearStaleActiveRun.mockReset();
     storeState.prependOlderMessages.mockClear();
     storeState.setActiveThread.mockReset();
     storeState.setActiveRun.mockReset();
@@ -521,6 +531,68 @@ describe('AgentChatContainer', () => {
     storeState.error = null;
     storeState.activeRunId = 'run-1';
     storeState.activeRunStatus = 'running';
+  });
+
+  it('clears a stale local run when the server has no active execution for the thread', async () => {
+    const apiService = createApiService();
+    storeState.activeRunId = 'run-stale';
+    storeState.activeRunStatus = 'running';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('reconciles a terminal snapshot run that arrives after the first active execution query', async () => {
+    const apiService = createApiService();
+    storeState.activeRunId = null;
+
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(1);
+    });
+    expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
+
+    storeState.activeRunId = 'run-from-terminal-snapshot';
+    view.rerender(
+      <AgentChatContainer apiService={apiService as never} isStreaming />,
+    );
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(2);
+      expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('does not clear a newer run that starts while active execution recovery is pending', async () => {
+    let resolveExecutions: (executions: []) => void = () => undefined;
+    const apiService = createApiService({
+      getActiveWorkflowExecutions: vi.fn(
+        () =>
+          new Promise<[]>((resolve) => {
+            resolveExecutions = resolve;
+          }),
+      ),
+    });
+    storeState.activeRunId = 'run-stale';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledTimes(1);
+    });
+    storeState.activeRunId = 'run-new';
+    resolveExecutions([]);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(storeState.clearStaleActiveRun).not.toHaveBeenCalled();
   });
 
   it('submits pending input through the response endpoint instead of chat send', async () => {
@@ -1309,6 +1381,40 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('treats a missing execution as an already-settled stop', async () => {
+    const apiService = createApiService({
+      cancelWorkflowExecution: vi.fn().mockRejectedValue(
+        new AgentApiRequestError({
+          detail: 'Execution not found',
+          message: 'Failed to cancel workflow execution: 404',
+          source: 'api',
+          status: 404,
+        }),
+      ),
+      getActiveWorkflowExecutions: vi.fn().mockResolvedValue([
+        {
+          id: 'run-1',
+          metadata: { threadId: 'thread-1' },
+          status: 'RUNNING',
+        },
+      ]),
+    });
+    isStreamingHookActive = true;
+    storeState.activeRunId = 'run-1';
+    storeState.activeRunStatus = 'running';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+    fireEvent.click(screen.getByRole('button', { name: 'Stop agent' }));
+
+    await waitFor(() => {
+      expect(apiService.cancelWorkflowExecution).toHaveBeenCalledWith('run-1');
+    });
+    expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to stop the active agent run.',
+    );
+  });
+
   it('keeps queued prompts isolated per conversation', () => {
     const apiService = createApiService();
     storeState.pendingInputRequest = null;
@@ -1542,7 +1648,9 @@ describe('AgentChatContainer', () => {
     );
 
     expect(screen.getByText('message')).toBeInTheDocument();
-    expect(screen.getByText('chat-input stop-visible')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Stop agent' }),
+    ).toBeInTheDocument();
   });
 
   it('renders a streaming row when the agent is active and keeps stop visible in the composer', () => {
@@ -1557,7 +1665,9 @@ describe('AgentChatContainer', () => {
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
 
     expect(screen.getByText(/streaming-row/)).toBeInTheDocument();
-    expect(screen.getByText('chat-input stop-visible')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Stop agent' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the latest proposed plan inline for review', () => {

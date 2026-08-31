@@ -339,6 +339,38 @@ describe('agent-chat.store stream state', () => {
 });
 
 describe('agent-chat.store run lifecycle', () => {
+  it('clears a stale active run without discarding completed work history', () => {
+    const completedEvent = {
+      createdAt: '2026-03-26T10:01:00.000Z',
+      id: 'work-1',
+      label: 'Generated image',
+      status: AgentWorkEventStatus.COMPLETED,
+      type: AgentWorkEventType.TOOL,
+    } as AgentWorkEvent;
+
+    useAgentChatStore.getState().setActiveRun('run-stale');
+    useAgentChatStore.getState().setIsGenerating(true);
+    useAgentChatStore.getState().setWorkEvents([completedEvent]);
+    useAgentChatStore.setState((state) => ({
+      stream: {
+        ...state.stream,
+        isStreaming: true,
+        streamingContent: 'stale partial response',
+      },
+    }));
+
+    useAgentChatStore.getState().clearStaleActiveRun();
+
+    const state = useAgentChatStore.getState();
+    expect(state.activeRunId).toBeNull();
+    expect(state.activeRunStatus).toBe('idle');
+    expect(state.isGenerating).toBe(false);
+    expect(state.runStartedAt).toBeNull();
+    expect(state.stream.isStreaming).toBe(false);
+    expect(state.stream.streamingContent).toBe('');
+    expect(state.workEvents).toEqual([completedEvent]);
+  });
+
   it('setActiveRun defaults to running when a run id is set', () => {
     useAgentChatStore.getState().setActiveRun('run-1');
 
