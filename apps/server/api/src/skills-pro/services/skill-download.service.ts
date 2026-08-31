@@ -215,8 +215,7 @@ export class SkillDownloadService {
     organizationId: string,
     receiptId: string,
   ): Promise<EntitlementReceipt | null> {
-    // tenant-scope-ignore: an opaque, globally unique receipt secret is looked
-    // up once so an authenticated organization can atomically claim it.
+    // tenant-scope-ignore: an opaque globally unique bearer receipt is looked up once so an authenticated organization can atomically claim it before data is returned
     const candidate = await this.prisma.skillReceipt.findFirst({
       where: {
         isDeleted: false,
