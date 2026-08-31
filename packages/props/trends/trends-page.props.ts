@@ -60,21 +60,23 @@ export interface TrendCorpusFreshnessSegment {
   status: TrendCorpusFreshnessStatus;
 }
 
+export interface TrendCorpusFreshnessProviderFailure {
+  affectedTrendCount: number;
+  latestObservedAt?: string;
+  message: string;
+  platform: string;
+  provider: string;
+  reason:
+    | 'empty_source_preview'
+    | 'fallback_source_preview'
+    | 'stale_source_preview';
+  retryAction: string;
+  severity: 'error' | 'warning';
+}
+
 export interface TrendCorpusFreshnessHealth {
   generatedAt: string;
-  providerFailures: Array<{
-    affectedTrendCount: number;
-    latestObservedAt?: string;
-    message: string;
-    platform: string;
-    provider: string;
-    reason:
-      | 'empty_source_preview'
-      | 'fallback_source_preview'
-      | 'stale_source_preview';
-    retryAction: string;
-    severity: 'error' | 'warning';
-  }>;
+  providerFailures: TrendCorpusFreshnessProviderFailure[];
   segments: TrendCorpusFreshnessSegment[];
   status: TrendCorpusFreshnessStatus;
   summary: {

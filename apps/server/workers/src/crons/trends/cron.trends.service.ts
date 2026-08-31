@@ -5,7 +5,11 @@ import {
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import {
@@ -139,7 +143,7 @@ export class CronTrendsService implements OnModuleInit {
     platform: string;
   }> {
     if (!task || !['hashtags', 'videos'].includes(task.dataset)) {
-      throw new Error('Trend dataset task is invalid');
+      throw new BadRequestException('Trend dataset task is invalid');
     }
     const count =
       task.dataset === 'videos'
@@ -197,7 +201,7 @@ export class CronTrendsService implements OnModuleInit {
     task: ScopedTrendRefreshTask,
   ): Promise<{ count: number; platform: string }> {
     if (!task?.organizationId || !task.brandId || !task.platform) {
-      throw new Error('Scoped trend refresh task is invalid');
+      throw new BadRequestException('Scoped trend refresh task is invalid');
     }
 
     const trends = await this.trendsService.fetchAndCachePlatformTrends(

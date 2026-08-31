@@ -1,6 +1,7 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyRunBudgetService } from '@server/services/integrations/apify/services/modules/apify-run-budget.service';
@@ -219,9 +220,11 @@ describe('ApifyBaseService', () => {
       }),
     );
 
-    await expect(service.runActor('test/actor', {})).rejects.toThrow(
+    const execution = service.runActor('test/actor', {});
+    await expect(execution).rejects.toThrow(
       'Actor run run-1 ended with status: FAILED',
     );
+    await expect(execution).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(runBudget.reconcileRun).toHaveBeenCalledWith(reservation, 0.004);
   });
 

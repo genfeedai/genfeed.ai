@@ -188,9 +188,12 @@ describe('TrendsService HTTP methods', () => {
       };
       http.get.mockResolvedValue(axiosResponse(health));
 
-      const result = await service.getCorpusFreshnessHealth();
+      const controller = new AbortController();
+      const result = await service.getCorpusFreshnessHealth(controller.signal);
 
-      expect(http.get).toHaveBeenCalledWith('/corpus/health');
+      expect(http.get).toHaveBeenCalledWith('/corpus/health', {
+        signal: controller.signal,
+      });
       expect(result).toEqual(health);
     });
 

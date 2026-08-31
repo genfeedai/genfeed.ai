@@ -523,6 +523,22 @@ describe('AnalyticsTrends', () => {
     expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
   });
 
+  it('shows corpus health as unavailable when its request fails', async () => {
+    mocks.getCorpusFreshnessHealth.mockRejectedValue(
+      new Error('corpus health failed'),
+    );
+
+    renderAnalyticsTrends();
+
+    expect(
+      await screen.findByText('Trend corpus unavailable'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Scheduled ingestion status could not be loaded.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Checking trend corpus')).not.toBeInTheDocument();
+  });
+
   it('renders empty topic copy and falls back to cached videos, hashtags, and sounds', async () => {
     mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
     mocks.getTrendingTopics.mockRejectedValue(new Error('topics failed'));
@@ -616,17 +632,21 @@ describe('AnalyticsTrends', () => {
     );
   });
 
-  it('deduplicates the canonical videos request across a Strict Mode remount', async () => {
+  it('deduplicates videos and aborts active requests across a Strict Mode remount', async () => {
     mocks.findAllVideos.mockReturnValue(new Promise(() => undefined));
 
     const view = renderAnalyticsTrends(true);
 
     await waitFor(() => {
       expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
+      expect(mocks.getCorpusFreshnessHealth).toHaveBeenCalled();
     });
 
     const requestSignal = mocks.findAllVideos.mock.calls[0]?.[1] as AbortSignal;
+    const corpusHealthCall = mocks.getCorpusFreshnessHealth.mock.calls.at(-1);
+    const corpusHealthSignal = corpusHealthCall?.[0] as AbortSignal;
     view.unmount();
     expect(requestSignal.aborted).toBe(true);
+    expect(corpusHealthSignal.aborted).toBe(true);
   });
 });

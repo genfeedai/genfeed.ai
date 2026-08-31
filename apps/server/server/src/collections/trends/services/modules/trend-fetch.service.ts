@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 import { TrendEntity } from '@server/collections/trends/entities/trend.entity';
 import type {
   ApifyTrendItem,
@@ -29,7 +28,6 @@ export interface TrendFetchBatchOptions extends TrendProviderExecutionOptions {
   platforms?: string[];
 }
 
-@Injectable()
 export class TrendFetchService {
   /**
    * Apify bills per actor run, so this TTL is a spend control, not a freshness

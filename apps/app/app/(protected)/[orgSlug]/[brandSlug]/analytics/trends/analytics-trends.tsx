@@ -27,6 +27,7 @@ export default function AnalyticsTrends() {
     handleSoundClick,
     handleVideoClick,
     hashtagPlatform,
+    isCorpusHealthUnavailable,
     isLoadingHashtags,
     isLoadingSounds,
     isLoadingTrends,
@@ -50,6 +51,7 @@ export default function AnalyticsTrends() {
       <TrendsPageHeader
         corpusHealth={corpusHealth}
         formattedLastSyncedAt={formattedLastSyncedAt}
+        isCorpusHealthUnavailable={isCorpusHealthUnavailable}
         videoCount={viralVideos.length}
         platformCount={TRENDS_PLATFORMS.length}
         leadingPlatform={leadingPlatform}

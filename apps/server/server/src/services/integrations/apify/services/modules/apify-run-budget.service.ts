@@ -38,6 +38,7 @@ export class ApifyRunBudgetService {
   private static readonly DEFAULT_MAX_TOTAL_CHARGE_USD_PER_RUN = 0.25;
   private static readonly HOSTED_SCOPE = 'hosted';
   private static readonly MICRO_USD_PER_USD = 1_000_000;
+  private static readonly MONTHLY_USAGE_TIMEOUT_MS = 15_000;
 
   private static readonly HOUR_WINDOW_SECONDS = 60 * 60;
   private static readonly DAY_WINDOW_SECONDS = 24 * 60 * 60;
@@ -134,12 +135,24 @@ export class ApifyRunBudgetService {
     reservation: ApifyRunBudgetReservation | undefined,
     actualUsageUsd: number | undefined,
   ): Promise<void> {
-    if (
-      !reservation ||
-      actualUsageUsd === undefined ||
-      !Number.isFinite(actualUsageUsd) ||
-      actualUsageUsd < 0
-    ) {
+    if (!reservation) {
+      return;
+    }
+
+    if (actualUsageUsd === undefined) {
+      this.loggerService.warn(
+        'Apify actual usage unavailable; retaining the billing reservation',
+        {
+          reservedUsd:
+            reservation.reservedMicroUsd /
+            ApifyRunBudgetService.MICRO_USD_PER_USD,
+          usageKey: reservation.usageKey,
+        },
+      );
+      return;
+    }
+
+    if (!Number.isFinite(actualUsageUsd) || actualUsageUsd < 0) {
       return;
     }
 
@@ -247,7 +260,10 @@ export class ApifyRunBudgetService {
       const response = await firstValueFrom(
         this.httpService.get<ApifyMonthlyUsageResponse>(
           'https://api.apify.com/v2/users/me/usage/monthly',
-          { headers: { Authorization: `Bearer ${token}` } },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: ApifyRunBudgetService.MONTHLY_USAGE_TIMEOUT_MS,
+          },
         ),
       );
       const usage = response.data.data;

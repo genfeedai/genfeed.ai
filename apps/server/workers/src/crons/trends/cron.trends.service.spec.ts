@@ -1,6 +1,7 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import {
@@ -151,6 +152,22 @@ describe('CronTrendsService', () => {
       'brand-1',
       { allowApifyFallback: false },
     );
+  });
+
+  it('rejects an invalid dataset task with a framework exception', async () => {
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.FETCH_DATASET);
+
+    await expect(
+      action?.({ input: { task: { dataset: 'unknown' } } }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects an invalid scoped task with a framework exception', async () => {
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED);
+
+    await expect(
+      action?.({ input: { task: { platform: 'instagram' } } }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('does not queue when local schedulers are disabled', async () => {

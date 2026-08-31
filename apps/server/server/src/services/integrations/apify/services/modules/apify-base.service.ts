@@ -346,7 +346,7 @@ export class ApifyBaseService {
         completedRun.usageTotalUsd,
       );
       if (completedRun.status !== 'SUCCEEDED') {
-        throw new Error(
+        throw new ServiceUnavailableException(
           `Actor run ${runId} ended with status: ${completedRun.status}`,
         );
       }

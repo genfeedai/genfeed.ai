@@ -28,6 +28,8 @@ describe('ApifyRunBudgetService', () => {
     );
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-31T10:00:00.000Z'));
     env = {};
     counters = {};
     claims = new Set();
@@ -82,7 +84,10 @@ describe('ApifyRunBudgetService', () => {
     service = build();
   });
 
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
 
   it('allows a run while both counters are under their caps', async () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '5';
@@ -266,6 +271,7 @@ describe('ApifyRunBudgetService', () => {
         headers: expect.objectContaining({
           Authorization: 'Bearer test-token',
         }),
+        timeout: 15_000,
       }),
     );
   });
@@ -364,5 +370,23 @@ describe('ApifyRunBudgetService', () => {
     const usageKey = decision.reservation?.usageKey;
     expect(usageKey).toBeDefined();
     expect(counters[usageKey as string]).toBe(12_000);
+  });
+
+  it('retains and reports the reservation when Apify omits actual usage', async () => {
+    const reservation = {
+      reservedMicroUsd: 250_000,
+      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
+    };
+
+    await service.reconcileRun(reservation, undefined);
+
+    expect(cacheService.incr).not.toHaveBeenCalled();
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      'Apify actual usage unavailable; retaining the billing reservation',
+      {
+        reservedUsd: 0.25,
+        usageKey: reservation.usageKey,
+      },
+    );
   });
 });

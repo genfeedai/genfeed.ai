@@ -12,6 +12,7 @@ import { Text } from '@ui/typography/text';
 type Props = {
   corpusHealth: TrendCorpusFreshnessHealth | null;
   formattedLastSyncedAt: string;
+  isCorpusHealthUnavailable: boolean;
   videoCount: number;
   platformCount: number;
   leadingPlatform: { label: string; totalMentions: number } | null;
@@ -50,7 +51,16 @@ const STATUS_VIEW: Record<TrendCorpusFreshnessStatus, CorpusStatusView> = {
 function getCorpusStatusView(
   corpusHealth: TrendCorpusFreshnessHealth | null,
   formattedLastSyncedAt: string,
+  isCorpusHealthUnavailable: boolean,
 ): CorpusStatusView {
+  if (isCorpusHealthUnavailable) {
+    return {
+      detail: 'Scheduled ingestion status could not be loaded.',
+      label: 'Trend corpus unavailable',
+      variant: 'error',
+    };
+  }
+
   if (!corpusHealth) {
     return {
       detail: 'Checking scheduled ingestion status.',
@@ -89,12 +99,17 @@ function getCorpusStatusView(
 export default function TrendsPageHeader({
   corpusHealth,
   formattedLastSyncedAt,
+  isCorpusHealthUnavailable,
   videoCount,
   platformCount,
   leadingPlatform,
   totalTrackedTopics,
 }: Props) {
-  const corpusStatus = getCorpusStatusView(corpusHealth, formattedLastSyncedAt);
+  const corpusStatus = getCorpusStatusView(
+    corpusHealth,
+    formattedLastSyncedAt,
+    isCorpusHealthUnavailable,
+  );
 
   return (
     <header>

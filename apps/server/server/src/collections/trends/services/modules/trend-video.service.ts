@@ -252,8 +252,10 @@ export class TrendVideoService {
       const nativeVideos = await this.youtubeService.getTrends('US', limit);
       if (nativeVideos.length > 0) {
         return nativeVideos.map((video) => {
+          const hoursAgo = this.getHoursSincePublication(video.publishedAt);
           const metrics = ViralScoringUtil.calculateVideoMetrics({
             commentCount: video.commentCount,
+            hoursAgo,
             likeCount: video.likeCount,
             shareCount: 0,
             viewCount: video.viewCount,
@@ -286,6 +288,15 @@ export class TrendVideoService {
 
     const fallbackVideos = await this.apifyService.getYouTubeVideos(limit);
     return fallbackVideos.map((video) => ({ ...video }));
+  }
+
+  private getHoursSincePublication(publishedAt?: string): number {
+    const publishedAtMs = publishedAt ? Date.parse(publishedAt) : Number.NaN;
+    const elapsedMs = Date.now() - publishedAtMs;
+
+    return Number.isFinite(elapsedMs) && elapsedMs > 0
+      ? elapsedMs / (60 * 60 * 1000)
+      : 24;
   }
 
   // ==================== Trending Hashtags ====================

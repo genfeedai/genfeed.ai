@@ -103,6 +103,8 @@ export function useAnalyticsTrends() {
   const [trendingTopics, setTrendingTopics] = useState<TrendItem[]>([]);
   const [corpusHealth, setCorpusHealth] =
     useState<TrendCorpusFreshnessHealth | null>(null);
+  const [isCorpusHealthUnavailable, setIsCorpusHealthUnavailable] =
+    useState(false);
   const [isLoadingTrends, setIsLoadingTrends] = useState(true);
 
   // New state for hashtags and sounds
@@ -217,24 +219,30 @@ export function useAnalyticsTrends() {
   }, [getTrendsService]);
 
   useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
 
     const fetchCorpusHealth = async () => {
+      setIsCorpusHealthUnavailable(false);
       try {
+        controller.signal.throwIfAborted();
         const service = await getTrendsService();
-        const health = await service.getCorpusFreshnessHealth();
-        if (active) {
-          setCorpusHealth(health);
-        }
+        controller.signal.throwIfAborted();
+        const health = await service.getCorpusFreshnessHealth(
+          controller.signal,
+        );
+        controller.signal.throwIfAborted();
+        setCorpusHealth(health);
       } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
         logger.error('Failed to fetch trend corpus health', { error });
+        setIsCorpusHealthUnavailable(true);
       }
     };
 
     fetchCorpusHealth();
-    return () => {
-      active = false;
-    };
+    return () => controller.abort();
   }, [getTrendsService]);
 
   useEffect(() => {
@@ -528,6 +536,7 @@ export function useAnalyticsTrends() {
     handleVideoClick,
     hashtagPlatform,
     isLoadingHashtags,
+    isCorpusHealthUnavailable,
     isLoadingSounds,
     isLoadingTrends,
     isLoadingVideos,

@@ -176,9 +176,13 @@ export class TrendsService extends BaseService<Trend> {
     );
   }
 
-  async getCorpusFreshnessHealth(): Promise<TrendCorpusFreshnessHealth> {
-    const response =
-      await this.instance.get<TrendCorpusFreshnessHealth>('/corpus/health');
+  async getCorpusFreshnessHealth(
+    signal?: AbortSignal,
+  ): Promise<TrendCorpusFreshnessHealth> {
+    const response = await this.instance.get<TrendCorpusFreshnessHealth>(
+      '/corpus/health',
+      { signal },
+    );
     return response.data;
   }
 

@@ -244,6 +244,30 @@ describe('TrendVideoService', () => {
       });
     });
 
+    it('scores native YouTube velocity from the publication age', async () => {
+      mockYoutubeService.getTrends.mockResolvedValue([
+        {
+          channelTitle: 'Older native channel',
+          commentCount: 4,
+          id: 'older-native-video',
+          likeCount: 25,
+          publishedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          tags: [],
+          title: 'Older native trend',
+          url: 'https://youtube.test/watch?v=older-native-video',
+          viewCount: 1008,
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('youtube', 12);
+
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          data: expect.objectContaining({ velocity: 21 }),
+        }),
+      });
+    });
+
     it('reads existing videos once for the whole batch and updates the match', async () => {
       mockApifyService.getTikTokVideos.mockResolvedValue([
         { externalId: 'a', title: 'A' },
