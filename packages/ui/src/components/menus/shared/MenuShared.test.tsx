@@ -147,15 +147,8 @@ vi.mock('@genfeedai/hooks/ui/use-theme-logo/use-theme-logo', () => ({
   useThemeLogo: () => mockLogoUrl.value,
 }));
 
-vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
-  useOverviewBootstrap: () => ({
-    reviewInbox: {
-      changesRequestedCount: 4,
-      pendingCount: 30,
-      readyCount: 6,
-      rejectedCount: 0,
-    },
-  }),
+vi.mock('@genfeedai/hooks/data/tasks/use-workspace-inbox-count', () => ({
+  useWorkspaceInboxCount: () => 2,
 }));
 
 vi.mock('@ui/menus/item/MenuItem', () => ({
@@ -352,7 +345,7 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('attaches the actionable inbox count to the workspace inbox row', () => {
+  it('attaches the unread workspace task count to the inbox row', () => {
     const inboxConfig: MenuShellConfig = {
       items: [
         {
@@ -369,7 +362,7 @@ describe('MenuShared', () => {
 
     render(<MenuShared config={inboxConfig} />);
 
-    expect(screen.getByText('Inbox (40)')).toBeInTheDocument();
+    expect(screen.getByText('Inbox (2)')).toBeInTheDocument();
   });
 
   it('renders the primary action CTA before navigation items', () => {

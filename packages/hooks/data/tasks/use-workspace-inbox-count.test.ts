@@ -5,13 +5,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockList = vi.fn();
 const mockResolveAuthToken = vi.fn();
 
-vi.mock('@genfeedai/services/management/tasks.service', () => ({
-  TasksService: {
-    getInstance: vi.fn(() => ({
-      list: mockList,
-    })),
+vi.mock(
+  '@genfeedai/services/management/tasks.service',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/services/management/tasks.service')
+      >();
+
+    return {
+      ...actual,
+      TasksService: {
+        getInstance: vi.fn(() => ({
+          list: mockList,
+        })),
+      },
+    };
   },
-}));
+);
 
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: (...args: unknown[]) => mockResolveAuthToken(...args),
@@ -65,9 +76,10 @@ describe('useWorkspaceInboxCount', () => {
     });
 
     await waitFor(() => {
-      expect(result.current).toBe(0);
+      expect(mockResolveAuthToken).toHaveBeenCalledTimes(1);
     });
 
+    expect(result.current).toBe(0);
     expect(mockList).not.toHaveBeenCalled();
   });
 });

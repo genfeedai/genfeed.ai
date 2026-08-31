@@ -1,7 +1,12 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { ReviewDecision } from '@genfeedai/enums';
 import type { VideoContinuityQaReport } from '@genfeedai/interfaces';
-import { Task, type TaskEvent } from '@services/management/tasks.service';
+import {
+  isTaskInWorkspaceInboxQueue,
+  isUnreadWorkspaceInboxTask,
+  Task,
+  type TaskEvent,
+} from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
 export type WorkspaceSection = 'inbox' | 'overview';
@@ -124,9 +129,7 @@ export const WORKSPACE_CARD_GRID_GAP_CLASS =
   'grid gap-3 md:grid-cols-2 xl:grid-cols-4';
 export const WORKSPACE_SECTION_STACK_CLASS = 'space-y-4';
 
-export function isTaskInInboxQueue(task: Task): boolean {
-  return task.dismissedAt == null && task.reviewState !== 'dismissed';
-}
+export const isTaskInInboxQueue = isTaskInWorkspaceInboxQueue;
 
 export function getTaskContinuityQa(
   task: Task,
@@ -147,16 +150,7 @@ export function isVideoContinuityQaReport(
   );
 }
 
-export function isUnreadInboxTask(task: Task): boolean {
-  return (
-    task.reviewState === 'pending_approval' ||
-    task.reviewState === 'changes_requested' ||
-    task.status === 'backlog' ||
-    task.status === 'in_progress' ||
-    task.status === 'in_review' ||
-    task.status === 'failed'
-  );
-}
+export const isUnreadInboxTask = isUnreadWorkspaceInboxTask;
 
 export function formatTaskTimestamp(task: Task): string {
   const source = task.updatedAt ?? task.createdAt;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
+import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 
 import MenuItem from '@ui/menus/item/MenuItem';
@@ -22,12 +22,7 @@ export default function WorkspaceInboxMenuItem({
   outline?: MenuItemConfig['outline'];
   solid?: MenuItemConfig['solid'];
 }) {
-  const { reviewInbox } = useOverviewBootstrap();
-  const actionableCount =
-    reviewInbox.pendingCount +
-    reviewInbox.readyCount +
-    reviewInbox.changesRequestedCount +
-    reviewInbox.rejectedCount;
+  const actionableCount = useWorkspaceInboxCount();
 
   return (
     <MenuItem
