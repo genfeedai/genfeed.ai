@@ -387,12 +387,23 @@ export class AgentThreadsService extends BaseService<
       pendingInputCount,
     );
     const lastAssistantMessage = this.asRecord(snapshot.lastAssistantMessage);
-    const lastAssistantPreview = this.readString(
-      lastAssistantMessage,
-      'content',
-    );
+    const lastMeaningfulTimelineAssistant = [...(snapshot.timeline ?? [])]
+      .reverse()
+      .map((entry) => this.asRecord(entry))
+      .find(
+        (entry) =>
+          this.readString(entry, 'kind') === 'assistant' &&
+          Boolean(this.readString(entry, 'detail')?.trim()),
+      );
+    const lastAssistantPreview =
+      this.readString(lastAssistantMessage, 'content')?.trim() ||
+      this.readString(lastMeaningfulTimelineAssistant, 'detail')?.trim();
     const lastActivityAt =
-      this.readString(lastAssistantMessage, 'createdAt') ??
+      (lastAssistantPreview
+        ? this.readString(lastAssistantMessage, 'content')?.trim()
+          ? this.readString(lastAssistantMessage, 'createdAt')
+          : this.readString(lastMeaningfulTimelineAssistant, 'createdAt')
+        : undefined) ??
       this.readString(activeRun, 'completedAt') ??
       this.readString(activeRun, 'startedAt') ??
       this.readString(this.asRecord(snapshot), 'updatedAt');

@@ -1,10 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import type { AgentThreadEventDocument } from '@server/services/agent-threading/schemas/agent-thread-event.schema';
 import type { AgentThreadSnapshotDocument } from '@server/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import type {
   AgentThreadTimelineEntry,
   AgentThreadUiBlocksState,
 } from '@server/services/agent-threading/types/agent-thread.types';
-import { Injectable } from '@nestjs/common';
 
 const MAX_TIMELINE_ENTRIES = 250;
 
@@ -54,14 +54,22 @@ export class AgentThreadProjectorService {
         };
         break;
       case 'assistant.finalized':
-        nextSnapshot.lastAssistantMessage = {
-          content: this.readString(event.payload, 'content') ?? '',
-          createdAt: event.occurredAt ?? new Date().toISOString(),
-          messageId:
-            this.readString(event.payload, 'messageId') ??
-            `${this.threadIdFor(event)}:${event.sequence}`,
-          metadata: this.readRecord(event.payload, 'metadata'),
-        };
+        {
+          const content = this.readString(event.payload, 'content')?.trim();
+          // UI-action-only turns can finalize an assistant record without
+          // visible copy. Keep the last meaningful response for thread-list
+          // previews instead of replacing it with an empty message.
+          if (content) {
+            nextSnapshot.lastAssistantMessage = {
+              content,
+              createdAt: event.occurredAt ?? new Date().toISOString(),
+              messageId:
+                this.readString(event.payload, 'messageId') ??
+                `${this.threadIdFor(event)}:${event.sequence}`,
+              metadata: this.readRecord(event.payload, 'metadata'),
+            };
+          }
+        }
         break;
       case 'input.requested':
         nextSnapshot.pendingInputRequests = this.upsertPendingInputRequest(
