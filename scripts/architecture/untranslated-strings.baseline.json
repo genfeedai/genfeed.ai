@@ -591,7 +591,6 @@
     "packages/ui/src/components/posts/post-detail-sidebar/PostDetailSidebar.tsx": 2,
     "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarPlatformCard.tsx": 1,
     "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx": 10,
-    "packages/ui/src/components/posts/post-detail-sidebar/PostSidebarScheduleCard.tsx": 1,
     "packages/ui/src/components/posts/preview/thread-preview-panel/ThreadPreviewPanel.tsx": 3,
     "packages/ui/src/components/preview/ContentPreviewSidebar.tsx": 3,
     "packages/ui/src/components/pricing/card/PricingCard.tsx": 7,
