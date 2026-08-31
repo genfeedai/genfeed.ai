@@ -5,10 +5,6 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      '@genfeedai/constants': path.resolve(
-        import.meta.dirname,
-        '../../packages/constants/src/index.ts',
-      ),
       '@genfeedai/enums': path.resolve(
         import.meta.dirname,
         '../../packages/enums/src/index.ts',
