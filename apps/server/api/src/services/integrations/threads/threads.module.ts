@@ -16,6 +16,6 @@ const BaseModule = createServiceModule(ThreadsService, {
   controllers: [ThreadsCallbackController, ThreadsController],
   exports: BaseModule.exports,
   imports: BaseModule.imports,
-  providers: [...BaseModule.providers, ThreadsCallbackService],
+  providers: [...(BaseModule.providers ?? []), ThreadsCallbackService],
 })
 export class ThreadsModule {}
