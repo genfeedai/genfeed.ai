@@ -1,8 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
@@ -63,17 +61,6 @@ const mockRouter = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
 }));
-
-function MessagesNavPanelProbe() {
-  const workspaceNavPanel = useWorkspaceNavPanel();
-
-  return workspaceNavPanel?.portalTarget
-    ? createPortal(
-        <div data-testid="social-conversation-list">Conversation list</div>,
-        workspaceNavPanel.portalTarget,
-      )
-    : null;
-}
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
@@ -1104,21 +1091,16 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
-  it('hands the nav column to the Messages conversation list', () => {
+  it('keeps Messages module navigation while the page owns its mailbox list', () => {
     mockPathname.value = '/org-123/brand-123/messages';
 
     render(
       <AppProtectedLayout>
-        <MessagesNavPanelProbe />
         <div>Messages canvas</div>
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('messages-nav-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('messages-nav-panel')).toHaveTextContent(
-      'Conversation list',
-    );
-    expect(screen.getByTestId('social-conversation-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('messages-nav-panel')).not.toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',

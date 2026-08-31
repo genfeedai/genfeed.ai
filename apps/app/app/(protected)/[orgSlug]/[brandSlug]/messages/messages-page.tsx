@@ -1,7 +1,6 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
@@ -38,16 +37,14 @@ import {
   CircleCheck,
   LinkIcon,
   MessageSquare,
-  RefreshCw,
   Send,
+  Sparkles,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 
-import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   getParticipantLabel,
   MessagesConversationSidebar,
@@ -193,7 +190,6 @@ export default function MessagesPage() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { replace } = useRouter();
-  const workspaceNavPanel = useWorkspaceNavPanel();
   const getMessagesService = useAuthedService((token: string) =>
     SocialMessagesService.getInstance(token),
   );
@@ -201,6 +197,8 @@ export default function MessagesPage() {
   const activeThread = useAgentChatStore((state) =>
     state.threads.find((thread) => thread.id === state.activeThreadId),
   );
+  const seedAgentComposer = useAgentChatStore((state) => state.seedComposer);
+  const setAgentOpen = useAgentChatStore((state) => state.setIsOpen);
 
   const routeBrandId = useMemo(() => {
     if (!brandSlug) {
@@ -349,11 +347,36 @@ export default function MessagesPage() {
     selectedConversation,
   });
 
-  const isDmSurface = filters.conversationType === SocialConversationType.DM;
   // A DM has no post or comment behind it, so the thread reads top-to-bottom
   // on its own instead of hanging off a source-content anchor.
   const isDmThread =
     selectedConversation?.conversationType === SocialConversationType.DM;
+
+  const handleDraftWithAgent = useCallback(() => {
+    if (!activeThreadId || !selectedConversation || !canAttachReferences) {
+      return;
+    }
+
+    if (!isConversationReferenced) {
+      handleToggleConversationReference();
+    }
+
+    const replyKind = isDmThread ? 'direct-message response' : 'public reply';
+    seedAgentComposer(
+      `Draft a concise ${replyKind} for the selected Messages conversation. Match the brand voice, answer the sender's actual point, and do not publish or send anything until I approve it.`,
+      activeThreadId,
+    );
+    setAgentOpen(true);
+  }, [
+    activeThreadId,
+    canAttachReferences,
+    handleToggleConversationReference,
+    isConversationReferenced,
+    isDmThread,
+    seedAgentComposer,
+    selectedConversation,
+    setAgentOpen,
+  ]);
   const availability = selectedConversation?.availability ?? {
     canPostReply: false,
     canSendDm: false,
@@ -418,8 +441,6 @@ export default function MessagesPage() {
         updateSelectedConversationParam(null);
       }}
       onConversationTypeChange={(value) => {
-        // Surfaces are separate destinations, so the comment thread that was
-        // open has no meaning on the DM list.
         filters.setConversationType(value);
         setSelectedId(null);
         updateSelectedConversationParam(null);
@@ -442,16 +463,11 @@ export default function MessagesPage() {
       view={filters.inboxView}
     />
   );
-  const isConversationNavPortaled = Boolean(workspaceNavPanel?.portalTarget);
-
   return (
     <Container
       bodyClassName="flex min-h-0 flex-1 flex-col"
       className="flex h-full min-h-0 flex-col overflow-hidden"
     >
-      {workspaceNavPanel?.portalTarget
-        ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
-        : null}
       <h1 className="sr-only">Messages</h1>
       {error ? (
         <div
@@ -472,17 +488,12 @@ export default function MessagesPage() {
       ) : null}
 
       <div
-        className={cn(
-          'grid min-h-0 flex-1 overflow-hidden rounded bg-card shadow-border',
-          !isConversationNavPortaled && 'lg:grid-cols-[380px_minmax(0,1fr)]',
-        )}
+        className="grid min-h-0 flex-1 overflow-hidden rounded bg-card shadow-border lg:grid-cols-[380px_minmax(0,1fr)]"
         data-testid="messages-surface-layout"
       >
-        {!isConversationNavPortaled ? (
-          <div className="border-b border-border lg:border-b-0 lg:border-r">
-            {conversationNavPanel}
-          </div>
-        ) : null}
+        <div className="border-b border-border lg:border-b-0 lg:border-r">
+          {conversationNavPanel}
+        </div>
 
         <div className="flex min-h-0 min-w-0 flex-col">
           {selectedConversation ? (
@@ -503,7 +514,8 @@ export default function MessagesPage() {
                       {getParticipantLabel(selectedConversation)}
                     </h2>
                     <p className="mt-1 text-xs font-medium text-primary/70">
-                      Social conversation · separate from agent thread
+                      {isDmThread ? 'Direct message' : 'Comment'} ·{' '}
+                      {selectedConversation.platform}
                     </p>
                     {isDmThread ? null : (
                       <p className="mt-1 truncate text-xs text-gray-800">
@@ -524,46 +536,51 @@ export default function MessagesPage() {
                         Automation
                       </Link>
                     </Button>
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      icon={<CircleCheck className="size-4" />}
-                      isDisabled={Boolean(busyAction)}
-                      isLoading={busyAction === 'status'}
-                      onClick={() =>
-                        handleStatusChange(
-                          'resolved' satisfies SocialConversationStatus,
-                        )
-                      }
-                    >
-                      Resolve
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={Boolean(busyAction)}
-                      isLoading={busyAction === 'status'}
-                      onClick={() =>
-                        handleStatusChange(
-                          'open' satisfies SocialConversationStatus,
-                        )
-                      }
-                    >
-                      Reopen
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={Boolean(busyAction)}
-                      isLoading={busyAction === 'status'}
-                      onClick={() =>
-                        handleStatusChange(
-                          'needs_review' satisfies SocialConversationStatus,
-                        )
-                      }
-                    >
-                      Needs Review
-                    </Button>
+                    {selectedConversation.status === 'resolved' ? (
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={Boolean(busyAction)}
+                        isLoading={busyAction === 'status'}
+                        onClick={() =>
+                          handleStatusChange(
+                            'open' satisfies SocialConversationStatus,
+                          )
+                        }
+                      >
+                        Reopen
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        icon={<CircleCheck className="size-4" />}
+                        isDisabled={Boolean(busyAction)}
+                        isLoading={busyAction === 'status'}
+                        onClick={() =>
+                          handleStatusChange(
+                            'resolved' satisfies SocialConversationStatus,
+                          )
+                        }
+                      >
+                        Resolve
+                      </Button>
+                    )}
+                    {selectedConversation.status !== 'needs_review' ? (
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={Boolean(busyAction)}
+                        isLoading={busyAction === 'status'}
+                        onClick={() =>
+                          handleStatusChange(
+                            'needs_review' satisfies SocialConversationStatus,
+                          )
+                        }
+                      >
+                        Needs Review
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -621,13 +638,30 @@ export default function MessagesPage() {
 
               <div className="border-t border-border p-4">
                 <div className="mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Social reply composer
-                  </p>
-                  <p className="mt-1 text-xs text-gray-800">
-                    Uses the current social credential and never writes to agent
-                    thread history.
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Reply composer
+                      </p>
+                      <p className="mt-1 text-xs text-foreground/45">
+                        Review every draft before it is sent or published.
+                      </p>
+                    </div>
+                    <Button
+                      icon={<Sparkles className="size-4" />}
+                      isDisabled={!canAttachReferences || Boolean(busyAction)}
+                      onClick={handleDraftWithAgent}
+                      size={ButtonSize.SM}
+                      title={
+                        canAttachReferences
+                          ? 'Attach this conversation and draft with the agent'
+                          : 'Select an agent thread for this brand first'
+                      }
+                      variant={ButtonVariant.SECONDARY}
+                    >
+                      Draft with Agent
+                    </Button>
+                  </div>
                 </div>
                 <Textarea
                   aria-label="Social reply or direct message"
@@ -695,48 +729,15 @@ export default function MessagesPage() {
                 aria-hidden="true"
                 className="size-10 text-gray-800"
               />
-              {!isLoadingConversations && conversations.length === 0 ? (
-                <>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {isDmSurface
-                        ? 'No direct messages yet'
-                        : 'No comments yet'}
-                    </p>
-                    <p className="max-w-sm text-xs leading-5 text-gray-800">
-                      {isDmSurface
-                        ? 'Connect an Instagram account and sync to pull DM threads. Pick a thread here once they appear in the list.'
-                        : 'Connect a channel and sync to pull comments. Pick a conversation here once threads appear in the list.'}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                    <AgentOAuthConnectMenu
-                      hideIcon
-                      onOAuthConnect={handleOAuthConnect}
-                      triggerLabel="Connect accounts"
-                      triggerSize={ButtonSize.SM}
-                      triggerVariant={ButtonVariant.SECONDARY}
-                    />
-                    <Button
-                      isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-                      isLoading={busyAction === 'sync'}
-                      onClick={() => {
-                        void handleSync();
-                      }}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    >
-                      <RefreshCw aria-hidden="true" className="size-3.5" />
-                      Sync messages
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">
                   Select a conversation
                 </p>
-              )}
+                <p className="max-w-sm text-xs leading-5 text-foreground/38">
+                  Review the thread, draft a response with the agent, then send
+                  or resolve it here.
+                </p>
+              </div>
             </div>
           )}
         </div>

@@ -42,10 +42,7 @@ import {
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import {
-  useWorkspaceNavPanel,
-  WorkspaceNavPanelProvider,
-} from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import { WorkspaceNavPanelProvider } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   isFocusedOnboardingPath,
   normalizeProtectedPathname,
@@ -143,7 +140,6 @@ function AppLayoutWithDynamicMenu({
     isLibraryLandingRoute,
     isLibraryRoute,
     isMessagesRoute,
-    isMessagesInboxRoute,
     isOrgRoute,
     suppressShellLowCreditsBanner,
     isDiscoverRoute,
@@ -268,35 +264,6 @@ function AppLayoutWithDynamicMenu({
       ),
     };
   }, [isConversationRoute]);
-  const workspaceNavPanel = useWorkspaceNavPanel();
-  const setWorkspaceNavPanelPortalTarget =
-    workspaceNavPanel?.setPortalTarget ?? null;
-  const setWorkspaceNavPanelPortalTargetRef = useRef(
-    setWorkspaceNavPanelPortalTarget,
-  );
-  setWorkspaceNavPanelPortalTargetRef.current =
-    setWorkspaceNavPanelPortalTarget;
-  // Identity-stable portal ref — inline arrows on each renderBody() call would
-  // re-bind the ref every MenuShared pass (null → node flicker on consumers).
-  const workspaceNavPortalRef = useCallback((node: HTMLDivElement | null) => {
-    setWorkspaceNavPanelPortalTargetRef.current?.(node);
-  }, []);
-  const messagesNavPanel = useMemo<SidebarNavPanel | null>(
-    () =>
-      isMessagesInboxRoute
-        ? {
-            render: () => (
-              <div
-                className="flex h-full min-h-0 flex-col"
-                data-testid="messages-nav-panel"
-                ref={workspaceNavPortalRef}
-              />
-            ),
-            sectionLabel: 'Messages',
-          }
-        : null,
-    [isMessagesInboxRoute, workspaceNavPortalRef],
-  );
   // Render Library nav in-shell (not via portal). The empty-portal pattern left
   // the column blank when portalTarget never attached (refresh, race, layout
   // order). LibrarySidebarNav is self-contained and does not need the page tree.
@@ -317,8 +284,7 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isLibraryRoute],
   );
-  const activeNavPanel =
-    conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
+  const activeNavPanel = conversationNavPanel ?? libraryNavPanel;
 
   const menuComponent = useMemo(() => {
     // Focused onboarding has no module nav. Editor/workflow canvas routes also

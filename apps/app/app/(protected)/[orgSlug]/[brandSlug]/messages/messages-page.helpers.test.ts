@@ -42,12 +42,26 @@ describe('settleMessagesSyncJobs', () => {
 });
 
 describe('getMessagesSyncFeedback', () => {
+  it('describes a unified inbox sync', () => {
+    expect(
+      getMessagesSyncFeedback({
+        failedPlatforms: [],
+        hasSuccess: true,
+        scope: 'all',
+      }),
+    ).toEqual({
+      error: null,
+      notice:
+        'Inbox sync started. New comments and direct messages will appear here once the background jobs finish.',
+    });
+  });
+
   it('keeps the success notice when every platform queued', () => {
     expect(
       getMessagesSyncFeedback({
         failedPlatforms: [],
         hasSuccess: true,
-        isDirectMessage: false,
+        scope: 'comments',
       }),
     ).toEqual({
       error: null,
@@ -61,12 +75,12 @@ describe('getMessagesSyncFeedback', () => {
       getMessagesSyncFeedback({
         failedPlatforms: ['X'],
         hasSuccess: true,
-        isDirectMessage: true,
+        scope: 'dms',
       }),
     ).toEqual({
       error: null,
       notice:
-        'Direct message sync started. New threads will appear here once the background job finishes. Partial failure: X failed to queue.',
+        'Direct message sync started. New threads will appear here once the background jobs finish. Partial failure: X failed to queue.',
     });
   });
 
@@ -75,7 +89,7 @@ describe('getMessagesSyncFeedback', () => {
       getMessagesSyncFeedback({
         failedPlatforms: ['Instagram', 'X', 'LinkedIn'],
         hasSuccess: false,
-        isDirectMessage: true,
+        scope: 'dms',
       }),
     ).toEqual({
       error: 'Sync failed to queue for Instagram, X, LinkedIn.',
