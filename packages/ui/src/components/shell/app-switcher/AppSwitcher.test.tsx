@@ -273,67 +273,100 @@ describe('AppSwitcher', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('melts the hovered app details into the switcher left edge', () => {
-    render(<AppSwitcher orgSlug="acme" />);
+  it('keeps a fixed launcher width and shows app details outside the panel', () => {
+    const { container } = render(<AppSwitcher orgSlug="acme" />);
 
-    expect(
-      screen.queryByRole('status', {
-        name: 'Agent: Ask and execute.',
-      }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('app-switcher-content')).toHaveClass(
-      'sm:w-[19rem]',
+    const content = screen.getByTestId('app-switcher-content');
+    const preview = container.querySelector('[data-app-switcher-preview]');
+    const panel = container.querySelector('[data-app-switcher-panel]');
+    const agentLink = screen.getByRole('link', { name: 'Agent' });
+
+    vi.spyOn(panel as HTMLElement, 'getBoundingClientRect').mockReturnValue({
+      top: 20,
+    } as DOMRect);
+    vi.spyOn(agentLink, 'getBoundingClientRect').mockReturnValue({
+      top: 74,
+    } as DOMRect);
+
+    expect(content).toHaveClass(
+      'sm:w-[16.25rem]',
       'bg-transparent',
       'shadow-none',
     );
-    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
+    expect(preview).toHaveAttribute('data-state', 'closed');
+    fireEvent.mouseEnter(agentLink);
 
-    const tooltip = screen.getByRole('status', {
-      name: 'Agent: Ask and execute.',
-    });
-
-    expect(tooltip).toHaveStyle({ top: '54px' });
-    expect(tooltip).toHaveClass('-right-px', 'bg-secondary', 'shadow-dropdown');
-    expect(tooltip.className).not.toContain('right-[calc(100%-1px)]');
-    expect(tooltip.className).not.toContain('border-r');
-    expect(tooltip.querySelector('svg')).toBeInTheDocument();
-    expect(tooltip).toHaveTextContent('Agent');
-    expect(tooltip).toHaveTextContent('Ask and execute.');
-    expect(screen.getByTestId('app-switcher-content')).toHaveClass(
-      'sm:w-[35rem]',
+    expect(preview).toHaveAttribute('data-state', 'open');
+    expect(preview).toHaveStyle({ top: '54px' });
+    expect(preview).toHaveClass(
+      'right-[calc(100%+0.5rem)]',
+      'w-60',
+      'bg-secondary',
+      'shadow-dropdown',
     );
-
-    fireEvent.mouseLeave(screen.getByRole('group', { name: 'Apps' }));
+    expect(preview?.querySelector('svg')).toBeInTheDocument();
+    expect(preview).toHaveTextContent('Agent');
+    expect(preview).toHaveTextContent('Ask and execute.');
+    expect(content).toHaveClass('sm:w-[16.25rem]');
     expect(
       screen.queryByRole('status', { name: 'Agent: Ask and execute.' }),
     ).not.toBeInTheDocument();
+
+    fireEvent.mouseLeave(screen.getByRole('group', { name: 'Apps' }));
+    expect(preview).toHaveAttribute('data-state', 'closed');
   });
 
   it('aligns hovered details with the app grid row', () => {
-    render(<AppSwitcher orgSlug="acme" />);
+    const { container } = render(<AppSwitcher orgSlug="acme" />);
+    const panel = container.querySelector('[data-app-switcher-panel]');
+    const discoverLink = screen.getByRole('link', { name: 'Discover' });
 
-    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Discover' }));
+    vi.spyOn(panel as HTMLElement, 'getBoundingClientRect').mockReturnValue({
+      top: 20,
+    } as DOMRect);
+    vi.spyOn(discoverLink, 'getBoundingClientRect').mockReturnValue({
+      top: 226,
+    } as DOMRect);
 
-    expect(
-      screen.getByRole('status', { name: 'Discover: Find winners.' }),
-    ).toHaveStyle({ top: '206px' });
+    fireEvent.mouseEnter(discoverLink);
+
+    expect(container.querySelector('[data-app-switcher-preview]')).toHaveStyle({
+      top: '206px',
+    });
   });
 
   it('keeps the preview stable while moving between app tiles', () => {
-    render(<AppSwitcher orgSlug="acme" />);
+    const { container } = render(<AppSwitcher orgSlug="acme" />);
+    const preview = container.querySelector('[data-app-switcher-preview]');
+    const panel = container.querySelector('[data-app-switcher-panel]');
+    const apps = screen.getByRole('group', { name: 'Apps' });
+    const agentLink = screen.getByRole('link', { name: 'Agent' });
+    const messagesLink = screen.getByRole('link', { name: 'Messages' });
 
-    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
-    fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
-    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Messages' }));
+    vi.spyOn(panel as HTMLElement, 'getBoundingClientRect').mockReturnValue({
+      top: 20,
+    } as DOMRect);
+    vi.spyOn(agentLink, 'getBoundingClientRect').mockReturnValue({
+      top: 74,
+    } as DOMRect);
+    vi.spyOn(messagesLink, 'getBoundingClientRect').mockReturnValue({
+      top: 74,
+    } as DOMRect);
 
-    expect(
-      screen.queryByRole('status', { name: 'Agent: Ask and execute.' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('status', {
-        name: 'Messages: Reply to audience.',
-      }),
-    ).toBeInTheDocument();
+    fireEvent.mouseEnter(agentLink);
+    fireEvent.mouseLeave(apps);
+
+    expect(preview).toHaveAttribute('data-state', 'closed');
+    expect(preview).toHaveStyle({ top: '54px' });
+    expect(preview).toHaveTextContent('Agent');
+
+    fireEvent.mouseEnter(messagesLink);
+
+    expect(preview).toHaveAttribute('data-state', 'open');
+    expect(preview).toHaveStyle({ top: '54px' });
+    expect(preview).not.toHaveTextContent('Agent');
+    expect(preview).toHaveTextContent('Messages');
+    expect(preview).toHaveTextContent('Reply to audience.');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
