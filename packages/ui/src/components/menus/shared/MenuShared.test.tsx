@@ -325,7 +325,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('swaps the Genfeed mark for the collapse icon on hover without clipping the control', () => {
+  it('renders one stable collapse icon without a layered logo', () => {
     const onToggleCollapse = vi.fn();
 
     render(<MenuShared config={config} onToggleCollapse={onToggleCollapse} />);
@@ -334,20 +334,12 @@ describe('MenuShared', () => {
       name: 'Collapse sidebar',
     });
 
-    expect(collapseButton.querySelector('img')?.getAttribute('src')).toContain(
-      'logo.svg',
-    );
     expect(collapseButton).toHaveClass('group');
     expect(collapseButton).not.toHaveClass('overflow-hidden');
     expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
-    expect(collapseButton.querySelector('img')?.parentElement).toHaveClass(
-      'group-hover:opacity-0',
-    );
-    expect(collapseButton.querySelector('svg')?.parentElement).toHaveClass(
-      'group-hover:opacity-100',
-    );
+    expect(collapseButton.querySelector('img')).toBeNull();
     fireEvent.mouseEnter(collapseButton);
-    expect(collapseButton.querySelector('img')).not.toBeNull();
+    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
     fireEvent.click(collapseButton);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });

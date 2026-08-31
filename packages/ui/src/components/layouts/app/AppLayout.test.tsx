@@ -149,7 +149,7 @@ describe('AppLayout', () => {
     ).toHaveAttribute('data-workspace-shell', 'true');
   });
 
-  it('collapses the desktop sidebar to only the Genfeed logo toggle', async () => {
+  it('keeps one sidebar toggle at the same left anchor when collapsed', async () => {
     window.localStorage.setItem('genfeed:sidebar:collapsed:auth', 'true');
 
     render(
@@ -170,19 +170,14 @@ describe('AppLayout', () => {
     });
 
     expect(expandToggle).toBeInTheDocument();
-    const logoImage = expandToggle.querySelector('img');
-    expect(logoImage).not.toBeNull();
+    expect(
+      screen.getAllByRole('button', { name: 'Expand sidebar' }),
+    ).toHaveLength(1);
     expect(expandToggle).toHaveClass('group');
+    expect(expandToggle).toHaveClass('left-3');
     expect(expandToggle).not.toHaveClass('overflow-hidden');
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
-
-    fireEvent.error(logoImage as HTMLImageElement);
-
-    await waitFor(() => {
-      expect(expandToggle.querySelector('img')?.getAttribute('src')).toContain(
-        'logo.svg',
-      );
-    });
+    expect(expandToggle.querySelector('img')).toBeNull();
 
     fireEvent.click(expandToggle);
 

@@ -5,8 +5,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
-import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
+import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -147,14 +147,14 @@ export default function MenuShared({
     </>
   );
 
-  const sharedCollapseControl = onToggleCollapse ? (
-    <SidebarLogoToggleButton
-      ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      direction={isCollapsed ? 'expand' : 'collapse'}
-      onClick={onToggleCollapse}
-      className="bg-transparent hover:bg-foreground/[0.06]"
-    />
-  ) : null;
+  const sharedCollapseControl =
+    onToggleCollapse && !isCollapsed ? (
+      <SidebarToggleButton
+        ariaLabel="Collapse sidebar"
+        onClick={onToggleCollapse}
+        className="bg-transparent hover:bg-foreground/[0.06]"
+      />
+    ) : null;
 
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
      Fill the DesktopSidebar rail (CSS-var width). Do not pin a React pixel
