@@ -70,8 +70,8 @@ provider-specific redirect environment key listed below.
    and enable OAuth 2.0 Authorization Code with PKCE.
 2. Register `{APP_ORIGIN}/oauth/twitter` exactly.
 3. Enable the permissions represented by the scopes Genfeed requests:
-   `tweet.read`, `tweet.write`, `users.read`, `media.write`, `dm.read`,
-   `dm.write`, and `offline.access`.
+   `tweet.read`, `tweet.write`, `users.read`, `media.write`, and
+   `offline.access`.
 4. Set `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`, `TWITTER_REDIRECT_URI`,
    `TWITTER_BEARER_TOKEN`, `TWITTER_CONSUMER_KEY`, and
    `TWITTER_CONSUMER_SECRET`.
@@ -141,9 +141,14 @@ Reference: [Threads API getting started](https://developers.facebook.com/docs/th
    and enable YouTube Data API v3 and YouTube Analytics API.
 2. Configure the OAuth consent screen, then create a Web application OAuth
    client with `{APP_ORIGIN}/oauth/youtube` as an authorized redirect URI.
-3. Genfeed requests YouTube read, upload, force-SSL, and analytics-read scopes.
-   Add test users while the consent screen is in Testing and complete Google
-   OAuth verification before production use of sensitive scopes.
+3. Genfeed requests
+   `https://www.googleapis.com/auth/youtube`,
+   `https://www.googleapis.com/auth/youtube.readonly`,
+   `https://www.googleapis.com/auth/youtube.force-ssl`,
+   `https://www.googleapis.com/auth/youtube.upload`, and
+   `https://www.googleapis.com/auth/yt-analytics.readonly`. Add test users
+   while the consent screen is in Testing and complete Google OAuth
+   verification before production use of sensitive scopes.
 4. Set the shared `GOOGLE_OAUTH_CLIENT_ID` and
    `GOOGLE_OAUTH_CLIENT_SECRET`, plus `YOUTUBE_REDIRECT_URI`.
    `YOUTUBE_API_KEY` is optional for public reads. If the same client also

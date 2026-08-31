@@ -198,10 +198,10 @@ describe('GoogleAdsService', () => {
     const campaignRow = {
       campaign: {
         advertisingChannelType: 'SEARCH',
-        endDate: '2026-12-31',
+        endDateTime: '2026-12-31 23:59:59',
         id: 'camp-1',
         name: 'My Campaign',
-        startDate: '2026-01-01',
+        startDateTime: '2026-01-01 00:00:00',
         status: 'ENABLED',
       },
       campaignBudget: { amountMicros: '5000000' },
@@ -217,10 +217,19 @@ describe('GoogleAdsService', () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         budgetAmountMicros: '5000000',
+        endDate: '2026-12-31 23:59:59',
         id: 'camp-1',
         name: 'My Campaign',
+        startDate: '2026-01-01 00:00:00',
         status: 'ENABLED',
       });
+
+      const queryArg = (httpService.post.mock.calls[0][1] as { query: string })
+        .query;
+      expect(queryArg).toContain('campaign.start_date_time');
+      expect(queryArg).toContain('campaign.end_date_time');
+      expect(queryArg).not.toMatch(/campaign\.start_date(?:\s|,)/);
+      expect(queryArg).not.toMatch(/campaign\.end_date(?:\s|,)/);
     });
 
     it('should include status filter in query when params.status is set', async () => {
@@ -268,8 +277,10 @@ describe('GoogleAdsService', () => {
               {
                 campaign: {
                   advertisingChannelType: 'DISPLAY',
+                  endDateTime: '2026-12-31 23:59:59',
                   id: 'camp-1',
                   name: 'Test',
+                  startDateTime: '2026-01-01 00:00:00',
                   status: 'ENABLED',
                 },
               },
@@ -284,7 +295,17 @@ describe('GoogleAdsService', () => {
         'camp-1',
       );
 
-      expect(result).toMatchObject({ id: 'camp-1', name: 'Test' });
+      expect(result).toMatchObject({
+        endDate: '2026-12-31 23:59:59',
+        id: 'camp-1',
+        name: 'Test',
+        startDate: '2026-01-01 00:00:00',
+      });
+
+      const queryArg = (httpService.post.mock.calls[0][1] as { query: string })
+        .query;
+      expect(queryArg).toContain('campaign.start_date_time');
+      expect(queryArg).toContain('campaign.end_date_time');
     });
   });
 

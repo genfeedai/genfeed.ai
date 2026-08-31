@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENV_TARGETS } from '../env-spec';
+import { ENV_TARGETS, ROOT_ENV_SECTIONS } from '../env-spec';
 
 describe('env-spec backend cloud flag', () => {
   it('copies GENFEED_CLOUD onto every backend service, including files', () => {
@@ -59,13 +59,20 @@ describe('env-spec backend cloud flag', () => {
       'GOOGLE_ADS_REDIRECT_URI',
       'THREADS_CLIENT_ID',
       'THREADS_CLIENT_SECRET',
+      'THREADS_API_VERSION',
+      'THREADS_GRAPH_URL',
       'THREADS_REDIRECT_URI',
       'YOUTUBE_API_KEY',
     ];
 
     expect(apiTarget).toBeDefined();
+    const apiRootSection = ROOT_ENV_SECTIONS.find(
+      (section) => section.title === 'API',
+    );
+    expect(apiRootSection).toBeDefined();
     for (const key of oauthKeys) {
       expect(apiTarget?.directKeys).toContain(key);
+      expect(apiRootSection?.keys).toContain(key);
     }
   });
 });
