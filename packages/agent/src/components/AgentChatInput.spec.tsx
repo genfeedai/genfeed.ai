@@ -139,6 +139,20 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
+  it('keeps the agent glass surface without an outer shadow', () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
+
+    const shell = screen.getByTestId('agent-chat-input-shell');
+
+    expect(shell).toHaveClass(
+      'bg-background/70',
+      'backdrop-blur-xl',
+      '!shadow-none',
+      'focus-within:!shadow-none',
+    );
+    expect(shell).toHaveClass('border', 'border-border-strong/70');
+  });
+
   it('renders the generation setup chip in the leading toolbar slot', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
