@@ -158,6 +158,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
+    isRetryableUserPrompt?: boolean;
     message?: {
       role?: string;
       metadata?: {
@@ -181,7 +182,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
     return (
       <div>
         message
-        {props.message?.role === 'assistant' ? (
+        {props.isRetryableUserPrompt ? (
           <button
             type="button"
             onClick={() => {
@@ -526,6 +527,7 @@ describe('AgentChatContainer', () => {
     storeState.runStartedAt = null;
     storeState.stream.pendingUiActions = [];
     storeState.stream.streamingContent = '';
+    storeState.workEvents = [];
     storeState.threads = [];
     storeState.isGenerating = false;
     storeState.error = null;
@@ -1212,7 +1214,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('queues retry from an older message while a turn is in flight', async () => {
+  it('does not offer retry on a completed historical turn while busy', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1233,15 +1235,10 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    const retryButton = await screen.findByRole('button', {
-      name: 'Retry message',
-    });
-    fireEvent.click(retryButton);
-
+    expect(
+      screen.queryByRole('button', { name: 'Retry message' }),
+    ).not.toBeInTheDocument();
     expect(sendNonStreaming).not.toHaveBeenCalled();
-    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
-      'Original prompt',
-    );
   });
 
   it('dispatches queued follow-ups in FIFO order after a successful response', async () => {
@@ -1558,7 +1555,7 @@ describe('AgentChatContainer', () => {
     expect(sendStreaming.mock.calls[0]?.[0]).toBe('Stream first');
   });
 
-  it('scrolls to the latest turn when retrying from an older message', async () => {
+  it('retries the user prompt that owns the terminal failure', async () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1570,21 +1567,26 @@ describe('AgentChatContainer', () => {
         role: 'user',
         threadId: 'thread-1',
       },
-      buildAssistantMessage({
-        content: 'Initial failed result',
-        id: 'assistant-retry-target',
-      }),
+    ];
+    storeState.workEvents = [
+      {
+        createdAt: '2026-03-10T10:00:00.000Z',
+        detail: 'Provider unavailable',
+        event: AgentWorkEventType.FAILED,
+        id: 'failed-run-event',
+        label: 'Generation failed',
+        runId: 'run-failed',
+        status: AgentWorkEventStatus.FAILED,
+        threadId: 'thread-1',
+        toolName: 'generate_image',
+      },
     ];
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    const retryButton = screen.getAllByRole('button', {
+    const retryButton = screen.getByRole('button', {
       name: 'Retry message',
-    })[0];
-
-    if (!retryButton) {
-      throw new Error('Retry message button not found');
-    }
+    });
 
     fireEvent.click(retryButton);
 

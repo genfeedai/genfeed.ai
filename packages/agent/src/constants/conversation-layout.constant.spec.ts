@@ -38,6 +38,7 @@ describe('conversation-layout.constant', () => {
       'text-foreground',
     );
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('rounded-xl');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('shadow-none');
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
       'bg-transparent',
     );

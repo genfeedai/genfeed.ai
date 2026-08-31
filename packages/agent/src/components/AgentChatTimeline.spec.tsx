@@ -35,11 +35,20 @@ vi.mock('@ui/primitives/button', () => ({
 
 vi.mock('./AgentChatMessage', () => ({
   AgentChatMessage: function MockMessage({
+    isRetryableUserPrompt,
     message,
   }: {
+    isRetryableUserPrompt?: boolean;
     message: { id: string; content: string };
   }) {
-    return <div data-testid={`message-${message.id}`}>{message.content}</div>;
+    return (
+      <div data-testid={`message-${message.id}`}>
+        {message.content}
+        {isRetryableUserPrompt ? (
+          <button type="button">Retry message</button>
+        ) : null}
+      </div>
+    );
   },
   UiActionRenderer: ({ isDisabled }: { isDisabled?: boolean }) => (
     <div
@@ -135,6 +144,24 @@ function buildAssistantMessage(
   };
 }
 
+function buildUserMessage(
+  id: string,
+  content: string,
+): Extract<TimelineEntry, { kind: 'user-message' }> {
+  return {
+    createdAt: '2026-03-18T09:59:00.000Z',
+    id,
+    kind: 'user-message',
+    message: {
+      content,
+      createdAt: '2026-03-18T09:59:00.000Z',
+      id,
+      role: 'user',
+      threadId: 't1',
+    },
+  };
+}
+
 const baseProps = {
   apiService: {} as never,
   highlightedMessageId: null,
@@ -150,6 +177,42 @@ const baseProps = {
 };
 
 describe('AgentChatTimeline failure card', () => {
+  it('offers retry only on the user prompt that owns the terminal failure', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('user-old', 'Earlier successful prompt'),
+          buildSucceededWorkGroup('wg-ok'),
+          buildUserMessage('user-failed', 'Latest failed prompt'),
+          buildFailedWorkGroup('wg-fail', 'status code 503'),
+        ]}
+        onRetryLastFailedRun={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('message-user-failed').querySelector('button'),
+    ).toHaveTextContent('Retry message');
+    expect(
+      screen.getByTestId('message-user-old').querySelector('button'),
+    ).toBeNull();
+  });
+
+  it('does not offer prompt retry after a successful terminal run', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('user-ok', 'Successful prompt'),
+          buildSucceededWorkGroup('wg-ok'),
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText('Retry message')).toBeNull();
+  });
+
   it('renders the failure card only when the terminal entry is a failed work group', () => {
     render(
       <AgentChatTimeline
