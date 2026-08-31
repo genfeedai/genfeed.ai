@@ -1,4 +1,12 @@
 {
+  "analytics": {
+    "trends": {
+      "detail": {
+        "loadingTitle": "Loading trend…",
+        "notFound": "Trend not found"
+      }
+    }
+  },
   "adsResearch": {
     "adList": {
       "account": "Account",
@@ -429,6 +437,11 @@
       "loadingTitle": "Loading…",
       "missingBody": "No post, article, or newsletter matches this id. Use the breadcrumb to return to Posts and open the item again.",
       "missingTitle": "Content not found"
+    },
+    "detail": {
+      "loadingSubtitle": "Loading post…",
+      "notFound": "Post not found",
+      "title": "Post detail"
     },
     "list": {
       "channelCount": "{count, plural, one {# channel} other {# channels}}",

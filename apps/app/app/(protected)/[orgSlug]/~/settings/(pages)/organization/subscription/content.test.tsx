@@ -14,12 +14,9 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+const useBrandMock = vi.fn();
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: vi.fn(() => ({
-    isReady: true,
-    organizationId: 'org-123',
-    settings: { subscriptionTier: 'free' },
-  })),
+  useBrand: () => useBrandMock(),
 }));
 
 const useSubscriptionMock = vi.fn();
@@ -51,6 +48,11 @@ vi.mock('@tanstack/react-query', () => ({
 describe('SettingsSubscriptionPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useBrandMock.mockReturnValue({
+      isReady: true,
+      organizationId: 'org-123',
+      settings: { subscriptionTier: 'free' },
+    });
     useSubscriptionMock.mockReturnValue({
       changeSubscriptionPlan: vi.fn(),
       creditsBreakdown: null,
@@ -97,5 +99,51 @@ describe('SettingsSubscriptionPage', () => {
 
     expect(screen.getByText('Free')).toBeInTheDocument();
     expect(screen.queryByText('pro')).not.toBeInTheDocument();
+  });
+
+  it('renders section chrome immediately while the subscription query loads', () => {
+    useSubscriptionMock.mockReturnValue({
+      changeSubscriptionPlan: vi.fn(),
+      creditsBreakdown: null,
+      error: null,
+      isLoading: true,
+      isSubscriptionActive: false,
+      openBillingPortal: vi.fn(),
+      previewPlanChange: vi.fn(),
+      refreshCreditsBreakdown: vi.fn(),
+      refreshSubscription: vi.fn(),
+      subscription: null,
+    } as UseSubscriptionReturn);
+
+    render(<SettingsSubscriptionPage />);
+
+    // Chrome: section headers render unconditionally while data loads.
+    expect(screen.getByText('Current Plan')).toBeInTheDocument();
+    expect(screen.getByText('Manage subscription')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Open Billing Portal/i }),
+    ).toBeInTheDocument();
+
+    // Stat tiles show a placeholder rather than blocking the whole page.
+    expect(screen.getByText('Organizations')).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'No active subscription. Subscribe to unlock all features.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders section chrome immediately while the brand context is not ready', () => {
+    useBrandMock.mockReturnValue({
+      isReady: false,
+      organizationId: undefined,
+      settings: undefined,
+    });
+
+    render(<SettingsSubscriptionPage />);
+
+    expect(screen.getByText('Current Plan')).toBeInTheDocument();
+    expect(screen.getByText('Manage subscription')).toBeInTheDocument();
+    expect(screen.getAllByText('-').length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import AnalyticsPlatformDetail from '@pages/analytics/platform-detail/analytics-platform-detail';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Platform Analytics');
@@ -13,7 +13,7 @@ export default async function AdminAnalyticsBrandPlatformDetailPage({
   const { id, platform } = await params;
 
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <AnalyticsPlatformDetail
         brandId={id}
         platform={platform}

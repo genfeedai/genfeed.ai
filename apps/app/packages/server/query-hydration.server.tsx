@@ -1,6 +1,7 @@
 import 'server-only';
 
 import {
+  defaultShouldDehydrateQuery,
   dehydrate,
   HydrationBoundary,
   type QueryClient,
@@ -19,7 +20,12 @@ export function setServerQueryData<TData>(queryKey: QueryKey, data: TData) {
 }
 
 export function prefetchServerQuery(options: PrefetchQueryOptions) {
-  return getServerQueryClient().prefetchQuery(options);
+  // Fire-and-forget so the RSC returns its shell immediately; the pending
+  // query dehydrates with a live promise that streams to the client.
+  // prefetchQuery swallows fetch rejections, and retry: false keeps a failed
+  // fetch from holding the stream open — the client discards the rejected
+  // entry and refetches itself.
+  void getServerQueryClient().prefetchQuery({ ...options, retry: false });
 }
 
 export function ServerQueryHydrationBoundary({
@@ -28,7 +34,13 @@ export function ServerQueryHydrationBoundary({
   children: ReactNode;
 }) {
   return (
-    <HydrationBoundary state={dehydrate(getServerQueryClient())}>
+    <HydrationBoundary
+      state={dehydrate(getServerQueryClient(), {
+        shouldDehydrateQuery: (query) =>
+          defaultShouldDehydrateQuery(query) ||
+          query.state.status === 'pending',
+      })}
+    >
       {children}
     </HydrationBoundary>
   );

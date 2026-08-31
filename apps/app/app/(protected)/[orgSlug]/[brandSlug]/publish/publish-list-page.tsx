@@ -1,4 +1,5 @@
 import { loadPostsPageData } from '@app-server/posts-page-data.server';
+import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
 import {
   prefetchServerQuery,
   ServerQueryHydrationBoundary,
@@ -45,15 +46,18 @@ export async function renderPostsListPage({
   /** True for the canonical `/publish/posts` library (no lifecycle filter). */
   showAllPublicationStates?: boolean;
 }) {
-  const {
-    contentType,
-    page,
-    platform,
-    publicationState: publicationStateParam,
-    search,
-    sort,
-    status,
-  } = await searchParams;
+  const [
+    {
+      contentType,
+      page,
+      platform,
+      publicationState: publicationStateParam,
+      search,
+      sort,
+      status,
+    },
+    bootstrap,
+  ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
   // Pipeline shortcuts (Drafts / Published / Failed) pass a focused override.
   // The Posts library shows every lifecycle state and filters in the table.
   const queryStatus = parsePostsStatus(status);
@@ -74,6 +78,8 @@ export async function renderPostsListPage({
   const normalizedPlatform = normalizePostsPlatform(platform);
   const platformFilter =
     normalizedPlatform !== 'all' ? normalizedPlatform : undefined;
+  const brandId = bootstrap?.brandId ?? null;
+  const organizationId = bootstrap?.organizationId ?? null;
 
   if (scope !== PageScope.SUPERADMIN) {
     const canonicalPublicationState = showAllPublicationStates
@@ -95,29 +101,32 @@ export async function renderPostsListPage({
             : undefined;
     const canonicalSort = normalizeReleasePostsSort(sort);
     const contentTypes = normalizeReleasePostContentTypes(contentType);
-    const initialData = await loadReleasePostsPageData({
-      contentTypes,
-      currentPage,
-      executionStates,
-      platform: platformFilter,
-      publicationState: canonicalPublicationState,
-      scope,
-      search,
-      sort: canonicalSort,
-    });
-    const initialReleaseResult = {
-      pagination: initialData.pagination,
-      releases: initialData.releases,
-    };
 
-    await prefetchServerQuery({
-      queryFn: () => initialReleaseResult,
+    // Streamed, not awaited: the shell returns immediately and the pending
+    // query dehydrates with a live promise the client consumes.
+    prefetchServerQuery({
+      queryFn: async () => {
+        const pageData = await loadReleasePostsPageData({
+          contentTypes,
+          currentPage,
+          executionStates,
+          platform: platformFilter,
+          publicationState: canonicalPublicationState,
+          scope,
+          search,
+          sort: canonicalSort,
+        });
+        return {
+          pagination: pageData.pagination,
+          releases: pageData.releases,
+        };
+      },
       queryKey: buildReleasePostsListQueryKey({
-        brandId: initialData.brandId,
+        brandId,
         contentTypes,
         currentPage,
         executionStates,
-        organizationId: initialData.organizationId,
+        organizationId,
         platform: platformFilter,
         publicationState: canonicalPublicationState,
         scope,
@@ -131,8 +140,6 @@ export async function renderPostsListPage({
         <ReleasePostsList
           contentTypes={contentTypes}
           executionStates={executionStates}
-          initialPagination={initialData.pagination}
-          initialReleases={initialData.releases}
           platform={normalizedPlatform}
           publicationState={canonicalPublicationState}
           scope={scope}
@@ -143,32 +150,33 @@ export async function renderPostsListPage({
     );
   }
 
-  const initialData = await loadPostsPageData({
-    currentPage,
-    platformFilter,
-    publicationState,
-    scope,
-    search,
-    sort,
-    status: normalizedStatus,
-  });
   const filterSort = sort || getDefaultPostsSort(normalizedStatus);
-  const initialPostsResult = {
-    pagination: initialData.pagination,
-    posts: initialData.posts,
-  };
 
-  await prefetchServerQuery({
-    queryFn: () => initialPostsResult,
+  prefetchServerQuery({
+    queryFn: async () => {
+      const pageData = await loadPostsPageData({
+        currentPage,
+        platformFilter,
+        publicationState,
+        scope,
+        search,
+        sort,
+        status: normalizedStatus,
+      });
+      return {
+        pagination: pageData.pagination,
+        posts: pageData.posts,
+      };
+    },
     queryKey: buildPostsListQueryKey({
       adminBrand: '',
       adminOrg: '',
-      brandId: initialData.brandId,
+      brandId,
       currentPage,
       filterSearch: search || '',
       filterSort,
       filterStatus: normalizedStatus || '',
-      organizationId: initialData.organizationId,
+      organizationId,
       platformFilter,
       publicationState,
       scope,
@@ -179,9 +187,6 @@ export async function renderPostsListPage({
   return (
     <ServerQueryHydrationBoundary>
       <PublishPostsList
-        initialPostPresets={initialData.postPresets}
-        initialPosts={initialData.posts}
-        initialPagination={initialData.pagination}
         platform={normalizedPlatform}
         publicationState={publicationState ?? null}
         scope={scope}

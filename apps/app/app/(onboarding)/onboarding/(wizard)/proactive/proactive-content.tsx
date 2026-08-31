@@ -8,7 +8,7 @@ import {
   OnboardingService,
   type ProactiveWorkspaceResponse,
 } from '@services/onboarding/onboarding.service';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { toast } from 'sonner';
@@ -201,7 +201,15 @@ export default function ProactiveContent() {
   useVisiblePolling(refreshWorkspace, { intervalMs: POLL_INTERVAL_MS });
 
   if (isLoading) {
-    return <PageLoadingState />;
+    return (
+      <div className="space-y-8" data-testid="proactive-workspace-loading">
+        <SkeletonCard showImage={false} />
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+          <SkeletonCard showImage={false} />
+          <SkeletonCard showImage={false} />
+        </div>
+      </div>
+    );
   }
 
   if (!workspace) {

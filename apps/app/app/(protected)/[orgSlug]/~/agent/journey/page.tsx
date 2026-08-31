@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Card from '@ui/card/Card';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
+import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -63,10 +63,6 @@ export default function ChatJourneyPage() {
       ? Math.round((completedCount / missions.length) * 100)
       : 0;
 
-  if (isLoading) {
-    return <PageLoadingState />;
-  }
-
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <Card variant={CardVariant.DEFAULT} bodyClassName="p-6">
@@ -90,7 +86,7 @@ export default function ChatJourneyPage() {
               Progress
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
-              {completionPercent}%
+              {isLoading ? '-' : `${completionPercent}%`}
             </p>
           </div>
           <div className="p-4">
@@ -98,7 +94,7 @@ export default function ChatJourneyPage() {
               Available to unlock
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
-              {remainingJourneyCredits}
+              {isLoading ? '-' : remainingJourneyCredits}
             </p>
           </div>
           <div className="p-4">
@@ -106,7 +102,9 @@ export default function ChatJourneyPage() {
               Journey unlocked
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
-              {earnedCredits}/{ONBOARDING_JOURNEY_TOTAL_CREDITS}
+              {isLoading
+                ? '-'
+                : `${earnedCredits}/${ONBOARDING_JOURNEY_TOTAL_CREDITS}`}
             </p>
           </div>
           <div className="p-4">
@@ -120,70 +118,77 @@ export default function ChatJourneyPage() {
         </div>
       </Card>
 
-      <div className="grid gap-4">
-        {ONBOARDING_JOURNEY_MISSIONS.map((mission) => {
-          const state = missions.find((item) => item.id === mission.id);
-          const isCompleted = state?.isCompleted ?? false;
-          const isRecommended = mission.id === recommendedMissionId;
+      {isLoading ? (
+        <div className="grid gap-4" data-testid="journey-missions-loading">
+          <SkeletonList count={ONBOARDING_JOURNEY_MISSIONS.length} />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {ONBOARDING_JOURNEY_MISSIONS.map((mission) => {
+            const state = missions.find((item) => item.id === mission.id);
+            const isCompleted = state?.isCompleted ?? false;
+            const isRecommended = mission.id === recommendedMissionId;
 
-          return (
-            <div
-              key={mission.id}
-              className={`rounded-2xl border p-5 ${
-                isRecommended
-                  ? 'border-primary/40 bg-primary/5'
-                  : 'border-border bg-background-secondary'
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="max-w-2xl">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-semibold text-foreground">
-                      {mission.label}
-                    </h2>
-                    <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
-                      +{mission.rewardCredits} credits
-                    </span>
+            return (
+              <div
+                key={mission.id}
+                className={`rounded-2xl border p-5 ${
+                  isRecommended
+                    ? 'border-primary/40 bg-primary/5'
+                    : 'border-border bg-background-secondary'
+                }`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-2xl">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-semibold text-foreground">
+                        {mission.label}
+                      </h2>
+                      <span className="rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning">
+                        +{mission.rewardCredits} credits
+                      </span>
+                      {isRecommended ? (
+                        <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+                          Recommended next
+                        </span>
+                      ) : null}
+                      {isCompleted ? (
+                        <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
+                          Completed
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                      {mission.description}
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-foreground/80">
+                      {mission.whyItMatters}
+                    </p>
                     {isRecommended ? (
-                      <span className="rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-                        Recommended next
-                      </span>
-                    ) : null}
-                    {isCompleted ? (
-                      <span className="rounded-full bg-success/10 px-2.5 py-1 text-xs font-semibold text-success">
-                        Completed
-                      </span>
+                      <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-primary/80">
+                        {remainingJourneyCredits} journey credits still
+                        available
+                      </p>
                     ) : null}
                   </div>
 
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {mission.description}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-foreground/80">
-                    {mission.whyItMatters}
-                  </p>
-                  {isRecommended ? (
-                    <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-primary/80">
-                      {remainingJourneyCredits} journey credits still available
-                    </p>
-                  ) : null}
+                  <Button
+                    asChild
+                    className="inline-flex rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-hover"
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  >
+                    <Link href={mission.ctaHref}>
+                      {isCompleted ? 'Review' : mission.ctaLabel}
+                    </Link>
+                  </Button>
                 </div>
-
-                <Button
-                  asChild
-                  className="inline-flex rounded-full border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-hover"
-                  variant={ButtonVariant.SECONDARY}
-                  withWrapper={false}
-                >
-                  <Link href={mission.ctaHref}>
-                    {isCompleted ? 'Review' : mission.ctaLabel}
-                  </Link>
-                </Button>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

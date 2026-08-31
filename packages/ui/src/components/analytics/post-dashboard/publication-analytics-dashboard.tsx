@@ -12,7 +12,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
 import PlatformAnalyticsBreakdown from '@ui/analytics/platform-breakdown/platform-analytics-breakdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Loading from '@ui/loading/default/Loading';
 import { useCallback, useMemo, useState } from 'react';
 
 export default function PostAnalyticsDashboard({
@@ -127,11 +126,7 @@ export default function PostAnalyticsDashboard({
     refreshAnalytics,
   ]);
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
-
-  if (!analytics) {
+  if (!isLoading && !analytics) {
     return (
       <div className={`text-center py-8 ${className}`}>
         <p className="text-muted-foreground">No analytics data available</p>
@@ -140,17 +135,19 @@ export default function PostAnalyticsDashboard({
   }
 
   // Convert single analytics summary to array format expected by components
-  const analyticsArray = [
-    {
-      summary: {
-        avgEngagementRate: analytics.avgEngagementRate,
-        totalComments: analytics.totalComments,
-        totalLikes: analytics.totalLikes,
-        totalShares: analytics.totalShares,
-        totalViews: analytics.totalViews,
-      },
-    },
-  ];
+  const analyticsArray = analytics
+    ? [
+        {
+          summary: {
+            avgEngagementRate: analytics.avgEngagementRate,
+            totalComments: analytics.totalComments,
+            totalLikes: analytics.totalLikes,
+            totalShares: analytics.totalShares,
+            totalViews: analytics.totalViews,
+          },
+        },
+      ]
+    : [];
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -182,11 +179,12 @@ export default function PostAnalyticsDashboard({
       <AnalyticsOverview
         analytics={analyticsArray}
         showPostsCount={false}
-        isLoading={false}
+        isLoading={isLoading}
       />
 
       {/* Platform Breakdown - Only show if we have platform data */}
-      {publicationId &&
+      {analytics &&
+        publicationId &&
         analytics.platforms &&
         Object.keys(analytics.platforms).length > 0 && (
           <PlatformAnalyticsBreakdown

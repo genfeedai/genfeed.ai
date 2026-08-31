@@ -73,14 +73,6 @@ export default function LivestreamChatBotPage({
     }
   }, [connectPlatform]);
 
-  if (isLoading) {
-    return (
-      <div className="p-6 text-sm text-muted-foreground">
-        {translate('loading')}
-      </div>
-    );
-  }
-
   const youtubeFirstStatus = session?.platformStates.find(
     (platformState) => platformState.platform === Platform.YOUTUBE,
   );
@@ -97,7 +89,7 @@ export default function LivestreamChatBotPage({
         <LivestreamBotConfigCard
           form={form}
           isConnectingRestream={isConnectingRestream}
-          isSaving={isSaving}
+          isSaving={isSaving || isLoading}
           restreamCredentials={restreamCredentials}
           onConnectRestream={() => void handleConnectRestream()}
           onFormChange={(patch) =>
@@ -122,28 +114,33 @@ export default function LivestreamChatBotPage({
                 {translate('runtimeControls')}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {translate('sessionStatus')}: {session?.status || 'stopped'}
+                {translate('sessionStatus')}:{' '}
+                {isLoading ? '-' : session?.status || 'stopped'}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 label="Start"
                 variant={ButtonVariant.DEFAULT}
+                disabled={isLoading}
                 onClick={() => void handleSessionAction('start')}
               />
               <Button
                 label="Pause"
                 variant={ButtonVariant.SECONDARY}
+                disabled={isLoading}
                 onClick={() => void handleSessionAction('pause')}
               />
               <Button
                 label="Resume"
                 variant={ButtonVariant.SECONDARY}
+                disabled={isLoading}
                 onClick={() => void handleSessionAction('resume')}
               />
               <Button
                 label="Stop"
                 variant={ButtonVariant.DESTRUCTIVE}
+                disabled={isLoading}
                 onClick={() => void handleSessionAction('stop')}
               />
             </div>

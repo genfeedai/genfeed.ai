@@ -105,7 +105,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/editor-projects-page.tsx": 7,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/studio-workspace-surface-adapter.tsx": 11,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": 5,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-detail.tsx": 4,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-detail.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sub-issues-card.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/issue-overlay.tsx": 6,

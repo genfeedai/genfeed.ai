@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ArticleDetail, { applyDraftSuggestionToHtml } from './article-detail';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const {
   generateAccountContentMock,
   pushMock,
@@ -110,6 +115,26 @@ describe('ArticleDetail', () => {
     render(<ArticleDetail articleId="wrong-id" />);
 
     expect(screen.getByText('Failed to load article')).toBeVisible();
+  });
+
+  it('renders the page shell while the article is loading', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      isLoading: true,
+    });
+
+    render(<ArticleDetail articleId="article-1" />);
+
+    expect(screen.getByText('Loading article…')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('article-detail-body-skeleton'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Save' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Delete' }),
+    ).not.toBeInTheDocument();
   });
 
   it('inserts agent suggestions containing replacement patterns verbatim', () => {

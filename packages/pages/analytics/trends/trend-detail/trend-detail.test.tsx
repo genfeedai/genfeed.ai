@@ -5,6 +5,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const pushMock = vi.fn();
 const backMock = vi.fn();
 const getTrendByIdMock = vi.fn();
@@ -120,12 +125,17 @@ describe('TrendDetail', () => {
     });
   });
 
-  it('shows the loading shell before the request resolves', () => {
+  it('shows the shell chrome before the request resolves', () => {
     getTrendByIdMock.mockReturnValue(new Promise(() => undefined));
 
     render(<TrendDetail trendId="trend-1" />);
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading trend…')).toBeInTheDocument();
+    expect(screen.getByText('Trend Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Mentions')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('trend-detail-body-skeleton'),
+    ).toBeInTheDocument();
   });
 
   it('surfaces a failure and notifies the user', async () => {

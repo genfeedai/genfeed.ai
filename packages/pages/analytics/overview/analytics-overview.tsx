@@ -17,7 +17,6 @@ import type {
 } from '@services/analytics/analytics.service';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { ChartColumn } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -113,10 +112,6 @@ export default function AnalyticsOverview({
     topPosts: initialTopPosts,
   });
 
-  if (isLoading) {
-    return <LazyLoadingFallback variant="grid" />;
-  }
-
   return (
     <>
       <AnalyticsAgentDashboard
@@ -135,7 +130,7 @@ export default function AnalyticsOverview({
       <div
         className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
       >
-        {heroContent ? (
+        {heroContent && !isLoading ? (
           <AnalyticsOverviewHero
             dashboardState={dashboardState}
             heroContent={heroContent}
@@ -157,7 +152,7 @@ export default function AnalyticsOverview({
           <KPISection
             gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
             className="bg-background"
-            isLoading={isRefreshing}
+            isLoading={isLoading || isRefreshing}
             items={primaryKpiItems}
           />
         )}
@@ -166,7 +161,7 @@ export default function AnalyticsOverview({
           <KPISection
             gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
             className="bg-background"
-            isLoading={isRefreshing}
+            isLoading={isLoading || isRefreshing}
             items={secondaryKpiItems}
           />
         )}

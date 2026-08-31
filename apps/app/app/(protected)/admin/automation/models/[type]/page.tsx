@@ -1,6 +1,6 @@
-import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
 import { PageScope } from '@genfeedai/enums';
 import ModelsList from '@pages/models/list/models-list';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export default function ModelsTypePage({
@@ -9,7 +9,7 @@ export default function ModelsTypePage({
   params: Promise<{ type: string }>;
 }) {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={<PageLoadingState />}>
       <ModelsTypePageContent params={params} />
     </Suspense>
   );
