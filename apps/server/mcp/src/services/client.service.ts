@@ -32,6 +32,7 @@ import {
   SchedulerClient,
   type ValidateSchedulerTargetInput,
 } from '@mcp/services/client/scheduler.client';
+import { SkillsProClient } from '@mcp/services/client/skills-pro.client';
 import {
   type SocialActionParams,
   type SocialConversationDetail,
@@ -80,6 +81,10 @@ import type {
   UsageStats,
 } from '@mcp/shared/interfaces/post.interface';
 import type {
+  SkillsProEntitlement,
+  SkillsProInstallation,
+} from '@mcp/shared/interfaces/skills-pro.interface';
+import type {
   VideoCreationParams,
   VideoResponse,
   VideoStatus,
@@ -123,6 +128,7 @@ export class ClientService {
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
   private readonly socialMessages: SocialMessagesClient;
+  private readonly skillsPro: SkillsProClient;
   // False positive below: the 14-char type name "LinkedInClient" next to the
   // `linkedin` identifier matches the default gitleaks linkedin-client-id rule.
   private readonly linkedin: LinkedInClient; // gitleaks:allow
@@ -143,11 +149,25 @@ export class ClientService {
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
     this.socialMessages = new SocialMessagesClient(this.base);
+    this.skillsPro = new SkillsProClient(this.base);
     this.linkedin = new LinkedInClient(this.base);
   }
 
   setBearerToken(token: string): void {
     this.base.setBearerToken(token);
+  }
+
+  // ── Skills Pro entitlements ──
+
+  verifySkillsProEntitlement(receiptId: string): Promise<SkillsProEntitlement> {
+    return this.skillsPro.verifyEntitlement(receiptId);
+  }
+
+  installSkillsProSkill(
+    receiptId: string,
+    skillSlug: string,
+  ): Promise<SkillsProInstallation> {
+    return this.skillsPro.installSkill(receiptId, skillSlug);
   }
 
   postAttributes<TResponse>(

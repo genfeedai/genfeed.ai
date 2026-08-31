@@ -8,6 +8,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import type {
   ExecutionNodeResult,
@@ -88,6 +89,7 @@ export default function ExecutionDetailPage({
   executionId: runId,
 }: ExecutionLogsProps) {
   const [execution, setExecution] = useState<ExecutionDetail | null>(null);
+  const translate = useTranslations('common.automation.workflows.executions');
   const { href } = useOrgUrl();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,8 +150,23 @@ export default function ExecutionDetailPage({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse">Loading execution logs…</div>
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-end gap-4 px-6 pt-4">
+          <Link
+            href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS)}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            {translate('allExecutions')}
+          </Link>
+        </div>
+        <div
+          className="flex min-h-[60vh] items-center justify-center"
+          data-testid="execution-detail-loading"
+        >
+          <div className="animate-pulse text-muted-foreground">
+            Loading execution logs…
+          </div>
+        </div>
       </div>
     );
   }

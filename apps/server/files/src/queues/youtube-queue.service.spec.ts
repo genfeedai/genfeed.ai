@@ -1,10 +1,10 @@
-import {
-  JOB_PRIORITY,
-  JOB_TYPES,
-  QUEUE_NAMES,
-} from '@files/queues/queue.constants';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import type { YoutubeJobData } from '@files/shared/interfaces/job.interface';
+import {
+  FILE_JOB_PRIORITY as JOB_PRIORITY,
+  FILE_JOB_TYPES as JOB_TYPES,
+  FILE_QUEUE_NAMES as QUEUE_NAMES,
+} from '@genfeedai/queue-contracts';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock } from 'vitest';

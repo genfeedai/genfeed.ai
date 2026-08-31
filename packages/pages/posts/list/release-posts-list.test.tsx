@@ -29,6 +29,12 @@ describe('ReleasePostsList', () => {
     expect(source).toContain('generateVariationsAria');
   });
 
+  it('streams without required initial data and keeps loading inside the data region', () => {
+    expect(source).toContain('initialPagination?: ReleaseListPagination');
+    expect(source).toContain('initialReleases?: IReleaseGroup[]');
+    expect(source).toContain('isLoading && data.releases.length === 0');
+  });
+
   it('resolves user-visible copy through the host pages catalog', () => {
     expect(source).toContain("useTranslations('pages.posts.list')");
     expect(source).not.toContain('const POSTS_LOAD_ERROR');

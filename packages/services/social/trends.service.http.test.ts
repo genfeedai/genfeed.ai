@@ -170,6 +170,33 @@ describe('TrendsService HTTP methods', () => {
       });
     });
 
+    it('getCorpusFreshnessHealth reads the scheduled corpus status', async () => {
+      const health = {
+        generatedAt: '2026-08-31T08:05:00.000Z',
+        providerFailures: [],
+        segments: [],
+        status: 'empty' as const,
+        summary: {
+          activeTrends: 0,
+          failingProviders: 0,
+          freshSegments: 0,
+          platforms: [],
+          referenceRecords: 0,
+          staleSegments: 0,
+          totalSegments: 0,
+        },
+      };
+      http.get.mockResolvedValue(axiosResponse(health));
+
+      const controller = new AbortController();
+      const result = await service.getCorpusFreshnessHealth(controller.signal);
+
+      expect(http.get).toHaveBeenCalledWith('/corpus/health', {
+        signal: controller.signal,
+      });
+      expect(result).toEqual(health);
+    });
+
     it('getTrendById GETs the trend detail', async () => {
       const detail = { id: 'trend_1', label: 'AI' };
       http.get.mockResolvedValue(axiosResponse(detail));

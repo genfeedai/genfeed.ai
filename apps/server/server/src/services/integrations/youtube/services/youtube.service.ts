@@ -216,10 +216,9 @@ export class YoutubeService {
     state: string;
   }): string {
     const oauth2Client = YoutubeOAuth2Util.createClient(
-      this.configService.get('YOUTUBE_CLIENT_ID')!,
-      // @ts-expect-error TS2345
-      this.configService.get<string>('YOUTUBE_CLIENT_SECRET'),
-      this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
+      this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_ID'),
+      this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_SECRET'),
+      this.requireOAuthConfig('YOUTUBE_REDIRECT_URI'),
     );
 
     const authOptions = {
@@ -239,10 +238,9 @@ export class YoutubeService {
    */
   async exchangeCodeForTokens(code: string): Promise<unknown> {
     const oauth2Client = YoutubeOAuth2Util.createClient(
-      this.configService.get('YOUTUBE_CLIENT_ID')!,
-      // @ts-expect-error TS2345
-      this.configService.get<string>('YOUTUBE_CLIENT_SECRET'),
-      this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
+      this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_ID'),
+      this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_SECRET'),
+      this.requireOAuthConfig('YOUTUBE_REDIRECT_URI'),
     );
 
     return await oauth2Client.getToken(code);
@@ -335,5 +333,19 @@ export class YoutubeService {
       text,
       credentialId,
     );
+  }
+
+  private requireOAuthConfig(
+    key:
+      | 'GOOGLE_OAUTH_CLIENT_ID'
+      | 'GOOGLE_OAUTH_CLIENT_SECRET'
+      | 'YOUTUBE_REDIRECT_URI',
+  ): string {
+    const value = this.configService.get<string>(key);
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`${key} is not configured`);
+    }
+
+    return value;
   }
 }

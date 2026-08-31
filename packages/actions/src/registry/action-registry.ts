@@ -797,9 +797,9 @@ const SYSTEM_MAINTENANCE_ACTIONS = [
     'Reconciles one pending TikTok publication.',
   ],
   [
-    'trends.maintenance.evaluate-backfill',
-    'Evaluate Trend Backfill',
-    'Evaluates whether a trend dataset requires backfill.',
+    'trends.maintenance.discover-scoped',
+    'Discover Scoped Trend Accounts',
+    'Discovers connected social accounts eligible for native trend refresh.',
   ],
   [
     'trends.maintenance.expire-hashtags',
@@ -837,9 +837,9 @@ const SYSTEM_MAINTENANCE_ACTIONS = [
     'Fetches current trending sound signals.',
   ],
   [
-    'trends.maintenance.finalize-backfill',
-    'Finalize Trend Backfill',
-    'Finalizes one trend backfill evaluation.',
+    'trends.maintenance.fetch-scoped',
+    'Fetch Scoped Trends',
+    'Fetches one tenant-isolated trend dataset through its native integration.',
   ],
   [
     'trends.maintenance.precompute-preview',

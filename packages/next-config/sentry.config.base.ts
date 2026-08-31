@@ -7,8 +7,6 @@ interface SentryInitOptions {
   debug?: boolean;
   /** Override enabled state (default: disabled in development) */
   enabled?: boolean;
-  /** Override traces sample rate (default: 1) */
-  tracesSampleRate?: number;
 }
 
 /**
@@ -19,16 +17,12 @@ interface SentryInitOptions {
  * // sentry.edge.config.ts
  * import { initSentry } from '@configs/sentry.config.base';
  * initSentry();
- *
- * // With options
- * initSentry({ tracesSampleRate: 0.5 });
  */
 export function initSentry(options: SentryInitOptions = {}): void {
   const {
     additionalTags,
     debug = false,
     enabled = process.env.NODE_ENV !== 'development',
-    tracesSampleRate = 1,
   } = options;
 
   Sentry.init({
@@ -36,7 +30,8 @@ export function initSentry(options: SentryInitOptions = {}): void {
     dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
     enabled,
     environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-    tracesSampleRate,
+    // Sentry is used for error reporting only; performance spans are disabled.
+    tracesSampleRate: 0,
   });
 
   if (additionalTags) {

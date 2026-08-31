@@ -19,12 +19,12 @@ export function setServerQueryData<TData>(queryKey: QueryKey, data: TData) {
   getServerQueryClient().setQueryData(queryKey, data);
 }
 
-/**
- * Start protected-route prefetch without holding the RSC response open.
- * Pending promises are serialized by the hydration boundary below, allowing
- * the route shell to paint while TanStack Query streams the result.
- */
 export function prefetchServerQuery(options: PrefetchQueryOptions) {
+  // Fire-and-forget so the RSC returns its shell immediately; the pending
+  // query dehydrates with a live promise that streams to the client.
+  // prefetchQuery swallows fetch rejections, and retry: false keeps a failed
+  // fetch from holding the stream open — the client discards the rejected
+  // entry and refetches itself.
   void getServerQueryClient().prefetchQuery({ ...options, retry: false });
 }
 

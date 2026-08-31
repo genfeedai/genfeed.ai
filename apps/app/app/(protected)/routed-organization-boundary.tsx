@@ -4,7 +4,6 @@ import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/constants';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Building2, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -105,14 +104,5 @@ export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
     );
   }
 
-  return (
-    <PageLoadingState
-      fullScreen
-      message={
-        status === 'switching'
-          ? 'Switching organization'
-          : 'Confirming organization context'
-      }
-    />
-  );
+  return null;
 }

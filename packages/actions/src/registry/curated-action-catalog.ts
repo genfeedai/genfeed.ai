@@ -124,6 +124,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'initiate_oauth_connect', surfaces: ['agent'] },
   { name: 'inspect_workflow', surfaces: ['agent', 'mcp'] },
   { name: 'install_official_workflow', surfaces: ['agent'] },
+  { name: 'install_skills_pro_skill', surfaces: ['mcp'] },
   { name: 'install_system_workflow', surfaces: ['agent', 'mcp'] },
   { name: 'list_ads_research', surfaces: ['agent', 'mcp'] },
   { name: 'list_agent_conversations', surfaces: ['agent'] },
@@ -215,6 +216,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'update_strategy_state', surfaces: ['agent'] },
   { name: 'upscale_image', surfaces: ['agent', 'mcp'] },
   { name: 'validate_scheduler_target', surfaces: ['mcp'] },
+  { name: 'verify_skills_pro_entitlement', surfaces: ['mcp'] },
 ] as const satisfies readonly CuratedActionCatalogEntry[];
 
 export type CuratedActionName = (typeof CURATED_ACTION_CATALOG)[number]['name'];

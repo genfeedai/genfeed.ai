@@ -12,9 +12,11 @@ const mocks = vi.hoisted(() => ({
   handleDuplicate: vi.fn(),
   handleToggleSchedule: vi.fn(),
   isDesktopShell: false,
+  isLoading: false as boolean,
   isSystemWorkflow: false,
   selectedIds: new Set<string>(),
   toggleSelected: vi.fn(),
+  workflows: [{ id: 'workflow-1' }] as Array<{ id: string }>,
 }));
 
 vi.mock('@genfeedai/config/deployment', async (importOriginal) => {
@@ -252,11 +254,11 @@ vi.mock('./useWorkflowLibraryPage', () => ({
     setPage: vi.fn(),
     isCapable: true,
     isConnected: true,
-    isLoading: false,
+    isLoading: mocks.isLoading,
     loadWorkflows: vi.fn(),
     searchInput: '',
     setSearchInput: vi.fn(),
-    workflows: [{ id: 'workflow-1' }],
+    workflows: mocks.workflows,
   }),
 }));
 
@@ -267,6 +269,8 @@ describe('WorkflowLibraryPage card semantics', () => {
     mocks.isDesktopShell = false;
     mocks.cloudSync = true;
     mocks.selectedIds = new Set();
+    mocks.isLoading = false;
+    mocks.workflows = [{ id: 'workflow-1' }];
   });
 
   it('keeps card navigation separate from schedule and menu actions', () => {
@@ -373,5 +377,21 @@ describe('WorkflowLibraryPage card semantics', () => {
       }),
     ).toBeVisible();
     expect(screen.queryByText('Platform-managed')).not.toBeInTheDocument();
+  });
+
+  it('keeps the toolbar and search bar mounted while the initial load is pending', () => {
+    mocks.isLoading = true;
+    mocks.workflows = [];
+    render(<WorkflowLibraryPage />);
+
+    expect(screen.getByRole('link', { name: 'Templates' })).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: 'New Workflow' }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByPlaceholderText('Search workflows...'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('library-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('library-content')).not.toBeInTheDocument();
   });
 });

@@ -6,6 +6,11 @@ import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const mockUsePostDetail = vi.fn();
 
 vi.mock('@hooks/pages/use-post-detail/use-post-detail', () => ({
@@ -141,11 +146,16 @@ describe('PostDetail', () => {
     expect(screen.getByTestId('post-sidebar')).toBeInTheDocument();
   });
 
-  it('renders skeletons while loading', () => {
-    mockUsePostDetail.mockReturnValue(buildHookData({ isLoading: true }));
+  it('renders the page shell while the post is still loading', () => {
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({ isLoading: true, post: null }),
+    );
 
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
+    expect(screen.getByText('Post detail')).toBeInTheDocument();
+    expect(screen.getByText('Loading post…')).toBeInTheDocument();
+    expect(screen.getByTestId('post-detail-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('post-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('post-content')).not.toBeInTheDocument();
   });

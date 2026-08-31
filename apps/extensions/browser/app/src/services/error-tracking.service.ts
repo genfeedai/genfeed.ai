@@ -18,7 +18,7 @@ export function initializeErrorTracking(entrypoint: string): void {
     dsn: SENTRY_DSN,
     environment: process.env.PLASMO_PUBLIC_ENV || process.env.NODE_ENV,
     release: process.env.PLASMO_PUBLIC_APP_VERSION,
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 0,
   });
 
   Sentry.setTag('app', 'extension');

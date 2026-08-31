@@ -2125,11 +2125,17 @@ export async function mockWorkflowExecutions(
   await routeApiPattern(page, '/workflow-executions**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      const resources = executions.map((execution) =>
-        normalizeExecution(execution, workflowLabels.get(execution.workflowId)),
-      );
+      const resources = executions.map((execution) => ({
+        attributes: normalizeExecution(
+          execution,
+          workflowLabels.get(execution.workflowId),
+        ),
+        id: execution.id,
+      }));
       await route.fulfill({
-        body: JSON.stringify(resources),
+        body: JSON.stringify(
+          buildJsonApiCollection('workflow-executions', resources),
+        ),
         contentType: 'application/json',
         status: 200,
       });
@@ -2149,7 +2155,9 @@ export async function mockWorkflowExecutions(
         'Social Media Pipeline',
       );
       await route.fulfill({
-        body: JSON.stringify(execution),
+        body: JSON.stringify(
+          buildJsonApiDocument('workflow-executions', 'exec-new', execution),
+        ),
         contentType: 'application/json',
         status: 201,
       });
@@ -2175,7 +2183,9 @@ export async function mockWorkflowExecutions(
     const normalized = normalizeExecution(execution, execution.workflowId);
 
     await route.fulfill({
-      body: JSON.stringify(normalized),
+      body: JSON.stringify(
+        buildJsonApiDocument('workflow-executions', id, normalized),
+      ),
       contentType: 'application/json',
       status: 200,
     });

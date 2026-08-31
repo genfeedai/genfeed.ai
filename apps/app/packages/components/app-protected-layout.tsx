@@ -28,7 +28,6 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import {
@@ -87,7 +86,7 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
 const LazyUniversalWorkspaceShell = dynamic(
   () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
   {
-    loading: () => <LazyLoadingFallback variant="grid" />,
+    loading: () => null,
   },
 );
 
@@ -513,9 +512,7 @@ function AppLayoutWithDynamicMenu({
             <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
               {children}
             </LazyUniversalWorkspaceShell>
-          ) : (
-            <LazyLoadingFallback variant="grid" />
-          )
+          ) : null
         ) : (
           children
         )}
@@ -606,7 +603,7 @@ export default function AppProtectedLayout(
   props: Parameters<typeof AppProtectedLayoutContent>[0],
 ) {
   return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+    <Suspense fallback={null}>
       <AppProtectedLayoutContent {...props} />
     </Suspense>
   );

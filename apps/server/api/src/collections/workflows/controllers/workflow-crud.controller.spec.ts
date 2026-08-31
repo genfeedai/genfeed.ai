@@ -29,6 +29,11 @@ describe('WorkflowCrudController', () => {
     userId: userId,
   } as unknown as User;
 
+  const mockSuperAdminUser: User = {
+    ...mockUser,
+    isSuperAdmin: true,
+  } as unknown as User;
+
   const mockWorkflow = {
     id: workflowId,
     createdAt: new Date(),
@@ -184,7 +189,7 @@ describe('WorkflowCrudController', () => {
         totalDocs: 0,
       });
 
-      await controller.findAll(mockRequest, mockUser, {
+      await controller.findAll(mockRequest, mockSuperAdminUser, {
         includeSystem: true,
       } as WorkflowQueryDto);
 
@@ -193,7 +198,7 @@ describe('WorkflowCrudController', () => {
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
       expect(aggregateArg.where.OR).toEqual([
-        { userId: mockUser.userId },
+        { userId: mockSuperAdminUser.userId },
         {
           metadata: {
             equals: 'organization',
@@ -202,6 +207,16 @@ describe('WorkflowCrudController', () => {
         },
       ]);
       expect(aggregateArg.where.NOT).toBeUndefined();
+    });
+
+    it('rejects includeSystem for a non-superadmin before querying workflows', async () => {
+      await expect(
+        controller.findAll(mockRequest, mockUser, {
+          includeSystem: true,
+        } as WorkflowQueryDto),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(mockWorkflowsService.findAll).not.toHaveBeenCalled();
     });
 
     it('should restrict the visible list to the requested brand', async () => {

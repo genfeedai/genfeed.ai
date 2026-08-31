@@ -1,3 +1,8 @@
+import { ByokProvider } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { resolveDefaultFirstPartySkillSlugs } from '@server/collections/skills/catalog/default-first-party-skills';
 import {
   BUILT_IN_SKILL_CATALOG,
@@ -21,11 +26,6 @@ import { ValidationException } from '@server/exceptions/validation.exception';
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import { ByokProvider } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 export interface ResolveBrandSkillsOptions {
   agentType?: string;
@@ -41,6 +41,20 @@ export interface ResolvedBrandSkill {
   skill: SkillDocument;
   targetSkill: SkillDocument;
   variant: SkillDocument | null;
+}
+
+export interface InstallManagedSkillPackageInput {
+  category: CreateSkillDto['category'];
+  channels: CreateSkillDto['channels'];
+  checksum: string;
+  description: string;
+  files: Array<{ content: string; path: string }>;
+  instructions: string;
+  modalities: CreateSkillDto['modalities'];
+  name: string;
+  slug: string;
+  version: string;
+  workflowStage: CreateSkillDto['workflowStage'];
 }
 
 @Injectable()
@@ -88,6 +102,7 @@ export class SkillsService {
       description: payload['description'],
       files: payload['files'],
       inputSchema: payload['inputSchema'],
+      integrity: payload['integrity'],
       isBuiltIn: payload['isBuiltIn'],
       isEnabled: payload['isEnabled'],
       modalities: payload['modalities'],
@@ -172,6 +187,60 @@ export class SkillsService {
       source: 'imported',
       status: payload.status ?? 'draft',
     });
+  }
+
+  async installManagedSkillPackage(
+    organizationId: string,
+    payload: InstallManagedSkillPackageInput,
+  ): Promise<SkillDocument> {
+    this.requireOrganizationId(organizationId);
+
+    if (isReservedBuiltInSkillSlug(payload.slug)) {
+      throw new ValidationException(
+        'This slug is reserved for the built-in skill catalog',
+        'slug',
+        payload.slug,
+      );
+    }
+
+    const sourceListingId = `skills-pro:${payload.slug}`;
+    const config = this.buildSkillConfig({
+      ...payload,
+      defaultInstructions: payload.instructions,
+      integrity: { algorithm: 'sha256', checksum: payload.checksum },
+      isBuiltIn: false,
+      isEnabled: true,
+      source: 'imported',
+      sourceListingId,
+      status: 'published',
+      systemPromptTemplate: payload.instructions,
+    });
+    const existing = await this.prisma.skill.findFirst({
+      where: {
+        config: { equals: sourceListingId, path: ['sourceListingId'] },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+
+    const stored = existing
+      ? await this.prisma.skill.update({
+          data: {
+            config: config as Prisma.InputJsonValue,
+            label: payload.name,
+          },
+          where: scopedWhere(organizationId, { id: existing.id }),
+        })
+      : await this.prisma.skill.create({
+          data: {
+            config: config as Prisma.InputJsonValue,
+            isDeleted: false,
+            label: payload.name,
+            organizationId,
+          },
+        });
+
+    return this.normalizeSkill(stored);
   }
 
   async customizeSkill(

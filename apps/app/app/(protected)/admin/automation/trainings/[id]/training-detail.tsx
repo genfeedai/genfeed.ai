@@ -20,6 +20,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
@@ -108,11 +109,9 @@ export default function TrainingDetail({
     return abortCurrentTrainingLoad;
   }, [trainingId, loadTraining, abortCurrentTrainingLoad]);
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
+  const isTrainingUnavailable = !isLoading && !training;
 
-  if (error || !training) {
+  if (error || isTrainingUnavailable) {
     return (
       <Container>
         <Card className="p-12 text-center">
@@ -140,81 +139,92 @@ export default function TrainingDetail({
     );
   }
 
-  const trainingAccount = training.brand as IBrand;
+  const trainingAccount = training?.brand as IBrand | undefined;
 
   return (
-    <TrainingProvider training={training} refreshTraining={loadTraining}>
+    <>
       <Container>
         <Card>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <h2 className="text-2xl font-semibold text-foreground">
-                  {training.label}
-                </h2>
-                <Button
-                  icon={<Pencil />}
-                  onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
-                  variant={ButtonVariant.GHOST}
-                  size={ButtonSize.SM}
-                  tooltip="Edit Training"
-                />
-              </div>
-
-              {training.description && (
-                <p className="text-muted-foreground mb-4">
-                  {training.description}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-4 mt-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Status</span>
-                  <Badge status={training.status}>{training.status}</Badge>
+          {training ? (
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-2">
+                  <h2 className="text-2xl font-semibold text-foreground">
+                    {training.label}
+                  </h2>
+                  <Button
+                    icon={<Pencil />}
+                    onClick={() => openModal(ModalEnum.TRAINING_EDIT)}
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SM}
+                    tooltip="Edit Training"
+                  />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Brand</span>
-                  <Code size="md">
-                    {trainingAccount
-                      ? brands.find((a: IBrand) => a.id === trainingAccount?.id)
-                          ?.label ||
-                        (trainingAccount as IBrand)?.label ||
-                        'Unknown'
-                      : '-'}
-                  </Code>
+                {training.description && (
+                  <p className="text-muted-foreground mb-4">
+                    {training.description}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-4 mt-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Status
+                    </span>
+                    <Badge status={training.status}>{training.status}</Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Brand</span>
+                    <Code size="md">
+                      {trainingAccount
+                        ? brands.find(
+                            (a: IBrand) => a.id === trainingAccount?.id,
+                          )?.label ||
+                          (trainingAccount as IBrand)?.label ||
+                          'Unknown'
+                        : '-'}
+                    </Code>
+                  </div>
+
+                  {training.trigger && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Trigger
+                      </span>
+                      <Code size="md">{training.trigger}</Code>
+                    </div>
+                  )}
+
+                  {training.category && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Category
+                      </span>
+                      <Code size="md">{training.category}</Code>
+                    </div>
+                  )}
+
+                  {training.steps && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Steps
+                      </span>
+                      <Code size="md">{training.steps}</Code>
+                    </div>
+                  )}
                 </div>
-
-                {training.trigger && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Trigger
-                    </span>
-                    <Code size="md">{training.trigger}</Code>
-                  </div>
-                )}
-
-                {training.category && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Category
-                    </span>
-                    <Code size="md">{training.category}</Code>
-                  </div>
-                )}
-
-                {training.steps && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Steps</span>
-                    <Code size="md">{training.steps}</Code>
-                  </div>
-                )}
               </div>
             </div>
-          </div>
+          ) : (
+            <SkeletonCard showImage={false} />
+          )}
         </Card>
 
-        <LazyModalTraining training={training} onSuccess={loadTraining} />
+        {training && (
+          <LazyModalTraining training={training} onSuccess={loadTraining} />
+        )}
       </Container>
 
       <Container
@@ -223,7 +233,7 @@ export default function TrainingDetail({
           tabs: [
             {
               badge:
-                training.totalGeneratedImages !== undefined ? (
+                training?.totalGeneratedImages !== undefined ? (
                   <Badge
                     value={training.totalGeneratedImages}
                     variant="info"
@@ -236,7 +246,7 @@ export default function TrainingDetail({
             },
             {
               badge:
-                training.totalSources !== undefined ? (
+                training?.totalSources !== undefined ? (
                   <Badge
                     value={training.totalSources}
                     variant="secondary"
@@ -250,8 +260,14 @@ export default function TrainingDetail({
           ],
         }}
       >
-        {children}
+        {training ? (
+          <TrainingProvider training={training} refreshTraining={loadTraining}>
+            {children}
+          </TrainingProvider>
+        ) : (
+          <Loading isFullSize={false} />
+        )}
       </Container>
-    </TrainingProvider>
+    </>
   );
 }

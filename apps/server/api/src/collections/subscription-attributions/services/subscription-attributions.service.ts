@@ -38,7 +38,7 @@ type SubscriptionAttributionMetadata = {
 
 type NormalizedSubscriptionAttribution = Omit<
   SubscriptionAttribution,
-  'metadata'
+  'metadata' | 'stripeSubscriptionId'
 > & {
   amount?: number;
   currency?: string;
@@ -111,12 +111,45 @@ export class SubscriptionAttributionsService
       metadata,
       plan: metadata?.plan,
       source: metadata?.source,
-      stripeSubscriptionId: metadata?.stripeSubscriptionId,
+      stripeSubscriptionId:
+        attribution.stripeSubscriptionId ?? metadata?.stripeSubscriptionId,
       subscribedAt: Number.isNaN(subscribedAt.getTime())
         ? undefined
         : subscribedAt,
       utm: metadata?.utm,
     };
+  }
+
+  private async updateExistingAttribution(
+    existingAttribution: NormalizedSubscriptionAttribution,
+    dto: TrackSubscriptionDto,
+    baseMetadata: SubscriptionAttributionMetadata,
+  ): Promise<NormalizedSubscriptionAttribution> {
+    const updated = await this.prisma.subscriptionAttribution.update({
+      data: {
+        channel: dto.sourcePlatform ?? existingAttribution.channel,
+        metadata: this.mergeMetadata(existingAttribution.metadata, {
+          ...baseMetadata,
+          subscribedAt:
+            existingAttribution.metadata?.subscribedAt ??
+            new Date().toISOString(),
+        }),
+        referrer: dto.utm?.source ?? existingAttribution.referrer,
+        sourceContentId:
+          dto.sourceContentId ?? existingAttribution.sourceContentId,
+        sourceLinkId: dto.sourceLinkId ?? existingAttribution.sourceLinkId,
+        userId: dto.userId,
+      },
+      where: { id: existingAttribution.id },
+    });
+
+    this.logger.log(`Subscription attribution updated`, {
+      content: baseMetadata.source?.content,
+      platform: baseMetadata.source?.platform,
+      subscriptionId: dto.stripeSubscriptionId,
+    });
+
+    return this.normalizeAttribution(updated);
   }
 
   /**
@@ -130,13 +163,12 @@ export class SubscriptionAttributionsService
     const source = this.buildSourceFromDto(dto);
     const utm = this.buildUtmFromDto(dto);
 
-    const existing = await this.prisma.subscriptionAttribution.findFirst({
+    const existing = await this.prisma.subscriptionAttribution.findUnique({
       where: {
-        metadata: {
-          equals: dto.stripeSubscriptionId,
-          path: ['stripeSubscriptionId'],
+        organizationId_stripeSubscriptionId: {
+          organizationId,
+          stripeSubscriptionId: dto.stripeSubscriptionId,
         },
-        organizationId,
       },
     });
     const existingAttribution = existing
@@ -172,55 +204,60 @@ export class SubscriptionAttributionsService
     }
 
     if (existingAttribution) {
-      const updated = await this.prisma.subscriptionAttribution.update({
+      return this.updateExistingAttribution(
+        existingAttribution,
+        dto,
+        baseMetadata,
+      );
+    }
+
+    try {
+      const attribution = await this.prisma.subscriptionAttribution.create({
         data: {
-          channel: dto.sourcePlatform ?? existingAttribution.channel,
-          metadata: this.mergeMetadata(existingAttribution.metadata, {
+          channel: dto.sourcePlatform,
+          metadata: {
             ...baseMetadata,
-            subscribedAt:
-              existingAttribution.metadata?.subscribedAt ??
-              new Date().toISOString(),
-          }),
-          referrer: dto.utm?.source ?? existingAttribution.referrer,
-          sourceContentId:
-            dto.sourceContentId ?? existingAttribution.sourceContentId,
-          sourceLinkId: dto.sourceLinkId ?? existingAttribution.sourceLinkId,
+            subscribedAt: new Date().toISOString(),
+          },
+          organizationId,
+          referrer: dto.utm?.source,
+          sourceContentId: dto.sourceContentId,
+          sourceLinkId: dto.sourceLinkId,
+          stripeSubscriptionId: dto.stripeSubscriptionId,
           userId: dto.userId,
         },
-        where: { id: existingAttribution.id },
       });
 
-      this.logger.log(`Subscription attribution updated`, {
+      this.logger.log(`Subscription attribution tracked`, {
         content: baseMetadata.source?.content,
         platform: baseMetadata.source?.platform,
         subscriptionId: dto.stripeSubscriptionId,
       });
 
-      return this.normalizeAttribution(updated);
-    }
+      return this.normalizeAttribution(attribution);
+    } catch (error: unknown) {
+      if ((error as { code?: unknown }).code !== 'P2002') {
+        throw error;
+      }
 
-    const attribution = await this.prisma.subscriptionAttribution.create({
-      data: {
-        channel: dto.sourcePlatform,
-        metadata: {
-          ...baseMetadata,
-          subscribedAt: new Date().toISOString(),
+      const winner = await this.prisma.subscriptionAttribution.findUnique({
+        where: {
+          organizationId_stripeSubscriptionId: {
+            organizationId,
+            stripeSubscriptionId: dto.stripeSubscriptionId,
+          },
         },
-        organizationId,
-        referrer: dto.utm?.source,
-        sourceContentId: dto.sourceContentId,
-        sourceLinkId: dto.sourceLinkId,
-        userId: dto.userId,
-      },
-    });
+      });
+      if (!winner) {
+        throw error;
+      }
 
-    this.logger.log(`Subscription attribution tracked`, {
-      content: baseMetadata.source?.content,
-      platform: baseMetadata.source?.platform,
-      subscriptionId: dto.stripeSubscriptionId,
-    });
-
-    return this.normalizeAttribution(attribution);
+      return this.updateExistingAttribution(
+        this.normalizeAttribution(winner),
+        dto,
+        baseMetadata,
+      );
+    }
   }
 
   /**

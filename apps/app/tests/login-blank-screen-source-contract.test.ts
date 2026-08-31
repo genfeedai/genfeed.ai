@@ -7,16 +7,13 @@ function readAppSource(path: string) {
 }
 
 describe('post-login loading source contracts', () => {
-  it('keeps the protected app Suspense boundary visible while it resolves', () => {
+  it('keeps the protected app Suspense boundary non-blocking while it resolves', () => {
     const source = readAppSource(
       'packages/components/app-protected-layout.tsx',
     );
 
-    expect(source).toContain('LazyLoadingFallback');
-    expect(source).toContain(
-      'fallback={<LazyLoadingFallback variant="grid" />}',
-    );
-    expect(source).not.toContain('fallback={null}');
+    expect(source).toContain('<Suspense fallback={null}>');
+    expect(source).not.toContain('PageLoadingState');
   });
 
   it('keeps the workspace page Suspense boundary non-blocking while it resolves', () => {

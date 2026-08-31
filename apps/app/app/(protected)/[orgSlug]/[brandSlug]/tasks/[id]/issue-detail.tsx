@@ -16,8 +16,8 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { ArrowLeft, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
@@ -307,33 +307,6 @@ export default function IssueDetail({
     lastCommentRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  if (isLoading) {
-    return (
-      <Container>
-        <LazyLoadingFallback variant="minimal" />
-      </Container>
-    );
-  }
-
-  if (!issue) {
-    return (
-      <Container>
-        <Card>
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <TriangleAlert className="mb-3 size-8 text-gray-800" />
-            <p className="text-sm text-muted-foreground">Issue not found</p>
-            <Link
-              href={APP_ROUTES.WORKSPACE.TASKS}
-              className="mt-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Back to issues
-            </Link>
-          </div>
-        </Card>
-      </Container>
-    );
-  }
-
   return (
     <Container>
       <div className="mb-4">
@@ -346,68 +319,89 @@ export default function IssueDetail({
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        {/* Main content */}
-        <div className="space-y-6">
-          <IssueHeader
-            identifier={issue.identifier}
-            status={issue.status}
-            priority={issue.priority}
-            title={issue.title}
+      {isLoading ? (
+        <div
+          className="grid gap-6 lg:grid-cols-[1fr_300px]"
+          data-testid="issue-detail-loading"
+        >
+          <div className="space-y-6">
+            <SkeletonCard showImage={false} />
+            <SkeletonCard showImage={false} />
+            <SkeletonCard showImage={false} />
+          </div>
+          <SkeletonCard showImage={false} />
+        </div>
+      ) : !issue ? (
+        <Card>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <TriangleAlert className="mb-3 size-8 text-gray-800" />
+            <p className="text-sm text-muted-foreground">Issue not found</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          {/* Main content */}
+          <div className="space-y-6">
+            <IssueHeader
+              identifier={issue.identifier}
+              status={issue.status}
+              priority={issue.priority}
+              title={issue.title}
+              statusLabels={STATUS_LABELS}
+              priorityColors={PRIORITY_COLORS}
+              priorityLabels={PRIORITY_LABELS}
+            />
+
+            {/* Description */}
+            {issue.description ? (
+              <Card>
+                <div className="p-4">
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
+                    Description
+                  </h3>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+                    {issue.description}
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
+            <IssueSubIssuesCard
+              subIssues={children}
+              statusLabels={STATUS_LABELS}
+            />
+
+            <IssueCommentsCard
+              comments={comments}
+              visibleComments={visibleComments}
+              hiddenCommentCount={hiddenCommentCount}
+              showAllComments={showAllComments}
+              commentBody={commentBody}
+              isSubmitting={isSubmitting}
+              lastCommentRef={lastCommentRef}
+              visibleCommentCount={VISIBLE_COMMENT_COUNT}
+              onShowAllComments={() => dispatch({ type: 'SHOW_ALL_COMMENTS' })}
+              onScrollToLatest={scrollToLatestComment}
+              onCommentBodyChange={(body) =>
+                dispatch({ type: 'SET_COMMENT_BODY', payload: body })
+              }
+              onAddComment={handleAddComment}
+            />
+          </div>
+
+          {/* Sidebar */}
+          <IssueSidebar
+            issue={issue}
             statusLabels={STATUS_LABELS}
+            statusTransitions={STATUS_TRANSITIONS}
             priorityColors={PRIORITY_COLORS}
             priorityLabels={PRIORITY_LABELS}
-          />
-
-          {/* Description */}
-          {issue.description ? (
-            <Card>
-              <div className="p-4">
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
-                  Description
-                </h3>
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                  {issue.description}
-                </div>
-              </div>
-            </Card>
-          ) : null}
-
-          <IssueSubIssuesCard
-            subIssues={children}
-            statusLabels={STATUS_LABELS}
-          />
-
-          <IssueCommentsCard
-            comments={comments}
-            visibleComments={visibleComments}
-            hiddenCommentCount={hiddenCommentCount}
-            showAllComments={showAllComments}
-            commentBody={commentBody}
-            isSubmitting={isSubmitting}
-            lastCommentRef={lastCommentRef}
-            visibleCommentCount={VISIBLE_COMMENT_COUNT}
-            onShowAllComments={() => dispatch({ type: 'SHOW_ALL_COMMENTS' })}
-            onScrollToLatest={scrollToLatestComment}
-            onCommentBodyChange={(body) =>
-              dispatch({ type: 'SET_COMMENT_BODY', payload: body })
-            }
-            onAddComment={handleAddComment}
+            entityModelColors={ENTITY_MODEL_COLORS}
+            entityModelLabels={ENTITY_MODEL_LABELS}
+            onStatusUpdate={handleStatusUpdate}
           />
         </div>
-
-        {/* Sidebar */}
-        <IssueSidebar
-          issue={issue}
-          statusLabels={STATUS_LABELS}
-          statusTransitions={STATUS_TRANSITIONS}
-          priorityColors={PRIORITY_COLORS}
-          priorityLabels={PRIORITY_LABELS}
-          entityModelColors={ENTITY_MODEL_COLORS}
-          entityModelLabels={ENTITY_MODEL_LABELS}
-          onStatusUpdate={handleStatusUpdate}
-        />
-      </div>
+      )}
     </Container>
   );
 }

@@ -1149,7 +1149,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   const resolved = await resolveCanonicalProtectedPath(
-    '/agent',
+    APP_ROUTES.WORKSPACE.OVERVIEW,
     token,
     cacheKey,
     req,
@@ -1397,7 +1397,7 @@ async function routeBetterAuthRequest(
 
   if (pathname === '/') {
     let resolved = await resolveCanonicalProtectedPath(
-      '/agent',
+      APP_ROUTES.WORKSPACE.OVERVIEW,
       token,
       sessionCookie,
       req,
@@ -1408,7 +1408,7 @@ async function routeBetterAuthRequest(
       const fallbackToken = await getBetterAuthBearerToken(req);
       resolved = fallbackToken
         ? await resolveCanonicalProtectedPath(
-            '/agent',
+            APP_ROUTES.WORKSPACE.OVERVIEW,
             fallbackToken,
             sessionCookie,
             req,

@@ -1,8 +1,8 @@
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { formatPlatformLabel } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 
 /**
  * Trends listing tool + summary card builder.
@@ -18,21 +18,12 @@ export class AgentTrendsToolHandler {
   ): Promise<AgentToolResult> {
     const platform = params.platform as string | undefined;
 
-    const cachedTrends = await this.trendsService.getTrends(
+    const trends = await this.trendsService.getTrends(
       ctx.organizationId,
       undefined,
       platform,
       { allowFetchIfMissing: false },
     );
-    const trends =
-      cachedTrends.length > 0
-        ? cachedTrends
-        : await this.trendsService.getTrends(
-            ctx.organizationId,
-            undefined,
-            platform,
-            { allowFetchIfMissing: true },
-          );
 
     return {
       creditsUsed: 0,

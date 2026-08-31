@@ -39,7 +39,5 @@ if (config) {
       return event;
     },
     integrations: [],
-    // Override sample rate: 100% in dev/staging, 20% in production
-    tracesSampleRate: env === 'production' ? 0.2 : 1.0,
   });
 }

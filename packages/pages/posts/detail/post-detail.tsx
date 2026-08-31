@@ -24,6 +24,7 @@ import {
   isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 export interface PostDetailProps {
@@ -50,6 +51,7 @@ export default function PostDetail({
   const { href } = useOrgUrl();
   const { openPostRepurposeModal } = usePostRepurposeModal();
   const hookData = usePostDetail({ postId, scope });
+  const translate = useTranslations('pages.posts.detail');
 
   const {
     post,
@@ -289,30 +291,24 @@ export default function PostDetail({
   const contextLabel =
     labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
 
-  // Loading state
-  if (isLoading) {
+  // Error state
+  if (error) {
     return (
       <div className={wrapperClassName}>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <SkeletonCard showImage={false} />
-            <SkeletonCard showImage={false} />
-          </div>
-          <div className="space-y-6">
-            <SkeletonCard showImage={false} />
-            <SkeletonCard showImage={false} />
-          </div>
-        </div>
+        <Card className="p-4">
+          <div className="text-error mb-4">{error}</div>
+        </Card>
       </div>
     );
   }
 
-  // Error state
-  if (error || !post) {
+  // Not-found state — distinct from "still loading" so the shell below can
+  // keep rendering while the record is in flight.
+  if (!isLoading && !post) {
     return (
       <div className={wrapperClassName}>
         <Card className="p-4">
-          <div className="text-error mb-4">{error || 'Post not found'}</div>
+          <div className="text-error mb-4">{translate('notFound')}</div>
         </Card>
       </div>
     );
@@ -324,7 +320,7 @@ export default function PostDetail({
         ? renderContextSidebar?.(sidebar, contextLabel)
         : null}
       <div className={wrapperClassName}>
-        {post.status === PostStatus.FAILED ? (
+        {post?.status === PostStatus.FAILED ? (
           <Alert type={AlertCategory.ERROR} className="mb-6">
             <p className="font-semibold">Publication Failed</p>
             <p>
@@ -333,85 +329,114 @@ export default function PostDetail({
           </Alert>
         ) : null}
 
-        <PostDetailHeader
-          post={post}
-          scope={scope}
-          isPublished={isPublished}
-          hasChildren={hasChildren}
-          viewMode={viewMode}
-          isExpandingToThread={isExpandingToThread}
-          onViewModeChange={setViewMode}
-          onDelete={handleDeletePost}
-          onCreateRemix={
-            isSourcePostVariationPlatform(post.platform)
-              ? handleCreateRemix
-              : undefined
-          }
-          onDuplicate={handleDuplicate}
-          onExpandToThread={handleExpandToThread}
-          onRepurpose={handleRepurpose}
-        />
-
-        <div
-          className={
-            usesContextSidebar ? 'min-w-0' : 'grid gap-4 lg:grid-cols-[2fr_1fr]'
-          }
-        >
-          <PostDetailContent
+        {post ? (
+          <PostDetailHeader
             post={post}
-            sortedChildren={sortedChildren}
             scope={scope}
-            viewMode={viewMode}
-            descriptionDraft={descriptionDraft}
-            labelDraft={labelDraft}
-            childDescriptions={childDescriptions}
-            selectedIngredients={selectedIngredients}
-            focusedPostId={focusedPostId}
-            draggedPostId={draggedPostId}
-            dragOverDividerIndex={dragOverDividerIndex}
-            enhancingPostId={enhancingPostId}
-            enhancingAction={enhancingAction}
-            isSavingIngredients={isSavingIngredients}
-            isSavingDescription={isSavingDescription}
-            isTogglingGrok={isTogglingGrok}
-            isTogglingFirstComment={isTogglingFirstComment}
-            carouselValidation={carouselValidation}
-            publishedDisplay={publishedDisplay}
-            isContentDirty={isContentDirty}
-            canAddThread={canAddThread}
-            canAddFirstComment={canAddFirstComment}
-            hasFirstComment={hasFirstComment}
-            firstCommentPost={firstCommentPost}
-            isLastChildGrokTweet={isLastChildGrokTweet}
+            isPublished={isPublished}
             hasChildren={hasChildren}
-            setDescriptionDraft={setDescriptionDraft}
-            setLabelDraft={setLabelDraft}
-            setChildDescription={setChildDescription}
-            setFocusedPostId={setFocusedPostId}
-            setDragOverDividerIndex={setDragOverDividerIndex}
-            handleContentSave={handleContentSave}
-            handleAddToThread={handleAddToThread}
-            handleDeleteChild={handleDeleteChild}
-            handleSelectMedia={handleSelectMedia}
-            handleGenerateIllustration={handleGenerateIllustration}
-            handleQuickAction={handleQuickAction}
-            handlePerTweetEnhance={handlePerTweetEnhance}
-            handleDragStart={handleDragStart}
-            handleDragEnd={handleDragEnd}
-            handleDrop={handleDrop}
-            handleToggleGrokFeedback={handleToggleGrokFeedback}
-            handleToggleFirstComment={handleToggleFirstComment}
-            handleUpdateChild={handleUpdateChild}
-            autoSaveRefs={autoSaveRefs}
-            performAutoSaveForPost={performAutoSaveForPost}
-            getPostsService={getPostsService}
-            notificationsService={notificationsService}
+            viewMode={viewMode}
+            isExpandingToThread={isExpandingToThread}
+            onViewModeChange={setViewMode}
+            onDelete={handleDeletePost}
+            onCreateRemix={
+              isSourcePostVariationPlatform(post.platform)
+                ? handleCreateRemix
+                : undefined
+            }
+            onDuplicate={handleDuplicate}
+            onExpandToThread={handleExpandToThread}
+            onRepurpose={handleRepurpose}
           />
+        ) : (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-foreground/60">{translate('title')}</p>
+              <h2 className="text-2xl font-bold">
+                {translate('loadingSubtitle')}
+              </h2>
+            </div>
+          </div>
+        )}
 
-          {!usesContextSidebar ? (
-            <div className="space-y-4">{sidebar}</div>
-          ) : null}
-        </div>
+        {post ? (
+          <div
+            className={
+              usesContextSidebar
+                ? 'min-w-0'
+                : 'grid gap-4 lg:grid-cols-[2fr_1fr]'
+            }
+          >
+            <PostDetailContent
+              post={post}
+              sortedChildren={sortedChildren}
+              scope={scope}
+              viewMode={viewMode}
+              descriptionDraft={descriptionDraft}
+              labelDraft={labelDraft}
+              childDescriptions={childDescriptions}
+              selectedIngredients={selectedIngredients}
+              focusedPostId={focusedPostId}
+              draggedPostId={draggedPostId}
+              dragOverDividerIndex={dragOverDividerIndex}
+              enhancingPostId={enhancingPostId}
+              enhancingAction={enhancingAction}
+              isSavingIngredients={isSavingIngredients}
+              isSavingDescription={isSavingDescription}
+              isTogglingGrok={isTogglingGrok}
+              isTogglingFirstComment={isTogglingFirstComment}
+              carouselValidation={carouselValidation}
+              publishedDisplay={publishedDisplay}
+              isContentDirty={isContentDirty}
+              canAddThread={canAddThread}
+              canAddFirstComment={canAddFirstComment}
+              hasFirstComment={hasFirstComment}
+              firstCommentPost={firstCommentPost}
+              isLastChildGrokTweet={isLastChildGrokTweet}
+              hasChildren={hasChildren}
+              setDescriptionDraft={setDescriptionDraft}
+              setLabelDraft={setLabelDraft}
+              setChildDescription={setChildDescription}
+              setFocusedPostId={setFocusedPostId}
+              setDragOverDividerIndex={setDragOverDividerIndex}
+              handleContentSave={handleContentSave}
+              handleAddToThread={handleAddToThread}
+              handleDeleteChild={handleDeleteChild}
+              handleSelectMedia={handleSelectMedia}
+              handleGenerateIllustration={handleGenerateIllustration}
+              handleQuickAction={handleQuickAction}
+              handlePerTweetEnhance={handlePerTweetEnhance}
+              handleDragStart={handleDragStart}
+              handleDragEnd={handleDragEnd}
+              handleDrop={handleDrop}
+              handleToggleGrokFeedback={handleToggleGrokFeedback}
+              handleToggleFirstComment={handleToggleFirstComment}
+              handleUpdateChild={handleUpdateChild}
+              autoSaveRefs={autoSaveRefs}
+              performAutoSaveForPost={performAutoSaveForPost}
+              getPostsService={getPostsService}
+              notificationsService={notificationsService}
+            />
+
+            {!usesContextSidebar ? (
+              <div className="space-y-4">{sidebar}</div>
+            ) : null}
+          </div>
+        ) : (
+          <div
+            className="grid gap-6 lg:grid-cols-3"
+            data-testid="post-detail-skeleton"
+          >
+            <div className="lg:col-span-2 space-y-6">
+              <SkeletonCard showImage={false} />
+              <SkeletonCard showImage={false} />
+            </div>
+            <div className="space-y-6">
+              <SkeletonCard showImage={false} />
+              <SkeletonCard showImage={false} />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

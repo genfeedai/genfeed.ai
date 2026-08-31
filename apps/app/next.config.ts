@@ -643,8 +643,6 @@ config.turbopack = {
       '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
     '@components/loading/fallback/LazyLoadingFallback':
       '../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
-    '@components/loading/skeleton/SkeletonFallbacks':
-      '../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
     '@components/modals/actions/ModalActions':
       '../../packages/ui/src/components/modals/actions/ModalActions.tsx',
     '@components/modals/modal/Modal':

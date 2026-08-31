@@ -171,37 +171,7 @@ export default function WorkflowExecutionsPage() {
     return () => controller.abort();
   }, [brandId, isReady, loadExecutions, offset, organizationId, pageScope]);
 
-  if (isLoading && executions.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="mx-auto max-w-7xl px-6 py-8">
-          <div className="overflow-hidden border border-border">
-            <div className="bg-muted/50 px-4 py-3 flex gap-8">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-4 w-20 animate-pulse rounded bg-muted"
-                />
-              ))}
-            </div>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex gap-8 border-t border-border px-4 py-3"
-              >
-                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-16 animate-pulse rounded-full bg-muted" />
-                <div className="h-2 w-16 animate-pulse rounded-full bg-muted self-center" />
-                <div className="h-4 w-28 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-12 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-              </div>
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const isInitialLoading = isLoading && executions.length === 0;
 
   if (error) {
     return (
@@ -225,8 +195,38 @@ export default function WorkflowExecutionsPage() {
       <h1 className="sr-only">{translate('title')}</h1>
 
       {/* Content */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {executions.length === 0 ? (
+      <main
+        className="mx-auto max-w-7xl px-6 py-8"
+        data-testid="executions-content"
+      >
+        {isInitialLoading ? (
+          <div
+            className="overflow-hidden border border-border"
+            data-testid="executions-skeleton"
+          >
+            <div className="bg-muted/50 px-4 py-3 flex gap-8">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-4 w-20 animate-pulse rounded bg-muted"
+                />
+              ))}
+            </div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex gap-8 border-t border-border px-4 py-3"
+              >
+                <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-16 animate-pulse rounded-full bg-muted" />
+                <div className="h-2 w-16 animate-pulse rounded-full bg-muted self-center" />
+                <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-12 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        ) : executions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 text-6xl">📊</div>
             <h2 className="mb-2 text-xl font-semibold">

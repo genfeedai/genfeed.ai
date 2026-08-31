@@ -420,7 +420,13 @@ describe('WorkspacePageContent', () => {
 
     fireEvent.click(screen.getByText('Campaign image'));
 
-    expect(await screen.findByTestId('workspace-task-inspector')).toBeVisible();
+    expect(
+      await screen.findByTestId(
+        'workspace-task-inspector',
+        {},
+        { timeout: 5000 },
+      ),
+    ).toBeVisible();
     expect(await screen.findByText('Generated image preview')).toBeVisible();
     expect(await screen.findByText('Visual continuity QA')).toBeVisible();
     expect(

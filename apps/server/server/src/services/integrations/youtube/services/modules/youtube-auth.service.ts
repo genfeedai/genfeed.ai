@@ -60,18 +60,17 @@ export class YoutubeAuthService {
     // Create a new OAuth2 client instance per request to avoid race conditions
     // and credential mixing between concurrent users. This client will be returned
     // and passed as the 'auth' parameter to individual API calls.
+    const clientId = this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_ID');
     const oauthClient = YoutubeOAuth2Util.createClient(
-      this.configService.get('YOUTUBE_CLIENT_ID')!,
-      // @ts-expect-error TS2345
-      this.configService.get<string>('YOUTUBE_CLIENT_SECRET'),
-      this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
+      clientId,
+      this.requireOAuthConfig('GOOGLE_OAUTH_CLIENT_SECRET'),
+      this.requireOAuthConfig('YOUTUBE_REDIRECT_URI'),
     );
 
     try {
       this.loggerService.log('Refreshing YouTube token', {
         brandId,
-        // @ts-expect-error TS2339
-        clientId: `${this.configService.get<string>('YOUTUBE_CLIENT_ID')?.substring(0, 20)}...`,
+        clientId: `${clientId.substring(0, 20)}...`,
         hasRefreshToken: !!credentials.refreshToken,
         organizationId,
         redirectUri: this.configService.get<string>('YOUTUBE_REDIRECT_URI'),
@@ -180,5 +179,19 @@ export class YoutubeAuthService {
 
       throw error;
     }
+  }
+
+  private requireOAuthConfig(
+    key:
+      | 'GOOGLE_OAUTH_CLIENT_ID'
+      | 'GOOGLE_OAUTH_CLIENT_SECRET'
+      | 'YOUTUBE_REDIRECT_URI',
+  ): string {
+    const value = this.configService.get<string>(key);
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`${key} is not configured`);
+    }
+
+    return value;
   }
 }

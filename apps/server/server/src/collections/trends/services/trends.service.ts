@@ -28,7 +28,11 @@ import type { TrendingSoundDocument } from '@server/collections/trends/schemas/t
 import type { TrendingVideoDocument } from '@server/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@server/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@server/collections/trends/services/modules/trend-content-ideas.service';
-import { TrendFetchService } from '@server/collections/trends/services/modules/trend-fetch.service';
+import {
+  type TrendFetchBatchOptions,
+  TrendFetchService,
+  type TrendProviderExecutionOptions,
+} from '@server/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@server/collections/trends/services/modules/trend-filtering.service';
 import { TrendQueryService } from '@server/collections/trends/services/modules/trend-query.service';
 import { TrendSourcePreviewService } from '@server/collections/trends/services/modules/trend-source-preview.service';
@@ -98,11 +102,13 @@ export class TrendsService {
     platform: string,
     organizationId?: string,
     brandId?: string,
+    options: TrendProviderExecutionOptions = {},
   ): Promise<TrendData[]> {
     return this.trendFetchService.fetchPlatformTrends(
       platform,
       organizationId,
       brandId,
+      options,
     );
   }
 
@@ -116,14 +122,28 @@ export class TrendsService {
     return this.fetchAndHydrateTrends(organizationId, brandId);
   }
 
+  fetchAndCachePlatformTrends(
+    platform: string,
+    organizationId: string,
+    brandId: string,
+    options: TrendProviderExecutionOptions = {},
+  ): Promise<TrendEntity[]> {
+    return this.fetchAndHydrateTrends(organizationId, brandId, {
+      ...options,
+      platforms: [platform],
+    });
+  }
+
   private async fetchAndHydrateTrends(
     organizationId?: string,
     brandId?: string,
+    options: TrendFetchBatchOptions = {},
   ): Promise<TrendEntity[]> {
     const trends = await this.trendFetchService.fetchAndCacheTrends(
       organizationId,
       brandId,
       (trend) => this.trendFilteringService.calculateViralityScore(trend),
+      options,
     );
     const hydratedTrends =
       await this.trendSourcePreviewService.precomputeTrendSourcePreview(
@@ -207,7 +227,7 @@ export class TrendsService {
       }
     }
 
-    if (options.allowFetchIfMissing === false) {
+    if (options.allowFetchIfMissing !== true) {
       this.loggerService.log(
         'No cached trends found and live fetch is disabled, returning empty result',
       );

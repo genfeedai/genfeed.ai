@@ -430,6 +430,22 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
+  it('owns scoped trend maintenance and retires adaptive backfill actions', () => {
+    for (const actionId of [
+      'trends.maintenance.discover-scoped',
+      'trends.maintenance.fetch-scoped',
+    ]) {
+      expect(getActionDefinition(actionId)?.visibility).toBe('internal');
+    }
+
+    expect(
+      getActionDefinition('trends.maintenance.evaluate-backfill'),
+    ).toBeUndefined();
+    expect(
+      getActionDefinition('trends.maintenance.finalize-backfill'),
+    ).toBeUndefined();
+  });
+
   it('owns every scheduled-post workflow step', () => {
     expect(
       [

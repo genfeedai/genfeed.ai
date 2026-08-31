@@ -41,10 +41,6 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div>Loading discover</div>,
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,

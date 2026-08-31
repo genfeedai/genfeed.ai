@@ -33,6 +33,15 @@ describe(relativePath, () => {
     expect(source).not.toContain('rightContent=');
   });
 
+  it('keeps module chrome mounted while the workflow loads', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).toContain('<WorkflowEditorSectionTopbar');
+    expect(source).toContain('data-testid="workflow-editor-loading-shell"');
+    expect(source).not.toMatch(/if \(isLoading\) \{/);
+    expect(source).not.toContain('min-h-screen items-center justify-center');
+  });
+
   it('tracks bounded workflow start and terminal outcomes', () => {
     const capture = vi.fn();
     const tracker = createEditorWorkflowRunTracker(capture);

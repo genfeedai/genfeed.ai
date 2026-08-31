@@ -110,8 +110,8 @@ export class GoogleAdsOAuthService {
   }
 
   private getOAuthConfig() {
-    const clientId = this.configService.get('GOOGLE_ADS_CLIENT_ID');
-    const clientSecret = this.configService.get('GOOGLE_ADS_CLIENT_SECRET');
+    const clientId = this.configService.get('GOOGLE_OAUTH_CLIENT_ID');
+    const clientSecret = this.configService.get('GOOGLE_OAUTH_CLIENT_SECRET');
     const redirectUri = this.configService.get('GOOGLE_ADS_REDIRECT_URI');
 
     if (

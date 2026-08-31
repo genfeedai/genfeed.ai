@@ -1,7 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
@@ -10,6 +9,7 @@ import type {
   JobProgress,
   JobResult,
 } from '@files/shared/interfaces/job.interface';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';

@@ -18,7 +18,6 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import Loading from '@ui/loading/default/Loading';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { format } from 'date-fns';
 import { Clock, Video } from 'lucide-react';
@@ -160,10 +159,6 @@ export default function AnalyticsHooks({
     }));
   }, [videos]);
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
-
   return (
     <Container
       label="Viral Hooks"
@@ -178,6 +173,7 @@ export default function AnalyticsHooks({
         <HookStatCards
           analysisData={analysisData}
           formatTimeSpent={formatTimeSpent}
+          isLoading={isLoading}
         />
 
         <PlatformPerformanceSection
@@ -192,6 +188,7 @@ export default function AnalyticsHooks({
               </h2>
               <Table<IViralHookVideo>
                 items={videos ?? []}
+                isLoading={isLoading}
                 columns={[
                   {
                     className: 'min-w-64',

@@ -129,8 +129,8 @@ process.env.KLINGAI_ACCESS_KEY = 'test-mock-klingai-key';
 process.env.LEONARDO_API_KEY = 'test-mock-leonardo-key';
 
 // Mock social platform credentials
-process.env.YOUTUBE_CLIENT_ID = 'test-mock-youtube-id';
-process.env.YOUTUBE_CLIENT_SECRET = 'test-mock-youtube-secret';
+process.env.GOOGLE_OAUTH_CLIENT_ID = 'test-mock-google-id';
+process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-mock-google-secret';
 process.env.TIKTOK_CLIENT_KEY = 'test-mock-tiktok-key';
 process.env.TIKTOK_CLIENT_SECRET = 'test-mock-tiktok-secret';
 process.env.INSTAGRAM_APP_ID = 'test-mock-instagram-id';

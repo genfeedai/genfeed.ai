@@ -311,39 +311,7 @@ function WorkflowTemplatesPageContent() {
       ? templates
       : templates.filter((t) => t.category === selectedCategory);
 
-  if (isLoading || isBootstrapping) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b border-border bg-card/50 px-6 py-3">
-          <div className="mx-auto flex max-w-7xl gap-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-9 w-24 animate-pulse rounded bg-muted"
-              />
-            ))}
-          </div>
-        </div>
-        <main className="mx-auto max-w-7xl px-6 py-8">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="overflow-hidden border border-border bg-card"
-              >
-                <div className="aspect-video animate-pulse bg-muted" />
-                <div className="space-y-2 p-4">
-                  <div className="h-5 w-40 animate-pulse rounded bg-muted" />
-                  <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const isContentLoading = isLoading || isBootstrapping;
 
   if (error && templates.length === 0 && systemCatalog.length === 0) {
     return (
@@ -382,14 +350,17 @@ function WorkflowTemplatesPageContent() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl space-y-10 px-6 py-8">
-        {error ? (
+      <main
+        className="mx-auto max-w-7xl space-y-10 px-6 py-8"
+        data-testid="templates-content"
+      >
+        {!isContentLoading && error ? (
           <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         ) : null}
 
-        {showSystemSection ? (
+        {!isContentLoading && showSystemSection ? (
           <section aria-labelledby="system-catalog-heading">
             <div className="mb-4">
               <h2
@@ -466,7 +437,7 @@ function WorkflowTemplatesPageContent() {
           </section>
         ) : null}
 
-        {showGenerationSection ? (
+        {!isContentLoading && showGenerationSection ? (
           <section aria-labelledby="generation-templates-heading">
             {selectedCategory === 'all' ? (
               <div className="mb-4">

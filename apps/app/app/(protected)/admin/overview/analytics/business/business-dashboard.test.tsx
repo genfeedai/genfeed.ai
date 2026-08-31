@@ -50,9 +50,15 @@ vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
 }));
 
 describe('BusinessDashboard', () => {
-  it('renders loading state when data is null and loading', async () => {
+  it('renders the KPI section chrome immediately alongside the lower-section loader', async () => {
     const { default: BusinessDashboard } = await import('./business-dashboard');
     render(<BusinessDashboard />);
+
     expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(screen.getAllByTestId('kpi-section')).toHaveLength(3);
+    expect(screen.getByText('Revenue')).toBeInTheDocument();
+    expect(screen.getByText('Credits')).toBeInTheDocument();
+    expect(screen.getByText('Ingredients Generated')).toBeInTheDocument();
+    expect(screen.queryByText('Top Organizations')).not.toBeInTheDocument();
   });
 });

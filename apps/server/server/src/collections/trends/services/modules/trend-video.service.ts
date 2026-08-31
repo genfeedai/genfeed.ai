@@ -11,6 +11,8 @@ import type { TrendingSoundDocument } from '@server/collections/trends/schemas/t
 import type { TrendingVideoDocument } from '@server/collections/trends/schemas/trending-video.schema';
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { ViralScoringUtil } from '@server/services/integrations/apify/utils/viral-scoring.util';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /** Separator that cannot appear in a platform id or external id. */
@@ -31,6 +33,7 @@ export class TrendVideoService {
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
+    private readonly youtubeService: YoutubeService,
   ) {}
 
   /**
@@ -146,8 +149,7 @@ export class TrendVideoService {
       reddit: () => this.apifyService.getRedditVideos(limit),
       // @ts-expect-error TS2322
       tiktok: () => this.apifyService.getTikTokVideos(limit),
-      // @ts-expect-error TS2322
-      youtube: () => this.apifyService.getYouTubeVideos(limit),
+      youtube: () => this.fetchYoutubeVideosNativeFirst(limit),
     };
 
     const fetcher = videoFetchers[platform];
@@ -241,6 +243,60 @@ export class TrendVideoService {
       );
       return 0;
     }
+  }
+
+  private async fetchYoutubeVideosNativeFirst(
+    limit: number,
+  ): Promise<Record<string, unknown>[]> {
+    try {
+      const nativeVideos = await this.youtubeService.getTrends('US', limit);
+      if (nativeVideos.length > 0) {
+        return nativeVideos.map((video) => {
+          const hoursAgo = this.getHoursSincePublication(video.publishedAt);
+          const metrics = ViralScoringUtil.calculateVideoMetrics({
+            commentCount: video.commentCount,
+            hoursAgo,
+            likeCount: video.likeCount,
+            shareCount: 0,
+            viewCount: video.viewCount,
+          });
+          return {
+            ...metrics,
+            creatorHandle: video.channelTitle,
+            description: video.description,
+            externalId: video.id,
+            platform: 'youtube',
+            provider: 'youtube-data-api-v3',
+            publishedAt: video.publishedAt,
+            thumbnailUrl: video.thumbnailUrl,
+            title: video.title,
+            videoUrl: video.url,
+            viewCount: video.viewCount,
+          };
+        });
+      }
+
+      this.loggerService.warn(
+        'YouTube native video discovery returned no signal; falling back to governed Apify',
+      );
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        'YouTube native video discovery failed; falling back to governed Apify',
+        { error: error instanceof Error ? error.message : 'unknown' },
+      );
+    }
+
+    const fallbackVideos = await this.apifyService.getYouTubeVideos(limit);
+    return fallbackVideos.map((video) => ({ ...video }));
+  }
+
+  private getHoursSincePublication(publishedAt?: string): number {
+    const publishedAtMs = publishedAt ? Date.parse(publishedAt) : Number.NaN;
+    const elapsedMs = Date.now() - publishedAtMs;
+
+    return Number.isFinite(elapsedMs) && elapsedMs > 0
+      ? elapsedMs / (60 * 60 * 1000)
+      : 24;
   }
 
   // ==================== Trending Hashtags ====================

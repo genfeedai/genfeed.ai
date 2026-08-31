@@ -16,6 +16,16 @@ export interface EnvSection {
 }
 
 export const DEPRECATED_ENV_KEYS = [
+  // All first-party Google integrations share one Google Cloud OAuth client.
+  // Keep provider credentials canonical and connector redirect URIs separate.
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'YOUTUBE_CLIENT_ID',
+  'YOUTUBE_CLIENT_SECRET',
+  'GOOGLE_ADS_CLIENT_ID',
+  'GOOGLE_ADS_CLIENT_SECRET',
+  'GOOGLE_SEARCH_CONSOLE_CLIENT_ID',
+  'GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET',
   'MONGODB_URI',
   'SENTRY_AUTH_TOKEN_API',
   'SENTRY_AUTH_TOKEN_FILES',
@@ -259,8 +269,8 @@ export const ENV_TARGETS: EnvTarget[] = [
       'X_ADS_API_KEY',
       'X_ADS_API_SECRET',
       'X_ADS_REDIRECT_URI',
-      'YOUTUBE_CLIENT_ID',
-      'YOUTUBE_CLIENT_SECRET',
+      'GOOGLE_OAUTH_CLIENT_ID',
+      'GOOGLE_OAUTH_CLIENT_SECRET',
       'YOUTUBE_REDIRECT_URI',
       'RESTREAM_CLIENT_ID',
       'RESTREAM_CLIENT_SECRET',
@@ -690,8 +700,8 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'X_ADS_API_KEY',
       'X_ADS_API_SECRET',
       'X_ADS_REDIRECT_URI',
-      'YOUTUBE_CLIENT_ID',
-      'YOUTUBE_CLIENT_SECRET',
+      'GOOGLE_OAUTH_CLIENT_ID',
+      'GOOGLE_OAUTH_CLIENT_SECRET',
       'YOUTUBE_REDIRECT_URI',
       'RESTREAM_CLIENT_ID',
       'RESTREAM_CLIENT_SECRET',

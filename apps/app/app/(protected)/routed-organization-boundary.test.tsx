@@ -44,11 +44,7 @@ describe('RoutedOrganizationBoundary', () => {
     );
 
     expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole('status', {
-        name: 'Confirming organization context',
-      }).length,
-    ).toBeGreaterThan(0);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('renders tenant content only for a confirmed route', () => {

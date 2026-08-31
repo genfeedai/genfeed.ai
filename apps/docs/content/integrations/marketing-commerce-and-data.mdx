@@ -12,18 +12,17 @@ section explicitly describes deployment configuration.
 
 ### Google Ads
 
-Google Ads uses OAuth plus a developer token. Self-hosted deployments configure
-`GOOGLE_ADS_CLIENT_ID`, `GOOGLE_ADS_CLIENT_SECRET`,
-`GOOGLE_ADS_DEVELOPER_TOKEN`, and `GOOGLE_ADS_REDIRECT_URI`. The provider
-catalog exposes account, campaign, analytics, and ad-management capabilities.
+Google Ads uses the shared `GOOGLE_OAUTH_CLIENT_ID` and
+`GOOGLE_OAUTH_CLIENT_SECRET` plus `GOOGLE_ADS_DEVELOPER_TOKEN` and
+`GOOGLE_ADS_REDIRECT_URI`. The provider catalog exposes account, campaign,
+analytics, and ad-management capabilities.
 
 Use a test manager/customer relationship before allowing a workflow to mutate
 live campaigns.
 
 ### Google Search Console
 
-Search Console uses `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`,
-`GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`, and
+Search Console uses the shared Google OAuth client plus
 `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`. The current OAuth scope is read-only and
 is used for search property and performance data.
 

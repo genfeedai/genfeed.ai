@@ -1,3 +1,5 @@
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { AgentToolName } from '@genfeedai/interfaces';
 import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { getToolDefinitions } from '@server/services/agent-orchestrator/tools/agent-tool-registry';
 import {
@@ -9,8 +11,90 @@ import type {
   OpenRouterPlugin,
   OpenRouterTool,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { AgentToolName } from '@genfeedai/interfaces';
+
+const GEMINI_FUNCTION_SCHEMA_KEYS = new Set([
+  '$defs',
+  '$ref',
+  'anyOf',
+  'description',
+  'enum',
+  'format',
+  'items',
+  'nullable',
+  'properties',
+  'required',
+  'type',
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Gemini function declarations accept a documented OpenAPI subset. Keep the
+ * canonical tool contract unchanged for runtime validation and remove only
+ * provider-unsupported annotations/constraints from the declaration sent to
+ * Gemini. Property names and definition names are data, not schema keywords.
+ */
+function toGeminiFunctionSchema(
+  schema: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(schema).flatMap(([key, value]) => {
+      if (!GEMINI_FUNCTION_SCHEMA_KEYS.has(key)) return [];
+
+      if ((key === 'properties' || key === '$defs') && isRecord(value)) {
+        return [
+          [
+            key,
+            Object.fromEntries(
+              Object.entries(value).map(([name, nestedSchema]) => [
+                name,
+                isRecord(nestedSchema)
+                  ? toGeminiFunctionSchema(nestedSchema)
+                  : nestedSchema,
+              ]),
+            ),
+          ],
+        ];
+      }
+
+      if (key === 'items' && isRecord(value)) {
+        return [[key, toGeminiFunctionSchema(value)]];
+      }
+
+      if (key === 'anyOf' && Array.isArray(value)) {
+        return [
+          [
+            key,
+            value.map((candidate) =>
+              isRecord(candidate)
+                ? toGeminiFunctionSchema(candidate)
+                : candidate,
+            ),
+          ],
+        ];
+      }
+
+      return [[key, value]];
+    }),
+  );
+}
+
+function resolveProviderToolDefinitions(
+  model: string,
+  tools: OpenRouterTool[],
+): OpenRouterTool[] {
+  if (!model.startsWith('google/gemini-')) return tools;
+
+  return tools.map((tool) => ({
+    ...tool,
+    function: {
+      ...tool.function,
+      parameters: toGeminiFunctionSchema(tool.function.parameters),
+    },
+  }));
+}
 
 /**
  * Managed credit packs are cloud-only, so the payment card has nothing to sell
@@ -127,6 +211,6 @@ export function buildAgentChatCompletionParams(params: {
     ...(plugins ? { plugins } : {}),
     temperature: 0.7,
     tool_choice: 'auto',
-    tools: params.tools,
+    tools: resolveProviderToolDefinitions(params.model, params.tools),
   };
 }

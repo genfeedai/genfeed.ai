@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
 import { FilesPortraitBlurService } from '@files/services/files/blur/files-portrait-blur.service';
 import { FilesService } from '@files/services/files/files.service';
 import { FilesImageToVideoService } from '@files/services/files/image-to-video/files-image-to-video.service';
@@ -11,6 +10,7 @@ import type {
   ImageJobData,
   JobResult,
 } from '@files/shared/interfaces/job.interface';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

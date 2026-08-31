@@ -77,6 +77,32 @@ describe('WorkspaceOverviewContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps the reset toolbar mounted while dashboard data is loading', () => {
+    mocks.useDashboardLayout.mockReturnValue({
+      isLoading: false,
+      layout: {
+        brandId: 'brand-1',
+        document: { blocks: [], version: 'genfeed.dashboard.openui.v1' },
+        id: 'layout-1',
+      },
+      resetLayout: mocks.resetLayout,
+    });
+    mocks.useWorkspaceDashboardData.mockReturnValue({
+      bundle: undefined,
+      isLoading: true,
+    });
+
+    render(<WorkspaceOverviewContent />);
+
+    expect(
+      screen.getByRole('button', { name: /reset to default/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-open-ui-renderer'),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the operational overview when no custom layout is persisted', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: false,

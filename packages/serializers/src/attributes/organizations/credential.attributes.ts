@@ -3,8 +3,8 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 /**
  * Prisma `credentials.platform` is SCREAMING; API JSON stays domain lowercase.
- * jsonapi-serializer uses this as a computed attribute when present on the
- * serializer config under the same key as the listed field.
+ * Serializer configs register this under `attributeTransforms.platform` so
+ * the wire value is normalized before ts-jsonapi reads listed attributes.
  */
 export function mapSerializedCredentialPlatform(record: {
   platform?: unknown;

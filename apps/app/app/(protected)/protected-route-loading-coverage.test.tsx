@@ -91,4 +91,21 @@ describe('route loading shell coverage', () => {
 
     expect(violations).toEqual([]);
   });
+
+  it('keeps page-level spinner blockers out of product routes and shell', () => {
+    const appRoutes = join(repoRoot, 'apps/app/app');
+    const protectedShell = join(
+      repoRoot,
+      'apps/app/packages/components/app-protected-layout.tsx',
+    );
+    const violations = [...collectTsxFiles(appRoutes), protectedShell]
+      .filter((file) =>
+        /(?:from\s+|import\()['"]@ui\/loading\/page\//u.test(
+          readFileSync(file, 'utf8'),
+        ),
+      )
+      .map((file) => relative(repoRoot, file));
+
+    expect(violations).toEqual([]);
+  });
 });

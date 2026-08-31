@@ -1,6 +1,7 @@
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
+import { assertCanIncludeSystemWorkflows } from '@api/collections/workflows/utils/workflow-system-access.util';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -112,6 +113,12 @@ export class WorkflowCrudController {
     | SystemWorkflowCatalogResponse
     | WorkflowStatisticsResponse
   > {
+    assertCanIncludeSystemWorkflows(
+      request,
+      user,
+      query.includeSystem === true,
+    );
+
     // Code-owned system catalog (not persisted rows). Same collection resource
     // as workflows; filter via query instead of a parallel /system-catalog path.
     if (query.source === 'system-catalog') {

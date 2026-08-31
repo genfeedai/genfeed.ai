@@ -231,8 +231,8 @@ export class GoogleAdsService {
           access_token: string;
           expires_in: number;
         }>('https://oauth2.googleapis.com/token', {
-          client_id: this.configService.get('GOOGLE_ADS_CLIENT_ID'),
-          client_secret: this.configService.get('GOOGLE_ADS_CLIENT_SECRET'),
+          client_id: this.configService.get('GOOGLE_OAUTH_CLIENT_ID'),
+          client_secret: this.configService.get('GOOGLE_OAUTH_CLIENT_SECRET'),
           grant_type: 'refresh_token',
           refresh_token: refreshToken,
         }),

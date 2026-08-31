@@ -53,16 +53,6 @@ vi.mock('@pages/ingredients/list/ingredients-list', () => ({
   ),
 }));
 
-vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div data-testid="lazy-loading-fallback" />,
-}));
-
-vi.mock('@ui/loading/skeleton/SkeletonFallbacks', () => ({
-  SkeletonLoadingFallback: () => (
-    <div data-testid="skeleton-loading-fallback" />
-  ),
-}));
-
 vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));

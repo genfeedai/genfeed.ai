@@ -5,7 +5,6 @@ import type {
   SkeletonMasonryProps,
   SkeletonProps,
   SkeletonTableProps,
-  SkeletonVideoGridProps,
 } from '@genfeedai/props/ui/feedback/skeleton.props';
 import { Skeleton as ShadcnSkeleton } from '@ui/primitives/skeleton';
 
@@ -60,21 +59,6 @@ function SkeletonListItem({ id }: SkeletonRenderItem): React.ReactNode {
       <div className="flex-1 space-y-2">
         <Skeleton variant="text" height={16} className="w-1/3" />
         <Skeleton variant="text" height={14} className="w-2/3" />
-      </div>
-    </div>
-  );
-}
-
-function SkeletonVideoGridItem({ id }: SkeletonRenderItem): React.ReactNode {
-  return (
-    <div key={id} className="space-y-3">
-      <Skeleton variant="rounded" className="aspect-video w-full" />
-      <div className="flex items-center gap-x-2">
-        <Skeleton variant="circular" width={32} height={32} />
-        <div className="flex-1 space-y-1">
-          <Skeleton variant="text" height={14} className="w-3/4" />
-          <Skeleton variant="text" height={12} className="w-1/2" />
-        </div>
       </div>
     </div>
   );
@@ -214,14 +198,6 @@ export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
   );
 }
 
-export function SkeletonVideoGrid({ count = 6 }: SkeletonVideoGridProps) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {renderItems(count, 'video-grid-item', SkeletonVideoGridItem)}
-    </div>
-  );
-}
-
 export function SkeletonMasonryGrid({
   count = 12,
   className,
@@ -247,69 +223,6 @@ export function SkeletonMasonryGrid({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-export function SkeletonBrandsList({ count = 5 }: SkeletonListProps) {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: count }).map((_, index) => {
-        const brandKey = `brand-skeleton-${index}`;
-
-        return (
-          <div
-            key={brandKey}
-            className="overflow-hidden rounded bg-card shadow-border"
-          >
-            <div className="p-4">
-              <div className="flex items-center gap-x-4">
-                <Skeleton variant="circular" width={48} height={48} />
-                <div className="flex-1 space-y-2">
-                  <Skeleton variant="text" height={16} className="w-1/3" />
-                  <Skeleton variant="text" height={12} className="w-1/2" />
-                </div>
-
-                <div className="space-x-2">
-                  <Skeleton variant="rounded" width={80} height={32} />
-                  <Skeleton variant="rounded" width={80} height={32} />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-export function SkeletonAnalyticsDashboard() {
-  return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, index) => {
-          const statKey = `analytics-stat-${index}`;
-
-          return (
-            <div key={statKey} className="bg-tertiary shadow-border">
-              <div className="p-4">
-                <Skeleton variant="text" height={14} className="w-1/2" />
-                <Skeleton variant="text" height={24} className="w-3/4" />
-                <Skeleton variant="text" height={12} className="w-full" />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Chart Area */}
-      <div className="bg-tertiary shadow-border">
-        <div className="p-4">
-          <Skeleton variant="text" height={20} className="w-1/4 mb-4" />
-          <Skeleton variant="rounded" className="w-full h-64" />
-        </div>
-      </div>
     </div>
   );
 }

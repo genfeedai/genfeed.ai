@@ -1,6 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { DetailPageProps } from '@props/pages/page.props';
-import { Suspense } from 'react';
 import ExecutionDetailPage from '@/features/workflows/pages/executions/ExecutionDetailPage';
 
 export const generateMetadata = createPageMetadata('Agent Workflow Execution');
@@ -10,9 +9,5 @@ export default async function WorkflowExecutionDetailPage({
 }: DetailPageProps) {
   const { id } = await params;
 
-  return (
-    <Suspense fallback={null}>
-      <ExecutionDetailPage executionId={id} />
-    </Suspense>
-  );
+  return <ExecutionDetailPage executionId={id} />;
 }

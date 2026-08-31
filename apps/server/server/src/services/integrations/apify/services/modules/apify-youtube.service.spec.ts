@@ -2,13 +2,13 @@
  * @fileoverview Tests for ApifyYouTubeService
  */
 
+import { Test, TestingModule } from '@nestjs/testing';
 import type {
   ApifyYouTubeComment,
   ApifyYouTubeVideo,
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyYouTubeService } from '@server/services/integrations/apify/services/modules/apify-youtube.service';
-import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyYouTubeService', () => {
   let service: ApifyYouTubeService;
@@ -97,7 +97,10 @@ describe('ApifyYouTubeService', () => {
 
       expect(baseService.runActor).toHaveBeenCalledWith(
         baseService.ACTORS.YOUTUBE_SCRAPER,
-        expect.objectContaining({ maxResults: 10 }),
+        expect.objectContaining({
+          maxResults: 10,
+          searchQueries: ['trending'],
+        }),
       );
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -265,7 +268,7 @@ describe('ApifyYouTubeService', () => {
         baseService.ACTORS.YOUTUBE_SCRAPER,
         expect.objectContaining({
           maxResults: 25,
-          searchKeywords: 'cats',
+          searchQueries: ['cats'],
         }),
       );
       expect(result).toEqual([mockRawVideo]);

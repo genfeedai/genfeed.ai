@@ -120,15 +120,12 @@ describe('BrandVoiceProfileCard', () => {
     ).toBeEnabled();
   });
 
-  it('renders a store-persisted completed action as saved after remount', () => {
-    useAgentChatStore
-      .getState()
-      .setUiActionStatus('brand-voice-completed', 'completed');
-
+  it('renders a completed action as saved after remount', () => {
     render(
       <BrandVoiceProfileCard
         action={{
           id: 'brand-voice-completed',
+          status: 'completed',
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',
         }}
@@ -145,10 +142,6 @@ describe('BrandVoiceProfileCard', () => {
   });
 
   it('keeps approval available for a later draft of the same brand', () => {
-    useAgentChatStore
-      .getState()
-      .setUiActionStatus('brand-voice-brand-1-first-draft', 'completed');
-
     render(
       <BrandVoiceProfileCard
         action={{

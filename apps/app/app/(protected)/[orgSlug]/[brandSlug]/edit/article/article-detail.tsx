@@ -20,6 +20,7 @@ import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 import ArticleDetailHeader from './article-detail-header';
 import ArticleEditForm from './article-edit-form';
@@ -91,6 +92,7 @@ export default function ArticleDetail({
   const { openConfirm } = useConfirmModal();
   const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const { push } = useRouter();
+  const translate = useTranslations('common.articleDetail');
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit');
   const [generatingTeaserFormat, setGeneratingTeaserFormat] =
     useState<TeaserFormat | null>(null);
@@ -211,23 +213,7 @@ export default function ArticleDetail({
     ],
   );
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <SkeletonCard showImage={false} />
-            <SkeletonCard showImage={false} />
-          </div>
-          <div className="space-y-6">
-            <SkeletonCard showImage={false} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !article) {
+  if (!isLoading && error && !article) {
     return (
       <div className="container mx-auto p-6">
         <Card bodyClassName="p-4">
@@ -239,64 +225,84 @@ export default function ArticleDetail({
 
   return (
     <div id="article-compose-workspace" className="container mx-auto p-6">
-      <ArticleDetailHeader
-        state={{ isNew, hasXArticleSections, isDirty, isSaving }}
-        permissions={{ canPublish, canArchive }}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        formLabel={form.label}
-        plainTextContent={plainTextContent}
-        openConfirm={openConfirm}
-        onPublish={handlePublish}
-        onArchive={handleArchive}
-        onDelete={handleDelete}
-        onSave={handleSave}
-        onCopyFullArticle={handleCopyFullArticle}
-        clipboardService={clipboardService}
-      />
+      {isLoading ? (
+        <div className="mb-6 flex items-center gap-3">
+          <h2 className="text-2xl font-semibold text-foreground/60">
+            {translate('loadingTitle')}
+          </h2>
+        </div>
+      ) : (
+        <ArticleDetailHeader
+          state={{ isNew, hasXArticleSections, isDirty, isSaving }}
+          permissions={{ canPublish, canArchive }}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          formLabel={form.label}
+          plainTextContent={plainTextContent}
+          openConfirm={openConfirm}
+          onPublish={handlePublish}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
+          onSave={handleSave}
+          onCopyFullArticle={handleCopyFullArticle}
+          clipboardService={clipboardService}
+        />
+      )}
 
       {/* Main content */}
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         {/* Left column: Editor */}
         <div className="space-y-4">
-          {/* X Article assets bar */}
-          {hasXArticleSections && article?.xArticleMetadata && (
-            <XArticleAssetsBar
-              article={article}
-              metadata={article.xArticleMetadata}
-              onCopyFullArticle={handleCopyFullArticle}
-              onDownloadImage={handleDownloadImage}
-              onGenerateHeaderImage={handleGenerateHeaderImage}
-              onGenerateTeaserPost={
-                canGenerateTeaser
-                  ? () => void handleGenerateTeaser('post')
-                  : undefined
-              }
-              onGenerateTeaserThread={
-                canGenerateTeaser
-                  ? () => void handleGenerateTeaser('thread')
-                  : undefined
-              }
-              isGeneratingImage={isGeneratingImage}
-              isGeneratingTeaser={!!generatingTeaserFormat}
-            />
-          )}
-
-          {viewMode === 'edit' ? (
-            <ArticleEditForm
-              form={form}
-              setFormField={setFormField}
-              isNew={isNew}
-              isEnhancing={isEnhancing}
-              onEnhance={handleEnhance}
-            />
+          {isLoading ? (
+            <div
+              className="space-y-6"
+              data-testid="article-detail-body-skeleton"
+            >
+              <SkeletonCard showImage={false} />
+              <SkeletonCard showImage={false} />
+            </div>
           ) : (
-            <ArticlePreview
-              form={form}
-              hasXArticleSections={hasXArticleSections}
-              article={article}
-              onCopySection={handleCopySection}
-            />
+            <>
+              {/* X Article assets bar */}
+              {hasXArticleSections && article?.xArticleMetadata && (
+                <XArticleAssetsBar
+                  article={article}
+                  metadata={article.xArticleMetadata}
+                  onCopyFullArticle={handleCopyFullArticle}
+                  onDownloadImage={handleDownloadImage}
+                  onGenerateHeaderImage={handleGenerateHeaderImage}
+                  onGenerateTeaserPost={
+                    canGenerateTeaser
+                      ? () => void handleGenerateTeaser('post')
+                      : undefined
+                  }
+                  onGenerateTeaserThread={
+                    canGenerateTeaser
+                      ? () => void handleGenerateTeaser('thread')
+                      : undefined
+                  }
+                  isGeneratingImage={isGeneratingImage}
+                  isGeneratingTeaser={!!generatingTeaserFormat}
+                />
+              )}
+
+              {viewMode === 'edit' ? (
+                <ArticleEditForm
+                  form={form}
+                  setFormField={setFormField}
+                  isNew={isNew}
+                  isEnhancing={isEnhancing}
+                  onEnhance={handleEnhance}
+                />
+              ) : (
+                <ArticlePreview
+                  form={form}
+                  hasXArticleSections={hasXArticleSections}
+                  article={article}
+                  onCopySection={handleCopySection}
+                />
+              )}
+            </>
           )}
         </div>
 

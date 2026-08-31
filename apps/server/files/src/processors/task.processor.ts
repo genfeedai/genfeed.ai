@@ -1,11 +1,11 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { QUEUE_NAMES } from '@files/queues/queue.constants';
 import type { TaskJobData } from '@files/queues/task-queue.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import type { JobResult } from '@files/shared/interfaces/job.interface';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

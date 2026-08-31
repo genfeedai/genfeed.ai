@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('publishing-list-page', () => {
-  it('hydrates canonical release queries for Publishing routes and retains the admin compatibility list', () => {
+  it('streams canonical Publishing queries while retaining the admin compatibility list', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -13,13 +13,14 @@ describe('publishing-list-page', () => {
     );
 
     expect(source).toContain('ServerQueryHydrationBoundary');
+    expect(source).toContain('loadProtectedBootstrap');
     expect(source).toContain('prefetchServerQuery');
     expect(source).toContain('buildReleasePostsListQueryKey');
     expect(source).toContain('normalizeReleasePostContentTypes');
     expect(source).toContain('contentTypes={contentTypes}');
-    expect(source).toContain('initialData.releases');
     expect(source).toContain('ReleasePostsList');
     expect(source).toContain('buildPostsListQueryKey');
-    expect(source).toContain('initialData.posts');
+    expect(source).toContain('PublishingPostsList');
+    expect(source).not.toContain('const initialData = await');
   });
 });

@@ -1,15 +1,20 @@
 import {
+  type AuthorizedSignalsSettledResult,
+  retryProviderRequest,
+  settleProviderRequest,
+} from '@api/services/integrations/_shared/authorized-signals-request.util';
+import type {
+  InstagramMediaPerformanceSignal,
+  InstagramOwnedMediaSignal,
+} from '@api-types/contracts/instagram-authorized-signals.contract';
+import { HttpService } from '@nestjs/axios';
+import {
   getInstagramRetryAfterMs,
   isInstagramAuthorizationError,
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
 } from '@server/services/integrations/instagram/utils/instagram-error.util';
-import type {
-  InstagramMediaPerformanceSignal,
-  InstagramOwnedMediaSignal,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 const INSTAGRAM_SIGNAL_MAX_ATTEMPTS = 2;
@@ -76,10 +81,7 @@ export interface InstagramProviderFetchResult {
   profileResult: SettledResult<InstagramUserResponse>;
 }
 
-export interface SettledResult<T> {
-  error?: unknown;
-  value?: T;
-}
+export type SettledResult<T> = AuthorizedSignalsSettledResult<T>;
 
 export function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -365,48 +367,22 @@ export class InstagramAuthorizedSignalsProvider {
   }
 
   private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (
-      let attempt = 0;
-      attempt < INSTAGRAM_SIGNAL_MAX_ATTEMPTS;
-      attempt += 1
-    ) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isInstagramRateLimitError(error) ||
-          attempt === INSTAGRAM_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getInstagramRetryAfterMs(
+    return retryProviderRequest(request, {
+      getDelayMs: (error, attempt) =>
+        getInstagramRetryAfterMs(
           error,
           INSTAGRAM_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
           INSTAGRAM_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
+        ),
+      isRetryable: isInstagramRateLimitError,
+      maxAttempts: INSTAGRAM_SIGNAL_MAX_ATTEMPTS,
+    });
   }
 
   private async settle<T>(
     promise: Promise<T> | undefined,
   ): Promise<SettledResult<T>> {
-    if (!promise) {
-      return {};
-    }
-
-    try {
-      return { value: await promise };
-    } catch (error: unknown) {
-      return { error };
-    }
+    return settleProviderRequest(promise);
   }
 }
 

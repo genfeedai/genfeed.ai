@@ -322,16 +322,6 @@ export default function WorkflowNewPageClient() {
     void handleRun();
   }, [handleRun, hasRunInputs]);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-0 items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">
-          Loading editor…
-        </div>
-      </div>
-    );
-  }
-
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
       <ReactFlowProvider>
@@ -352,36 +342,44 @@ export default function WorkflowNewPageClient() {
             </div>
           )}
 
-          <WorkflowEditorShell
-            nodePalette={<CloudNodePalette />}
-            nodeTypes={cloudNodeTypes}
-            rightPanel={
-              showRunPanel ? (
-                <WorkflowRunPanel
-                  inputVariables={inputVariables}
-                  isRunning={isRunning}
-                  onClose={() => setShowRunPanel(false)}
-                  onRun={handleRun}
+          {isLoading ? (
+            <main
+              aria-label="Loading editor"
+              className="min-h-0 flex-1 bg-background"
+              data-testid="workflow-editor-loading-shell"
+            />
+          ) : (
+            <WorkflowEditorShell
+              nodePalette={<CloudNodePalette />}
+              nodeTypes={cloudNodeTypes}
+              rightPanel={
+                showRunPanel ? (
+                  <WorkflowRunPanel
+                    inputVariables={inputVariables}
+                    isRunning={isRunning}
+                    onClose={() => setShowRunPanel(false)}
+                    onRun={handleRun}
+                  />
+                ) : showExecutionPanel ? (
+                  <ExecutionPanel
+                    workflowId={currentWorkflowId ?? 'new'}
+                    onClose={() => setShowExecutionPanel(false)}
+                    onTerminalExecution={handleTerminalExecution}
+                    runId={activeExecutionId}
+                  />
+                ) : (
+                  <ActionNodeInspector />
+                )
+              }
+              toolbar={
+                <CloudWorkflowToolbar
+                  isSaving={isSaving}
+                  middleContent={<CloudCreditsIndicator />}
+                  onRename={handleRename}
                 />
-              ) : showExecutionPanel ? (
-                <ExecutionPanel
-                  workflowId={currentWorkflowId ?? 'new'}
-                  onClose={() => setShowExecutionPanel(false)}
-                  onTerminalExecution={handleTerminalExecution}
-                  runId={activeExecutionId}
-                />
-              ) : (
-                <ActionNodeInspector />
-              )
-            }
-            toolbar={
-              <CloudWorkflowToolbar
-                isSaving={isSaving}
-                middleContent={<CloudCreditsIndicator />}
-                onRename={handleRename}
-              />
-            }
-          />
+              }
+            />
+          )}
         </div>
       </ReactFlowProvider>
     </WorkflowUIProvider>

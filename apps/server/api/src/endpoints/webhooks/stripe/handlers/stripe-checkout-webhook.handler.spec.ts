@@ -581,7 +581,11 @@ describe('StripeCheckoutWebhookHandler', () => {
         },
       });
       expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
-        data: {
+        data: expect.objectContaining({
+          productType: 'bundle',
+          receiptId: expect.stringMatching(/^sk_rcpt_/),
+          skillSlugs: [],
+          status: 'completed',
           data: expect.objectContaining({
             amountPaid: 4900,
             email: 'buyer@example.com',
@@ -589,7 +593,7 @@ describe('StripeCheckoutWebhookHandler', () => {
             status: 'completed',
             stripeSessionId: 'cs_skills_1',
           }),
-        },
+        }),
       });
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('skills-pro receipt created'),
@@ -615,6 +619,30 @@ describe('StripeCheckoutWebhookHandler', () => {
         expect.stringContaining('skills-pro checkout already processed'),
         expect.objectContaining({ sessionId: 'cs_skills_1' }),
       );
+    });
+
+    it('persists the exact single-skill grant from checkout metadata', async () => {
+      prisma.skillReceipt.create.mockResolvedValue({});
+      const singleSession = {
+        ...session,
+        id: 'cs_skills_single',
+        metadata: {
+          productType: 'skill',
+          skillSlug: 'image-gen-pro',
+          skillSlugs: 'image-gen-pro',
+          type: 'skills-pro',
+        },
+      } as unknown as StripeCheckoutSession;
+
+      await handler.handleCheckoutCompleted(singleSession, 'test');
+
+      expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          productType: 'skill',
+          skillSlugs: ['image-gen-pro'],
+          status: 'completed',
+        }),
+      });
     });
 
     it('does not create a duplicate skills-pro receipt when a persisted receipt already has the session id', async () => {

@@ -2,19 +2,16 @@
 
 import { PageScope } from '@genfeedai/enums';
 import { useElementsContext } from '@providers/elements/elements.context';
-import { Suspense } from 'react';
 import BlacklistsList from './blacklists-list';
 
 export default function BlacklistsPage() {
   const { onRefresh, setIsRefreshing } = useElementsContext();
 
   return (
-    <Suspense fallback={null}>
-      <BlacklistsList
-        scope={PageScope.SUPERADMIN}
-        onRefresh={onRefresh}
-        onRefreshingChange={setIsRefreshing}
-      />
-    </Suspense>
+    <BlacklistsList
+      scope={PageScope.SUPERADMIN}
+      onRefresh={onRefresh}
+      onRefreshingChange={setIsRefreshing}
+    />
   );
 }
