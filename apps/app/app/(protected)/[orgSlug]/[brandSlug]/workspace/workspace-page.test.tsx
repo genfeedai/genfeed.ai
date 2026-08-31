@@ -409,6 +409,10 @@ describe('WorkspacePageContent', () => {
   });
 
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {
+    // Opening is optimistic: the inspector must not disappear while the
+    // router is still applying the taskId query update.
+    mocks.replace.mockImplementation(() => {});
+
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
@@ -420,6 +424,10 @@ describe('WorkspacePageContent', () => {
 
     fireEvent.click(screen.getByText('Campaign image'));
 
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/workspace/inbox/unread?taskId=task-1',
+      { scroll: false },
+    );
     expect(
       await screen.findByTestId(
         'workspace-task-inspector',
@@ -505,20 +513,22 @@ describe('WorkspacePageContent', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /refresh/i })[0]);
     await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
 
-    realtimeHandler?.({
-      event: {
-        id: 'event-2',
-        payload: { message: 'Queued from realtime' },
-        timestamp: '2026-01-01T03:00:00.000Z',
-        type: 'task_queued',
-      },
-      organizationId: 'org-1',
-      task: makeTask({
-        id: 'task-3',
-        identifier: 'TASK-3',
-        title: 'Realtime video task',
-      }),
-      taskId: 'task-3',
+    act(() => {
+      realtimeHandler?.({
+        event: {
+          id: 'event-2',
+          payload: { message: 'Queued from realtime' },
+          timestamp: '2026-01-01T03:00:00.000Z',
+          type: 'task_queued',
+        },
+        organizationId: 'org-1',
+        task: makeTask({
+          id: 'task-3',
+          identifier: 'TASK-3',
+          title: 'Realtime video task',
+        }),
+        taskId: 'task-3',
+      });
     });
 
     expect(await screen.findByText('Realtime video task')).toBeVisible();
@@ -624,7 +634,7 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/publish/review',
+      '/acme-org/acme-creator/publishing/review',
     );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();

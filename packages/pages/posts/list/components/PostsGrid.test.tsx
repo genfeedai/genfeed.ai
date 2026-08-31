@@ -15,7 +15,7 @@ const openPostDetailMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
-  usePathname: () => '/genfeed-ai/paperclip/publish',
+  usePathname: () => '/genfeed-ai/paperclip/publishing',
   useRouter: () => ({
     push: pushMock,
   }),
@@ -130,7 +130,7 @@ describe('PostsGrid', () => {
     // `useOrgUrl` scopes the href to the active org/brand route params.
     expect(
       screen.getByRole('link', { name: /a draft post preview/i }),
-    ).toHaveAttribute('href', '/genfeed-ai/paperclip/publish/posts/post-1');
+    ).toHaveAttribute('href', '/genfeed-ai/paperclip/publishing/posts/post-1');
   });
 
   it('uses the contextual open callback when provided', () => {

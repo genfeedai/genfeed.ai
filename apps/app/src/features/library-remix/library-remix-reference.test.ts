@@ -74,11 +74,11 @@ describe('Library Remix references', () => {
     expect(
       reference &&
         buildLibraryRemixIntentHref(
-          '/acme/moonrise/publish/remix?thread=thread-1&overlay=library-picker&folder=recent',
+          '/acme/moonrise/publishing/remix?thread=thread-1&overlay=library-picker&folder=recent',
           reference,
         ),
     ).toBe(
-      '/acme/moonrise/publish/remix?thread=thread-1&folder=recent&sourceArtifact=ingredient%3Aingredient-1&sourceVersion=7',
+      '/acme/moonrise/publishing/remix?thread=thread-1&folder=recent&sourceArtifact=ingredient%3Aingredient-1&sourceVersion=7',
     );
   });
 });

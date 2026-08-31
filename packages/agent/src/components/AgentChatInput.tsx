@@ -206,6 +206,7 @@ export function AgentChatInput({
           ) : null
         }
         className={cn(
+          'border border-border-strong/70 !shadow-none focus-within:!shadow-none',
           isTopAttached && 'rounded-t-none',
           isDragActive && 'ring-1 ring-primary/40',
         )}

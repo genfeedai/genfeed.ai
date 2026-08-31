@@ -1,4 +1,7 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 
 /**
  * Normalize dead internal agent CTA paths so brand-scoped links do not 404.
@@ -18,13 +21,18 @@ export function normalizeAgentAppHref(
 
   // Bare legacy paths
   if (path === '/review') {
-    return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+    return `${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
   }
   if (path === '/calendar' || path === '/calendar/posts') {
-    return `${APP_ROUTES.PUBLISH.CALENDAR}${suffix}`;
+    return `${APP_ROUTES.PUBLISHING.CALENDAR}${suffix}`;
   }
-  if (path === '/publish/drafts' || path === '/drafts') {
-    return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+  if (path === '/drafts') {
+    const destination = createPublishingPostsFilterRoute({
+      publicationState: 'not-posted',
+    });
+    return suffix.startsWith('?')
+      ? `${destination}&${suffix.slice(1)}`
+      : `${destination}${suffix}`;
   }
 
   // Already brand-scoped dead paths: /:org/:brand/review
@@ -32,7 +40,7 @@ export function normalizeAgentAppHref(
   if (scopedReview) {
     const [, orgSlug, brandSlug] = scopedReview;
     if (orgSlug && brandSlug && brandSlug !== '~') {
-      return `/${orgSlug}/${brandSlug}${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+      return `/${orgSlug}/${brandSlug}${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
     }
   }
 
@@ -40,7 +48,7 @@ export function normalizeAgentAppHref(
   if (orgReview) {
     const [, orgSlug] = orgReview;
     if (orgSlug) {
-      return `/${orgSlug}/~${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+      return `/${orgSlug}/~${APP_ROUTES.PUBLISHING.REVIEW}${suffix}`;
     }
   }
 

@@ -153,7 +153,7 @@ export function WorkspaceOverviewSidebar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
             >
-              <Link href={href(APP_ROUTES.PUBLISH.REVIEW)}>
+              <Link href={href(APP_ROUTES.PUBLISHING.REVIEW)}>
                 {translate('openReview')}
               </Link>
             </Button>

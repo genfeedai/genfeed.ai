@@ -38,8 +38,13 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
+import {
+  encodeWorkflowNodeTransfer,
+  WORKFLOW_NODE_TRANSFER_TYPE,
+} from '../lib/paletteTransfer';
 import { useUIStore } from '../stores/uiStore';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -72,6 +77,7 @@ const ICONS: Record<string, typeof Image> = {
   Pencil,
   Puzzle,
   Scissors,
+  Search,
   // AI
   Sparkles,
   Captions,
@@ -156,11 +162,10 @@ function NodeCard({
 
   const handleDragStart = useCallback(
     (event: React.DragEvent) => {
-      event.dataTransfer.setData('nodeType', type);
-      if (actionId) {
-        event.dataTransfer.setData('actionId', actionId);
-        event.dataTransfer.setData('actionLabel', label);
-      }
+      event.dataTransfer.setData(
+        WORKFLOW_NODE_TRANSFER_TYPE,
+        encodeWorkflowNodeTransfer({ actionId, label, type }),
+      );
       event.dataTransfer.effectAllowed = 'move';
     },
     [actionId, label, type],
@@ -169,26 +174,27 @@ function NodeCard({
   const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.processing;
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       draggable
       onDragStart={handleDragStart}
-      className={`p-3 bg-card border border-transparent shadow-border cursor-grab transition-colors group ${colors.hover}`}
+      className={`h-auto w-full cursor-grab justify-start rounded-md border border-transparent bg-transparent px-2 py-2 text-left shadow-none transition-colors ${colors.hover}`}
     >
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded ${colors.icon}`}>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className={`shrink-0 rounded-md p-1.5 ${colors.icon}`}>
           <Icon className="size-4" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm text-foreground truncate">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-foreground">
             {label}
           </div>
-          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+          <div className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
             {description}
           </div>
         </div>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -271,27 +277,27 @@ function CategorySection({
   onToggle,
 }: CategorySectionProps) {
   return (
-    <div className="border-b border-border last:border-0">
+    <div>
       <Button
         variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left h-auto justify-start"
+        className="h-9 w-full justify-start gap-2 rounded-none px-3 text-left"
       >
         {isExpanded ? (
           <ChevronDown className="size-4 text-muted-foreground" />
         ) : (
           <ChevronRight className="size-4 text-muted-foreground" />
         )}
-        <span className="font-medium text-sm text-foreground">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {CATEGORY_LABELS[category]}
         </span>
-        <span className="text-xs text-muted-foreground ml-auto">
+        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
           {nodes.length}
         </span>
       </Button>
 
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-2">
+        <div className="space-y-0.5 px-2 pb-2">
           {nodes.map((node) => (
             <NodeCard
               key={node.actionId ?? node.type}
@@ -375,8 +381,8 @@ export function NodePalette({
   );
 
   return (
-    <div className="w-64 min-w-64 h-full bg-background border-r border-border flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-border flex items-start justify-between gap-2">
+    <div className="flex h-full w-72 min-w-72 flex-col overflow-hidden border-r border-border bg-background">
+      <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
         <div>
           <h2 className="font-semibold text-sm text-foreground">Nodes</h2>
           <p className="text-xs text-muted-foreground mt-1">Drag to canvas</p>
@@ -392,16 +398,16 @@ export function NodePalette({
       </div>
 
       {/* Search bar */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="border-b border-border p-3">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <input
+          <Input
             type="text"
             placeholder="Search nodes..."
             aria-label="Search nodes"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-secondary border border-border placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 w-full bg-secondary pl-8 pr-3 text-sm"
           />
         </div>
       </div>
@@ -409,7 +415,7 @@ export function NodePalette({
       <div className="flex-1 overflow-y-auto">
         {filteredNodes ? (
           // Search results
-          <div className="px-4 py-3 space-y-2">
+          <div className="space-y-0.5 p-2">
             {filteredNodes.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No nodes found
@@ -417,7 +423,8 @@ export function NodePalette({
             ) : (
               filteredNodes.map((node) => (
                 <NodeCard
-                  key={node.type}
+                  key={node.actionId ?? node.type}
+                  actionId={node.actionId}
                   type={node.type}
                   label={node.label}
                   description={node.description}

@@ -7,7 +7,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
 import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
@@ -30,15 +29,7 @@ function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
   }, [bundle, isLoading, layout.document]);
 
   if (isLoading) {
-    return (
-      <div
-        className="grid gap-4 md:grid-cols-2"
-        data-testid="workspace-dashboard-loading"
-      >
-        <SkeletonCard showImage={false} />
-        <SkeletonCard showImage={false} />
-      </div>
-    );
+    return <OperationalHomeContent />;
   }
 
   if (!hydration.isValid) {
@@ -58,15 +49,7 @@ export default function WorkspaceOverviewContent() {
   } = useDashboardLayout({ brandId });
 
   if (!isReady || isLayoutLoading) {
-    return (
-      <div
-        className="flex flex-col gap-6"
-        data-testid="workspace-overview-loading"
-      >
-        <SkeletonCard showImage={false} />
-        <SkeletonCard showImage={false} />
-      </div>
-    );
+    return <OperationalHomeContent />;
   }
 
   if (!layout) {

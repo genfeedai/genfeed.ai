@@ -33,7 +33,7 @@ describe('BotToggle', () => {
         description="Automatically reply to mentions"
         icon={<span />}
         iconBgColor="bg-foreground/10"
-        editorPath="/automate/workflows/twitter-reply"
+        editorPath="/automation/workflows/twitter-reply"
         configItems={[{ label: 'Tone', value: 'Professional' }]}
       />,
     );
@@ -42,7 +42,7 @@ describe('BotToggle', () => {
       screen.getByRole('link', { name: /advanced settings/i }),
     ).toHaveAttribute(
       'href',
-      '/acme/moonrise/automate/workflows/twitter-reply',
+      '/acme/moonrise/automation/workflows/twitter-reply',
     );
   });
 });

@@ -212,9 +212,9 @@ describe('buildResearchWorkSurfaceHref', () => {
     ).toBe('/research?q=x');
     expect(
       buildResearchWorkSurfaceHref(
-        '/acme/moonrise/discover/following',
+        '/acme/moonrise/discovery/following',
         new URLSearchParams({ page: '2' }),
       ),
-    ).toBe('/acme/moonrise/discover/following?page=2');
+    ).toBe('/acme/moonrise/discovery/following?page=2');
   });
 });

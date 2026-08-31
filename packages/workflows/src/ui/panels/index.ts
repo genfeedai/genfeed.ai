@@ -1,3 +1,4 @@
+export { ActionNodeInspector } from './ActionNodeInspector';
 export { DebugPanel } from './DebugPanel';
 export {
   NodePalette,

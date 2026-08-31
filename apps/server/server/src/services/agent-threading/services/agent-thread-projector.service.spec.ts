@@ -150,6 +150,35 @@ describe('AgentThreadProjectorService', () => {
     ]);
   });
 
+  it('keeps the previous meaningful assistant preview after an empty finalization', () => {
+    const projected = service.applyEvent(
+      {
+        lastAssistantMessage: {
+          content: 'Your publish-ready draft is complete.',
+          createdAt: '2026-03-11T08:55:00.000Z',
+          messageId: 'message-previous',
+        },
+        threadId: 'thread-empty-final',
+      } as never,
+      {
+        commandId: 'cmd-empty-final',
+        eventId: 'event-empty-final',
+        occurredAt: '2026-03-11T09:00:00.000Z',
+        payload: { content: '   ' },
+        runId: 'run-empty-final',
+        sequence: 6,
+        threadId: 'thread-empty-final',
+        type: 'assistant.finalized',
+      } as never,
+    );
+
+    expect(projected.lastAssistantMessage).toEqual({
+      content: 'Your publish-ready draft is complete.',
+      createdAt: '2026-03-11T08:55:00.000Z',
+      messageId: 'message-previous',
+    });
+  });
+
   it('does not manufacture a thread relation alias in snapshot data', () => {
     const projected = service.applyEvent(
       { threadId: 'thread-scalar-id' } as never,

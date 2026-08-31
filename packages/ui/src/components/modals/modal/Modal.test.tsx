@@ -39,4 +39,20 @@ describe('Modal', () => {
     triggerOpen('modal-test');
     expect(screen.getByText('Modal content')).toBeInTheDocument();
   });
+
+  it('scrolls the body inside the padded modal shell', () => {
+    render(
+      <Modal id="modal-scroll" title="Scrollable modal">
+        <div>Long modal content</div>
+      </Modal>,
+    );
+    triggerOpen('modal-scroll');
+
+    expect(screen.getByRole('dialog')).toHaveClass('overflow-hidden');
+    expect(
+      screen
+        .getByText('Long modal content')
+        .closest('[data-modal-scroll-region]'),
+    ).toHaveClass('overflow-y-auto');
+  });
 });

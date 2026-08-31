@@ -6,35 +6,32 @@ function readAppSource(path: string) {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
-describe('post-login blank screen source contracts', () => {
-  it('keeps the protected app Suspense boundary visible while it resolves', () => {
+describe('post-login loading source contracts', () => {
+  it('keeps the protected app Suspense boundary non-blocking while it resolves', () => {
     const source = readAppSource(
       'packages/components/app-protected-layout.tsx',
     );
 
-    expect(source).toContain('PageLoadingState');
-    expect(source).toContain('fallback={<PageLoadingState fullScreen />}');
-    expect(source).not.toContain('fallback={null}');
+    expect(source).toContain('<Suspense fallback={null}>');
+    expect(source).not.toContain('PageLoadingState');
   });
 
-  it('keeps the workspace Suspense boundary visible while it resolves', () => {
+  it('keeps the workspace page Suspense boundary non-blocking while it resolves', () => {
     const source = readAppSource(
       'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page.tsx',
     );
 
-    expect(source).toContain('PageLoadingState');
-    expect(source).toContain('fallback={<PageLoadingState />}');
-    expect(source).not.toContain('fallback={null}');
+    expect(source).toContain('<Suspense fallback={null}>');
+    expect(source).not.toContain('LazyLoadingFallback');
   });
 
-  it('keeps the agent workspace Suspense boundary visible while it resolves', () => {
+  it('keeps the agent workspace Suspense boundary non-blocking while it resolves', () => {
     const source = readAppSource(
       'app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
     );
 
-    expect(source).toContain('PageLoadingState');
-    expect(source).toContain('fallback={<PageLoadingState />}');
-    expect(source).not.toContain('fallback={null}');
+    expect(source).toContain('<Suspense fallback={null}>');
+    expect(source).not.toContain('LazyLoadingFallback');
   });
 
   it('keeps an App Router error boundary on the workspace segment', () => {

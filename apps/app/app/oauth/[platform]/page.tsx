@@ -1,7 +1,6 @@
 import OAuthPlatformForm from '@app/oauth/[platform]/oauth-platform-form';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { OAuthPageProps } from '@props/pages/page.props';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createDynamicPageMetadata(
@@ -14,7 +13,7 @@ export default async function OAuthPlatformPage({ params }: OAuthPageProps) {
   const { platform } = await params;
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <OAuthPlatformForm platform={platform} />
     </Suspense>
   );

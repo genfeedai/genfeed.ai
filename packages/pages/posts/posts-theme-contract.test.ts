@@ -11,7 +11,7 @@ function readPostSource(relativePath: string): string {
 describe('posts semantic theme contract', () => {
   it.each([
     'list/components/PostsListToolbar.tsx',
-    'library/PublishContentLibraryToolbar.tsx',
+    'library/publishing-content-library-toolbar.tsx',
     'list/components/PostsGrid.tsx',
   ])('uses semantic application chrome in %s', (relativePath) => {
     const source = readPostSource(relativePath);

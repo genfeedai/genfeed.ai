@@ -2,7 +2,6 @@ import { LibraryPlace, PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import LibraryCreditNotice from '../library-credit-notice';
 
@@ -17,7 +16,7 @@ export default function LibraryAssetsPage() {
   return (
     <LibraryBrowser place={LibraryPlace.ASSETS} scope={PageScope.BRAND}>
       <LibraryCreditNotice />
-      <Suspense fallback={<PageLoadingState />}>
+      <Suspense fallback={null}>
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

@@ -86,15 +86,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/discover/overview`);
+        navigate(`${brandPath}/discovery/overview`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Discover trends and research content ideas',
+      description: 'Research trends and content ideas',
       icon: Search,
-      id: 'nav-discover',
+      id: 'nav-discovery',
       keywords: ['discover', 'research', 'trends', 'content'],
-      label: 'Go to Discover',
+      label: 'Go to Discovery',
       priority: 10,
       shortcut: ['⌘', '2'],
     },
@@ -128,15 +128,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/publish`);
+        navigate(`${brandPath}/publishing`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
-      description: 'Publish content to social platforms',
+      description: 'Manage drafts, approvals, and scheduled posts',
       icon: Send,
-      id: 'nav-posts',
-      keywords: ['publisher', 'publish', 'schedule', 'social', 'posts'],
-      label: 'Go to Posts',
+      id: 'nav-publishing',
+      keywords: ['publishing', 'publish', 'schedule', 'social', 'posts'],
+      label: 'Go to Publishing',
       priority: 10,
       shortcut: ['⌘', '4'],
     },
@@ -156,15 +156,15 @@ export function createNavigationCommands(
     },
     {
       action: () => {
-        navigate(`${brandPath}/automate/workflows`);
+        navigate(`${brandPath}/automation/workflows`);
       },
       category: 'navigation',
       condition: () => EnvironmentService.currentApp !== 'app',
       description: 'Manage agents, workflows, and operational runs',
       icon: Wrench,
-      id: 'nav-agents',
+      id: 'nav-automation',
       keywords: ['agents', 'automation', 'workflows', 'runs'],
-      label: 'Go to Agents',
+      label: 'Go to Automation',
       priority: 10,
       shortcut: ['⌘', '6'],
     },

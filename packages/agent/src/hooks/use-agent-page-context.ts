@@ -386,7 +386,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.PUBLISH.ROOT]: {
+  [APP_ROUTES.PUBLISHING.ROOT]: {
     placeholder: 'Ask about your posts...',
     suggestedActions: [
       {
@@ -412,7 +412,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [`${APP_ROUTES.PUBLISH.ROOT}/`]: {
+  [`${APP_ROUTES.PUBLISHING.ROOT}/`]: {
     placeholder: 'Ask about this post...',
     suggestedActions: [
       {
@@ -433,7 +433,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.PUBLISH.REVIEW]: {
+  [APP_ROUTES.PUBLISHING.REVIEW]: {
     placeholder: 'Ask about content review...',
     suggestedActions: [
       {
@@ -459,7 +459,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.DISCOVER.ROOT]: {
+  [APP_ROUTES.DISCOVERY.ROOT]: {
     placeholder: 'Ask about trends...',
     suggestedActions: [
       {
@@ -476,7 +476,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.DISCOVER.ADS]: {
+  [APP_ROUTES.DISCOVERY.ADS]: {
     placeholder: 'Ask about winning ads in your niche...',
     suggestedActions: [
       {
@@ -503,7 +503,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.DISCOVER.ADS_GOOGLE]: {
+  [APP_ROUTES.DISCOVERY.ADS_GOOGLE]: {
     placeholder: 'Ask about Google and YouTube ads...',
     suggestedActions: [
       {
@@ -522,7 +522,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.DISCOVER.ADS_META]: {
+  [APP_ROUTES.DISCOVERY.ADS_META]: {
     placeholder: 'Ask about Meta ad winners...',
     suggestedActions: [
       {

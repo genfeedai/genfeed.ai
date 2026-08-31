@@ -22,7 +22,7 @@ const PRODUCT_LINKS = [
   },
   {
     description: 'Review, schedule, and publish across every channel',
-    href: '/publisher',
+    href: '/publishing',
     icon: Send,
     label: 'Publishing',
   },

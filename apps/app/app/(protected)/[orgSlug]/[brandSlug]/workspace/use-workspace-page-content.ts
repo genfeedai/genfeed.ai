@@ -17,6 +17,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
@@ -91,7 +92,10 @@ export function useWorkspacePageContent({
   >(null);
   const [isWorkspaceRefreshing, setWorkspaceRefreshing] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
+    requestedTaskId,
+  );
+  const previousRequestedTaskIdRef = useRef(requestedTaskId);
   const {
     executions,
     isLoading: isWorkspaceExecutionsLoading,
@@ -271,18 +275,13 @@ export function useWorkspacePageContent({
   );
 
   useEffect(() => {
-    if (!requestedTaskId) {
-      setSelectedTaskId(null);
+    if (requestedTaskId === previousRequestedTaskIdRef.current) {
       return;
     }
 
-    if (!workspaceTasks.some((task) => task.id === requestedTaskId)) {
-      setSelectedTaskId(null);
-      return;
-    }
-
+    previousRequestedTaskIdRef.current = requestedTaskId;
     setSelectedTaskId(requestedTaskId);
-  }, [requestedTaskId, workspaceTasks]);
+  }, [requestedTaskId]);
 
   useEffect(() => {
     const controller = new AbortController();

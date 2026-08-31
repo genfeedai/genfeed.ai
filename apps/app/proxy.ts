@@ -141,10 +141,10 @@ const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.AGENT.slice(1),
   LEGACY_APP_ROUTES.TASKS.slice(1),
   APP_ROUTE_PREFIXES.LIBRARY.slice(1),
-  APP_ROUTE_PREFIXES.AUTOMATE.slice(1),
+  APP_ROUTE_PREFIXES.AUTOMATION.slice(1),
   APP_ROUTE_PREFIXES.OVERVIEW.slice(1),
-  APP_ROUTE_PREFIXES.PUBLISH.slice(1),
-  APP_ROUTE_PREFIXES.DISCOVER.slice(1),
+  APP_ROUTE_PREFIXES.PUBLISHING.slice(1),
+  APP_ROUTE_PREFIXES.DISCOVERY.slice(1),
   APP_ROUTE_PREFIXES.STUDIO.slice(1),
   APP_ROUTE_PREFIXES.WORKSPACE.slice(1),
 ] as const;
@@ -153,11 +153,11 @@ const ORG_SCOPED_PREFIXES = [APP_ROUTE_PREFIXES.SETTINGS.slice(1)] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
-  [APP_ROUTES.AUTOMATE.ROOT, APP_ROUTES.AUTOMATE.OVERVIEW],
+  [APP_ROUTES.AUTOMATION.ROOT, APP_ROUTES.AUTOMATION.OVERVIEW],
   [APP_ROUTES.LIBRARY.ROOT, APP_ROUTES.LIBRARY.ASSETS],
   [APP_ROUTES.LIBRARY.OVERVIEW, APP_ROUTES.LIBRARY.ASSETS],
-  [APP_ROUTES.DISCOVER.ROOT, APP_ROUTES.DISCOVER.OVERVIEW],
-  [APP_ROUTES.DISCOVER.DISCOVERY, APP_ROUTES.DISCOVER.OVERVIEW],
+  [APP_ROUTES.DISCOVERY.ROOT, APP_ROUTES.DISCOVERY.OVERVIEW],
+  [APP_ROUTES.DISCOVERY.DISCOVERY, APP_ROUTES.DISCOVERY.OVERVIEW],
   [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.GENERATE],
   [LEGACY_APP_ROUTES.TASKS, APP_ROUTES.WORKSPACE.TASKS],
   [APP_ROUTES.WORKSPACE.ROOT, APP_ROUTES.WORKSPACE.OVERVIEW],
@@ -934,9 +934,9 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
-  'discover',
+  'discovery',
   'library',
-  'publish',
+  'publishing',
   'settings',
   'studio',
   'workspace',
@@ -952,11 +952,11 @@ function createOrgScopedCanonicalPath(
     return `/${orgSlug}/~/workspace/overview`;
   }
 
-  // Automate has one org-scoped surface — the cross-brand overview. Deeper
+  // Automation has one org-scoped surface — the cross-brand overview. Deeper
   // automation paths are brand-scoped, so they collapse onto that overview
   // rather than falling into the org catch-all and 404ing.
-  if (topLevelSegment === 'automate') {
-    return `/${orgSlug}/~/automate`;
+  if (topLevelSegment === 'automation') {
+    return `/${orgSlug}/~/automation`;
   }
 
   if (
@@ -1149,7 +1149,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   const resolved = await resolveCanonicalProtectedPath(
-    '/agent',
+    APP_ROUTES.WORKSPACE.OVERVIEW,
     token,
     cacheKey,
     req,
@@ -1397,7 +1397,7 @@ async function routeBetterAuthRequest(
 
   if (pathname === '/') {
     let resolved = await resolveCanonicalProtectedPath(
-      '/agent',
+      APP_ROUTES.WORKSPACE.OVERVIEW,
       token,
       sessionCookie,
       req,
@@ -1408,7 +1408,7 @@ async function routeBetterAuthRequest(
       const fallbackToken = await getBetterAuthBearerToken(req);
       resolved = fallbackToken
         ? await resolveCanonicalProtectedPath(
-            '/agent',
+            APP_ROUTES.WORKSPACE.OVERVIEW,
             fallbackToken,
             sessionCookie,
             req,

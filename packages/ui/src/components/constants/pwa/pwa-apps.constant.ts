@@ -59,9 +59,9 @@ export const PWA_APPS: Record<PWAAppNameKey, PWAAppConfig> = {
     'Marketplace',
     'Creator marketplace for workflows, prompts, and digital products',
   ),
-  publisher: createPWAConfig(
-    'publisher',
-    'Publisher',
+  publishing: createPWAConfig(
+    'publishing',
+    'Publishing',
     'Schedule and publish content across social platforms',
   ),
   settings: createPWAConfig(

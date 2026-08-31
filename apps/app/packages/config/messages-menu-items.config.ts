@@ -86,5 +86,3 @@ export function getMessagesMenuItemsForScope(
     }),
   );
 }
-
-export const MESSAGES_LOGO_HREF = APP_ROUTES.MESSAGES.ROOT;

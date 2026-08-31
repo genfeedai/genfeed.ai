@@ -37,8 +37,8 @@ describe('useTopPosts', () => {
     );
     (useAnalyticsContext as ReturnType<typeof vi.fn>).mockReturnValue({
       dateRange: {
-        endDate: new Date(2025, 0, 7),
-        startDate: new Date(2025, 0, 1),
+        endDate: new Date('2025-01-07T00:00:00.000Z'),
+        startDate: new Date('2025-01-01T00:00:00.000Z'),
       },
       refreshTrigger: 0,
     });

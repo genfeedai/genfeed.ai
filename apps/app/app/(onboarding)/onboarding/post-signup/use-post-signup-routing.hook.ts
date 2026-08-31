@@ -48,7 +48,6 @@ import {
 
 export type PostSignupRoutingState = {
   showFallback: boolean;
-  statusMessage: string;
   resolveOnboardingHref: () => Promise<string>;
   retryBrandOsHandoff?: (() => void) | undefined;
 };
@@ -70,9 +69,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
-  const [statusMessage, setStatusMessage] = useState(
-    'Setting up your workspace...',
-  );
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
@@ -167,7 +163,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
     calledRef.current = true;
     if (routingAttempt > 0) {
-      setStatusMessage('Retrying your saved preview handoff...');
+      setShowFallback(false);
     }
     const abortController = new AbortController();
     const { signal } = abortController;
@@ -294,9 +290,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
       const brandOsToken = parseBrandOsPreviewToken(requestedBrandOsTokenParam);
       if (brandOsToken) {
-        if (!signal.aborted) {
-          setStatusMessage('Saving your Brand OS draft...');
-        }
         const token = await resolveAuthToken(getToken);
         if (!token) {
           setShowFallback(true);
@@ -333,9 +326,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           return;
         } catch (error) {
           logger.error('Failed to claim Brand OS preview after auth', error);
-          setStatusMessage(
-            'Your preview is still available. Retry to save it to your workspace.',
-          );
           setShowFallback(true);
           return;
         }
@@ -345,9 +335,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         requestedClipToolTokenParam,
       );
       if (clipToolToken) {
-        if (!signal.aborted) {
-          setStatusMessage('Saving your clip project...');
-        }
         const token = await resolveAuthToken(getToken);
         if (!token) {
           setShowFallback(true);
@@ -394,9 +381,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           return;
         } catch (error) {
           logger.error('Failed to claim public clip project after auth', error);
-          setStatusMessage(
-            'Your clip preview is still available. Retry to save it to your workspace.',
-          );
           setShowFallback(true);
           return;
         }
@@ -413,10 +397,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         if (!hasOrganizationBillingHint()) {
           await redirectToOnboarding();
           return;
-        }
-
-        if (!signal.aborted) {
-          setStatusMessage('Preparing your plan checkout...');
         }
 
         try {
@@ -477,10 +457,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
             return;
           }
 
-          if (!signal.aborted) {
-            setStatusMessage('Preparing your managed credits checkout...');
-          }
-
           try {
             const result = await ManagedCreditsService.createCheckoutSession(
               {
@@ -520,10 +496,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         if (!hasOrganizationBillingHint()) {
           await redirectToOnboarding();
           return;
-        }
-
-        if (!signal.aborted) {
-          setStatusMessage('Preparing your credits checkout...');
         }
 
         try {
@@ -575,9 +547,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         return;
       }
 
-      if (!signal.aborted) {
-        setStatusMessage('Continuing to onboarding...');
-      }
       await redirectToOnboarding();
     };
 
@@ -616,6 +585,5 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     resolveOnboardingHref,
     retryBrandOsHandoff: hasBrandOsHandoff ? retryBrandOsHandoff : undefined,
     showFallback,
-    statusMessage,
   };
 }

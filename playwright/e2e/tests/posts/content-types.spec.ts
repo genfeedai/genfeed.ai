@@ -10,8 +10,8 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
 /**
  * E2E Tests for Posts Sub-Routes (Content Types)
  *
- * Covers: retired /publish/newsletters redirect, /publish/remix,
- *         /publish/review
+ * Covers: retired /publishing/newsletters redirect, /publishing/remix,
+ *         /publishing/review
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur.
@@ -28,18 +28,18 @@ test.describe('Posts — Content Types', () => {
   test('retired newsletters path redirects to the agent composer', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS);
+    await authenticatedPage.goto(LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.NEW}|${APP_ROUTES.PUBLISH.POSTS}`),
+      new RegExp(`${APP_ROUTES.AGENT.NEW}|${APP_ROUTES.PUBLISHING.POSTS}`),
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
   test('remix page loads remix interface', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REMIX);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISHING.REMIX);
 
-    await expect(authenticatedPage).toHaveURL(/publish\/remix/);
+    await expect(authenticatedPage).toHaveURL(/publishing\/remix/);
     // Remix page should render its interface
     await expect(
       authenticatedPage.getByText(/remix|trend/i).first(),
@@ -49,9 +49,9 @@ test.describe('Posts — Content Types', () => {
   test('review page shows review queue', async ({ authenticatedPage }) => {
     await mockReviewQueue(authenticatedPage);
 
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.REVIEW);
+    await authenticatedPage.goto(APP_ROUTES.PUBLISHING.REVIEW);
 
-    await expect(authenticatedPage).toHaveURL(/publish\/review/);
+    await expect(authenticatedPage).toHaveURL(/publishing\/review/);
     // Review queue should display batch/review UI
     await expect(
       authenticatedPage.getByText(/review|queue|batch|approve/i).first(),
@@ -62,7 +62,7 @@ test.describe('Posts — Content Types', () => {
     unauthenticatedPage,
   }) => {
     skipIfPlaywrightAuthBypassed();
-    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.ROOT);
+    await unauthenticatedPage.goto(APP_ROUTES.PUBLISHING.ROOT);
 
     // Should redirect to login
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {

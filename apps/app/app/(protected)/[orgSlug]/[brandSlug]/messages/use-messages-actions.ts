@@ -231,24 +231,32 @@ export function useMessagesActions({
       const isDirectMessage = conversationType === SocialConversationType.DM;
       // One rejected enqueue must not hide the rest: a brand often has only
       // some platforms connected, and the other jobs are already queued.
+      const directMessageJobs: MessagesSyncJob[] = [
+        { platform: 'Instagram', run: () => service.syncInstagramDms() },
+        { platform: 'X', run: () => service.syncXDms() },
+        { platform: 'LinkedIn', run: () => service.syncLinkedInDms() },
+      ];
+      const commentJobs: MessagesSyncJob[] = [
+        { platform: 'YouTube', run: () => service.syncYoutube() },
+        { platform: 'Instagram', run: () => service.syncInstagram() },
+        { platform: 'X', run: () => service.syncX() },
+        { platform: 'LinkedIn', run: () => service.syncLinkedIn() },
+      ];
       const jobs: MessagesSyncJob[] = isDirectMessage
-        ? [
-            { platform: 'Instagram', run: () => service.syncInstagramDms() },
-            { platform: 'X', run: () => service.syncXDms() },
-            { platform: 'LinkedIn', run: () => service.syncLinkedInDms() },
-          ]
-        : [
-            { platform: 'YouTube', run: () => service.syncYoutube() },
-            { platform: 'Instagram', run: () => service.syncInstagram() },
-            { platform: 'X', run: () => service.syncX() },
-            { platform: 'LinkedIn', run: () => service.syncLinkedIn() },
-          ];
+        ? directMessageJobs
+        : conversationType === SocialConversationType.COMMENT
+          ? commentJobs
+          : [...commentJobs, ...directMessageJobs];
       const outcome = await settleMessagesSyncJobs(jobs);
       await loadConversations();
       const feedback = getMessagesSyncFeedback({
         failedPlatforms: outcome.failedPlatforms,
         hasSuccess: outcome.hasSuccess,
-        isDirectMessage,
+        scope: isDirectMessage
+          ? 'dms'
+          : conversationType === SocialConversationType.COMMENT
+            ? 'comments'
+            : 'all',
       });
       setError(feedback.error);
       setNotice(feedback.notice);

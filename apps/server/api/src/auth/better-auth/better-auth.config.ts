@@ -160,8 +160,8 @@ export function resolveBetterAuthRuntimeConfig(
       env.GITHUB_CLIENT_SECRET,
     ),
     google: resolveSocialProviderConfig(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_CLIENT_SECRET,
+      env.GOOGLE_OAUTH_CLIENT_ID,
+      env.GOOGLE_OAUTH_CLIENT_SECRET,
     ),
     ipAddressHeaders: parseCommaSeparated(env.BETTER_AUTH_IP_HEADERS),
     requireEmailVerification: resolveBooleanFlag(

@@ -25,7 +25,7 @@ import {
  * generated its first asset. This is a soft lock: the section is never hidden and
  * never 404s, the CTA routes to the agent, and an "explore anyway" escape hatch
  * clears the lock permanently for the user. Non-gated routes (agent, settings,
- * studio, discover, publish, messages, admin) always render their children.
+ * Studio, Discovery, Publishing, Messages, and Admin) always render their children.
  */
 export default function AssetGateGuard({ children }: LayoutProps) {
   const { isAssetGateLocked, dismissAssetGate } = useAccessState();

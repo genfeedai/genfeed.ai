@@ -2,7 +2,6 @@ import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  ANALYTICS_LOGO_HREF,
   ANALYTICS_MENU_ITEMS,
   getAnalyticsMenuItemsForScope,
   isOrgAnalyticsRouteScope,
@@ -64,10 +63,6 @@ function labelsInGroup(group: string): string[] {
 describe('ANALYTICS_MENU_ITEMS', () => {
   it('is non-empty', () => {
     expect(ANALYTICS_MENU_ITEMS.length).toBeGreaterThan(0);
-  });
-
-  it('has a logo href set', () => {
-    expect(ANALYTICS_LOGO_HREF).toBeTruthy();
   });
 
   it('has no duplicate hrefs', () => {
@@ -159,7 +154,6 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     expect(overview?.matchPaths).toEqual(
       expect.arrayContaining(['/analytics', '/analytics/overview']),
     );
-    expect(ANALYTICS_LOGO_HREF).toBe('/analytics/overview');
   });
 
   it('treats empty and tilde brand slugs as org analytics scope', () => {

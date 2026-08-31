@@ -9,7 +9,7 @@ import { dispatchOpenConversationTab } from '@/lib/workspace/agent-composer-even
 /**
  * Seed the in-shell agent composer and open the inspector Conversation tab.
  *
- * Stays on the current product route so page context (Publish review, drafts,
+ * Stays on the current product route so page context (Publishing review, drafts,
  * calendar, …) remains visible. Prefer this over navigating to `/agent/new`.
  *
  * Seeded prompts name the selected brand ("draft a post for my brand X"), so

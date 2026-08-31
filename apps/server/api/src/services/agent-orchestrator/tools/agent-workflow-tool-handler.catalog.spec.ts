@@ -1,6 +1,6 @@
+import { BadRequestException } from '@nestjs/common';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
-import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -192,7 +192,7 @@ describe('AgentWorkflowToolInstallService system workflow catalog', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         canonicalId: 'daily-trends-digest',
-        editorUrl: '/automate/workflows/wf-new',
+        editorUrl: '/automation/workflows/wf-new',
         id: 'wf-new',
         label: 'Daily Trends Digest',
       });

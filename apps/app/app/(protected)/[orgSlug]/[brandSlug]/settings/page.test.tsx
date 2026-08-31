@@ -10,12 +10,6 @@ vi.mock('./brand-detail', () => ({
   },
 }));
 
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: function PageLoadingStateMock() {
-    return 'Loading brand profile';
-  },
-}));
-
 describe('BrandDetailPage', () => {
   it('renders the brand detail surface inside a suspense boundary', () => {
     render(<BrandDetailPage />);

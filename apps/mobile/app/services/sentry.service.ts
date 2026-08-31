@@ -30,13 +30,14 @@ class SentryService {
       debug: __DEV__,
       dist: Constants.expoConfig?.extra?.buildNumber || '1',
       dsn: SENTRY_DSN,
-      enableAutoPerformanceTracing: true,
+      enableAutoPerformanceTracing: false,
       enableAutoSessionTracking: true,
       enableNativeCrashHandling: true,
       environment: __DEV__ ? 'development' : 'production',
       release: Constants.expoConfig?.version || '1.0.0',
       sessionTrackingIntervalMillis: 30000,
-      tracesSampleRate: __DEV__ ? 1.0 : 0.2,
+      // Sentry is used for error reporting only; performance spans are disabled.
+      tracesSampleRate: 0,
     });
 
     this.isInitialized = true;
@@ -115,13 +116,6 @@ class SentryService {
       return;
     }
     Sentry.setContext(name, context);
-  }
-
-  startTransaction(name: string, op: string): Sentry.Span | undefined {
-    if (!this.isInitialized) {
-      return undefined;
-    }
-    return Sentry.startInactiveSpan({ name, op });
   }
 
   wrap<T>(component: T): T {

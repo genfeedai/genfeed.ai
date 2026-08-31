@@ -16,7 +16,7 @@ import { LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import type { ComponentType, ReactNode } from 'react';
 
-export type SocialsNavigationBasePath = '/discover' | '/analytics/trends';
+export type SocialsNavigationBasePath = '/discovery' | '/analytics/trends';
 
 interface SocialsNavigationItem {
   href: string;
@@ -42,7 +42,7 @@ const PLATFORM_ICONS: Record<
 
 /**
  * Local surface switcher for analytics/trends (and any host still using a
- * section topbar). Platform destinations on Discover live in the **sidebar
+ * section topbar). Platform destinations in Discovery live in the **sidebar
  * menu** — not as rounded pills.
  */
 const PLATFORM_LABELS: Array<{
@@ -63,7 +63,7 @@ const PLATFORM_LABELS: Array<{
 function buildOverviewHref(basePath: SocialsNavigationBasePath): string {
   return basePath === '/analytics/trends'
     ? '/analytics/trends'
-    : '/discover/overview';
+    : '/discovery/overview';
 }
 
 function buildPlatformHref(
@@ -72,7 +72,7 @@ function buildPlatformHref(
 ): string {
   return basePath === '/analytics/trends'
     ? `/analytics/trends/platforms/${platform}`
-    : `/discover/${platform}`;
+    : `/discovery/${platform}`;
 }
 
 function buildSocialsNavItems(
@@ -98,7 +98,7 @@ export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
 /**
  * Menu-row local nav: icon + label, underline active state — not filter pills.
- * Prefer Discover sidebar menu items for platform destinations; keep this for
+ * Prefer Discovery sidebar menu items for platform destinations; keep this for
  * analytics/trends section chrome and tests.
  */
 function SocialsNavItem({
@@ -139,7 +139,7 @@ function SocialsNavItem({
 
 export function SocialsNavigation({
   active,
-  basePath = '/discover',
+  basePath = '/discovery',
 }: {
   active: SocialsNavigationValue;
   basePath?: SocialsNavigationBasePath;

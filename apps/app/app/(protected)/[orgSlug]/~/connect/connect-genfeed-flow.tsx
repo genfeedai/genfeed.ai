@@ -324,7 +324,7 @@ export default function ConnectGenfeedFlow() {
     verification?.status === 'connected' && verification.publishing.isReady
       ? firstBrandSlug
         ? `/${params.orgSlug}/${firstBrandSlug}${DRAFT_POST_AGENT_HREF}`
-        : `/${params.orgSlug}/~/publish`
+        : `/${params.orgSlug}/~/publishing`
       : `/${params.orgSlug}/~/settings/brands`;
 
   return (

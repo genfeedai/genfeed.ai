@@ -1,6 +1,6 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
-import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 
@@ -53,7 +53,7 @@ export class WorkflowQueryDto extends BaseQueryDto {
   )
   @ApiProperty({
     description:
-      'Include persisted system-workflow clones. Customer Automate omits this; Admin → Automation → Workflows sets it.',
+      'Include persisted system-workflow clones. Customer Automation omits this; Admin → Automation → Workflows sets it.',
     required: false,
   })
   readonly includeSystem?: boolean;

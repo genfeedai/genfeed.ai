@@ -83,7 +83,8 @@ export interface GenerationSetupTriggerProps {
   className?: string;
 }
 
-export interface GenerationSetupProvenanceDotProps {
+export interface GenerationSetupFieldIconProps {
+  fieldKey: GenerationSetupFieldKey;
   reason?: string;
   source: GenerationSetupSource;
 }
@@ -105,7 +106,7 @@ export interface GenerationSetupFrontDoorProps {
   isPresetsLoading?: boolean;
   models: readonly IModel[];
   onApplyPreset: (preset: IStudioLook) => void;
-  onCustomize: () => void;
+  onCustomize: (section?: GenerationSetupCustomizeSectionId) => void;
   onDeletePreset?: (presetId: string) => void;
   onSearch: () => void;
   presets: readonly IStudioLook[];
@@ -143,6 +144,7 @@ export interface GenerationSetupCustomizePanelProps {
   creditQuoteLabel?: string;
   creditsAvailable?: number | null;
   favoriteModelKeys: string[];
+  initialSection?: GenerationSetupCustomizeSectionId;
   isDisabled?: boolean;
   lookOptions: GenerationSetupLookOptions;
   models: readonly IModel[];

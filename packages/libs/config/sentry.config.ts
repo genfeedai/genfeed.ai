@@ -36,5 +36,7 @@ export function getSentryConfig(
     // Never attach request bodies or IP/user defaults — prompt text must not
     // ride Sentry events in any environment, including staging and local opt-in.
     sendDefaultPii: false,
+    // Sentry is used for error reporting only; performance spans are disabled.
+    tracesSampleRate: 0,
   };
 }

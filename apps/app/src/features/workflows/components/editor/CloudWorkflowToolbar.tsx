@@ -15,18 +15,14 @@ import { useCallback, useRef, useState } from 'react';
 
 interface CloudWorkflowToolbarProps {
   isSaving: boolean;
-  leftContent?: ReactNode;
   middleContent?: ReactNode;
   onRename?: (newName: string) => Promise<void> | void;
-  rightContent?: ReactNode;
 }
 
 export function CloudWorkflowToolbar({
   isSaving,
-  leftContent,
   middleContent,
   onRename,
-  rightContent,
 }: CloudWorkflowToolbarProps) {
   const isDirty = useWorkflowStore(selectIsDirty);
   const setWorkflowName = useWorkflowStore((state) => state.setWorkflowName);
@@ -88,41 +84,33 @@ export function CloudWorkflowToolbar({
           await onRename?.(nextName);
         }}
         leftContent={
-          <div className="flex min-w-0 items-center gap-3">
-            {leftContent ? (
-              <div className="cloud-workflow-toolbar-nav flex shrink-0 items-center">
-                {leftContent}
-              </div>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              {isEditing ? (
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  value={editedName}
-                  onBlur={() => void commitRename()}
-                  onChange={(event) => setEditedName(event.target.value)}
-                  onKeyDown={(event) => void handleNameKeyDown(event)}
-                  className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/40"
-                />
-              ) : (
-                <Button
-                  type="button"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                  onClick={handleStartEditing}
-                  className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-foreground/80"
-                  tooltip="Rename workflow"
-                >
-                  {workflowName || 'Untitled Workflow'}
-                </Button>
-              )}
-            </div>
+          <div className="min-w-0 flex-1">
+            {isEditing ? (
+              <Input
+                ref={inputRef}
+                type="text"
+                value={editedName}
+                onBlur={() => void commitRename()}
+                onChange={(event) => setEditedName(event.target.value)}
+                onKeyDown={(event) => void handleNameKeyDown(event)}
+                className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-ring/40"
+              />
+            ) : (
+              <Button
+                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={handleStartEditing}
+                className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-foreground/80"
+                tooltip="Rename workflow"
+              >
+                {workflowName || 'Untitled Workflow'}
+              </Button>
+            )}
           </div>
         }
         middleContent={middleContent}
         onAutoLayout={autoLayout}
-        rightContent={rightContent}
         saveIndicator={
           <SaveIndicator isDirty={isDirty} isSaving={isSaving} variant="pill" />
         }

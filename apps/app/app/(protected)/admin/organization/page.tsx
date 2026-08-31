@@ -1,7 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { OrganizationConfigPageProps } from '@props/pages/page.props';
 import OrganizationConfigPage from '@protected/organization/organization-config-page';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 import AdminOrganizationsLanding from './admin-organizations-landing';
 
@@ -13,14 +12,14 @@ export default async function OrganizationConfigPageWrapper({
   const { id } = await searchParams;
   if (!id) {
     return (
-      <Suspense fallback={<PageLoadingState />}>
+      <Suspense fallback={null}>
         <AdminOrganizationsLanding />
       </Suspense>
     );
   }
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <OrganizationConfigPage />
     </Suspense>
   );

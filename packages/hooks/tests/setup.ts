@@ -48,7 +48,7 @@ vi.mock('@genfeedai/services/core/base.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
-  usePathname: () => '/acme/brand-slug/publisher/posts/post-1',
+  usePathname: () => '/acme/brand-slug/publishing/posts/post-1',
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),

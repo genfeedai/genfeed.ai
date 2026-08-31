@@ -93,7 +93,7 @@ export function buildTrendSourceTwitterDraftHref(
   source: TrendSourceItem,
   isThread: boolean = false,
 ): string {
-  return `/publish/remix${buildQuery({
+  return `/publishing/remix${buildQuery({
     mode: isThread ? 'thread' : 'tweet',
     platform: Platform.TWITTER,
     sourceAuthor: source.authorHandle,
@@ -112,7 +112,7 @@ export function buildSourcePostVariationsHref(params: {
   sourceReferenceId?: string;
   trendId?: string;
 }): string {
-  return `${APP_ROUTES.PUBLISH.REMIX}${buildQuery({
+  return `${APP_ROUTES.PUBLISHING.REMIX}${buildQuery({
     platform: params.platform,
     postId: params.postId,
     sourcePostId: params.sourcePostId,

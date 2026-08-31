@@ -80,7 +80,12 @@ const ACTIVITY_SOURCE_LABELS: Record<string, string> = {
   [ActivitySource.POST]: 'Content publish',
 };
 
-function getActivitySourceLabel(source: string): string | undefined {
+export function getActivitySourceLabel(
+  source: string | undefined,
+): string | undefined {
+  if (!source) {
+    return undefined;
+  }
   return ACTIVITY_SOURCE_LABELS[source];
 }
 
@@ -152,6 +157,12 @@ function parseCreditAmount(value: string | undefined): number | null {
       : value;
   const amount = Number(raw);
   return Number.isFinite(amount) ? amount : null;
+}
+
+export function getActivityCreditAmount(
+  activity: Pick<IActivity, 'value'>,
+): number | null {
+  return parseCreditAmount(activity.value);
 }
 
 /**

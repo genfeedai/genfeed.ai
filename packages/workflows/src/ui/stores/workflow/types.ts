@@ -119,7 +119,8 @@ export interface WorkflowState {
 // =============================================================================
 
 export interface NodeActions {
-  addNode: (type: NodeType, position: XYPosition) => string;
+  /** Adds either an OSS primitive or a registered product node type. */
+  addNode: (type: NodeType | string, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(
     nodeId: string,

@@ -141,7 +141,7 @@ describe('PromptBarContainer', () => {
     expect(fade?.className).not.toContain('via-background/55');
   });
 
-  it('paints a solid bottom scrim so wallpaper cannot leak under the prompt', () => {
+  it('does not paint a dark block below the prompt', () => {
     const { container } = render(
       <PromptBarContainer showTopFade>
         <div>content</div>
@@ -149,8 +149,6 @@ describe('PromptBarContainer', () => {
     );
 
     const scrim = container.querySelector('[data-composer-bottom-scrim]');
-    expect(scrim).toBeInTheDocument();
-    expect(scrim).toHaveClass('bg-background');
-    expect(scrim).toHaveClass('top-full');
+    expect(scrim).not.toBeInTheDocument();
   });
 });

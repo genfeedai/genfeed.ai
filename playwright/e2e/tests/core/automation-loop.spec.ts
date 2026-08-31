@@ -18,7 +18,7 @@ import { WorkflowPage } from '../../pages/workflow.page';
 const WORKFLOWS_ROUTE = createBrandAppRoute(
   'test-org',
   'brand-1',
-  APP_ROUTES.AUTOMATE.WORKFLOWS,
+  APP_ROUTES.AUTOMATION.WORKFLOWS,
 );
 
 test.describe('Core Automation Loop', () => {
@@ -33,20 +33,20 @@ test.describe('Core Automation Loop', () => {
     await mockNodeTypes(automationPage, testNodeTypes);
   });
 
-  test('workflow library stays available inside the Automate canvas', async ({
+  test('workflow library stays available inside the Automation canvas', async ({
     automationPage,
   }) => {
     await automationPage.goto(WORKFLOWS_ROUTE);
 
     await expect(automationPage).toHaveURL(
-      /\/test-org\/brand-1\/automate\/workflows$/,
+      /\/test-org\/brand-1\/automation\/workflows$/,
     );
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
-    ).toHaveAttribute('data-shell-section-label', 'Automate');
+    ).toHaveAttribute('data-shell-section-label', 'Automation');
     await expect(
       automationPage.getByTestId('universal-workspace-shell'),
-    ).toHaveAttribute('data-workspace-surface', 'automate');
+    ).toHaveAttribute('data-workspace-surface', 'automation');
     await expect(
       automationPage.getByTestId('workspace-canvas-layout'),
     ).toBeVisible();
@@ -55,13 +55,13 @@ test.describe('Core Automation Loop', () => {
     ).toBeVisible();
     await expect(
       automationPage.getByRole('link', { name: 'New Workflow' }).first(),
-    ).toHaveAttribute('href', /\/automate\/workflows\/new$/);
+    ).toHaveAttribute('href', /\/automation\/workflows\/new$/);
     await expect(
       automationPage.getByRole('link', { name: 'Templates' }).first(),
     ).toBeVisible();
     await expect(
       automationPage.getByRole('link', { name: 'Autopilot' }).first(),
-    ).toHaveAttribute('href', /\/automate\/autopilot$/);
+    ).toHaveAttribute('href', /\/automation\/autopilot$/);
   });
 
   test('template install flows into the editor bootstrap path', async ({
@@ -73,12 +73,12 @@ test.describe('Core Automation Loop', () => {
 
     await expect(automationPage.getByText('Templates').first()).toBeVisible();
     await automationPage
-      .locator('a[href*="/automate/workflows/templates?template="]')
+      .locator('a[href*="/automation/workflows/templates?template="]')
       .first()
       .click({ force: true });
 
     await expect(automationPage).toHaveURL(
-      /\/automate\/workflows\/workflow-new$/,
+      /\/automation\/workflows\/workflow-new$/,
     );
     await expect(automationPage.locator('.workflow-scope')).toBeVisible();
   });
@@ -91,7 +91,7 @@ test.describe('Core Automation Loop', () => {
     await workflowPage.gotoEditorById(testWorkflows[0].id);
 
     await expect(automationPage).toHaveURL(
-      /\/automate\/workflows\/workflow-001/,
+      /\/automation\/workflows\/workflow-001/,
     );
     await expect(workflowPage.canvas.first()).toBeVisible();
     await expect(
@@ -115,7 +115,9 @@ test.describe('Core Automation Loop', () => {
 
     await workflowPage.gotoExecutions();
 
-    await expect(automationPage).toHaveURL(/\/automate\/workflows\/executions/);
+    await expect(automationPage).toHaveURL(
+      /\/automation\/workflows\/executions/,
+    );
     await workflowPage.assertExecutionListVisible();
     await expect(automationPage.getByText('Completed').first()).toBeVisible();
     await expect(automationPage.getByText('Failed').first()).toBeVisible();
@@ -123,7 +125,7 @@ test.describe('Core Automation Loop', () => {
     await workflowPage.gotoExecutionById('exec-003');
 
     await expect(automationPage).toHaveURL(
-      /\/automate\/workflows\/executions\/exec-003/,
+      /\/automation\/workflows\/executions\/exec-003/,
     );
     await expect(
       automationPage.getByRole('button', { name: 'Resume Execution' }),

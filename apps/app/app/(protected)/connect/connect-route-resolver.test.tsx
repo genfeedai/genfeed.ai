@@ -29,10 +29,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: ({ message }: { message: string }) => <div>{message}</div>,
-}));
-
 describe('ConnectRouteResolver', () => {
   beforeEach(() => {
     mocks.brands = [

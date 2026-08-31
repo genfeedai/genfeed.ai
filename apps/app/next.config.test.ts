@@ -117,12 +117,12 @@ describe('app next.config', () => {
   it('redirects dead bare /review CTAs to publish/review', async () => {
     const redirects = await config.redirects?.();
     expect(redirects).toContainEqual({
-      destination: '/publish/review',
+      destination: '/publishing/review',
       permanent: true,
       source: '/review',
     });
     expect(redirects).toContainEqual({
-      destination: '/:orgSlug/:brandSlug/publish/review',
+      destination: '/:orgSlug/:brandSlug/publishing/review',
       permanent: true,
       source: '/:orgSlug/:brandSlug/review',
     });
@@ -286,9 +286,9 @@ describe('app next.config', () => {
 
   it.each([
     APP_ROUTES.WORKSPACE.ROOT,
-    APP_ROUTES.AUTOMATE.ROOT,
+    APP_ROUTES.AUTOMATION.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
-    APP_ROUTES.PUBLISH.ROOT,
+    APP_ROUTES.PUBLISHING.ROOT,
   ] as const)(
     'permanently redirects bare %s to complete-path overview home',
     async (appRoot) => {
@@ -343,50 +343,50 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently hard-cuts Publish agent-program routes into Automate and outreach into Messages', async () => {
+  it('permanently hard-cuts Publishing agent-program routes into Automation and outreach into Messages', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATE.CAMPAIGNS,
+      destination: APP_ROUTES.AUTOMATION.CAMPAIGNS,
       permanent: true,
-      source: '/publish/campaigns',
+      source: '/publishing/campaigns',
     });
     expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.AUTOMATE.CAMPAIGNS}/:path*`,
+      destination: `${APP_ROUTES.AUTOMATION.CAMPAIGNS}/:path*`,
       permanent: true,
-      source: '/publish/campaigns/:path*',
-    });
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.MESSAGES.OUTREACH,
-      permanent: true,
-      source: '/publish/outreach-campaigns',
+      source: '/publishing/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.MESSAGES.OUTREACH,
       permanent: true,
-      source: '/automate/outreach-campaigns',
+      source: '/publishing/outreach-campaigns',
+    });
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.MESSAGES.OUTREACH,
+      permanent: true,
+      source: '/automation/outreach-campaigns',
     });
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.MESSAGES.REPLY_DRIP,
       permanent: true,
-      source: '/automate/reply-campaigns',
+      source: '/automation/reply-campaigns',
     });
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.MESSAGES.REPLIES,
       permanent: true,
-      source: '/automate/replies',
+      source: '/automation/replies',
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.AUTOMATE.CAMPAIGNS,
+        APP_ROUTES.AUTOMATION.CAMPAIGNS,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        '/publish/campaigns',
+        '/publishing/campaigns',
       ),
     });
   });
@@ -397,7 +397,7 @@ describe('app next.config', () => {
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.AGENT.NEW,
       permanent: true,
-      source: LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+      source: LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
@@ -409,16 +409,16 @@ describe('app next.config', () => {
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+        LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
       ),
     });
   });
 
-  it('permanently aliases /workflows onto Automate workflows', async () => {
+  it('permanently aliases /workflows onto Automation workflows', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATE.WORKFLOWS,
+      destination: APP_ROUTES.AUTOMATION.WORKFLOWS,
       permanent: true,
       source: LEGACY_APP_ROUTES.WORKFLOWS,
     });
@@ -426,7 +426,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.AUTOMATE.WORKFLOWS,
+        APP_ROUTES.AUTOMATION.WORKFLOWS,
       ),
       permanent: true,
       source: createBrandAppRoute(
@@ -439,7 +439,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        `${APP_ROUTES.AUTOMATE.WORKFLOWS}/:path*`,
+        `${APP_ROUTES.AUTOMATION.WORKFLOWS}/:path*`,
       ),
       permanent: true,
       source: createBrandAppRoute(
@@ -454,7 +454,7 @@ describe('app next.config', () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATE.WORKFLOWS,
+      destination: APP_ROUTES.AUTOMATION.WORKFLOWS,
       permanent: true,
       source: LEGACY_APP_ROUTES.LAB_CRON_JOBS,
     });
@@ -462,7 +462,7 @@ describe('app next.config', () => {
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.AUTOMATE.WORKFLOWS,
+        APP_ROUTES.AUTOMATION.WORKFLOWS,
       ),
       permanent: true,
       source: createBrandAppRoute(
@@ -487,7 +487,7 @@ describe('app next.config', () => {
       destination: `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
       has: newsletterIdQuery,
       permanent: true,
-      source: LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+      source: LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
@@ -500,7 +500,7 @@ describe('app next.config', () => {
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+        LEGACY_APP_ROUTES.PUBLISHING_NEWSLETTERS,
       ),
     });
   });
@@ -517,7 +517,7 @@ describe('app next.config', () => {
     expect(legacyWorkflowRedirects.length).toBeGreaterThan(0);
     expect(
       legacyWorkflowRedirects.every((redirect) =>
-        String(redirect.destination).includes(APP_ROUTES.AUTOMATE.WORKFLOWS),
+        String(redirect.destination).includes(APP_ROUTES.AUTOMATION.WORKFLOWS),
       ),
     ).toBe(true);
   });
@@ -550,48 +550,52 @@ describe('app next.config', () => {
     ).toBe(false);
   });
 
-  it('redirects org-scoped /discover to /discover/overview', async () => {
+  it('redirects org-scoped /discovery to /discovery/overview', async () => {
     const redirects = await config.redirects?.();
     const discoverRedirect = redirects?.find(
       (redirect) =>
         redirect.source ===
-        createBrandAppRoute(':orgSlug', ':brandSlug', APP_ROUTES.DISCOVER.ROOT),
+        createBrandAppRoute(
+          ':orgSlug',
+          ':brandSlug',
+          APP_ROUTES.DISCOVERY.ROOT,
+        ),
     );
 
     expect(discoverRedirect).toEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: false,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.ROOT,
+        APP_ROUTES.DISCOVERY.ROOT,
       ),
     });
   });
 
-  it('redirects retired /discover/socials to /discover/overview', async () => {
+  it('redirects retired /discovery/socials to /discovery/overview', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      destination: APP_ROUTES.DISCOVERY.OVERVIEW,
       permanent: true,
-      source: APP_ROUTES.DISCOVER.SOCIALS,
+      source: APP_ROUTES.DISCOVERY.SOCIALS,
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.OVERVIEW,
+        APP_ROUTES.DISCOVERY.OVERVIEW,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.DISCOVER.SOCIALS,
+        APP_ROUTES.DISCOVERY.SOCIALS,
       ),
     });
   });

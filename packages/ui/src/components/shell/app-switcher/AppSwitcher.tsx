@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  APP_DISPLAY_LABELS,
   APP_ROUTES,
   APP_SWITCHER_FEATURE_FLAGS,
   type AppSwitcherFeatureFlagKey,
@@ -45,7 +46,7 @@ import {
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
    * Product path roots that activate this app (menu-style). Matched against the
-   * brand/org-stripped pathname, e.g. `/studio`, `/publish`, `/automate`.
+   * brand/org-stripped pathname, e.g. `/studio`, `/publishing`, `/automation`.
    * Longest root wins; no match → nothing highlighted (settings, onboarding, …).
    */
   activePathRoots: readonly string[];
@@ -75,7 +76,7 @@ function createScopedAppRoute({
 
 /**
  * Flat ordered launcher (no section chrome). Order encodes product flow:
- * Operate tools → Create assets → Trends → Publish → Analytics.
+ * Operate tools → Create assets → Trends → Publishing → Analytics.
  */
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
@@ -88,7 +89,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: LayoutGrid,
         id: 'workspace',
         itemKey: 'workspace',
-        label: 'Workspace',
+        label: APP_DISPLAY_LABELS.workspace,
         route: createScopedAppRoute({
           brandPath: '/workspace',
           organizationPath: '/workspace/overview',
@@ -101,7 +102,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Terminal,
         id: 'agent',
         itemKey: 'agent',
-        label: 'Agent',
+        label: APP_DISPLAY_LABELS.agent,
         route: createScopedAppRoute({ brandPath: '/agent' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.agent,
       },
@@ -111,29 +112,29 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: MessageSquare,
         id: 'messages',
         itemKey: 'messages',
-        label: 'Messages',
+        label: APP_DISPLAY_LABELS.messages,
         route: createScopedAppRoute({ brandPath: '/messages' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.messages,
       },
       {
-        activePathRoots: ['/automate'],
-        description: 'Workflows, autopilot, and team ops.',
+        activePathRoots: ['/automation'],
+        description: 'Run workflows.',
         icon: Workflow,
-        id: 'automate',
-        itemKey: 'automate',
-        label: 'Automate',
+        id: 'automation',
+        itemKey: 'automation',
+        label: APP_DISPLAY_LABELS.automation,
         route: createScopedAppRoute({
-          brandPath: '/automate',
+          brandPath: '/automation',
         }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automate,
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automation,
       },
       {
         activePathRoots: ['/studio'],
-        description: 'Generate assets, storyboards, clips, and timeline edits.',
+        description: 'Create assets.',
         icon: LayoutGrid,
         id: 'studio',
         itemKey: 'studio',
-        label: 'Studio',
+        label: APP_DISPLAY_LABELS.studio,
         // Studio production tools require a brand. The org route hands one-off
         // generation to Agent while preserving a stable switcher destination.
         route: createScopedAppRoute({
@@ -148,7 +149,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: Layers,
         id: 'library',
         itemKey: 'library',
-        label: 'Library',
+        label: APP_DISPLAY_LABELS.library,
         route: createScopedAppRoute({
           brandPath: '/library',
           organizationPath: '/library',
@@ -156,24 +157,24 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
       {
-        activePathRoots: ['/discover'],
+        activePathRoots: ['/discovery'],
         description: 'Find winners.',
         icon: TrendingUp,
-        id: 'discover',
-        itemKey: 'discover',
-        label: 'Discover',
-        route: createScopedAppRoute({ brandPath: '/discover/overview' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discover,
+        id: 'discovery',
+        itemKey: 'discovery',
+        label: APP_DISPLAY_LABELS.discovery,
+        route: createScopedAppRoute({ brandPath: '/discovery/overview' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.discovery,
       },
       {
-        activePathRoots: ['/publish'],
+        activePathRoots: ['/publishing'],
         description: 'Drafts and posts.',
         icon: Send,
-        id: 'publish',
-        itemKey: 'publish',
-        label: 'Publish',
-        route: createScopedAppRoute({ brandPath: '/publish' }),
-        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publish,
+        id: 'publishing',
+        itemKey: 'publishing',
+        label: APP_DISPLAY_LABELS.publishing,
+        route: createScopedAppRoute({ brandPath: '/publishing' }),
+        visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publishing,
       },
       {
         activePathRoots: ['/analytics'],
@@ -181,7 +182,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: ChartNoAxesColumn,
         id: 'analytics',
         itemKey: 'analytics',
-        label: 'Analytics',
+        label: APP_DISPLAY_LABELS.analytics,
         route: createScopedAppRoute({ brandPath: '/analytics' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
       },
@@ -199,7 +200,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
       icon: ShieldCheck,
       id: 'admin',
       itemKey: 'admin',
-      label: 'Admin',
+      label: APP_DISPLAY_LABELS.admin,
       route: () => APP_ROUTES.ADMIN.OVERVIEW.DASHBOARD,
     },
   ],
@@ -209,7 +210,7 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
 const APP_SWITCHER_ICON_OVERRIDES: Partial<
   Record<string, LifecycleAppSwitcherItemConfig['icon']>
 > = {
-  automate: Workflow,
+  automation: Workflow,
   library: Briefcase,
   studio: Sparkles,
 };
@@ -266,8 +267,8 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.messages]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.messages,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.discover]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.discover,
+    [APP_SWITCHER_FEATURE_FLAGS.discovery]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.discovery,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.studio]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.studio,
@@ -275,14 +276,14 @@ function useAppSwitcherVisibility(): Record<
     [APP_SWITCHER_FEATURE_FLAGS.library]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.library,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.publish]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.publish,
+    [APP_SWITCHER_FEATURE_FLAGS.publishing]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.publishing,
     ),
     [APP_SWITCHER_FEATURE_FLAGS.analytics]: useFeatureFlag(
       APP_SWITCHER_FEATURE_FLAGS.analytics,
     ),
-    [APP_SWITCHER_FEATURE_FLAGS.automate]: useFeatureFlag(
-      APP_SWITCHER_FEATURE_FLAGS.automate,
+    [APP_SWITCHER_FEATURE_FLAGS.automation]: useFeatureFlag(
+      APP_SWITCHER_FEATURE_FLAGS.automation,
     ),
   };
 }
@@ -392,7 +393,7 @@ function AppSwitcherGridItem({
   href,
   navigationAnnouncement,
   onNavigateStart,
-  onPreviewChange,
+  onPreviewShow,
 }: {
   app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
@@ -400,7 +401,10 @@ function AppSwitcherGridItem({
   href: string;
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
-  onPreviewChange: (app: LifecycleAppSwitcherItemConfig | null) => void;
+  onPreviewShow: (
+    app: LifecycleAppSwitcherItemConfig,
+    target: HTMLElement,
+  ) => void;
 }) {
   const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
@@ -409,30 +413,31 @@ function AppSwitcherGridItem({
       <Link
         href={href}
         aria-current={isActive ? 'page' : undefined}
+        aria-describedby={`app-switcher-desc-${app.itemKey}`}
         aria-label={
           isLocked
             ? `${app.label} — locked. Generate your first asset to unlock.`
-            : undefined
+            : app.label
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
-        onFocus={() => onPreviewChange(app)}
-        onMouseEnter={() => onPreviewChange(app)}
+        onFocus={(event) => onPreviewShow(app, event.currentTarget)}
+        onMouseEnter={(event) => onPreviewShow(app, event.currentTarget)}
         className={cn(
-          'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
+          'group grid min-h-[4.375rem] min-w-0 grid-rows-[2rem_1.125rem] place-items-center gap-1.5 rounded-lg p-2 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
           'focus:text-inherit data-[highlighted]:text-inherit',
         )}
       >
         <span
           className={cn(
-            'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
+            'relative inline-flex size-8 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
             isActive
               ? 'bg-foreground text-background'
               : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
             isLocked && 'opacity-60',
           )}
         >
-          <Icon aria-hidden="true" className="size-[1.125rem]" />
+          <Icon aria-hidden="true" className="size-4" />
           {isLocked ? (
             <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
               <Lock aria-hidden="true" className="size-2.5" />
@@ -450,6 +455,9 @@ function AppSwitcherGridItem({
           )}
         >
           {app.label}
+        </span>
+        <span id={`app-switcher-desc-${app.itemKey}`} className="sr-only">
+          {app.description}
         </span>
       </Link>
     </DropdownMenuItem>
@@ -469,8 +477,11 @@ export function AppSwitcher({
 }: AppSwitcherProps) {
   const appSwitcherVisibility = useAppSwitcherVisibility();
   const preventTriggerAutoFocusRef = useRef(false);
+  const switcherPanelRef = useRef<HTMLDivElement>(null);
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
   const [previewAppKey, setPreviewAppKey] = useState<string | null>(null);
+  const [previewTop, setPreviewTop] = useState(0);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
     if (app.id === 'agent') {
@@ -525,6 +536,24 @@ export function AppSwitcher({
     setNavigationAnnouncement(announcement ?? 'Opening app.');
   };
 
+  const showPreview = (
+    app: LifecycleAppSwitcherItemConfig,
+    target: HTMLElement,
+  ) => {
+    const panel = switcherPanelRef.current;
+    if (panel) {
+      const panelRect = panel.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      setPreviewTop(targetRect.top - panelRect.top);
+    }
+    setPreviewAppKey(app.itemKey);
+    setIsPreviewVisible(true);
+  };
+
+  const hidePreview = () => {
+    setIsPreviewVisible(false);
+  };
+
   const sections = useMemo(() => {
     const availableSections = APP_SWITCHER_SECTIONS.map((section) => ({
       ...section,
@@ -549,13 +578,6 @@ export function AppSwitcher({
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
-  const previewRowIndex = previewApp
-    ? Math.floor(
-        apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
-      )
-    : 0;
-  // 44px header + 10px grid padding, then 72px rows separated by 4px.
-  const previewRowTop = 54 + previewRowIndex * 76;
   const PreviewIcon = previewApp
     ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
     : null;
@@ -574,7 +596,7 @@ export function AppSwitcher({
       modal={false}
       onOpenChange={(open) => {
         if (!open) {
-          setPreviewAppKey(null);
+          hidePreview();
         }
       }}
     >
@@ -609,10 +631,7 @@ export function AppSwitcher({
         align="end"
         sideOffset={8}
         collisionPadding={16}
-        className={cn(
-          'w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0 shadow-none sm:w-[19rem]',
-          previewApp && 'sm:w-[35rem]',
-        )}
+        className="w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0 shadow-none sm:w-[16.25rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -623,41 +642,42 @@ export function AppSwitcher({
         }}
       >
         <div
-          className={cn(
-            'relative grid max-h-[min(80vh,30rem)]',
-            previewApp && 'sm:grid-cols-[16rem_19rem]',
-          )}
+          ref={switcherPanelRef}
+          className="relative max-h-[min(80vh,30rem)] rounded-lg bg-secondary p-2 shadow-dropdown"
+          data-app-switcher-panel=""
         >
-          {previewApp ? (
-            <div className="relative hidden min-h-0 sm:block">
-              {PreviewIcon ? (
-                <div
-                  aria-label={`${previewApp.label}: ${previewApp.description}`}
-                  aria-live="polite"
-                  className="pointer-events-none absolute left-0 -right-px z-20 flex h-[4.5rem] items-center gap-2.5 rounded-l-md bg-secondary px-3 font-normal shadow-dropdown after:absolute after:inset-y-px after:-right-px after:w-1 after:bg-secondary"
-                  role="status"
-                  style={{ top: previewRowTop }}
-                >
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
-                    <PreviewIcon
-                      aria-hidden="true"
-                      className="size-[1.125rem]"
-                    />
+          <div
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute right-[calc(100%+0.5rem)] z-20 hidden w-60 origin-right rounded-lg bg-secondary p-2.5 shadow-dropdown sm:block',
+              'transition-[opacity,transform,top] duration-200 ease-out will-change-transform motion-reduce:transform-none motion-reduce:transition-none',
+              isPreviewVisible && previewApp
+                ? 'translate-x-0 scale-100 opacity-100'
+                : 'translate-x-3 scale-[0.96] opacity-0',
+            )}
+            data-app-switcher-preview=""
+            data-state={isPreviewVisible && previewApp ? 'open' : 'closed'}
+            style={{ top: previewTop }}
+          >
+            {previewApp && PreviewIcon ? (
+              <div className="flex items-start gap-2.5">
+                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
+                  <PreviewIcon aria-hidden="true" className="size-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-tight text-foreground">
+                    {previewApp.label}
                   </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-foreground">
-                      {previewApp.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-                      {previewApp.description}
-                    </span>
+                  <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                    {previewApp.description}
                   </span>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-          <div className="relative z-10 min-h-0 overflow-y-auto rounded-md bg-secondary shadow-dropdown">
-            <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="min-h-0 overflow-y-auto">
+            <div className="mb-2 flex items-center justify-between gap-3 px-1">
               <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
                 Apps
               </div>
@@ -667,15 +687,15 @@ export function AppSwitcher({
             </div>
 
             <div
-              className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
+              className="grid grid-cols-3 gap-1.5"
               role="group"
               aria-label="Apps"
               onBlurCapture={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setPreviewAppKey(null);
+                  hidePreview();
                 }
               }}
-              onMouseLeave={() => setPreviewAppKey(null)}
+              onMouseLeave={hidePreview}
             >
               {apps.map((app) => {
                 const navigation = resolveAppNavigation(app);
@@ -689,9 +709,7 @@ export function AppSwitcher({
                     href={navigation.href}
                     navigationAnnouncement={navigation.announcement}
                     onNavigateStart={handleNavigateStart}
-                    onPreviewChange={(preview) =>
-                      setPreviewAppKey(preview?.itemKey ?? null)
-                    }
+                    onPreviewShow={showPreview}
                   />
                 );
               })}

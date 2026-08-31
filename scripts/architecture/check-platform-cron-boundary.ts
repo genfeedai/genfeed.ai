@@ -131,12 +131,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
   },
   {
-    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
-    id: 'trends-warmup',
-    methodName: 'warmGlobalTrendDatasets',
-    reason: 'Platform global trend corpus warmup.',
-  },
-  {
     file: 'apps/server/files/src/cron/temp-file-cleanup.cron.ts',
     id: 'temp-file-cleanup',
     methodName: 'cleanupTempFiles',
@@ -211,12 +205,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'trends-global-refresh',
     methodName: 'refreshGlobalTrends',
     reason: 'Platform global trends corpus refresh.',
-  },
-  {
-    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
-    id: 'trends-corpus-backfill',
-    methodName: 'backfillGlobalTrendCorpus',
-    reason: 'Platform global trends corpus backfill.',
   },
 ];
 

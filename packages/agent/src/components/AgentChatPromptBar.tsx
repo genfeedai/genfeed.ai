@@ -182,7 +182,9 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        isTopAttached={!isReadOnly && hasRunningTasks}
+        // A failure notice is its own compact surface. Preserve the prompt's
+        // top radius so the two controls do not read as one fused card.
+        isTopAttached={!isReadOnly && hasRunningTasks && !error}
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={

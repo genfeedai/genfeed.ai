@@ -5,6 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock dependencies
 const mockRefreshSettings = vi.fn();
 const mockPatchSettings = vi.fn();
+const mockClearClientProtectedBootstrapCache = vi.hoisted(() => vi.fn());
+
+vi.mock(
+  '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap',
+  () => ({
+    clearClientProtectedBootstrapCache: mockClearClientProtectedBootstrapCache,
+  }),
+);
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -95,6 +103,19 @@ describe('useOrganization', () => {
       expect(mockRefreshSettings).toHaveBeenCalled();
     });
 
+    it('clears protected bootstrap cache before refreshing settings', async () => {
+      const { result } = renderHook(() => useOrganization());
+
+      await act(async () => {
+        await result.current.updateSettings('defaultLocale', 'en');
+      });
+
+      expect(mockClearClientProtectedBootstrapCache).toHaveBeenCalledOnce();
+      expect(
+        mockClearClientProtectedBootstrapCache.mock.invocationCallOrder[0],
+      ).toBeLessThan(mockRefreshSettings.mock.invocationCallOrder[0]);
+    });
+
     it('updates string settings', async () => {
       const { result } = renderHook(() => useOrganization());
 
@@ -153,6 +174,7 @@ describe('useOrganization', () => {
       }
 
       expect(mockRefreshSettings).not.toHaveBeenCalled();
+      expect(mockClearClientProtectedBootstrapCache).not.toHaveBeenCalled();
     });
   });
 

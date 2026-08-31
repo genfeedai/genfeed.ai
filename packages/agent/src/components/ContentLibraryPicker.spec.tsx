@@ -40,7 +40,7 @@ describe('ContentLibraryPicker', () => {
   // Regression: when the mentions fetch fails (or resolves with a non-array
   // body), the picker must fall back to its empty state instead of throwing
   // `Cannot read properties of undefined (reading 'length')` — that render
-  // crash tripped the route error boundary and blanked /automate/*.
+  // crash tripped the route error boundary and blanked /automation/*.
   it('renders the empty state when items is undefined at runtime', () => {
     render(
       <ContentLibraryPicker

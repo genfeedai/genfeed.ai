@@ -106,6 +106,17 @@ export function AgentChatTimeline({
     : null;
   const isTerminalFailedRunWithoutAssistant =
     Boolean(terminalFailedWorkGroup) && !isGenerating && !isStreamingActive;
+  const retryableUserEntry =
+    isTerminalFailedRunWithoutAssistant && !hasDockedGenerationCard
+      ? [...timeline]
+          .slice(0, -1)
+          .reverse()
+          .find((entry) => entry.kind === 'user-message')
+      : null;
+  const retryableUserMessageId =
+    retryableUserEntry?.kind === 'user-message'
+      ? retryableUserEntry.message.id
+      : null;
 
   const renderTimelineEntry = (
     entry: TimelineEntry,
@@ -121,6 +132,10 @@ export function AgentChatTimeline({
             message={entry.message}
             messageAnchorId={`agent-message-${entry.message.id}`}
             isHighlighted={highlightedMessageId === entry.message.id}
+            isRetryableUserPrompt={
+              entry.kind === 'user-message' &&
+              entry.message.id === retryableUserMessageId
+            }
             isBusy={isBusy}
             isReadOnly={isReadOnly}
             apiService={apiService}

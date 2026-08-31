@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/discover/overview',
+  usePathname: () => '/discovery/overview',
   useRouter: () => ({
     prefetch: vi.fn(),
     push: vi.fn(),
@@ -36,43 +36,43 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SocialsNavigation', () => {
-  it('renders platform menu items only (Following is a Discover sidebar peer)', () => {
+  it('renders platform menu items only (Following is a Discovery sidebar peer)', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/discover/overview',
+      '/discovery/overview',
     );
     expect(
       screen.queryByRole('link', { name: 'Following' }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'href',
-      '/discover/twitter',
+      '/discovery/twitter',
     );
     expect(screen.getByRole('link', { name: 'Instagram' })).toHaveAttribute(
       'href',
-      '/discover/instagram',
+      '/discovery/instagram',
     );
     expect(screen.getByRole('link', { name: 'YouTube' })).toHaveAttribute(
       'href',
-      '/discover/youtube',
+      '/discovery/youtube',
     );
     expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
       'href',
-      '/discover/tiktok',
+      '/discovery/tiktok',
     );
     expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
       'href',
-      '/discover/linkedin',
+      '/discovery/linkedin',
     );
     expect(screen.getByRole('link', { name: 'Reddit' })).toHaveAttribute(
       'href',
-      '/discover/reddit',
+      '/discovery/reddit',
     );
     expect(screen.getByRole('link', { name: 'Pinterest' })).toHaveAttribute(
       'href',
-      '/discover/pinterest',
+      '/discovery/pinterest',
     );
   });
 

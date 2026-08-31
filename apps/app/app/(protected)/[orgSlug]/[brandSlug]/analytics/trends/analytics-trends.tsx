@@ -20,12 +20,14 @@ export default function AnalyticsTrends() {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
     creatorLeaderboard,
+    corpusHealth,
     formattedLastSyncedAt,
     handleHashtagClick,
     handleRemixClose,
     handleSoundClick,
     handleVideoClick,
     hashtagPlatform,
+    isCorpusHealthUnavailable,
     isLoadingHashtags,
     isLoadingSounds,
     isLoadingTrends,
@@ -47,7 +49,9 @@ export default function AnalyticsTrends() {
   return (
     <div className="space-y-8 pb-12">
       <TrendsPageHeader
+        corpusHealth={corpusHealth}
         formattedLastSyncedAt={formattedLastSyncedAt}
+        isCorpusHealthUnavailable={isCorpusHealthUnavailable}
         videoCount={viralVideos.length}
         platformCount={TRENDS_PLATFORMS.length}
         leadingPlatform={leadingPlatform}

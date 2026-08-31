@@ -113,7 +113,7 @@ export default function PostDetailPostList({
   getPostsService,
   notificationsService,
 }: PostDetailPostListProps) {
-  const isEditable = scope === PageScope.PUBLISHER;
+  const isEditable = scope === PageScope.PUBLISHING;
   const allPosts = [post, ...sortedChildren];
   const platform =
     (post.platform as CredentialPlatform) || CredentialPlatform.TWITTER;

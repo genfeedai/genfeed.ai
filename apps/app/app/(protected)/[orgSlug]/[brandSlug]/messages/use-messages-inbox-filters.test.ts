@@ -15,12 +15,9 @@ describe('useMessagesInboxFilters', () => {
 
     expect(result.current.brandFilter).toBe('brand-1');
     expect(result.current.inboxView).toBe('inbox');
-    expect(result.current.conversationType).toBe(
-      SocialConversationType.COMMENT,
-    );
+    expect(result.current.conversationType).toBe('all');
     expect(result.current.query).toEqual({
       brandId: 'brand-1',
-      conversationType: SocialConversationType.COMMENT,
       limit: 50,
       page: 1,
       status: 'open',
@@ -42,7 +39,6 @@ describe('useMessagesInboxFilters', () => {
     expect(result.current.inboxView).toBe('review');
     expect(result.current.query).toEqual({
       allBrands: true,
-      conversationType: SocialConversationType.COMMENT,
       limit: 50,
       needsReview: true,
       page: 1,

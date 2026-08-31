@@ -80,7 +80,7 @@ type MockTableProps = {
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
-  usePathname: () => '/genfeed-ai/paperclip/publish',
+  usePathname: () => '/genfeed-ai/paperclip/publishing',
   useRouter: () => ({
     push: pushMock,
     replace: replaceMock,
@@ -253,7 +253,7 @@ describe('PostsList', () => {
   it('registers one header toolbar without a docked product prompt bar', async () => {
     render(
       <PostsList
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
         platform="all"
         status={PostStatus.DRAFT}
       />,
@@ -280,7 +280,7 @@ describe('PostsList', () => {
     [PostStatus.PROCESSING, 'Publishing'],
   ] as const)('labels the %s publisher view as %s', (status, heading) => {
     render(
-      <PostsList scope={PageScope.PUBLISHER} platform="all" status={status} />,
+      <PostsList scope={PageScope.PUBLISHING} platform="all" status={status} />,
     );
 
     expect(screen.getByRole('heading', { name: heading })).toBeVisible();
@@ -305,7 +305,7 @@ describe('PostsList', () => {
   });
 
   it('defaults the publisher list to the not-posted view when no status is given', () => {
-    render(<PostsList scope={PageScope.PUBLISHER} platform="all" />);
+    render(<PostsList scope={PageScope.PUBLISHING} platform="all" />);
 
     expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
   });
@@ -315,7 +315,7 @@ describe('PostsList', () => {
 
     render(
       <PostsList
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
         platform="all"
         status={PostStatus.DRAFT}
       />,
@@ -326,7 +326,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit grid card/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+      '/genfeed-ai/paperclip/publishing/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing',
     );
   });
 

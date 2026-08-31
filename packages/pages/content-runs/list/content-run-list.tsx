@@ -106,7 +106,7 @@ export default function ContentRunListPage() {
       <SectionTopbar
         icon={CirclePlay}
         title="Content Runs"
-        subtitle="Briefs handed off from Discover, tracked through remix, publish, and analytics."
+        subtitle="Briefs handed off from Discovery, tracked through remix, publish, and analytics."
         actions={
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="min-w-36">
@@ -164,7 +164,7 @@ export default function ContentRunListPage() {
                     <ContentRunRow
                       key={getRunId(run)}
                       detailHref={href(
-                        `${APP_ROUTES.AUTOMATE.CONTENT_RUNS}/${getRunId(run)}`,
+                        `${APP_ROUTES.AUTOMATION.CONTENT_RUNS}/${getRunId(run)}`,
                       )}
                       run={run}
                     />
@@ -186,11 +186,11 @@ export default function ContentRunListPage() {
                   <Button
                     className="mt-5"
                     asChild
-                    label={translate('goToDiscover')}
+                    label={translate('goToDiscovery')}
                     variant={ButtonVariant.SECONDARY}
                   >
-                    <Link href={href(APP_ROUTES.DISCOVER.ROOT)}>
-                      {translate('goToDiscover')}
+                    <Link href={href(APP_ROUTES.DISCOVERY.ROOT)}>
+                      {translate('goToDiscovery')}
                     </Link>
                   </Button>
                 </div>

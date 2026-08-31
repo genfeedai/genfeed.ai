@@ -18,6 +18,14 @@ export interface PreflightCheck {
 
 type FeatureKey = 'studio' | 'analytics' | 'trends' | 'marketplace' | 'publish';
 
+type PreflightEnvKey =
+  | 'AWS_ACCESS_KEY_ID'
+  | 'AWS_S3_BUCKET'
+  | 'DATABASE_URL'
+  | 'INSTAGRAM_APP_ID'
+  | 'INSTAGRAM_APP_SECRET'
+  | 'OPENAI_API_KEY';
+
 const FEATURE_REQUIREMENTS: Record<FeatureKey, string[]> = {
   analytics: ['database'],
   marketplace: ['database', 'storage'],
@@ -26,15 +34,10 @@ const FEATURE_REQUIREMENTS: Record<FeatureKey, string[]> = {
   trends: ['database'],
 };
 
-/**
- * Maps service names to the env config keys that must be present.
- * Uses process.env as a fallback since the app's ConfigService validates
- * and loads .env files but the validated config object uses typed keys,
- * not raw env var names. For preflight we just check presence.
- */
-const ENV_CHECKS: Record<string, string[]> = {
+/** Maps service names to the validated config keys that must be present. */
+const ENV_CHECKS: Record<string, PreflightEnvKey[]> = {
   database: ['DATABASE_URL'],
-  instagram: ['INSTAGRAM_CLIENT_ID', 'INSTAGRAM_CLIENT_SECRET'],
+  instagram: ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET'],
   openai: ['OPENAI_API_KEY'],
   storage: ['AWS_S3_BUCKET', 'AWS_ACCESS_KEY_ID'],
 };
@@ -44,7 +47,7 @@ export class PreflightService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly config: ConfigService,
+    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -69,7 +72,9 @@ export class PreflightService {
     const start = Date.now();
     try {
       const requiredEnvs = ENV_CHECKS[service] ?? [];
-      const missing = requiredEnvs.filter((env) => !process.env[env]);
+      const missing = requiredEnvs.filter(
+        (env) => !this.configService.get(env),
+      );
       if (missing.length > 0) {
         return {
           latencyMs: Date.now() - start,

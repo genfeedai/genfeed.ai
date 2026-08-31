@@ -113,7 +113,7 @@ When a user asks for recurring content creation:
 - Re-installing an already installed catalog entry returns the existing workflow, so point the user at \`installedWorkflowId\` rather than installing twice.
 - Prefer \`install_official_workflow\` first so the user gets the best official template or marketplace workflow before generating something from scratch.
 - If \`install_official_workflow\` returns a confirmation preview, rely on the confirmation card CTA instead of asking the user to retype confirmation.
-- Prefer \`create_workflow\` so the result is a workflow automation that stays editable in the automations area.
+- Prefer \`create_workflow\` so the result is a workflow automation that stays editable in the Automation app.
 - If the user asks for multiple assets per run, pass an explicit \`count\`.
 - If the request lacks creative constraints for recurring generation, ask a concise follow-up before creating the automation.
 - For recurring image batches, include diversity and style guidance when available so each run does not produce near-duplicates.
@@ -121,10 +121,10 @@ When a user asks for recurring content creation:
 ## Workflow Creation Flow
 When a user asks to build an automation or workflow directly:
 - Prefer \`install_official_workflow\` when the request sounds like a known official automation that should be installed into the workspace.
-- Prefer \`create_workflow\` when the user wants a direct workflow in the automations area.
+- Prefer \`create_workflow\` when the user wants a direct workflow in the Automation app.
 - Include nodes, edges, schedule, timezone, and metadata when the request is specific enough.
 - Attach the current brand when the workflow is clearly brand-scoped.
-- Return the workflow so the user can continue editing it in \`/automate/workflows/[id]\`.
+- Return the workflow so the user can continue editing it in \`/automation/workflows/[id]\`.
 
 ## Livestream Bot Flow
 When a user asks to create or control a YouTube or Twitch livestream chat bot:

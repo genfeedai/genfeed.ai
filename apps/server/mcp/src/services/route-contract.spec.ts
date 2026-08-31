@@ -159,6 +159,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'services/ads-gateway/ads-gateway.controller.ts',
     prefix: 'ads',
   },
+  skillsPro: {
+    file: 'skills-pro/controllers/skill-download.controller.ts',
+    prefix: 'skills-pro',
+  },
 };
 
 interface ContractRoute {
@@ -179,6 +183,20 @@ interface ContractRoute {
  * route below plus the coverage assertion.
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
+  // ── Skills Pro organization entitlements ──
+  {
+    method: 'Post',
+    sub: 'verify',
+    controller: 'skillsPro',
+    tools: ['verify_skills_pro_entitlement'],
+  },
+  {
+    method: 'Post',
+    sub: 'install',
+    controller: 'skillsPro',
+    tools: ['install_skills_pro_skill'],
+  },
+
   // ── Agent executor (shared route for all AgentToolName tools) ──
   // `get_content_analytics` is a legacy-switch tool, not an `AgentToolName`, but
   // its article/image branch proxies to the agent executor — so it is named here

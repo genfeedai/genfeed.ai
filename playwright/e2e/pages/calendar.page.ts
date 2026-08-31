@@ -53,10 +53,12 @@ export class CalendarPage {
     );
 
     // Posts calendar is canonical. Articles are a type-filtered view of the
-    // unified Publish content library.
-    this.postsTab = page.locator(`a[href$="${APP_ROUTES.PUBLISH.CALENDAR}"]`);
+    // unified Publishing content library.
+    this.postsTab = page.locator(
+      `a[href$="${APP_ROUTES.PUBLISHING.CALENDAR}"]`,
+    );
     this.articlesTab = page.locator(
-      `a[href*="${APP_ROUTES.PUBLISH.POSTS}"][href*="type=article"]`,
+      `a[href*="${APP_ROUTES.PUBLISHING.POSTS}"][href*="type=article"]`,
     );
 
     // Calendar grid elements
@@ -107,7 +109,9 @@ export class CalendarPage {
     );
 
     // Filter controls
-    this.listViewLink = page.locator(`a[href="${APP_ROUTES.PUBLISH.ROOT}"]`);
+    this.listViewLink = page.locator(
+      `a[href$="${APP_ROUTES.PUBLISHING.POSTS}"]`,
+    );
 
     // Post modal
     this.postModal = page.locator('[role="dialog"]');
@@ -124,7 +128,7 @@ export class CalendarPage {
   // ── Navigation ──────────────────────────────────────────
 
   async gotoPosts(): Promise<void> {
-    await this.page.goto(APP_ROUTES.PUBLISH.CALENDAR);
+    await this.page.goto(APP_ROUTES.PUBLISHING.CALENDAR);
     await this.waitForPageLoad();
   }
 
@@ -153,7 +157,7 @@ export class CalendarPage {
     if (isVisible) {
       await this.postsTab.first().click();
     } else {
-      await this.page.goto(APP_ROUTES.PUBLISH.CALENDAR);
+      await this.page.goto(APP_ROUTES.PUBLISHING.CALENDAR);
     }
     await this.waitForPageLoad();
   }
@@ -166,7 +170,7 @@ export class CalendarPage {
     if (isVisible) {
       await this.articlesTab.first().click();
     } else {
-      await this.page.goto(`${APP_ROUTES.PUBLISH.POSTS}?type=article`);
+      await this.page.goto(`${APP_ROUTES.PUBLISHING.POSTS}?type=article`);
     }
     await this.waitForPageLoad();
   }
@@ -245,7 +249,7 @@ export class CalendarPage {
   }
 
   async assertPostsTabActive(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/publish\/calendar/);
+    await expect(this.page).toHaveURL(/\/publishing\/calendar/);
   }
 
   async assertArticlesTabActive(): Promise<void> {

@@ -77,7 +77,7 @@ export function ChartContainer({
       <div
         data-chart={chartId}
         className={cn(
-          'rounded-xl border border-border bg-secondary p-4 text-foreground shadow-dropdown',
+          'rounded-xl bg-secondary p-4 text-foreground shadow-dropdown',
           className,
         )}
         style={chartStyle}
@@ -163,7 +163,7 @@ export function ChartTooltipContent({
   return (
     <div
       className={cn(
-        'min-w-[180px] rounded-lg border border-border bg-elevated px-3 py-2 text-xs text-foreground shadow-dropdown',
+        'min-w-[180px] rounded-lg bg-elevated px-3 py-2 text-xs text-foreground shadow-dropdown',
         className,
       )}
       {...props}

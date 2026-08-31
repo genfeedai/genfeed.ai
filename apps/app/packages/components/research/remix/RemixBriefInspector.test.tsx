@@ -68,8 +68,8 @@ const run: BrandRemixRunView = {
   version: 1,
 };
 
-vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useDiscoverRemix: () => ({
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useDiscoveryRemix: () => ({
     close: mocks.close,
     confirm: mocks.confirm,
     error: null,

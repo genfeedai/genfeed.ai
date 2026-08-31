@@ -76,7 +76,7 @@ test.describe('Calendar — deep interactions', () => {
     const calendar = new CalendarPage(authenticatedPage);
 
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISH.CALENDAR);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
 
     await calendar.goToNextPeriod().catch(() => {});
     await calendar.goToPreviousPeriod().catch(() => {});
@@ -93,7 +93,7 @@ test.describe('Calendar — deep interactions', () => {
     authenticatedPage,
   }) => {
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISH.CALENDAR);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
 
     // Tabs render as links/icons in the calendar header; best-effort toggle.
     await tryClick(authenticatedPage, 'a:has-text("Articles")');
@@ -112,7 +112,7 @@ test.describe('Calendar — deep interactions', () => {
     const calendar = new CalendarPage(authenticatedPage);
 
     await mockCalendarPosts(authenticatedPage, buildScheduledPosts());
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISH.CALENDAR);
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
 
     const eventCount = await calendar.getEventCount().catch(() => 0);
     if (eventCount > 0) {

@@ -186,7 +186,6 @@ export function useAppLayout({
         isCollapsed?: boolean;
         mobileSidebarWidth?: number;
         onClose?: (...args: unknown[]) => void;
-        onToggleCollapse?: () => void;
         sidebarWidth?: number;
       }>;
       const originalOnClose = element.props?.onClose;
@@ -211,18 +210,11 @@ export function useAppLayout({
             (originalOnClose as (...innerArgs: unknown[]) => void)(...args);
           }
         },
-        onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
     // Intentionally omit sidebarExpandedWidth: desktop rail width is a CSS var
     // updated during drag without re-cloning the menu tree every frame.
-    [
-      menuComponent,
-      handleToggleDesktopSidebar,
-      isDesktopCollapsed,
-      currentApp,
-      sidebarExpandedWidth,
-    ],
+    [menuComponent, isDesktopCollapsed, currentApp, sidebarExpandedWidth],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -234,9 +226,9 @@ export function useAppLayout({
       brandSlug,
       currentApp,
       isMenuOpen: isSidebarOpen,
-      isSidebarCollapsed: isDesktopCollapsed,
+      isSidebarCollapsed: menuComponent ? isDesktopCollapsed : undefined,
       onMenuToggle: handleToggleSidebar,
-      onSidebarToggle: handleToggleDesktopSidebar,
+      onSidebarToggle: menuComponent ? handleToggleDesktopSidebar : undefined,
       orgSlug,
     };
   }, [
@@ -246,6 +238,7 @@ export function useAppLayout({
     handleToggleDesktopSidebar,
     isDesktopCollapsed,
     isSidebarOpen,
+    menuComponent,
     orgSlug,
     topbarComponent,
   ]);

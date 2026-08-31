@@ -2,7 +2,7 @@
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { usePathname } from 'next/navigation';
-import { Suspense, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
 type UserAgentDataCapable = Navigator & {
   userAgentData?: { platform?: string };
@@ -70,9 +70,5 @@ function DesktopDragStripContent() {
 }
 
 export default function DesktopDragStrip() {
-  return (
-    <Suspense fallback={null}>
-      <DesktopDragStripContent />
-    </Suspense>
-  );
+  return <DesktopDragStripContent />;
 }

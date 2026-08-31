@@ -251,7 +251,7 @@ export class PaidCreativeResearchIngestionService {
       researchSource: provider,
       scope: 'organization',
       /**
-       * The same `paid_creative_reference` contract Discover applies to trend
+       * The same `paid_creative_reference` contract Discovery applies to trend
        * sources, carried on the snapshot so provider, advertiser, and freshness
        * read identically whichever surface loads the row.
        */

@@ -1,6 +1,6 @@
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import Card from '@ui/card/Card';
@@ -44,7 +44,7 @@ export default function IngredientPosts({
       {/* Back button */}
       <div className="mb-6">
         <Button asChild variant={ButtonVariant.GHOST}>
-          <Link href={getPublisherPostsHref()}>
+          <Link href={getPublishingPostsHref()}>
             <ArrowLeft />
             Back to ingredients
           </Link>

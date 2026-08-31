@@ -175,7 +175,7 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByText('Failed')).toBeVisible();
     expect(screen.getByText('View All')).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automate/runs',
+      '/demo/FUDNEWS/automation/runs',
     );
 
     // Regression (#1229): execution cards must use the shared Card tokens,
@@ -234,7 +234,7 @@ describe('workspace dashboard sections', () => {
     // the live balance, so repeating it here read as a duplicate meter.
     expect(screen.queryByText('Credits Used')).toBeNull();
     expect(screen.queryByText('12.35')).toBeNull();
-    // The dense chart grid moved to automate/runs — see RunChartsGrid.
+    // The dense chart grid moved to automation/runs — see RunChartsGrid.
     expect(screen.queryByText('Run Activity')).toBeNull();
   });
 
@@ -333,7 +333,7 @@ describe('workspace dashboard sections', () => {
         }}
         executions={[]}
         stats={makeStats()}
-        trendsHref="/org/brand/discover/overview"
+        trendsHref="/org/brand/discovery/overview"
         trendItems={[]}
         // One task is enough signal to get past the first-run block below.
         workspaceTasks={[makeTask() as never]}
@@ -343,7 +343,7 @@ describe('workspace dashboard sections', () => {
     const trendsPanel = screen.getByTestId('overview-trends-panel');
     expect(trendsPanel.querySelector('a')).toHaveAttribute(
       'href',
-      '/org/brand/discover/overview',
+      '/org/brand/discovery/overview',
     );
   });
 
@@ -361,7 +361,7 @@ describe('workspace dashboard sections', () => {
         }}
         executions={[]}
         stats={makeStats()}
-        trendsHref="/org/brand/discover/overview"
+        trendsHref="/org/brand/discovery/overview"
         trendItems={[]}
         workspaceTasks={[]}
       />,

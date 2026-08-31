@@ -263,10 +263,19 @@ body.gf-studio-app {
     inset 0 0 0 1px hsl(var(--border)),
     var(--shadow-md);
 }
+/* Surfaces that already paint a semantic or structural CSS border need only
+   the ambient lift. Pairing their border with an inset-hairline elevation
+   token creates a visibly doubled edge. */
+@utility shadow-ambient-md {
+  box-shadow: var(--shadow-md);
+}
 @utility shadow-dialog {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border)),
     var(--shadow-lg);
+}
+@utility shadow-ambient-lg {
+  box-shadow: var(--shadow-lg);
 }
 /* Tooltips sit above everything and are never clipped, so they can carry the
    full Geist stack (hairline + tight + ambient) as one token. */

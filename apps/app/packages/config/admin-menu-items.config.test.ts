@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_LOGO_HREF, ADMIN_MENU_ITEMS } from './admin-menu-items.config';
+import { ADMIN_MENU_ITEMS } from './admin-menu-items.config';
 
 describe('ADMIN_MENU_ITEMS', () => {
   it('exposes the platform admin surface with dashboard as complete-path home', () => {
-    expect(ADMIN_LOGO_HREF).toBe('/admin/overview/dashboard');
     expect(ADMIN_MENU_ITEMS[0]?.href).toBe('/admin/overview/dashboard');
     expect(
       ADMIN_MENU_ITEMS.every((item) => item.href.startsWith('/admin')),

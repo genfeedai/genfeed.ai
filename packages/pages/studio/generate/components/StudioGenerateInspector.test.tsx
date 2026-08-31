@@ -106,7 +106,7 @@ describe('StudioGenerateInspector', () => {
     await waitFor(() =>
       expect(
         screen.getByRole('link', { name: 'Launch carousel' }),
-      ).toHaveAttribute('href', '/acme/northstar/publish/posts/post-1'),
+      ).toHaveAttribute('href', '/acme/northstar/publishing/posts/post-1'),
     );
   });
 

@@ -27,7 +27,7 @@ describe('useContentMentions', () => {
     expect(result.current.mentions).toEqual(mentions);
   });
 
-  // Regression for the /automate/* route blank: a mentions endpoint answering
+  // Regression for the /automation/* route blank: a mentions endpoint answering
   // with a non-mentions JSON shape must leave consumers with an empty array,
   // never undefined — ContentLibraryPicker crashed on `.length` otherwise.
   it('keeps mentions as an empty array when the effect fails to decode', async () => {

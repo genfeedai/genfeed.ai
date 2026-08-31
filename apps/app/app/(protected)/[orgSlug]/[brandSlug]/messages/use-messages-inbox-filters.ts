@@ -1,6 +1,5 @@
 'use client';
 
-import { SocialConversationType } from '@genfeedai/enums';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
@@ -54,7 +53,7 @@ function createInitialFiltersState(
     brandFilterOverride: null,
     brandFilterRouteKey: brandSlug,
     conversationPage: 1,
-    conversationType: SocialConversationType.COMMENT,
+    conversationType: 'all',
     credentialId: '',
     needsReviewOnly: false,
     platform: 'all',
@@ -222,11 +221,11 @@ export function useMessagesInboxFilters({
     const isOrgWideBrandFilter = brandFilter === ALL_BRANDS_FILTER;
 
     return {
-      // Comments and DMs are separate destinations, never a merged stream, so
-      // the surface is always on the wire.
-      conversationType: state.conversationType,
       limit: 50,
       page: state.conversationPage,
+      ...(state.conversationType !== 'all'
+        ? { conversationType: state.conversationType }
+        : {}),
       // Org-scoped Messages must not inherit a stale session brand.
       ...(isOrgWideBrandFilter
         ? { allBrands: true }

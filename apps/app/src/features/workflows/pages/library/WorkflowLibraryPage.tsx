@@ -105,13 +105,13 @@ export default function WorkflowLibraryPage() {
       right={
         <>
           <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
-            <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_TEMPLATES)}>
+            <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)}>
               <Copy className="size-4" />
               {translate('library.templates')}
             </Link>
           </Button>
           <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
-            <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW)}>
+            <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
               <Plus className="size-4" />
               {translate('library.newWorkflow')}
             </Link>
@@ -143,7 +143,7 @@ export default function WorkflowLibraryPage() {
         </span>{' '}
         {translate('library.info')}{' '}
         <Link
-          href={href(APP_ROUTES.AUTOMATE.AUTOPILOT)}
+          href={href(APP_ROUTES.AUTOMATION.AUTOPILOT)}
           className="underline underline-offset-2"
         >
           {translate('library.autopilot')}
@@ -211,7 +211,7 @@ export default function WorkflowLibraryPage() {
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
-            <Link href={href(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW)}>
+            <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_NEW)}>
               <div className="flex flex-col items-center gap-3 py-8">
                 <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
                   <Plus className="size-7 text-foreground/50" />
@@ -280,7 +280,7 @@ export default function WorkflowLibraryPage() {
                       onOpen={() =>
                         push(
                           href(
-                            `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
+                            `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
                           ),
                         )
                       }
@@ -296,7 +296,9 @@ export default function WorkflowLibraryPage() {
                 bodyClassName="h-full justify-between"
               >
                 <Link
-                  href={href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`)}
+                  href={href(
+                    `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`,
+                  )}
                   aria-label={`Open ${workflow.label}`}
                   className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 />

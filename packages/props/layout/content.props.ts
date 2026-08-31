@@ -7,5 +7,5 @@ export interface ContentProps {
     | PageScope.BRAND
     | PageScope.ANALYTICS
     | PageScope.USER
-    | PageScope.PUBLISHER;
+    | PageScope.PUBLISHING;
 }

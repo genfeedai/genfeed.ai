@@ -1,11 +1,11 @@
 import {
-  PUBLISH_POSTS_PUBLICATION_STATES,
-  type PublishPostsPublicationState,
+  PUBLISHING_POSTS_PUBLICATION_STATES,
+  type PublishingPostsPublicationState,
 } from '@genfeedai/constants';
 import { type PageScope, PostStatus } from '@genfeedai/enums';
 
-export type PostsPublicationState = PublishPostsPublicationState;
-export type PublisherPostsView =
+export type PostsPublicationState = PublishingPostsPublicationState;
+export type PublishingPostsView =
   | PostsPublicationState
   | PostStatus.FAILED
   | PostStatus.PENDING
@@ -14,7 +14,7 @@ export type PublisherPostsView =
 export function parsePostsPublicationState(
   value?: string | null,
 ): PostsPublicationState | undefined {
-  return PUBLISH_POSTS_PUBLICATION_STATES.includes(
+  return PUBLISHING_POSTS_PUBLICATION_STATES.includes(
     value as PostsPublicationState,
   )
     ? (value as PostsPublicationState)

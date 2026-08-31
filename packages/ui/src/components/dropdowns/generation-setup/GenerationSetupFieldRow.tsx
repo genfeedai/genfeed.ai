@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { GenerationSetupFieldRowProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
-import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
+import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import { Button } from '@ui/primitives/button';
 import { Undo2 } from 'lucide-react';
 
@@ -26,21 +26,27 @@ export default function GenerationSetupFieldRow({
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <GenerationSetupProvenanceDot reason={reason} source={source} />
+        <GenerationSetupFieldIcon
+          fieldKey={fieldKey}
+          reason={reason}
+          source={source}
+        />
         {label}
       </span>
       <div className="flex items-center gap-1">
         <div className="w-44 shrink-0">{children}</div>
-        {canReset ? (
-          <Button
-            ariaLabel={`Reset ${label} to agent`}
-            className="size-6 p-0 text-muted-foreground [&_svg]:size-3"
-            icon={<Undo2 />}
-            onClick={() => onReset?.(fieldKey)}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-          />
-        ) : null}
+        <span className="flex size-5 shrink-0 items-center justify-center">
+          {canReset ? (
+            <Button
+              ariaLabel={`Reset ${label} to agent`}
+              className="size-5 p-0 text-muted-foreground [&_svg]:size-3"
+              icon={<Undo2 />}
+              onClick={() => onReset?.(fieldKey)}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+            />
+          ) : null}
+        </span>
       </div>
     </div>
   );

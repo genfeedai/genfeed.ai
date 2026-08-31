@@ -77,11 +77,11 @@ publishing waits for a human. What each surface exposes and why is in
 
 *Mocked Playwright capture of the agent conversation shell. Fixture data, not a live generation.*
 
-![Publish desk in a mocked Community workspace](docs/assets/readme/publish-desk.png)
+![Publishing desk in a mocked Community workspace](docs/assets/readme/publishing-desk.png)
 
 *Mocked Playwright capture of the Publish desk.*
 
-![Visual workflow authoring in a mocked Community workspace](docs/assets/readme/automate-workflows.png)
+![Visual workflow authoring in a mocked Community workspace](docs/assets/readme/automation-workflows.png)
 
 *Mocked Playwright capture of Automate workflow authoring.*
 

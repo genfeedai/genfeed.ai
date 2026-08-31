@@ -1,6 +1,3 @@
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import {
   formatPlatformLabel,
   isTerminalReviewDecision,
@@ -8,6 +5,9 @@ import {
 } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 
 /**
  * Review-queue tools (`list_review_queue`, `batch_approve_reject`).
@@ -142,7 +142,7 @@ export class AgentReviewToolHandler {
           id: `review-queue-${String(batch.id)}`,
           outcomeBullets,
           primaryCta: {
-            href: `/publish/review?batch=${String(batch.id)}&filter=ready`,
+            href: `/publishing/review?batch=${String(batch.id)}&filter=ready`,
             label: 'Open reviews',
           },
           status: 'completed',
@@ -224,7 +224,7 @@ export class AgentReviewToolHandler {
                 ? ['Queue is empty']
                 : [`${readyCount} ready for review`],
           primaryCta: {
-            href: '/publish/review?filter=ready',
+            href: '/publishing/review?filter=ready',
             label: 'Open reviews',
           },
           status: 'completed',
@@ -270,7 +270,7 @@ export class AgentReviewToolHandler {
           {
             id: `review-queue-approval-${batchId}`,
             primaryCta: {
-              href: `/publish/review?batch=${batchId}&filter=ready`,
+              href: `/publishing/review?batch=${batchId}&filter=ready`,
               label: 'Review exact versions',
             },
             status: 'pending',

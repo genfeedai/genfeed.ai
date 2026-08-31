@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -50,12 +56,6 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
   }),
 }));
 
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: ({ message }: { message: string }) => (
-    <div data-testid="page-loading-state">{message}</div>
-  ),
-}));
-
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({
@@ -91,7 +91,7 @@ describe('ProtectedRootResolver', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('opens the returning conversation bootstrap when org and brand are selected', async () => {
+  it('opens workspace overview when a returning user has an active brand', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
@@ -103,11 +103,13 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
     });
   });
 
-  it('opens the returning conversation bootstrap from the first org brand', async () => {
+  it('opens workspace overview from the first brand in the active organization', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
@@ -120,7 +122,9 @@ describe('ProtectedRootResolver', () => {
     render(<ProtectedRootResolver />);
 
     await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
     });
   });
 
@@ -142,7 +146,7 @@ describe('ProtectedRootResolver', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/~/agent?taskId=task-42&taskSource=workspace',
+        '/acme/moonrise/workspace/overview?taskId=task-42&taskSource=workspace',
       );
     });
   });
@@ -340,7 +344,7 @@ describe('ProtectedRootResolver', () => {
       screen.queryByRole('link', { name: 'Continue setup' }),
     ).not.toBeInTheDocument();
 
-    screen.getByRole('button', { name: 'Retry workspace' }).click();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry workspace' }));
 
     expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
   });

@@ -179,7 +179,7 @@ export default function StudioGenerateInspector({
                 <li key={post.id}>
                   <Link
                     className="block truncate text-xs text-foreground hover:underline"
-                    href={href(`${APP_ROUTES.PUBLISH.POSTS}/${post.id}`)}
+                    href={href(`${APP_ROUTES.PUBLISHING.POSTS}/${post.id}`)}
                   >
                     {post.label || post.id}
                   </Link>

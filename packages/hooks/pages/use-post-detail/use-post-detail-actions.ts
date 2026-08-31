@@ -291,7 +291,7 @@ export function usePostDetailActions({
           const service = await getPostsService();
           await service.delete(requirePostId(post));
           notificationsService.success('Post deleted successfully');
-          router.push(href('/publish'));
+          router.push(href('/publishing'));
         } catch (err) {
           logger.error('Failed to delete post', err);
           notificationsService.error('Failed to delete post');

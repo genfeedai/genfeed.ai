@@ -38,6 +38,7 @@ describe('conversation-layout.constant', () => {
       'text-foreground',
     );
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('rounded-xl');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('shadow-none');
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
       'bg-transparent',
     );
@@ -48,6 +49,9 @@ describe('conversation-layout.constant', () => {
   });
 
   it('keeps a masked spacing step above the sticky user prompt', () => {
+    expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain(
+      'scrollbar-gutter:stable_both-edges',
+    );
     expect(AGENT_CONVERSATION_SCROLL_CLASS).toContain(
       '--agent-conversation-sticky-top:0.75rem',
     );

@@ -301,7 +301,7 @@ describe('StudioRemixRunPanel', () => {
     ).toBeVisible();
   });
 
-  it('links an approved organic run to its canonical Publish drafts', () => {
+  it('links an approved organic run to its canonical Publishing drafts', () => {
     render(
       <StudioRemixRunPanel
         error={null}
@@ -323,8 +323,8 @@ describe('StudioRemixRunPanel', () => {
     );
 
     expect(
-      screen.getByRole('link', { name: 'Open Publish drafts' }),
-    ).toHaveAttribute('href', '/org-1/brand-1/publish/scheduled');
+      screen.getByRole('link', { name: 'Open Publishing drafts' }),
+    ).toHaveAttribute('href', '/org-1/brand-1/publishing/scheduled');
     expect(screen.getByRole('link', { name: 'Open Review' })).toBeVisible();
   });
 });

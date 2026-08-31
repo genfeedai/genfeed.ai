@@ -24,6 +24,7 @@ export interface ApifyActorRun {
   defaultKeyValueStoreId: string;
   defaultDatasetId: string;
   defaultRequestQueueId: string;
+  usageTotalUsd?: number;
 }
 
 export interface ApifyActorRunResponse {
@@ -50,13 +51,32 @@ export interface ApifyAccountLimitSuspension {
  */
 export interface ApifyRunBudgetDecision {
   isAllowed: boolean;
+  maxTotalChargeUsd?: number;
   reason?: string;
+  reservation?: ApifyRunBudgetReservation;
   retryAfterMs?: number;
 }
 
+export interface ApifyRunBudgetReservation {
+  reservedMicroUsd: number;
+  usageKey: string;
+}
+
 export interface ApifyRunBudgetLimits {
+  maxBillingPeriodUsd: number;
   maxRunsPerDay: number;
   maxRunsPerHour: number;
+  maxTotalChargeUsdPerRun: number;
+}
+
+export interface ApifyMonthlyUsageResponse {
+  data: {
+    totalUsageCreditsUsdAfterVolumeDiscount: number;
+    usageCycle: {
+      endAt: string;
+      startAt: string;
+    };
+  };
 }
 
 export interface ApifyDatasetResponse<T = ApifyDatasetItem> {

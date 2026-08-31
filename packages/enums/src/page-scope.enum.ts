@@ -4,5 +4,5 @@ export enum PageScope {
   BRAND = 'brand',
   ANALYTICS = 'analytics',
   USER = 'user',
-  PUBLISHER = 'publisher',
+  PUBLISHING = 'publishing',
 }

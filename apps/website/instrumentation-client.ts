@@ -24,11 +24,8 @@ Sentry.init({
   // The studio keeps error-triggered replay (`apps/app/instrumentation-client.ts`),
   // where reproducing an editor bug genuinely needs the session.
 
-  // Sampling every transaction on a public marketing page put the org over its
-  // Sentry ingest quota, and the resulting 429 on the envelope request surfaced
-  // as a console error on a cold first visit — a Lighthouse best-practices
-  // failure on the exact page we most want scoring clean.
-  tracesSampleRate: 0.1,
+  // Sentry is used for error reporting only; performance spans are disabled.
+  tracesSampleRate: 0,
 });
 
 // PostHog is the single tracker on the marketing site — cookieless, anonymous

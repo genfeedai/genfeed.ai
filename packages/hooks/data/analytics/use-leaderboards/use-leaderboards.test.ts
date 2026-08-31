@@ -43,8 +43,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useLeaderboards } from './use-leaderboards';
 
 const DATE_RANGE = {
-  endDate: new Date(2025, 0, 7),
-  startDate: new Date(2025, 0, 1),
+  endDate: new Date('2025-01-07T00:00:00.000Z'),
+  startDate: new Date('2025-01-01T00:00:00.000Z'),
 };
 
 const ORG_ITEM = { id: 'org-1', name: 'Acme', totalViews: 100 };

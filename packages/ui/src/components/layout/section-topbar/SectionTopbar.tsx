@@ -7,7 +7,7 @@ import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topb
 /**
  * SectionTopbar — the shared sub-topbar for app section pages.
  *
- * **App contract for local navigation + primary actions** (Discover Socials,
+ * **App contract for local navigation + primary actions** (Discovery Socials,
  * Ads hub, Models, Admin list modules, Analytics date tools, etc.):
  * - full-bleed `border-b` that meets the shell edges
  * - tabs left, primary tools right, inside the same bar

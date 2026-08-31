@@ -197,7 +197,7 @@ export function usePostDetailState({
   );
 
   const isEditable = useMemo(
-    () => scope === PageScope.PUBLISHER && !isPublished,
+    () => scope === PageScope.PUBLISHING && !isPublished,
     [scope, isPublished],
   );
 

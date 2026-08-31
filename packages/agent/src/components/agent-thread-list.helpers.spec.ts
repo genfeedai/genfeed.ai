@@ -48,6 +48,23 @@ describe('groupAgentThreads', () => {
     expect(groups.recent.map(({ id }) => id)).toEqual(['recent']);
   });
 
+  it('moves a reconciled active thread out of Working despite stale server run status', () => {
+    const thread = createThread('active', {
+      runStatus: 'running',
+    });
+
+    const groups = groupAgentThreads([thread], {
+      activeRunStatus: 'idle',
+      activeThreadId: 'active',
+      filter: 'all',
+      isStreaming: false,
+      searchQuery: '',
+    });
+
+    expect(groups.working).toEqual([]);
+    expect(groups.recent).toEqual([thread]);
+  });
+
   it('searches thread title and preview content', () => {
     const groups = groupAgentThreads(threads, {
       filter: 'all',
@@ -211,6 +228,31 @@ describe('getThreadStatusMeta', () => {
       getThreadStatusMeta(thread, {
         activeRunStatus: 'idle',
         activeThreadId: 'other',
+      }),
+    ).toBeNull();
+  });
+
+  it('lets reconciled local state settle stale active-thread attention', () => {
+    const thread = createThread('active', {
+      attentionState: 'running',
+      runStatus: 'running',
+    });
+
+    expect(
+      getThreadStatusMeta(thread, {
+        activeRunStatus: 'idle',
+        activeThreadId: 'active',
+      }),
+    ).toBeNull();
+  });
+
+  it('does not leak the active thread failure status onto every thread', () => {
+    const thread = createThread('background');
+
+    expect(
+      getThreadStatusMeta(thread, {
+        activeRunStatus: 'failed',
+        activeThreadId: 'active-thread',
       }),
     ).toBeNull();
   });

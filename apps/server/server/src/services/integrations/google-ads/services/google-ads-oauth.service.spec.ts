@@ -14,8 +14,8 @@ describe('GoogleAdsOAuthService', () => {
   let loggerService: Mocked<LoggerService>;
 
   const CONFIG_VALUES: Record<string, string> = {
-    GOOGLE_ADS_CLIENT_ID: 'test-client-id',
-    GOOGLE_ADS_CLIENT_SECRET: 'test-client-secret',
+    GOOGLE_OAUTH_CLIENT_ID: 'test-client-id',
+    GOOGLE_OAUTH_CLIENT_SECRET: 'test-client-secret',
     GOOGLE_ADS_REDIRECT_URI: 'https://app.genfeed.ai/callback/google-ads',
   };
 
@@ -79,7 +79,7 @@ describe('GoogleAdsOAuthService', () => {
 
     it('refuses to start OAuth when client id is a placeholder', () => {
       configService.get.mockImplementation((key) =>
-        String(key) === 'GOOGLE_ADS_CLIENT_ID'
+        String(key) === 'GOOGLE_OAUTH_CLIENT_ID'
           ? 'PLACEHOLDER_NOT_CONFIGURED'
           : CONFIG_VALUES[String(key)],
       );

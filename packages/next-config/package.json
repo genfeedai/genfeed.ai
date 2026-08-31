@@ -35,6 +35,7 @@
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
+    "test": "vitest run --config vitest.config.ts",
     "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
   },
   "types": "./next.config.base.ts",

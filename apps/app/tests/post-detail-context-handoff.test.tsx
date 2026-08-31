@@ -148,7 +148,7 @@ function createHookData(
       error: vi.fn(),
       success: vi.fn(),
     } as UsePostDetailReturn['notificationsService'],
-    pathname: '/acme/main/publish/posts/post-1',
+    pathname: '/acme/main/publishing/posts/post-1',
     performAutoSaveForPost: vi.fn(),
     post,
     publishedDisplay: '',
@@ -186,7 +186,7 @@ describe('PostDetail Context handoff', () => {
         postId="post-1"
         presentation="page"
         renderContextSidebar={renderContextSidebar}
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
       />,
     );
 
@@ -212,7 +212,7 @@ describe('PostDetail Context handoff', () => {
       <PostDetail
         postId="post-1"
         renderContextSidebar={renderContextSidebar}
-        scope={PageScope.PUBLISHER}
+        scope={PageScope.PUBLISHING}
       />,
     );
 

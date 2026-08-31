@@ -128,7 +128,7 @@ export async function settleMessagesSyncJobs(
 export function getMessagesSyncFeedback(params: {
   failedPlatforms: readonly string[];
   hasSuccess: boolean;
-  isDirectMessage: boolean;
+  scope: 'all' | 'comments' | 'dms';
 }): MessagesSyncFeedback {
   if (!params.hasSuccess) {
     return {
@@ -137,9 +137,12 @@ export function getMessagesSyncFeedback(params: {
     };
   }
 
-  const started = params.isDirectMessage
-    ? 'Direct message sync started. New threads will appear here once the background job finishes.'
-    : 'Comment sync started. New comments will appear here once the background jobs finish.';
+  const started =
+    params.scope === 'all'
+      ? 'Inbox sync started. New comments and direct messages will appear here once the background jobs finish.'
+      : params.scope === 'dms'
+        ? 'Direct message sync started. New threads will appear here once the background jobs finish.'
+        : 'Comment sync started. New comments will appear here once the background jobs finish.';
 
   if (params.failedPlatforms.length === 0) {
     return { error: null, notice: started };

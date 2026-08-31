@@ -1,10 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { SettingsSurface } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-import {
-  buildSettingsMenuItems,
-  SETTINGS_LOGO_HREF,
-} from './settings-menu-items.config';
+import { buildSettingsMenuItems } from './settings-menu-items.config';
 
 describe('buildSettingsMenuItems', () => {
   describe('personal scope', () => {
@@ -251,9 +248,5 @@ describe('buildSettingsMenuItems', () => {
         expect(item.solid).toBeDefined();
       }
     }
-  });
-
-  it('has a logo href set', () => {
-    expect(SETTINGS_LOGO_HREF).toBeTruthy();
   });
 });

@@ -4,7 +4,7 @@ import { Clapperboard, Film, Layers, Scissors, Wand2, Zap } from 'lucide-react';
 
 /**
  * Flat nav under the Studio app chrome (no Edit / Automation subgroups) —
- * same shape as Automate and Library.
+ * same shape as Automation and Library.
  *
  * Generate is the Studio home: one prompt bar for every asset type Genfeed can
  * make, brand-enriched, with the asset type as composer state rather than a
@@ -68,5 +68,3 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     solid: Film,
   },
 ];
-
-export const STUDIO_LOGO_HREF = APP_ROUTES.STUDIO.GENERATE;

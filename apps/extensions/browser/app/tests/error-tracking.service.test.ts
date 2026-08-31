@@ -67,7 +67,7 @@ describe('error-tracking.service', () => {
       dsn: 'https://public@example.ingest.sentry.io/1',
       environment: 'production',
       release: '1.2.3',
-      tracesSampleRate: 0.1,
+      tracesSampleRate: 0,
     });
     expect(sentryMocks.setTag).toHaveBeenCalledWith('app', 'extension');
     expect(sentryMocks.setTag).toHaveBeenCalledWith('entrypoint', 'popup');

@@ -9,7 +9,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 
-interface SkillRegistryEntry {
+export interface SkillRegistryEntry {
   slug: string;
   name: string;
   description: string;
@@ -17,6 +17,8 @@ interface SkillRegistryEntry {
   s3Key: string;
   category: string;
   checksum?: string;
+  fileSize?: number;
+  price?: number;
 }
 
 interface CdnSkillRegistry {
@@ -26,7 +28,7 @@ interface CdnSkillRegistry {
   updatedAt: string;
 }
 
-interface SkillRegistry {
+export interface SkillRegistry {
   skills: SkillRegistryEntry[];
   bundlePrice: number;
   updatedAt: string;

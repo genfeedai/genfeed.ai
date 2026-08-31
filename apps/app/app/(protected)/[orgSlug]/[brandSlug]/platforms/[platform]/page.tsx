@@ -1,7 +1,6 @@
 import { formatPlatformLabel, parsePlatform } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { BrandPlatformHomePageProps } from '@props/pages/page.props';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import PlatformHomePage from './content';
@@ -25,7 +24,7 @@ export default async function BrandPlatformHomeRoute({
   }
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <PlatformHomePage platform={parsed} />
     </Suspense>
   );

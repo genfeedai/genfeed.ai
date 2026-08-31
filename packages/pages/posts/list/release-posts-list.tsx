@@ -19,7 +19,7 @@ import {
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import {
   getPostsPlatformLabel,
-  getPublisherPostHref,
+  getPublishingPostHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -50,7 +50,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import PostsListToolbar from './components/PostsListToolbar';
-import type { PublisherPostsView } from './posts-list-query';
+import type { PublishingPostsView } from './posts-list-query';
 import {
   buildReleasePostsListQueryKey,
   RELEASE_POSTS_SORT_OPTIONS,
@@ -105,7 +105,7 @@ function releaseInstant(release: IReleaseGroup): string | null {
 }
 
 function viewMessageKey(
-  view?: PublisherPostsView,
+  view?: PublishingPostsView,
 ): 'all' | 'failed' | 'notPosted' | 'posted' {
   if (view === 'posted') {
     return 'posted';
@@ -191,7 +191,7 @@ export default function ReleasePostsList({
     queryFn: async () => {
       const service = await getReleaseGroupsService();
       const page = await service.findAllPage({
-        ...((scope === PageScope.BRAND || scope === PageScope.PUBLISHER) &&
+        ...((scope === PageScope.BRAND || scope === PageScope.PUBLISHING) &&
         brandId
           ? { brandId }
           : {}),
@@ -217,11 +217,11 @@ export default function ReleasePostsList({
     queryKey,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const publisherView: PublisherPostsView | undefined =
+  const publishingView: PublishingPostsView | undefined =
     executionStates?.includes(TargetState.FAILED)
       ? PostStatus.FAILED
       : publicationState;
-  const viewKey = viewMessageKey(publisherView);
+  const viewKey = viewMessageKey(publishingView);
   const returnUrl = searchParamsString
     ? `${pathname}?${searchParamsString}`
     : pathname;
@@ -239,17 +239,17 @@ export default function ReleasePostsList({
   );
 
   const handlePublicationStateChange = useCallback(
-    (nextView: PublisherPostsView) => {
+    (nextView: PublishingPostsView) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
       params.delete('status');
       const queryString = params.toString();
       const destination =
         nextView === 'failed'
-          ? APP_ROUTES.PUBLISH.FAILED
+          ? APP_ROUTES.PUBLISHING.FAILED
           : nextView === 'posted'
-            ? APP_ROUTES.PUBLISH.PUBLISHED
-            : APP_ROUTES.PUBLISH.SCHEDULED;
+            ? APP_ROUTES.PUBLISHING.PUBLISHED
+            : APP_ROUTES.PUBLISHING.SCHEDULED;
       router.replace(
         href(queryString ? `${destination}?${queryString}` : destination),
         { scroll: false },
@@ -282,7 +282,7 @@ export default function ReleasePostsList({
   useEffect(() => {
     setFiltersNode(
       <PostsListToolbar
-        onPublisherViewChange={handlePublicationStateChange}
+        onPublishingViewChange={handlePublicationStateChange}
         onSearchChange={setToolbarSearchValue}
         onSortChange={(nextSort) =>
           replaceSearchParams((params) => {
@@ -294,7 +294,7 @@ export default function ReleasePostsList({
             params.delete('page');
           })
         }
-        publisherView={publisherView}
+        publishingView={publishingView}
         searchValue={toolbarSearchValue}
         sortOptions={RELEASE_POSTS_SORT_OPTIONS}
         sortValue={sort}
@@ -303,7 +303,7 @@ export default function ReleasePostsList({
     return () => setFiltersNode(null);
   }, [
     handlePublicationStateChange,
-    publisherView,
+    publishingView,
     replaceSearchParams,
     setFiltersNode,
     sort,
@@ -404,7 +404,7 @@ export default function ReleasePostsList({
                     const PlatformIcon =
                       getPlatformIconComponent(target.platform) ?? ExternalLink;
                     const targetHref = withArtifactEditorReturn(
-                      href(getPublisherPostHref(target.id)),
+                      href(getPublishingPostHref(target.id)),
                       returnUrl,
                     );
                     return (

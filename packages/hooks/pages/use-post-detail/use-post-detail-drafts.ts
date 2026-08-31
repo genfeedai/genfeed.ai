@@ -352,9 +352,9 @@ export function usePostDetailDrafts({
     ],
   );
 
-  // Auto-save effect for parent post (only in Publisher scope)
+  // Auto-save effect for parent post (only in Publishing scope)
   useEffect(() => {
-    if (!postId || !post || scope !== PageScope.PUBLISHER) {
+    if (!postId || !post || scope !== PageScope.PUBLISHING) {
       return;
     }
 

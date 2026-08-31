@@ -103,8 +103,8 @@ vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useRestoreResearchFinding: vi.fn(),
 }));
 
-vi.mock('@pages/research/remix/DiscoverRemixProvider', () => ({
-  useOptionalDiscoverRemix: () =>
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () =>
     mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));
 
@@ -448,7 +448,7 @@ describe('FollowingPage', () => {
 
     expect(mocks.routerPush).toHaveBeenCalledTimes(1);
     expect(mocks.routerPush).toHaveBeenCalledWith(
-      '/org-1/brand-1/publish/remix?platform=twitter&sourcePostId=post-1',
+      '/org-1/brand-1/publishing/remix?platform=twitter&sourcePostId=post-1',
     );
   });
 
@@ -527,7 +527,7 @@ describe('FollowingPage', () => {
 
     expect(mocks.openRemix).not.toHaveBeenCalled();
     expect(mocks.routerPush).toHaveBeenCalledWith(
-      '/org-1/brand-1/publish/remix?platform=tiktok&sourcePostId=post-tiktok-1',
+      '/org-1/brand-1/publishing/remix?platform=tiktok&sourcePostId=post-tiktok-1',
     );
   });
 

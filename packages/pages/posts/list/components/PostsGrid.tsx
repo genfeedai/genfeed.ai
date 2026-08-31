@@ -11,7 +11,7 @@ import {
 import type { IPost } from '@genfeedai/interfaces';
 import {
   getPostsPlatformLabel,
-  getPublisherPostHref,
+  getPublishingPostHref,
 } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
@@ -293,7 +293,7 @@ const PostsGrid = memo(
                 ) : (
                   <Link
                     className="flex min-w-0 items-start gap-3 text-left"
-                    href={href(getPublisherPostHref(post.id))}
+                    href={href(getPublishingPostHref(post.id))}
                   >
                     {heading}
                   </Link>

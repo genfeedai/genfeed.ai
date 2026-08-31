@@ -130,7 +130,7 @@ function DayViewRows<T extends CalendarItem>({
   timezone,
   visibleDay,
 }: DayViewRowsProps<T>) {
-  const translate = useTranslations('pages.publish.calendar');
+  const translate = useTranslations('pages.publishing.calendar');
   const visibleKey = localDateKey(visibleDay, timezone);
 
   return (

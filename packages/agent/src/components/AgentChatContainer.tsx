@@ -51,8 +51,15 @@ export function AgentChatContainer({
   const composerShell = useConversationComposerShell();
   const [composerOverlayElement, setComposerOverlayElement] =
     useState<HTMLElement | null>(null);
+  // The surface portal target contains the prompt stack, while its parent owns
+  // the dock's bottom inset. Measure the whole dock so the final timeline row
+  // can scroll clear of it instead of stopping flush against its top edge.
+  const measuredComposerOverlayElement =
+    composerShell?.placement === 'surface' && composerShell.portalTarget
+      ? composerShell.portalTarget.parentElement
+      : (composerShell?.portalTarget ?? composerOverlayElement);
   const composerOverlayHeightPx = useOverlayElementHeight(
-    composerShell?.portalTarget ?? composerOverlayElement,
+    measuredComposerOverlayElement,
   );
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
 

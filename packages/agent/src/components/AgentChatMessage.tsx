@@ -53,6 +53,8 @@ interface AgentChatMessageProps {
   isReadOnly?: boolean;
   messageAnchorId?: string;
   isHighlighted?: boolean;
+  /** Only the user turn that owns the terminal failed run may be retried. */
+  isRetryableUserPrompt?: boolean;
   onRemember?: (message: AgentChatMessageType) => void;
 }
 
@@ -99,6 +101,7 @@ function AgentChatMessageInner({
   isReadOnly = false,
   messageAnchorId,
   isHighlighted = false,
+  isRetryableUserPrompt = false,
   onRemember,
 }: AgentChatMessageProps): ReactElement {
   const isUser = message.role === 'user';
@@ -270,7 +273,7 @@ function AgentChatMessageInner({
         data-message-surface={isUser ? 'prompt' : 'inline'}
         className={cn(
           'group relative min-w-0 transition-[border-color,background-color,box-shadow] duration-300',
-          isHighlighted && SCROLL_FOCUS_SURFACE_CLASS,
+          isHighlighted && !isUser && SCROLL_FOCUS_SURFACE_CLASS,
           isUser
             ? AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS
             : // Free-text assistant: no card chrome — document flow like T3/chat
@@ -410,7 +413,7 @@ function AgentChatMessageInner({
           copyContent={copyContent}
           message={message}
           onCopy={onCopy}
-          onRetry={isReadOnly ? undefined : onRetry}
+          onRetry={!isReadOnly && isRetryableUserPrompt ? onRetry : undefined}
           onRemember={isReadOnly ? undefined : onRemember}
         />
       </div>

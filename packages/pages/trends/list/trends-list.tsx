@@ -336,7 +336,7 @@ function TrendContentEmptyState({
           />
         </div>
       }
-      description="Discover stays empty until you connect publishing accounts or follow creators. No fake demo corpus — only signals you actually own."
+      description="Discovery stays empty until you connect publishing accounts or follow creators. No fake demo corpus — only signals you actually own."
       icon={TrendingUp}
       label="Warm this workspace with real sources"
     />
@@ -395,7 +395,7 @@ export default function TrendsList() {
   const { orgHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
-  const followingHref = orgHref(APP_ROUTES.DISCOVER.FOLLOWING);
+  const followingHref = orgHref(APP_ROUTES.DISCOVERY.FOLLOWING);
   const publishingHref = orgHref(APP_ROUTES.SETTINGS.PUBLISHING);
   const {
     error,

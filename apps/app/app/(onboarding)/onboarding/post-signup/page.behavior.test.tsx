@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 import PostSignupPage from './page';
@@ -175,21 +174,6 @@ vi.mock('@services/content/clip-projects.service', () => ({
   },
 }));
 
-vi.mock('@ui/loading/page/PageLoadingState', () => ({
-  default: ({
-    children,
-    message,
-  }: {
-    children?: ReactNode;
-    message: string;
-  }) => (
-    <div>
-      <p>{message}</p>
-      {children}
-    </div>
-  ),
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({ label, onClick }: { label: string; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
@@ -315,8 +299,6 @@ describe('PostSignupPage behavior', () => {
     localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, 'acme.co');
 
     render(<PostSignupPage />);
-
-    expect(screen.getByText('Setting up your workspace...')).toBeVisible();
 
     await waitFor(() => {
       expect(locationState.href).toBe('/onboarding/brand?auto=true');

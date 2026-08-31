@@ -474,7 +474,12 @@ export class WorkflowNodeContinuationService {
           },
         }),
         transaction.workflowNodeClaim.updateMany({
-          data: { error: input.error, status: 'failed' },
+          data: {
+            error: input.error,
+            leaseExpiresAt: null,
+            leaseOwnerId: null,
+            status: 'failed',
+          },
           where: {
             executionId: continuation.executionId,
             nodeId: continuation.nodeId,

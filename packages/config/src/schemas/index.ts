@@ -31,6 +31,7 @@ export {
   internalAuthSchema,
   microservicesSchema,
 } from './genfeedai.schema';
+export { googleOAuthSchema } from './google-oauth.schema';
 // Infrastructure
 // Notifications service
 export {

@@ -14,7 +14,10 @@ import { tryClick } from '../../utils/route-assertions';
  * specs raise code coverage without becoming brittle.
  */
 
-const BASE = '/test-org/brand-1/publish';
+const PUBLISHING_BASE = '/test-org/brand-1/publishing';
+const POSTS_ROUTE = `${PUBLISHING_BASE}/posts`;
+const DRAFTS_ROUTE = `${POSTS_ROUTE}?publicationState=not-posted`;
+const ANALYTICS_POSTS_ROUTE = '/test-org/brand-1/analytics/posts';
 
 test.describe('Posts — deep interactions', () => {
   test.setTimeout(90_000);
@@ -22,7 +25,9 @@ test.describe('Posts — deep interactions', () => {
   test('drafts list renders and search input accepts input', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BASE, { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.goto(DRAFTS_ROUTE, {
+      waitUntil: 'domcontentloaded',
+    });
     await settle(authenticatedPage);
 
     const search = authenticatedPage
@@ -36,19 +41,23 @@ test.describe('Posts — deep interactions', () => {
     await assertHealthy(authenticatedPage);
   });
 
-  test('navigates status filter tabs via query params', async ({
+  test('navigates status filters through canonical routes', async ({
     authenticatedPage,
   }) => {
-    for (const status of ['scheduled', 'public']) {
-      await authenticatedPage.goto(`${BASE}?status=${status}`, {
+    for (const destination of ['scheduled', 'published']) {
+      await authenticatedPage.goto(`${PUBLISHING_BASE}/${destination}`, {
         waitUntil: 'domcontentloaded',
       });
       await settle(authenticatedPage);
-      await expect(authenticatedPage).toHaveURL(new RegExp(`status=${status}`));
+      await expect(authenticatedPage).toHaveURL(
+        new RegExp(`/publishing/${destination}$`),
+      );
       await assertHealthy(authenticatedPage);
     }
 
-    await authenticatedPage.goto(BASE, { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.goto(DRAFTS_ROUTE, {
+      waitUntil: 'domcontentloaded',
+    });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage);
   });
@@ -56,7 +65,9 @@ test.describe('Posts — deep interactions', () => {
   test('clicks tab links and refresh control on the list', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BASE, { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.goto(DRAFTS_ROUTE, {
+      waitUntil: 'domcontentloaded',
+    });
     await settle(authenticatedPage);
 
     await tryClick(authenticatedPage, '[role="tab"]:has-text("Scheduled")');
@@ -75,7 +86,9 @@ test.describe('Posts — deep interactions', () => {
   test('toggles view modes and opens filters on the list', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(BASE, { waitUntil: 'domcontentloaded' });
+    await authenticatedPage.goto(DRAFTS_ROUTE, {
+      waitUntil: 'domcontentloaded',
+    });
     await settle(authenticatedPage);
 
     await tryClick(authenticatedPage, 'button:has-text("Table View")');
@@ -91,7 +104,7 @@ test.describe('Posts — deep interactions', () => {
   test('platform query filter keeps the list healthy', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}?platform=twitter`, {
+    await authenticatedPage.goto(`${POSTS_ROUTE}?platform=twitter`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -100,11 +113,11 @@ test.describe('Posts — deep interactions', () => {
   });
 
   test('opens a post detail route', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(`${BASE}/posts/mock-id`, {
+    await authenticatedPage.goto(`${POSTS_ROUTE}/mock-id`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
-    await expect(authenticatedPage).toHaveURL(/publish\/posts\/mock-id/);
+    await expect(authenticatedPage).toHaveURL(/publishing\/posts\/mock-id/);
 
     // Exercise any detail tabs / action buttons that render.
     await tryClick(authenticatedPage, '[role="tab"]');
@@ -118,7 +131,7 @@ test.describe('Posts — deep interactions', () => {
   test('calendar renders and navigation controls are clickable', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}/calendar`, {
+    await authenticatedPage.goto(`${PUBLISHING_BASE}/calendar`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -139,12 +152,12 @@ test.describe('Posts — deep interactions', () => {
   test('review queue renders and filter / batch controls respond', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}/review`, {
+    await authenticatedPage.goto(`${PUBLISHING_BASE}/review`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
 
-    await authenticatedPage.goto(`${BASE}/review?filter=approved`, {
+    await authenticatedPage.goto(`${PUBLISHING_BASE}/review?filter=approved`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -159,15 +172,19 @@ test.describe('Posts — deep interactions', () => {
   test('remix route renders for tweet and thread modes', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}/remix?topic=launch&mode=tweet`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      `${PUBLISHING_BASE}/remix?topic=launch&mode=tweet`,
+      {
+        waitUntil: 'domcontentloaded',
+      },
+    );
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage);
 
-    await authenticatedPage.goto(`${BASE}/remix?topic=launch&mode=thread`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await authenticatedPage.goto(
+      `${PUBLISHING_BASE}/remix?topic=launch&mode=thread`,
+      { waitUntil: 'domcontentloaded' },
+    );
     await settle(authenticatedPage);
 
     // Error fallback exposes recovery buttons; exercise them if present.
@@ -180,7 +197,7 @@ test.describe('Posts — deep interactions', () => {
   test('newsletters page filters, searches, and generates proposals', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}/newsletters`, {
+    await authenticatedPage.goto(`${PUBLISHING_BASE}/newsletters`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -216,7 +233,7 @@ test.describe('Posts — deep interactions', () => {
   test('newsletters manual topic input accepts text', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(`${BASE}/newsletters`, {
+    await authenticatedPage.goto(`${PUBLISHING_BASE}/newsletters`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
@@ -238,11 +255,11 @@ test.describe('Posts — deep interactions', () => {
   });
 
   test('posts analytics page renders', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(`${BASE}/analytics`, {
+    await authenticatedPage.goto(ANALYTICS_POSTS_ROUTE, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
-    await expect(authenticatedPage).toHaveURL(/publish\/analytics/);
+    await expect(authenticatedPage).toHaveURL(/analytics\/posts/);
 
     await tryClick(authenticatedPage, '[role="tab"]');
     await settle(authenticatedPage);

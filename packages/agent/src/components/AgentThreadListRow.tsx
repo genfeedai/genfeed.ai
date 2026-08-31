@@ -117,6 +117,17 @@ function ThreadActivityIndicator({
     );
   }
 
+  if (statusMeta.tone === 'running') {
+    return (
+      <span
+        aria-label={statusMeta.label}
+        className="size-2 shrink-0 animate-pulse rounded-full bg-info motion-reduce:animate-none"
+        role="status"
+        title={statusMeta.label}
+      />
+    );
+  }
+
   return (
     <Badge
       className="shrink-0 capitalize"

@@ -2,7 +2,7 @@
 
 import type { PageScope } from '@genfeedai/enums';
 import { ButtonVariant } from '@genfeedai/enums';
-import { getPublisherPostHref } from '@helpers/content/posts.helper';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PostDetail from '@pages/posts/detail/post-detail';
@@ -44,7 +44,7 @@ export default function PostDetailOverlay({
       <SheetContent
         side="right"
         className={cn(
-          'flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-dialog sm:max-w-[min(104rem,97vw)]',
+          'flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-ambient-lg sm:max-w-[min(104rem,97vw)]',
         )}
       >
         <div className="sticky top-0 z-10 border-b border-border bg-background/92 px-6 pb-5 pt-6 backdrop-blur">
@@ -70,7 +70,7 @@ export default function PostDetailOverlay({
                 label="Open page"
                 variant={ButtonVariant.SECONDARY}
                 icon={<ExternalLink className="size-4" />}
-                onClick={() => router.push(href(getPublisherPostHref(postId)))}
+                onClick={() => router.push(href(getPublishingPostHref(postId)))}
               />
             ) : null}
           </div>

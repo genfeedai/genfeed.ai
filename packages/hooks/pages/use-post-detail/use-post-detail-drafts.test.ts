@@ -245,7 +245,7 @@ describe('usePostDetailDrafts', () => {
           usePostDetailDrafts({
             ...baseProps,
             post: loadedPost,
-            scope: PageScope.PUBLISHER,
+            scope: PageScope.PUBLISHING,
           }),
         );
 

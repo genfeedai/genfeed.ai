@@ -278,7 +278,7 @@ export default function StudioRemixRunPanel({
             <Link
               className="font-medium text-primary hover:text-primary/80"
               href={activeHref(
-                `${APP_ROUTES.PUBLISH.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
+                `${APP_ROUTES.PUBLISHING.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
               )}
             >
               {translate('remixRun.review.open')}
@@ -286,9 +286,9 @@ export default function StudioRemixRunPanel({
             {hasApprovedOrganicDrafts ? (
               <Link
                 className="font-medium text-primary hover:text-primary/80"
-                href={activeHref(APP_ROUTES.PUBLISH.SCHEDULED)}
+                href={activeHref(APP_ROUTES.PUBLISHING.SCHEDULED)}
               >
-                {translate('remixRun.review.openPublishDrafts')}
+                {translate('remixRun.review.openPublishingDrafts')}
               </Link>
             ) : null}
           </div>

@@ -35,10 +35,10 @@ test.describe('Brand Skills settings', () => {
     ).toBeVisible();
   });
 
-  test('redirects the legacy Automate skills URL into Settings', async ({
+  test('redirects the legacy Automation skills URL into Settings', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.SKILLS), {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATION.SKILLS), {
       waitUntil: 'domcontentloaded',
     });
 

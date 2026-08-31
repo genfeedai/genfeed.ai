@@ -3,7 +3,6 @@ import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
 import SettingsSubscriptionPage from '../../(pages)/organization/subscription/content';
-import { SettingsOrganizationRouteShell } from '../SettingsOrganizationRouteShell';
 
 export const generateMetadata = createPageMetadata('Subscription Settings');
 
@@ -19,9 +18,5 @@ export default async function SettingsOrganizationSubscriptionRoute({
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS));
   }
 
-  return (
-    <SettingsOrganizationRouteShell>
-      <SettingsSubscriptionPage />
-    </SettingsOrganizationRouteShell>
-  );
+  return <SettingsSubscriptionPage />;
 }

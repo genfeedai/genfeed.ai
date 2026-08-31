@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/agent';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
-import { getPublisherPostHref } from '@helpers/content/posts.helper';
+import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-detail';
 import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-article-compose';
@@ -191,7 +191,7 @@ export default function ArticleDetail({
 
         if (rootDraft?.id && params?.orgSlug && params?.brandSlug) {
           push(
-            `/${params.orgSlug}/${params.brandSlug}${getPublisherPostHref(rootDraft.id)}`,
+            `/${params.orgSlug}/${params.brandSlug}${getPublishingPostHref(rootDraft.id)}`,
           );
         }
       } catch (err) {

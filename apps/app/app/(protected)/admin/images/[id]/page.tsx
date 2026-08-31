@@ -1,6 +1,5 @@
 import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
 import type { IngredientDetailPageProps } from '@props/content/ingredient.props';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
@@ -17,7 +16,7 @@ export default async function IngredientDetailPage({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <IngredientDetail type={'images'} id={id} />
     </Suspense>
   );

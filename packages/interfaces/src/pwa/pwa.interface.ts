@@ -69,7 +69,7 @@ export type PWAAppNameKey =
   | 'studio'
   | 'workflows'
   | 'manager'
-  | 'publisher'
+  | 'publishing'
   | 'analytics'
   | 'automation'
   | 'dashboard'

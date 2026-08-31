@@ -132,7 +132,7 @@ export const APP_CHROME_COLOR_SURFACES: Array<{
     root: 'apps/app/app/(onboarding)',
   },
   {
-    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review',
+    root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/review',
   },
   {
     root: 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks',

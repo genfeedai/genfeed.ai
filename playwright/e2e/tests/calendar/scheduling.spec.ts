@@ -27,7 +27,7 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    await expect(authenticatedPage).toHaveURL(/\/publish\/calendar/);
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
     await calendarPage.assertPostsTabActive();
   });
 
@@ -70,7 +70,7 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.gotoPosts();
 
     // Calendar should be rendered with events
-    await expect(authenticatedPage).toHaveURL(/\/publish\/calendar/);
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
 
     // The calendar component should be visible
     await calendarPage.assertCalendarVisible().catch(() => {
@@ -123,7 +123,7 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.gotoPosts();
 
     // Verify calendar page loads with the post data
-    await expect(authenticatedPage).toHaveURL(/\/publish\/calendar/);
+    await expect(authenticatedPage).toHaveURL(/\/publishing\/calendar/);
 
     // Calendar events should be present (if any rendered)
     const eventCount = await calendarPage.getEventCount();
@@ -181,7 +181,7 @@ test.describe('Calendar — Scheduling', () => {
         // Should navigate to post detail page
         const url = authenticatedPage.url();
         const isOnDetail =
-          url.includes('/publish/') || url.includes('/calendar');
+          url.includes('/publishing/') || url.includes('/calendar');
         expect(isOnDetail).toBe(true);
       }
     } else {
@@ -214,13 +214,13 @@ test.describe('Calendar — Scheduling', () => {
     await mockCalendarPosts(authenticatedPage);
     await calendarPage.gotoPosts();
 
-    // The calendar page has a link to /publish (list view)
+    // The calendar page links back to the canonical Publishing posts list.
     const listLink = calendarPage.listViewLink;
     const isVisible = await listLink.isVisible().catch(() => false);
 
     // Link should be present in the UI
     if (isVisible) {
-      await expect(listLink).toHaveAttribute('href', '/publish');
+      await expect(listLink).toHaveAttribute('href', /\/publishing\/posts$/);
     }
 
     await expect(authenticatedPage).toHaveURL(/calendar/);

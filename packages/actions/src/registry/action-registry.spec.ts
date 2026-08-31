@@ -430,6 +430,22 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
+  it('owns scoped trend maintenance and retires adaptive backfill actions', () => {
+    for (const actionId of [
+      'trends.maintenance.discover-scoped',
+      'trends.maintenance.fetch-scoped',
+    ]) {
+      expect(getActionDefinition(actionId)?.visibility).toBe('internal');
+    }
+
+    expect(
+      getActionDefinition('trends.maintenance.evaluate-backfill'),
+    ).toBeUndefined();
+    expect(
+      getActionDefinition('trends.maintenance.finalize-backfill'),
+    ).toBeUndefined();
+  });
+
   it('owns every scheduled-post workflow step', () => {
     expect(
       [
@@ -591,8 +607,30 @@ describe('Genfeed action registry', () => {
   it('marks editor-installable workflow actions explicitly', () => {
     expect(getActionDefinition('imageGen')?.visibility).toBe('workflow');
     expect(getActionDefinition('socialRead')?.visibility).toBe('workflow');
+    const workflowActions = ALL_ACTIONS.filter(
+      (action) => action.visibility === 'workflow',
+    );
+
+    expect(workflowActions.length).toBeGreaterThan(0);
     expect(
-      ALL_ACTIONS.filter((action) => action.visibility === 'workflow').length,
-    ).toBeGreaterThan(0);
+      workflowActions.every(
+        (action) => action.workflowCategory && action.workflowIcon,
+      ),
+    ).toBe(true);
+    expect(
+      new Set(workflowActions.map((action) => action.workflowCategory)),
+    ).toEqual(new Set(['input', 'ai', 'processing', 'composition', 'output']));
+    expect(getActionDefinition('imageGen')).toMatchObject({
+      workflowCategory: 'ai',
+      workflowIcon: 'Image',
+    });
+    expect(getActionDefinition('socialRead')).toMatchObject({
+      workflowCategory: 'input',
+      workflowIcon: 'Search',
+    });
+    expect(getActionDefinition('publish')).toMatchObject({
+      workflowCategory: 'output',
+      workflowIcon: 'Navigation',
+    });
   });
 });

@@ -7,9 +7,9 @@ describe('WorkflowCreatedCard', () => {
   it('renders workflow and execution handoff links', () => {
     const action: AgentUiAction = {
       ctas: [
-        { href: '/automate/workflows/wf-1', label: 'Open workflow' },
+        { href: '/automation/workflows/wf-1', label: 'Open workflow' },
         {
-          href: '/automate/workflows/executions',
+          href: '/automation/workflows/executions',
           label: 'Open executions',
         },
       ],
@@ -27,11 +27,11 @@ describe('WorkflowCreatedCard', () => {
 
     expect(screen.getByRole('link', { name: 'Open workflow' })).toHaveAttribute(
       'href',
-      '/automate/workflows/wf-1',
+      '/automation/workflows/wf-1',
     );
     expect(
       screen.getByRole('link', { name: 'Open executions' }),
-    ).toHaveAttribute('href', '/automate/workflows/executions');
+    ).toHaveAttribute('href', '/automation/workflows/executions');
   });
 
   it('renders action CTAs and invokes the UI action handler', async () => {

@@ -108,7 +108,7 @@ export class UserSetupService {
       );
 
       // Default daily post/newsletter/image workflows are no longer
-      // auto-provisioned. Operators create schedules from Automate when they
+      // auto-provisioned. Operators create schedules from Automation when they
       // want them.
 
       // Billing-account linking verifies that the caller administers the

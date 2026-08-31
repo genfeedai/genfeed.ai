@@ -42,14 +42,14 @@ describe('AgentToolCallDisplay', () => {
     expect(screen.getByText('Failed')).toBeInTheDocument();
   });
 
-  it('falls back to the raw tool name when unlabelled', () => {
+  it('humanizes an unlabelled tool name', () => {
     render(
       <AgentToolCallDisplay
         toolCall={makeToolCall({ name: 'mystery_tool' })}
       />,
     );
 
-    expect(screen.getByText('mystery_tool')).toBeInTheDocument();
+    expect(screen.getByText('Mystery Tool')).toBeInTheDocument();
   });
 
   it('prefers the friendly label when one exists', () => {

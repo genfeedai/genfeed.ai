@@ -1,6 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import CharacterDetail from '@protected/fleet/characters/[slug]/character-detail';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Character Detail');
@@ -13,7 +12,7 @@ export default async function CharacterDetailPage({
   const { slug } = await params;
 
   return (
-    <Suspense fallback={<PageLoadingState />}>
+    <Suspense fallback={null}>
       <CharacterDetail slug={slug} />
     </Suspense>
   );

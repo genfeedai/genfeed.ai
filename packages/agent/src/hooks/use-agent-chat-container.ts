@@ -18,6 +18,7 @@ import type {
   PersistedConversationComposerAttachment,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -157,6 +158,7 @@ export function useAgentChatContainer({
   const clearPendingInputRequest = useAgentChatStore(
     (s) => s.clearPendingInputRequest,
   );
+  const clearStaleActiveRun = useAgentChatStore((s) => s.clearStaleActiveRun);
   const draftPlanModeEnabled = useAgentChatStore((s) => s.draftPlanModeEnabled);
   const latestProposedPlan = useAgentChatStore((s) => s.latestProposedPlan);
   const onboardingSignupGiftCredits = useAgentChatStore(
@@ -402,7 +404,11 @@ export function useAgentChatContainer({
         apiService.cancelWorkflowExecutionEffect(activeRunId),
       );
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof AgentApiRequestError && error.status === 404) {
+        clearStaleActiveRun();
+        return true;
+      }
       setActiveRunStatus('failed');
       setError('Failed to stop the active agent run.');
       return false;
@@ -411,6 +417,7 @@ export function useAgentChatContainer({
     activeRunId,
     activeRunStatus,
     apiService,
+    clearStaleActiveRun,
     isBusy,
     setActiveRunStatus,
     setError,
@@ -962,6 +969,7 @@ export function useAgentChatContainer({
   // Restore the active workflow execution when the user returns to a thread.
   useEffect(() => {
     const controller = new AbortController();
+    const restoredRunId = activeRunId;
 
     runAgentApiEffect(
       apiService.getActiveWorkflowExecutionsEffect(controller.signal),
@@ -976,6 +984,14 @@ export function useAgentChatContainer({
         );
 
         if (!matchingExecution) {
+          const state = useAgentChatStore.getState();
+          if (
+            restoredRunId &&
+            state.activeThreadId === activeThreadId &&
+            state.activeRunId === restoredRunId
+          ) {
+            clearStaleActiveRun();
+          }
           return;
         }
 
@@ -992,7 +1008,13 @@ export function useAgentChatContainer({
       });
 
     return () => controller.abort();
-  }, [activeThreadId, apiService, setActiveRun]);
+  }, [
+    activeRunId,
+    activeThreadId,
+    apiService,
+    clearStaleActiveRun,
+    setActiveRun,
+  ]);
 
   return {
     // store slices

@@ -1,6 +1,10 @@
 'use client';
 
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_DISPLAY_LABELS,
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -9,10 +13,10 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
+import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
@@ -39,16 +43,16 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
   string
 > = {
-  admin: 'Admin',
-  agent: 'Agent',
-  analytics: 'Analytics',
-  automate: 'Automate',
-  library: 'Library',
-  messages: 'Messages',
-  publish: 'Publish',
-  discover: 'Discover',
-  studio: 'Studio',
-  workspace: 'Workspace',
+  admin: APP_DISPLAY_LABELS.admin,
+  agent: APP_DISPLAY_LABELS.agent,
+  analytics: APP_DISPLAY_LABELS.analytics,
+  automation: APP_DISPLAY_LABELS.automation,
+  library: APP_DISPLAY_LABELS.library,
+  messages: APP_DISPLAY_LABELS.messages,
+  publishing: APP_DISPLAY_LABELS.publishing,
+  discovery: APP_DISPLAY_LABELS.discovery,
+  studio: APP_DISPLAY_LABELS.studio,
+  workspace: APP_DISPLAY_LABELS.workspace,
 };
 
 type AppProtectedTopbarChrome = 'app' | 'admin';
@@ -104,6 +108,7 @@ function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
+  onSidebarToggle,
   currentApp,
   orgSlug,
   brandSlug,
@@ -240,12 +245,19 @@ function AppProtectedTopbarContent({
       {/* Match sidebar header: h-12 content band, px-3 horizontal, gap-1.5 between controls. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className={cn(
-          'grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3',
-          isSidebarCollapsed && 'pl-14',
-        )}
+        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3"
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
+          {onSidebarToggle ? (
+            <SidebarToggleButton
+              ariaLabel={
+                isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+              }
+              className="hidden md:flex"
+              onClick={onSidebarToggle}
+            />
+          ) : null}
+
           {onMenuToggle ? (
             <Button
               type="button"

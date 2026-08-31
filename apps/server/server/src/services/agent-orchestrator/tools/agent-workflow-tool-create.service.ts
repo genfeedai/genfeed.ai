@@ -606,7 +606,7 @@ export class AgentWorkflowToolCreateService {
     return {
       creditsUsed: params.creditsUsed,
       data: {
-        editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${params.workflowId}`,
+        editorUrl: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${params.workflowId}`,
         id: params.workflowId,
         label: params.workflowLabel,
         nextRunAt: params.nextRunAt ?? null,
@@ -618,11 +618,11 @@ export class AgentWorkflowToolCreateService {
         {
           ctas: [
             {
-              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${params.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${params.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
+              href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
               label: 'Open executions',
             },
           ],

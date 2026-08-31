@@ -110,7 +110,7 @@ describe('buildPageContextPrompt', () => {
           organizationId: 'organization-1',
         },
       ],
-      route: '/acme/moonrise/discover/overview',
+      route: '/acme/moonrise/discovery/overview',
     });
 
     expect(prompt).toContain('Server-Authorized Research Selectors');

@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  STUDIO_LOGO_HREF,
-  STUDIO_MENU_ITEMS,
-} from './studio-menu-items.config';
+import { STUDIO_MENU_ITEMS } from './studio-menu-items.config';
 
 describe('STUDIO_MENU_ITEMS', () => {
   it('lists Studio surfaces in a single flat group, Generate first', () => {
@@ -68,9 +65,5 @@ describe('STUDIO_MENU_ITEMS', () => {
       label: 'Edit',
       matchPaths: ['/studio/edit', '/studio/edit/new'],
     });
-  });
-
-  it('keeps the studio logo href pointed at the playground', () => {
-    expect(STUDIO_LOGO_HREF).toBe('/studio/generate');
   });
 });

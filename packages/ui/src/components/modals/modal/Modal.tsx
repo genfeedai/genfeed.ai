@@ -65,8 +65,7 @@ export default function Modal({
         aria-describedby={undefined}
         size={isFullScreen ? 'full' : 'lg'}
         className={cn(
-          'flex max-h-[calc(100vh-5rem)] flex-col',
-          isFullScreen ? 'overflow-hidden' : 'overflow-auto',
+          'flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden',
           // Error dialogs keep normal shell chrome — no red outer ring/border.
           // Severity is carried by the message row, not the dialog frame.
           isError && 'bg-card text-foreground',
@@ -101,7 +100,15 @@ export default function Modal({
           </CompoundModal.Header>
         )}
 
-        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col',
+            !isFullScreen && 'overflow-y-auto',
+          )}
+          data-modal-scroll-region=""
+        >
+          {children}
+        </div>
       </CompoundModal.Content>
     </CompoundModal.Root>
   );

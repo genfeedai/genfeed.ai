@@ -97,13 +97,15 @@ describe('commands.registry', () => {
       expect(libraryCmd?.shortcut).toEqual(['⌘', '3']);
     });
 
-    it('should have posts command', () => {
+    it('should have publishing command', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const postsCmd = navigationCommands.find((c) => c.id === 'nav-posts');
+      const publishingCmd = navigationCommands.find(
+        (c) => c.id === 'nav-publishing',
+      );
 
-      expect(postsCmd).toBeDefined();
-      expect(postsCmd?.label).toBe('Go to Posts');
-      expect(postsCmd?.keywords).toContain('publisher');
+      expect(publishingCmd).toBeDefined();
+      expect(publishingCmd?.label).toBe('Go to Publishing');
+      expect(publishingCmd?.keywords).toContain('posts');
     });
 
     it('should have analytics command', () => {
@@ -117,12 +119,14 @@ describe('commands.registry', () => {
       expect(analyticsCmd?.keywords).toContain('analytics');
     });
 
-    it('should have agents command', () => {
+    it('should have automation command', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const agentsCmd = navigationCommands.find((c) => c.id === 'nav-agents');
+      const automationCmd = navigationCommands.find(
+        (c) => c.id === 'nav-automation',
+      );
 
-      expect(agentsCmd).toBeDefined();
-      expect(agentsCmd?.keywords).toContain('workflows');
+      expect(automationCmd).toBeDefined();
+      expect(automationCmd?.keywords).toContain('workflows');
     });
 
     it('should have settings command', () => {
@@ -149,16 +153,16 @@ describe('commands.registry', () => {
       );
     });
 
-    it('discover action should navigate to brand-scoped discover URL', () => {
+    it('discovery action should navigate to the brand-scoped Discovery URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const discoverCmd = navigationCommands.find(
-        (c) => c.id === 'nav-discover',
+      const discoveryCmd = navigationCommands.find(
+        (c) => c.id === 'nav-discovery',
       );
 
-      discoverCmd?.action();
+      discoveryCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discover/overview`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/discovery/overview`,
       );
     });
 
@@ -173,25 +177,29 @@ describe('commands.registry', () => {
       );
     });
 
-    it('agents action should navigate to brand-scoped automate workflows URL', () => {
+    it('automation action should navigate to the brand-scoped Automation workflows URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const agentsCmd = navigationCommands.find((c) => c.id === 'nav-agents');
+      const automationCmd = navigationCommands.find(
+        (c) => c.id === 'nav-automation',
+      );
 
-      agentsCmd?.action();
+      automationCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/automate/workflows`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/automation/workflows`,
       );
     });
 
-    it('posts action should navigate to brand-scoped posts URL', () => {
+    it('publishing action should navigate to the brand-scoped Publishing URL', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const postsCmd = navigationCommands.find((c) => c.id === 'nav-posts');
+      const publishingCmd = navigationCommands.find(
+        (c) => c.id === 'nav-publishing',
+      );
 
-      postsCmd?.action();
+      publishingCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/publish`,
+        `https://app.genfeed.ai/${TEST_ORG}/${TEST_BRAND}/publishing`,
       );
     });
 

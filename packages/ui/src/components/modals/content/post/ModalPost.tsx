@@ -138,7 +138,7 @@ export default function ModalPost({
         logger.info(`${url} success`);
         return result;
       } else {
-        const url = 'POST /publish';
+        const url = 'POST /publishing';
         const result = await postsService.post({
           credentialId: formData.credentialId,
           description: formData.description.trim(),

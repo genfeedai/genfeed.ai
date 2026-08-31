@@ -214,14 +214,14 @@ describe('operator-shell helpers', () => {
       '/overview',
       '/library',
       '/analytics',
-      '/automate',
-      '/automate/workflows',
-      '/publish/calendar',
+      '/automation',
+      '/automation/workflows',
+      '/publishing/calendar',
     ]) {
       expect(isAssetGateSectionPath(gated)).toBe(true);
     }
 
-    // Never gated: agent, settings, studio, discover, publish base, messages,
+    // Never gated: Agent, Settings, Studio, Discovery, Publishing base, Messages,
     // admin — and a look-alike prefix must not false-match.
     for (const open of [
       '/agent',
@@ -229,8 +229,8 @@ describe('operator-shell helpers', () => {
       '/settings',
       '/settings/organization',
       '/studio/storyboard',
-      '/discover/overview',
-      '/publish',
+      '/discovery/overview',
+      '/publishing',
       '/messages',
       '/admin',
       '/analytics-preview',

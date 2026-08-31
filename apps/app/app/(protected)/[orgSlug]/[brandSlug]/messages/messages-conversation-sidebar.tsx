@@ -48,10 +48,11 @@ export type MessagesInboxView =
   | 'unread';
 
 /**
- * The two inbox surfaces the Messages module exposes. Mentions and replies are
- * valid conversation types on the wire but have no destination of their own yet.
+ * One mailbox stream with optional conversation-type filters. Mentions and
+ * replies remain valid wire types but have no dedicated filter yet.
  */
 export type MessagesSurface =
+  | 'all'
   | SocialConversationType.COMMENT
   | SocialConversationType.DM;
 
@@ -73,6 +74,7 @@ const VIEW_FILTERS: readonly ConversationSidebarFilter<MessagesInboxView>[] = [
 ];
 
 const SURFACE_FILTERS: readonly ConversationSidebarFilter<MessagesSurface>[] = [
+  { label: 'All', value: 'all' },
   { label: 'Comments', value: SocialConversationType.COMMENT },
   { label: 'DMs', value: SocialConversationType.DM },
 ];
@@ -214,6 +216,12 @@ function ConversationRow({
       <span className="mt-1 flex items-center gap-1.5 pl-4 text-2xs font-medium uppercase tracking-wider text-foreground/28">
         <span>{conversation.platform}</span>
         <span aria-hidden="true">·</span>
+        <span>
+          {conversation.conversationType === SocialConversationType.DM
+            ? 'DM'
+            : 'Comment'}
+        </span>
+        <span aria-hidden="true">·</span>
         <span
           className={cn(
             needsReview && 'text-warning',
@@ -305,7 +313,12 @@ export function MessagesConversationSidebar({
     return filter;
   });
   const isDmSurface = conversationType === SocialConversationType.DM;
-  const syncLabel = isDmSurface ? 'Sync direct messages' : 'Sync comments';
+  const syncLabel =
+    conversationType === 'all'
+      ? 'Sync inbox'
+      : isDmSurface
+        ? 'Sync direct messages'
+        : 'Sync comments';
   const syncAction = (
     <Button
       ariaLabel={syncLabel}
@@ -320,16 +333,22 @@ export function MessagesConversationSidebar({
       onClick={onSync}
     />
   );
-  const emptyStateTitle = isDmSurface
-    ? 'No direct messages yet'
-    : 'No comments yet';
+  const emptyStateTitle =
+    conversationType === 'all'
+      ? 'No inbox items yet'
+      : isDmSurface
+        ? 'No direct messages yet'
+        : 'No comments yet';
   // DMs are polled rather than pushed, so an empty DM surface is the expected
   // state until the first sync — say so instead of implying something is wrong.
-  const emptyStateBody = isDmSurface
-    ? 'Direct messages are pulled in by sync. Connect an Instagram account, then sync to fill this thread list.'
-    : brandFilter === 'all'
-      ? 'Connect a social account, then sync to pull comments into this inbox.'
-      : 'No comments for this brand yet. Connect accounts, sync, or switch brands.';
+  const emptyStateBody =
+    conversationType === 'all'
+      ? 'Connect a social account, then sync to collect comments and direct messages in one inbox.'
+      : isDmSurface
+        ? 'Direct messages are pulled in by sync. Connect an account, then sync to fill this thread list.'
+        : brandFilter === 'all'
+          ? 'Connect a social account, then sync to pull comments into this inbox.'
+          : 'No comments for this brand yet. Connect accounts, sync, or switch brands.';
   const singleSectionLabel =
     view === 'resolved'
       ? 'Resolved'

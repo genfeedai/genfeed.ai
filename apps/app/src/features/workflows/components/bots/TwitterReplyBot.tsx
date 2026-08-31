@@ -18,7 +18,7 @@ export default function TwitterReplyBot() {
       description="Automatically reply to mentions and tweets"
       icon={<XIcon className="size-6" />}
       iconBgColor="bg-foreground/10"
-      editorPath={`${APP_ROUTES.AUTOMATE.WORKFLOWS}/twitter-reply`}
+      editorPath={`${APP_ROUTES.AUTOMATION.WORKFLOWS}/twitter-reply`}
       enabledMessage="Bot is active and responding to mentions"
       configItems={TWITTER_CONFIG_ITEMS}
     />

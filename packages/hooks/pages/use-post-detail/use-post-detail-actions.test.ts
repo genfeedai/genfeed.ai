@@ -320,7 +320,7 @@ describe('usePostDetailActions', () => {
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Post deleted successfully',
       );
-      expect(mockRouter.push).toHaveBeenCalledWith('/acme/publish');
+      expect(mockRouter.push).toHaveBeenCalledWith('/acme/publishing');
     });
 
     it('notifies when the delete fails', async () => {

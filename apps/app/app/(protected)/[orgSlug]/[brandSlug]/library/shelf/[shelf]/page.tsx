@@ -6,7 +6,6 @@ import {
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
-import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
@@ -39,7 +38,7 @@ export default async function LibraryShelfPage({
 
   return (
     <LibraryBrowser shelf={parsed} scope={PageScope.BRAND}>
-      <Suspense fallback={<PageLoadingState />}>
+      <Suspense fallback={null}>
         <IngredientsList
           folderNavigation="shell"
           type="ingredients"

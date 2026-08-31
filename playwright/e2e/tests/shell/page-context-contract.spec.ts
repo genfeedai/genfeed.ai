@@ -8,10 +8,10 @@ type PageContextContract = {
   route: string;
   currentApp:
     | 'analytics'
-    | 'automate'
+    | 'automation'
     | 'compose'
     | 'library'
-    | 'publish'
+    | 'publishing'
     | 'studio'
     | 'workspace';
   sectionLabel?: string;
@@ -45,15 +45,15 @@ const CONTRACTS: PageContextContract[] = [
     sidebarLabels: ['Edit'],
   },
   {
-    route: `${BRAND_BASE}/publish`,
-    currentApp: 'publish',
-    sectionLabel: 'Publish',
+    route: `${BRAND_BASE}/publishing`,
+    currentApp: 'publishing',
+    sectionLabel: 'Publishing',
     pageLabels: ['Not posted', 'New content'],
   },
   {
-    route: `${BRAND_BASE}/automate/agents`,
-    currentApp: 'automate',
-    sectionLabel: 'Automate',
+    route: `${BRAND_BASE}/automation/agents`,
+    currentApp: 'automation',
+    sectionLabel: 'Automation',
   },
 ];
 

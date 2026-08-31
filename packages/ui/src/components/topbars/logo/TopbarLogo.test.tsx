@@ -32,4 +32,14 @@ describe('TopbarLogo', () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('alt');
   });
+
+  it('supports the compact sidebar treatment without changing link semantics', () => {
+    const { container } = render(<TopbarLogo logoHref="/" size="compact" />);
+    const link = container.querySelector('a');
+    const img = container.querySelector('img');
+
+    expect(link).toHaveAttribute('href', '/');
+    expect(link).toHaveClass('size-8');
+    expect(img).toHaveClass('size-4');
+  });
 });

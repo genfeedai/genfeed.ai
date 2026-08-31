@@ -1,8 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
@@ -63,17 +61,6 @@ const mockRouter = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
 }));
-
-function MessagesNavPanelProbe() {
-  const workspaceNavPanel = useWorkspaceNavPanel();
-
-  return workspaceNavPanel?.portalTarget
-    ? createPortal(
-        <div data-testid="social-conversation-list">Conversation list</div>,
-        workspaceNavPanel.portalTarget,
-      )
-    : null;
-}
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
@@ -139,9 +126,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     collapsedSidebarWidth?: number;
     isCollapsed?: boolean;
     items?: { href: string; hrefScope?: string; label: string }[];
-    logoHref?: string;
     mobileSidebarWidth?: number;
-    onToggleCollapse?: () => void;
     orgSwitcherSlot?: ReactNode;
     primaryAction?:
       | { href: string; label: string }
@@ -227,7 +212,6 @@ vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
 }));
 
 vi.mock('@app-config/menu-items.config', () => ({
-  APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
   APP_SECONDARY_MENU_ITEMS: [
     { href: '/workspace/activity', label: 'Activity' },
@@ -239,15 +223,14 @@ vi.mock('@app-config/menu-items.config', () => ({
           { href: '/settings', hrefScope: 'brand', label: 'Settings' },
         ]
       : [{ href: '/workspace/activity', label: 'Activity' }],
-  PUBLISH_INSERT_AFTER_LABEL: 'Posts',
+  PUBLISHING_INSERT_AFTER_LABEL: 'Posts',
 }));
 
-vi.mock('@app-config/discover-menu-items.config', () => ({
-  DISCOVER_LOGO_HREF: '/discover/overview',
-  DISCOVER_MENU_ITEMS: [
-    { href: '/discover/overview', label: 'Overview' },
-    { href: '/discover/following', label: 'Following' },
-    { href: '/discover/ads', label: 'Ads' },
+vi.mock('@app-config/discovery-menu-items.config', () => ({
+  DISCOVERY_MENU_ITEMS: [
+    { href: '/discovery/overview', label: 'Overview' },
+    { href: '/discovery/following', label: 'Following' },
+    { href: '/discovery/ads', label: 'Ads' },
   ],
 }));
 
@@ -894,9 +877,9 @@ describe('AppProtectedLayout', () => {
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
     ['/library/images', 'All assets'],
-    ['/discover/overview', 'Overview'],
+    ['/discovery/overview', 'Overview'],
     ['/analytics', 'Overview'],
-    ['/automate/workflows/executions', 'Runs'],
+    ['/automation/workflows/executions', 'Runs'],
     ['/admin', 'Dashboard'],
     ['/agent/new', 'New conversation'],
   ])(
@@ -923,7 +906,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
-    ['/org-123/brand-123/discover/following', 'Discover', 'Following'],
+    ['/org-123/brand-123/discovery/following', 'Discovery', 'Following'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
@@ -935,18 +918,30 @@ describe('AppProtectedLayout', () => {
       'Trend Detail',
     ],
     [
-      '/org-123/brand-123/automate/workflows/templates',
-      'Automate',
+      '/org-123/brand-123/automation/workflows/templates',
+      'Automation',
       'Templates',
     ],
-    ['/org-123/brand-123/automate/workflows/new', 'Automate', 'New Workflow'],
-    ['/org-123/brand-123/automate/content-runs', 'Automate', 'Content Runs'],
     [
-      '/org-123/brand-123/automate/content-runs/run-1',
-      'Automate',
+      '/org-123/brand-123/automation/workflows/new',
+      'Automation',
+      'New Workflow',
+    ],
+    [
+      '/org-123/brand-123/automation/content-runs',
+      'Automation',
+      'Content Runs',
+    ],
+    [
+      '/org-123/brand-123/automation/content-runs/run-1',
+      'Automation',
       'Content Run',
     ],
-    ['/org-123/brand-123/automate/campaigns/campaign-1', 'Automate', 'Program'],
+    [
+      '/org-123/brand-123/automation/campaigns/campaign-1',
+      'Automation',
+      'Program',
+    ],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {
@@ -972,8 +967,8 @@ describe('AppProtectedLayout', () => {
   );
 
   it.each([
-    '/org-123/brand-123/automate/workflows/new',
-    '/org-123/brand-123/automate/workflows/wf-123',
+    '/org-123/brand-123/automation/workflows/new',
+    '/org-123/brand-123/automation/workflows/wf-123',
     '/org-123/brand-123/studio/edit/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
@@ -1104,21 +1099,16 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
-  it('hands the nav column to the Messages conversation list', () => {
+  it('keeps Messages module navigation while the page owns its mailbox list', () => {
     mockPathname.value = '/org-123/brand-123/messages';
 
     render(
       <AppProtectedLayout>
-        <MessagesNavPanelProbe />
         <div>Messages canvas</div>
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('messages-nav-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('messages-nav-panel')).toHaveTextContent(
-      'Conversation list',
-    );
-    expect(screen.getByTestId('social-conversation-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('messages-nav-panel')).not.toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',
@@ -1137,10 +1127,12 @@ describe('AppProtectedLayout', () => {
             label: 'Reply drip',
           }),
         ]),
-        renderBody: expect.any(Function),
         sectionLabel: 'Messages',
-        showPrimaryItems: true,
       }),
+    );
+    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty('renderBody');
+    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty(
+      'showPrimaryItems',
     );
     expect(
       screen.queryByRole('button', { name: 'New Task' }),
@@ -1174,7 +1166,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('gives workflow routes their own nav column', () => {
-    mockPathname.value = '/org-123/brand-123/automate/workflows';
+    mockPathname.value = '/org-123/brand-123/automation/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1184,8 +1176,8 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'automate',
-        sectionLabel: 'Automate',
+        currentApp: 'automation',
+        sectionLabel: 'Automation',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
@@ -1217,8 +1209,8 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/storyboard', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/automate/workflows', 'automate', 'Automate'],
-    ['/org-123/brand-123/publish/remix', 'publish', 'Publish'],
+    ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
+    ['/org-123/brand-123/publishing/remix', 'publishing', 'Publishing'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',
     (pathname, currentApp, sectionLabel) => {
@@ -1272,15 +1264,11 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('forwards collapse controls into the dedicated Library sidebar', () => {
-    const onToggleCollapse = vi.fn();
-
+  it('forwards collapsed state into the dedicated Library sidebar', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
-        isCollapsed={false}
-        onToggleCollapse={onToggleCollapse}
+        isCollapsed
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
@@ -1288,22 +1276,22 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPublishRoute={false}
-        isDiscoverRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isAutomateRoute={false}
+        isAutomationRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        publishMenuItems={[]}
-        discoverMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        automateMenuItems={[]}
+        automationMenuItems={[]}
         messagesMenuItems={[]}
         onOpenCommandPalette={vi.fn()}
       />,
@@ -1312,17 +1300,18 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'library',
-        isCollapsed: false,
-        onToggleCollapse,
+        isCollapsed: true,
         sectionLabel: 'Library',
       }),
+    );
+    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
+      'onToggleCollapse',
     );
   });
 
   it('mounts settings search on the settings sidebar', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="workspace"
         isAdminRoute={false}
         isAnalyticsRoute={false}
@@ -1330,22 +1319,22 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute={false}
         isOrgRoute={false}
-        isPublishRoute={false}
-        isDiscoverRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
         isSettingsRoute
         isStudioRoute={false}
-        isAutomateRoute={false}
+        isAutomationRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         libraryMenuItems={[]}
         menuItems={[]}
         orgMenuItems={[]}
-        publishMenuItems={[]}
-        discoverMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[{ href: '/settings', label: 'Personal' }]}
         studioMenuItems={[]}
-        automateMenuItems={[]}
+        automationMenuItems={[]}
         messagesMenuItems={[]}
         onOpenCommandPalette={vi.fn()}
       />,
@@ -1362,7 +1351,6 @@ describe('AppProtectedLayout', () => {
   it('lets a module swap its own nav panel in for the surface menu items', () => {
     render(
       <AppProtectedLayoutSidebar
-        taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
         isAdminRoute={false}
         isAnalyticsRoute={false}
@@ -1371,22 +1359,22 @@ describe('AppProtectedLayout', () => {
         isFocusedOnboardingRoute={false}
         isLibraryRoute
         isOrgRoute={false}
-        isPublishRoute={false}
-        isDiscoverRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
         isSettingsRoute={false}
         isStudioRoute={false}
-        isAutomateRoute={false}
+        isAutomationRoute={false}
         adminMenuItems={[]}
         analyticsMenuItems={[]}
         libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
         menuItems={[]}
         orgMenuItems={[]}
-        publishMenuItems={[]}
-        discoverMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
         secondaryMenuItems={[]}
         settingsMenuItems={[]}
         studioMenuItems={[]}
-        automateMenuItems={[]}
+        automationMenuItems={[]}
         messagesMenuItems={[]}
         navPanel={{
           render: () => <div data-testid="module-nav-panel" />,
@@ -1449,8 +1437,8 @@ describe('AppProtectedLayout', () => {
     }
   });
 
-  it('renders a dedicated discover sidebar on discover routes', () => {
-    mockPathname.value = '/discover/overview';
+  it('renders a dedicated discovery sidebar on discovery routes', () => {
+    mockPathname.value = '/discovery/overview';
 
     render(
       <AppProtectedLayout>
@@ -1460,13 +1448,13 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentApp: 'discover',
+        currentApp: 'discovery',
         items: [
-          { href: '/discover/overview', label: 'Overview' },
-          { href: '/discover/following', label: 'Following' },
-          { href: '/discover/ads', label: 'Ads' },
+          { href: '/discovery/overview', label: 'Overview' },
+          { href: '/discovery/following', label: 'Following' },
+          { href: '/discovery/ads', label: 'Ads' },
         ],
-        sectionLabel: 'Discover',
+        sectionLabel: 'Discovery',
       }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
@@ -1530,7 +1518,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the workspace shell', () => {
-    mockPathname.value = '/org-123/brand-123/automate/workflows/workflow-123';
+    mockPathname.value = '/org-123/brand-123/automation/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>

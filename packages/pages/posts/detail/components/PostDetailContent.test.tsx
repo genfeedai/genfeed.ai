@@ -88,7 +88,7 @@ function buildProps(
     performAutoSaveForPost: vi.fn(),
     post: buildPost({ description: 'parent copy', id: 'post-1' }),
     publishedDisplay: '',
-    scope: PageScope.PUBLISHER,
+    scope: PageScope.PUBLISHING,
     selectedIngredients: [],
     setChildDescription: vi.fn(),
     setDescriptionDraft: vi.fn(),

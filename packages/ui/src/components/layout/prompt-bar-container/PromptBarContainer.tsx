@@ -118,13 +118,6 @@ export default function PromptBarContainer({
           )}
         />
       ) : null}
-      {showTopFade ? (
-        <div
-          aria-hidden="true"
-          data-composer-bottom-scrim=""
-          className="pointer-events-none absolute inset-x-0 top-full h-5 bg-background"
-        />
-      ) : null}
       <div
         className={cn(innerClassName, topContent && 'flex flex-col gap-0')}
         data-composer-stack=""

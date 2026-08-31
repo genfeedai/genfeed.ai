@@ -4,7 +4,7 @@ export type ContentScope =
   | 'brand'
   | 'analytics'
   | 'user'
-  | 'publisher';
+  | 'publishing';
 
 export interface ContentProps {
   scope: ContentScope;

@@ -14,6 +14,7 @@ import { Trend } from '@genfeedai/models/analytics/trend.model';
 import type {
   RefreshTrendsResponse,
   TrendContentResponse,
+  TrendCorpusFreshnessHealth,
   TrendDetailData,
   TrendSourceItem,
   TrendsResponse,
@@ -173,6 +174,16 @@ export class TrendsService extends BaseService<Trend> {
         trends: [],
       }
     );
+  }
+
+  async getCorpusFreshnessHealth(
+    signal?: AbortSignal,
+  ): Promise<TrendCorpusFreshnessHealth> {
+    const response = await this.instance.get<TrendCorpusFreshnessHealth>(
+      '/corpus/health',
+      { signal },
+    );
+    return response.data;
   }
 
   async getTrendById(trendId: string): Promise<TrendDetailData> {

@@ -95,7 +95,7 @@ export function WorkflowTriggerCard({
             No workflows found
           </p>
           <a
-            href={href(APP_ROUTES.AUTOMATE.WORKFLOWS)}
+            href={href(APP_ROUTES.AUTOMATION.WORKFLOWS)}
             className="text-xs font-medium text-primary underline-offset-2 hover:underline"
           >
             Create a workflow →
@@ -187,7 +187,7 @@ export function WorkflowTriggerCard({
             {executionId && (
               <a
                 href={href(
-                  `${APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS}/${executionId}`,
+                  `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${executionId}`,
                 )}
                 className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >

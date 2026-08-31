@@ -371,7 +371,7 @@ export function useModalPostBatch(props: ModalPostProps) {
     setPlatformStatuses(initialStatuses);
     setActiveTab('results');
 
-    const url = 'POST /publish';
+    const url = 'POST /publishing';
     try {
       const service = await getPostsService();
       const groupId = Math.random().toString(36).substring(2, 12);

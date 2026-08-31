@@ -159,12 +159,6 @@
     backdrop-filter: blur(12px);
   }
 
-  .cloud-workflow-toolbar-nav {
-    :where(a, button) {
-      color: hsl(var(--muted-foreground));
-    }
-  }
-
   .cloud-workflow-title {
     letter-spacing: -0.01em;
   }

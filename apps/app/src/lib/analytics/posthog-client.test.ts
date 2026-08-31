@@ -179,14 +179,14 @@ describe('initAnalytics', () => {
     const capturedAt = new Date('2026-07-15T00:00:00.000Z');
     const originalProperties = {
       $current_url:
-        'https://app.genfeed.ai/acme/brand/publish/review?title=Secret%20Post&description=xyz',
-      $pathname: '/acme/brand/publish/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        'https://app.genfeed.ai/acme/brand/publishing/review?title=Secret%20Post&description=xyz',
+      $pathname: '/acme/brand/publishing/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
       $prev_pageview_pathname:
         '/acme/brand/studio/edit/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
-      $referrer: 'https://app.genfeed.ai/acme/brand/publish/x?title=leak',
+      $referrer: 'https://app.genfeed.ai/acme/brand/publishing/x?title=leak',
       $set_once: {
         $initial_current_url:
-          'https://app.genfeed.ai/acme/brand/publish/review?title=Secret%20Post',
+          'https://app.genfeed.ai/acme/brand/publishing/review?title=Secret%20Post',
       },
       title: 'Secret Post — Genfeed',
       utm_term: 'a secret search phrase',
@@ -246,13 +246,13 @@ describe('initAnalytics', () => {
     expect(scrubbed.properties).not.toBe(originalProperties);
     // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
     expect(props.$current_url).toBe(
-      'https://app.genfeed.ai/:org/:brand/publish/review',
+      'https://app.genfeed.ai/:org/:brand/publishing/review',
     );
-    expect(props.$pathname).toBe('/:org/:brand/publish/:id');
+    expect(props.$pathname).toBe('/:org/:brand/publishing/:id');
     expect(props.$prev_pageview_pathname).toBe('/:org/:brand/studio/edit/:id');
     expect(
       (props.$set_once as Record<string, unknown>).$initial_current_url,
-    ).toBe('https://app.genfeed.ai/:org/:brand/publish/review');
+    ).toBe('https://app.genfeed.ai/:org/:brand/publishing/review');
   });
 
   it('never constructs the client in self-hosted mode', async () => {
@@ -833,7 +833,7 @@ describe('analytics identity lifecycle', () => {
     expect(mocks.posthogCapture).toHaveBeenCalledTimes(1);
     client.captureAnalyticsPageview('user-1:org-1:/library');
     expect(mocks.posthogCapture).toHaveBeenCalledTimes(1);
-    client.captureAnalyticsPageview('user-1:org-1:/publish');
+    client.captureAnalyticsPageview('user-1:org-1:/publishing');
 
     expect(mocks.posthogCapture).toHaveBeenCalledTimes(2);
   });

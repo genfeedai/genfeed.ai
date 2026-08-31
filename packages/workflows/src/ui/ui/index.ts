@@ -18,4 +18,5 @@ export {
   SelectValue,
 } from './select';
 export { Slider } from './slider';
+export { Textarea } from './textarea';
 export { cn } from './utils';

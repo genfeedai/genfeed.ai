@@ -204,7 +204,7 @@ describe('ArticleDetail', () => {
     });
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/org-123/brand-123/publish/posts/post-1',
+      '/org-123/brand-123/publishing/posts/post-1',
     );
   });
 
