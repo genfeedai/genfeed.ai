@@ -1,5 +1,6 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import {
@@ -8,7 +9,6 @@ import {
 } from '@server/collections/trends/services/trends-maintenance-workflow-definition';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { CacheService } from '@server/services/cache/cache.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 
@@ -21,8 +21,12 @@ describe('CronTrendsService', () => {
   let actions: Map<string, CapturedAction>;
   let config: { isDevSchedulersEnabled: boolean };
   let queue: { queueSystemWorkflow: ReturnType<typeof vi.fn> };
-  let cache: Record<string, ReturnType<typeof vi.fn>>;
   let trends: Record<string, ReturnType<typeof vi.fn>>;
+  let prisma: { credential: { findMany: ReturnType<typeof vi.fn> } };
+  let workflowRunner: {
+    registerAction: ReturnType<typeof vi.fn>;
+    registerWorkflow: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     actions = new Map();
@@ -30,14 +34,10 @@ describe('CronTrendsService', () => {
     queue = {
       queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
     };
-    cache = {
-      claimOnce: vi.fn().mockResolvedValue('claimed'),
-      del: vi.fn().mockResolvedValue(true),
-      get: vi.fn().mockResolvedValue(null),
-      set: vi.fn().mockResolvedValue(true),
-    };
+    prisma = { credential: { findMany: vi.fn().mockResolvedValue([]) } };
     trends = {
       fetchAndCacheHashtags: vi.fn().mockResolvedValue(0),
+      fetchAndCachePlatformTrends: vi.fn().mockResolvedValue([]),
       fetchAndCacheSounds: vi.fn().mockResolvedValue(0),
       fetchAndCacheTrends: vi.fn().mockResolvedValue([{ id: 'trend-1' }]),
       fetchAndCacheViralVideos: vi.fn().mockResolvedValue(0),
@@ -50,21 +50,22 @@ describe('CronTrendsService', () => {
       markExpiredVideosAsHistorical: vi.fn().mockResolvedValue(0),
       precomputeGlobalTrendSourcePreview: vi.fn().mockResolvedValue({}),
     };
+    workflowRunner = {
+      registerAction: vi.fn((id: string, action: CapturedAction) => {
+        actions.set(id, action);
+      }),
+      registerWorkflow: vi.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronTrendsService,
         { provide: TrendsService, useValue: trends },
-        { provide: CacheService, useValue: cache },
+        { provide: PrismaService, useValue: prisma },
         { provide: ConfigService, useValue: config },
         { provide: WorkflowExecutionQueueService, useValue: queue },
         {
           provide: SystemWorkflowRunnerService,
-          useValue: {
-            registerAction: vi.fn((id: string, action: CapturedAction) => {
-              actions.set(id, action);
-            }),
-            registerWorkflow: vi.fn(),
-          },
+          useValue: workflowRunner,
         },
         {
           provide: LoggerService,
@@ -76,14 +77,14 @@ describe('CronTrendsService', () => {
     service.onModuleInit();
   });
 
-  it('queues the immutable refresh graph with scheduled provenance', async () => {
-    await service.refreshGlobalTrends(new Date('2026-08-28T06:00:00.000Z'));
+  it('queues one immutable refresh graph per twelve-hour window', async () => {
+    await service.refreshGlobalTrends(new Date('2026-08-28T12:15:00.000Z'));
     expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
         trigger: WorkflowExecutionTrigger.SCHEDULED,
       }),
-      'trends-refresh-2026-08-28',
+      'trends-refresh-41387',
       { attempts: 3, replaceTerminalJob: true },
     );
     expect(trends.fetchAndCacheTrends).not.toHaveBeenCalled();
@@ -97,39 +98,64 @@ describe('CronTrendsService', () => {
     expect(trends.precomputeGlobalTrendSourcePreview).toHaveBeenCalledOnce();
   });
 
-  it('retains the twice-daily warmup and startup backfill adapters', async () => {
-    await service.warmGlobalTrendDatasets(new Date('2026-08-28T12:15:00.000Z'));
-    service.onApplicationBootstrap();
-    await Promise.resolve();
-    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
-      }),
-      expect.stringMatching(/^trends-warmup-/),
-      expect.anything(),
+  it('registers no empty-corpus backfill workflow that can fan out paid actors', () => {
+    const registeredIds = workflowRunner.registerWorkflow.mock.calls.map(
+      ([definition]) => definition.canonicalId,
     );
-    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.BACKFILL,
-      }),
-      expect.stringMatching(/^trends-backfill-/),
-      expect.anything(),
-    );
+
+    expect(registeredIds).toEqual([
+      TRENDS_MAINTENANCE_WORKFLOW_IDS.DATASET_TASK,
+      TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
+      TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_TASK,
+      TRENDS_MAINTENANCE_WORKFLOW_IDS.SCOPED_REFRESH,
+    ]);
+    expect(actions.has(TRENDS_MAINTENANCE_ACTION_IDS.FETCH_GLOBAL)).toBe(true);
   });
 
-  it('retains backoff evaluation inside the registered action', async () => {
-    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.EVALUATE_BACKFILL);
-    await action?.({ input: {} });
-    expect(cache.claimOnce).toHaveBeenCalledWith(
-      expect.stringContaining('backfill'),
-      60 * 60,
+  it('discovers each connected platform scope once for native enrichment', async () => {
+    prisma.credential.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: 'TIKTOK',
+      },
+    ]);
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.DISCOVER_SCOPED);
+
+    await expect(action?.({ input: {} })).resolves.toEqual({
+      items: [
+        {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          platform: 'tiktok',
+        },
+      ],
+    });
+  });
+
+  it('refreshes a connected scope through native providers without Apify fallback', async () => {
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED);
+    await action?.({
+      input: {
+        task: {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          platform: 'instagram',
+        },
+      },
+    });
+
+    expect(trends.fetchAndCachePlatformTrends).toHaveBeenCalledWith(
+      'instagram',
+      'org-1',
+      'brand-1',
+      { allowApifyFallback: false },
     );
   });
 
   it('does not queue when local schedulers are disabled', async () => {
     config.isDevSchedulersEnabled = false;
     await service.refreshGlobalTrends();
-    await service.backfillGlobalTrendCorpus();
     expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 });

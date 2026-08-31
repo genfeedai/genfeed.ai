@@ -10,21 +10,31 @@ import type {
 import type { TrendDocument } from '@server/collections/trends/schemas/trend.schema';
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { GrokTrendData } from '@server/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@server/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
+export interface TrendProviderExecutionOptions {
+  allowApifyFallback?: boolean;
+}
+
+export interface TrendFetchBatchOptions extends TrendProviderExecutionOptions {
+  platforms?: string[];
+}
+
 @Injectable()
 export class TrendFetchService {
   /**
    * Apify bills per actor run, so this TTL is a spend control, not a freshness
-   * knob. It must stay comfortably above the 30-minute corpus backfill interval
-   * — a TTL equal to the cron period guarantees a miss on every single run.
+   * knob. It deduplicates retries and manual refreshes inside a six-hour window,
+   * while the canonical twelve-hour schedule still obtains a fresh dataset.
    */
   private readonly GLOBAL_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
   /**
@@ -53,12 +63,14 @@ export class TrendFetchService {
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
+    private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly xaiService: XaiService,
     private readonly twitterService: TwitterService,
     private readonly redditService: RedditService,
     private readonly youtubeService: YoutubeService,
     private readonly pinterestService: PinterestService,
+    private readonly tiktokService: TiktokService,
   ) {}
 
   /**
@@ -88,10 +100,12 @@ export class TrendFetchService {
   async fetchTwitterTrends(
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     const cacheKey = this.buildPersonalizedTwitterTrendsCacheKey(
       organizationId,
       brandId,
+      allowApifyFallback,
     );
 
     if (cacheKey) {
@@ -105,7 +119,11 @@ export class TrendFetchService {
       }
     }
 
-    const trends = await this.resolveTwitterTrends(organizationId, brandId);
+    const trends = await this.resolveTwitterTrends(
+      organizationId,
+      brandId,
+      allowApifyFallback,
+    );
 
     if (cacheKey && trends.length > 0) {
       await this.cacheService.set(cacheKey, trends, {
@@ -123,6 +141,7 @@ export class TrendFetchService {
   private async resolveTwitterTrends(
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     const officialTrends = await this.twitterService.getTrends(
       organizationId,
@@ -175,10 +194,12 @@ export class TrendFetchService {
         }));
       }
 
+      if (!allowApifyFallback) return [];
       this.loggerService.warn(
         'All Grok Twitter trends were rejected as stale, falling back to Apify',
       );
     } catch {
+      if (!allowApifyFallback) return [];
       const apifyTrends = await this.apifyService.getTwitterTrends({
         limit: 20,
       });
@@ -194,6 +215,7 @@ export class TrendFetchService {
   private buildPersonalizedTwitterTrendsCacheKey(
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): string | null {
     if (!organizationId && !brandId) {
       return null;
@@ -207,6 +229,7 @@ export class TrendFetchService {
       'trends',
       'twitter-personalized',
       fingerprint,
+      allowApifyFallback ? 'fallback' : 'native-only',
     );
   }
 
@@ -297,6 +320,7 @@ export class TrendFetchService {
   private async fetchRedditTrends(
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     return this.fetchNativeFirst(
       'reddit',
@@ -327,10 +351,13 @@ export class TrendFetchService {
         this.toTrendDataArray(
           await this.apifyService.getRedditTrends({ limit: 20 }),
         ),
+      allowApifyFallback,
     );
   }
 
-  private async fetchYoutubeTrends(): Promise<TrendData[]> {
+  private async fetchYoutubeTrends(
+    allowApifyFallback = true,
+  ): Promise<TrendData[]> {
     return this.fetchNativeFirst(
       'youtube',
       async () => {
@@ -366,12 +393,14 @@ export class TrendFetchService {
         this.toTrendDataArray(
           await this.apifyService.getYouTubeTrends({ limit: 20 }),
         ),
+      allowApifyFallback,
     );
   }
 
   private async fetchPinterestTrends(
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     return this.fetchNativeFirst(
       'pinterest',
@@ -401,13 +430,15 @@ export class TrendFetchService {
         this.toTrendDataArray(
           await this.apifyService.getPinterestTrends({ limit: 20 }),
         ),
+      allowApifyFallback,
     );
   }
 
   private async fetchNativeFirst(
-    platform: 'pinterest' | 'reddit' | 'youtube',
+    platform: 'instagram' | 'pinterest' | 'reddit' | 'tiktok' | 'youtube',
     nativeFetch: () => Promise<TrendData[]>,
     fallbackFetch: () => Promise<TrendData[]>,
+    allowApifyFallback = true,
   ): Promise<TrendData[]> {
     try {
       const nativeTrends = await nativeFetch();
@@ -415,10 +446,24 @@ export class TrendFetchService {
         return nativeTrends;
       }
 
+      if (!allowApifyFallback) {
+        this.loggerService.warn(
+          `${platform} native trends returned no signal; Apify fallback is disabled for this refresh`,
+        );
+        return [];
+      }
+
       this.loggerService.warn(
         `${platform} native trends returned no signal; falling back to Apify`,
       );
     } catch (error: unknown) {
+      if (!allowApifyFallback) {
+        this.loggerService.warn(
+          `${platform} native trends failed; Apify fallback is disabled for this refresh`,
+          { error: error instanceof Error ? error.message : 'unknown' },
+        );
+        return [];
+      }
       this.loggerService.warn(
         `${platform} native trends failed; falling back to Apify`,
         { error: error instanceof Error ? error.message : 'unknown' },
@@ -434,6 +479,75 @@ export class TrendFetchService {
       );
       return [];
     }
+  }
+
+  private async fetchInstagramTrends(
+    organizationId?: string,
+    brandId?: string,
+    allowApifyFallback = true,
+  ): Promise<TrendData[]> {
+    const fallback = async () =>
+      this.toTrendDataArray(
+        await this.apifyService.getInstagramTrends({ limit: 20 }),
+      );
+
+    if (!organizationId || !brandId) {
+      return allowApifyFallback ? fallback() : [];
+    }
+
+    return this.fetchNativeFirst(
+      'instagram',
+      async () =>
+        (await this.instagramService.getTrends(organizationId, brandId)).map(
+          (trend) => ({
+            growthRate: trend.growthRate,
+            mentions: trend.mentions,
+            metadata: {
+              provider: 'instagram-graph-api',
+              source: 'native-api',
+            },
+            platform: 'instagram',
+            topic: trend.topic,
+          }),
+        ),
+      fallback,
+      allowApifyFallback,
+    );
+  }
+
+  private async fetchTikTokTrends(
+    organizationId?: string,
+    brandId?: string,
+    allowApifyFallback = true,
+  ): Promise<TrendData[]> {
+    const fallback = async () =>
+      this.toTrendDataArray(
+        await this.apifyService.getTikTokTrends({ limit: 20 }),
+      );
+
+    if (!organizationId || !brandId) {
+      return allowApifyFallback ? fallback() : [];
+    }
+
+    return this.fetchNativeFirst(
+      'tiktok',
+      async () =>
+        (await this.tiktokService.getTrends(organizationId, brandId)).map(
+          (trend) => ({
+            growthRate: trend.growthRate,
+            mentions: trend.mentions,
+            metadata: {
+              ...trend.metadata,
+              provider: 'tiktok-api',
+              source: 'native-api',
+            },
+            platform: 'tiktok',
+            topic: trend.topic,
+          }),
+        ),
+      fallback,
+      allowApifyFallback,
+    );
   }
 
   private getLatestPinterestTrendValue(
@@ -457,12 +571,15 @@ export class TrendFetchService {
     platform: string,
     organizationId?: string,
     brandId?: string,
+    options: TrendProviderExecutionOptions = {},
   ): Promise<TrendData[]> {
+    const allowApifyFallback = options.allowApifyFallback !== false;
     const isGlobalRequest = !organizationId && !brandId;
     const cacheKey = this.buildPlatformTrendsCacheKey(
       platform,
       organizationId,
       brandId,
+      allowApifyFallback,
     );
 
     const cached = await this.cacheService.get<TrendData[]>(cacheKey);
@@ -477,19 +594,26 @@ export class TrendFetchService {
 
     try {
       const platformHandlers: Record<string, () => Promise<TrendData[]>> = {
-        instagram: async () =>
-          this.toTrendDataArray(
-            await this.apifyService.getInstagramTrends({ limit: 20 }),
+        instagram: () =>
+          this.fetchInstagramTrends(
+            organizationId,
+            brandId,
+            allowApifyFallback,
           ),
         linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
-        pinterest: () => this.fetchPinterestTrends(organizationId, brandId),
-        reddit: () => this.fetchRedditTrends(organizationId, brandId),
-        tiktok: async () =>
-          this.toTrendDataArray(
-            await this.apifyService.getTikTokTrends({ limit: 20 }),
+        pinterest: () =>
+          this.fetchPinterestTrends(
+            organizationId,
+            brandId,
+            allowApifyFallback,
           ),
-        twitter: () => this.fetchTwitterTrends(organizationId, brandId),
-        youtube: () => this.fetchYoutubeTrends(),
+        reddit: () =>
+          this.fetchRedditTrends(organizationId, brandId, allowApifyFallback),
+        tiktok: () =>
+          this.fetchTikTokTrends(organizationId, brandId, allowApifyFallback),
+        twitter: () =>
+          this.fetchTwitterTrends(organizationId, brandId, allowApifyFallback),
+        youtube: () => this.fetchYoutubeTrends(allowApifyFallback),
       };
 
       const handler = platformHandlers[platform];
@@ -533,12 +657,14 @@ export class TrendFetchService {
     platform: string,
     organizationId?: string,
     brandId?: string,
+    allowApifyFallback = true,
   ): string {
+    const policy = allowApifyFallback ? '' : ':native-only';
     if (!organizationId && !brandId) {
-      return `${this.CACHE_PREFIX}:global:${platform}`;
+      return `${this.CACHE_PREFIX}:global:${platform}${policy}`;
     }
 
-    return `${this.CACHE_PREFIX}:scoped:${platform}:${organizationId ?? 'none'}:${brandId ?? 'none'}`;
+    return `${this.CACHE_PREFIX}:scoped:${platform}:${organizationId ?? 'none'}:${brandId ?? 'none'}${policy}`;
   }
 
   private buildPlatformTrendsCacheTags(
@@ -579,8 +705,9 @@ export class TrendFetchService {
     organizationId?: string,
     brandId?: string,
     calculateViralityScore?: (trend: TrendData) => number,
+    options: TrendFetchBatchOptions = {},
   ): Promise<TrendEntity[]> {
-    const platforms = [
+    const platforms = options.platforms ?? [
       'tiktok',
       'instagram',
       'linkedin',
@@ -597,6 +724,7 @@ export class TrendFetchService {
           platform,
           organizationId,
           brandId,
+          options,
         );
 
         for (const trendData of trendsData) {

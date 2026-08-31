@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   cacheGet: vi.fn(),
   cacheSet: vi.fn(),
   findAllVideos: vi.fn(),
+  getCorpusFreshnessHealth: vi.fn(),
   getTrendsDiscovery: vi.fn(),
   getTrendingHashtags: vi.fn(),
   getTrendingSounds: vi.fn(),
@@ -310,6 +311,29 @@ function makeVideo(overrides: Record<string, unknown> = {}) {
 }
 
 function configureSuccessfulService() {
+  mocks.getCorpusFreshnessHealth.mockResolvedValue({
+    generatedAt: '2026-08-31T08:05:00.000Z',
+    providerFailures: [],
+    segments: [
+      {
+        id: 'youtube:native-api',
+        latestSeenAt: new Date().toISOString(),
+        platform: 'youtube',
+        provider: 'native-api',
+        status: 'healthy',
+      },
+    ],
+    status: 'healthy',
+    summary: {
+      activeTrends: 2,
+      failingProviders: 0,
+      freshSegments: 1,
+      platforms: ['youtube'],
+      referenceRecords: 4,
+      staleSegments: 0,
+      totalSegments: 1,
+    },
+  });
   mocks.getTrendsDiscovery.mockResolvedValue({
     trends: [
       makeTrend(),
@@ -372,6 +396,7 @@ describe('AnalyticsTrends', () => {
     configureSuccessfulService();
     mocks.cacheGet.mockReturnValue(null);
     mocks.getTrendsService.mockResolvedValue({
+      getCorpusFreshnessHealth: mocks.getCorpusFreshnessHealth,
       getTrendsDiscovery: mocks.getTrendsDiscovery,
       getTrendingHashtags: mocks.getTrendingHashtags,
       getTrendingSounds: mocks.getTrendingSounds,
@@ -409,6 +434,7 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
+    expect(screen.getByText('Trend corpus healthy')).toBeInTheDocument();
 
     // A real anchor, not a click handler: the router prefetches the trend
     // detail route before the click and cmd-click opens it in a new tab.
@@ -454,6 +480,47 @@ describe('AnalyticsTrends', () => {
       'https://example.test/sound',
       '_blank',
     );
+  });
+
+  it('shows a degraded corpus instead of claiming the sync is live', async () => {
+    mocks.getCorpusFreshnessHealth.mockResolvedValue({
+      generatedAt: '2026-08-31T08:05:00.000Z',
+      providerFailures: [
+        {
+          affectedTrendCount: 1,
+          latestObservedAt: '2026-08-31T08:00:00.000Z',
+          message: 'Fallback data is currently unavailable.',
+          platform: 'youtube',
+          provider: 'apify',
+          reason: 'fallback_source_preview',
+          retryAction: 'Wait for scheduled ingestion.',
+          severity: 'warning',
+        },
+      ],
+      segments: [],
+      status: 'degraded',
+      summary: {
+        activeTrends: 2,
+        failingProviders: 1,
+        freshSegments: 0,
+        platforms: ['youtube'],
+        referenceRecords: 4,
+        staleSegments: 0,
+        totalSegments: 0,
+      },
+    });
+
+    renderAnalyticsTrends();
+
+    expect(
+      await screen.findByText('Trend corpus degraded'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Affected: youtube \(apify: fallback source preview\)\. Cached trends remain available\. Last successful refresh/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Live sync')).not.toBeInTheDocument();
   });
 
   it('renders empty topic copy and falls back to cached videos, hashtags, and sounds', async () => {

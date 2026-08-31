@@ -12,6 +12,7 @@ import {
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import {
   ApifyAccountLimitSuspension,
+  ApifyActorRun,
   ApifyActorRunResponse,
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyRunBudgetService } from '@server/services/integrations/apify/services/modules/apify-run-budget.service';
@@ -21,6 +22,95 @@ import {
 } from '@server/services/integrations/apify/utils/apify-error.util';
 import { ViralScoringUtil } from '@server/services/integrations/apify/utils/viral-scoring.util';
 import { firstValueFrom } from 'rxjs';
+
+type ApifyActorRegistration = {
+  capability: string;
+  mode: 'fallback_only' | 'temporarily_apify_primary';
+};
+
+/**
+ * Production allowlist and migration inventory for every actor Genfeed can
+ * start with the hosted token. Keeping this beside the only HTTP execution
+ * boundary makes an unknown direct actor call fail before it can spend money.
+ */
+const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
+  'alexey/pinterest-scraper': {
+    capability: 'pinterest.public-and-scoped-discovery',
+    mode: 'fallback_only',
+  },
+  'apify/facebook-ads-scraper': {
+    capability: 'meta.paid-creative-discovery',
+    mode: 'temporarily_apify_primary',
+  },
+  'apify/instagram-comment-scraper': {
+    capability: 'instagram.comments',
+    mode: 'fallback_only',
+  },
+  'apify/instagram-hashtag-scraper': {
+    capability: 'instagram.public-hashtag-discovery',
+    mode: 'temporarily_apify_primary',
+  },
+  'apify/instagram-post-scraper': {
+    capability: 'instagram.post-lookup',
+    mode: 'fallback_only',
+  },
+  'apify/instagram-scraper': {
+    capability: 'instagram.public-and-scoped-social-read',
+    mode: 'temporarily_apify_primary',
+  },
+  'bernardo/youtube-comment-scraper': {
+    capability: 'youtube.comments',
+    mode: 'fallback_only',
+  },
+  'clockworks/tiktok-ads-scraper': {
+    capability: 'tiktok.paid-creative-discovery',
+    mode: 'temporarily_apify_primary',
+  },
+  'clockworks/tiktok-comments-scraper': {
+    capability: 'tiktok.comments',
+    mode: 'fallback_only',
+  },
+  'clockworks/tiktok-profile-scraper': {
+    capability: 'tiktok.profile-and-account-content',
+    mode: 'fallback_only',
+  },
+  'clockworks/tiktok-scraper': {
+    capability: 'tiktok.public-and-scoped-social-read',
+    mode: 'temporarily_apify_primary',
+  },
+  'clockworks/tiktok-trends-scraper': {
+    capability: 'tiktok.public-trend-discovery',
+    mode: 'temporarily_apify_primary',
+  },
+  'curious_coder/linkedin-profile-scraper': {
+    capability: 'linkedin.public-creator-ingestion',
+    mode: 'temporarily_apify_primary',
+  },
+  'quacker/twitter-scraper': {
+    capability: 'x.social-read',
+    mode: 'fallback_only',
+  },
+  'quacker/twitter-trends-scraper': {
+    capability: 'x.public-trend-discovery',
+    mode: 'fallback_only',
+  },
+  'streamers/youtube-channel-scraper': {
+    capability: 'youtube.channel-lookup',
+    mode: 'fallback_only',
+  },
+  'streamers/youtube-scraper': {
+    capability: 'youtube.video-discovery',
+    mode: 'fallback_only',
+  },
+  'trudax/reddit-comments-scraper': {
+    capability: 'reddit.comments',
+    mode: 'fallback_only',
+  },
+  'trudax/reddit-scraper': {
+    capability: 'reddit.social-read',
+    mode: 'fallback_only',
+  },
+};
 
 /**
  * ApifyBaseService
@@ -196,19 +286,49 @@ export class ApifyBaseService {
     scope: string;
     token: string;
   }): Promise<T[]> {
+    const registration = this.resolveActorRegistration(actorId);
+    if (
+      scope === ApifyBaseService.HOSTED_SCOPE &&
+      this.configService.get('NODE_ENV') === 'production' &&
+      !registration
+    ) {
+      this.loggerService.error(
+        `${this.constructorName} blocked unregistered hosted Apify actor ${actorId}`,
+      );
+      throw new ServiceUnavailableException(
+        `Apify actor ${actorId} is not registered for hosted production execution`,
+      );
+    }
+
     const suspension = this.getActiveAccountLimitSuspension(scope);
     if (suspension) {
       throw this.buildAccountLimitException(suspension);
     }
 
-    const budget = await this.runBudgetService.consumeRun(scope, actorId);
+    const budget = await this.runBudgetService.consumeRun(
+      scope,
+      actorId,
+      token,
+    );
     if (!budget.isAllowed) {
       throw new ServiceUnavailableException(
         budget.reason ?? 'Apify run budget exhausted',
       );
     }
 
-    const url = this.buildActorRunUrl(actorId);
+    const url = this.buildActorRunUrl(actorId, budget.maxTotalChargeUsd);
+
+    this.loggerService.log(
+      `${this.constructorName} starting governed Apify actor`,
+      {
+        actorId,
+        budgetDecision: 'allowed',
+        capability: registration?.capability ?? 'unclassified_non_production',
+        maxTotalChargeUsd: budget.maxTotalChargeUsd,
+        mode: registration?.mode ?? 'unclassified_non_production',
+        scope,
+      },
+    );
 
     try {
       const runResponse = await firstValueFrom(
@@ -220,7 +340,16 @@ export class ApifyBaseService {
       const runId = runResponse.data.data.id;
       const datasetId = runResponse.data.data.defaultDatasetId;
 
-      await this.waitForRun(runId, token);
+      const completedRun = await this.waitForRun(runId, token);
+      await this.runBudgetService.reconcileRun(
+        budget.reservation,
+        completedRun.usageTotalUsd,
+      );
+      if (completedRun.status !== 'SUCCEEDED') {
+        throw new Error(
+          `Actor run ${runId} ended with status: ${completedRun.status}`,
+        );
+      }
 
       const datasetUrl = `${this.apiUrl}/datasets/${datasetId}/items`;
       const datasetResponse = await firstValueFrom(
@@ -299,7 +428,7 @@ export class ApifyBaseService {
     runId: string,
     token: string,
     maxWaitMs: number = 120000,
-  ): Promise<void> {
+  ): Promise<ApifyActorRun> {
     const startTime = Date.now();
     const pollIntervalMs = 5000;
 
@@ -313,12 +442,8 @@ export class ApifyBaseService {
 
       const status = response.data.data.status;
 
-      if (status === 'SUCCEEDED') {
-        return;
-      }
-
-      if (['FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) {
-        throw new Error(`Actor run ${runId} ended with status: ${status}`);
+      if (['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'].includes(status)) {
+        return response.data.data;
       }
 
       // Wait before polling again
@@ -328,8 +453,14 @@ export class ApifyBaseService {
     throw new Error(`Actor run ${runId} timed out after ${maxWaitMs}ms`);
   }
 
-  private buildActorRunUrl(actorId: string): string {
-    return `${this.apiUrl}/acts/${this.normalizeActorId(actorId)}/runs`;
+  private buildActorRunUrl(
+    actorId: string,
+    maxTotalChargeUsd?: number,
+  ): string {
+    const url = `${this.apiUrl}/acts/${this.normalizeActorId(actorId)}/runs`;
+    return maxTotalChargeUsd === undefined
+      ? url
+      : `${url}?maxTotalChargeUsd=${encodeURIComponent(String(maxTotalChargeUsd))}`;
   }
 
   private normalizeActorId(actorId: string): string {
@@ -338,6 +469,15 @@ export class ApifyBaseService {
     }
 
     return encodeURIComponent(actorId);
+  }
+
+  private resolveActorRegistration(
+    actorId: string,
+  ): ApifyActorRegistration | undefined {
+    const canonicalActorId = actorId.includes('~')
+      ? actorId.replace('~', '/')
+      : actorId;
+    return APIFY_ACTOR_REGISTRY[canonicalActorId];
   }
 
   private buildAuthHeaders(token: string): Record<string, string> {

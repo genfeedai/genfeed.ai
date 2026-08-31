@@ -1,5 +1,5 @@
-import { TrendVideoService } from '@server/collections/trends/services/modules/trend-video.service';
 import { Timeframe } from '@genfeedai/enums';
+import { TrendVideoService } from '@server/collections/trends/services/modules/trend-video.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendVideoService', () => {
@@ -7,6 +7,7 @@ describe('TrendVideoService', () => {
     debug: vi.fn(),
     error: vi.fn(),
     log: vi.fn(),
+    warn: vi.fn(),
   };
 
   const mockCacheService = {
@@ -21,6 +22,10 @@ describe('TrendVideoService', () => {
     getTikTokVideos: vi.fn(),
     getTrendingHashtags: vi.fn(),
     getYouTubeVideos: vi.fn(),
+  };
+
+  const mockYoutubeService = {
+    getTrends: vi.fn(),
   };
 
   type MockTrendDelegate = {
@@ -99,12 +104,14 @@ describe('TrendVideoService', () => {
 
     mockCacheService.get.mockResolvedValue(null);
     mockCacheService.set.mockResolvedValue(undefined);
+    mockYoutubeService.getTrends.mockResolvedValue([]);
 
     service = new TrendVideoService(
       mockPrisma as never,
       mockLoggerService as never,
       mockCacheService as never,
       mockApifyService as never,
+      mockYoutubeService as never,
     );
   });
 
@@ -206,6 +213,37 @@ describe('TrendVideoService', () => {
   });
 
   describe('fetchAndCacheViralVideos', () => {
+    it('uses native YouTube discovery before the governed Apify fallback', async () => {
+      mockYoutubeService.getTrends.mockResolvedValue([
+        {
+          channelTitle: 'Native channel',
+          commentCount: 4,
+          id: 'native-video',
+          likeCount: 25,
+          publishedAt: '2026-08-31T08:00:00.000Z',
+          tags: [],
+          title: 'Native trend',
+          url: 'https://youtube.test/watch?v=native-video',
+          viewCount: 1000,
+        },
+      ]);
+
+      await expect(
+        service.fetchAndCacheViralVideos('youtube', 12),
+      ).resolves.toBe(1);
+
+      expect(mockYoutubeService.getTrends).toHaveBeenCalledWith('US', 12);
+      expect(mockApifyService.getYouTubeVideos).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          data: expect.objectContaining({
+            externalId: 'native-video',
+            provider: 'youtube-data-api-v3',
+          }),
+        }),
+      });
+    });
+
     it('reads existing videos once for the whole batch and updates the match', async () => {
       mockApifyService.getTikTokVideos.mockResolvedValue([
         { externalId: 'a', title: 'A' },

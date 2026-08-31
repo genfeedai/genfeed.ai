@@ -19,10 +19,12 @@ import { TrendReferenceCorpusService } from '@server/collections/trends/services
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { XaiService } from '@server/services/integrations/xai/services/xai.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
@@ -206,7 +208,19 @@ describe('TrendsService', () => {
           },
         },
         {
+          provide: InstagramService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
           provide: TwitterService,
+          useValue: {
+            getTrends: vi.fn(),
+          },
+        },
+        {
+          provide: TiktokService,
           useValue: {
             getTrends: vi.fn(),
           },
@@ -988,6 +1002,17 @@ describe('TrendsService', () => {
       expect(fetchAndCacheTrendsSpy).not.toHaveBeenCalled();
     });
 
+    it('keeps an omitted fetch policy cache-only', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
+
+      const fetchAndCacheTrendsSpy = vi.spyOn(service, 'fetchAndCacheTrends');
+
+      const result = await service.getTrends(mockOrganizationId, mockBrandId);
+
+      expect(result).toEqual([]);
+      expect(fetchAndCacheTrendsSpy).not.toHaveBeenCalled();
+    });
+
     it.each([
       'instagram',
       'linkedin',
@@ -1074,7 +1099,7 @@ describe('TrendsService', () => {
       );
     });
 
-    it('should invoke the live fetch path when neither tenant nor global cache has trends', async () => {
+    it('should invoke the live fetch path only when explicitly requested', async () => {
       prisma.trend.findMany.mockResolvedValue([]);
 
       const fetchedTrend = new TrendEntity({
@@ -1087,7 +1112,12 @@ describe('TrendsService', () => {
         .spyOn(service, 'fetchAndCacheTrends')
         .mockResolvedValue([fetchedTrend]);
 
-      const result = await service.getTrends(mockOrganizationId, mockBrandId);
+      const result = await service.getTrends(
+        mockOrganizationId,
+        mockBrandId,
+        undefined,
+        { allowFetchIfMissing: true },
+      );
 
       expect(fetchAndCacheTrendsSpy).toHaveBeenCalledWith(
         mockOrganizationId,

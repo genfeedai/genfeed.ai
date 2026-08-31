@@ -54,6 +54,7 @@ describe('ApifyBaseService', () => {
 
     runBudget = {
       consumeRun: vi.fn().mockResolvedValue({ isAllowed: true }),
+      reconcileRun: vi.fn().mockResolvedValue(undefined),
     };
 
     loggerService = {
@@ -91,6 +92,49 @@ describe('ApifyBaseService', () => {
     const result = await service.runActor('some/actor', {});
     expect(result).toEqual([]);
     expect(httpService.post).not.toHaveBeenCalled();
+  });
+
+  it('blocks an unregistered actor from using the hosted token in production', async () => {
+    configService.get.mockImplementation((key: string) => {
+      if (key === 'APIFY_API_TOKEN') return 'test-token';
+      if (key === 'NODE_ENV') return 'production';
+      return undefined;
+    });
+
+    await expect(service.runActor('unknown/paid-actor', {})).rejects.toThrow(
+      'not registered for hosted production execution',
+    );
+    expect(runBudget.consumeRun).not.toHaveBeenCalled();
+    expect(httpService.post).not.toHaveBeenCalled();
+  });
+
+  it('allows a registered actor through the governed production boundary', async () => {
+    configService.get.mockImplementation((key: string) => {
+      if (key === 'APIFY_API_TOKEN') return 'test-token';
+      if (key === 'NODE_ENV') return 'production';
+      return undefined;
+    });
+    httpService.post.mockReturnValue(
+      of({
+        data: {
+          data: {
+            defaultDatasetId: 'ds-1',
+            id: 'run-1',
+            status: 'RUNNING',
+          },
+        },
+      }),
+    );
+    httpService.get
+      .mockReturnValueOnce(
+        of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
+      )
+      .mockReturnValueOnce(of({ data: [] }));
+
+    await expect(
+      service.runActor('streamers/youtube-scraper', {}),
+    ).resolves.toEqual([]);
+    expect(runBudget.consumeRun).toHaveBeenCalledTimes(1);
   });
 
   it('runActor executes actor and returns dataset items', async () => {
@@ -151,6 +195,15 @@ describe('ApifyBaseService', () => {
   });
 
   it('runActor throws when actor run fails', async () => {
+    const reservation = {
+      reservedMicroUsd: 250_000,
+      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
+    };
+    runBudget.consumeRun.mockResolvedValueOnce({
+      isAllowed: true,
+      maxTotalChargeUsd: 0.25,
+      reservation,
+    });
     httpService.post.mockReturnValue(
       of({
         data: {
@@ -159,12 +212,62 @@ describe('ApifyBaseService', () => {
       }),
     );
     httpService.get.mockReturnValue(
-      of({ data: { data: { id: 'run-1', status: 'FAILED' } } }),
+      of({
+        data: {
+          data: { id: 'run-1', status: 'FAILED', usageTotalUsd: 0.004 },
+        },
+      }),
     );
 
     await expect(service.runActor('test/actor', {})).rejects.toThrow(
       'Actor run run-1 ended with status: FAILED',
     );
+    expect(runBudget.reconcileRun).toHaveBeenCalledWith(reservation, 0.004);
+  });
+
+  it('caps a hosted run and reconciles the reservation to Apify actual usage', async () => {
+    const reservation = {
+      reservedMicroUsd: 250_000,
+      usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
+    };
+    runBudget.consumeRun.mockResolvedValueOnce({
+      isAllowed: true,
+      maxTotalChargeUsd: 0.25,
+      reservation,
+    });
+    httpService.post.mockReturnValue(
+      of({
+        data: {
+          data: {
+            defaultDatasetId: 'ds-1',
+            id: 'run-1',
+            status: 'RUNNING',
+          },
+        },
+      }),
+    );
+    httpService.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd: 0.012,
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(of({ data: [] }));
+
+    await service.runActor('test/actor', {});
+
+    expect(httpService.post).toHaveBeenCalledWith(
+      'https://api.apify.com/v2/acts/test~actor/runs?maxTotalChargeUsd=0.25',
+      {},
+      expect.anything(),
+    );
+    expect(runBudget.reconcileRun).toHaveBeenCalledWith(reservation, 0.012);
   });
 
   it('runActorForOrg uses byok key when available', async () => {
@@ -546,6 +649,7 @@ describe('ApifyBaseService', () => {
       expect(runBudget.consumeRun).toHaveBeenCalledWith(
         'byok:org-1',
         'test/actor',
+        'byok-key',
       );
     });
 

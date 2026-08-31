@@ -19,7 +19,10 @@ import {
   isBrandResourceReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import type { TrendItem } from '@props/trends/trends-page.props';
+import type {
+  TrendCorpusFreshnessHealth,
+  TrendItem,
+} from '@props/trends/trends-page.props';
 import { logger } from '@services/core/logger.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { TrendsService } from '@services/social/trends.service';
@@ -98,6 +101,8 @@ export function useAnalyticsTrends() {
 
   // Trending topics from our backend
   const [trendingTopics, setTrendingTopics] = useState<TrendItem[]>([]);
+  const [corpusHealth, setCorpusHealth] =
+    useState<TrendCorpusFreshnessHealth | null>(null);
   const [isLoadingTrends, setIsLoadingTrends] = useState(true);
 
   // New state for hashtags and sounds
@@ -209,6 +214,27 @@ export function useAnalyticsTrends() {
 
     fetchTrendingTopics();
     return () => controller.abort();
+  }, [getTrendsService]);
+
+  useEffect(() => {
+    let active = true;
+
+    const fetchCorpusHealth = async () => {
+      try {
+        const service = await getTrendsService();
+        const health = await service.getCorpusFreshnessHealth();
+        if (active) {
+          setCorpusHealth(health);
+        }
+      } catch (error) {
+        logger.error('Failed to fetch trend corpus health', { error });
+      }
+    };
+
+    fetchCorpusHealth();
+    return () => {
+      active = false;
+    };
   }, [getTrendsService]);
 
   useEffect(() => {
@@ -444,18 +470,22 @@ export function useAnalyticsTrends() {
   );
 
   const lastSyncedAt = useMemo(() => {
-    if (viralVideos.length === 0) {
+    const timestamps = [
+      ...viralVideos.map((video) => video.publishedAt),
+      ...(corpusHealth?.segments.map((segment) => segment.latestSeenAt) ?? []),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => new Date(value))
+      .filter((value) => Number.isFinite(value.getTime()));
+
+    if (timestamps.length === 0) {
       return null;
     }
 
-    return viralVideos.reduce(
-      (latest: Date, video: ITrendVideo) => {
-        const published = new Date(video.publishedAt ?? 0);
-        return published > latest ? published : latest;
-      },
-      new Date(viralVideos[0].publishedAt ?? 0),
+    return timestamps.reduce((latest, value) =>
+      value > latest ? value : latest,
     );
-  }, [viralVideos]);
+  }, [corpusHealth, viralVideos]);
 
   const formattedLastSyncedAt = useMemo(
     () => (lastSyncedAt ? formatDate(lastSyncedAt) : ''),
@@ -489,6 +519,7 @@ export function useAnalyticsTrends() {
   return {
     PLATFORM_CONFIG_LOOKUP: PLATFORM_CONFIGS,
     TRENDS_PLATFORMS,
+    corpusHealth,
     creatorLeaderboard,
     formattedLastSyncedAt,
     handleHashtagClick,

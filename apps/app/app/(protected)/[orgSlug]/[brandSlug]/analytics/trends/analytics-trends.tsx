@@ -20,6 +20,7 @@ export default function AnalyticsTrends() {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
     creatorLeaderboard,
+    corpusHealth,
     formattedLastSyncedAt,
     handleHashtagClick,
     handleRemixClose,
@@ -47,6 +48,7 @@ export default function AnalyticsTrends() {
   return (
     <div className="space-y-8 pb-12">
       <TrendsPageHeader
+        corpusHealth={corpusHealth}
         formattedLastSyncedAt={formattedLastSyncedAt}
         videoCount={viralVideos.length}
         platformCount={TRENDS_PLATFORMS.length}

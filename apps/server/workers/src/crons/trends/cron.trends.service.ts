@@ -1,16 +1,19 @@
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
 import {
-  Injectable,
-  type OnApplicationBootstrap,
-  type OnModuleInit,
-} from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+  fromPrismaCredentialPlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import {
+  buildScopedTrendsRefreshWorkflowDefinition,
+  buildScopedTrendTaskWorkflowDefinition,
   buildTrendDatasetTaskWorkflowDefinition,
-  buildTrendsBackfillWorkflowDefinition,
   buildTrendsRefreshWorkflowDefinition,
+  type ScopedTrendRefreshTask,
   TRENDS_MAINTENANCE_ACTION_IDS,
   type TrendDatasetTask,
   type TrendsMaintenanceRequest,
@@ -20,25 +23,18 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
-import { CacheService } from '@server/services/cache/cache.service';
 import { ConfigService } from '@workers/config/config.service';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
-const MIN_ACTIVE_TRENDS = 50;
-const MIN_REFERENCE_RECORDS = 100;
-const COOLDOWN_KEY = 'cron:trends:backfill:cooldown';
-const ATTEMPTS_KEY = 'cron:trends:backfill:attempts';
-const BASE_COOLDOWN_SECONDS = 60 * 60;
-const MAX_COOLDOWN_SECONDS = 12 * 60 * 60;
-const ATTEMPTS_TTL_SECONDS = 24 * 60 * 60;
+const REFRESH_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 @Injectable()
-export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
+export class CronTrendsService implements OnModuleInit {
   private readonly context = 'CronTrendsService';
 
   constructor(
     private readonly trendsService: TrendsService,
-    private readonly cacheService: CacheService,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
@@ -54,47 +50,31 @@ export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
       buildTrendsRefreshWorkflowDefinition(),
     );
     this.workflowRunner.registerWorkflow(
-      buildTrendsBackfillWorkflowDefinition(),
+      buildScopedTrendTaskWorkflowDefinition(),
     );
-  }
-
-  onApplicationBootstrap(): void {
-    if (this.configService.isDevSchedulersEnabled) {
-      void this.backfillGlobalTrendCorpus();
-    }
+    this.workflowRunner.registerWorkflow(
+      buildScopedTrendsRefreshWorkflowDefinition(),
+    );
   }
 
   @Cron('0 15 0,12 * * *', { timeZone: 'UTC' })
-  async warmGlobalTrendDatasets(now = new Date()): Promise<void> {
-    if (!this.configService.isDevSchedulersEnabled) return;
-    await this.enqueue(
-      buildTrendsRefreshWorkflowDefinition(),
-      'scheduled-trends-warmup',
-      `trends-warmup-${Math.floor(now.getTime() / (12 * 60 * 60 * 1000))}`,
-      now,
-    );
-  }
-
-  @Cron(CronExpression.EVERY_DAY_AT_6AM)
   async refreshGlobalTrends(now = new Date()): Promise<void> {
     if (!this.configService.isDevSchedulersEnabled) return;
-    await this.enqueue(
-      buildTrendsRefreshWorkflowDefinition(),
-      'scheduled-trends-refresh',
-      `trends-refresh-${now.toISOString().slice(0, 10)}`,
-      now,
-    );
-  }
-
-  @Cron(CronExpression.EVERY_30_MINUTES)
-  async backfillGlobalTrendCorpus(now = new Date()): Promise<void> {
-    if (!this.configService.isDevSchedulersEnabled) return;
-    await this.enqueue(
-      buildTrendsBackfillWorkflowDefinition(),
-      'scheduled-trends-backfill',
-      `trends-backfill-${Math.floor(now.getTime() / (30 * 60 * 1000))}`,
-      now,
-    );
+    const windowId = Math.floor(now.getTime() / REFRESH_WINDOW_MS);
+    await Promise.all([
+      this.enqueue(
+        buildTrendsRefreshWorkflowDefinition(),
+        'scheduled-trends-refresh',
+        `trends-refresh-${windowId}`,
+        now,
+      ),
+      this.enqueue(
+        buildScopedTrendsRefreshWorkflowDefinition(),
+        'scheduled-scoped-native-trends-refresh',
+        `trends-scoped-refresh-${windowId}`,
+        now,
+      ),
+    ]);
   }
 
   private registerActions(): void {
@@ -137,12 +117,13 @@ export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
       () => this.trendsService.precomputeGlobalTrendSourcePreview(),
     );
     this.workflowRunner.registerAction(
-      TRENDS_MAINTENANCE_ACTION_IDS.EVALUATE_BACKFILL,
-      () => this.evaluateBackfill(),
+      TRENDS_MAINTENANCE_ACTION_IDS.DISCOVER_SCOPED,
+      () => this.discoverScopedTrendTasks(),
     );
     this.workflowRunner.registerAction(
-      TRENDS_MAINTENANCE_ACTION_IDS.FINALIZE_BACKFILL,
-      ({ input }) => this.finalizeBackfill(Boolean(input.refresh)),
+      TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SCOPED,
+      ({ input }) =>
+        this.fetchScopedTrendTask(input.task as ScopedTrendRefreshTask),
     );
   }
 
@@ -171,67 +152,61 @@ export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
     };
   }
 
-  private async evaluateBackfill(): Promise<{
-    attempts: number;
-    shouldBackfill: boolean;
-    stats: Awaited<ReturnType<TrendsService['getGlobalCorpusStats']>>;
+  private async discoverScopedTrendTasks(): Promise<{
+    items: ScopedTrendRefreshTask[];
   }> {
-    const stats = await this.trendsService.getGlobalCorpusStats();
-    if (this.thresholdsSatisfied(stats)) {
-      await this.clearBackoff();
-      return { attempts: 0, shouldBackfill: false, stats };
-    }
-    const attempts = await this.getAttempts();
-    const claim = await this.cacheService.claimOnce(
-      COOLDOWN_KEY,
-      this.cooldownSeconds(attempts),
-    );
-    return { attempts, shouldBackfill: claim !== 'duplicate', stats };
-  }
-
-  private async finalizeBackfill(wasRefreshed: boolean): Promise<{
-    refreshed: boolean;
-    stats: Awaited<ReturnType<TrendsService['getGlobalCorpusStats']>>;
-  }> {
-    const stats = await this.trendsService.getGlobalCorpusStats();
-    if (wasRefreshed) {
-      if (this.thresholdsSatisfied(stats)) await this.clearBackoff();
-      else await this.recordUnproductive(await this.getAttempts());
-    }
-    return { refreshed: wasRefreshed, stats };
-  }
-
-  private thresholdsSatisfied(stats: {
-    activeTrends: number;
-    referenceRecords: number;
-  }): boolean {
-    return (
-      stats.activeTrends >= MIN_ACTIVE_TRENDS &&
-      stats.referenceRecords >= MIN_REFERENCE_RECORDS
-    );
-  }
-
-  private async getAttempts(): Promise<number> {
-    const stored = await this.cacheService.get<number>(ATTEMPTS_KEY);
-    return typeof stored === 'number' && stored > 0 ? stored : 0;
-  }
-
-  private cooldownSeconds(attempts: number): number {
-    return Math.min(
-      BASE_COOLDOWN_SECONDS * 2 ** attempts,
-      MAX_COOLDOWN_SECONDS,
-    );
-  }
-
-  private async recordUnproductive(attempts: number): Promise<void> {
-    await this.cacheService.set(ATTEMPTS_KEY, attempts + 1, {
-      ttl: ATTEMPTS_TTL_SECONDS,
+    const credentials = await this.prisma.credential.findMany({
+      distinct: ['organizationId', 'brandId', 'platform'],
+      select: { brandId: true, organizationId: true, platform: true },
+      where: {
+        brandId: { not: null },
+        isConnected: true,
+        isDeleted: false,
+        organizationId: { not: null },
+        platform: {
+          in: [
+            PrismaCredentialPlatform.INSTAGRAM,
+            PrismaCredentialPlatform.LINKEDIN,
+            PrismaCredentialPlatform.PINTEREST,
+            PrismaCredentialPlatform.REDDIT,
+            PrismaCredentialPlatform.TIKTOK,
+            PrismaCredentialPlatform.TWITTER,
+            PrismaCredentialPlatform.YOUTUBE,
+          ],
+        },
+      },
     });
+
+    return {
+      items: credentials.flatMap((credential) => {
+        const platform = fromPrismaCredentialPlatform(credential.platform);
+        return credential.organizationId && credential.brandId && platform
+          ? [
+              {
+                brandId: credential.brandId,
+                organizationId: credential.organizationId,
+                platform,
+              },
+            ]
+          : [];
+      }),
+    };
   }
 
-  private async clearBackoff(): Promise<void> {
-    await this.cacheService.del(ATTEMPTS_KEY);
-    await this.cacheService.del(COOLDOWN_KEY);
+  private async fetchScopedTrendTask(
+    task: ScopedTrendRefreshTask,
+  ): Promise<{ count: number; platform: string }> {
+    if (!task?.organizationId || !task.brandId || !task.platform) {
+      throw new Error('Scoped trend refresh task is invalid');
+    }
+
+    const trends = await this.trendsService.fetchAndCachePlatformTrends(
+      task.platform,
+      task.organizationId,
+      task.brandId,
+      { allowApifyFallback: false },
+    );
+    return { count: trends.length, platform: task.platform };
   }
 
   private async enqueue(

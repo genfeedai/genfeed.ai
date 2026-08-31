@@ -67,11 +67,6 @@ const STREAK_EVALUATION = closedObjectSchema(
 const STREAK_INPUT = closedObjectSchema({ evaluation: STREAK_EVALUATION }, [
   'evaluation',
 ]);
-const TREND_STATS = closedObjectSchema(
-  { activeTrends: INTEGER_SCHEMA, referenceRecords: INTEGER_SCHEMA },
-  ['activeTrends', 'referenceRecords'],
-);
-
 const RSS_CLAIM_PROPERTIES = {
   channels: arraySchema(JSON_DOCUMENT_SCHEMA),
   context: JSON_DOCUMENT_SCHEMA,
@@ -261,17 +256,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'streak.sweep.discover-organizations': contract(REQUEST_INPUT, ITEMS_OUTPUT),
   'tiktok.status.discover': contract(REQUEST_INPUT, ITEMS_OUTPUT),
   'tiktok.status.reconcile': contract(REQUEST_INPUT, BOOLEAN_SCHEMA),
-  'trends.maintenance.evaluate-backfill': contract(
-    REQUEST_INPUT,
-    closedObjectSchema(
-      {
-        attempts: INTEGER_SCHEMA,
-        shouldBackfill: BOOLEAN_SCHEMA,
-        stats: TREND_STATS,
-      },
-      ['attempts', 'shouldBackfill', 'stats'],
-    ),
-  ),
+  'trends.maintenance.discover-scoped': contract(REQUEST_INPUT, ITEMS_OUTPUT),
   'trends.maintenance.expire-hashtags': contract(
     closedObjectSchema(
       { previous: JSON_DOCUMENT_SCHEMA, request: JSON_DOCUMENT_SCHEMA },
@@ -325,18 +310,11 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
     COUNT_OUTPUT,
   ),
-  'trends.maintenance.finalize-backfill': contract(
-    closedObjectSchema(
-      {
-        evaluation: JSON_DOCUMENT_SCHEMA,
-        refresh: JSON_DOCUMENT_SCHEMA,
-        request: JSON_DOCUMENT_SCHEMA,
-      },
-      ['request'],
-    ),
-    closedObjectSchema({ refreshed: BOOLEAN_SCHEMA, stats: TREND_STATS }, [
-      'refreshed',
-      'stats',
+  'trends.maintenance.fetch-scoped': contract(
+    closedObjectSchema({ task: JSON_DOCUMENT_SCHEMA }, ['task']),
+    closedObjectSchema({ count: INTEGER_SCHEMA, platform: STRING_SCHEMA }, [
+      'count',
+      'platform',
     ]),
   ),
   'trends.maintenance.precompute-preview': contract(
