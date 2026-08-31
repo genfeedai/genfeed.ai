@@ -206,6 +206,57 @@ describe('PostGroupsController', () => {
     expect(service.updateTarget).not.toHaveBeenCalled();
   });
 
+  it.each(['publish-now', 'publish-via-tiktok-app'] as const)(
+    'rejects API-key %s with schedule-only scope before publishing',
+    async (action) => {
+      await expect(
+        controller.updateTarget(
+          req,
+          {
+            ...user,
+            isApiKey: true,
+            scopes: [ApiKeyScope.POSTS_SCHEDULE],
+          } as User,
+          'group-1',
+          'target-1',
+          { action },
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+        }),
+      });
+      expect(service.publishTargetNow).not.toHaveBeenCalled();
+      expect(service.publishTargetViaTikTokApp).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects API-key scheduling with publish-only scope before scheduling', async () => {
+    await expect(
+      controller.updateTarget(
+        req,
+        {
+          ...user,
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_PUBLISH],
+        } as User,
+        'group-1',
+        'target-1',
+        {
+          action: 'schedule',
+          scheduledDate: '2026-09-01T10:00:00.000Z',
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+      }),
+    });
+    expect(service.scheduleTarget).not.toHaveBeenCalled();
+  });
+
   it('wraps a desk post into a release group before schedule or publish-now', async () => {
     await controller.ensureFromPost(req, user, { postId: 'post-1' });
 

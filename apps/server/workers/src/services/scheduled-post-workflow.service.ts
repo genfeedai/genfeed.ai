@@ -136,7 +136,11 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       versionPinId: this.requiredString(request.versionPinId, 'versionPinId'),
     });
 
-    if (result.success && !result.isProviderDraft) {
+    if (
+      result.success &&
+      result.executionState === TargetExecutionState.PUBLISHED &&
+      !result.isProviderDraft
+    ) {
       await this.activitiesService.create(
         new ActivityEntity({
           brandId: readPostString(post, ['brandId']) ?? undefined,
