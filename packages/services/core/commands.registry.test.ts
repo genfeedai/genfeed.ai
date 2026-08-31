@@ -97,13 +97,15 @@ describe('commands.registry', () => {
       expect(libraryCmd?.shortcut).toEqual(['⌘', '3']);
     });
 
-    it('should have posts command', () => {
+    it('should have publishing command', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const postsCmd = navigationCommands.find((c) => c.id === 'nav-posts');
+      const publishingCmd = navigationCommands.find(
+        (c) => c.id === 'nav-publishing',
+      );
 
-      expect(postsCmd).toBeDefined();
-      expect(postsCmd?.label).toBe('Go to Posts');
-      expect(postsCmd?.keywords).toContain('publishing');
+      expect(publishingCmd).toBeDefined();
+      expect(publishingCmd?.label).toBe('Go to Publishing');
+      expect(publishingCmd?.keywords).toContain('posts');
     });
 
     it('should have analytics command', () => {
@@ -117,12 +119,14 @@ describe('commands.registry', () => {
       expect(analyticsCmd?.keywords).toContain('analytics');
     });
 
-    it('should have agents command', () => {
+    it('should have automation command', () => {
       const navigationCommands = createNavigationCommands(TEST_ORG, TEST_BRAND);
-      const agentsCmd = navigationCommands.find((c) => c.id === 'nav-agents');
+      const automationCmd = navigationCommands.find(
+        (c) => c.id === 'nav-automation',
+      );
 
-      expect(agentsCmd).toBeDefined();
-      expect(agentsCmd?.keywords).toContain('workflows');
+      expect(automationCmd).toBeDefined();
+      expect(automationCmd?.keywords).toContain('workflows');
     });
 
     it('should have settings command', () => {
