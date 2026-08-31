@@ -46,6 +46,7 @@ const APPROVAL_GATED_NAMES = [
   'create_scheduled_release',
   'update_scheduled_release',
   'control_scheduled_release',
+  'install_skills_pro_skill',
 ];
 
 const MOCK_TOOLS = new Map(

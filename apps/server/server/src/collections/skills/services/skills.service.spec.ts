@@ -1,10 +1,10 @@
+import { LoggerService } from '@libs/logger/logger.service';
 import { BUILT_IN_SKILL_CATALOG } from '@server/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@server/collections/skills/services/skills.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type SkillRow = {
@@ -87,6 +87,17 @@ describe('SkillsService', () => {
     ['create', () => service.createSkill(undefined as never, skillPayload)],
     ['import', () => service.importSkill(undefined as never, skillPayload)],
     [
+      'managed install',
+      () =>
+        service.installManagedSkillPackage(undefined as never, {
+          ...skillPayload,
+          checksum: 'abc',
+          files: [],
+          instructions: 'Private instructions',
+          version: '1.0.0',
+        }),
+    ],
+    [
       'customize',
       () => service.customizeSkill(undefined as never, 'skill-1', {}),
     ],
@@ -147,6 +158,36 @@ describe('SkillsService', () => {
           status: 'published',
         }),
         isDeleted: false,
+        organizationId: 'org-1',
+      }),
+    });
+  });
+
+  it('installs a managed pack into the organization runtime store', async () => {
+    prisma.skill.findFirst.mockResolvedValue(null);
+
+    await service.installManagedSkillPackage('org-1', {
+      ...skillPayload,
+      checksum: 'a'.repeat(64),
+      files: [{ content: 'Private instructions', path: 'SKILL.md' }],
+      instructions: 'Private instructions',
+      version: '1.0.0',
+    });
+
+    expect(prisma.skill.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          integrity: {
+            algorithm: 'sha256',
+            checksum: 'a'.repeat(64),
+          },
+          isBuiltIn: false,
+          isEnabled: true,
+          source: 'imported',
+          sourceListingId: 'skills-pro:hook-writer',
+          status: 'published',
+          systemPromptTemplate: 'Private instructions',
+        }),
         organizationId: 'org-1',
       }),
     });

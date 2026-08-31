@@ -3547,6 +3547,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'rssSources',
       'savedAds',
       'schedules',
+      'skillReceipts',
       'skills',
       'slotReservations',
       'socialConversations',
@@ -4618,10 +4619,26 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     },
   },
   SkillReceipt: {
-    allFields: ['createdAt', 'data', 'id', 'isDeleted', 'updatedAt'],
-    listFields: [],
+    allFields: [
+      'createdAt',
+      'data',
+      'downloadCount',
+      'expiresAt',
+      'id',
+      'isDeleted',
+      'lastDownloadedAt',
+      'organization',
+      'organizationId',
+      'productType',
+      'receiptId',
+      'status',
+      'updatedAt',
+    ],
+    listFields: ['skillSlugs'],
     enumFields: {},
-    relationIdFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   SlotReservation: {
     allFields: [
