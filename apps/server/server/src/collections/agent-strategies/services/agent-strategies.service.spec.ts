@@ -5,11 +5,11 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { AgentType } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { AgentType } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('AgentStrategiesService', () => {
   let service: AgentStrategiesService;
@@ -42,6 +42,32 @@ describe('AgentStrategiesService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('normalizes required arrays for legacy rows with sparse config', async () => {
+    const create = vi.fn().mockResolvedValue({
+      config: {},
+      id: 'strategy-1',
+      policies: {},
+      platforms: [],
+    });
+
+    const strategy = await service.createWithClient(
+      {
+        label: 'Legacy strategy',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+      { agentStrategy: { create } } as never,
+    );
+
+    expect(strategy).toMatchObject({
+      platforms: [],
+      runHistory: [],
+      skillSlugs: [],
+      topics: [],
+      workflowInputOverrides: [],
+    });
   });
 
   it('queues the next run and clears failure state when activating', async () => {

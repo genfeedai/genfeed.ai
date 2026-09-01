@@ -122,8 +122,24 @@ export class AgentStrategiesService extends BaseService<
     const record = super.normalizeDocument(document) as Record<string, unknown>;
     const config = this.readRecord(record.config) ?? {};
     const policies = this.readRecord(record.policies) ?? {};
+    const normalized = { ...config, ...policies, ...record };
 
-    return { ...config, ...policies, ...record } as AgentStrategyDocument;
+    return {
+      ...normalized,
+      platforms: Array.isArray(normalized.platforms)
+        ? normalized.platforms
+        : [],
+      runHistory: Array.isArray(normalized.runHistory)
+        ? normalized.runHistory
+        : [],
+      skillSlugs: Array.isArray(normalized.skillSlugs)
+        ? normalized.skillSlugs
+        : [],
+      topics: Array.isArray(normalized.topics) ? normalized.topics : [],
+      workflowInputOverrides: normalizeWorkflowInputOverrides(
+        normalized.workflowInputOverrides,
+      ),
+    } as AgentStrategyDocument;
   }
 
   /**
