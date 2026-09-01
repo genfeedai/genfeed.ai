@@ -4,7 +4,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { ValidatedAgentScope } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import type {
   ExecutableWorkflow,
   ExecutionRunResult,
@@ -39,6 +39,7 @@ type PreparedWorkflowExecution = {
   executionId: string;
   initialEta: ReturnType<typeof applyWorkflowEtaProgress>;
   keepsWorkflowActive: boolean;
+  organizationId: string;
   startedAt: Date;
   workflowId: string;
   workflowLabel: string;
@@ -260,6 +261,7 @@ export class WorkflowExecutionRunnerService {
       executionId,
       initialEta,
       keepsWorkflowActive,
+      organizationId: input.event.organizationId,
       startedAt,
       workflowId,
       workflowLabel,
@@ -291,7 +293,9 @@ export class WorkflowExecutionRunnerService {
           ? WorkflowStatus.ACTIVE
           : WorkflowStatus.RUNNING,
       },
-      where: { id: prepared.workflowId },
+      where: scopedWhere(prepared.organizationId, {
+        id: prepared.workflowId,
+      }),
     });
     if (prepared.executableWorkflow.emitSharedEvents !== false) {
       await this.progressService.emitEvent(prepared.workflowId, 'started', {
@@ -408,7 +412,9 @@ export class WorkflowExecutionRunnerService {
           ? WorkflowStatus.ACTIVE
           : WorkflowStatus.FAILED,
       },
-      where: { id: prepared.workflowId },
+      where: scopedWhere(prepared.organizationId, {
+        id: prepared.workflowId,
+      }),
     });
     if (prepared.executableWorkflow.emitSharedEvents !== false) {
       await this.progressService.emitEvent(prepared.workflowId, 'error', {

@@ -1,6 +1,7 @@
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
+  WorkflowStatus,
 } from '@genfeedai/enums';
 import {
   createExecutableActionNode,
@@ -411,6 +412,16 @@ describe('WorkflowExecutorService', () => {
       undefined,
       { creditsUsed: 3 },
     );
+    expect(prisma.workflow.update).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        executionCount: { increment: 1 },
+      }),
+      where: {
+        id: 'workflow-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(executionsService.setCreditsUsed).not.toHaveBeenCalled();
     expect(
       websocketService.publishBackgroundTaskUpdate,
@@ -428,6 +439,63 @@ describe('WorkflowExecutorService', () => {
     });
 
     expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(4);
+  });
+
+  it('tenant-scopes status updates when manual execution fails', async () => {
+    const executableWorkflow: ExecutableWorkflow = {
+      edges: [],
+      id: 'workflow-failure',
+      lockedNodeIds: [],
+      nodes: [
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'publish-node',
+          label: 'Publish',
+        }),
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+      versionId: WORKFLOW_VERSION_ID,
+    };
+
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: {},
+      currentVersion: currentVersion({ nodes: [] }),
+      id: 'workflow-failure',
+      label: 'Failing workflow',
+      metadata: {},
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    prisma.workflow.update.mockResolvedValue({ id: 'workflow-failure' });
+    executionsService.findOne.mockResolvedValue(null);
+    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+      executableWorkflow,
+    );
+    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+    executionsService.createExecution.mockResolvedValue({
+      id: 'execution-failure',
+    });
+    executionsService.startExecution.mockRejectedValue(
+      new Error('Failed to start execution'),
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-failure',
+      metadata: {},
+    });
+    await expect(
+      service.executeManualWorkflow('workflow-failure', 'user-1', 'org-1'),
+    ).rejects.toThrow('Failed to start execution');
+
+    expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: WorkflowStatus.FAILED }),
+      where: {
+        id: 'workflow-failure',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('executes a 1-node text generation through the live Run path and records a node result', async () => {

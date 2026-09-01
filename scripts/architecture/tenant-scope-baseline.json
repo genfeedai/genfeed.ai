@@ -1962,38 +1962,6 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
-      "fingerprint": "0ebea2a776142e2facfa",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
-      "fingerprint": "e75ba539a24c197e90c4",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
-      "fingerprint": "09d235e8c2f48767d5cc",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
-      "fingerprint": "67b59b968a3fa497a986",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "0eabfa5981bc89185300",
       "method": "findFirst",
