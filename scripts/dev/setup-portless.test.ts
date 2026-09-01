@@ -3,6 +3,7 @@ import {
   buildPortlessCommand,
   isPortlessServiceReady,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  waitForPortlessServiceReady,
 } from './setup-portless';
 
 describe('Portless developer setup', () => {
@@ -73,5 +74,42 @@ describe('Portless developer setup', () => {
         Wildcard: no
       `),
     ).toBe(false);
+  });
+
+  it('waits for the startup service to become ready', async () => {
+    const statuses = [
+      null,
+      `
+        Manager state: stopped
+        Installed: yes
+        Proxy on 443: not responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `,
+      `
+        Manager state: running
+        Installed: yes
+        Proxy on 443: responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `,
+    ];
+    const sleepCalls: number[] = [];
+
+    await expect(
+      waitForPortlessServiceReady(
+        () => statuses.shift() ?? null,
+        async (milliseconds) => {
+          sleepCalls.push(milliseconds);
+        },
+        3,
+        250,
+      ),
+    ).resolves.toBe(true);
+    expect(sleepCalls).toEqual([250, 250]);
   });
 });
