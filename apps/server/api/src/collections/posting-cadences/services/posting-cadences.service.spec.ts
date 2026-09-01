@@ -9,6 +9,8 @@ import {
 } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PostingCadenceCopyService } from './posting-cadence-copy.service';
+import { PostingCadenceValidationService } from './posting-cadence-validation.service';
 import { PostingCadencesService } from './posting-cadences.service';
 
 const ORG_ID = 'org-1';
@@ -250,14 +252,22 @@ describe('PostingCadencesService', () => {
     prisma.article.findMany.mockResolvedValue([]);
     slotReservation.findMany.mockResolvedValue([]);
     slotReservation.updateMany.mockResolvedValue({ count: 1 });
+    const copyService = new PostingCadenceCopyService(
+      prisma as never,
+      llmDispatcherService as never,
+      creditsUtilsService as never,
+      modelsService as never,
+    );
+    const validationService = new PostingCadenceValidationService(
+      prisma as never,
+    );
     service = new PostingCadencesService(
       prisma as never,
       { error: vi.fn() } as never,
       postGroupsService as never,
-      llmDispatcherService as never,
-      creditsUtilsService as never,
-      modelsService as never,
       articlesService as never,
+      copyService,
+      validationService,
     );
   });
 
