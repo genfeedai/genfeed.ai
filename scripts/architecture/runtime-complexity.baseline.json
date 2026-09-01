@@ -162,7 +162,7 @@
     "symbol": "InstagramAuthorizedSignalsService.refresh"
   },
   {
-    "actual": 1482,
+    "actual": 1483,
     "file": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts"
@@ -222,7 +222,7 @@
     "symbol": "FilesMetadataController.getFileMetadata"
   },
   {
-    "actual": 501,
+    "actual": 518,
     "file": "apps/server/files/src/controllers/files-storage.controller.ts",
     "metric": "file-lines",
     "symbol": "apps/server/files/src/controllers/files-storage.controller.ts"
@@ -426,7 +426,7 @@
     "symbol": "WorkflowEngineAdapterService.constructor"
   },
   {
-    "actual": 1054,
+    "actual": 1107,
     "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts"
@@ -438,7 +438,7 @@
     "symbol": "WorkflowExecutorService.executeWorkflowDocumentWithActionOrigin"
   },
   {
-    "actual": 177,
+    "actual": 165,
     "file": "apps/server/server/src/collections/workflows/services/workflow-executor.service.ts",
     "metric": "method-lines",
     "symbol": "WorkflowExecutorService.resumeAfterDelay"
