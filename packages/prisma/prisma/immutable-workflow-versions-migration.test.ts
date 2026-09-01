@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Pool, type PoolClient } from 'pg';
@@ -24,6 +24,34 @@ const atomicExecutorSnapshot =
   migrationSource.match(
     /CREATE FUNCTION workflow_action_has_atomic_executor\(action_id TEXT\)[\s\S]*?AS \$\$([\s\S]*?)\$\$;/,
   )?.[1] ?? '';
+const supportedActionSnapshot =
+  migrationSource.match(
+    /CREATE FUNCTION workflow_action_is_supported\(action_id TEXT\)[\s\S]*?AS \$\$([\s\S]*?)\$\$;/,
+  )?.[1] ?? '';
+const workflowExecutorDirectory = join(
+  prismaDir,
+  '../../workflows/src/engine/executors',
+);
+const workflowRegistrarDirectory = join(
+  prismaDir,
+  '../../../apps/server/server/src/collections/workflows/services',
+);
+const actionNodeSource = readFileSync(
+  join(prismaDir, '../../workflows/src/engine/utils/action-node.ts'),
+  'utf8',
+);
+
+const nonActionSentinels = [
+  'immediate', // Publish scheduling mode, not an executable action id.
+  'unknown', // Runtime diagnostic fallback, not an executable action id.
+  'video', // Media port/value type, not an executable action id.
+] as const;
+
+const workflowControlActionIds = [
+  'workflow.for-each',
+  'workflow.for-each-tenant',
+  'workflow.run-child',
+] as const;
 
 const rejectedLegacyStepCategories = [
   'transform',
@@ -58,6 +86,62 @@ interface MigrationFixture {
 }
 
 let fixtureSequence = 0;
+
+function findFilesRecursively(directory: string): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(directory, entry.name);
+    return entry.isDirectory() ? findFilesRecursively(entryPath) : [entryPath];
+  });
+}
+
+function registeredExecutorNodeTypes(): string[] {
+  const registrarSource = readdirSync(workflowRegistrarDirectory, {
+    withFileTypes: true,
+  })
+    .filter(
+      (entry) =>
+        entry.isFile() && entry.name.endsWith('-executor-registrar.service.ts'),
+    )
+    .map((entry) =>
+      readFileSync(join(workflowRegistrarDirectory, entry.name), 'utf8'),
+    )
+    .join('\n');
+
+  const executorNodeTypes = findFilesRecursively(workflowExecutorDirectory)
+    .filter((path) => path.endsWith('-executor.ts'))
+    .flatMap((path) => {
+      const source = readFileSync(path, 'utf8');
+      const registrationSymbols = [
+        ...source.matchAll(/export (?:class|function) (\w+)/g),
+      ].flatMap((match) => (match[1] ? [match[1]] : []));
+      const isRegistered = registrationSymbols.some((symbol) => {
+        const occurrences = registrarSource.match(
+          new RegExp(`\\b${symbol}\\b`, 'g'),
+        );
+        return (occurrences?.length ?? 0) >= 2;
+      });
+      if (!isRegistered) {
+        return [];
+      }
+
+      return [...source.matchAll(/readonly nodeType = '([^']+)'/g)].flatMap(
+        (match) => (match[1] ? [match[1]] : []),
+      );
+    });
+  const directlyRegisteredNodeTypes = [
+    ...registrarSource.matchAll(/registerExecutor\(\s*'([^']+)'/g),
+  ].flatMap((match) => (match[1] ? [match[1]] : []));
+
+  return [
+    ...new Set([...executorNodeTypes, ...directlyRegisteredNodeTypes]),
+  ].sort();
+}
+
+function sqlStringLiterals(source: string): string[] {
+  return [...source.matchAll(/'([^']+)'/g)]
+    .map((match) => match[1])
+    .filter((value): value is string => Boolean(value));
+}
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
@@ -244,17 +328,43 @@ describe('immutable workflow version migration', () => {
     );
   });
 
-  it('accepts only registered atomic actions and explicit workflow control actions', () => {
+  it('keeps the SQL executor snapshot in parity with registered atomic executors', () => {
     expect(migrationSource).toContain(
       'CREATE FUNCTION workflow_action_has_atomic_executor(action_id TEXT)',
     );
     expect(migrationSource).toContain(
       'OR NOT workflow_action_has_atomic_executor(action_id)',
     );
-    expect(migrationSource).toContain("'workflow.for-each'");
-    expect(migrationSource).toContain("'workflow.run-child'");
-    expect(atomicExecutorSnapshot).toContain("'sendEmail'");
-    expect(atomicExecutorSnapshot).toContain("'trendDigest'");
+    const engineNativeExecutorNodeTypes = new Set(
+      sqlStringLiterals(
+        actionNodeSource.match(
+          /ENGINE_NATIVE_NODE_TYPES[\s\S]*?new Set\(\[([\s\S]*?)\]\)/,
+        )?.[1] ?? '',
+      ),
+    );
+    const expectedAtomicActionIds = [
+      ...registeredExecutorNodeTypes().filter(
+        (nodeType) => !engineNativeExecutorNodeTypes.has(nodeType),
+      ),
+      ...workflowControlActionIds,
+    ].sort();
+    const atomicActionIds = sqlStringLiterals(atomicExecutorSnapshot).sort();
+    const supportedActionIds = new Set(
+      sqlStringLiterals(supportedActionSnapshot),
+    );
+
+    expect(new Set(expectedAtomicActionIds).size).toBe(
+      expectedAtomicActionIds.length,
+    );
+    expect(atomicActionIds).toEqual(expectedAtomicActionIds);
+    expect(
+      expectedAtomicActionIds.filter(
+        (actionId) => !supportedActionIds.has(actionId),
+      ),
+    ).toEqual([]);
+    for (const sentinel of nonActionSentinels) {
+      expect(atomicActionIds).not.toContain(sentinel);
+    }
     expect(migrationSource).toContain('references removed macro');
     expect(migrationSource).toContain('has unconvertible legacy type');
   });

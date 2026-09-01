@@ -17,7 +17,7 @@ import {
   precomputeWorkflowEtaPlan,
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import {
   type PendingReviewGateExecution,
   WorkflowExecutionsService,
@@ -40,7 +40,10 @@ import type {
   TriggerEvent,
   WorkflowExecutionResult,
 } from '@server/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
+import {
+  RetiredWorkflowExecutionError,
+  WorkflowExecutorDocumentService,
+} from '@server/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeGraphRunnerService } from '@server/collections/workflows/services/workflow-node-graph-runner.service';
@@ -289,16 +292,34 @@ export class WorkflowExecutorService {
       };
     }
 
-    const normalizedWorkflow = await this.documentService.findPinnedWorkflow(
-      workflowId,
-      execution.workflowVersionId,
-      event.organizationId,
-      event.userId,
-    );
-    if (!normalizedWorkflow) {
-      throw new Error(
-        `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
+    let normalizedWorkflow: WorkflowDocument | null;
+    try {
+      normalizedWorkflow = await this.documentService.findPinnedWorkflow(
+        workflowId,
+        execution.workflowVersionId,
+        event.organizationId,
+        event.userId,
       );
+    } catch (error) {
+      if (error instanceof RetiredWorkflowExecutionError) {
+        return this.failUnavailablePinnedExecution({
+          errorMessage: error.message,
+          executionId,
+          startedAt: execution.startedAt ?? new Date(),
+          userId: event.userId,
+          workflowId,
+        });
+      }
+      throw error;
+    }
+    if (!normalizedWorkflow) {
+      return this.failUnavailablePinnedExecution({
+        errorMessage: `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
+        executionId,
+        startedAt: execution.startedAt ?? new Date(),
+        userId: event.userId,
+        workflowId,
+      });
     }
 
     return this.executeWorkflowDocumentWithActionOrigin(
@@ -419,12 +440,20 @@ export class WorkflowExecutorService {
     execution: WorkflowExecutionResult;
     workflowLabel: string;
   }> {
-    const workflowDoc = await this.documentService.findPinnedWorkflow(
-      workflowId,
-      workflowVersionId,
-      organizationId,
-      userId,
-    );
+    let workflowDoc: WorkflowDocument | null;
+    try {
+      workflowDoc = await this.documentService.findPinnedWorkflow(
+        workflowId,
+        workflowVersionId,
+        organizationId,
+        userId,
+      );
+    } catch (error) {
+      if (error instanceof RetiredWorkflowExecutionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
     if (!workflowDoc) {
       throw new Error(
         `Workflow ${workflowId} version ${workflowVersionId} is unavailable in organization ${organizationId}`,
@@ -589,44 +618,32 @@ export class WorkflowExecutorService {
       id: executionId,
       organizationId: jobData.organizationId,
     });
-    const workflowDoc = delayedExecution
-      ? await this.documentService.findPinnedWorkflow(
+    let workflowDoc: WorkflowDocument | null = null;
+    let unavailableMessage = `Workflow ${workflowId} not found for delay resume`;
+    if (delayedExecution) {
+      try {
+        workflowDoc = await this.documentService.findPinnedWorkflow(
           workflowId,
           delayedExecution.workflowVersionId,
           jobData.organizationId,
           delayedExecution.userId,
-        )
-      : null;
+        );
+      } catch (error) {
+        if (!(error instanceof RetiredWorkflowExecutionError)) {
+          throw error;
+        }
+        unavailableMessage = error.message;
+      }
+    }
 
     if (!workflowDoc) {
-      const errorMessage = `Workflow ${workflowId} not found for delay resume`;
-      const failedExecution = await this.executionsService.completeExecution(
+      return this.failUnavailablePinnedExecution({
+        errorMessage: unavailableMessage,
         executionId,
-        errorMessage,
-      );
-      await this.progressService.publishWorkflowTaskUpdate({
-        error: errorMessage,
-        eta: this.progressService.extractEtaFromMetadata(
-          failedExecution?.metadata,
-        ),
-        executionId,
-        progress: 100,
-        resultId: executionId,
-        status: 'failed',
+        startedAt: delayedExecution?.startedAt ?? new Date(),
         userId: triggerEvent.userId,
         workflowId,
-        workflowLabel: workflowId,
       });
-      return {
-        completedAt: new Date(),
-        error: errorMessage,
-        executionId,
-        nodeResults: [],
-        startedAt: new Date(),
-        status: WorkflowExecutionStatus.FAILED,
-        totalCreditsUsed: 0,
-        workflowId,
-      };
     }
 
     const normalizedWorkflowDoc = workflowDoc;
@@ -1049,6 +1066,42 @@ export class WorkflowExecutorService {
       source,
       threadId: scope.threadId,
       userId,
+    };
+  }
+
+  private async failUnavailablePinnedExecution(input: {
+    errorMessage: string;
+    executionId: string;
+    startedAt: Date;
+    userId: string;
+    workflowId: string;
+  }): Promise<WorkflowExecutionResult> {
+    const failedExecution = await this.executionsService.completeExecution(
+      input.executionId,
+      input.errorMessage,
+    );
+    await this.progressService.publishWorkflowTaskUpdate({
+      error: input.errorMessage,
+      eta: this.progressService.extractEtaFromMetadata(
+        failedExecution?.metadata,
+      ),
+      executionId: input.executionId,
+      progress: 100,
+      resultId: input.executionId,
+      status: 'failed',
+      userId: input.userId,
+      workflowId: input.workflowId,
+      workflowLabel: input.workflowId,
+    });
+    return {
+      completedAt: new Date(),
+      error: input.errorMessage,
+      executionId: input.executionId,
+      nodeResults: [],
+      startedAt: input.startedAt,
+      status: WorkflowExecutionStatus.FAILED,
+      totalCreditsUsed: 0,
+      workflowId: input.workflowId,
     };
   }
 }
