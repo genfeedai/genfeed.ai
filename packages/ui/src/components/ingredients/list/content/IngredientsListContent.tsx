@@ -35,6 +35,7 @@ import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import { Eye, Film, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
@@ -123,6 +124,7 @@ export default function IngredientsListContent({
   onCopyPrompt,
   onReprompt,
 }: IngredientsListContentProps) {
+  const translate = useTranslations('pages.library');
   const isAudioCategory =
     singularType === IngredientCategory.MUSIC ||
     singularType === IngredientCategory.VOICE;
@@ -343,7 +345,7 @@ export default function IngredientsListContent({
           {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
             <section className="flex flex-col gap-2">
               <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
-                Other assets
+                {translate('otherAssets')}
               </h3>
               <AppTable
                 items={nonVisualIngredients}
@@ -407,6 +409,7 @@ export default function IngredientsListContent({
     selectedIngredientIds,
     singularType,
     tableActions,
+    translate,
     type,
     viewMode,
     visualIngredients,

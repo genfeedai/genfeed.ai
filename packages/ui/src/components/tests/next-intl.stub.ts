@@ -138,6 +138,23 @@ const UI_TEST_MESSAGES = {
       inspector: {
         type: 'Type',
       },
+      otherAssets: 'Other assets',
+    },
+    modelProviderContract: {
+      empty: 'No reviewed or pending provider contract is stored yet.',
+      family: 'Family:',
+      inputSchema: 'Input schema',
+      lastSeen: 'Last seen:',
+      loadError: 'Provider contract details could not be loaded.',
+      loading: 'Loading contract details…',
+      noTopLevelFields: 'No top-level fields.',
+      outputSchema: 'Output schema',
+      pendingReview: 'Pending review',
+      pricing: 'Pricing:',
+      required: 'required',
+      reviewedRuntime: 'Reviewed runtime',
+      title: 'Provider contract',
+      version: 'Version:',
     },
     publish: {
       calendar: {
