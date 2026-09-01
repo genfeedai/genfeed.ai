@@ -35,17 +35,24 @@ import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  type INestApplication,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UsersService } from '@server/collections/users/services/users.service';
+import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import type { Request } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import request from 'supertest';
 
 describe('StripeController', () => {
   let controller: StripeController;
+  let moduleRef: TestingModule;
   let stripeService: {
     createOrganizationCustomer: ReturnType<typeof vi.fn>;
     createPaymentSession: ReturnType<typeof vi.fn>;
@@ -194,7 +201,7 @@ describe('StripeController', () => {
       }),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       controllers: [StripeController],
       providers: [
         {
@@ -222,7 +229,7 @@ describe('StripeController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
-    controller = module.get<StripeController>(StripeController);
+    controller = moduleRef.get<StripeController>(StripeController);
   });
 
   it('should be defined', () => {
@@ -524,6 +531,65 @@ describe('StripeController', () => {
   });
 
   describe('getBillingPortalUrl', () => {
+    describe('HTTP query contract', () => {
+      let app: INestApplication;
+
+      beforeEach(async () => {
+        app = moduleRef.createNestApplication();
+        app.use((req: Request, _res: Response, next: NextFunction): void => {
+          (req as Request & { user: User }).user = mockUser;
+          next();
+        });
+        app.useGlobalPipes(new ValidationPipe());
+        await app.init();
+      });
+
+      afterEach(async () => {
+        await app.close();
+      });
+
+      it('accepts a valid origin-relative returnPath', async () => {
+        await request(app.getHttpServer())
+          .get('/services/stripe/portal')
+          .set('Origin', 'https://app.genfeed.ai')
+          .query({
+            returnPath: '/acme/~/settings/organization/subscription',
+          })
+          .expect(HttpStatus.OK);
+
+        expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+          'cus_test123',
+          'https://app.genfeed.ai/acme/~/settings/organization/subscription',
+        );
+      });
+
+      it('rejects a repeated type-confused returnPath before billing work', async () => {
+        await request(app.getHttpServer())
+          .get('/services/stripe/portal')
+          .set('Origin', 'https://app.genfeed.ai')
+          .query({ returnPath: ['/acme/~/settings', '/admin'] })
+          .expect(HttpStatus.BAD_REQUEST);
+
+        expect(
+          subscriptionsService.findByOrganizationId,
+        ).not.toHaveBeenCalled();
+        expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+      });
+
+      it('rejects an off-origin returnPath before billing work', async () => {
+        await request(app.getHttpServer())
+          .get('/services/stripe/portal')
+          .set('Origin', 'https://app.genfeed.ai')
+          .query({ returnPath: 'https://evil.example.com' })
+          .expect(HttpStatus.BAD_REQUEST);
+
+        expect(
+          subscriptionsService.findByOrganizationId,
+        ).not.toHaveBeenCalled();
+        expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+      });
+    });
+
     it('should return billing portal URL', async () => {
       const result = await controller.getBillingPortalUrl(
         mockUser,
