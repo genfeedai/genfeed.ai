@@ -5,10 +5,10 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { ModelsService } from '@server/collections/models/services/models.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type MockModelDelegate = {
   count: ReturnType<typeof vi.fn>;
@@ -21,6 +21,7 @@ type MockModelDelegate = {
 };
 
 type MockProviderContractDelegate = {
+  findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -62,6 +63,7 @@ describe('ModelsService', () => {
       updateMany: vi.fn(),
     };
     providerContractDelegate = {
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       update: vi.fn(),
     };
@@ -156,6 +158,72 @@ describe('ModelsService', () => {
         provider: ModelProvider.FAL,
       },
     });
+  });
+
+  it('returns only safe reviewed and pending provider contract details', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:pending',
+        reviewedProviderContractVersion: 'sha256:reviewed',
+      }),
+    );
+    providerContractDelegate.findMany.mockResolvedValue([
+      {
+        billingUnit: 'seconds',
+        conditionalDimensions: { resolution: '768P' },
+        currency: 'USD',
+        discoveredAt: new Date('2026-09-01T08:00:00.000Z'),
+        inputSchema: { properties: { prompt: { type: 'string' } } },
+        lastSeenAt: new Date('2026-09-01T09:00:00.000Z'),
+        mappingStatus: 'supported',
+        openapi: { commerciallySensitive: true },
+        outputSchema: { properties: { video: { type: 'object' } } },
+        pricing: { accountSpecificRawPayload: true },
+        pricingType: 'per-second',
+        reviewStatus: 'approved',
+        schemaFamily: 'video-text-v1',
+        unitPrice: '0.08',
+        unsupportedReason: null,
+        version: 'sha256:reviewed',
+      },
+      {
+        billingUnit: 'seconds',
+        conditionalDimensions: {},
+        currency: 'USD',
+        discoveredAt: new Date('2026-09-01T10:00:00.000Z'),
+        inputSchema: { properties: { duration: { maximum: 15 } } },
+        lastSeenAt: new Date('2026-09-01T10:00:00.000Z'),
+        mappingStatus: 'supported',
+        outputSchema: { type: 'object' },
+        pricingType: 'per-second',
+        reviewStatus: 'pending',
+        schemaFamily: 'video-text-v1',
+        unitPrice: '0.08',
+        unsupportedReason: null,
+        version: 'sha256:pending',
+      },
+    ]);
+
+    const result = await service.getProviderContracts('model-1');
+
+    expect(providerContractDelegate.findMany).toHaveBeenCalledWith({
+      where: {
+        modelId: 'model-1',
+        version: { in: ['sha256:reviewed', 'sha256:pending'] },
+      },
+    });
+    expect(result).toMatchObject({
+      endpoint: 'google/imagen-4',
+      pending: { version: 'sha256:pending' },
+      provider: ModelProvider.REPLICATE,
+      reviewed: {
+        inputSchema: { properties: { prompt: { type: 'string' } } },
+        unitPrice: '0.08',
+        version: 'sha256:reviewed',
+      },
+    });
+    expect(result?.reviewed).not.toHaveProperty('openapi');
+    expect(result?.reviewed).not.toHaveProperty('pricing');
   });
 
   it('filters, sorts, and paginates in Prisma', async () => {
@@ -439,5 +507,63 @@ describe('ModelsService', () => {
     ).rejects.toThrow('does not match the model category');
     expect(modelDelegate.update).not.toHaveBeenCalled();
     expect(providerContractDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('promotes a supported Replicate contract into the reviewed runtime projection', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:replicate-candidate',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'replicate-contract',
+      inputSchema: {
+        properties: { prompt: { type: 'string' } },
+        required: ['prompt'],
+        type: 'object',
+      },
+      mappingStatus: 'supported',
+      pricingType: 'per-request',
+      schemaFamily: 'replicate-image-v1',
+      unitPriceMicros: 40_000n,
+      version: 'sha256:replicate-candidate',
+    });
+    modelDelegate.update.mockResolvedValue(makeModel());
+
+    await service.approveRegistryModel('model-1', {}, 'operator-1');
+
+    expect(modelDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerCostUsd: 0.04,
+          providerInputSchema: expect.objectContaining({
+            required: ['prompt'],
+          }),
+          providerSchemaFamily: 'replicate-image-v1',
+          reviewedProviderContractVersion: 'sha256:replicate-candidate',
+        }),
+      }),
+    );
+  });
+
+  it('blocks a Replicate contract whose detected category does not match', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:replicate-video',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'replicate-video-contract',
+      inputSchema: { type: 'object' },
+      mappingStatus: 'supported',
+      pricingType: 'per-second',
+      schemaFamily: 'replicate-video-v1',
+      unitPriceMicros: 250_000n,
+      version: 'sha256:replicate-video',
+    });
+
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('does not match the model category');
   });
 });

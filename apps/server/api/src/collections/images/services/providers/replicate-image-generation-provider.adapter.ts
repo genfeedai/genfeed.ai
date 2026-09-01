@@ -13,19 +13,19 @@ import {
 } from '@api/collections/images/services/providers/replicate-image-generation.helpers';
 import { GenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import {
-  isFalDestination,
-  isGenfeedAiDestination,
-  isReplicateDestination,
-} from '@server/collections/models/utils/model-key.util';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
+import {
+  isFalDestination,
+  isGenfeedAiDestination,
+  isReplicateDestination,
+} from '@server/collections/models/utils/model-key.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
 const REPLICATE_IMAGE_MODELS: readonly string[] = [
   MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
@@ -172,6 +172,7 @@ export class ReplicateImageGenerationProviderAdapter
               isBrandingEnabled: request.createImageDto.isBrandingEnabled,
               lens: request.createImageDto.lens,
               lighting: request.createImageDto.lighting,
+              modelInputSchema: request.modelInputSchema,
               modelCategory: ModelCategory.IMAGE,
               mood: request.createImageDto.mood,
               outputs: isBatchSupported ? request.outputs : 1,

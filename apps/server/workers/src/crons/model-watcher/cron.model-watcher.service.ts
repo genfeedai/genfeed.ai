@@ -1,11 +1,10 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ConfigService } from '@workers/config/config.service';
 import type {
   IModelDiscoveryInput,
@@ -16,6 +15,10 @@ import type {
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
+import {
+  ReplicateModelContractSyncService,
+  type ReplicateSyncModelRecord,
+} from '@workers/services/replicate-model-contract-sync.service';
 
 /**
  * Verified model owners on Replicate whose models are considered
@@ -59,6 +62,7 @@ export class CronModelWatcherService {
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
     private readonly platformMarginService: PlatformMarginService,
+    private readonly replicateContractSyncService: ReplicateModelContractSyncService,
   ) {}
 
   /**
@@ -79,8 +83,9 @@ export class CronModelWatcherService {
       draftsCreated: 0,
       errors: 0,
       newModelsFound: 0,
-      providerCostsDrifted: 0,
-      providerCostsUpdated: 0,
+      providerContractsDrifted: 0,
+      providerContractsQuarantined: 0,
+      providerContractsSynchronized: 0,
       timestamp: new Date(),
       totalPolled: 0,
     };
@@ -90,30 +95,30 @@ export class CronModelWatcherService {
       // applyMargin call below bakes the configured margin into model costs.
       await this.platformMarginService.hydrate();
 
-      // Step 1: Fetch all known provider identities from database
-      const allModels = await this.modelsService.find({});
-      const existingEndpoints = new Set(
-        allModels
-          .filter(
-            (model: ServerModelRecord) =>
-              model.provider === ModelProvider.REPLICATE,
-          )
-          .map((model: ServerModelRecord) => model.endpoint || model.key)
-          .filter(
-            (endpoint): endpoint is string => typeof endpoint === 'string',
-          ),
+      // Step 1: Load the provider registry without pulling unrelated JSONB.
+      const registryRows = await this.modelsService.prisma.model.findMany({
+        select: {
+          category: true,
+          endpoint: true,
+          id: true,
+          isActive: true,
+          key: true,
+          pricingType: true,
+          provider: true,
+          providerCostUsd: true,
+          reviewedProviderContractVersion: true,
+        },
+        where: { isDeleted: false, organizationId: null },
+      });
+      const existingModels = new Map<string, ReplicateSyncModelRecord>(
+        registryRows
+          .filter((row) => row.provider === ModelProvider.REPLICATE)
+          .map((row) => [row.endpoint || row.key, row] as const),
       );
 
       this.logger.log(
-        `${url} loaded ${existingEndpoints.size} existing Replicate endpoints`,
+        `${url} loaded ${existingModels.size} existing Replicate endpoints`,
       );
-
-      // Step 1.5: Pass through known provider-cost changes so the configured
-      // margin stays real for models billed live from providerCostUsd.
-      const costSync =
-        await this.modelDiscoveryService.syncKnownProviderCosts(allModels);
-      summary.providerCostsDrifted = costSync.drifted;
-      summary.providerCostsUpdated = costSync.updated;
 
       // Step 2: Poll Replicate API for official models
       const replicateModels = await this.pollReplicateModels();
@@ -132,10 +137,10 @@ export class CronModelWatcherService {
         `${url} ${officialModels.length} models from verified owners`,
       );
 
-      // Step 4: Diff against existing models in DB
+      // Step 4: Diff against existing models in DB.
       const newModels = officialModels.filter((m) => {
         const key = `${m.owner}/${m.name}`;
-        return !existingEndpoints.has(key);
+        return !existingModels.has(key);
       });
 
       summary.newModelsFound = newModels.length;
@@ -151,36 +156,65 @@ export class CronModelWatcherService {
         },
       );
 
-      // Step 5: Create draft entries for new Replicate models
-      for (const model of newModels) {
+      // Step 5: The public listing is intentionally bounded. Add exact fetches
+      // for existing rows outside those pages so the full registry is synced.
+      const candidates = new Map<string, IReplicateModel>(
+        officialModels.map(
+          (model) => [`${model.owner}/${model.name}`, model] as const,
+        ),
+      );
+      for (const endpoint of existingModels.keys()) {
+        if (candidates.has(endpoint)) continue;
+        const [owner, name] = endpoint.split('/');
+        if (!owner || !name) {
+          summary.errors++;
+          continue;
+        }
+        const providerModel =
+          await this.modelDiscoveryService.fetchReplicateModel(owner, name);
+        if (providerModel) {
+          candidates.set(endpoint, providerModel);
+        } else {
+          summary.errors++;
+          await this.replicateContractSyncService.recordFailure(
+            'model_fetch_failed',
+            summary.timestamp,
+            existingModels.get(endpoint)?.id,
+          );
+        }
+      }
+
+      // Step 6: Create missing drafts, then persist a versioned schema/pricing
+      // candidate for every observed endpoint. Reviewed runtime fields stay
+      // pinned until an operator explicitly promotes the candidate.
+      const syncedEndpoints: string[] = [];
+      for (const listedModel of candidates.values()) {
         // relation-alias-ok: `model` is the Replicate API payload, not a Prisma model.
-        const modelKey = `${model.owner}/${model.name}`;
+        const modelKey = `${listedModel.owner}/${listedModel.name}`;
+        let registryModel = existingModels.get(modelKey);
         try {
+          const model = await this.hydrateReplicateSchema(listedModel);
           const category = await this.detectModelCategory(model);
-
-          const discoveryInput: IModelDiscoveryInput = {
-            category,
-            description: model.description || '',
-            endpoint: modelKey,
-            name: model.name,
-            owner: model.owner,
-            provider: ModelProvider.REPLICATE,
-            providerUrl: model.url,
-            versionId: model.latest_version?.id ?? null,
-          };
-
-          // Check if we have a known provider cost for margin-based pricing
           const knownCost =
             this.modelPricingService.getKnownReplicateCost(modelKey);
-          if (knownCost !== null) {
-            discoveryInput.providerCostUsd = knownCost;
-          }
 
-          const draft =
-            await this.modelDiscoveryService.createDraftModel(discoveryInput);
-
-          if (draft) {
+          if (!registryModel) {
+            const discoveryInput: IModelDiscoveryInput = {
+              category,
+              description: model.description || '',
+              endpoint: modelKey,
+              name: model.name,
+              owner: model.owner,
+              provider: ModelProvider.REPLICATE,
+              providerUrl: model.url,
+              versionId: model.latest_version?.id ?? null,
+              ...(knownCost !== null ? { providerCostUsd: knownCost } : {}),
+            };
+            const draft =
+              await this.modelDiscoveryService.createDraftModel(discoveryInput);
+            if (!draft) continue;
             summary.draftsCreated++;
+            registryModel = draft;
             await this.sendDiscoveryNotification(
               modelKey,
               category,
@@ -189,36 +223,88 @@ export class CronModelWatcherService {
               'replicate',
             );
           }
+
+          const unitPriceUsd =
+            knownCost ??
+            (typeof registryModel.providerCostUsd === 'number'
+              ? registryModel.providerCostUsd
+              : null);
+          const pricingType =
+            registryModel.pricingType ??
+            (knownCost !== null
+              ? this.modelPricingService.estimateFromProviderCost(
+                  knownCost,
+                  category,
+                ).pricingType
+              : null);
+          const syncResult =
+            await this.replicateContractSyncService.synchronizeModel(
+              registryModel,
+              model,
+              category,
+              {
+                pricingType,
+                source:
+                  knownCost !== null
+                    ? 'curated-known-cost'
+                    : 'reviewed-registry',
+                unitPriceUsd,
+              },
+              summary.timestamp,
+            );
+          summary.providerContractsSynchronized =
+            (summary.providerContractsSynchronized ?? 0) + 1;
+          if (syncResult.drifted) {
+            summary.providerContractsDrifted =
+              (summary.providerContractsDrifted ?? 0) + 1;
+          }
+          if (syncResult.quarantined) {
+            summary.providerContractsQuarantined =
+              (summary.providerContractsQuarantined ?? 0) + 1;
+          }
+          syncedEndpoints.push(modelKey);
         } catch (error: unknown) {
           summary.errors++;
+          if (registryModel?.id) {
+            await this.replicateContractSyncService.recordFailure(
+              'contract_sync_failed',
+              summary.timestamp,
+              registryModel.id,
+            );
+          }
           this.logger.error(`${url} failed to process model ${modelKey}`, {
-            error,
+            reason: error instanceof Error ? error.name : 'unknown',
           });
         }
       }
 
-      // Step 6: Touch lastSyncedAt for Replicate models seen in this run.
-      const syncedEndpoints = officialModels
-        .map((m) => `${m.owner}/${m.name}`)
-        .filter((endpoint) => existingEndpoints.has(endpoint));
+      // Step 7: Keep the coarse discovery freshness marker in sync too.
       await this.modelDiscoveryService.touchLastSyncedAt(
         ModelProvider.REPLICATE,
         syncedEndpoints,
       );
 
-      // Step 7: Log summary
+      // Step 8: Log low-cardinality summary only.
       this.logger.log(`${url} completed`, {
         draftsCreated: summary.draftsCreated,
         errors: summary.errors,
         newModelsFound: summary.newModelsFound,
-        providerCostsDrifted: summary.providerCostsDrifted,
-        providerCostsUpdated: summary.providerCostsUpdated,
+        providerContractsDrifted: summary.providerContractsDrifted,
+        providerContractsQuarantined: summary.providerContractsQuarantined,
+        providerContractsSynchronized: summary.providerContractsSynchronized,
         totalPolled: summary.totalPolled,
       });
 
       return summary;
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
+      summary.errors++;
+      await this.replicateContractSyncService.recordFailure(
+        'replicate_sync_failed',
+        summary.timestamp,
+      );
+      this.logger.error(`${url} failed`, {
+        reason: error instanceof Error ? error.name : 'unknown',
+      });
       return summary;
     }
   }
@@ -326,6 +412,33 @@ export class CronModelWatcherService {
         { error },
       );
     }
+  }
+
+  private async hydrateReplicateSchema(
+    model: IReplicateModel,
+  ): Promise<IReplicateModel> {
+    const latestVersion = model.latest_version;
+    if (
+      !latestVersion?.id ||
+      Object.keys(latestVersion.openapi_schema ?? {}).length > 0
+    ) {
+      return model;
+    }
+
+    const detail = await this.modelDiscoveryService.fetchReplicateSchema(
+      model.owner,
+      model.name,
+      latestVersion.id,
+    );
+    if (!detail) return model;
+
+    return {
+      ...model,
+      latest_version: {
+        ...latestVersion,
+        openapi_schema: detail.openapi_schema,
+      },
+    };
   }
 
   /**

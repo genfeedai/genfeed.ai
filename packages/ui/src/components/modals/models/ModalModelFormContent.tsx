@@ -10,7 +10,7 @@ import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { IModel } from '@genfeedai/interfaces';
+import type { IModel, IModelProviderContracts } from '@genfeedai/interfaces';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';
@@ -19,6 +19,7 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
+import ModelProviderContractDetails from './ModelProviderContractDetails';
 
 type ModalModelFormContentProps = {
   form: UseFormReturn<ModelSchema>;
@@ -32,6 +33,9 @@ type ModalModelFormContentProps = {
   model: IModel | undefined | null;
   modelProviders: ModelProvider[];
   modelCategories: ModelCategory[];
+  providerContracts?: IModelProviderContracts;
+  isProviderContractsError: boolean;
+  isProviderContractsLoading: boolean;
 };
 
 export default function ModalModelFormContent({
@@ -44,6 +48,9 @@ export default function ModalModelFormContent({
   model,
   modelProviders,
   modelCategories,
+  providerContracts,
+  isProviderContractsError,
+  isProviderContractsLoading,
 }: ModalModelFormContentProps) {
   return (
     <form ref={formRef} onSubmit={onSubmit}>
@@ -126,6 +133,13 @@ export default function ModalModelFormContent({
           isDisabled={isSubmitting}
         />
       </FormControl>
+      {model && (
+        <ModelProviderContractDetails
+          contracts={providerContracts}
+          isError={isProviderContractsError}
+          isLoading={isProviderContractsLoading}
+        />
+      )}
       <ModalActions>
         <Button
           label="Cancel"

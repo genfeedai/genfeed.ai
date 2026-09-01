@@ -1,3 +1,11 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  calculateAspectRatio,
+  convertRatioToOrientation,
+  DurationUtil,
+  normalizeAspectRatioForModel,
+} from '@genfeedai/helpers';
+import { Injectable } from '@nestjs/common';
 import { BaseReplicateBuilder } from '@server/services/prompt-builder/builders/replicate/base-replicate.builder';
 import {
   buildKlingAvatarV2Prompt,
@@ -32,14 +40,6 @@ import type {
   WanVideoInput,
 } from '@server/services/prompt-builder/interfaces/replicate-input.interface';
 import { assertRequiredSchemaInput } from '@server/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  calculateAspectRatio,
-  convertRatioToOrientation,
-  DurationUtil,
-  normalizeAspectRatioForModel,
-} from '@genfeedai/helpers';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Replicate video model prompt builder.
@@ -682,7 +682,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       input.resolution = params.resolution;
     }
 
-    assertRequiredSchemaInput(model, input);
+    assertRequiredSchemaInput(model, input, params.modelInputSchema);
     return input;
   }
 

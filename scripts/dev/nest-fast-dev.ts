@@ -39,10 +39,7 @@ const APPS: Record<string, NestFastDevApp> = {
   api: {
     appDir: path.join(SERVER_ROOT, 'api'),
     entry: 'src/main.ts',
-    extraWatch: [
-      path.join(SERVER_ROOT, 'api/src/services/integrations/replicate/schemas'),
-      path.join(SERVER_ROOT, 'api/config'),
-    ],
+    extraWatch: [path.join(SERVER_ROOT, 'api/config')],
     name: 'api',
   },
   notifications: {
@@ -189,26 +186,6 @@ function createSwcPlugin(): esbuild.Plugin {
   };
 }
 
-function copyJsonAssets(app: NestFastDevApp, outDir: string): void {
-  if (app.name !== 'api') return;
-
-  const schemaSrc = path.join(
-    app.appDir,
-    'src/services/integrations/replicate/schemas',
-  );
-  const schemaDest = path.join(
-    outDir,
-    'services/integrations/replicate/schemas',
-  );
-  if (fs.existsSync(schemaSrc)) {
-    fs.mkdirSync(schemaDest, { recursive: true });
-    for (const file of fs.readdirSync(schemaSrc)) {
-      if (!file.endsWith('.json')) continue;
-      fs.copyFileSync(path.join(schemaSrc, file), path.join(schemaDest, file));
-    }
-  }
-}
-
 function buildRuntimeEnv(app: NestFastDevApp): NodeJS.ProcessEnv {
   const runtimeEnv = { ...process.env };
   const nodeEnv = process.env.NODE_ENV;
@@ -278,7 +255,6 @@ async function runApp(appName: string, once: boolean): Promise<void> {
   };
 
   const startChild = (): void => {
-    copyJsonAssets(app, outDir);
     // Always run the CJS bundle with Node — Bun's package resolver breaks
     // webpack-style external requires from the dist path.
     const nodeBin = process.env.NEST_FAST_DEV_NODE || 'node';
