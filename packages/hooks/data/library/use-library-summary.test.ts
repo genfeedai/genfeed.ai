@@ -4,9 +4,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getTokenMock = vi.fn();
 const fetchMock = vi.fn();
+const scopeMock = vi.hoisted(() => ({
+  brandId: 'brand-1',
+  isReady: true,
+  organizationId: 'organization-1',
+  pageScope: 'brand' as 'brand' | 'org',
+}));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1', isReady: true }),
+  useBrand: () => ({
+    brandId: scopeMock.brandId,
+    isReady: scopeMock.isReady,
+    organizationId: scopeMock.organizationId,
+  }),
+}));
+
+vi.mock('@hooks/navigation/use-page-scope/use-page-scope', () => ({
+  usePageScope: () => scopeMock.pageScope,
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -63,6 +77,10 @@ describe('useLibrarySummary', () => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', fetchMock);
     getTokenMock.mockResolvedValue('token-123');
+    scopeMock.brandId = 'brand-1';
+    scopeMock.isReady = true;
+    scopeMock.organizationId = 'organization-1';
+    scopeMock.pageScope = 'brand';
   });
 
   it('fetches the Library summary scoped to the active brand', async () => {
@@ -99,6 +117,22 @@ describe('useLibrarySummary', () => {
 
     expect(result.current.summary).toBeNull();
     expect(result.current.error?.message).toContain('500');
+  });
+
+  it('waits for the route organization before fetching', async () => {
+    scopeMock.organizationId = '';
+    fetchMock.mockResolvedValue(createFetchResponse(true, SUMMARY_PAYLOAD));
+
+    const { rerender } = renderHook(() => useLibrarySummary());
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    scopeMock.organizationId = 'organization-1';
+    rerender();
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('captures a fallback error when the fetch throws a non-Error', async () => {
