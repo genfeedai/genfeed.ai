@@ -53,6 +53,57 @@ function assertCandidatePath(
   }
 }
 
+function hasTraversalSegment(value: string): boolean {
+  return value.split(/[\\/]/).some((segment) => segment === '..');
+}
+
+function assertUnambiguousPathSyntax(
+  value: string,
+  name: string,
+  createError: SecurityErrorFactory,
+): void {
+  if (
+    value.includes('\0') ||
+    (path.sep !== '\\' && value.includes('\\')) ||
+    hasTraversalSegment(value) ||
+    (path.sep !== '\\' && /^[A-Za-z]:\//.test(value))
+  ) {
+    throw createError(`${name} contains traversal or separator confusion`);
+  }
+
+  let decoded = value;
+  for (;;) {
+    if (/%(?:00|2f|5c)/i.test(decoded)) {
+      throw createError(`${name} contains encoded path syntax`);
+    }
+
+    let next: string;
+    try {
+      next = decodeURIComponent(decoded);
+    } catch {
+      return;
+    }
+
+    if (next === decoded) {
+      return;
+    }
+
+    if (
+      next.includes('\0') ||
+      (path.sep !== '\\' && next.includes('\\')) ||
+      hasTraversalSegment(next) ||
+      (!decoded.startsWith('/') && next.startsWith('/')) ||
+      (path.sep !== '\\' &&
+        !/^[A-Za-z]:\//.test(decoded) &&
+        /^[A-Za-z]:\//.test(next))
+    ) {
+      throw createError(`${name} contains encoded path syntax`);
+    }
+
+    decoded = next;
+  }
+}
+
 function isPathWithinRoot(resolvedRoot: string, resolved: string): boolean {
   return (
     resolved === resolvedRoot ||
@@ -67,6 +118,7 @@ export function resolveContainedPath(
 ): string {
   assertConfiguredRoot(rootDir, createError);
   assertCandidatePath(candidatePath, createError);
+  assertUnambiguousPathSyntax(candidatePath, 'File path', createError);
 
   const resolvedRoot = path.resolve(rootDir);
   const resolved = path.resolve(resolvedRoot, candidatePath);
@@ -206,6 +258,7 @@ function validateObjectKey(
   isTrailingSlashAllowed: boolean,
 ): string {
   assertNonEmptyString(value, name, createError);
+  assertUnambiguousPathSyntax(value, name, createError);
   assertRelativePosixKey(value, name, createError);
   const normalized = normalizeObjectKey(value, isTrailingSlashAllowed);
   assertObjectKeySegments(

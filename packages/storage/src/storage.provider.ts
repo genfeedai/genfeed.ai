@@ -49,10 +49,11 @@ export interface StorageProviderOptions {
 
 export interface StorageProvider {
   upload(file: Buffer, path: string, contentType?: string): Promise<string>;
-  /** Upload from a file on the local filesystem. */
+  /** Upload from a file contained beneath the caller-owned local root. */
   uploadFromFile(
     path: string,
     localPath: string,
+    localRoot: string,
     contentType?: string,
   ): Promise<string>;
   /** Download a stored object to a local filesystem path. */

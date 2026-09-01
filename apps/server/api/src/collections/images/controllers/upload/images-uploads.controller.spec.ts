@@ -22,14 +22,14 @@ vi.mock('node:fs', async (importOriginal) => {
   };
 });
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { createReadStream, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
@@ -37,7 +37,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 import { of } from 'rxjs';
 
@@ -194,7 +197,12 @@ describe('ImagesUploadsController', () => {
       const mockFile = {
         mimetype: 'image/jpeg',
         originalname: 'test.jpg',
-        path: '/tmp/genfeed-image-uploads/disk.jpg',
+        path: path.join(
+          tmpdir(),
+          'genfeed-image-uploads',
+          'nested',
+          'disk.jpg',
+        ),
         size: 2048,
       } as Express.Multer.File;
 
@@ -225,6 +233,50 @@ describe('ImagesUploadsController', () => {
       );
       expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
     });
+
+    it.each([
+      '/etc/passwd.jpg',
+      path.join(tmpdir(), 'genfeed-image-uploads', 'nested\\outside.jpg'),
+      path.join(
+        tmpdir(),
+        'genfeed-image-uploads',
+        'nested',
+        '%2e%2e',
+        'outside.jpg',
+      ),
+      path.join(
+        tmpdir(),
+        'genfeed-image-uploads',
+        'nested',
+        '%252e%252e',
+        'outside.jpg',
+      ),
+    ])(
+      'rejects unsafe disk-backed upload path %s before reading it',
+      async (filePath) => {
+        const mockFile = {
+          mimetype: 'image/jpeg',
+          originalname: 'test.jpg',
+          path: filePath,
+          size: 2048,
+        } as Express.Multer.File;
+
+        mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+          ingredientData: mockIngredient,
+        });
+
+        await expect(
+          controller.upload(mockRequest, mockUser, mockFile, {
+            category: IngredientCategory.IMAGE,
+          }),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(createReadStream).not.toHaveBeenCalled();
+        expect(existsSync).not.toHaveBeenCalled();
+        expect(filesClientService.uploadStreamToS3).not.toHaveBeenCalled();
+        expect(filesClientService.putStreamToUrl).not.toHaveBeenCalled();
+      },
+    );
 
     it('presigns large media and puts the stream instead of JSON base64', async () => {
       const mockFile = {

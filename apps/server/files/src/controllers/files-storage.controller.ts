@@ -5,6 +5,7 @@ import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { resolveContainedPath } from '@libs/security';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {
   BadRequestException,
@@ -29,6 +30,7 @@ type S3KeyGenerator = (type: string, key: string) => string;
 const SKILLS_PRO_DOWNLOAD_KEY_PREFIX = 'skills/v1/';
 const MULTIPART_UPLOAD_ROOT = path.join(FILES_TMP_ROOT, 'multipart-uploads');
 const MULTIPART_UPLOAD_LIMIT_BYTES = 200 * 1024 * 1024;
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 function multipartUploadStorage() {
   return diskStorage({
@@ -73,17 +75,27 @@ function resolveMultipartPath(
   file: Express.Multer.File,
   contentType?: string,
 ): string {
-  if (path.extname(file.path) || path.extname(file.originalname || '')) {
-    return file.path;
+  const sourcePath = resolveContainedPath(
+    MULTIPART_UPLOAD_ROOT,
+    file.path,
+    createBadRequest,
+  );
+
+  if (path.extname(sourcePath) || path.extname(file.originalname || '')) {
+    return sourcePath;
   }
 
   const extension = extensionForContentType(contentType || file.mimetype);
   if (!extension) {
-    return file.path;
+    return sourcePath;
   }
 
-  const renamedPath = `${file.path}${extension}`;
-  fs.renameSync(file.path, renamedPath);
+  const renamedPath = resolveContainedPath(
+    MULTIPART_UPLOAD_ROOT,
+    `${sourcePath}${extension}`,
+    createBadRequest,
+  );
+  fs.renameSync(sourcePath, renamedPath);
   return renamedPath;
 }
 
@@ -92,8 +104,13 @@ function unlinkUploadedTemp(filePath: string | undefined): void {
     return;
   }
   try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const containedPath = resolveContainedPath(
+      MULTIPART_UPLOAD_ROOT,
+      filePath,
+      createBadRequest,
+    );
+    if (fs.existsSync(containedPath)) {
+      fs.unlinkSync(containedPath);
     }
   } catch {
     // Temp cleanup must not mask the upload result.
