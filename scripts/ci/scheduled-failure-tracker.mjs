@@ -119,6 +119,130 @@ export function normalizeFailureSignature(value) {
   return signature.slice(0, SIGNATURE_LIMIT);
 }
 
+function stripWorkflowLogPrefix(line) {
+  return String(line ?? '')
+    .replace(/^\ufeff/gu, '')
+    .replace(/^(?:[^\t\n]*\t){2}/gu, '')
+    .replace(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s*/gu, '')
+    .replace(/^##\[(?:error|notice|warning)\]\s*/giu, '')
+    .trim();
+}
+
+const ACTIONABLE_SCENARIO_PATTERNS = [
+  /^(\[[^\]]+\]\s+›\s+.+?\.(?:spec|test)\.[cm]?[jt]sx?:\d+:\d+\s+›\s+.+)$/u,
+  /^(?:FAIL|FAILED)\s+(.+?\.(?:spec|test)\.[cm]?[jt]sx?(?:\s+>\s+.+)?)$/iu,
+  /^[×✖✗]\s+(.+)$/u,
+  /^\(fail\)\s+(.+)$/iu,
+];
+
+export function extractActionableFailureScenarios(log) {
+  const scenarios = [];
+  const signatures = new Set();
+
+  for (const rawLine of String(log ?? '').split('\n')) {
+    const line = stripWorkflowLogPrefix(rawLine);
+    const match = ACTIONABLE_SCENARIO_PATTERNS.map((pattern) =>
+      line.match(pattern),
+    ).find(Boolean);
+    const scenario = match?.[1]?.trim();
+    if (!scenario) {
+      continue;
+    }
+
+    const signature = normalizeFailureSignature(scenario);
+    if (!signature || signatures.has(signature)) {
+      continue;
+    }
+    signatures.add(signature);
+    scenarios.push(redactPublicEvidence(scenario));
+  }
+
+  return scenarios;
+}
+
+function decodeWorkflowLog(data) {
+  if (typeof data === 'string') {
+    return data;
+  }
+  if (data instanceof ArrayBuffer) {
+    return Buffer.from(data).toString('utf8');
+  }
+  if (ArrayBuffer.isView(data)) {
+    return Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(data ?? '');
+}
+
+function fallbackFailureExcerpt(job) {
+  const failedStep = job.steps?.find((step) =>
+    ['failure', 'cancelled', 'timed_out'].includes(step.conclusion),
+  );
+  const step = failedStep?.name ? ` in ${failedStep.name}` : '';
+  return `Scheduled job ${job.name} ${job.conclusion ?? 'failed'}${step}.`;
+}
+
+export async function collectScheduledRunFailures({
+  github,
+  owner,
+  repo,
+  jobs,
+  core = console,
+}) {
+  const failures = [];
+  const failedJobs = [...(jobs ?? [])]
+    .filter((job) =>
+      ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+    )
+    .sort(
+      (left, right) =>
+        String(left.name).localeCompare(String(right.name)) ||
+        Number(left.databaseId ?? left.id) -
+          Number(right.databaseId ?? right.id),
+    );
+
+  for (const job of failedJobs) {
+    const jobId = job.databaseId ?? job.id;
+    let log = '';
+    if (jobId) {
+      try {
+        const response = await github.request(
+          'GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs',
+          {
+            owner,
+            repo,
+            job_id: jobId,
+          },
+        );
+        log = decodeWorkflowLog(response.data);
+      } catch (error) {
+        core.warning?.(
+          `Could not download logs for scheduled job ${job.name} (${jobId}): ${error.message}`,
+        );
+      }
+    }
+
+    const scenarios = extractActionableFailureScenarios(log);
+    if (scenarios.length === 0) {
+      failures.push({
+        failedJob: job.trackerJob ?? job.name,
+        excerpt: job.fallbackExcerpt ?? fallbackFailureExcerpt(job),
+      });
+      continue;
+    }
+
+    for (const scenario of scenarios) {
+      failures.push({
+        failedJob: job.trackerJob ?? job.name,
+        excerpt: `Test failed: ${scenario}`,
+      });
+    }
+  }
+
+  return failures;
+}
+
 export function classifyScheduledFailure(excerpt) {
   const publicExcerpt = redactPublicEvidence(excerpt);
   const match = FAILURE_CLASSES.find(({ pattern }) =>
@@ -200,7 +324,9 @@ export function buildScheduledFailureBody({ state, excerpt, reproduction }) {
     ``,
     `## Bounded evidence`,
     `- Failure class: \`${state.failureClass}\``,
+    `- Actionable signature: \`${state.signature}\``,
     `- Fingerprint: \`${state.fingerprint}\``,
+    `- Recurrence policy: reopen the oldest canonical tracker for this actionable signature.`,
     `- Occurrences: **${state.occurrences}**`,
     `- First seen: ${state.firstSeenAt} at \`${shortSha(state.firstSha)}\` — ${state.firstRunUrl}`,
     `- Last seen: ${state.lastSeenAt} at \`${shortSha(state.lastSha)}\` — ${state.lastRunUrl}`,
@@ -223,14 +349,9 @@ export function buildScheduledFailureBody({ state, excerpt, reproduction }) {
   ].join('\n');
 }
 
-async function listTrackerIssues(github, { owner, repo, label, state }) {
-  return github.paginate(github.rest.issues.listForRepo, {
-    owner,
-    repo,
-    state,
-    labels: label,
-    sort: 'created',
-    direction: 'asc',
+async function listTrackerIssues(github, { owner, repo }) {
+  return github.paginate(github.rest.search.issuesAndPullRequests, {
+    q: `repo:${owner}/${repo} is:issue in:body "${SCHEDULED_FAILURE_MARKER}"`,
     per_page: 100,
   });
 }
@@ -249,6 +370,41 @@ async function ensureTrackerLabel(github, { owner, repo, label, description }) {
       color: 'b60205',
       description,
     });
+  }
+}
+
+async function tryEnsureTrackerLabel(
+  github,
+  { owner, repo, label, description, core },
+) {
+  try {
+    await ensureTrackerLabel(github, { owner, repo, label, description });
+    return true;
+  } catch (error) {
+    core.warning?.(
+      `Could not ensure scheduled tracker label ${label}; marker-based lifecycle remains active: ${error.message}`,
+    );
+    return false;
+  }
+}
+
+async function tryApplyTrackerLabel(
+  github,
+  { owner, repo, issueNumber, label, core },
+) {
+  try {
+    await applyTrackerLabel(github, {
+      owner,
+      repo,
+      issueNumber,
+      label,
+    });
+    return true;
+  } catch (error) {
+    core.warning?.(
+      `Could not apply ${label} to #${issueNumber}; marker-based lifecycle remains active: ${error.message}`,
+    );
+    return false;
   }
 }
 
@@ -323,11 +479,12 @@ async function promoteTracker(
   github,
   { owner, repo, issueNumber, trackerLabel, core },
 ) {
-  await applyTrackerLabel(github, {
+  await tryApplyTrackerLabel(github, {
     owner,
     repo,
     issueNumber,
     label: 'codex:automation',
+    core,
   });
   await triageCiFailureOnProject(github, {
     owner,
@@ -336,6 +493,26 @@ async function promoteTracker(
     trackerName: trackerLabel,
     core,
   });
+}
+
+async function closeDuplicateTrackers(
+  github,
+  { owner, repo, trackers, canonicalIssueNumber },
+) {
+  for (const duplicate of trackers.filter(
+    ({ issue }) => issue.number !== canonicalIssueNumber,
+  )) {
+    if (duplicate.issue.state === 'closed') {
+      continue;
+    }
+    await github.rest.issues.update({
+      owner,
+      repo,
+      issue_number: duplicate.issue.number,
+      state: 'closed',
+      state_reason: 'not_planned',
+    });
+  }
 }
 
 export async function reportScheduledFailure({
@@ -386,18 +563,17 @@ export async function reportScheduledFailure({
     suppressionReason: classification.suppressionReason,
   };
 
-  await ensureTrackerLabel(github, {
+  await tryEnsureTrackerLabel(github, {
     owner,
     repo,
     label: trackerLabel,
     description: trackerDescription,
+    core,
   });
 
   const allIssues = await listTrackerIssues(github, {
     owner,
     repo,
-    label: trackerLabel,
-    state: 'all',
   });
   let trackers = matchingTrackers(allIssues, fingerprint);
   let canonical = trackers[0];
@@ -405,7 +581,8 @@ export async function reportScheduledFailure({
   let created = false;
 
   if (canonical) {
-    const previous = canonical.state;
+    const previous = mergeTrackerStates(trackers, canonical.state);
+    const canonicalWasClosed = canonical.issue.state === 'closed';
     const resumesAfterGreen =
       previous.status === 'resolved' || previous.greenStreak > 0;
     const occurrences = (Number(previous.occurrences) || 1) + 1;
@@ -441,6 +618,19 @@ export async function reportScheduledFailure({
       reproduction,
       issueState: actionable ? 'open' : undefined,
     });
+    await tryApplyTrackerLabel(github, {
+      owner,
+      repo,
+      issueNumber: canonical.issue.number,
+      label: trackerLabel,
+      core,
+    });
+    await closeDuplicateTrackers(github, {
+      owner,
+      repo,
+      trackers,
+      canonicalIssueNumber: canonical.issue.number,
+    });
     if (actionable) {
       await promoteTracker(github, {
         owner,
@@ -454,7 +644,9 @@ export async function reportScheduledFailure({
       action: actionable
         ? previous.status === 'suppressed'
           ? 'promoted'
-          : 'updated'
+          : canonicalWasClosed || previous.status === 'resolved'
+            ? 'reopened'
+            : 'updated'
         : 'suppressed',
       issueNumber: canonical.issue.number,
       fingerprint,
@@ -474,21 +666,29 @@ export async function reportScheduledFailure({
     }),
   });
   created = true;
-  await applyTrackerLabel(github, {
+  await tryApplyTrackerLabel(github, {
     owner,
     repo,
     issueNumber: createdIssue.data.number,
     label: trackerLabel,
+    core,
   });
 
   const afterCreate = await listTrackerIssues(github, {
     owner,
     repo,
-    label: trackerLabel,
-    state: 'all',
   });
-  trackers = matchingTrackers(afterCreate, fingerprint);
+  trackers = matchingTrackers(
+    [
+      ...afterCreate,
+      ...(afterCreate.some(({ number }) => number === createdIssue.data.number)
+        ? []
+        : [createdIssue.data]),
+    ],
+    fingerprint,
+  );
   canonical = trackers[0] ?? { issue: createdIssue.data, state };
+  const canonicalWasClosed = canonical.issue.state === 'closed';
   state = mergeTrackerStates(trackers, state);
 
   await updateTracker(github, {
@@ -498,17 +698,15 @@ export async function reportScheduledFailure({
     state,
     excerpt: classification.publicExcerpt,
     reproduction,
+    issueState: classification.transient ? undefined : 'open',
   });
 
-  for (const duplicate of trackers.slice(1)) {
-    await github.rest.issues.update({
-      owner,
-      repo,
-      issue_number: duplicate.issue.number,
-      state: 'closed',
-      state_reason: 'not_planned',
-    });
-  }
+  await closeDuplicateTrackers(github, {
+    owner,
+    repo,
+    trackers,
+    canonicalIssueNumber: canonical.issue.number,
+  });
 
   if (classification.transient) {
     await github.rest.issues.update({
@@ -540,7 +738,9 @@ export async function reportScheduledFailure({
     action:
       created && canonical.issue.number === createdIssue.data.number
         ? 'created'
-        : 'updated',
+        : canonicalWasClosed
+          ? 'reopened'
+          : 'updated',
     issueNumber: canonical.issue.number,
     fingerprint,
     reason: null,
@@ -551,7 +751,6 @@ export async function recordScheduledWorkflowGreen({
   github,
   owner,
   repo,
-  trackerLabel,
   workflowIdentity,
   sha,
   runId,
@@ -562,8 +761,6 @@ export async function recordScheduledWorkflowGreen({
   const allIssues = await listTrackerIssues(github, {
     owner,
     repo,
-    label: trackerLabel,
-    state: 'all',
   });
   const trackers = (allIssues ?? [])
     .filter((issue) => !issue.pull_request)

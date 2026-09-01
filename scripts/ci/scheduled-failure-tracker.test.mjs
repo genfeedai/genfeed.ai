@@ -10,26 +10,46 @@ import {
 import {
   buildScheduledFailureBody,
   classifyScheduledFailure,
+  collectScheduledRunFailures,
   computeFailureFingerprint,
+  extractActionableFailureScenarios,
   PUBLIC_EXCERPT_LIMIT,
   parseTrackerState,
   recordScheduledWorkflowGreen,
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
 
-function githubFixture() {
+function githubFixture({ rejectLabels = false } = {}) {
   const issues = [];
-  const calls = { comments: [], graphql: [], labels: [], updates: [] };
+  const calls = {
+    comments: [],
+    graphql: [],
+    labels: [],
+    logDownloads: [],
+    updates: [],
+  };
   let nextNumber = 100;
   const listForRepo = async () => ({ data: issues });
+  const searchIssues = async () => ({ data: { items: issues } });
   const github = {
-    paginate: async (_endpoint, options) =>
-      issues.filter(
+    paginate: async (endpoint, options) => {
+      if (endpoint === searchIssues) {
+        return issues.filter((issue) =>
+          String(issue.body).includes('genfeed-scheduled-failure:v1'),
+        );
+      }
+      return issues.filter(
         (issue) =>
           (options.state === 'all' || issue.state === options.state) &&
           issue.labels.includes(options.labels),
-      ),
+      );
+    },
+    request: async (_route, input) => {
+      calls.logDownloads.push(input.job_id);
+      return { data: input.log };
+    },
     rest: {
+      search: { issuesAndPullRequests: searchIssues },
       issues: {
         listForRepo,
         getLabel: async () => ({ data: {} }),
@@ -47,6 +67,11 @@ function githubFixture() {
         },
         addLabels: async (input) => {
           calls.labels.push(input);
+          if (rejectLabels) {
+            const error = new Error('Resource not accessible by integration');
+            error.status = 403;
+            throw error;
+          }
           const issue = issues.find(
             ({ number }) => number === input.issue_number,
           );
@@ -173,6 +198,56 @@ test('fingerprint is stable across volatile SHAs, URLs, counts, and timestamps',
   );
 });
 
+test('extracts distinct actionable Playwright scenarios from one failed job log', () => {
+  const scenarios = extractActionableFailureScenarios(`
+2026-09-01T08:03:05.9916708Z     [app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:42:7 › Workflows › workflow detail renders restored editor chrome
+2026-09-01T08:03:05.9917390Z     [app-core] › playwright/e2e/tests/agent/agent.spec.ts:99:2 › Agent › sends a queued follow-up
+2026-09-01T08:03:06.0973151Z ##[notice]  2 failed
+`);
+
+  assert.deepEqual(scenarios, [
+    '[app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:42:7 › Workflows › workflow detail renders restored editor chrome',
+    '[app-core] › playwright/e2e/tests/agent/agent.spec.ts:99:2 › Agent › sends a queued follow-up',
+  ]);
+});
+
+test('collects one stable failure per actionable scenario and ignores shard identity', async () => {
+  const fixture = githubFixture();
+  fixture.github.request = async (_route, input) => {
+    fixture.calls.logDownloads.push(input.job_id);
+    return {
+      data: [
+        '2026-09-01T08:03:05Z   2 failed',
+        '2026-09-01T08:03:05Z     [app-core] › playwright/e2e/tests/workflows/workflows.spec.ts:42:7 › Workflows › restores editor chrome',
+        '2026-09-01T08:03:05Z     [app-core] › playwright/e2e/tests/agent/agent.spec.ts:99:2 › Agent › sends a queued follow-up',
+      ].join('\n'),
+    };
+  };
+
+  const failures = await collectScheduledRunFailures({
+    github: fixture.github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    jobs: [
+      {
+        conclusion: 'failure',
+        databaseId: 9001,
+        fallbackExcerpt: 'Playwright full tier failed.',
+        name: 'Playwright Full (Shard 8/8)',
+        trackerJob: 'e2e-frontend-full',
+      },
+    ],
+  });
+
+  assert.deepEqual(fixture.calls.logDownloads, [9001]);
+  assert.deepEqual(
+    failures.map(({ failedJob }) => failedJob),
+    ['e2e-frontend-full', 'e2e-frontend-full'],
+  );
+  assert.match(failures[0].excerpt, /restores editor chrome/u);
+  assert.match(failures[1].excerpt, /sends a queued follow-up/u);
+});
+
 test('body carries a parseable marker and implementation-ready bounded contract', () => {
   const state = {
     ...failure(),
@@ -195,6 +270,8 @@ test('body carries a parseable marker and implementation-ready bounded contract'
   });
   assert.equal(parseTrackerState(body).fingerprint, 'abc123');
   assert.match(body, /Occurrences: \*\*2\*\*/u);
+  assert.match(body, /Actionable signature/u);
+  assert.match(body, /reopen the oldest canonical tracker/u);
   assert.match(body, /Acceptance criteria/u);
   assert.match(body, /Verification plan/u);
   assert.match(body, /111111111111/u);
@@ -223,6 +300,93 @@ test('recurrence updates one issue with occurrence and first/last run evidence',
   assert.equal(state.occurrences, 2);
   assert.equal(state.firstRunUrl, 'https://github.test/runs/10');
   assert.equal(state.lastRunUrl, 'https://github.test/runs/11');
+});
+
+test('different test scenarios in one job create distinct named trackers', async () => {
+  const fixture = githubFixture();
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt:
+        'Test failed: [app-core] › workflows.spec.ts:42:7 › Workflows › restores editor chrome',
+    }),
+  });
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt:
+        'Test failed: [app-core] › agent.spec.ts:99:2 › Agent › sends a queued follow-up',
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    }),
+  });
+
+  assert.notEqual(first.fingerprint, second.fingerprint);
+  assert.equal(fixture.issues.length, 2);
+  assert.match(fixture.issues[0].body, /restores editor chrome/u);
+  assert.match(fixture.issues[1].body, /sends a queued follow-up/u);
+});
+
+test('recurrence finds an unlabeled canonical tracker and reopens it after recovery', async () => {
+  const fixture = githubFixture({ rejectLabels: true });
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure(),
+  });
+  assert.equal(first.action, 'created');
+  assert.deepEqual(fixture.issues[0].labels, []);
+
+  const green = (runId) =>
+    recordScheduledWorkflowGreen({
+      github: fixture.github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      trackerLabel: 'nightly-test-failure',
+      workflowIdentity: '.github/workflows/nightly.yml',
+      sha: String(runId).repeat(40).slice(0, 40),
+      runId,
+      runUrl: `https://github.test/runs/${runId}`,
+      occurredAt: `2026-08-${20 + runId}T01:00:00.000Z`,
+    });
+  await green(1);
+  await green(2);
+  assert.equal((await green(3)).action, 'closed');
+  assert.equal(fixture.issues[0].state, 'closed');
+
+  const recurrence = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      runId: 14,
+      runUrl: 'https://github.test/runs/14',
+      occurredAt: '2026-08-24T01:00:00.000Z',
+    }),
+  });
+  assert.equal(recurrence.action, 'reopened');
+  assert.equal(recurrence.issueNumber, first.issueNumber);
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal(parseTrackerState(fixture.issues[0].body).occurrences, 2);
+});
+
+test('recurrence reconciles historical duplicate trackers into the oldest issue', async () => {
+  const fixture = githubFixture();
+  await reportScheduledFailure({ github: fixture.github, ...failure() });
+  fixture.issues.push({
+    ...structuredClone(fixture.issues[0]),
+    number: 101,
+    node_id: 'NODE_101',
+    state: 'open',
+  });
+
+  const recurrence = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({ runId: 12, runUrl: 'https://github.test/runs/12' }),
+  });
+
+  assert.equal(recurrence.issueNumber, 100);
+  assert.equal(fixture.issues[0].state, 'open');
+  assert.equal(fixture.issues[1].state, 'closed');
+  assert.equal(fixture.issues[1].state_reason, 'not_planned');
+  assert.equal(parseTrackerState(fixture.issues[0].body).occurrences, 3);
 });
 
 test('transient runner noise stays closed until recurrence threshold with visible reason', async () => {

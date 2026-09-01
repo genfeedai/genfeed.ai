@@ -1,7 +1,10 @@
 import {
+  collectScheduledRunFailures,
   recordScheduledWorkflowGreen,
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
+
+export { collectScheduledRunFailures };
 
 export const NIGHTLY_E2E_FAILURE_LABEL = 'nightly-e2e-failure';
 export const NIGHTLY_E2E_FAILURE_TITLE = 'Nightly E2E suite is failing';
@@ -59,7 +62,6 @@ export async function resolveNightlyE2eFailures({
     github,
     owner,
     repo,
-    trackerLabel: NIGHTLY_E2E_FAILURE_LABEL,
     workflowIdentity: NIGHTLY_E2E_WORKFLOW_IDENTITY,
     sha,
     runId,

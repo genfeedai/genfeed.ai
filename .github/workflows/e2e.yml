@@ -596,6 +596,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      actions: read
       contents: read
       issues: write
     steps:
@@ -621,7 +622,10 @@ jobs:
           script: |
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
-            const { reportNightlyE2eFailure } = await import(
+            const {
+              collectScheduledRunFailures,
+              reportNightlyE2eFailure,
+            } = await import(
               pathToFileURL(
                 path.join(
                   process.env.GITHUB_WORKSPACE,
@@ -629,44 +633,50 @@ jobs:
                 ),
               ).href,
             );
-            const failures = [];
-            if (process.env.GATE_RESULT === 'failure') {
-              failures.push({
-                failedJob: 'e2e-gate',
-                excerpt: 'Test suite failed: core E2E gate (route coverage, frontend shards, or API E2E).',
-              });
-            }
-            if (process.env.AUTHED_RESULT === 'failure') {
-              failures.push({
-                failedJob: 'e2e-frontend-authed',
-                excerpt: 'Test suite failed: authenticated E2E with real Better Auth.',
-              });
-            }
-            if (process.env.API_FULL_RESULT === 'failure') {
-              failures.push({
-                failedJob: 'e2e-api-full',
-                excerpt: 'Test suite failed: API E2E full tier.',
-              });
-            }
-            if (process.env.API_FULL_RESULT === 'cancelled') {
-              failures.push({
-                failedJob: 'e2e-api-full',
-                excerpt: 'Timed out: API E2E full tier was cancelled after hanging or exceeding its job limit.',
-              });
-            }
-            if (process.env.ISOLATED_PUBLISH_RESULT === 'failure') {
-              failures.push({
-                failedJob: 'e2e-isolated-publish',
-                excerpt: 'Test suite failed: isolated-DB publish path.',
-              });
-            }
-            if (process.env.ISOLATED_PUBLISH_RESULT === 'cancelled') {
-              failures.push({
-                failedJob: 'e2e-isolated-publish',
-                excerpt: 'Timed out: isolated-DB publish path was cancelled after hanging or exceeding its job limit.',
-              });
-            }
             const { owner, repo } = context.repo;
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner,
+                repo,
+                run_id: Number(process.env.RUN_ID),
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            const sourceName = /^(?:E2E Route Coverage Gate|API E2E Tests|API E2E Full|Isolated Publish E2E|Frontend E2E \(Shard \d+\/4\)|Frontend Authed E2E \(real Better Auth\)|E2E Gate \(all shards\))$/;
+            const failedJobs = jobs.filter(
+              (job) =>
+                sourceName.test(job.name) &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const specificJobs = failedJobs.filter(
+              (job) => job.name !== 'E2E Gate (all shards)',
+            );
+            const selectedJobs = specificJobs.length > 0 ? specificJobs : failedJobs;
+            const trackerJob = (name) => {
+              if (/^Frontend E2E \(Shard/u.test(name)) return 'e2e-frontend';
+              if (name === 'Frontend Authed E2E (real Better Auth)') return 'e2e-frontend-authed';
+              if (name === 'API E2E Full') return 'e2e-api-full';
+              if (name === 'API E2E Tests') return 'e2e-api';
+              if (name === 'Isolated Publish E2E') return 'e2e-isolated-publish';
+              if (name === 'E2E Route Coverage Gate') return 'e2e-route-coverage';
+              return 'e2e-gate';
+            };
+            const failures = await collectScheduledRunFailures({
+              github,
+              owner,
+              repo,
+              jobs: selectedJobs.map((job) => ({
+                ...job,
+                trackerJob: trackerJob(job.name),
+                fallbackExcerpt:
+                  job.conclusion === 'failure'
+                    ? `Test suite failed: ${job.name}.`
+                    : `Timed out or cancelled: ${job.name}.`,
+              })),
+              core,
+            });
             await reportNightlyE2eFailure({
               github,
               owner,
