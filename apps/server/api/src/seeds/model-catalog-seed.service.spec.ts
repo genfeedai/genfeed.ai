@@ -184,6 +184,23 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
+  it('keeps collision-safe fal keys separate from provider endpoints', async () => {
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+    expect(callForKey('fal/google/gemini-omni-flash')).toMatchObject({
+      create: { endpoint: 'google/gemini-omni-flash' },
+      update: { endpoint: 'google/gemini-omni-flash' },
+    });
+    expect(callForKey('fal/minimax/h3-max/text-to-video')).toMatchObject({
+      create: {
+        endpoint: 'minimax/h3-max/text-to-video',
+        pricingType: 'per-second',
+        providerCostUsd: 0.08,
+      },
+      update: { endpoint: 'minimax/h3-max/text-to-video' },
+    });
+  });
+
   it('carries the successor forward on retired rows', async () => {
     const legacyEntry = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.isLegacy && entry.succeededBy,

@@ -61,4 +61,21 @@ describe('model-capabilities.constant', () => {
     expect(capability).not.toHaveProperty('hasResolutionOptions');
     expect(capability).not.toHaveProperty('hasVideoReferences');
   });
+
+  it('advertises the fal-published MiniMax H3 Max controls', () => {
+    expect(
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_MINIMAX_H3_MAX],
+    ).toMatchObject({
+      aspectRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+      category: ModelCategory.VIDEO,
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasInterpolation: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      maxReferences: 1,
+    });
+  });
 });

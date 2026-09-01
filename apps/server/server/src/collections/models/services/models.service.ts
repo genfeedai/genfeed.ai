@@ -1,3 +1,13 @@
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type {
+  IModelProviderContractSnapshot,
+  IModelProviderContracts,
+} from '@genfeedai/interfaces';
+import { withLiveModelCreditPricing } from '@genfeedai/pricing';
+import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
@@ -6,12 +16,6 @@ import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import { withLiveModelCreditPricing } from '@genfeedai/pricing';
-import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
-import type { AggregationOptions } from '@libs/interfaces/query.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PAGINATION_OPTION_KEYS = new Set([
   'allowDiskUse',
@@ -498,6 +502,71 @@ export class ModelsService extends BaseService<
     return this.prisma.model.count({
       where: this.normalizeWhereForModel(filter) as Prisma.ModelWhereInput,
     });
+  }
+
+  async getProviderContracts(
+    modelId: string,
+  ): Promise<IModelProviderContracts | null> {
+    const model = await this.findOne({ id: modelId });
+    if (!model) {
+      return null;
+    }
+
+    const versions = [
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
+    ].filter((version): version is string => Boolean(version));
+    const contracts =
+      versions.length > 0
+        ? await this.prisma.modelProviderContract.findMany({
+            where: { modelId, version: { in: versions } },
+          })
+        : [];
+    const contractByVersion = new Map(
+      contracts.map((contract) => [contract.version, contract]),
+    );
+    const toSnapshot = (
+      version: string | null | undefined,
+    ): IModelProviderContractSnapshot | null => {
+      if (!version) {
+        return null;
+      }
+      const contract = contractByVersion.get(version);
+      if (!contract) {
+        return null;
+      }
+      return {
+        billingUnit: contract.billingUnit ?? undefined,
+        conditionalDimensions: this.isModelRecord(
+          contract.conditionalDimensions,
+        )
+          ? contract.conditionalDimensions
+          : {},
+        currency: contract.currency ?? undefined,
+        discoveredAt: contract.discoveredAt,
+        inputSchema: this.isModelRecord(contract.inputSchema)
+          ? contract.inputSchema
+          : {},
+        lastSeenAt: contract.lastSeenAt,
+        mappingStatus: contract.mappingStatus,
+        outputSchema: this.isModelRecord(contract.outputSchema)
+          ? contract.outputSchema
+          : {},
+        pricingType: contract.pricingType ?? undefined,
+        reviewStatus: contract.reviewStatus,
+        schemaFamily: contract.schemaFamily ?? undefined,
+        unitPrice: contract.unitPrice ?? undefined,
+        unsupportedReason: contract.unsupportedReason ?? undefined,
+        version: contract.version,
+      };
+    };
+
+    return {
+      endpoint: model.endpoint,
+      pending: toSnapshot(model.pendingProviderContractVersion),
+      provider: model.provider,
+      reviewed: toSnapshot(model.reviewedProviderContractVersion),
+    };
   }
 
   async approveRegistryModel(

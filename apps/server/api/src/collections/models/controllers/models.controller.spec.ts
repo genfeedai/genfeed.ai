@@ -1,14 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
-import type { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
-import type { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
-import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -16,6 +9,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
+import type { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
+import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -147,6 +147,7 @@ describe('ModelsController', () => {
             clearOtherDefaults: vi.fn().mockResolvedValue(undefined),
             create: vi.fn(),
             approveRegistryModel: vi.fn(),
+            getProviderContracts: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
             markRegistryModelLegacy: vi.fn(),
@@ -655,6 +656,35 @@ describe('ModelsController', () => {
   });
 
   describe('registry review actions', () => {
+    it('returns provider contracts to superadmins', async () => {
+      const contracts = {
+        endpoint: 'minimax/h3-max/text-to-video',
+        pending: null,
+        provider: ModelProvider.FAL,
+        reviewed: null,
+      };
+      modelsService.getProviderContracts.mockResolvedValue(contracts);
+
+      await expect(
+        controller.getProviderContracts(
+          mockSuperAdminRequest,
+          mockSuperAdminUser,
+          'model-1',
+        ),
+      ).resolves.toEqual(contracts);
+    });
+
+    it('forbids provider contract details for non-superadmins', async () => {
+      await expect(
+        controller.getProviderContracts(
+          mockRequest,
+          mockRegularUser,
+          'model-1',
+        ),
+      ).rejects.toThrow(HttpException);
+      expect(modelsService.getProviderContracts).not.toHaveBeenCalled();
+    });
+
     it('should approve a discovered model for superadmins', async () => {
       const id = testId('model');
       const approvedModel = {

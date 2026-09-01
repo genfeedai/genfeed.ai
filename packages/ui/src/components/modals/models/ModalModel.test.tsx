@@ -52,6 +52,20 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    getProviderContracts: vi.fn(),
+  }),
+}));
+
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({
+    data: undefined,
+    isError: false,
+    isLoading: false,
+  }),
+}));
+
 describe('ModalModel', () => {
   it('should render without crashing', () => {
     render(<ModalModel onConfirm={vi.fn()} />);
