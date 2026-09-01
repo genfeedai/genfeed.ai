@@ -1,5 +1,8 @@
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentChatMessage,
+  AgentUiAction,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +10,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 beforeEach(() => {
   useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
 });
+
+function messageWithAction(
+  id: string,
+  action: AgentUiAction,
+): AgentChatMessage {
+  return {
+    content: 'Brand voice draft',
+    createdAt: '2026-08-31T00:00:00.000Z',
+    id,
+    metadata: { uiActions: [action] },
+    role: 'assistant',
+    threadId: 'thread-1',
+  };
+}
+
+function storedAction(messageIndex: number): AgentUiAction {
+  const action =
+    useAgentChatStore.getState().messages[messageIndex]?.metadata
+      ?.uiActions?.[0];
+  if (!action) {
+    throw new Error(`Missing stored action at message index ${messageIndex}`);
+  }
+  return action;
+}
 
 describe('BrandVoiceProfileCard', () => {
   it('renders the structured brand voice fields', () => {
@@ -120,17 +147,36 @@ describe('BrandVoiceProfileCard', () => {
     ).toBeEnabled();
   });
 
-  it('renders a completed action as saved after remount', () => {
-    render(
+  it('renders a completed action as saved after remount', async () => {
+    const action: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_save_brand_voice_profile',
+          label: 'Approve and save',
+        },
+      ],
+      id: 'brand-voice-completed',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+    useAgentChatStore
+      .getState()
+      .setMessages([messageWithAction('message-1', action)]);
+    const firstMount = render(
       <BrandVoiceProfileCard
-        action={{
-          id: 'brand-voice-completed',
-          status: 'completed',
-          title: 'Brand Voice Draft',
-          type: 'brand_voice_profile_card',
-        }}
-        onUiAction={vi.fn()}
+        action={storedAction(0)}
+        onUiAction={vi.fn().mockResolvedValue(undefined)}
       />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
+    await waitFor(() => {
+      expect(storedAction(0).status).toBe('completed');
+    });
+    firstMount.unmount();
+
+    render(
+      <BrandVoiceProfileCard action={storedAction(0)} onUiAction={vi.fn()} />,
     );
 
     expect(
@@ -142,26 +188,45 @@ describe('BrandVoiceProfileCard', () => {
   });
 
   it('keeps approval available for a later draft of the same brand', () => {
+    const completedAction: AgentUiAction = {
+      data: { brandId: 'brand-1' },
+      id: 'brand-voice-brand-1-first-draft',
+      status: 'completed',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+    const laterAction: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_save_brand_voice_profile',
+          label: 'Approve and save',
+          payload: {
+            brandId: 'brand-1',
+            sourceActionId: 'brand-voice-brand-1-second-draft',
+          },
+        },
+      ],
+      data: { brandId: 'brand-1' },
+      id: 'brand-voice-brand-1-second-draft',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+    useAgentChatStore
+      .getState()
+      .setMessages([
+        messageWithAction('message-1', completedAction),
+        messageWithAction('message-2', laterAction),
+      ]);
+    const firstDraft = render(
+      <BrandVoiceProfileCard action={storedAction(0)} onUiAction={vi.fn()} />,
+    );
+    expect(
+      screen.getByText('Brand voice saved to this brand.'),
+    ).toBeInTheDocument();
+    firstDraft.unmount();
+
     render(
-      <BrandVoiceProfileCard
-        action={{
-          ctas: [
-            {
-              action: 'confirm_save_brand_voice_profile',
-              label: 'Approve and save',
-              payload: {
-                brandId: 'brand-1',
-                sourceActionId: 'brand-voice-brand-1-second-draft',
-              },
-            },
-          ],
-          data: { brandId: 'brand-1' },
-          id: 'brand-voice-brand-1-second-draft',
-          title: 'Brand Voice Draft',
-          type: 'brand_voice_profile_card',
-        }}
-        onUiAction={vi.fn()}
-      />,
+      <BrandVoiceProfileCard action={storedAction(1)} onUiAction={vi.fn()} />,
     );
 
     expect(
