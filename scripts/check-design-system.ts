@@ -25,6 +25,10 @@ import {
 import { sizingTokens } from '../packages/ui/src/core/sizing';
 import { spacingTokens } from '../packages/ui/src/core/spacing';
 import { typographyTokens } from '../packages/ui/src/core/typography';
+import {
+  loadDesignEvalScenario,
+  validateDesignEvalScenario,
+} from './design-eval/contract';
 
 const rootDir = process.cwd();
 const DESIGN_SYSTEM_BASELINE_VERSION = 1;
@@ -647,6 +651,25 @@ function checkDesignLint(failures: string[]): void {
   }
 }
 
+function checkDesignEvalSeed(failures: string[]): void {
+  try {
+    const scenarioFailures = validateDesignEvalScenario(
+      loadDesignEvalScenario(),
+    );
+    if (scenarioFailures.length > 0) {
+      failures.push(
+        `Design evaluation seed is invalid:\n${scenarioFailures.join('\n')}`,
+      );
+    }
+  } catch (error) {
+    failures.push(
+      `Design evaluation seed could not be read: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+}
+
 function checkWebTokenDrift(failures: string[]): void {
   const webTokens = readRepoFile('packages/ui/web-tokens.css');
 
@@ -888,6 +911,7 @@ export function main(): void {
   const failures: string[] = [];
 
   checkDesignLint(failures);
+  checkDesignEvalSeed(failures);
   checkWebTokenDrift(failures);
   checkPlatformCoverage(failures);
   checkMobileHardcodedColors(failures);
