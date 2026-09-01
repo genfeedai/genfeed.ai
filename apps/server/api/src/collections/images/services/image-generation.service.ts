@@ -58,6 +58,14 @@ import { RouterService } from '@server/services/router/router.service';
 import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+
+/** Populate patterns for every image read on the wait/serialize path. */
+const IMAGE_POPULATE = [
+  PopulatePatterns.promptFull,
+  PopulatePatterns.metadataFull,
+  PopulatePatterns.brandMinimal,
+];
 
 /**
  * Owns the full image-generation workflow extracted out of
