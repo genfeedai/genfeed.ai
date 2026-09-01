@@ -131,6 +131,47 @@ describe('BackgroundTaskContext', () => {
     expect(result.current.tasks).toHaveLength(0);
   });
 
+  it('updates an existing task without changing unrelated tasks', () => {
+    const { result } = renderHook(() => useBackgroundTaskContext(), {
+      wrapper,
+    });
+
+    act(() => {
+      result.current.addTask({
+        completedAt: null,
+        createdAt: '2026-01-03T10:00:00.000Z',
+        id: 'task-to-update',
+        progress: 10,
+        status: 'processing',
+        title: 'Original title',
+        type: 'video',
+      });
+      result.current.addTask({
+        completedAt: null,
+        createdAt: '2026-01-03T10:01:00.000Z',
+        id: 'task-to-preserve',
+        progress: 25,
+        status: 'processing',
+        title: 'Preserved title',
+        type: 'image',
+      });
+    });
+
+    act(() => {
+      result.current.updateTask('task-to-update', {
+        progress: 80,
+        title: 'Updated title',
+      });
+    });
+
+    expect(
+      result.current.tasks.find((task) => task.id === 'task-to-update'),
+    ).toMatchObject({ progress: 80, title: 'Updated title' });
+    expect(
+      result.current.tasks.find((task) => task.id === 'task-to-preserve'),
+    ).toMatchObject({ progress: 25, title: 'Preserved title' });
+  });
+
   it('scopes storage key to user ID', () => {
     const { result } = renderHook(() => useBackgroundTaskContext(), {
       wrapper,
