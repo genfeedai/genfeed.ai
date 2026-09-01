@@ -9,7 +9,7 @@ import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import {
   assertRequiredSchemaInput,
-  modelIdToSchemaFilename,
+  replicateModelIdToSlug,
 } from '@server/services/prompt-builder/utils/replicate-schema.util';
 
 @Injectable()
@@ -54,6 +54,6 @@ export class ReplicateVideoGenerationProviderAdapter
   }
 
   private isHailuo23Fast(modelId: string): boolean {
-    return modelIdToSchemaFilename(modelId) === 'hailuo-2.3-fast.schema.json';
+    return replicateModelIdToSlug(modelId) === 'hailuo-2.3-fast';
   }
 }

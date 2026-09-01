@@ -2,8 +2,9 @@
 /**
  * sync-replicate-schemas.ts
  *
- * Fetches the latest input schemas from the Replicate API for all known
- * Replicate models and writes them as per-model JSON schema files.
+ * Legacy offline snapshot exporter. Runtime schema discovery and review are
+ * owned by ReplicateModelContractSyncService and ModelProviderContract.
+ * Nothing in the application reads the files produced by this script.
  *
  * Usage:
  *   REPLICATE_KEY=r8_xxx bun scripts/sync-replicate-schemas.ts
@@ -11,8 +12,8 @@
  * Output:
  *   apps/server/api/src/services/integrations/replicate/schemas/{model-slug}.schema.json
  *
- * The generic prompt builder reads these schemas at runtime to determine
- * which fields to include when building prompts for new/unknown models.
+ * Keep this utility only for one-off historical comparisons while the tracked
+ * snapshots remain in the repository.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';

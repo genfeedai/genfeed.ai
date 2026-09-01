@@ -209,16 +209,15 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
   /**
    * Generic image prompt builder for auto-discovered models.
-   * When a schema JSON is available (synced via sync-replicate-schemas.ts),
-   * conditionally includes fields based on schema presence.
-   * Without a schema, falls back to safe defaults.
+   * An approved provider contract enables schema-aware fields. Models without
+   * an approved contract use safe generic defaults.
    */
   private buildGenericImagePrompt(
     model: string | string,
     params: PromptBuilderParams,
     promptText: string,
   ): GenericImageInput {
-    const schema = resolveModelSchema(model, params.modelInputSchema);
+    const schema = resolveModelSchema(params.modelInputSchema);
 
     const calculatedAspectRatio = calculateAspectRatio(
       params.width,
