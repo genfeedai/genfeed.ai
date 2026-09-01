@@ -46,4 +46,20 @@ describe('buildActionExecutionInput', () => {
       ),
     ).toEqual({ source: 'adapter' });
   });
+
+  it('omits undefined properties at the JSON action boundary', () => {
+    expect(
+      buildActionExecutionInput(
+        {
+          parameters: {
+            aspectRatio: '1:1',
+            duration: undefined,
+            outputs: 1,
+            resolution: undefined,
+          },
+        },
+        new Map(),
+      ),
+    ).toStrictEqual({ aspectRatio: '1:1', outputs: 1 });
+  });
 });

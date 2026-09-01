@@ -284,6 +284,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     }
     const duration = params.payload?.duration;
     if (
+      generationType === 'video' &&
       duration !== undefined &&
       (typeof duration !== 'number' ||
         !Number.isFinite(duration) ||
@@ -296,6 +297,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     }
     const outputs = params.payload?.outputs;
     if (
+      generationType === 'image' &&
       outputs !== undefined &&
       (typeof outputs !== 'number' ||
         !Number.isInteger(outputs) ||
@@ -322,10 +324,30 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             typeof value === 'string' && value.trim().length > 0,
         )
       : undefined;
+    const aspectRatio =
+      typeof params.payload?.aspectRatio === 'string' &&
+      params.payload.aspectRatio.trim()
+        ? params.payload.aspectRatio.trim()
+        : undefined;
+    const endFrame =
+      typeof params.payload?.endFrame === 'string' &&
+      params.payload.endFrame.trim()
+        ? params.payload.endFrame.trim()
+        : undefined;
+    const resolution =
+      typeof params.payload?.resolution === 'string' &&
+      params.payload.resolution.trim()
+        ? params.payload.resolution.trim()
+        : undefined;
+    const commonToolPayload = {
+      ...(aspectRatio ? { aspectRatio } : {}),
+      prompt,
+      ...(references && references.length > 0 ? { references } : {}),
+    };
     return {
       generationType,
       model,
-      outputs,
+      outputs: generationType === 'image' ? outputs : undefined,
       priority:
         toRouterPriority(
           typeof params.payload?.prioritize === 'string'
@@ -337,25 +359,21 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         generationType === 'video'
           ? AgentToolName.GENERATE_VIDEO
           : AgentToolName.GENERATE_IMAGE,
-      toolPayload: {
-        aspectRatio:
-          typeof params.payload?.aspectRatio === 'string'
-            ? params.payload.aspectRatio
-            : undefined,
-        duration,
-        endFrame:
-          typeof params.payload?.endFrame === 'string'
-            ? params.payload.endFrame
-            : undefined,
-        outputs,
-        prompt,
-        references,
-        resolution:
-          typeof params.payload?.resolution === 'string'
-            ? params.payload.resolution
-            : undefined,
-        videoReferences,
-      },
+      toolPayload:
+        generationType === 'image'
+          ? {
+              ...commonToolPayload,
+              ...(typeof outputs === 'number' ? { outputs } : {}),
+            }
+          : {
+              ...commonToolPayload,
+              ...(typeof duration === 'number' ? { duration } : {}),
+              ...(endFrame ? { endFrame } : {}),
+              ...(resolution ? { resolution } : {}),
+              ...(videoReferences && videoReferences.length > 0
+                ? { videoReferences }
+                : {}),
+            },
     };
   }
 
