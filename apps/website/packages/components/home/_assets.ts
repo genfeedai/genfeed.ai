@@ -19,29 +19,41 @@ export const HOME_ASSETS = {
   },
 } as const;
 
-export const HOME_OUTPUT_WALL_ASSETS = [
+export const HOME_OUTPUT_CAROUSEL_ASSETS = [
   {
     alt: 'Generated product photography contact sheet for a launch campaign',
+    format: 'Product campaign',
     src: HOME_ASSETS.formats.images,
+    title: 'One visual world',
   },
   {
     alt: 'Generated short-form video frame staged for a reels campaign',
+    format: 'Short-form video',
     src: HOME_ASSETS.formats.reels,
+    title: 'Made to move',
   },
   {
     alt: 'Generated ad creative variations in multiple campaign ratios',
+    format: 'Ads & creative',
     src: HOME_ASSETS.formats.ads,
+    title: 'Ready to perform',
   },
   {
     alt: 'Generated article layout with hero imagery and editorial blocks',
+    format: 'Articles & newsletters',
     src: HOME_ASSETS.formats.articles,
+    title: 'Ideas with depth',
   },
   {
     alt: 'Generated avatar clip frame for a spoken campaign asset',
+    format: 'AI influencer',
     src: HOME_ASSETS.formats.avatars,
+    title: 'Always on-brand',
   },
   {
     alt: 'Generated voiceover campaign asset with audio production visuals',
+    format: 'Podcasts & voice',
     src: HOME_ASSETS.formats.voice,
+    title: 'Worth listening to',
   },
 ] as const;

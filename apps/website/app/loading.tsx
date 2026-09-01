@@ -2,7 +2,7 @@ import BrandLoader from '@ui/feedback/brand-loader/BrandLoader';
 
 export default function Loading() {
   return (
-    <main className="grid min-h-[calc(100vh-5rem)] place-items-center bg-background">
+    <main className="grid min-h-screen place-items-center bg-background">
       <BrandLoader />
     </main>
   );

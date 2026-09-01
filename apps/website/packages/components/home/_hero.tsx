@@ -1,157 +1,117 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
+import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import Link from 'next/link';
 
 const AGENT_HREF = '/agent';
 
-/**
- * Exactly one wall tile is `priority`. `priority` emits a preload link and a
- * high fetch priority, so marking three of them made the browser race three
- * full-size images against each other and against the hero's own font and CSS.
- * The largest tile is the LCP candidate; the rest are in-viewport lazy images,
- * which browsers still fetch immediately, just behind the element that decides
- * the score.
- */
-const HERO_WALL_ITEMS = [
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[0],
-    className:
-      'col-span-6 row-span-3 sm:col-span-5 sm:row-span-5 sm:col-start-1 sm:row-start-1',
-    imageClassName: 'object-[50%_50%]',
-    priority: true,
-    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 360px',
-  },
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[1],
-    className:
-      'col-span-3 row-span-4 sm:col-span-3 sm:row-span-9 sm:col-start-6 sm:row-start-1',
-    imageClassName: 'object-[50%_50%]',
-    priority: false,
-    sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 28vw, 220px',
-  },
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[2],
-    className:
-      'col-span-3 row-span-4 sm:col-span-4 sm:row-span-4 sm:col-start-9 sm:row-start-1',
-    imageClassName: 'object-[50%_50%]',
-    priority: false,
-    sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 35vw, 300px',
-  },
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[3],
-    className:
-      'col-span-4 row-span-3 sm:col-span-5 sm:row-span-4 sm:col-start-1 sm:row-start-6',
-    imageClassName: 'object-[48%_42%]',
-    priority: false,
-    sizes: '(max-width: 640px) 66vw, (max-width: 1024px) 42vw, 360px',
-  },
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[4],
-    className:
-      'col-span-2 row-span-3 sm:col-span-4 sm:row-span-5 sm:col-start-9 sm:row-start-5',
-    imageClassName: 'object-[50%_50%]',
-    priority: false,
-    sizes: '(max-width: 640px) 34vw, (max-width: 1024px) 35vw, 300px',
-  },
-  {
-    ...HOME_OUTPUT_WALL_ASSETS[5],
-    className:
-      'col-span-6 row-span-2 sm:col-span-12 sm:row-span-3 sm:col-start-1 sm:row-start-10',
-    imageClassName: 'object-[50%_50%]',
-    priority: false,
-    sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 860px',
-  },
-] as const;
-
 export default function HomeHero(): React.ReactElement {
   return (
-    <section className="relative overflow-hidden border-b border-edge/5 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
-          <div className="max-w-[42rem] self-center">
-            <Text className="mb-5 text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
-              The AI content studio
-            </Text>
-            <Heading
-              as="h1"
-              className="hero-headline max-w-[44rem] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
-            >
-              One brief. <span className="block">Every channel.</span>
-            </Heading>
+    <section className="overflow-hidden border-b border-edge/5 bg-background pb-24 pt-20 sm:pb-32 sm:pt-28 lg:pb-40 lg:pt-36">
+      <div className="container mx-auto px-6 text-center">
+        <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
+          Made with Genfeed
+        </Text>
+        <Heading
+          as="h1"
+          className="mx-auto mt-5 max-w-5xl text-[3rem] font-semibold leading-[0.95] tracking-[-0.055em] text-surface sm:text-6xl md:text-7xl lg:text-[5.5rem]"
+        >
+          Everything your brand can become.
+        </Heading>
+        <Text
+          as="p"
+          className="mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 md:text-lg"
+        >
+          Campaigns, creators, video, voice, articles, and every format between
+          them—generated as one recognisable brand.
+        </Text>
+      </div>
 
-            <Text
-              as="p"
-              className="hero-description mt-6 max-w-2xl text-base leading-7 text-surface/72 md:text-lg"
-            >
-              Genfeed drafts the posts, makes the images and video, and
-              publishes on your schedule.
-            </Text>
+      <div
+        className="mt-14 w-screen px-6 sm:mt-20 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        data-testid="home-hero-output-carousel"
+      >
+        <HorizontalCarousel
+          className="mx-auto"
+          gap="sm"
+          itemClassName="snap-x snap-mandatory pb-3"
+        >
+          {HOME_OUTPUT_CAROUSEL_ASSETS.map((item, index) => {
+            const isFeatured = index === 0;
 
-            <div className="flex flex-row items-center mt-8 flex-wrap gap-3">
-              <ButtonTracked
-                asChild
-                size={ButtonSize.PUBLIC}
-                className="hero-cta"
-                trackingData={{ action: 'start_creating_hero' }}
-                trackingName="home_hero_click"
+            return (
+              <figure
+                key={item.alt}
+                className={`group relative flex-none snap-center overflow-hidden rounded-xl bg-card shadow-border-strong ${
+                  isFeatured
+                    ? 'h-[32rem] w-[78vw] max-w-[31rem] sm:h-[38rem]'
+                    : 'h-[28rem] w-[68vw] max-w-[22rem] sm:h-[34rem]'
+                }`}
+                data-testid="home-hero-output-carousel-item"
               >
-                <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start creating
-                </a>
-              </ButtonTracked>
-
-              <ButtonTracked
-                asChild
-                className="hero-cta"
-                size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'use_agent_hero' }}
-                trackingName="home_hero_click"
-                variant={ButtonVariant.SECONDARY}
-              >
-                <Link href={AGENT_HREF}>Use the Agent</Link>
-              </ButtonTracked>
-            </div>
-
-            <Text as="p" className="mt-5 text-[13px] leading-5 text-surface/72">
-              Free to start. No card required.
-            </Text>
-          </div>
-
-          <figure
-            className="hero-output-wall relative mx-auto w-full max-w-[860px]"
-            data-testid="home-hero-output-wall"
-          >
-            <div className="relative overflow-hidden rounded-lg bg-card shadow-border-strong">
-              <div
-                className="grid aspect-[4/5] grid-cols-6 grid-rows-[repeat(12,minmax(0,1fr))] gap-2 p-2 sm:aspect-[860/620] sm:grid-cols-12 sm:p-3"
-                data-testid="home-hero-content-wall-grid"
-              >
-                {HERO_WALL_ITEMS.map((item) => (
-                  <div
-                    key={item.alt}
-                    className={`group relative min-h-0 overflow-hidden rounded-md bg-background ${item.className}`}
-                    data-testid="home-hero-output-wall-item"
+                <Image
+                  alt={item.alt}
+                  className="object-cover transition-transform duration-700 group-hover:scale-[1.025] motion-reduce:transition-none"
+                  fill
+                  priority={isFeatured}
+                  sizes={
+                    isFeatured
+                      ? '(max-width: 640px) 78vw, 496px'
+                      : '(max-width: 640px) 68vw, 352px'
+                  }
+                  src={item.src}
+                />
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_45%,rgba(5,6,7,0.94))]" />
+                <figcaption className="absolute inset-x-0 bottom-0 z-10 p-6 text-left sm:p-7">
+                  <Text className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/65">
+                    {item.format}
+                  </Text>
+                  <Heading
+                    as="h2"
+                    className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl"
                   >
-                    <Image
-                      alt={item.alt}
-                      className={`object-cover transition-transform duration-700 group-hover:scale-[1.03] ${item.imageClassName}`}
-                      fill
-                      priority={item.priority}
-                      sizes={item.sizes}
-                      src={item.src}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
-            </div>
-          </figure>
+                    {item.title}
+                  </Heading>
+                </figcaption>
+              </figure>
+            );
+          })}
+        </HorizontalCarousel>
+      </div>
+
+      <div className="container mx-auto mt-10 px-6">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <ButtonTracked
+            asChild
+            size={ButtonSize.PUBLIC}
+            className="hero-cta"
+            trackingData={{ action: 'start_creating_hero' }}
+            trackingName="home_hero_click"
+          >
+            <a href={`${EnvironmentService.apps.app}/sign-up`}>
+              Start creating
+            </a>
+          </ButtonTracked>
+
+          <ButtonTracked
+            asChild
+            className="hero-cta"
+            size={ButtonSize.PUBLIC}
+            trackingData={{ action: 'use_agent_hero' }}
+            trackingName="home_hero_click"
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={AGENT_HREF}>Use the Agent</Link>
+          </ButtonTracked>
         </div>
+        <Text as="p" className="mt-5 text-center text-[13px] text-surface/72">
+          Free to start. No card required.
+        </Text>
       </div>
     </section>
   );

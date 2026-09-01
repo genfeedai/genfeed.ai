@@ -12,6 +12,10 @@ vi.mock('@web-components/home/_how', () => ({
   default: () => <section data-testid="home-distribution-loop">Loop</section>,
 }));
 
+vi.mock('@web-components/home/_product', () => ({
+  default: () => <section data-testid="home-product">Product</section>,
+}));
+
 vi.mock('@web-components/home/_formats', () => ({
   default: () => <section data-testid="home-formats">Formats</section>,
 }));
@@ -29,21 +33,22 @@ vi.mock('@web-components/home/_footer', () => ({
 }));
 
 describe('HomeContent', () => {
-  it('explains the distribution loop in the first two sections', () => {
+  it('shows output first and the product mechanism second', () => {
     const { container } = render(<HomeContent />);
     const sections = Array.from(container.children);
 
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
-    expect(sections[1]).toBe(screen.getByTestId('home-distribution-loop'));
-    expect(sections[2]).toBe(screen.getByTestId('home-formats'));
+    expect(sections[1]).toBe(screen.getByTestId('home-product'));
   });
 
-  it('places proof between the formats grid and the closing CTA', () => {
+  it('places verified proof after product and before explanation', () => {
     const { container } = render(<HomeContent />);
     const sections = Array.from(container.children);
 
-    expect(sections[3]).toBe(screen.getByTestId('home-winners'));
-    expect(sections[4]).toBe(screen.getByTestId('home-cta'));
+    expect(sections[2]).toBe(screen.getByTestId('home-winners'));
+    expect(sections[3]).toBe(screen.getByTestId('home-distribution-loop'));
+    expect(sections[4]).toBe(screen.getByTestId('home-formats'));
+    expect(sections[5]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('drops the sections that moved to pricing and the FAQ page', () => {
