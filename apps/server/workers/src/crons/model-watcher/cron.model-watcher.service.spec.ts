@@ -10,14 +10,15 @@ import { ModelDiscoveryService } from '@workers/services/model-discovery.service
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
+import type { Mocked } from 'vitest';
 
 describe('CronModelWatcherService', () => {
   let service: CronModelWatcherService;
-  let modelDiscoveryService: vi.Mocked<ModelDiscoveryService>;
-  let configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let notificationsService: vi.Mocked<NotificationsService>;
-  let replicateContractSyncService: vi.Mocked<ReplicateModelContractSyncService>;
+  let modelDiscoveryService: Mocked<ModelDiscoveryService>;
+  let configService: Mocked<ConfigService>;
+  let loggerService: Mocked<LoggerService>;
+  let notificationsService: Mocked<NotificationsService>;
+  let replicateContractSyncService: Mocked<ReplicateModelContractSyncService>;
 
   const mockExistingModels = [
     {
