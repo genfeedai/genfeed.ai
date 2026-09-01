@@ -42,6 +42,8 @@ export interface AgentGenerationSettings {
   duration?: number;
   model?: string;
   outputs?: number;
+  prioritize?: RouterPriority;
+  resolution?: string;
 }
 
 export interface AgentChatRequest {
@@ -53,6 +55,7 @@ export interface AgentChatRequest {
   content: string;
   expectedContextVersion?: number;
   generationMode?: AgentGenerationMode;
+  generationSettings?: AgentGenerationSettings;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
