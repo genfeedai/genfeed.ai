@@ -1605,7 +1605,7 @@ describe('AgentChatContainer', () => {
     storeState.workEvents = [
       {
         createdAt: '2026-03-10T10:00:00.000Z',
-        detail: 'Provider unavailable',
+        detail: 'Request failed with status code 503',
         event: AgentWorkEventType.FAILED,
         id: 'failed-run-event',
         label: 'Generation failed',
