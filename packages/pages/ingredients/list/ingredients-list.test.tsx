@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { FleetReviewStatus, IngredientCategory } from '@genfeedai/enums';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,6 +18,7 @@ const {
 vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
   useIngredientsContext: vi.fn(() => ({
     ingredientType: 'images',
+    viewMode: 'grid',
   })),
 }));
 
@@ -70,13 +71,16 @@ vi.mock('@ui/ingredients/list/content/IngredientsListContent', () => ({
   default: ({
     filteredIngredients,
     hasFilteredEmptyState,
+    viewMode,
   }: {
     filteredIngredients: unknown[];
     hasFilteredEmptyState: boolean;
+    viewMode?: string;
   }) => (
     <div
       data-filtered-empty={hasFilteredEmptyState}
       data-testid="ingredients-content"
+      data-view-mode={viewMode}
     >
       {filteredIngredients.length} assets
     </div>
@@ -213,6 +217,10 @@ describe('IngredientsList', () => {
 
     expect(screen.queryByTestId('ingredients-sidebar')).not.toBeInTheDocument();
     expect(screen.getByTestId('ingredients-content')).toBeInTheDocument();
+    expect(screen.getByTestId('ingredients-content')).toHaveAttribute(
+      'data-view-mode',
+      'grid',
+    );
   });
 
   it('renders a recoverable error state and retries the shared query', () => {
@@ -241,13 +249,13 @@ describe('IngredientsList', () => {
         campaign: 'spring-drop',
         category: IngredientCategory.IMAGE,
         id: 'img-1',
-        reviewStatus: 'approved',
+        reviewStatus: FleetReviewStatus.APPROVED,
       },
       {
         campaign: 'spring-drop',
         category: IngredientCategory.IMAGE,
         id: 'img-2',
-        reviewStatus: 'approved',
+        reviewStatus: FleetReviewStatus.APPROVED,
       },
     ];
 
@@ -283,13 +291,13 @@ describe('IngredientsList', () => {
             campaign: 'spring-drop',
             category: IngredientCategory.IMAGE,
             id: 'img-1',
-            reviewStatus: 'approved',
+            reviewStatus: FleetReviewStatus.APPROVED,
           },
           {
             campaign: 'summer-drop',
             category: IngredientCategory.IMAGE,
             id: 'img-2',
-            reviewStatus: 'approved',
+            reviewStatus: FleetReviewStatus.APPROVED,
           },
         ],
         selectedIngredientIds: ['img-1', 'img-2'],

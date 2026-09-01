@@ -1,11 +1,19 @@
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
+import {
+  LibraryPlace,
+  PageScope,
+  PostStatus,
+  parseLibraryShelf,
+} from '@genfeedai/enums';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
+import LibraryBrowser from '@pages/library/browser/library-browser';
+import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
+import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
@@ -13,20 +21,23 @@ import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
-const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
+const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
+  avatars: APP_ROUTES.LIBRARY.AVATARS,
+  gifs: APP_ROUTES.LIBRARY.GIFS,
+  images: APP_ROUTES.LIBRARY.IMAGES,
+  music: APP_ROUTES.LIBRARY.MUSIC,
+  videos: APP_ROUTES.LIBRARY.VIDEOS,
+};
+
+const ORG_LIBRARY_CANONICAL_SEGMENT: Readonly<Record<string, string>> = {
   avatar: 'avatars',
-  avatars: 'avatars',
   gif: 'gifs',
-  gifs: 'gifs',
   image: 'images',
-  images: 'images',
-  ingredients: 'videos',
-  music: 'musics',
-  musics: 'musics',
+  musics: 'music',
+  moodboard: 'assets',
+  overview: 'assets',
   video: 'videos',
-  videos: 'videos',
   voice: 'voices',
-  voices: 'voices',
 };
 
 type OrgRootAppPageProps = {
@@ -45,29 +56,42 @@ type OrgRootAppPageProps = {
   }>;
 };
 
-function getOrgLibraryType(segments?: string[]): string {
-  return (
-    ORG_LIBRARY_TYPE_BY_SEGMENT[segments?.[0] ?? 'ingredients'] ?? 'videos'
+function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
+  const [destination, shelfSegment] = segments;
+  const place = Object.values(LibraryPlace).find(
+    (candidate) => candidate === destination,
   );
-}
+  const shelf =
+    destination === APP_ROUTES.LIBRARY.SHELF.split('/').at(-1)
+      ? parseLibraryShelf(shelfSegment)
+      : undefined;
+  const presetRoute = ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT[destination];
+  const preset = presetRoute ? LIBRARY_TYPE_PRESETS[presetRoute] : undefined;
 
-function OrgIngredientListPage({
-  hideTypeTabs = true,
-  type,
-}: {
-  hideTypeTabs?: boolean;
-  type: string;
-}) {
+  if (destination === 'shelf' && !shelf) {
+    notFound();
+  }
+
+  if (!place && !shelf && !preset) {
+    notFound();
+  }
+
   return (
-    <IngredientsLayout
+    <LibraryBrowser
+      place={place}
+      preset={preset}
       scope={PageScope.ORGANIZATION}
-      defaultType={type}
-      hideTypeTabs={hideTypeTabs}
+      seededCategories={preset?.categories}
+      shelf={shelf}
     >
       <Suspense fallback={null}>
-        <IngredientsList type={type} scope={PageScope.ORGANIZATION} />
+        <IngredientsList
+          folderNavigation="shell"
+          type="ingredients"
+          scope={PageScope.ORGANIZATION}
+        />
       </Suspense>
-    </IngredientsLayout>
+    </LibraryBrowser>
   );
 }
 
@@ -134,14 +158,30 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'library') {
-    const type = getOrgLibraryType(segments);
+    if (!segments?.[0] || segments[0] === 'ingredients') {
+      redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.LIBRARY.ASSETS));
+    }
 
-    return (
-      <OrgIngredientListPage
-        type={type}
-        hideTypeTabs={segments?.[0] !== undefined}
-      />
-    );
+    const canonicalSegment = ORG_LIBRARY_CANONICAL_SEGMENT[segments[0]];
+
+    if (canonicalSegment) {
+      redirect(
+        createOrganizationAppRoute(
+          orgSlug,
+          `${APP_ROUTES.LIBRARY.ROOT}/${canonicalSegment}`,
+        ),
+      );
+    }
+
+    if (segments[0] === 'voices') {
+      return <LibraryVoicesPage scope={PageScope.ORGANIZATION} />;
+    }
+
+    if (segments[0] === 'captions') {
+      return <LibraryCaptionsPage />;
+    }
+
+    return <OrgLibraryBrowserPage segments={segments} />;
   }
 
   if (orgRootApp === 'studio') {

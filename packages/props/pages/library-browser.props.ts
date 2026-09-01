@@ -44,6 +44,7 @@ export interface LibraryBrowserSortOption {
 export interface LibraryBrowserToolbarProps {
   categories: IngredientCategory[];
   search: string;
+  searchPlaceholder?: string;
   sort: string;
   sortOptions: LibraryBrowserSortOption[];
   viewMode: LibraryViewMode;

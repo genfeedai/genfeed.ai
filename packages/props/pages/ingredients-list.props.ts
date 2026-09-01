@@ -1,4 +1,5 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type { LibraryViewMode } from '@genfeedai/constants';
 import type {
   AssetScope,
   IngredientCategory,
@@ -59,6 +60,7 @@ export interface IngredientsListContentProps {
   type: string;
   scope: PageScope;
   singularType: IngredientCategory | string;
+  viewMode?: LibraryViewMode;
   formatFilter?: string;
   isLoading: boolean;
   filteredIngredients: IIngredient[];

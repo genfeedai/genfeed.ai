@@ -2,6 +2,7 @@ import {
   IngredientCategory,
   LibraryPlace,
   LibraryShelf,
+  PageScope,
 } from '@genfeedai/enums';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,7 +20,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1' }),
+  useBrand: () => ({
+    brandId: 'brand-1',
+    isReady: true,
+    organizationId: 'organization-1',
+  }),
 }));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
@@ -56,6 +61,15 @@ describe('useLibraryBrowser', () => {
       IngredientCategory.IMAGE,
       IngredientCategory.VIDEO,
     ]);
+    expect(result.current.contextValue.viewMode).toBe('grid');
+  });
+
+  it('puts the selected view in the shared list context', () => {
+    state.search = '?view=list';
+
+    const { result } = renderHook(() => useLibraryBrowser({}));
+
+    expect(result.current.contextValue.viewMode).toBe('list');
   });
 
   it('seeds the type axis from the route until the URL carries it', () => {
@@ -175,6 +189,25 @@ describe('useLibraryBrowser', () => {
 
     expect(mockOpenUpload).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: IngredientCategory.INGREDIENT }),
+    );
+  });
+
+  it('uploads against the organization when no brand is selected', () => {
+    state.pathname = '/acme/~/library/assets';
+
+    const { result } = renderHook(() =>
+      useLibraryBrowser({ scope: PageScope.ORGANIZATION }),
+    );
+
+    act(() => {
+      result.current.handleUpload();
+    });
+
+    expect(mockOpenUpload).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        parentId: 'organization-1',
+        parentModel: 'Organization',
+      }),
     );
   });
 });

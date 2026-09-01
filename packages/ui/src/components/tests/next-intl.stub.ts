@@ -162,6 +162,7 @@ const UI_TEST_MESSAGES = {
       inspector: {
         type: 'Type',
       },
+      otherAssets: 'Other assets',
     },
     publish: {
       calendar: {

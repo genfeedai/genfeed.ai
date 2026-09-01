@@ -136,6 +136,38 @@ const musicIngredient = {
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
+  it('renders generic Library media as a contact sheet in grid mode', () => {
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    expect(screen.getByTestId('media-grid-item')).toHaveTextContent(
+      'A red apple on a table',
+    );
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+  });
+
+  it('honors the Library list control for visual assets', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'A red apple on a table' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+  });
+
   it('renders avatar rows in the table view', () => {
     renderContent();
 

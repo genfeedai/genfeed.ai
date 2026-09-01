@@ -598,6 +598,7 @@
     "inspector": {
       "type": "Type"
     },
+    "otherAssets": "Other assets",
     "sidebar": {
       "shelvesGroup": "Shelves",
       "storageLabel": "Storage"
