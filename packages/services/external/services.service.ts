@@ -9,6 +9,10 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/base.service';
 
+export interface OAuthConnectReadinessResponse {
+  status: 'available' | 'unavailable';
+}
+
 export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   constructor(platform: string, token: string) {
     // Pass platform-specific endpoint (e.g., '/services/twitter', '/services/instagram')
@@ -21,6 +25,12 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
   }
 
   // Note: getInstance pattern doesn't apply here due to platform parameter in constructor
+
+  public async getConnectReadiness(): Promise<OAuthConnectReadinessResponse> {
+    return await this.instance
+      .get<OAuthConnectReadinessResponse>('connect-readiness')
+      .then((res) => res.data);
+  }
 
   public async postConnect(body: unknown): Promise<ICredentialOAuth> {
     return await this.instance

@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
+  resolveOAuthConnectPlatformCatalog,
   resolveOAuthServicePath,
 } from './oauth-connect-platforms';
 
@@ -67,6 +68,56 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
 });
 
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
+  it.each(['unknown', 'unavailable'] as const)(
+    'fails Threads closed when readiness is %s',
+    (readiness) => {
+      const threads = resolveOAuthConnectPlatformCatalog({
+        threads: readiness,
+      }).find((item) => item.platform === CredentialPlatform.THREADS);
+
+      expect(threads).toMatchObject({
+        isConnectAvailable: false,
+        readiness,
+      });
+    },
+  );
+
+  it('enables one canonical Threads service path when readiness is available', () => {
+    const threads = resolveOAuthConnectPlatformCatalog({
+      threads: 'available',
+    }).filter((item) => item.platform === CredentialPlatform.THREADS);
+
+    expect(threads).toHaveLength(1);
+    expect(threads[0]).toMatchObject({
+      isConnectAvailable: true,
+      readiness: 'available',
+    });
+    expect(
+      resolveOAuthServicePath(
+        threads[0]?.platform ?? '',
+        threads[0]?.servicePath,
+      ),
+    ).toBe('threads');
+  });
+
+  it('retains the existing order and behavior for platforms without readiness gates', () => {
+    const withoutThreads = (platforms: typeof OAUTH_CONNECT_PLATFORMS) =>
+      platforms
+        .filter((item) => item.platform !== CredentialPlatform.THREADS)
+        .map((item) => item.connectId ?? item.platform);
+
+    expect(
+      withoutThreads(
+        resolveOAuthConnectPlatformCatalog({ threads: 'unavailable' }),
+      ),
+    ).toEqual(withoutThreads(OAUTH_CONNECT_PLATFORMS));
+    expect(
+      resolveOAuthConnectPlatformCatalog({ threads: 'unavailable' })
+        .filter((item) => item.platform !== CredentialPlatform.THREADS)
+        .every((item) => item.isConnectAvailable),
+    ).toBe(true);
+  });
+
   it('omits Reddit while Genfeed lacks approved Reddit Data API access', () => {
     expect(
       OAUTH_CONNECT_PLATFORMS.some(

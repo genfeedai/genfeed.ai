@@ -11,11 +11,8 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
-import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -23,6 +20,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { of } from 'rxjs';
 
 describe('ThreadsController', () => {
@@ -112,6 +112,26 @@ describe('ThreadsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('getConnectReadiness', () => {
+    it('reports available when the same OAuth configuration used by connect is ready', () => {
+      expect(controller.getConnectReadiness()).toEqual({
+        status: 'available',
+      });
+    });
+
+    it.each([
+      ['THREADS_CLIENT_ID', undefined],
+      ['THREADS_CLIENT_SECRET', '   '],
+      ['THREADS_REDIRECT_URI', 'PLACEHOLDER_NOT_CONFIGURED'],
+    ])('reports unavailable when %s is %s', (key, value) => {
+      configValues[key] = value;
+
+      expect(controller.getConnectReadiness()).toEqual({
+        status: 'unavailable',
+      });
+    });
   });
 
   describe('connect', () => {

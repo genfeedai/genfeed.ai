@@ -46,7 +46,22 @@ export interface OAuthConnectPlatform {
    * Defaults via {@link resolveOAuthServicePath}.
    */
   servicePath?: string;
+  /** Server capability whose unknown/unavailable state must fail closed. */
+  readinessKey?: OAuthConnectReadinessKey;
 }
+
+export type OAuthConnectReadiness = 'available' | 'unavailable' | 'unknown';
+
+export type OAuthConnectReadinessKey = 'threads';
+
+export type OAuthConnectReadinessState = Partial<
+  Record<OAuthConnectReadinessKey, OAuthConnectReadiness>
+>;
+
+export type ResolvedOAuthConnectPlatform = OAuthConnectPlatform & {
+  isConnectAvailable: boolean;
+  readiness: OAuthConnectReadiness;
+};
 
 /**
  * Map a CredentialPlatform (or connect tile) to the Nest services path.
@@ -131,6 +146,7 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     iconClassName: 'text-foreground',
     label: 'Threads',
     platform: CredentialPlatform.THREADS,
+    readinessKey: 'threads',
   },
   {
     category: 'video',
@@ -194,14 +210,41 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   },
 ];
 
-export type OAuthConnectPlatformGroup = OAuthConnectPlatformCategory & {
-  platforms: OAuthConnectPlatform[];
+/**
+ * Apply live server readiness to the shared connect catalog. Platforms without
+ * an explicit readiness key retain their existing behavior. Gated platforms
+ * fail closed until the capability is positively available.
+ */
+export function resolveOAuthConnectPlatformCatalog(
+  readinessState: OAuthConnectReadinessState = {},
+): ResolvedOAuthConnectPlatform[] {
+  return OAUTH_CONNECT_PLATFORMS.map((platform) => {
+    const readiness = platform.readinessKey
+      ? (readinessState[platform.readinessKey] ?? 'unknown')
+      : 'available';
+
+    return {
+      ...platform,
+      isConnectAvailable: readiness === 'available',
+      readiness,
+    };
+  });
+}
+
+export type OAuthConnectPlatformGroup<
+  TPlatform extends OAuthConnectPlatform = OAuthConnectPlatform,
+> = OAuthConnectPlatformCategory & {
+  platforms: TPlatform[];
 };
 
 /**
  * Group platforms by category for categorized connect UIs. Empty categories
  * are dropped. Pass a filtered list (e.g. unconnected only) to keep grouping.
  */
+export function groupOAuthConnectPlatforms(): OAuthConnectPlatformGroup[];
+export function groupOAuthConnectPlatforms<
+  TPlatform extends OAuthConnectPlatform,
+>(platforms: TPlatform[]): OAuthConnectPlatformGroup<TPlatform>[];
 export function groupOAuthConnectPlatforms(
   platforms: OAuthConnectPlatform[] = OAUTH_CONNECT_PLATFORMS,
 ): OAuthConnectPlatformGroup[] {
