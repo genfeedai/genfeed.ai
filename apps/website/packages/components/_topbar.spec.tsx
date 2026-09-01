@@ -61,13 +61,22 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('exposes studio, publishing, analytics, control plane, and MCP server', () => {
+  it('exposes studio, models, publishing, analytics, control plane, and MCP server', () => {
     render(<WebsiteTopbar />);
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
 
+    expect(screen.getByRole('button', { name: /product/i })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    for (const group of ['Create', 'Operate', 'Build']) {
+      expect(screen.getByText(group)).toBeInTheDocument();
+    }
+
     for (const destination of [
       'Studio',
+      'Models',
       'Publishing',
       'Analytics',
       'Control Plane',

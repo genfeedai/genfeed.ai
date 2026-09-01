@@ -4,11 +4,11 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   Calendar,
   CircleCheck,
@@ -84,30 +84,17 @@ const STEPS = [
 const HIGHLIGHT_TAGS = ['Drafts', 'Scheduled', 'Approved', 'Published'];
 
 const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Every draft, scheduled post, and approval lives on one calendar so nothing slips through the cracks."
-    eyebrow="Calendar Canvas"
-    footer={<span>Drafts move to scheduled to published</span>}
-    items={[
-      {
-        label: 'View',
-        value: 'A single drag-and-drop calendar across every channel.',
-      },
-      {
-        label: 'Pipeline',
-        value: 'Drafts, scheduled, and published in one clear status.',
-      },
-      {
-        label: 'Automation',
-        value: 'Auto-schedule new drafts straight from workflows.',
-      },
-      {
-        label: 'Outcome',
-        value: 'See gaps and cadence before you ever miss a post.',
-      },
-    ]}
-    subtitle="Planning, scheduling, and approvals"
-    title="Your calendar, one view."
+  <ProductInterfacePreview
+    product={{
+      category: 'Planning',
+      features: FEATURES,
+      headline: 'Drafts, approvals, schedules, and channels in one calendar.',
+      name: 'Calendar',
+      useCases: STEPS.map((step) => ({
+        description: step.sublabel,
+        title: step.label,
+      })),
+    }}
   />
 );
 

@@ -47,6 +47,13 @@ describe('PageLayout Component', () => {
     expect(screen.getByTestId('proof-visual')).toBeInTheDocument();
   });
 
+  it('keeps breathing room between the hero divider and page content', () => {
+    renderPageLayout({ variant: 'poster' });
+
+    const pageBody = screen.getByText('Page Body');
+    expect(pageBody.parentElement).toHaveClass('pt-16', 'sm:pt-24');
+  });
+
   it('applies compact density to proof hero layouts', () => {
     renderPageLayout({
       compact: true,

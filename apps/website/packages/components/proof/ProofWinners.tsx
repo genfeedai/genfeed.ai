@@ -138,8 +138,8 @@ export default function ProofWinners(): React.ReactElement | null {
     <WebSection bg="bordered" maxWidth="xl" py="lg">
       <SectionHeader
         className="mb-10 [&_h2]:text-5xl"
-        description="Published work. Verified reach."
-        title="Made in Genfeed."
+        description="Created in Genfeed. Published on LinkedIn. Verified after launch."
+        title="Your next post."
       />
 
       <div className="space-y-6">

@@ -3,12 +3,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   ArrowRight,
   Calendar,
@@ -128,30 +128,17 @@ const HERO_PROOF = (
 );
 
 const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Publishing is no longer a copy-paste ritual. Compose once, route everywhere, and keep the channel-level optimization attached."
-    eyebrow="Distribution Layer"
-    footer={<span>X / LinkedIn / Instagram / TikTok / YouTube</span>}
-    items={[
-      {
-        label: 'Compose once',
-        value: 'Write, package, and format in one operating surface.',
-      },
-      {
-        label: 'Optimize',
-        value: 'Channel-aware captions, hashtags, and delivery timing.',
-      },
-      {
-        label: 'Schedule',
-        value: 'Weeks of content queued from a single production run.',
-      },
-      {
-        label: 'Ship',
-        value: 'One command publishes the full distribution plan.',
-      },
-    ]}
-    subtitle="Publishing without tool switching"
-    title="Publish from one surface."
+  <ProductInterfacePreview
+    product={{
+      category: 'Distribution',
+      features: FEATURES,
+      headline: 'Review, schedule, and publish every channel from one queue.',
+      name: 'Publishing',
+      useCases: WORKFLOW_STEPS.map((step) => ({
+        description: step.sublabel,
+        title: step.label,
+      })),
+    }}
   />
 );
 

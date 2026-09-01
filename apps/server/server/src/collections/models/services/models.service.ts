@@ -1,3 +1,9 @@
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { withLiveModelCreditPricing } from '@genfeedai/pricing';
+import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
@@ -6,12 +12,6 @@ import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import { withLiveModelCreditPricing } from '@genfeedai/pricing';
-import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
-import type { AggregationOptions } from '@libs/interfaces/query.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PAGINATION_OPTION_KEYS = new Set([
   'allowDiskUse',
@@ -54,6 +54,65 @@ type FindAvailableModelsParams = {
   enabledModelIds?: string[];
   isActive?: boolean;
   organizationId?: string;
+};
+
+const PUBLIC_MODEL_CATALOG_SELECT = {
+  aspectRatios: true,
+  capabilities: true,
+  category: true,
+  cost: true,
+  costPerUnit: true,
+  costTier: true,
+  defaultAspectRatio: true,
+  defaultDuration: true,
+  description: true,
+  durations: true,
+  id: true,
+  isDefault: true,
+  isHighlighted: true,
+  key: true,
+  label: true,
+  maxOutputs: true,
+  minCost: true,
+  pricingType: true,
+  provider: true,
+  providerCostUsd: true,
+  qualityTier: true,
+  recommendedFor: true,
+  speedTier: true,
+  supportsFeatures: true,
+} satisfies Prisma.ModelSelect;
+
+type PublicModelCatalogRow = Prisma.ModelGetPayload<{
+  select: typeof PUBLIC_MODEL_CATALOG_SELECT;
+}>;
+
+export type PublicModelCatalogDocument = Pick<
+  PublicModelCatalogRow,
+  | 'aspectRatios'
+  | 'capabilities'
+  | 'category'
+  | 'costTier'
+  | 'defaultAspectRatio'
+  | 'defaultDuration'
+  | 'description'
+  | 'durations'
+  | 'id'
+  | 'isDefault'
+  | 'isHighlighted'
+  | 'key'
+  | 'label'
+  | 'maxOutputs'
+  | 'provider'
+  | 'qualityTier'
+  | 'recommendedFor'
+  | 'speedTier'
+  | 'supportsFeatures'
+> & { cost: number };
+
+type PublicModelCatalogFilters = {
+  category?: ModelCategory;
+  provider?: ModelProvider;
 };
 
 type RegistryReviewPatch = Partial<UpdateModelDto> & {
@@ -277,6 +336,86 @@ export class ModelsService extends BaseService<
     }
 
     return { createdAt: 'desc' };
+  }
+
+  private toPublicModelCatalogDocument(
+    row: PublicModelCatalogRow,
+  ): PublicModelCatalogDocument {
+    const priced = withLiveModelCreditPricing(row);
+
+    return {
+      aspectRatios: priced.aspectRatios,
+      capabilities: priced.capabilities,
+      category: priced.category,
+      cost: priced.cost,
+      costTier: priced.costTier,
+      defaultAspectRatio: priced.defaultAspectRatio,
+      defaultDuration: priced.defaultDuration,
+      description: priced.description,
+      durations: priced.durations,
+      id: priced.id,
+      isDefault: priced.isDefault,
+      isHighlighted: priced.isHighlighted,
+      key: priced.key,
+      label: priced.label,
+      maxOutputs: priced.maxOutputs,
+      provider: priced.provider,
+      qualityTier: priced.qualityTier,
+      recommendedFor: priced.recommendedFor,
+      speedTier: priced.speedTier,
+      supportsFeatures: priced.supportsFeatures,
+    };
+  }
+
+  /**
+   * Public catalog projection. This deliberately selects only the public
+   * contract plus the private pricing inputs needed to calculate live credits.
+   * A newly added internal registry column therefore cannot break or leak into
+   * the anonymous catalog merely because Prisma selects every field by default.
+   */
+  async findPublicCatalog(
+    filters: PublicModelCatalogFilters,
+    options: AggregationOptions,
+  ): Promise<AggregatePaginateResult<PublicModelCatalogDocument>> {
+    const page = options.page ?? 1;
+    const limit = options.limit ?? 50;
+    const where: Prisma.ModelWhereInput = {
+      ...(filters.category ? { category: filters.category } : {}),
+      isActive: true,
+      isDeleted: false,
+      isLegacy: false,
+      isPublic: true,
+      organizationId: null,
+      ...(filters.provider ? { provider: filters.provider } : {}),
+    };
+    const [rows, totalDocs] = await Promise.all([
+      this.prisma.model.findMany({
+        orderBy: [
+          { isHighlighted: 'desc' },
+          { isDefault: 'desc' },
+          { label: 'asc' },
+        ],
+        select: PUBLIC_MODEL_CATALOG_SELECT,
+        skip: (page - 1) * limit,
+        take: limit,
+        where,
+      }),
+      this.prisma.model.count({ where }),
+    ]);
+    const totalPages = Math.ceil(totalDocs / limit);
+
+    return {
+      docs: rows.map((row) => this.toPublicModelCatalogDocument(row)),
+      hasNextPage: page * limit < totalDocs,
+      hasPrevPage: page > 1,
+      limit,
+      nextPage: page * limit < totalDocs ? page + 1 : null,
+      page,
+      pagingCounter: (page - 1) * limit + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs,
+      totalPages,
+    };
   }
 
   /**

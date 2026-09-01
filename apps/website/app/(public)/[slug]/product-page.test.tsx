@@ -17,14 +17,17 @@ vi.mock('@web-components/PageLayout', () => ({
     children,
     title,
     description,
+    heroVisual,
   }: {
     children: ReactNode;
     title: string;
     description: string;
+    heroVisual: ReactNode;
   }) => (
     <div>
       <h1>{title}</h1>
       <p>{description}</p>
+      {heroVisual}
       {children}
     </div>
   ),
@@ -44,6 +47,8 @@ describe('ProductPage', () => {
     expect(
       screen.getByText(/Operate Genfeed through a unified agent interface\./i),
     ).toBeInTheDocument();
+    expect(screen.getByText('Live workspace')).toBeInTheDocument();
+    expect(screen.getByText(/Tell Genfeed what to do in/i)).toBeInTheDocument();
 
     expect(screen.getByText('Social / Engagement Agents')).toBeInTheDocument();
     expect(screen.getByText('Workflow Agents')).toBeInTheDocument();

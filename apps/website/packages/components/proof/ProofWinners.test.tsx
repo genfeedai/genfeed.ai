@@ -44,7 +44,7 @@ const LINKEDIN_WINNER = {
     reactions: '61 reactions',
     reposts: '1 repost',
   },
-  title: 'An organic LinkedIn post, written and framed in one pass',
+  title: 'Copy and frame, made in one pass',
 };
 
 describe('ProofWinners', () => {
@@ -65,6 +65,9 @@ describe('ProofWinners', () => {
 
     render(<ProofWinners />);
 
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Your next post.' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('33,793')).toBeInTheDocument();
     expect(screen.getByText(LINKEDIN_WINNER.metricLabel)).toBeInTheDocument();
     expect(screen.getByText(LINKEDIN_WINNER.title)).toBeInTheDocument();

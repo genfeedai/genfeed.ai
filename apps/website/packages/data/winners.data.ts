@@ -72,7 +72,7 @@ export const winners: Winner[] = [
       reactions: '61 reactions',
       reposts: '1 repost',
     },
-    title: 'An organic LinkedIn post, written and framed in one pass',
+    title: 'Copy and frame, made in one pass',
   },
 ];
 
