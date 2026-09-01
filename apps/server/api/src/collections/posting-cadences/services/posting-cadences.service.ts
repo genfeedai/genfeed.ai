@@ -1,48 +1,13 @@
 import { createHash } from 'node:crypto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { buildBrandVoiceSummary } from '@server/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { BookCalendarSlotDto } from '@api/collections/posting-cadences/dto/calendar-slot-action.dto';
 import type { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import type { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import {
-  type ApiKeyPublishingContext,
-  assertApiKeyPublishingScope,
-} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import { SecurityUtil } from '@server/helpers/utils/security/security.util';
-import {
-  calculateEstimatedTextCredits,
-  getMinimumTextCredits,
-} from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   buildSlotIdentityKey,
   collapseOverlappingCadenceOccurrences,
   expandCadenceOccurrences,
-  isWithinConsumptionTolerance,
-  MAX_CADENCE_SPAN_DAYS,
 } from '@api-types/contracts/cadence-expansion.contract';
 import {
-  buildCadenceSlotGeneratePrompt,
-  MAX_SCHEDULED_CAMPAIGN_ITEMS,
-} from '@api-types/contracts/cadence-slot-generate.contract';
-import { isCloudDeployment } from '@genfeedai/config';
-import {
-  AGENT_CREDIT_MARGIN_MULTIPLIER,
-  AGENT_CREDIT_USD,
-  DEFAULT_AGENT_CHAT_MODEL_KEY,
-  getAgentChatModel,
-  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
-  shouldUseLowestCostModelDefaults,
-} from '@genfeedai/constants';
-import {
-  ActivitySource,
   ArticleStatus,
   CadenceGenerateLanding,
   CalendarSlotItemType,
@@ -58,127 +23,49 @@ import type {
   ICalendarSlotFillResult,
   IPostingCadence,
 } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-type CadenceRecord = {
-  brief: string | null;
-  brandId: string;
-  createdAt: Date;
-  credentialId: string;
-  endsAt: Date | null;
-  format: string;
-  generateLanding: string;
-  id: string;
-  intervalMinutes: number;
-  isDeleted: boolean;
-  label: string | null;
-  maxOccurrences: number | null;
-  organizationId: string;
-  startsAt: Date;
-  status: string;
-  timezone: string;
-  updatedAt: Date;
-  userId: string;
-  windowEndMinute: number;
-  windowStartMinute: number;
-};
-
-type ReservationRecord = {
-  brandId: string;
-  cadenceId: string | null;
-  credentialId: string;
-  format: string;
-  generatedItemId: string | null;
-  generatedItemType: string | null;
-  id: string;
-  identityKey: string;
-  instant: Date;
-  lastFailureReason: string | null;
-  state: string;
-  timezone: string;
-};
-
-type CadenceDelegate = {
-  create: (args: { data: Record<string, unknown> }) => Promise<CadenceRecord>;
-  findFirst: (args: {
-    where: Record<string, unknown>;
-  }) => Promise<CadenceRecord | null>;
-  findMany: (args: {
-    orderBy?: unknown;
-    where: Record<string, unknown>;
-  }) => Promise<CadenceRecord[]>;
-  update: (args: {
-    data: Record<string, unknown>;
-    where: Record<string, unknown>;
-  }) => Promise<CadenceRecord>;
-};
-
-type ReservationDelegate = {
-  findFirst: (args: {
-    where: Record<string, unknown>;
-  }) => Promise<ReservationRecord | null>;
-  findMany: (args: {
-    where: Record<string, unknown>;
-  }) => Promise<ReservationRecord[]>;
-  upsert: (args: {
-    create: Record<string, unknown>;
-    update: Record<string, unknown>;
-    where: {
-      organizationId_identityKey: {
-        identityKey: string;
-        organizationId: string;
-      };
-    };
-  }) => Promise<ReservationRecord>;
-  updateMany: (args: {
-    data: Record<string, unknown>;
-    where: Record<string, unknown>;
-  }) => Promise<{ count: number }>;
-};
-
-type MatchingTarget = {
-  category: string | null;
-  credentialId: string | null;
-  groupId: string | null;
-  id: string;
-  scheduledDate: Date | null;
-};
-
-type BrandContextRow = {
-  agentConfig: Prisma.JsonValue;
-  description: string | null;
-  label: string;
-  text: string | null;
-};
-
-type ScheduledCampaignRow = {
-  description: string;
-  scheduledDate: Date | null;
-};
-
-type TextPricedModel = {
-  cost?: number | null;
-  inputCostPerMillionTokens?: number | null;
-  minCost?: number | null;
-  outputCostPerMillionTokens?: number | null;
-  pricingType?: string | null;
-};
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type {
+  CadenceDelegate,
+  CadenceRecord,
+  MatchingTarget,
+  ReservationDelegate,
+  ReservationRecord,
+} from './posting-cadence.types';
+import {
+  assertCadenceBounds,
+  isConsumedReservation,
+  matchingTarget,
+  mergeReservation,
+  projectedSlot,
+  pruneVanishedReservations,
+  reservationToSlot,
+  resolveWriteBrief,
+  toArticleSlug,
+  toCadence,
+} from './posting-cadence.utils';
+import { PostingCadenceCopyService } from './posting-cadence-copy.service';
+import { PostingCadenceValidationService } from './posting-cadence-validation.service';
 
 @Injectable()
 export class PostingCadencesService {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly postGroupsService: PostGroupsService,
-    private readonly llmDispatcherService: LlmDispatcherService,
-    private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly modelsService: ModelsService,
     private readonly articlesService: ArticlesService,
+    private readonly copyService: PostingCadenceCopyService,
+    private readonly validationService: PostingCadenceValidationService,
   ) {}
 
   async create(
@@ -187,14 +74,18 @@ export class PostingCadencesService {
     dto: CreatePostingCadenceDto,
   ): Promise<IPostingCadence> {
     const startsAt = new Date(dto.startsAt);
-    this.assertCadenceBounds({
+    assertCadenceBounds({
       endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
       maxOccurrences: dto.maxOccurrences ?? null,
       startsAt,
       windowEndMinute: dto.windowEndMinute,
       windowStartMinute: dto.windowStartMinute,
     });
-    await this.assertCredential(organizationId, dto.brandId, dto.credentialId);
+    await this.validationService.assertCredential(
+      organizationId,
+      dto.brandId,
+      dto.credentialId,
+    );
 
     const created = await this.cadenceDelegate().create({
       data: {
@@ -218,7 +109,7 @@ export class PostingCadencesService {
       },
     });
 
-    return this.toCadence(created);
+    return toCadence(created);
   }
 
   async list(
@@ -232,7 +123,7 @@ export class PostingCadencesService {
         status: PostingCadenceStatus.ACTIVE,
       }),
     });
-    return rows.map((row) => this.toCadence(row));
+    return rows.map(toCadence);
   }
 
   async listSlots(
@@ -280,7 +171,7 @@ export class PostingCadencesService {
           credentialId: cadence.credentialId,
           format: cadence.format,
           instantUtc: occurrence.instantUtc,
-          slot: this.projectedSlot(
+          slot: projectedSlot(
             cadence,
             occurrence.identityKey,
             occurrence.instantUtc,
@@ -329,17 +220,17 @@ export class PostingCadencesService {
     const slots: ICalendarSlot[] = [];
     for (const slot of collapsed.values()) {
       const reservation = reservationByKey.get(slot.identityKey);
-      if (this.isConsumedReservation(reservation)) {
+      if (isConsumedReservation(reservation)) {
         continue;
       }
-      if (this.matchingTarget(targets, slot)) {
+      if (matchingTarget(targets, slot)) {
         continue;
       }
-      slots.push(this.mergeReservation(slot, reservation));
+      slots.push(mergeReservation(slot, reservation));
     }
 
     for (const reservation of reservations) {
-      if (reservation.cadenceId || this.isConsumedReservation(reservation)) {
+      if (reservation.cadenceId || isConsumedReservation(reservation)) {
         continue;
       }
       const manual: ICalendarSlot = {
@@ -358,7 +249,7 @@ export class PostingCadencesService {
         state: reservation.state as CalendarSlotState,
         timezone: reservation.timezone,
       };
-      if (this.matchingTarget(targets, manual)) {
+      if (matchingTarget(targets, manual)) {
         continue;
       }
       slots.push(manual);
@@ -394,7 +285,7 @@ export class PostingCadencesService {
       state: CalendarSlotState.MISSING,
       timezone: dto.timezone ?? 'UTC',
     });
-    return this.reservationToSlot(reservation, '');
+    return reservationToSlot(reservation, '');
   }
 
   async generate(
@@ -528,7 +419,7 @@ export class PostingCadencesService {
       );
     }
     if (existing?.state === CalendarSlotState.SKIPPED) {
-      return this.reservationToSlot(existing, '');
+      return reservationToSlot(existing, '');
     }
 
     const slot = await this.resolveIdentity(organizationId, identityKey);
@@ -541,12 +432,12 @@ export class PostingCadencesService {
       { state: CalendarSlotState.SKIPPED },
     );
     if (skipped) {
-      return this.reservationToSlot(skipped, slot.resolvedBrief);
+      return reservationToSlot(skipped, slot.resolvedBrief);
     }
 
     const winner = await this.findReservation(organizationId, identityKey);
     if (winner?.state === CalendarSlotState.SKIPPED) {
-      return this.reservationToSlot(winner, slot.resolvedBrief);
+      return reservationToSlot(winner, slot.resolvedBrief);
     }
     if (winner?.state === CalendarSlotState.GENERATING) {
       throw new BadRequestException(
@@ -583,7 +474,7 @@ export class PostingCadencesService {
         'Only an in-flight generate can be cancelled.',
       );
     }
-    return this.reservationToSlot(updated, '');
+    return reservationToSlot(updated, '');
   }
 
   async update(
@@ -615,7 +506,7 @@ export class PostingCadencesService {
     const nextWindowStartMinute =
       dto.windowStartMinute ?? existing.windowStartMinute;
 
-    this.assertCadenceBounds({
+    assertCadenceBounds({
       endsAt: nextEndsAt,
       maxOccurrences: nextMaxOccurrences,
       startsAt: nextStartsAt,
@@ -629,7 +520,7 @@ export class PostingCadencesService {
       nextCredentialId !== existing.credentialId ||
       nextBrandId !== existing.brandId
     ) {
-      await this.assertCredential(
+      await this.validationService.assertCredential(
         organizationId,
         nextBrandId,
         nextCredentialId,
@@ -655,8 +546,12 @@ export class PostingCadencesService {
       where: scopedWhere(organizationId, { id }),
     });
 
-    await this.pruneVanishedReservations(organizationId, updated);
-    return this.toCadence(updated);
+    await pruneVanishedReservations(
+      organizationId,
+      updated,
+      this.reservationDelegate(),
+    );
+    return toCadence(updated);
   }
 
   async remove(organizationId: string, id: string): Promise<IPostingCadence> {
@@ -674,7 +569,7 @@ export class PostingCadencesService {
       },
       where: scopedWhere(organizationId, { id }),
     });
-    return this.toCadence(updated);
+    return toCadence(updated);
   }
 
   private async fillSlot(
@@ -763,8 +658,8 @@ export class PostingCadencesService {
         landing === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
       );
       const resolvedBrief = isWrite
-        ? this.resolveWriteBrief(brief)
-        : await this.generateCampaignCopy(
+        ? resolveWriteBrief(brief)
+        : await this.copyService.generateCampaignCopy(
             organizationId,
             userId,
             slot,
@@ -821,7 +716,7 @@ export class PostingCadencesService {
       where: scopedWhere(organizationId, { identityKey }),
     });
     if (reservation) {
-      return this.reservationToSlot(reservation, '');
+      return reservationToSlot(reservation, '');
     }
 
     const [cadenceId, credentialId, format, instant] = identityKey.split('|');
@@ -838,7 +733,7 @@ export class PostingCadencesService {
     if (!cadence) {
       throw new NotFoundException('Posting cadence', cadenceId);
     }
-    return this.projectedSlot(this.toCadence(cadence), identityKey, instant);
+    return projectedSlot(toCadence(cadence), identityKey, instant);
   }
 
   private async ensureReservation(
@@ -948,7 +843,7 @@ export class PostingCadencesService {
       {
         content: resolvedBrief,
         label,
-        slug: this.toArticleSlug(label, slot.identityKey),
+        slug: toArticleSlug(label, slot.identityKey),
         status: ArticleStatus.DRAFT,
         summary: (resolvedBrief.trim() || 'Draft').slice(0, 500),
       },
@@ -970,7 +865,7 @@ export class PostingCadencesService {
 
     return {
       articleId: article.id,
-      slot: this.reservationToSlot(filled, resolvedBrief),
+      slot: reservationToSlot(filled, resolvedBrief),
       targetId: article.id,
     };
   }
@@ -1043,7 +938,7 @@ export class PostingCadencesService {
 
     return {
       releaseId: release.id,
-      slot: this.reservationToSlot(filled, resolvedBrief),
+      slot: reservationToSlot(filled, resolvedBrief),
       targetId,
     };
   }
@@ -1059,7 +954,7 @@ export class PostingCadencesService {
     ) {
       return {
         articleId: existing.generatedItemId,
-        slot: this.reservationToSlot(existing, brief ?? ''),
+        slot: reservationToSlot(existing, brief ?? ''),
         targetId: existing.generatedItemId,
       };
     }
@@ -1076,485 +971,8 @@ export class PostingCadencesService {
     const targetId = release.targets?.[0]?.id ?? generatedItemId;
     return {
       releaseId: release.id,
-      slot: this.reservationToSlot(existing, brief ?? ''),
+      slot: reservationToSlot(existing, brief ?? ''),
       targetId,
-    };
-  }
-
-  private isConsumedReservation(reservation?: ReservationRecord): boolean {
-    if (!reservation) {
-      return false;
-    }
-    if (
-      reservation.state === CalendarSlotState.SKIPPED ||
-      reservation.state === CalendarSlotState.FILLED
-    ) {
-      return true;
-    }
-    return (
-      reservation.generatedItemType === CalendarSlotItemType.ARTICLE &&
-      Boolean(reservation.generatedItemId)
-    );
-  }
-
-  private assertCadenceBounds(input: {
-    endsAt: Date | null;
-    maxOccurrences: number | null;
-    startsAt: Date;
-    windowEndMinute: number;
-    windowStartMinute: number;
-  }): void {
-    if (!input.endsAt && input.maxOccurrences === null) {
-      throw new BadRequestException(
-        'A cadence requires an end date or a max occurrence count.',
-      );
-    }
-    if (input.windowEndMinute < input.windowStartMinute) {
-      throw new BadRequestException(
-        'windowEndMinute must be on or after windowStartMinute.',
-      );
-    }
-    if (input.endsAt) {
-      const maxEnd = new Date(
-        input.startsAt.getTime() + MAX_CADENCE_SPAN_DAYS * 24 * 60 * 60 * 1000,
-      );
-      if (input.endsAt > maxEnd) {
-        throw new BadRequestException(
-          `A cadence end date cannot be more than ${MAX_CADENCE_SPAN_DAYS} days after start.`,
-        );
-      }
-    }
-  }
-
-  private async assertCredential(
-    organizationId: string,
-    brandId: string,
-    credentialId: string,
-  ): Promise<void> {
-    const credential = await this.prisma.credential.findFirst({
-      select: { id: true },
-      where: scopedWhere(organizationId, {
-        brandId,
-        id: credentialId,
-      }),
-    });
-    if (!credential) {
-      throw new NotFoundException('Credential', credentialId);
-    }
-  }
-
-  private async pruneVanishedReservations(
-    organizationId: string,
-    cadence: CadenceRecord,
-  ): Promise<void> {
-    const expansionInput = {
-      cadenceId: cadence.id,
-      credentialId: cadence.credentialId,
-      ...(cadence.endsAt ? { endsAt: cadence.endsAt.toISOString() } : {}),
-      format: cadence.format as PostCategory,
-      intervalMinutes: cadence.intervalMinutes,
-      ...(cadence.maxOccurrences
-        ? { maxOccurrences: cadence.maxOccurrences }
-        : {}),
-      startsAt: cadence.startsAt.toISOString(),
-      timezone: cadence.timezone,
-      windowEndMinute: cadence.windowEndMinute,
-      windowStartMinute: cadence.windowStartMinute,
-    };
-    const reservations = await this.reservationDelegate().findMany({
-      where: scopedWhere(organizationId, { cadenceId: cadence.id }),
-    });
-    const vanishedIds: string[] = [];
-    for (const reservation of reservations) {
-      if (this.isConsumedReservation(reservation)) {
-        continue;
-      }
-      const instant = reservation.instant.toISOString();
-      const expanded = expandCadenceOccurrences(expansionInput, {
-        end: instant,
-        start: instant,
-      });
-      if (
-        !expanded.success ||
-        !expanded.occurrences.some(
-          (occurrence) => occurrence.instantUtc === instant,
-        )
-      ) {
-        vanishedIds.push(reservation.id);
-      }
-    }
-    if (vanishedIds.length === 0) {
-      return;
-    }
-
-    await this.reservationDelegate().updateMany({
-      data: { isDeleted: true },
-      where: scopedWhere(organizationId, {
-        cadenceId: cadence.id,
-        id: { in: vanishedIds },
-      }),
-    });
-  }
-
-  private toArticleSlug(label: string, identityKey: string): string {
-    const base =
-      label
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .slice(0, 40) || 'article';
-    const suffix = identityKey
-      ? createHash('sha256').update(identityKey).digest('hex').slice(0, 12)
-      : 'slot';
-    return `${base}-${suffix}`;
-  }
-
-  private matchingTarget(
-    targets: MatchingTarget[],
-    slot: ICalendarSlot,
-  ): MatchingTarget | undefined {
-    return targets.find(
-      (target) =>
-        target.credentialId === slot.credentialId &&
-        target.category === slot.format &&
-        target.scheduledDate !== null &&
-        isWithinConsumptionTolerance(
-          slot.instant,
-          target.scheduledDate.toISOString(),
-        ),
-    );
-  }
-
-  private resolveWriteBrief(override: string | undefined): string {
-    return override?.trim() || 'Draft';
-  }
-
-  private async generateCampaignCopy(
-    organizationId: string,
-    userId: string,
-    slot: ICalendarSlot,
-    cadence: CadenceRecord | null,
-    overrideBrief: string | undefined,
-  ): Promise<string> {
-    const modelKey = this.resolveGenerateModelKey();
-    const pricedModel = await this.getPricedGenerateModel(modelKey);
-    await this.assertGenerateCreditsAvailable(organizationId, pricedModel);
-
-    const brand = await this.loadBrandContext(organizationId, slot.brandId);
-    const scheduledItems = await this.loadScheduledCampaignItems(
-      organizationId,
-      slot,
-      cadence,
-    );
-    const prompt = buildCadenceSlotGeneratePrompt({
-      brandDescription: this.sanitizePromptText(
-        brand?.description || brand?.text || null,
-        500,
-      ),
-      brandLabel:
-        this.sanitizePromptText(brand?.label || 'Brand', 120) ?? 'Brand',
-      brandVoice: brand ? buildBrandVoiceSummary(brand) : null,
-      campaign: {
-        brief: this.sanitizePromptText(
-          cadence?.brief ?? slot.resolvedBrief ?? null,
-          1000,
-        ),
-        label: this.sanitizePromptText(cadence?.label ?? null, 120),
-      },
-      format: slot.format,
-      instant: slot.instant,
-      scheduledItems,
-      slotBrief: this.sanitizePromptText(overrideBrief ?? null, 1000),
-      timezone: slot.timezone,
-    });
-
-    const response = await this.llmDispatcherService.chatCompletion(
-      {
-        max_tokens: prompt.maxTokens,
-        messages: [
-          { content: prompt.system, role: 'system' },
-          { content: prompt.user, role: 'user' },
-        ],
-        model: modelKey,
-        temperature: 0.7,
-      },
-      organizationId,
-    );
-    const copy = response.choices[0]?.message?.content?.trim() ?? '';
-    if (!copy) {
-      throw new BadRequestException('The model returned empty copy.');
-    }
-
-    await this.settleGenerateCredits(
-      organizationId,
-      userId,
-      pricedModel,
-      { prompt: prompt.user, system: prompt.system },
-      copy,
-    );
-    return copy;
-  }
-
-  private async loadBrandContext(
-    organizationId: string,
-    brandId: string,
-  ): Promise<BrandContextRow | null> {
-    return this.prisma.brand.findFirst({
-      select: {
-        agentConfig: true,
-        description: true,
-        label: true,
-        text: true,
-      },
-      where: scopedWhere(organizationId, { id: brandId }),
-    });
-  }
-
-  private async loadScheduledCampaignItems(
-    organizationId: string,
-    slot: ICalendarSlot,
-    cadence: CadenceRecord | null,
-  ): Promise<{ content: string; instant: string }[]> {
-    const slotInstant = new Date(slot.instant);
-    const fourteenDays = 14 * 24 * 60 * 60 * 1000;
-    const windowStart = cadence
-      ? cadence.startsAt
-      : new Date(slotInstant.getTime() - fourteenDays);
-    const windowEnd = cadence
-      ? (cadence.endsAt ??
-        new Date(
-          cadence.startsAt.getTime() +
-            MAX_CADENCE_SPAN_DAYS * 24 * 60 * 60 * 1000,
-        ))
-      : new Date(slotInstant.getTime() + fourteenDays);
-
-    const posts = (await this.prisma.post.findMany({
-      select: {
-        description: true,
-        scheduledDate: true,
-      },
-      orderBy: { scheduledDate: 'asc' },
-      take: 24,
-      where: scopedWhere(organizationId, {
-        brandId: slot.brandId,
-        category: slot.format,
-        credentialId: slot.credentialId,
-        parentId: null,
-        scheduledDate: {
-          gte: windowStart,
-          lte: windowEnd,
-        },
-      }),
-    })) as ScheduledCampaignRow[];
-
-    return posts
-      .filter(
-        (post): post is ScheduledCampaignRow & { scheduledDate: Date } =>
-          Boolean(post.scheduledDate) && Boolean(post.description?.trim()),
-      )
-      .filter(
-        (post) =>
-          !isWithinConsumptionTolerance(
-            slot.instant,
-            post.scheduledDate.toISOString(),
-          ),
-      )
-      .sort(
-        (left, right) =>
-          Math.abs(left.scheduledDate.getTime() - slotInstant.getTime()) -
-          Math.abs(right.scheduledDate.getTime() - slotInstant.getTime()),
-      )
-      .slice(0, MAX_SCHEDULED_CAMPAIGN_ITEMS)
-      .sort(
-        (left, right) =>
-          left.scheduledDate.getTime() - right.scheduledDate.getTime(),
-      )
-      .map((post) => ({
-        content:
-          this.sanitizePromptText(post.description, 280) ?? post.description,
-        instant: post.scheduledDate.toISOString(),
-      }));
-  }
-
-  private resolveGenerateModelKey(): string {
-    return shouldUseLowestCostModelDefaults({
-      isCloud: isCloudDeployment(),
-    })
-      ? LOWEST_COST_AGENT_CHAT_MODEL_KEY
-      : DEFAULT_AGENT_CHAT_MODEL_KEY;
-  }
-
-  private async getPricedGenerateModel(
-    modelKey: string,
-  ): Promise<TextPricedModel> {
-    const catalog = await this.modelsService.findOne({
-      key: baseModelKey(modelKey),
-    });
-    if (catalog) {
-      return catalog;
-    }
-
-    const chat = getAgentChatModel(modelKey);
-    if (!chat) {
-      return { cost: 1, minCost: 1 };
-    }
-
-    return {
-      inputCostPerMillionTokens: Math.ceil(
-        (chat.pricing.promptPerMillion * AGENT_CREDIT_MARGIN_MULTIPLIER) /
-          AGENT_CREDIT_USD,
-      ),
-      minCost: 1,
-      outputCostPerMillionTokens: Math.ceil(
-        (chat.pricing.completionPerMillion * AGENT_CREDIT_MARGIN_MULTIPLIER) /
-          AGENT_CREDIT_USD,
-      ),
-      pricingType: 'per-token',
-    };
-  }
-
-  private async assertGenerateCreditsAvailable(
-    organizationId: string,
-    model: TextPricedModel,
-  ): Promise<void> {
-    const requiredCredits = getMinimumTextCredits(model);
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-    if (hasCredits) {
-      return;
-    }
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
-  }
-
-  private async settleGenerateCredits(
-    organizationId: string,
-    userId: string,
-    model: TextPricedModel,
-    input: Record<string, unknown>,
-    output: string,
-  ): Promise<void> {
-    const amount = calculateEstimatedTextCredits(model, input, output);
-    if (amount <= 0) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      organizationId,
-      userId,
-      amount,
-      'Calendar campaign generate',
-      ActivitySource.POST_GENERATION,
-      {
-        maxOverdraftCredits: PostingCadencesService.TEXT_MAX_OVERDRAFT_CREDITS,
-      },
-    );
-  }
-
-  private sanitizePromptText(
-    value: string | null | undefined,
-    maxLength: number,
-  ): string | null {
-    if (!value?.trim()) {
-      return null;
-    }
-    return SecurityUtil.sanitizePromptInput(value, maxLength) || null;
-  }
-
-  private projectedSlot(
-    cadence: IPostingCadence,
-    identityKey: string,
-    instantUtc: string,
-  ): ICalendarSlot {
-    return {
-      brandId: cadence.brandId,
-      cadenceId: cadence.id,
-      credentialId: cadence.credentialId,
-      format: cadence.format,
-      generatedItemId: null,
-      generatedItemType: null,
-      id: identityKey,
-      identityKey,
-      instant: instantUtc,
-      lastFailureReason: null,
-      resolvedBrief: cadence.brief ?? '',
-      state: CalendarSlotState.MISSING,
-      timezone: cadence.timezone,
-    };
-  }
-
-  private mergeReservation(
-    slot: ICalendarSlot,
-    reservation?: ReservationRecord,
-  ): ICalendarSlot {
-    if (!reservation) {
-      return slot;
-    }
-    return {
-      ...slot,
-      generatedItemId: reservation.generatedItemId,
-      generatedItemType:
-        reservation.generatedItemType as CalendarSlotItemType | null,
-      lastFailureReason: reservation.lastFailureReason,
-      state: reservation.state as CalendarSlotState,
-    };
-  }
-
-  private reservationToSlot(
-    reservation: ReservationRecord,
-    resolvedBrief: string,
-  ): ICalendarSlot {
-    return {
-      brandId: reservation.brandId,
-      cadenceId: reservation.cadenceId,
-      credentialId: reservation.credentialId,
-      format: reservation.format as PostCategory,
-      generatedItemId: reservation.generatedItemId,
-      generatedItemType:
-        reservation.generatedItemType as CalendarSlotItemType | null,
-      id: reservation.identityKey,
-      identityKey: reservation.identityKey,
-      instant: reservation.instant.toISOString(),
-      lastFailureReason: reservation.lastFailureReason,
-      resolvedBrief,
-      state: reservation.state as CalendarSlotState,
-      timezone: reservation.timezone,
-    };
-  }
-
-  private toCadence(row: CadenceRecord): IPostingCadence {
-    return {
-      brief: row.brief,
-      brandId: row.brandId,
-      createdAt: row.createdAt.toISOString(),
-      credentialId: row.credentialId,
-      endsAt: row.endsAt?.toISOString() ?? null,
-      format: row.format as PostCategory,
-      generateLanding: row.generateLanding as CadenceGenerateLanding,
-      id: row.id,
-      intervalMinutes: row.intervalMinutes,
-      isDeleted: row.isDeleted ?? false,
-      label: row.label,
-      maxOccurrences: row.maxOccurrences,
-      organizationId: row.organizationId,
-      startsAt: row.startsAt.toISOString(),
-      status: row.status as PostingCadenceStatus,
-      timezone: row.timezone,
-      updatedAt: row.updatedAt.toISOString(),
-      userId: row.userId,
-      windowEndMinute: row.windowEndMinute,
-      windowStartMinute: row.windowStartMinute,
     };
   }
 
