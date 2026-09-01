@@ -463,7 +463,7 @@ export class WorkflowExecutionRunnerService {
     metadata: Record<string, unknown> | undefined,
     userId: string,
     organizationId: string,
-    workflowBrandId: string | undefined,
+    workflowBrandId: string | null | undefined,
   ): Promise<void> {
     const scope = this.readPersistedAgentScope(
       metadata,
@@ -589,7 +589,7 @@ export class WorkflowExecutionRunnerService {
     };
   }
 
-  private async failUnavailablePinnedExecution(input: {
+  async failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
     startedAt: Date;

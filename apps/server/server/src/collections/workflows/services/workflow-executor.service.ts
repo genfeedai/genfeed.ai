@@ -651,4 +651,14 @@ export class WorkflowExecutorService {
       idempotencyKey,
     );
   }
+
+  private failUnavailablePinnedExecution(input: {
+    errorMessage: string;
+    executionId: string;
+    startedAt: Date;
+    userId: string;
+    workflowId: string;
+  }): Promise<WorkflowExecutionResult> {
+    return this.executionRunner.failUnavailablePinnedExecution(input);
+  }
 }
