@@ -263,9 +263,8 @@ jobs:
           path: apps/server/api/test-results/api-e2e/
           retention-days: 7
 
-  # Frontend Core E2E — sharded 4-way. The CI "core" scope is only ~8 spec files
-  # (smoke/ + core/ + the agent journey + two focused contracts; see
-  # scripts/e2e-sharded.mjs), whose
+  # Frontend Core E2E — sharded 4-way. The CI "core" scope is only ~7 spec files
+  # (smoke/ + core/ + one shell contract; see scripts/e2e-sharded.mjs), whose
   # actual test time is ~1 min. 12 shards spun up 12 VMs — 12 installs, 12 app
   # builds, 12 independent flake dice — for that ~1 min of work, and each job
   # rolls the ffmpeg/browser/timing dice that, via cancel-doomed-run, can cancel
