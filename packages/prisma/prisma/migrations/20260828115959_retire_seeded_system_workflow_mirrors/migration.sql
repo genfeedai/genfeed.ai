@@ -29,11 +29,11 @@ AS $$
         workflow_contains_legacy_system_action(workflow_nodes)
             AND jsonb_array_length(workflow_nodes) = 1
             AND workflow_nodes->0->>'type' = 'systemWorkflowAction'
-            AND workflow_nodes->0->'data'->'config'->>'actionId'
+            AND workflow_nodes->0->'data'->'config'->>'canonicalId'
                 = workflow_metadata->>'sourceTemplateId'
             AND jsonb_typeof(workflow_metadata) = 'object'
             AND NULLIF(workflow_metadata->>'sourceTemplateId', '') IS NOT NULL
-            AND workflow_metadata->>'sourceType' = 'seeded-template'
+            AND workflow_metadata->>'sourceType' = 'system-action-workflow'
             AND jsonb_typeof(workflow_metadata->'systemWorkflow') = 'object'
             AND workflow_metadata->'systemWorkflow'->>'canonicalId'
                 = workflow_metadata->>'sourceTemplateId'
