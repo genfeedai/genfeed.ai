@@ -3,6 +3,7 @@ import {
   buildPortlessCommand,
   isPortlessServiceReady,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  shouldInstallPortlessService,
   waitForPortlessServiceReady,
 } from './setup-portless';
 
@@ -35,8 +36,7 @@ describe('Portless developer setup', () => {
   });
 
   it('accepts the required installed service status', () => {
-    expect(
-      isPortlessServiceReady(`
+    const readyStatus = `
         Manager state: running
         Installed: yes
         Proxy on 443: responding
@@ -44,8 +44,14 @@ describe('Portless developer setup', () => {
         TLDs: .localhost
         LAN mode: no
         Wildcard: no
-      `),
-    ).toBe(true);
+      `;
+
+    expect(isPortlessServiceReady(readyStatus)).toBe(true);
+    expect(shouldInstallPortlessService(readyStatus)).toBe(false);
+  });
+
+  it('installs Portless when no healthy startup service is available', () => {
+    expect(shouldInstallPortlessService(null)).toBe(true);
   });
 
   it('rejects an HTTP or non-standard-port service', () => {

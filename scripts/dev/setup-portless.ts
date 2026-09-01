@@ -34,6 +34,12 @@ export function isPortlessServiceReady(statusOutput: string): boolean {
   );
 }
 
+export function shouldInstallPortlessService(
+  statusOutput: string | null,
+): boolean {
+  return !statusOutput || !isPortlessServiceReady(statusOutput);
+}
+
 export function buildPortlessCommand(
   args: readonly string[],
   nodeExecutable = 'node',
@@ -103,9 +109,10 @@ function installService(): void {
 }
 
 async function main(): Promise<void> {
+  const currentStatus = readServiceStatus();
+
   if (process.argv.includes('--check')) {
-    const currentStatus = readServiceStatus();
-    if (!currentStatus || !isPortlessServiceReady(currentStatus)) {
+    if (shouldInstallPortlessService(currentStatus)) {
       console.error(
         'Portless does not match the required local HTTPS contract. Run `bun run dev:setup`.',
       );
@@ -114,6 +121,13 @@ async function main(): Promise<void> {
 
     console.log(
       'Portless is ready: HTTPS on 443 with .localhost routes and no LAN exposure.',
+    );
+    return;
+  }
+
+  if (!shouldInstallPortlessService(currentStatus)) {
+    console.log(
+      'Portless is already ready: HTTPS on 443 with .localhost routes and no LAN exposure.',
     );
     return;
   }
