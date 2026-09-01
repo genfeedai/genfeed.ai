@@ -12,6 +12,7 @@ import type {
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
@@ -23,12 +24,14 @@ export interface PendingWorkflowOutput {
   metadataId: string;
 }
 
+@Injectable()
 export class WorkflowEngineExecutorHelperService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly sharedService?: SharedService,
-    private readonly metadataService?: MetadataService,
-    private readonly ingredientsService?: IngredientsService,
+    @Optional() private readonly sharedService?: SharedService,
+    @Optional() private readonly metadataService?: MetadataService,
+    @Optional() private readonly ingredientsService?: IngredientsService,
+    @Optional()
     private readonly continuationService?: WorkflowNodeContinuationService,
   ) {}
 

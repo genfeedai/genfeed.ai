@@ -21,6 +21,14 @@ import { WorkflowEntity } from '@server/collections/workflows/entities/workflow.
 import { type WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import {
+  buildWorkflowCreatePayload,
+  getDefaultInputValuesFromWorkflowData,
+  getMissingRequiredInputKeys,
+  resolveWorkflowBrandId,
+  WORKFLOW_CONFIG_FIELDS,
+  type WorkflowCreateExtras,
+} from '@server/collections/workflows/services/workflow-create-payload.util';
+import {
   WorkflowExecutionQueueService,
   type WorkflowSchedulerSyncRow,
 } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -48,31 +56,6 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-
-const WORKFLOW_CONFIG_FIELDS = [
-  'comfyuiTemplate',
-  'isPublic',
-  'isTemplate',
-  'scheduledFor',
-  'sourceAsset',
-  'sourceAssetModel',
-  'tags',
-  'templateId',
-  'webhookAuthType',
-  'webhookId',
-  'webhookLastTriggeredAt',
-  'webhookSecret',
-  'webhookTriggerCount',
-] as const;
-
-type WorkflowCreateExtras = CreateWorkflowDto &
-  Partial<Record<(typeof WORKFLOW_CONFIG_FIELDS)[number], unknown>> & {
-    brandId?: string | null;
-    config?: Record<string, unknown>;
-    defaultRecurringBrandId?: string | null;
-    lifecycle?: string | null;
-    lockedNodeIds?: string[];
-  };
 
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
@@ -303,16 +286,6 @@ export class WorkflowsService extends BaseService<
     return this.normalizeDocument(updated);
   }
 
-  private resolveWorkflowBrandId(
-    value: unknown,
-    fallbackBrandId?: string,
-  ): string | undefined {
-    if (typeof value === 'string' && value.length > 0) {
-      return value;
-    }
-    return fallbackBrandId;
-  }
-
   private async assertWorkflowBrandAccess(
     brandId: string | undefined,
     organizationId: string,
@@ -330,94 +303,6 @@ export class WorkflowsService extends BaseService<
         'Brand is not available in this organization',
       );
     }
-  }
-
-  private omitUndefinedPayload(
-    payload: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined),
-    );
-  }
-
-  private buildWorkflowCreatePayload(input: {
-    brandId?: string;
-    defaultLabel: string;
-    organizationId: string;
-    userId: string;
-    workflowData: WorkflowCreateExtras;
-  }): Record<string, unknown> {
-    const { brandId, defaultLabel, organizationId, userId } = input;
-    const workflowData = input.workflowData;
-    const config = {
-      ...(workflowData.config ?? {}),
-      ...pickDefinedFields(workflowData, WORKFLOW_CONFIG_FIELDS),
-    };
-
-    return this.omitUndefinedPayload({
-      brandId,
-      config,
-      defaultRecurringBrandId: workflowData.defaultRecurringBrandId,
-      description: workflowData.description,
-      edges: workflowData.edges ?? [],
-      executionCount: workflowData.executionCount ?? 0,
-      inputVariables: workflowData.inputVariables ?? [],
-      isScheduleEnabled: workflowData.isScheduleEnabled,
-      label: workflowData.label || defaultLabel,
-      lastExecutedAt: workflowData.lastExecutedAt,
-      lifecycle: workflowData.lifecycle,
-      lockedNodeIds: workflowData.lockedNodeIds,
-      metadata: workflowData.metadata,
-      nodes: workflowData.nodes ?? [],
-      organizationId,
-      progress: workflowData.progress ?? 0,
-      recurrence: workflowData.recurrence,
-      schedule: workflowData.schedule,
-      startedAt: workflowData.startedAt,
-      status: workflowData.status ?? WorkflowStatus.ACTIVE,
-      thumbnail: workflowData.thumbnail,
-      thumbnailNodeId: workflowData.thumbnailNodeId,
-      timezone: workflowData.timezone,
-      trigger: workflowData.trigger,
-      userId,
-    });
-  }
-
-  private isMissingInputValue(value: unknown): boolean {
-    return (
-      value === undefined ||
-      value === null ||
-      (typeof value === 'string' && value.trim().length === 0)
-    );
-  }
-
-  private getDefaultInputValuesFromWorkflowData(
-    workflowData: Pick<CreateWorkflowDto, 'inputVariables'>,
-  ): Record<string, unknown> {
-    const defaults: Record<string, unknown> = {};
-
-    for (const variable of workflowData.inputVariables ?? []) {
-      if (variable.defaultValue !== undefined) {
-        defaults[variable.key] = variable.defaultValue;
-      }
-    }
-
-    return defaults;
-  }
-
-  private getMissingRequiredInputKeys(
-    workflowData: Pick<CreateWorkflowDto, 'inputVariables'>,
-    inputValues: Record<string, unknown>,
-  ): string[] {
-    return (workflowData.inputVariables ?? [])
-      .filter((variable) => {
-        if (!variable.required) {
-          return false;
-        }
-
-        return this.isMissingInputValue(inputValues[variable.key]);
-      })
-      .map((variable) => variable.key);
   }
 
   /**
@@ -467,7 +352,7 @@ export class WorkflowsService extends BaseService<
         workflowData.sourceWorkflowId,
         userId,
         organizationId,
-        this.resolveWorkflowBrandId(
+        resolveWorkflowBrandId(
           (workflowData as WorkflowCreateExtras).brandId,
           defaultBrandId,
         ),
@@ -493,7 +378,7 @@ export class WorkflowsService extends BaseService<
         );
       }
 
-      const brandId = this.resolveWorkflowBrandId(
+      const brandId = resolveWorkflowBrandId(
         (workflowData as WorkflowCreateExtras).brandId,
         defaultBrandId,
       );
@@ -524,14 +409,14 @@ export class WorkflowsService extends BaseService<
             ...(workflowData.metadata ?? {}),
           }
         : undefined;
-    const brandId = this.resolveWorkflowBrandId(
+    const brandId = resolveWorkflowBrandId(
       (workflowData as WorkflowCreateExtras).brandId,
       defaultBrandId,
     );
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const workflow = await this.create(
-      this.buildWorkflowCreatePayload({
+      buildWorkflowCreatePayload({
         brandId,
         defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
         organizationId,
@@ -552,8 +437,8 @@ export class WorkflowsService extends BaseService<
     // inputs have defaults. Required-input templates must wait for a run form.
     if ((workflowData.trigger as string) === 'manual') {
       const initialInputValues =
-        this.getDefaultInputValuesFromWorkflowData(workflowData);
-      const missingRequiredInputs = this.getMissingRequiredInputKeys(
+        getDefaultInputValuesFromWorkflowData(workflowData);
+      const missingRequiredInputs = getMissingRequiredInputKeys(
         workflowData,
         initialInputValues,
       );
@@ -688,11 +573,11 @@ export class WorkflowsService extends BaseService<
     const sourceLabel = workflowDoc.label ?? 'Workflow';
 
     const brandId =
-      targetBrandId ?? this.resolveWorkflowBrandId(workflowDoc.brandId);
+      targetBrandId ?? resolveWorkflowBrandId(workflowDoc.brandId);
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const clonedWorkflow = await this.create(
-      this.buildWorkflowCreatePayload({
+      buildWorkflowCreatePayload({
         brandId,
         defaultLabel: `${sourceLabel} (Copy)`,
         organizationId,

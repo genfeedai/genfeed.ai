@@ -15,6 +15,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import type { Brand } from '@server/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
@@ -213,14 +214,16 @@ function toWorkflowBrandContext(brand: Brand): WorkflowBrandContext {
   };
 }
 
+@Injectable()
 export class WorkflowCoreExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     _loggerService: LoggerService,
-    private readonly brandsService?: BrandsService,
+    @Optional() private readonly brandsService?: BrandsService,
+    @Optional()
     private readonly performanceSummaryService?: PerformanceSummaryService,
-    private readonly openRouterService?: OpenRouterService,
-    private readonly seoScorerService?: SeoScorerService,
+    @Optional() private readonly openRouterService?: OpenRouterService,
+    @Optional() private readonly seoScorerService?: SeoScorerService,
   ) {}
 
   register(engine: WorkflowEngine): void {
