@@ -1,6 +1,19 @@
+import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  type TikTokAuthorizedSignalEvidence,
+  type TikTokAuthorizedSignalReason,
+  type TikTokAuthorizedSignalsSnapshot,
+  tiktokAuthorizedSignalsSnapshotSchema,
+} from '@api-types/contracts/tiktok-authorized-signals.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -16,25 +29,12 @@ import {
 } from '@server/services/integrations/tiktok/utils/tiktok-error.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
-  type TikTokAuthorizedSignalEvidence,
-  type TikTokAuthorizedSignalReason,
-  type TikTokAuthorizedSignalsSnapshot,
-  tiktokAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/tiktok-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
-import {
   readBoolean,
   readHttpUrl,
   readNonNegativeInteger,
   readRecord,
   readString,
   readStringArray,
-  type SettledResult,
   type TikTokVideosFetch,
   TiktokAuthorizedSignalsProvider,
 } from './tiktok-authorized-signals.provider';
@@ -360,7 +360,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildProfileEvidence(
     grantedScopes: string[],
-    result: SettledResult<Record<string, unknown>>,
+    result: AuthorizedSignalsSettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -436,7 +436,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildStatisticsEvidence(
     grantedScopes: string[],
-    result: SettledResult<Record<string, unknown>>,
+    result: AuthorizedSignalsSettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -500,7 +500,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildPublicVideosEvidence(
     grantedScopes: string[],
-    result: SettledResult<TikTokVideosFetch>,
+    result: AuthorizedSignalsSettledResult<TikTokVideosFetch>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -554,7 +554,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildCreatorCapabilitiesEvidence(
     grantedScopes: string[],
-    result: SettledResult<Record<string, unknown>>,
+    result: AuthorizedSignalsSettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {

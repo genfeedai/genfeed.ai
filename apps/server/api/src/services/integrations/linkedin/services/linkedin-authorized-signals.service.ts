@@ -1,5 +1,6 @@
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
+  type AuthorizedSignalsSettledResult,
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
@@ -715,7 +716,7 @@ export class LinkedInAuthorizedSignalsService {
 
   private async settle<T>(
     promise: Promise<T> | undefined,
-  ): Promise<{ error?: unknown; value?: T }> {
+  ): Promise<AuthorizedSignalsSettledResult<T>> {
     return settleProviderRequest(promise);
   }
 
