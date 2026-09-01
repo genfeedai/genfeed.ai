@@ -474,4 +474,42 @@ describe('compileRemainingVideoGenerationBrief', () => {
       }),
     ).toThrow('at most 3 image references');
   });
+
+  it('compiles MiniMax H3 Max first/last frames and provider defaults', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'an airship crossing a desert at sunset' },
+      mediaKind: 'video',
+      output: {
+        aspectRatio: '21:9',
+        durationSeconds: 15,
+        resolution: '768P',
+      },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'end-frame', role: 'last_frame' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.FAL_MINIMAX_H3_MAX),
+      modelKey: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+      seed: 42,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '21:9',
+      duration: 15,
+      enable_safety_checker: true,
+      end_image_url: 'end-frame',
+      image_url: 'start-frame',
+      prompt: 'an airship crossing a desert at sunset',
+      prompt_expansion_mode: 'balanced',
+      resolution: '768P',
+      seed: 42,
+    });
+  });
 });

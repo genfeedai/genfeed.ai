@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { PageScope, PostStatus } from '@genfeedai/enums';
+import {
+  type LibraryPlace,
+  LibraryShelf,
+  PageScope,
+  PostStatus,
+} from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,6 +28,12 @@ vi.mock('next/navigation', () => ({
   notFound: notFoundMock,
   redirect: redirectMock,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
   default: ({
@@ -48,8 +59,47 @@ vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
 }));
 
 vi.mock('@pages/ingredients/list/ingredients-list', () => ({
-  default: ({ scope, type }: { scope: PageScope; type: string }) => (
-    <div data-scope={scope} data-testid="ingredients-list" data-type={type} />
+  default: ({
+    folderNavigation,
+    scope,
+    type,
+  }: {
+    folderNavigation?: string;
+    scope: PageScope;
+    type: string;
+  }) => (
+    <div
+      data-folder-navigation={folderNavigation}
+      data-scope={scope}
+      data-testid="ingredients-list"
+      data-type={type}
+    />
+  ),
+}));
+
+vi.mock('@pages/library/browser/library-browser', () => ({
+  default: ({
+    children,
+    place,
+    preset,
+    scope,
+    shelf,
+  }: {
+    children: ReactNode;
+    place?: LibraryPlace;
+    preset?: { label: string };
+    scope: PageScope;
+    shelf?: LibraryShelf;
+  }) => (
+    <section
+      data-place={place}
+      data-preset={preset?.label}
+      data-scope={scope}
+      data-shelf={shelf}
+      data-testid="library-browser"
+    >
+      {children}
+    </section>
   ),
 }));
 
@@ -59,6 +109,16 @@ vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
 
 vi.mock('@ui/guards/feature/FeatureGate', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../../[brandSlug]/library/captions/page', () => ({
+  default: () => <div data-testid="library-captions-page" />,
+}));
+
+vi.mock('../../../[brandSlug]/library/voices/library-voices-page', () => ({
+  default: ({ scope }: { scope: PageScope }) => (
+    <div data-scope={scope} data-testid="library-voices-page" />
+  ),
 }));
 
 vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
@@ -102,7 +162,36 @@ describe('OrgRootAppPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders org library ingredients by requested type', async () => {
+  it('renders org shelves through the same Library browser as brand shelves', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['shelf', 'unsorted'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-browser')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
+    expect(screen.getByTestId('library-browser')).toHaveAttribute(
+      'data-shelf',
+      LibraryShelf.UNSORTED,
+    );
+    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
+      'data-type',
+      'ingredients',
+    );
+    expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
+      'data-folder-navigation',
+      'shell',
+    );
+  });
+
+  it('renders org type routes as presets over the unified browser', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'library',
@@ -113,22 +202,45 @@ describe('OrgRootAppPage', () => {
 
     render(element);
 
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-scope',
-      PageScope.ORGANIZATION,
-    );
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-default-type',
-      'images',
-    );
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-hide-type-tabs',
-      'true',
+    expect(screen.getByTestId('library-browser')).toHaveAttribute(
+      'data-preset',
+      'Images',
     );
     expect(screen.getByTestId('ingredients-list')).toHaveAttribute(
       'data-type',
-      'images',
+      'ingredients',
     );
+  });
+
+  it('reuses the brand voice library component with organization scope', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['voices'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-voices-page')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
+  });
+
+  it('reuses the same captions library component in organization scope', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'library',
+        orgSlug: 'acme',
+        segments: ['captions'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('library-captions-page')).toBeInTheDocument();
   });
 
   it('does not render workspace through the org catch-all', async () => {
@@ -145,24 +257,17 @@ describe('OrgRootAppPage', () => {
     expect(notFoundMock).toHaveBeenCalled();
   });
 
-  it('renders org library with type tabs at the root', async () => {
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'library',
-        orgSlug: 'acme',
+  it('redirects the org Library root to the canonical All assets browser', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'library',
+          orgSlug: 'acme',
+        }),
       }),
-    });
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/library/assets');
 
-    render(element);
-
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-default-type',
-      'videos',
-    );
-    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
-      'data-hide-type-tabs',
-      'false',
-    );
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/library/assets');
   });
 
   it('hands org-scoped /studio/:type off to the Agent', async () => {
@@ -253,18 +358,39 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it('sends deeper org-scoped automation paths to the Automation overview', async () => {
-    await expect(
-      OrgRootAppPage({
+  it.each([
+    ['overview'],
+    ['workflows'],
+    ['workflows', 'executions'],
+    ['runs'],
+    ['agents'],
+    ['autopilot'],
+    ['campaigns'],
+  ])(
+    'renders the brand-selection empty state for org Automation path %s',
+    async (...segments) => {
+      const element = await OrgRootAppPage({
         params: Promise.resolve({
           orgRootApp: 'automation',
           orgSlug: 'acme',
-          segments: ['workflows'],
+          segments,
         }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automation');
-    expect(notFoundMock).not.toHaveBeenCalled();
-  });
+      });
+
+      render(element);
+
+      expect(
+        screen.getByRole('heading', {
+          name: 'Select a brand to use Automation',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Manage brands' }),
+      ).toHaveAttribute('href', '/acme/~/settings/brands');
+      expect(redirectMock).not.toHaveBeenCalled();
+      expect(notFoundMock).not.toHaveBeenCalled();
+    },
+  );
 
   it('renders the studio edit projects surface', async () => {
     const element = await OrgRootAppPage({

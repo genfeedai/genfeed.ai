@@ -5,7 +5,7 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -21,6 +21,7 @@ type MockModelDelegate = {
 };
 
 type MockProviderContractDelegate = {
+  findMany: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -35,6 +36,8 @@ function makeModel(overrides: Record<string, unknown> = {}) {
     isActive: true,
     isDefault: false,
     isDeleted: false,
+    isDiscovered: false,
+    lifecycle: ModelLifecycle.AVAILABLE,
     endpoint: 'google/imagen-4',
     key: 'google/imagen-4',
     label: 'Imagen 4',
@@ -62,6 +65,7 @@ describe('ModelsService', () => {
       updateMany: vi.fn(),
     };
     providerContractDelegate = {
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       update: vi.fn(),
     };
@@ -115,16 +119,59 @@ describe('ModelsService', () => {
         category: ModelCategory.IMAGE,
         config: { owner: 'google' },
         cost: 5,
-        isDefault: true,
+        isActive: true,
+        isDefault: false,
+        isDeprecated: false,
         isDiscovered: true,
+        isLegacy: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
         endpoint: 'google/imagen-4',
         key: 'google/imagen-4',
         label: 'Imagen 4',
         margin: 0.2,
         provider: ModelProvider.REPLICATE,
+        succeededBy: null,
       },
     });
     expect(result.providerConfig).toEqual({ owner: 'google' });
+  });
+
+  it('requires and validates a successor when creating Legacy', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        id: 'model-2',
+        key: 'google/imagen-5',
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      }),
+    );
+    modelDelegate.create.mockResolvedValue(
+      makeModel({
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: 'google/imagen-5',
+      }),
+    );
+
+    await service.create({
+      category: ModelCategory.IMAGE,
+      cost: 5,
+      key: 'google/imagen-4',
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.LEGACY,
+      provider: ModelProvider.REPLICATE,
+      succeededBy: 'google/imagen-5',
+    });
+
+    expect(modelDelegate.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: true,
+        isDefault: false,
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: 'google/imagen-5',
+      }),
+    });
   });
 
   it('queries canonical fields directly', async () => {
@@ -134,6 +181,54 @@ describe('ModelsService', () => {
 
     expect(modelDelegate.findFirst).toHaveBeenCalledWith({
       where: { isDeleted: false, key: 'google/imagen-4' },
+    });
+  });
+
+  it('requires a successor before moving a model to Legacy', async () => {
+    modelDelegate.findFirst.mockResolvedValue(makeModel());
+
+    await expect(
+      service.transitionLifecycle('model-1', ModelLifecycle.LEGACY),
+    ).rejects.toThrow('successor model is required');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps Legacy callable and synchronizes compatibility fields', async () => {
+    const current = makeModel();
+    const successor = makeModel({
+      id: 'model-2',
+      key: 'google/imagen-5',
+      lifecycle: ModelLifecycle.RECOMMENDED,
+    });
+    modelDelegate.findFirst
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce(successor);
+    modelDelegate.findUnique.mockResolvedValue(current);
+    modelDelegate.update.mockResolvedValue(
+      makeModel({
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: successor.key,
+      }),
+    );
+
+    await service.transitionLifecycle(
+      'model-1',
+      ModelLifecycle.LEGACY,
+      successor.key,
+    );
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: true,
+        isDefault: false,
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: successor.key,
+      }),
+      where: { id: 'model-1' },
     });
   });
 
@@ -156,6 +251,72 @@ describe('ModelsService', () => {
         provider: ModelProvider.FAL,
       },
     });
+  });
+
+  it('returns only safe reviewed and pending provider contract details', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:pending',
+        reviewedProviderContractVersion: 'sha256:reviewed',
+      }),
+    );
+    providerContractDelegate.findMany.mockResolvedValue([
+      {
+        billingUnit: 'seconds',
+        conditionalDimensions: { resolution: '768P' },
+        currency: 'USD',
+        discoveredAt: new Date('2026-09-01T08:00:00.000Z'),
+        inputSchema: { properties: { prompt: { type: 'string' } } },
+        lastSeenAt: new Date('2026-09-01T09:00:00.000Z'),
+        mappingStatus: 'supported',
+        openapi: { commerciallySensitive: true },
+        outputSchema: { properties: { video: { type: 'object' } } },
+        pricing: { accountSpecificRawPayload: true },
+        pricingType: 'per-second',
+        reviewStatus: 'approved',
+        schemaFamily: 'video-text-v1',
+        unitPrice: '0.08',
+        unsupportedReason: null,
+        version: 'sha256:reviewed',
+      },
+      {
+        billingUnit: 'seconds',
+        conditionalDimensions: {},
+        currency: 'USD',
+        discoveredAt: new Date('2026-09-01T10:00:00.000Z'),
+        inputSchema: { properties: { duration: { maximum: 15 } } },
+        lastSeenAt: new Date('2026-09-01T10:00:00.000Z'),
+        mappingStatus: 'supported',
+        outputSchema: { type: 'object' },
+        pricingType: 'per-second',
+        reviewStatus: 'pending',
+        schemaFamily: 'video-text-v1',
+        unitPrice: '0.08',
+        unsupportedReason: null,
+        version: 'sha256:pending',
+      },
+    ]);
+
+    const result = await service.getProviderContracts('model-1');
+
+    expect(providerContractDelegate.findMany).toHaveBeenCalledWith({
+      where: {
+        modelId: 'model-1',
+        version: { in: ['sha256:reviewed', 'sha256:pending'] },
+      },
+    });
+    expect(result).toMatchObject({
+      endpoint: 'google/imagen-4',
+      pending: { version: 'sha256:pending' },
+      provider: ModelProvider.REPLICATE,
+      reviewed: {
+        inputSchema: { properties: { prompt: { type: 'string' } } },
+        unitPrice: '0.08',
+        version: 'sha256:reviewed',
+      },
+    });
+    expect(result?.reviewed).not.toHaveProperty('openapi');
+    expect(result?.reviewed).not.toHaveProperty('pricing');
   });
 
   it('filters, sorts, and paginates in Prisma', async () => {
@@ -491,5 +652,63 @@ describe('ModelsService', () => {
     ).rejects.toThrow('does not match the model category');
     expect(modelDelegate.update).not.toHaveBeenCalled();
     expect(providerContractDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('promotes a supported Replicate contract into the reviewed runtime projection', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:replicate-candidate',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'replicate-contract',
+      inputSchema: {
+        properties: { prompt: { type: 'string' } },
+        required: ['prompt'],
+        type: 'object',
+      },
+      mappingStatus: 'supported',
+      pricingType: 'per-request',
+      schemaFamily: 'replicate-image-v1',
+      unitPriceMicros: 40_000n,
+      version: 'sha256:replicate-candidate',
+    });
+    modelDelegate.update.mockResolvedValue(makeModel());
+
+    await service.approveRegistryModel('model-1', {}, 'operator-1');
+
+    expect(modelDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          providerCostUsd: 0.04,
+          providerInputSchema: expect.objectContaining({
+            required: ['prompt'],
+          }),
+          providerSchemaFamily: 'replicate-image-v1',
+          reviewedProviderContractVersion: 'sha256:replicate-candidate',
+        }),
+      }),
+    );
+  });
+
+  it('blocks a Replicate contract whose detected category does not match', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        pendingProviderContractVersion: 'sha256:replicate-video',
+      }),
+    );
+    providerContractDelegate.findUnique.mockResolvedValue({
+      id: 'replicate-video-contract',
+      inputSchema: { type: 'object' },
+      mappingStatus: 'supported',
+      pricingType: 'per-second',
+      schemaFamily: 'replicate-video-v1',
+      unitPriceMicros: 250_000n,
+      version: 'sha256:replicate-video',
+    });
+
+    await expect(
+      service.approveRegistryModel('model-1', {}, 'operator-1'),
+    ).rejects.toThrow('does not match the model category');
   });
 });

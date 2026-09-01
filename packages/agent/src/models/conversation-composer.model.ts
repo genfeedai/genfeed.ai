@@ -1,4 +1,4 @@
-import type { UploadStatus } from '@genfeedai/enums';
+import type { RouterPriority, UploadStatus } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   ResearchFindingReferenceKind,
@@ -29,6 +29,8 @@ export interface ConversationComposerGenerationSettings {
   duration?: number;
   model?: string;
   outputs?: number;
+  prioritize?: RouterPriority;
+  resolution?: string;
 }
 
 export type ConversationComposerContextReferenceKind =

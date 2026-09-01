@@ -4,6 +4,7 @@ import { CronCredentialsService } from '@workers/crons/credentials/cron.credenti
 import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
 
 @Module({
+  exports: [CronCredentialsService],
   imports: [forwardRef(() => CredentialsModule), SocialIntegrationsModule],
   providers: [CronCredentialsService],
 })

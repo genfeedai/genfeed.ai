@@ -10,6 +10,7 @@
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   getModelCatalogForDeployment,
+  isRetiredAgentChatModel,
   type ModelCatalogSeedEntry,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
@@ -78,7 +79,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     return {
       category: entry.category,
       description: entry.description,
-      isLegacy: entry.isLegacy ?? false,
       label: entry.label,
       provider: entry.provider,
       ...(entry.aspectRatios ? { aspectRatios: [...entry.aspectRatios] } : {}),
@@ -169,8 +169,8 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
    *
    * When the catalog does name this key as the default, the seed still only
    * self-heals: it reclaims the pin when the category has no usable
-   * (active, non-deleted) default at all, and otherwise leaves whatever
-   * already holds the pin — this row or another — untouched.
+   * (active, non-deleted, non-legacy) default at all, and otherwise leaves
+   * whatever already holds the pin — this row or another — untouched.
    */
   private async resolveUpdateIsDefault(
     entry: ModelCatalogSeedEntry,
@@ -187,10 +187,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         isActive: true,
         isDefault: true,
         isDeleted: false,
+        isLegacy: false,
       },
     });
 
-    if (!activeDefault) {
+    if (!activeDefault || isRetiredAgentChatModel(activeDefault.key)) {
       return true;
     }
 
@@ -209,8 +210,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDefault: entry.isDefault ?? false,
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
+      isFree: entry.isFree ?? false,
+      isLegacy: entry.isLegacy ?? false,
+      lifecycle: entry.lifecycle,
       isPublic: entry.isPublic ?? true,
-      endpoint: entry.key,
+      endpoint: entry.endpoint ?? entry.key,
       key: entry.key,
       label: entry.label,
       provider: entry.provider,
@@ -224,6 +228,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
     const updateData: Prisma.ModelUpdateInput = {
       ...shared,
+      endpoint: entry.endpoint ?? entry.key,
       isDeleted: false,
       // `isActive` and `cost` stay operator/discovery territory: a curated row
       // may have been priced or disabled deliberately, and the seed's 0 for an
@@ -231,6 +236,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       // declares free is the exception — there 0 is the curated price, so
       // holding a stale non-zero cost would bill a round the provider gave away.
       ...(entry.cost > 0 || entry.isFree ? { cost: entry.cost } : {}),
+      ...(entry.isFree ? { isFree: true } : {}),
       // Unit pricing + provider USD must not lag the catalog — bill time prefers
       // providerCostUsd × live applyMargin.
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),
@@ -240,6 +246,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
+      ...(entry.isLegacy
+        ? { isActive: false, isDefault: false, isPublic: false }
+        : {}),
     };
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
@@ -264,6 +273,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           await this.demoteOtherCategoryDefaults(entry);
           updateData.isActive = true;
           updateData.isDiscovered = false;
+          updateData.lifecycle = entry.lifecycle;
           updateData.isPublic = true;
         }
         updateData.isDefault = targetIsDefault;

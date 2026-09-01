@@ -6,6 +6,7 @@ import {
   buildConversationComposerGenerationSettings,
   buildDefaultAgentGenerationSetupValues,
   getAgentGenerationSetupCapabilities,
+  hasExplicitAgentGenerationSetup,
   isAgentGenerationType,
 } from './agent-generation-setup.util';
 
@@ -132,5 +133,52 @@ describe('buildConversationComposerGenerationSettings', () => {
     });
 
     expect(settings.model).toBe('flux-schnell');
+  });
+
+  it('preserves routing priority and resolution at the send boundary', () => {
+    const settings = buildConversationComposerGenerationSettings({
+      ...baseValues,
+      prioritize: RouterPriority.SPEED,
+      resolution: '1080p',
+    });
+
+    expect(settings.prioritize).toBe(RouterPriority.SPEED);
+    expect(settings.resolution).toBe('1080p');
+  });
+});
+
+describe('hasExplicitAgentGenerationSetup', () => {
+  it('keeps agent recommendations in conversational Auto mode', () => {
+    expect(
+      hasExplicitAgentGenerationSetup({
+        sources: { modelKey: 'agent', type: 'agent' },
+        values: buildDefaultAgentGenerationSetupValues('image'),
+      }),
+    ).toBe(false);
+  });
+
+  it.each([
+    'type',
+    'modelKey',
+    'aspectRatio',
+    'outputs',
+    'prioritize',
+  ] as const)('commits media mode when the operator sets %s', (field) => {
+    expect(
+      hasExplicitAgentGenerationSetup({
+        sources: { [field]: 'user' },
+        values: buildDefaultAgentGenerationSetupValues('image'),
+      }),
+    ).toBe(true);
+  });
+
+  it('commits media mode when the operator pins a preset', () => {
+    expect(
+      hasExplicitAgentGenerationSetup({
+        presetId: 'preset-1',
+        sources: { style: 'preset' },
+        values: buildDefaultAgentGenerationSetupValues('image'),
+      }),
+    ).toBe(true);
   });
 });

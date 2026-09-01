@@ -6145,38 +6145,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
-      "fingerprint": "1410f59768e53d22eb50",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
-      "fingerprint": "3569ea0de3de55651a89",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
-      "fingerprint": "91976cd0643a7d450543",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2503,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.spec.ts",
-      "fingerprint": "93a60ab0961556054a93",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
       "code": 2307,
       "count": 1,
       "file": "apps/server/workers/src/crons/workflows/task-types/generate-image.task.spec.ts",

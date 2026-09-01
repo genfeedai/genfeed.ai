@@ -1,7 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PatternExtractionWorkflowService } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction-workflow.service';
 
 @Injectable()
@@ -13,7 +12,6 @@ export class CronPatternExtractionService {
     private readonly patternExtractionWorkflow: PatternExtractionWorkflowService,
   ) {}
 
-  @Cron('0 2 * * *') // 2 AM daily
   async computeDailyPatterns(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

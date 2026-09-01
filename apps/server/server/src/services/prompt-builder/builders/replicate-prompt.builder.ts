@@ -1,3 +1,11 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
+import {
+  calculateAspectRatio,
+  getDefaultAspectRatio,
+} from '@genfeedai/helpers';
+import { ConfigService } from '@libs/config/config.service';
+import { Injectable } from '@nestjs/common';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { BasePromptBuilder } from '@server/services/prompt-builder/builders/base-prompt.builder';
 import {
@@ -11,14 +19,6 @@ import type {
   ReplicateInput,
   TrainedModelInput,
 } from '@server/services/prompt-builder/interfaces/replicate-input.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
-import {
-  calculateAspectRatio,
-  getDefaultAspectRatio,
-} from '@genfeedai/helpers';
-import { ConfigService } from '@libs/config/config.service';
-import { Injectable } from '@nestjs/common';
 
 // Derived allowlist of all Replicate models defined in the shared MODEL_KEYS constant.
 // We key off constant *names* (e.g. "REPLICATE_*") because the values are model IDs (e.g. "replicate/...").
@@ -37,7 +37,6 @@ const replicateModels: string[] = (
  * - ReplicateTextBuilder: DeepSeek, GPT, Gemini, Llama
  *
  * @see services/integrations/replicate/README.md for complete model documentation
- * @see services/integrations/replicate/schemas/ for official Replicate API schemas
  */
 @Injectable()
 export class ReplicatePromptBuilder extends BasePromptBuilder {

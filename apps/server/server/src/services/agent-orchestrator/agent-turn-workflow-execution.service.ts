@@ -38,6 +38,7 @@ import type {
   AgentChatContext,
   AgentChatRequest,
   AgentChatResult,
+  AgentGenerationSettings,
   AgentThreadUiActionRequest,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
@@ -98,6 +99,63 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function optionalNumber(
+  value: unknown,
+  field: string,
+  minimum: number,
+  maximum: number,
+): number | undefined {
+  if (value === undefined) return undefined;
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < minimum ||
+    value > maximum
+  ) {
+    throw new Error(
+      `${field} must be an integer from ${minimum} to ${maximum}`,
+    );
+  }
+  return value;
+}
+
+function projectGenerationSettings(
+  value: unknown,
+): AgentGenerationSettings | undefined {
+  if (value === undefined) return undefined;
+  const settings = readRecord(value);
+  const aspectRatio = requiredString(
+    settings.aspectRatio,
+    'request.generationSettings.aspectRatio',
+  ).trim();
+  const prioritize = toRouterPriority(optionalString(settings.prioritize));
+  if (settings.prioritize !== undefined && !prioritize) {
+    throw new Error('request.generationSettings.prioritize is unsupported');
+  }
+  const duration = optionalNumber(
+    settings.duration,
+    'request.generationSettings.duration',
+    1,
+    60,
+  );
+  const model = optionalString(settings.model);
+  const outputs = optionalNumber(
+    settings.outputs,
+    'request.generationSettings.outputs',
+    1,
+    8,
+  );
+  const resolution = optionalString(settings.resolution);
+  return {
+    aspectRatio,
+    ...(duration !== undefined ? { duration } : {}),
+    ...(model ? { model } : {}),
+    ...(outputs !== undefined ? { outputs } : {}),
+    ...(prioritize ? { prioritize } : {}),
+    ...(resolution ? { resolution } : {}),
+  };
+}
+
 function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   threadId: string;
 } {
@@ -107,6 +165,10 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   const source = optionalString(request.source);
   if (source && !['agent', 'onboarding', 'proactive'].includes(source)) {
     throw new Error(`Unsupported agent request source: ${source}`);
+  }
+  const generationMode = optionalString(request.generationMode);
+  if (generationMode && !['auto', 'image', 'video'].includes(generationMode)) {
+    throw new Error(`Unsupported generation mode: ${generationMode}`);
   }
   return {
     content,
@@ -131,6 +193,18 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
       : {}),
     ...(typeof request.expectedContextVersion === 'number'
       ? { expectedContextVersion: request.expectedContextVersion }
+      : {}),
+    ...(generationMode
+      ? {
+          generationMode: generationMode as AgentChatRequest['generationMode'],
+        }
+      : {}),
+    ...(request.generationSettings !== undefined
+      ? {
+          generationSettings: projectGenerationSettings(
+            request.generationSettings,
+          ),
+        }
       : {}),
     ...(optionalString(request.model)
       ? { model: optionalString(request.model) }
@@ -320,6 +394,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       ...(state.campaignId ? { campaignId: state.campaignId } : {}),
       ...(state.strategyId ? { strategyId: state.strategyId } : {}),
     };
+    if (
+      request.generationMode === 'image' ||
+      request.generationMode === 'video'
+    ) {
+      return this.executeExplicitMediaGeneration(state, baseContext);
+    }
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,
     });
@@ -367,6 +447,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     const context: AgentChatContext = {
       ...baseContext,
       generationPriority,
+      generationSettings: request.generationSettings,
       resolvedSkills: resolved.resolvedSkills,
       scope,
     };
@@ -519,6 +600,60 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       runInThreadLane: (threadId, run) =>
         this.executionLaneService.runExclusive(threadId, run),
     });
+  }
+
+  private async executeExplicitMediaGeneration(
+    state: PreparedAgentTurnState,
+    context: AgentChatContext,
+  ): Promise<AgentTurnWorkflowResult> {
+    const settings = state.request.generationSettings;
+    const result = await this.executeUiAction(
+      {
+        action: 'confirm_generate_media',
+        ...(state.request.brandId !== undefined
+          ? { brandId: state.request.brandId }
+          : {}),
+        ...(state.request.expectedContextVersion !== undefined
+          ? { expectedContextVersion: state.request.expectedContextVersion }
+          : {}),
+        payload: {
+          ...(settings?.aspectRatio
+            ? { aspectRatio: settings.aspectRatio }
+            : {}),
+          ...(settings?.duration !== undefined
+            ? { duration: settings.duration }
+            : {}),
+          generationType: state.request.generationMode,
+          ...(settings?.model ? { model: settings.model } : {}),
+          ...(settings?.outputs !== undefined
+            ? { outputs: settings.outputs }
+            : {}),
+          ...(settings?.prioritize ? { prioritize: settings.prioritize } : {}),
+          prompt: state.request.content,
+          ...(settings?.resolution ? { resolution: settings.resolution } : {}),
+          sourceActionId: `composer-generation:${state.executionId}`,
+        },
+        threadId: state.threadId,
+      },
+      context,
+    );
+    const metadata = readRecord(result.message.metadata);
+    const content = result.message.content;
+    return {
+      artifactReferences: Array.isArray(metadata.artifactReferences)
+        ? metadata.artifactReferences
+        : [],
+      artifactVersionPinIds: Array.isArray(metadata.artifactVersionPinIds)
+        ? metadata.artifactVersionPinIds.filter(
+            (id): id is string => typeof id === 'string',
+          )
+        : [],
+      content,
+      creditsUsed: result.creditsUsed,
+      model: null,
+      summary: content.slice(0, 500),
+      threadId: result.threadId,
+    };
   }
 
   async resumeInput(params: {

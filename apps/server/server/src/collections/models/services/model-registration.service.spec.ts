@@ -1,10 +1,11 @@
+import { ModelLifecycle } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import type { ModelsService } from '@server/collections/models/services/models.service';
 import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { testId } from '@helpers/testing/test-id.helper';
-import type { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException } from '@nestjs/common';
 
 const organizationId = testId('org');
 const modelId = testId('model');
@@ -13,7 +14,10 @@ const modelKey = 'black-forest-labs/flux-1.1-pro';
 function makeModel(overrides: Record<string, unknown> = {}) {
   return {
     id: modelId,
+    isActive: true,
+    isDeleted: false,
     key: modelKey,
+    lifecycle: ModelLifecycle.AVAILABLE,
     organizationId: null,
     ...overrides,
   };
@@ -137,5 +141,40 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
     await expect(
       service.validateModelForOrg(modelKey, organizationId),
     ).resolves.toEqual(model);
+  });
+
+  it('resolves an allowlisted global Retired alias to its global successor', async () => {
+    const { modelsService, orgSettingsService, service } = makeService();
+    const successorKey = 'black-forest-labs/flux-2-pro';
+    const retired = makeModel({
+      isActive: false,
+      lifecycle: ModelLifecycle.RETIRED,
+      succeededBy: successorKey,
+    });
+    const successor = makeModel({
+      id: testId('model', 2),
+      key: successorKey,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+    });
+    modelsService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(retired)
+      .mockResolvedValueOnce(successor);
+    orgSettingsService.findOne.mockResolvedValue({
+      enabledModelIds: [modelId],
+      id: testId('setting'),
+      organizationId,
+    });
+    orgSettingsService.ensureEnabledModelIds.mockImplementation((settings) =>
+      Promise.resolve(settings),
+    );
+
+    await expect(
+      service.validateModelForOrg(modelKey, organizationId),
+    ).resolves.toEqual(successor);
+    expect(modelsService.findOne).toHaveBeenNthCalledWith(3, {
+      key: successorKey,
+      organizationId: null,
+    });
   });
 });

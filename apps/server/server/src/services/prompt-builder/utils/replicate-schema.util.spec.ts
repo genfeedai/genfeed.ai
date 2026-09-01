@@ -1,79 +1,56 @@
-import type { ReplicateModelSchema } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
-import {
-  assertRequiredSchemaInput,
-  clearSchemaCache,
-  detectImageReferenceFields,
-  getArrayImageLimit,
-  isArrayImageField,
-  loadModelSchema,
-  modelIdToSchemaFilename,
-  schemaHasField,
-} from '@server/services/prompt-builder/utils/replicate-schema.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ErrorCode } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import type { ReplicateModelSchema } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
+import {
+  assertRequiredSchemaInput,
+  detectImageReferenceFields,
+  getArrayImageLimit,
+  isArrayImageField,
+  replicateModelIdToSlug,
+  resolveModelSchema,
+  schemaHasField,
+} from '@server/services/prompt-builder/utils/replicate-schema.util';
 
 describe('ReplicateSchemaUtil', () => {
-  afterEach(() => {
-    clearSchemaCache();
-  });
-
   // =========================================================================
-  // modelIdToSchemaFilename
+  // replicateModelIdToSlug
   // =========================================================================
-  describe('modelIdToSchemaFilename', () => {
+  describe('replicateModelIdToSlug', () => {
     it('should extract model name from owner/model format', () => {
-      expect(modelIdToSchemaFilename('google/imagen-4')).toBe(
-        'imagen-4.schema.json',
-      );
+      expect(replicateModelIdToSlug('google/imagen-4')).toBe('imagen-4');
     });
 
     it('should handle model IDs with version hashes', () => {
-      expect(modelIdToSchemaFilename('genfeedai/custom-model:abc123')).toBe(
-        'custom-model.schema.json',
+      expect(replicateModelIdToSlug('genfeedai/custom-model:abc123')).toBe(
+        'custom-model',
       );
     });
 
     it('should handle model IDs without owner prefix', () => {
-      expect(modelIdToSchemaFilename('some-model')).toBe(
-        'some-model.schema.json',
-      );
+      expect(replicateModelIdToSlug('some-model')).toBe('some-model');
     });
 
     it('should use last segment for multi-segment paths', () => {
-      expect(modelIdToSchemaFilename('black-forest-labs/flux-2-pro')).toBe(
-        'flux-2-pro.schema.json',
+      expect(replicateModelIdToSlug('black-forest-labs/flux-2-pro')).toBe(
+        'flux-2-pro',
       );
     });
   });
 
-  // =========================================================================
-  // loadModelSchema
-  // =========================================================================
-  describe('loadModelSchema', () => {
-    it('should load an existing schema file', () => {
-      const schema = loadModelSchema('google/imagen-4');
-      expect(schema).not.toBeNull();
-      expect(schema?.properties.prompt).toBeDefined();
-      expect(schema?.properties.aspect_ratio).toBeDefined();
+  describe('resolveModelSchema', () => {
+    it('prefers the reviewed provider contract projection', () => {
+      const reviewed = {
+        properties: { current_field: { type: 'string' } },
+        required: ['current_field'],
+        type: 'object',
+      };
+
+      expect(resolveModelSchema(reviewed)).toBe(reviewed);
     });
 
-    it('should return null for non-existent schema', () => {
-      const schema = loadModelSchema('nonexistent/model');
-      expect(schema).toBeNull();
-    });
-
-    it('should cache results on repeated calls', () => {
-      const first = loadModelSchema('google/imagen-4');
-      const second = loadModelSchema('google/imagen-4');
-      expect(first).toBe(second); // Same reference = cached
-    });
-
-    it('should cache null for missing schemas', () => {
-      loadModelSchema('missing/model');
-      // Second call should not throw, returns cached null
-      const result = loadModelSchema('missing/model');
-      expect(result).toBeNull();
+    it('returns null until a provider contract is reviewed', () => {
+      expect(resolveModelSchema()).toBeNull();
     });
   });
 
@@ -235,14 +212,27 @@ describe('ReplicateSchemaUtil', () => {
   });
 
   describe('assertRequiredSchemaInput', () => {
-    it('loads the Hailuo 2.3 Fast schema and requires first_frame_image', () => {
-      const schema = loadModelSchema(
-        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
-      );
-      expect(schema?.required).toEqual(
-        expect.arrayContaining(['prompt', 'first_frame_image']),
-      );
+    it('validates required fields from the reviewed projection', () => {
+      try {
+        assertRequiredSchemaInput(
+          'unknown/dynamic-model',
+          {},
+          {
+            properties: { prompt: { type: 'string' } },
+            required: ['prompt'],
+            type: 'object',
+          },
+        );
+        throw new Error('expected validation failure');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getResponse()).toEqual(
+          expect.objectContaining({ detail: 'prompt is required' }),
+        );
+      }
+    });
 
+    it('requires Hailuo 2.3 Fast first_frame_image', () => {
       try {
         assertRequiredSchemaInput(
           MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,

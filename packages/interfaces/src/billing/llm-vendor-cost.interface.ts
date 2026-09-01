@@ -22,6 +22,8 @@ export interface ILlmCompletionTelemetryEvent {
   runId?: string;
   threadId?: string;
   userId?: string;
+  /** Exact provider charge when the response reports it. */
+  vendorCostMicros?: number;
 }
 
 export interface ILlmVendorCostRecordInput {

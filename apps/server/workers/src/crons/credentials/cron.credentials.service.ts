@@ -10,7 +10,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
@@ -70,7 +69,6 @@ export class CronCredentialsService {
    * Run every hour to refresh tokens that will expire soon
    * Tokens are refreshed if they expire within the next hour
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async refreshExpiringTokens(): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

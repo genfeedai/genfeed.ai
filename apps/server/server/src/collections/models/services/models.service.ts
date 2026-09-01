@@ -1,4 +1,8 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+import type {
+  IModelProviderContractSnapshot,
+  IModelProviderContracts,
+} from '@genfeedai/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
@@ -9,6 +13,7 @@ import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto'
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
 import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@server/exceptions/validation.exception';
+import { isReplicateSchemaFamilyCompatible } from '@server/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
@@ -131,6 +136,11 @@ type RegistryReviewPatch = Partial<UpdateModelDto> & {
   providerCostUsd?: number;
   succeededBy?: string;
 };
+
+const SUCCESSOR_REQUIRED_LIFECYCLES = new Set<ModelLifecycle>([
+  ModelLifecycle.LEGACY,
+  ModelLifecycle.RETIRED,
+]);
 
 @Injectable()
 export class ModelsService extends BaseService<
@@ -480,9 +490,30 @@ export class ModelsService extends BaseService<
     populate: Parameters<BaseService<ModelDocument>['create']>[1] = [],
   ): Promise<ModelDocument> {
     void populate;
+    const lifecycle = createDto.lifecycle ?? ModelLifecycle.AVAILABLE;
+    const successorKey = createDto.succeededBy?.trim();
+    if (SUCCESSOR_REQUIRED_LIFECYCLES.has(lifecycle)) {
+      if (!successorKey) {
+        throw new BadRequestException(
+          'A successor model is required for Legacy and Retired',
+        );
+      }
+      await this.assertValidSuccessor(createDto, successorKey);
+    }
     const data = this.splitModelData(
       createDto as unknown as Record<string, unknown>,
     );
+    const isLegacy = lifecycle === ModelLifecycle.LEGACY;
+    const isRetired = lifecycle === ModelLifecycle.RETIRED;
+    data.lifecycle = lifecycle;
+    data.isActive = !isRetired && (createDto.isActive ?? true);
+    data.isDefault =
+      lifecycle === ModelLifecycle.RECOMMENDED
+        ? (createDto.isDefault ?? false)
+        : false;
+    data.isDeprecated = isLegacy || isRetired;
+    data.isLegacy = isLegacy;
+    data.succeededBy = isLegacy || isRetired ? successorKey : null;
     if (!this.readString(data.endpoint)) {
       data.endpoint = createDto.key;
     }
@@ -616,6 +647,95 @@ export class ModelsService extends BaseService<
     });
   }
 
+  /**
+   * Apply the lifecycle as the authoritative availability state while keeping
+   * the historical booleans synchronized for older consumers. Registry review
+   * remains an independent approval boundary for discovered provider rows.
+   */
+  async transitionLifecycle(
+    modelId: string,
+    lifecycle: ModelLifecycle,
+    succeededBy?: string,
+  ): Promise<ModelDocument | null> {
+    const existing = await this.findOne({ id: modelId });
+    if (!existing) {
+      return null;
+    }
+
+    const successorKey = succeededBy?.trim();
+    if (SUCCESSOR_REQUIRED_LIFECYCLES.has(lifecycle)) {
+      if (!successorKey) {
+        throw new BadRequestException(
+          'A successor model is required for Legacy and Retired',
+        );
+      }
+      await this.assertValidSuccessor(existing, successorKey);
+    }
+
+    const isLegacy = lifecycle === ModelLifecycle.LEGACY;
+    const isRetired = lifecycle === ModelLifecycle.RETIRED;
+    const reviewAllowsExecution =
+      !existing.isDiscovered || existing.reviewStatus === 'approved';
+
+    return this.patch(modelId, {
+      deprecatedAt: isLegacy || isRetired ? new Date() : null,
+      isActive: !isRetired && reviewAllowsExecution,
+      isDefault:
+        lifecycle === ModelLifecycle.RECOMMENDED ? existing.isDefault : false,
+      isDeprecated: isLegacy || isRetired,
+      isLegacy,
+      lifecycle,
+      succeededBy: isLegacy || isRetired ? successorKey : null,
+    });
+  }
+
+  private async assertValidSuccessor(
+    model: {
+      category: string;
+      key: string;
+      organizationId?: string | null;
+    },
+    successorKey: string,
+  ): Promise<void> {
+    if (successorKey === model.key) {
+      throw new BadRequestException('A model cannot succeed itself');
+    }
+
+    const visibility = { organizationId: model.organizationId ?? null };
+    const successor = await this.findOne({ key: successorKey, ...visibility });
+    if (
+      !successor ||
+      successor.category !== model.category ||
+      successor.lifecycle === ModelLifecycle.RETIRED ||
+      !successor.isActive
+    ) {
+      throw new BadRequestException(
+        'Successor must be an active, non-retired model in the same category',
+      );
+    }
+
+    const seen = new Set([String(model.key)]);
+    let current: ModelDocument | null = successor;
+    while (current) {
+      if (seen.has(String(current.key))) {
+        throw new BadRequestException('Successor chain cannot contain a cycle');
+      }
+      seen.add(String(current.key));
+      if (!current.succeededBy) {
+        return;
+      }
+      current = await this.findOne({
+        key: current.succeededBy,
+        ...visibility,
+      });
+      if (!current) {
+        throw new BadRequestException(
+          'Successor chain must resolve to a model',
+        );
+      }
+    }
+  }
+
   async touchDiscoveredModels(
     provider: ModelProvider,
     endpoints: string[],
@@ -637,6 +757,71 @@ export class ModelsService extends BaseService<
     return this.prisma.model.count({
       where: this.normalizeWhereForModel(filter) as Prisma.ModelWhereInput,
     });
+  }
+
+  async getProviderContracts(
+    modelId: string,
+  ): Promise<IModelProviderContracts | null> {
+    const model = await this.findOne({ id: modelId });
+    if (!model) {
+      return null;
+    }
+
+    const versions = [
+      model.reviewedProviderContractVersion,
+      model.pendingProviderContractVersion,
+    ].filter((version): version is string => Boolean(version));
+    const contracts =
+      versions.length > 0
+        ? await this.prisma.modelProviderContract.findMany({
+            where: { modelId, version: { in: versions } },
+          })
+        : [];
+    const contractByVersion = new Map(
+      contracts.map((contract) => [contract.version, contract]),
+    );
+    const toSnapshot = (
+      version: string | null | undefined,
+    ): IModelProviderContractSnapshot | null => {
+      if (!version) {
+        return null;
+      }
+      const contract = contractByVersion.get(version);
+      if (!contract) {
+        return null;
+      }
+      return {
+        billingUnit: contract.billingUnit ?? undefined,
+        conditionalDimensions: this.isModelRecord(
+          contract.conditionalDimensions,
+        )
+          ? contract.conditionalDimensions
+          : {},
+        currency: contract.currency ?? undefined,
+        discoveredAt: contract.discoveredAt,
+        inputSchema: this.isModelRecord(contract.inputSchema)
+          ? contract.inputSchema
+          : {},
+        lastSeenAt: contract.lastSeenAt,
+        mappingStatus: contract.mappingStatus,
+        outputSchema: this.isModelRecord(contract.outputSchema)
+          ? contract.outputSchema
+          : {},
+        pricingType: contract.pricingType ?? undefined,
+        reviewStatus: contract.reviewStatus,
+        schemaFamily: contract.schemaFamily ?? undefined,
+        unitPrice: contract.unitPrice ?? undefined,
+        unsupportedReason: contract.unsupportedReason ?? undefined,
+        version: contract.version,
+      };
+    };
+
+    return {
+      endpoint: model.endpoint,
+      pending: toSnapshot(model.pendingProviderContractVersion),
+      provider: model.provider,
+      reviewed: toSnapshot(model.reviewedProviderContractVersion),
+    };
   }
 
   async approveRegistryModel(
@@ -678,7 +863,19 @@ export class ModelsService extends BaseService<
       pendingContract?.schemaFamily &&
       existing.provider === ModelProvider.FAL &&
       !isFalSchemaFamilyCompatible(
-        existing.category,
+        updateDto.category ?? existing.category,
+        pendingContract.schemaFamily,
+      )
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract schema family does not match the model category',
+      );
+    }
+    if (
+      pendingContract?.schemaFamily &&
+      existing.provider === ModelProvider.REPLICATE &&
+      !isReplicateSchemaFamilyCompatible(
+        updateDto.category ?? existing.category,
         pendingContract.schemaFamily,
       )
     ) {
@@ -689,7 +886,7 @@ export class ModelsService extends BaseService<
 
     const patch: RegistryReviewPatch = {
       ...updateDto,
-      isActive: true,
+      isActive: existing.lifecycle !== ModelLifecycle.RETIRED,
       isLegacy: false,
       reviewStatus: 'approved',
       reviewedAt: now,
@@ -754,30 +951,6 @@ export class ModelsService extends BaseService<
       reviewStatus: 'rejected',
       reviewedAt: new Date(),
       reviewedBy: params.reviewedBy,
-    } satisfies RegistryReviewPatch);
-  }
-
-  async markRegistryModelLegacy(
-    modelId: string,
-    params: {
-      reviewedBy?: string;
-      succeededBy?: string;
-    } = {},
-  ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId });
-    if (!existing) {
-      return null;
-    }
-
-    return this.patch(modelId, {
-      deprecatedAt: new Date(),
-      isActive: false,
-      isDefault: false,
-      isLegacy: true,
-      reviewStatus: 'legacy',
-      reviewedAt: new Date(),
-      reviewedBy: params.reviewedBy,
-      succeededBy: params.succeededBy,
     } satisfies RegistryReviewPatch);
   }
 

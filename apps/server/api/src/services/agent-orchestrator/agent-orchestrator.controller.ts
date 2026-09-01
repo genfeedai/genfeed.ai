@@ -185,6 +185,7 @@ export class AgentOrchestratorController {
       content: body.content,
       expectedContextVersion: body.expectedContextVersion,
       generationMode: body.generationMode,
+      generationSettings: body.generationSettings,
       model: body.model,
       pageContext,
       planModeEnabled: body.planModeEnabled,

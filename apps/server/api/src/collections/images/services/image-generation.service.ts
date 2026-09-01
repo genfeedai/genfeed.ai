@@ -223,6 +223,7 @@ export class ImageGenerationService {
         generationSource: compiledBrief.generationSource,
         height,
         model,
+        modelInputSchema,
         promptBuilderBrand,
         promptOriginalText,
         user,
@@ -489,6 +490,7 @@ export class ImageGenerationService {
     generationSource: string;
     height: number;
     model: string;
+    modelInputSchema?: Record<string, unknown>;
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
     referenceIds: string[];
@@ -511,6 +513,7 @@ export class ImageGenerationService {
       generationSource,
       height,
       model,
+      modelInputSchema,
       promptBuilderBrand,
       promptOriginalText,
       user,
@@ -566,6 +569,7 @@ export class ImageGenerationService {
           isBrandingEnabled: createImageDto.isBrandingEnabled,
           lens: createImageDto.lens,
           lighting: createImageDto.lighting,
+          modelInputSchema,
           modelCategory: ModelCategory.IMAGE,
           mood: createImageDto.mood,
           outputs: createImageDto.outputs,

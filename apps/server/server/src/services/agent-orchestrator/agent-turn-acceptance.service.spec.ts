@@ -1,3 +1,4 @@
+import { RouterPriority } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AgentTurnAcceptanceService,
@@ -180,6 +181,50 @@ describe('AgentTurnAcceptanceService', () => {
     );
 
     expect(second.threadId).toBe(first.threadId);
+  });
+
+  it('persists explicit media routing and structured settings into the durable workflow request', async () => {
+    const acknowledgement = await service.accept(
+      {
+        clientRequestId: 'explicit-image',
+        content: 'Generate a red apple',
+        generationMode: 'image',
+        generationSettings: {
+          aspectRatio: '1:1',
+          model: 'black-forest-labs/flux-schnell',
+          outputs: 2,
+          prioritize: RouterPriority.SPEED,
+        },
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: {
+          request: expect.objectContaining({
+            generationMode: 'image',
+            generationSettings: {
+              aspectRatio: '1:1',
+              model: 'black-forest-labs/flux-schnell',
+              outputs: 2,
+              prioritize: 'speed',
+            },
+          }),
+        },
+      }),
+    );
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: acknowledgement.executionId,
+        metadata: expect.objectContaining({
+          generationMode: 'image',
+          generationSettings: expect.objectContaining({
+            model: 'black-forest-labs/flux-schnell',
+          }),
+        }),
+      }),
+    );
   });
 
   it('propagates an enqueue failure instead of acknowledging the turn', async () => {

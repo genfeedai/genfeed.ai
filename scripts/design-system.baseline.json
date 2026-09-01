@@ -16,9 +16,6 @@
     "packages/ui/src/components/menus/shared/MenuShared.tsx": {
       "undersized-control-height": 1
     },
-    "packages/ui/src/components/menus/sidebar-action-trigger/SidebarActionTrigger.tsx": {
-      "undersized-control-height": 1
-    },
     "packages/ui/src/components/tags/dropdown/DropdownTagsPanel.tsx": {
       "undersized-control-height": 1
     },

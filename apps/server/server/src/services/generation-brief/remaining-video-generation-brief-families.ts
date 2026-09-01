@@ -2,6 +2,7 @@ import {
   FAL_STABLE_VIDEO_COMPILER_ID,
   GEMINI_OMNI_VIDEO_COMPILER_ID,
   GROK_IMAGINE_VIDEO_COMPILER_ID,
+  H3_MAX_VIDEO_COMPILER_ID,
   HAILUO_VIDEO_COMPILER_ID,
   KLING_VIDEO_COMPILER_ID,
   LUMA_VIDEO_COMPILER_ID,
@@ -28,6 +29,7 @@ export interface RemainingVideoFamilyDispatchSpec {
   firstFrameField?: 'image' | 'image_url' | 'input_reference' | 'start_image';
   lastFrameField?:
     | 'end_image'
+    | 'end_image_url'
     | 'last_frame'
     | 'last_frame_image'
     | 'last_image';
@@ -518,6 +520,38 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         extraReferenceField: 'image_urls',
         firstFrameField: 'image_url',
         modelLabel: 'Gemini Omni Flash',
+      },
+    },
+    {
+      compilerId: H3_MAX_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'fal-minimax-h3-max-capability',
+          MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+          {
+            aspectRatios: ASPECT_RATIOS.H3_MAX,
+            audioSupported: true,
+            defaultSeconds: 5,
+            maxReferences: 1,
+            maxSeconds: 15,
+            minSeconds: 5,
+            nativeFields: ['image_url', 'end_image_url'],
+            seedSupported: true,
+          },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraDefaults: {
+          enable_safety_checker: true,
+          prompt_expansion_mode: 'balanced',
+        },
+        firstFrameField: 'image_url',
+        lastFrameField: 'end_image_url',
+        modelLabel: 'MiniMax H3 Max',
+        resolutionField: 'resolution',
       },
     },
     {

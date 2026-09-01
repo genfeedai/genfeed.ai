@@ -64,7 +64,7 @@ export function useLibraryBrowser({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { brandId } = useCollectionScope();
+  const { brandId, organizationId } = useCollectionScope();
   const { openUpload } = useUploadModal();
 
   const urlCategories = useMemo(
@@ -220,10 +220,10 @@ export function useLibraryBrowser({
     openUpload({
       category,
       onComplete: () => handleRefresh(),
-      parentId: brandId,
-      parentModel: 'Brand',
+      parentId: scope === PageScope.ORGANIZATION ? organizationId : brandId,
+      parentModel: scope === PageScope.ORGANIZATION ? 'Organization' : 'Brand',
     });
-  }, [brandId, categories, handleRefresh, openUpload]);
+  }, [brandId, categories, handleRefresh, openUpload, organizationId, scope]);
 
   /**
    * `filters` feeds the shared filter chrome; `query` is what actually reaches
@@ -288,11 +288,12 @@ export function useLibraryBrowser({
       setIngredientType: () => undefined,
       setIsRefreshing,
       setQuery: () => undefined,
+      viewMode,
       // The URL is the single source of truth for all three axes, so the
       // context's setters are inert by design — every mutation goes through
       // `pushAxes` and comes back as a re-render from `useSearchParams`.
     }),
-    [filters, isRefreshing, query, registerRefresh],
+    [filters, isRefreshing, query, registerRefresh, viewMode],
   );
 
   return {

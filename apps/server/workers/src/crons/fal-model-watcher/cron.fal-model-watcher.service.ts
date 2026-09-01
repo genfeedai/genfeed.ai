@@ -1,10 +1,9 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ConfigService } from '@workers/config/config.service';
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type {
@@ -63,7 +62,6 @@ export class CronFalModelWatcherService {
    * Runs weekly on Sunday at 7 AM UTC, an hour after the Replicate watcher so
    * the two providers never contend for the same registry rows.
    */
-  @Cron('0 7 * * 0')
   async discoverNewModels(): Promise<IModelDiscoveryRunSummary> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

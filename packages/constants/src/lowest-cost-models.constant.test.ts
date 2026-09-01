@@ -23,7 +23,7 @@ describe('lowest-cost model keys', () => {
       MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
     );
     expect(LOWEST_COST_AGENT_CHAT_MODEL_KEY).toBe(
-      AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     );
   });
 
@@ -99,8 +99,8 @@ describe('shouldUseLowestCostModelDefaults', () => {
   });
 });
 
-describe('deployment fallback media keys', () => {
-  it('uses Nano Banana 2 Lite and MiniMax H3 for cloud production', () => {
+describe('deployment fallback model keys', () => {
+  it('uses quality media and low-cost chat for cloud production', () => {
     const input: LowestCostModelDefaultsInput = {
       isCloud: true,
       nodeEnv: 'production',
@@ -113,7 +113,7 @@ describe('deployment fallback media keys', () => {
       MODEL_KEYS.REPLICATE_MINIMAX_H3,
     );
     expect(getFallbackAgentChatModelKey(input)).toBe(
-      AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     );
   });
 

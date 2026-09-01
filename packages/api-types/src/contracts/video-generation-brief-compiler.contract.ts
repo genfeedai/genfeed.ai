@@ -241,6 +241,7 @@ export const RUNWAY_VIDEO_COMPILER_ID = 'runway-video-compiler';
 export const LUMA_VIDEO_COMPILER_ID = 'luma-video-compiler';
 export const FAL_STABLE_VIDEO_COMPILER_ID = 'fal-stable-video-compiler';
 export const GEMINI_OMNI_VIDEO_COMPILER_ID = 'gemini-omni-video-compiler';
+export const H3_MAX_VIDEO_COMPILER_ID = 'h3-max-video-compiler';
 
 // ---------------------------------------------------------------------------
 // Dispatch shapes
