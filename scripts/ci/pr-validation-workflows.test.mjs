@@ -669,10 +669,7 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
 });
 
 test('serializes reusable build verification without cancelling another caller', () => {
-  for (const fileName of [
-    'build-verify.yml',
-    'build-verify-selfhosted.yml',
-  ]) {
+  for (const fileName of ['build-verify.yml', 'build-verify-selfhosted.yml']) {
     const workflow = readWorkflow(fileName);
     assert.match(
       topLevelConcurrencyBlock(workflow, fileName),
