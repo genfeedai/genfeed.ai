@@ -126,36 +126,6 @@
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
   },
   {
-    "actual": 164,
-    "file": "apps/server/files/src/controllers/files-metadata.controller.ts",
-    "metric": "method-lines",
-    "symbol": "FilesMetadataController.getFileMetadata"
-  },
-  {
-    "actual": 518,
-    "file": "apps/server/files/src/controllers/files-storage.controller.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/files/src/controllers/files-storage.controller.ts"
-  },
-  {
-    "actual": 509,
-    "file": "apps/server/files/src/controllers/files.controller.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/files/src/controllers/files.controller.ts"
-  },
-  {
-    "actual": 1006,
-    "file": "apps/server/files/src/processors/video.processor.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/files/src/processors/video.processor.ts"
-  },
-  {
-    "actual": 161,
-    "file": "apps/server/files/src/services/ffmpeg/services/ffmpeg-effects.service.ts",
-    "metric": "method-lines",
-    "symbol": "FFmpegEffectsService.overlayAudio"
-  },
-  {
     "actual": 365,
     "file": "apps/server/mcp/src/services/tool-registry.service.ts",
     "metric": "method-lines",
