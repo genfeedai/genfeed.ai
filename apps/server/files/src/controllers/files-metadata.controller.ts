@@ -17,6 +17,11 @@ import {
 } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+interface MetadataDownload {
+  filePath: string;
+  tempFilePath: string;
+}
+
 @Controller('files')
 export class FilesMetadataController {
   constructor(
@@ -45,88 +50,11 @@ export class FilesMetadataController {
         );
       }
 
-      // If URL is provided, download the file first
       if (url) {
-        this.logger.log(`Downloading file from URL for metadata: ${url}`);
-        try {
-          const response = await firstValueFrom(
-            this.httpService.get(url, {
-              maxBodyLength: 100 * 1024 * 1024,
-              maxContentLength: 100 * 1024 * 1024, // 100MB limit
-              maxRedirects: 5, // Limit redirects
-              responseType: 'arraybuffer',
-              timeout: 60000, // 60 second timeout
-            }),
-          );
-
-          const tmpDir = path.resolve('public', 'tmp', 'metadata');
-          if (!fs.existsSync(tmpDir)) {
-            fs.mkdirSync(tmpDir, { recursive: true });
-          }
-
-          // Determine file extension from URL or Content-Type
-          const rawContentType = response.headers['content-type'];
-          const contentType =
-            (typeof rawContentType === 'string' ? rawContentType : undefined) ||
-            'application/octet-stream';
-          const extension = this.getFileExtensionFromContentType(contentType);
-
-          const tempFileName = `metadata_${Date.now()}_${Math.random().toString(36).substring(7)}${extension}`;
-          tempFilePath = path.resolve(tmpDir, tempFileName);
-          fs.writeFileSync(tempFilePath, Buffer.from(response.data));
-
-          filePath = tempFilePath;
-
-          // Don't cleanup immediately - we'll return the file path for caching
-          shouldCleanup = false;
-
-          this.logger.log(
-            `File downloaded to temporary location: ${tempFilePath}`,
-          );
-        } catch (error: unknown) {
-          this.logger.error(
-            `Failed to download file from URL: ${url}`,
-            error as Error,
-          );
-
-          const parsedError = error as {
-            response?: { status?: number };
-            code?: string;
-          };
-
-          if (parsedError?.response?.status === 404) {
-            throw new HttpException(
-              `File not found at URL: ${url}`,
-              HttpStatus.NOT_FOUND,
-            );
-          } else if (parsedError?.response?.status === 403) {
-            throw new HttpException(
-              `Access denied to URL: ${url}`,
-              HttpStatus.FORBIDDEN,
-            );
-          } else if (parsedError?.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
-            throw new HttpException(
-              `File size exceeds 100MB limit`,
-              HttpStatus.PAYLOAD_TOO_LARGE,
-            );
-          } else if (
-            parsedError?.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
-            parsedError?.code === 'CERT_HAS_EXPIRED'
-          ) {
-            throw new HttpException(
-              `SSL certificate error for URL: ${url}`,
-              HttpStatus.BAD_REQUEST,
-            );
-          }
-
-          throw new HttpException(
-            `Failed to download file from URL: ${getErrorMessage(error, {
-              emptyMessage: 'fallback',
-              fallback: () => 'Unknown error',
-            })}`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
+        const download = await this.downloadMetadataFile(url);
+        filePath = download.filePath;
+        tempFilePath = download.tempFilePath;
+        shouldCleanup = false;
       } else {
         filePath = bodyFilePath;
       }
@@ -189,6 +117,78 @@ export class FilesMetadataController {
           );
         }
       }
+    }
+  }
+
+  private async downloadMetadataFile(url: string): Promise<MetadataDownload> {
+    this.logger.log(`Downloading file from URL for metadata: ${url}`);
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          maxBodyLength: 100 * 1024 * 1024,
+          maxContentLength: 100 * 1024 * 1024,
+          maxRedirects: 5,
+          responseType: 'arraybuffer',
+          timeout: 60000,
+        }),
+      );
+      const tmpDir = path.resolve('public', 'tmp', 'metadata');
+      if (!fs.existsSync(tmpDir)) {
+        fs.mkdirSync(tmpDir, { recursive: true });
+      }
+      const rawContentType = response.headers['content-type'];
+      const contentType =
+        (typeof rawContentType === 'string' ? rawContentType : undefined) ||
+        'application/octet-stream';
+      const extension = this.getFileExtensionFromContentType(contentType);
+      const tempFileName = `metadata_${Date.now()}_${Math.random().toString(36).substring(7)}${extension}`;
+      const tempFilePath = path.resolve(tmpDir, tempFileName);
+      fs.writeFileSync(tempFilePath, Buffer.from(response.data));
+      this.logger.log(`File downloaded to temporary location: ${tempFilePath}`);
+      return { filePath: tempFilePath, tempFilePath };
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to download file from URL: ${url}`,
+        error as Error,
+      );
+      const parsedError = error as {
+        code?: string;
+        response?: { status?: number };
+      };
+      if (parsedError.response?.status === 404) {
+        throw new HttpException(
+          `File not found at URL: ${url}`,
+          HttpStatus.NOT_FOUND,
+        );
+      }
+      if (parsedError.response?.status === 403) {
+        throw new HttpException(
+          `Access denied to URL: ${url}`,
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      if (parsedError.code === 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED') {
+        throw new HttpException(
+          'File size exceeds 100MB limit',
+          HttpStatus.PAYLOAD_TOO_LARGE,
+        );
+      }
+      if (
+        parsedError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+        parsedError.code === 'CERT_HAS_EXPIRED'
+      ) {
+        throw new HttpException(
+          `SSL certificate error for URL: ${url}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      throw new HttpException(
+        `Failed to download file from URL: ${getErrorMessage(error, {
+          emptyMessage: 'fallback',
+          fallback: () => 'Unknown error',
+        })}`,
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
