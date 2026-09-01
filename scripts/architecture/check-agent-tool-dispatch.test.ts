@@ -10,6 +10,10 @@ import {
 
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
 const ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
+const AGENT_TYPE_CONFIG_PATH =
+  'apps/server/server/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
+const BRANDLESS_TOOLS_PATH =
+  'apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 const DISPATCH_PATH =
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 
@@ -57,6 +61,34 @@ ${cases}
   `;
 }
 
+function defaultToolsSource(members: string[]): string {
+  const entries = members
+    .map((member) => `        AgentToolName.${member},`)
+    .join('\n');
+
+  return `
+    export const AGENT_TYPE_CONFIGS = {
+      general: {
+        defaultTools: [
+${entries}
+        ],
+      },
+    };
+  `;
+}
+
+function brandlessToolsSource(members: string[]): string {
+  const entries = members
+    .map((member) => `      AgentToolName.${member},`)
+    .join('\n');
+
+  return `
+    const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
+${entries}
+    ]);
+  `;
+}
+
 describe('check-agent-tool-dispatch', () => {
   let originalCwd = '';
   let testDir = '';
@@ -85,6 +117,7 @@ describe('check-agent-tool-dispatch', () => {
     const result = runCheckAgentToolDispatch();
 
     expect(result.violations).toEqual([]);
+    expect(result.advertisedActions).toHaveLength(3);
     expect(result.surfacedActions).toHaveLength(3);
   });
 
@@ -103,6 +136,99 @@ describe('check-agent-tool-dispatch', () => {
       expect.objectContaining({
         action: 'get_workflow_inputs',
         kind: 'missing-dispatch',
+      }),
+    ]);
+  });
+
+  it('flags a default tool with no dispatch case', () => {
+    writeFixtures({
+      brandless: [],
+      catalog: [{ name: 'generate_ad_pack', surfaces: ['agent'] }],
+      defaultTools: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS'],
+      dispatch: ['GENERATE_AD_PACK'],
+    });
+
+    const result = runCheckAgentToolDispatch();
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        action: 'get_workflow_inputs',
+        kind: 'missing-dispatch',
+        surfaces: ['defaultTools'],
+      }),
+    ]);
+  });
+
+  it('follows helper arrays spread into defaultTools', () => {
+    writeFixtures({
+      brandless: [],
+      catalog: [{ name: 'generate_ad_pack', surfaces: ['agent'] }],
+      defaultTools: [],
+      dispatch: ['GENERATE_AD_PACK'],
+    });
+    writeFixture(
+      AGENT_TYPE_CONFIG_PATH,
+      `
+        const SHARED_READ_TOOLS = [AgentToolName.GET_WORKFLOW_INPUTS];
+        export const AGENT_TYPE_CONFIGS = {
+          general: { defaultTools: [AgentToolName.GENERATE_AD_PACK, ...SHARED_READ_TOOLS] },
+        };
+      `,
+    );
+
+    const result = runCheckAgentToolDispatch();
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        action: 'get_workflow_inputs',
+        kind: 'missing-dispatch',
+        surfaces: ['defaultTools'],
+      }),
+    ]);
+  });
+
+  it('treats Object.values(AgentToolName) as advertising every enum member', () => {
+    writeFixtures({
+      brandless: [],
+      catalog: [{ name: 'generate_ad_pack', surfaces: ['agent'] }],
+      defaultTools: [],
+      dispatch: ['GENERATE_AD_PACK'],
+    });
+    writeFixture(
+      AGENT_TYPE_CONFIG_PATH,
+      `
+        export const AGENT_TYPE_CONFIGS = {
+          general: { defaultTools: [...Object.values(AgentToolName)] },
+        };
+      `,
+    );
+
+    const result = runCheckAgentToolDispatch();
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'get_workflow_inputs' }),
+        expect.objectContaining({ action: 'list_brands' }),
+      ]),
+    );
+    expect(result.violations).toHaveLength(2);
+  });
+
+  it('flags a brandless tool with no dispatch case', () => {
+    writeFixtures({
+      brandless: ['GENERATE_AD_PACK', 'GET_WORKFLOW_INPUTS'],
+      catalog: [{ name: 'generate_ad_pack', surfaces: ['agent'] }],
+      defaultTools: ['GENERATE_AD_PACK'],
+      dispatch: ['GENERATE_AD_PACK'],
+    });
+
+    const result = runCheckAgentToolDispatch();
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        action: 'get_workflow_inputs',
+        kind: 'missing-dispatch',
+        surfaces: ['BRANDLESS_AGENT_TOOLS'],
       }),
     ]);
   });
@@ -197,11 +323,21 @@ describe('check-agent-tool-dispatch', () => {
 });
 
 function writeFixtures(fixtures: {
+  brandless?: string[];
   catalog: Array<{ name: string; surfaces: string[] }>;
+  defaultTools?: string[];
   dispatch: string[];
 }): void {
   writeFixture(CATALOG_PATH, catalogSource(fixtures.catalog));
   writeFixture(ENUM_PATH, ENUM_SOURCE);
+  writeFixture(
+    AGENT_TYPE_CONFIG_PATH,
+    defaultToolsSource(fixtures.defaultTools ?? fixtures.dispatch),
+  );
+  writeFixture(
+    BRANDLESS_TOOLS_PATH,
+    brandlessToolsSource(fixtures.brandless ?? fixtures.dispatch),
+  );
   writeFixture(DISPATCH_PATH, dispatchSource(fixtures.dispatch));
 }
 
