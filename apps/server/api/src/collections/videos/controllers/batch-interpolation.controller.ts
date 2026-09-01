@@ -1,36 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import {
   BatchInterpolationDto,
   InterpolationPairDto,
 } from '@api/collections/videos/dto/batch-interpolation.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import { hasInterpolation } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -46,7 +26,6 @@ import {
   PromptStatus,
 } from '@genfeedai/enums';
 import { BatchInterpolationSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
@@ -59,8 +38,44 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
+
+type InterpolationJobResult = {
+  id: string;
+  pairIndex: number;
+  status: string;
+};
+
+type InterpolationContext = {
+  brand: NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
+  cameraPrompt: string;
+  dto: BatchInterpolationDto;
+  duration: number;
+  groupId: string;
+  height: number;
+  model: NonNullable<Awaited<ReturnType<ModelsService['findOne']>>>;
+  pairs: InterpolationPairDto[];
+  user: User;
+  width: number;
+};
 
 @AutoSwagger()
 @Controller('videos')
@@ -68,13 +83,10 @@ import type { Request } from 'express';
 export class BatchInterpolationController {
   constructor(
     private readonly activitiesService: ActivitiesService,
-    private readonly assetsService: AssetsService,
     private readonly brandsService: BrandsService,
-    private readonly configService: ConfigService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
-    readonly _fileQueueService: FileQueueService,
-    private readonly ingredientsService: IngredientsService,
+    private readonly interpolationReferenceService: BatchInterpolationReferenceService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly modelsService: ModelsService,
@@ -174,251 +186,24 @@ export class BatchInterpolationController {
       });
     }
 
-    type InterpolationJobResult = {
-      id: string;
-      pairIndex: number;
-      status: string;
+    const { height, width } = this.resolveDimensions(
+      dto.format || IngredientFormat.LANDSCAPE,
+    );
+    const context: InterpolationContext = {
+      brand,
+      cameraPrompt: dto.cameraPrompt || '',
+      dto,
+      duration: dto.duration || 5,
+      groupId,
+      height,
+      model,
+      pairs,
+      user,
+      width,
     };
-
-    const duration = dto.duration || 5;
-    const cameraPrompt = dto.cameraPrompt || '';
-    const format = dto.format || IngredientFormat.LANDSCAPE;
-
-    // Calculate dimensions based on format
-    let width: number;
-    let height: number;
-    switch (format) {
-      case IngredientFormat.PORTRAIT:
-        width = 720;
-        height = 1280;
-        break;
-      case IngredientFormat.SQUARE:
-        width = 1080;
-        height = 1080;
-        break;
-      default:
-        width = 1280;
-        height = 720;
-        break;
-    }
-
-    const processPair = async (
-      pair: InterpolationPairDto,
-      i: number,
-    ): Promise<InterpolationJobResult> => {
-      try {
-        // Build reference image URLs for start and end frames
-        const [startFrameUrls, endFrameUrls] = await Promise.all([
-          buildReferenceImageUrls({
-            assetsService: this.assetsService,
-            configService: this.configService,
-            ingredientsService: this.ingredientsService,
-            loggerService: this.loggerService,
-            organizationId: user.organizationId,
-            referenceIds: [pair.startImageId],
-          }),
-          buildReferenceImageUrls({
-            assetsService: this.assetsService,
-            configService: this.configService,
-            ingredientsService: this.ingredientsService,
-            loggerService: this.loggerService,
-            organizationId: user.organizationId,
-            referenceIds: [pair.endImageId],
-          }),
-        ]);
-
-        const startFrameUrl = startFrameUrls[0];
-        const endFrameUrl = endFrameUrls[0];
-
-        if (!startFrameUrl || !endFrameUrl) {
-          this.loggerService.warn('Missing frame URLs for pair', {
-            endFrameUrl,
-            endImageId: pair.endImageId,
-            pairIndex: i,
-            startFrameUrl,
-            startImageId: pair.startImageId,
-          });
-
-          return {
-            id: '',
-            pairIndex: i,
-            status: 'failed',
-          };
-        }
-
-        // Build prompt: pair prompt > camera prompt > default
-        const promptText =
-          pair.prompt || cameraPrompt || 'smooth transition, cinematic motion';
-
-        // Create prompt record
-        const promptData = await this.promptsService.create(
-          new PromptEntity({
-            brandId: user.brandId,
-            category: PromptCategory.MODELS_PROMPT_VIDEO,
-            organizationId: user.organizationId,
-            original: promptText,
-            status: PromptStatus.PROCESSING,
-            userId: user.userId ?? user.id,
-          }),
-        );
-
-        // Build prompt params for interpolation (with template support)
-        const {
-          input: promptParams,
-          templateUsed,
-          templateVersion,
-        } = await this.promptBuilderService.buildPrompt(
-          dto.modelKey,
-          {
-            duration,
-            endFrame: endFrameUrl,
-            height,
-            modelCategory:
-              (model.category as ModelCategory) || ModelCategory.VIDEO,
-            prompt: promptText,
-            promptTemplate: dto.promptTemplate,
-            references: [startFrameUrl],
-            useTemplate: dto.useTemplate,
-            width,
-          },
-          user.organizationId,
-        );
-
-        // Create video ingredient with groupId for batch tracking
-        const { metadataData, ingredientData } =
-          await this.sharedService.createMediaDocuments(user, {
-            brandId: brand.id,
-            category: IngredientCategory.VIDEO,
-            extension: MetadataExtension.MP4,
-            groupId,
-            groupIndex: i,
-            height,
-            isMergeEnabled: dto.isMergeEnabled || false,
-            model: dto.modelKey,
-            organizationId: brand.organizationId,
-            promptId: promptData.id,
-            promptTemplate: templateUsed,
-            sourceIds: [pair.startImageId],
-            status: IngredientStatus.PROCESSING,
-            templateVersion: templateVersion,
-            width,
-          });
-
-        const ingredientId = ingredientData.id.toString();
-
-        // Create activity for tracking
-        const activity = await this.activitiesService.create(
-          new ActivityEntity({
-            brandId: brand.id,
-            entityId: ingredientData.id,
-            entityModel: ActivityEntityModel.INGREDIENT,
-            key: ActivityKey.VIDEO_PROCESSING,
-            organizationId: user.organizationId,
-            source: ActivitySource.VIDEO_GENERATION,
-            userId: user.userId ?? user.id,
-            value: JSON.stringify({
-              groupId,
-              ingredientId,
-              isLoopMode: dto.isLoopMode,
-              isMergeEnabled: dto.isMergeEnabled,
-              model: dto.modelKey,
-              pairIndex: i,
-              totalPairs: pairs.length,
-              type: 'interpolation',
-            }),
-          }),
-        );
-
-        // Emit background task update
-        const isLoopPair = dto.isLoopMode && i === pairs.length - 1;
-        const label = isLoopPair
-          ? `Loop ${i + 1}/${pairs.length}`
-          : `Interpolation ${i + 1}/${pairs.length}`;
-
-        await this.websocketService.publishBackgroundTaskUpdate({
-          activityId: activity.id.toString(),
-          label,
-          progress: 0,
-          room: getUserRoomName(user.id),
-          status: 'processing',
-          taskId: ingredientId,
-          userId: user.id,
-        });
-
-        // Trigger generation via Replicate
-        const generationId = await this.replicateService.generateTextToVideo(
-          dto.modelKey,
-          promptParams,
-        );
-
-        if (generationId) {
-          // Update metadata with external ID
-          await this.metadataService.patch(
-            metadataData.id.toString(),
-            new MetadataEntity({
-              externalId: generationId,
-            }),
-          );
-
-          // Deduct credits
-          const modelData = await this.modelsService.findOne({
-            key: dto.modelKey,
-          });
-          const creditsToDeduct = modelData?.cost || 0;
-
-          if (creditsToDeduct > 0) {
-            await this.creditsUtilsService.deductCreditsFromOrganization(
-              user.organizationId,
-              user.userId ?? user.id,
-              creditsToDeduct,
-              `Interpolation video - ${dto.modelKey} (pair ${i + 1}/${pairs.length})`,
-              ActivitySource.VIDEO_GENERATION,
-            );
-          }
-
-          this.loggerService.log('Interpolation job started', {
-            generationId,
-            groupId,
-            ingredientId,
-            isLoopPair,
-            model: dto.modelKey,
-            pairIndex: i,
-          });
-
-          return {
-            id: ingredientId,
-            pairIndex: i,
-            status: 'processing',
-          };
-        } else {
-          // Generation failed to start
-          const websocketUrl = WebSocketPaths.video(ingredientId);
-          await this.failedGenerationService.handleFailedVideoGeneration(
-            this.videosService,
-            ingredientId,
-            websocketUrl,
-            user.id,
-            getUserRoomName(user.id),
-          );
-
-          return {
-            id: ingredientId,
-            pairIndex: i,
-            status: 'failed',
-          };
-        }
-      } catch (error: unknown) {
-        this.loggerService.error('Failed to process interpolation pair', error);
-
-        return {
-          id: '',
-          pairIndex: i,
-          status: 'failed',
-        };
-      }
-    };
-
-    const jobs = await Promise.all(pairs.map(processPair));
+    const jobs = await Promise.all(
+      pairs.map((pair, index) => this.processPair(pair, index, context)),
+    );
 
     // Log merge intent; webhook auto-merge runs once all group videos complete.
     if (dto.isMergeEnabled) {
@@ -442,5 +227,188 @@ export class BatchInterpolationController {
     };
 
     return serializeSingle(req, BatchInterpolationSerializer, result);
+  }
+
+  private resolveDimensions(format: IngredientFormat): {
+    height: number;
+    width: number;
+  } {
+    if (format === IngredientFormat.PORTRAIT) {
+      return { height: 1280, width: 720 };
+    }
+    if (format === IngredientFormat.SQUARE) {
+      return { height: 1080, width: 1080 };
+    }
+    return { height: 720, width: 1280 };
+  }
+
+  private async processPair(
+    pair: InterpolationPairDto,
+    pairIndex: number,
+    context: InterpolationContext,
+  ): Promise<InterpolationJobResult> {
+    try {
+      const { endFrameUrl, startFrameUrl } =
+        await this.interpolationReferenceService.resolvePair(
+          pair,
+          context.user.organizationId,
+        );
+      if (!startFrameUrl || !endFrameUrl) {
+        this.loggerService.warn('Missing frame URLs for pair', {
+          endFrameUrl,
+          endImageId: pair.endImageId,
+          pairIndex,
+          startFrameUrl,
+          startImageId: pair.startImageId,
+        });
+        return { id: '', pairIndex, status: 'failed' };
+      }
+      const promptText =
+        pair.prompt ||
+        context.cameraPrompt ||
+        'smooth transition, cinematic motion';
+      const promptData = await this.promptsService.create(
+        new PromptEntity({
+          brandId: context.user.brandId,
+          category: PromptCategory.MODELS_PROMPT_VIDEO,
+          organizationId: context.user.organizationId,
+          original: promptText,
+          status: PromptStatus.PROCESSING,
+          userId: context.user.userId ?? context.user.id,
+        }),
+      );
+      const builtPrompt = await this.promptBuilderService.buildPrompt(
+        context.dto.modelKey,
+        {
+          duration: context.duration,
+          endFrame: endFrameUrl,
+          height: context.height,
+          modelCategory:
+            (context.model.category as ModelCategory) || ModelCategory.VIDEO,
+          prompt: promptText,
+          promptTemplate: context.dto.promptTemplate,
+          references: [startFrameUrl],
+          useTemplate: context.dto.useTemplate,
+          width: context.width,
+        },
+        context.user.organizationId,
+      );
+      const { metadataData, ingredientData } =
+        await this.sharedService.createMediaDocuments(context.user, {
+          brandId: context.brand.id,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          groupId: context.groupId,
+          groupIndex: pairIndex,
+          height: context.height,
+          isMergeEnabled: context.dto.isMergeEnabled || false,
+          model: context.dto.modelKey,
+          organizationId: context.brand.organizationId,
+          promptId: promptData.id,
+          promptTemplate: builtPrompt.templateUsed,
+          sourceIds: [pair.startImageId],
+          status: IngredientStatus.PROCESSING,
+          templateVersion: builtPrompt.templateVersion,
+          width: context.width,
+        });
+      const ingredientId = ingredientData.id.toString();
+      const activity = await this.activitiesService.create(
+        new ActivityEntity({
+          brandId: context.brand.id,
+          entityId: ingredientData.id,
+          entityModel: ActivityEntityModel.INGREDIENT,
+          key: ActivityKey.VIDEO_PROCESSING,
+          organizationId: context.user.organizationId,
+          source: ActivitySource.VIDEO_GENERATION,
+          userId: context.user.userId ?? context.user.id,
+          value: JSON.stringify({
+            groupId: context.groupId,
+            ingredientId,
+            isLoopMode: context.dto.isLoopMode,
+            isMergeEnabled: context.dto.isMergeEnabled,
+            model: context.dto.modelKey,
+            pairIndex,
+            totalPairs: context.pairs.length,
+            type: 'interpolation',
+          }),
+        }),
+      );
+      const isLoopPair =
+        Boolean(context.dto.isLoopMode) &&
+        pairIndex === context.pairs.length - 1;
+      await this.websocketService.publishBackgroundTaskUpdate({
+        activityId: activity.id.toString(),
+        label: isLoopPair
+          ? `Loop ${pairIndex + 1}/${context.pairs.length}`
+          : `Interpolation ${pairIndex + 1}/${context.pairs.length}`,
+        progress: 0,
+        room: getUserRoomName(context.user.id),
+        status: 'processing',
+        taskId: ingredientId,
+        userId: context.user.id,
+      });
+      return this.dispatchPair({
+        context,
+        ingredientId,
+        isLoopPair,
+        metadataId: metadataData.id.toString(),
+        pairIndex,
+        promptParams: builtPrompt.input,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to process interpolation pair', error);
+      return { id: '', pairIndex, status: 'failed' };
+    }
+  }
+
+  private async dispatchPair(params: {
+    context: InterpolationContext;
+    ingredientId: string;
+    isLoopPair: boolean;
+    metadataId: string;
+    pairIndex: number;
+    promptParams: Record<string, unknown>;
+  }): Promise<InterpolationJobResult> {
+    const { context, ingredientId, isLoopPair, metadataId, pairIndex } = params;
+    const generationId = await this.replicateService.generateTextToVideo(
+      context.dto.modelKey,
+      params.promptParams,
+    );
+    if (!generationId) {
+      await this.failedGenerationService.handleFailedVideoGeneration(
+        this.videosService,
+        ingredientId,
+        WebSocketPaths.video(ingredientId),
+        context.user.id,
+        getUserRoomName(context.user.id),
+      );
+      return { id: ingredientId, pairIndex, status: 'failed' };
+    }
+    await this.metadataService.patch(
+      metadataId,
+      new MetadataEntity({ externalId: generationId }),
+    );
+    const modelData = await this.modelsService.findOne({
+      key: context.dto.modelKey,
+    });
+    const credits = modelData?.cost || 0;
+    if (credits > 0) {
+      await this.creditsUtilsService.deductCreditsFromOrganization(
+        context.user.organizationId,
+        context.user.userId ?? context.user.id,
+        credits,
+        `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
+        ActivitySource.VIDEO_GENERATION,
+      );
+    }
+    this.loggerService.log('Interpolation job started', {
+      generationId,
+      groupId: context.groupId,
+      ingredientId,
+      isLoopPair,
+      model: context.dto.modelKey,
+      pairIndex,
+    });
+    return { id: ingredientId, pairIndex, status: 'processing' };
   }
 }

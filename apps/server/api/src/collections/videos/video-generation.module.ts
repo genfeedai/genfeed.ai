@@ -14,6 +14,7 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
+import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -67,6 +68,7 @@ import { AvatarVideoGenerationService } from '@server/collections/videos/service
   ],
   providers: [
     AvatarVideoGenerationService,
+    BatchInterpolationReferenceService,
     CreditsGuard,
     CreditsInterceptor,
     ModelsGuard,
