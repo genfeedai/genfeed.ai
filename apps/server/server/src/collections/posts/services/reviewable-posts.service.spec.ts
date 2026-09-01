@@ -1,4 +1,3 @@
-import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -6,6 +5,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 
 describe('ReviewablePostsService', () => {
   const brand = { id: 'brand-1', userId: 'owner-1' };
@@ -45,9 +45,9 @@ describe('ReviewablePostsService', () => {
       brandId: 'brand-1',
       confidence: 0.91,
       content: 'Generated launch post',
-      contentRunId: 'run-1',
+      workflowExecutionId: 'execution-1',
       generatedBy: 'content-writing',
-      idempotencyKey: 'skill-run:run-1:content-writing:0',
+      idempotencyKey: 'skill-execution:execution-1:content-writing:0',
       mediaUrls: ['https://cdn.example.com/launch.jpg'],
       metadata: { trendId: 'trend-1' },
       organizationId: 'org-1',
@@ -61,15 +61,15 @@ describe('ReviewablePostsService', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         category: PostCategory.IMAGE,
-        contentRunId: 'run-1',
         description: 'Generated launch post',
         organizationId: 'org-1',
         platform: CredentialPlatform.TWITTER,
         targetAttachments: ['https://cdn.example.com/launch.jpg'],
         targetExecutionState: TargetExecutionState.DRAFT,
-        targetIdempotencyKey: 'skill-run:run-1:content-writing:0',
+        targetIdempotencyKey: 'skill-execution:execution-1:content-writing:0',
         userId: 'user-1',
         visibility: PostVisibility.PUBLIC,
+        workflowExecutionId: 'execution-1',
       }),
     );
     expect(

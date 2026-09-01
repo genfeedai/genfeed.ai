@@ -201,7 +201,12 @@ import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.
 import { XActivitySubscriptionService } from '@server/services/reply-bot/x-activity-subscription.service';
 import { XActivityWebhookService } from '@server/services/reply-bot/x-activity-webhook.service';
 import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
+import { ContentGeoOptimizerHandler } from '@server/services/skill-executor/handlers/content-geo-optimizer.handler';
+import { ContentWritingHandler } from '@server/services/skill-executor/handlers/content-writing.handler';
+import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
+import { TrendDiscoveryHandler } from '@server/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@server/services/skill-executor/handlers/trend-remix.handler';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 import { TaskDecompositionService } from '@server/services/task-orchestration/task-decomposition.service';
 import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@server/services/task-orchestration/workspace-task-quality.service';
@@ -271,7 +276,9 @@ const WORKER_DOMAIN_SERVICES = [
   ClipLibraryLinkService,
   ClipProjectsService,
   ContentEngineService,
+  ContentGeoOptimizerHandler,
   ContentOrchestrationService,
+  ContentWritingHandler,
   StepExecutorService,
   ContentRotationService,
   ContextsService,
@@ -303,6 +310,7 @@ const WORKER_DOMAIN_SERVICES = [
   HookClipApprovalService,
   IngredientGenerationCancellationService,
   IngredientsService,
+  ImageGenerationHandler,
   InsightsService,
   InstagramPublisherService,
   InstagramService,
@@ -357,7 +365,7 @@ const WORKER_DOMAIN_SERVICES = [
   SharedService,
   ShopifyPublisherService,
   SignupPrefillService,
-  SkillExecutorService,
+  SkillWorkflowService,
   SnapchatPublisherService,
   SocialInboxService,
   SocialMonitorService,
@@ -376,6 +384,8 @@ const WORKER_DOMAIN_SERVICES = [
   TikTokPublisherService,
   TiktokService,
   TrendPreferencesService,
+  TrendDiscoveryHandler,
+  TrendRemixHandler,
   TrendReferenceCorpusService,
   TrendsService,
   TriggerEvaluatorService,

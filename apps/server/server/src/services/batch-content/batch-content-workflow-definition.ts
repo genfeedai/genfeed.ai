@@ -1,18 +1,39 @@
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-definition';
-
-export const BATCH_CONTENT_WORKFLOW_ID = 'content.batch.generate';
-export const BATCH_CONTENT_ITEM_WORKFLOW_ID = 'content.batch.generate-item';
+import {
+  EXECUTABLE_SKILL_SLUGS,
+  type ExecutableSkillSlug,
+  SKILL_WORKFLOW_IDS,
+} from '@server/services/skill-executor/skill-workflow-definition';
 
 export const BATCH_CONTENT_ACTION_IDS = {
-  GENERATE_ITEM: 'content.batch.item.generate',
   PLAN: 'content.batch.plan',
+  PREPARE_ITEM: 'content.batch.item.prepare',
   RANK: 'content.batch.rank',
 } as const;
 
-export function buildBatchContentWorkflowDefinition(): SystemWorkflowGraphDefinition {
+export function getBatchContentWorkflowId(
+  skillSlug: ExecutableSkillSlug,
+): string {
+  return `content.batch.generate.${skillSlug}`;
+}
+
+function getBatchContentItemWorkflowId(skillSlug: ExecutableSkillSlug): string {
+  return `content.batch.generate-item.${skillSlug}`;
+}
+
+export function buildBatchContentWorkflowDefinitions(): SystemWorkflowGraphDefinition[] {
+  return EXECUTABLE_SKILL_SLUGS.flatMap((skillSlug) => [
+    buildBatchContentItemWorkflowDefinition(skillSlug),
+    buildBatchContentWorkflowDefinition(skillSlug),
+  ]);
+}
+
+export function buildBatchContentWorkflowDefinition(
+  skillSlug: ExecutableSkillSlug,
+): SystemWorkflowGraphDefinition {
   return {
-    canonicalId: BATCH_CONTENT_WORKFLOW_ID,
+    canonicalId: getBatchContentWorkflowId(skillSlug),
     definition: {
       edges: [
         {
@@ -54,7 +75,7 @@ export function buildBatchContentWorkflowDefinition(): SystemWorkflowGraphDefini
           actionId: 'workflow.for-each',
           id: 'generate-items',
           parameters: {
-            childWorkflowId: BATCH_CONTENT_ITEM_WORKFLOW_ID,
+            childWorkflowId: getBatchContentItemWorkflowId(skillSlug),
             itemInputKey: 'item',
             maxConcurrency: 10,
             mode: 'await',
@@ -68,19 +89,35 @@ export function buildBatchContentWorkflowDefinition(): SystemWorkflowGraphDefini
         }),
       ],
     },
-    description:
-      'Plans, generates, and ranks a bounded set of content drafts through action-backed child workflows.',
-    label: 'Generate Batch Content',
+    description: `Plans, generates, and ranks a bounded set of ${skillSlug} drafts through action-backed child workflows.`,
+    label: `Generate ${skillSlug} batch`,
     resultNodeId: 'rank-drafts',
     version: 1,
   };
 }
 
-export function buildBatchContentItemWorkflowDefinition(): SystemWorkflowGraphDefinition {
+export function buildBatchContentItemWorkflowDefinition(
+  skillSlug: ExecutableSkillSlug,
+): SystemWorkflowGraphDefinition {
   return {
-    canonicalId: BATCH_CONTENT_ITEM_WORKFLOW_ID,
+    canonicalId: getBatchContentItemWorkflowId(skillSlug),
     definition: {
-      edges: [],
+      edges: [
+        {
+          id: 'prepare-to-skill-context',
+          source: 'prepare-item',
+          sourceHandle: 'context',
+          target: 'run-skill',
+          targetHandle: 'context',
+        },
+        {
+          id: 'prepare-to-skill-params',
+          source: 'prepare-item',
+          sourceHandle: 'params',
+          target: 'run-skill',
+          targetHandle: 'params',
+        },
+      ],
       inputVariables: [
         {
           key: 'item',
@@ -91,16 +128,24 @@ export function buildBatchContentItemWorkflowDefinition(): SystemWorkflowGraphDe
       ],
       nodes: [
         createGenfeedActionNode({
-          actionId: BATCH_CONTENT_ACTION_IDS.GENERATE_ITEM,
-          id: 'generate-item',
+          actionId: BATCH_CONTENT_ACTION_IDS.PREPARE_ITEM,
+          id: 'prepare-item',
           inputVariableKeys: ['item'],
           position: { x: 0, y: 0 },
         }),
+        createGenfeedActionNode({
+          actionId: 'workflow.run-child',
+          id: 'run-skill',
+          parameters: {
+            childWorkflowId: SKILL_WORKFLOW_IDS[skillSlug],
+          },
+          position: { x: 0, y: 220 },
+        }),
       ],
     },
-    description: 'Generates one content draft with the selected skill.',
-    label: 'Generate Batch Content Item',
-    resultNodeId: 'generate-item',
+    description: `Generates one ${skillSlug} draft through its canonical skill workflow.`,
+    label: `Generate ${skillSlug} batch item`,
+    resultNodeId: 'run-skill',
     version: 1,
   };
 }
