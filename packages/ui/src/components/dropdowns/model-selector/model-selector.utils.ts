@@ -3,7 +3,12 @@ import {
   extractBrandFromKey,
   getBrandConfig,
 } from '@genfeedai/constants';
-import { CostTier, QualityTier, SpeedTier } from '@genfeedai/enums';
+import {
+  CostTier,
+  ModelLifecycle,
+  QualityTier,
+  SpeedTier,
+} from '@genfeedai/enums';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IModel } from '@genfeedai/interfaces';
 import type {
@@ -179,10 +184,18 @@ export function transformModelsToOptions(
       familyKey: family.familyKey,
       familyLabel: family.familyLabel,
       isDeprecated:
+        model.lifecycle === ModelLifecycle.LEGACY ||
         model.isLegacy === true ||
         (model as ModelWithLifecycle).isDeprecated === true,
       isFavorite: favoritesSet.has(model.key),
       model,
+      lifecycle:
+        model.lifecycle ??
+        (model.isLegacy
+          ? ModelLifecycle.LEGACY
+          : model.isDefault || model.isHighlighted
+            ? ModelLifecycle.RECOMMENDED
+            : ModelLifecycle.AVAILABLE),
       sourceGroup: sourceGroupResolver?.(model),
       variantLabel: family.variantLabel,
     };

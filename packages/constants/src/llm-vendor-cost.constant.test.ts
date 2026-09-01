@@ -13,8 +13,8 @@ import {
 
 describe('computeLlmVendorCostMicros', () => {
   it('converts catalogue list prices into micro-USD', () => {
-    // DeepSeek: $0.09/M prompt + $0.18/M completion
-    // 1_000 prompt + 500 completion → 90 + 90 = 180 micros
+    // DeepSeek: $0.05/M prompt + $0.16/M completion
+    // 1_000 prompt + 500 completion → 50 + 80 = 130 micros
     expect(
       computeLlmVendorCostMicros({
         completionTokens: 500,
@@ -22,7 +22,7 @@ describe('computeLlmVendorCostMicros', () => {
         model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
         promptTokens: 1_000,
       }),
-    ).toBe(180);
+    ).toBe(130);
   });
 
   it('returns 0 for BYOK even when the model has a list price', () => {

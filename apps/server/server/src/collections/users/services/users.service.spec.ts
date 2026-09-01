@@ -9,9 +9,9 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { LoggerService } from '@libs/logger/logger.service';
 import { UsersService } from '@server/collections/users/services/users.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 describe('UsersService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
@@ -57,6 +57,20 @@ describe('UsersService', () => {
     // resurrects Sentry API-GENFEED-AI-65 on any environment that already ran
     // the drop migration (#2185).
     expect(args.select).not.toHaveProperty('authProviderId');
+  });
+
+  it('returns the identity and activity fields required by the admin user list', async () => {
+    await service.findAll({ where: {} }, { page: 1, limit: 20 });
+
+    expect(delegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          createdAt: true,
+          lastActiveAt: true,
+          name: true,
+        }),
+      }),
+    );
   });
 
   it('preserves an explicit caller select', async () => {

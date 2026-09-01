@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-import { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelProvider } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import {
@@ -8,12 +6,14 @@ import {
   type FalEndpointSchemas,
 } from '@genfeedai/server/services/integrations/fal/services/fal-contract';
 import { Injectable } from '@nestjs/common';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import {
   mapFalPricing,
   type NormalizedFalPrice,
   normalizeFalPrice,
 } from '@workers/crons/fal-model-watcher/fal-pricing';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
+import { hashProviderContract } from '@workers/services/provider-contract.util';
 
 export interface FalSyncModelRecord {
   endpoint: string;
@@ -49,23 +49,6 @@ interface CandidateContract {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function canonicalize(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(canonicalize).join(',')}]`;
-  }
-  if (isRecord(value)) {
-    return `{${Object.keys(value)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalize(value[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'null';
-}
-
-export function hashFalContract(value: unknown): string {
-  return `sha256:${createHash('sha256').update(canonicalize(value)).digest('hex')}`;
 }
 
 @Injectable()
@@ -240,7 +223,7 @@ export class FalModelContractSyncService {
           ? pricingMapping.unitPriceMicros
           : null,
       unsupportedReason,
-      version: hashFalContract(candidateWithoutVersion),
+      version: hashProviderContract(candidateWithoutVersion),
     };
   }
 }

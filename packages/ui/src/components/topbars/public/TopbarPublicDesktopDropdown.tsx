@@ -24,11 +24,18 @@ interface DropdownPosition {
   left: number;
 }
 
+export interface TopbarPublicMegaMenuFooter {
+  description: string;
+  href: string;
+  label: string;
+}
+
 type TopbarPublicDesktopDropdownProps = {
   mounted: boolean;
   openDropdown: string | null;
   currentDropdown: CurrentDropdown | undefined;
   dropdownPosition: DropdownPosition;
+  megaMenuFooter?: TopbarPublicMegaMenuFooter;
   pathname: string | null;
   onMouseEnterDropdown: () => void;
   onMouseLeaveDropdown: () => void;
@@ -67,6 +74,7 @@ export default function TopbarPublicDesktopDropdown({
   openDropdown,
   currentDropdown,
   dropdownPosition,
+  megaMenuFooter,
   pathname,
   onMouseEnterDropdown,
   onMouseLeaveDropdown,
@@ -87,20 +95,22 @@ export default function TopbarPublicDesktopDropdown({
         <Link
           href={item.href}
           className={cn(
-            'flex items-start gap-3 px-4 py-3 transition-colors',
+            'group flex min-h-20 items-start gap-3 rounded-lg border px-4 py-3.5 transition-[background-color,border-color,color]',
             isActive
-              ? 'bg-foreground/10 text-foreground'
-              : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground',
+              ? 'border-foreground/20 bg-foreground/[0.1] text-foreground'
+              : 'border-edge/10 bg-foreground/[0.025] text-foreground/90 hover:border-foreground/15 hover:bg-foreground/[0.07] hover:text-foreground',
           )}
           onClick={onItemClick}
         >
           {Icon && (
-            <Icon className="size-5 flex-shrink-0 mt-0.5 text-foreground/70" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-edge/15 bg-background/85">
+              <Icon className="size-4 text-foreground/75 transition-colors group-hover:text-foreground" />
+            </span>
           )}
           <div className="flex flex-col">
-            <span className="font-medium text-sm">{item.label}</span>
+            <span className="text-sm font-semibold">{item.label}</span>
             {item.description && (
-              <span className="text-xs text-foreground/55 mt-0.5">
+              <span className="mt-1 text-xs leading-5 text-foreground/60">
                 {item.description}
               </span>
             )}
@@ -115,26 +125,45 @@ export default function TopbarPublicDesktopDropdown({
       className="fixed hidden lg:block"
       style={{
         isolation: 'isolate',
-        left: dropdownPosition.left,
-        paddingTop: 8,
-        top: dropdownPosition.top - 8,
+        left: hasGroups ? 0 : dropdownPosition.left,
+        paddingTop: hasGroups ? 0 : 8,
+        top: hasGroups ? 80 : dropdownPosition.top - 8,
         zIndex: 50,
       }}
       onMouseEnter={onMouseEnterDropdown}
       onMouseLeave={onMouseLeaveDropdown}
     >
       {hasGroups ? (
-        <div className="grid w-[600px] grid-cols-2 gap-2 bg-popover p-3 shadow-dropdown">
-          {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
-            <div key={groupLabel}>
-              {groupLabel && (
-                <div className="px-4 pb-1 pt-2 text-2xs font-bold uppercase tracking-widest text-foreground/40">
-                  {groupLabel}
-                </div>
-              )}
-              <ul>{items.map(renderItem)}</ul>
-            </div>
-          ))}
+        <div className="w-screen border-y border-edge/15 bg-[#0d0d0e]/98 shadow-[0_28px_80px_rgba(0,0,0,0.46)] backdrop-blur-2xl">
+          <div className="container mx-auto grid grid-cols-3 gap-7 px-6 py-6">
+            {groupItems(currentDropdown.items).map(([groupLabel, items]) => (
+              <div
+                className="min-w-0 rounded-xl border border-edge/10 bg-foreground/[0.018] p-2"
+                key={groupLabel}
+              >
+                {groupLabel && (
+                  <div className="px-3 pb-2 pt-1 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/55">
+                    {groupLabel}
+                  </div>
+                )}
+                <ul>{items.map(renderItem)}</ul>
+              </div>
+            ))}
+            {megaMenuFooter ? (
+              <div className="col-span-3 flex items-center justify-between border-t border-edge/15 px-4 pt-5">
+                <p className="text-xs text-foreground/55">
+                  {megaMenuFooter.description}
+                </p>
+                <Link
+                  className="text-xs font-semibold text-foreground underline underline-offset-4"
+                  href={megaMenuFooter.href}
+                  onClick={onItemClick}
+                >
+                  {megaMenuFooter.label}
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : (
         <ul className="w-72 bg-popover p-3 shadow-dropdown">

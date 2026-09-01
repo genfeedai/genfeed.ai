@@ -129,7 +129,7 @@ export class CronEngagementTriggersService implements OnModuleInit {
 
   /**
    * Evaluates armed engagement rules. Fired every 15 minutes by the
-   * system-sweeps BullMQ Job Scheduler. At-most-once: fired rules complete
+   * platform BullMQ schedule. At-most-once: fired rules complete
    * or expire and never re-arm after an ineligible credential.
    */
   async processArmedRules(): Promise<void> {

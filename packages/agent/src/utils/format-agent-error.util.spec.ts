@@ -80,6 +80,21 @@ describe('formatAgentError', () => {
     );
   });
 
+  it('maps a bare model-route 404 to the admin-switchable default recovery', () => {
+    const formatted = formatAgentError('Request failed with status code 404');
+
+    expect(formatted.title).toBe('Chat model unavailable');
+    expect(formatted.summary).toMatch(/provider endpoint.*privacy policy/i);
+    expect(formatted.recovery).toMatch(/Admin.*Models/i);
+    expect(formatted.isConfigurationError).toBe(true);
+  });
+
+  it('preserves model-route recovery for a structured provider 404', () => {
+    expect(formatAgentError({ source: 'provider', status: 404 }).title).toBe(
+      'Chat model unavailable',
+    );
+  });
+
   it('maps bare Generation failed: 500 to connection-interrupted (local API reload)', () => {
     expect(formatAgentError('Generation failed: 500').title).toBe(
       'Connection interrupted',

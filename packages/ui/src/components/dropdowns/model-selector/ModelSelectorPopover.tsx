@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  ModelLifecycle,
+  RouterPriority,
+} from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModelSelectorFilter,
@@ -127,10 +131,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     () =>
       sortModelOptions(
         transformModelsToOptions(
-          models.filter((model) =>
-            currentModelCategory
-              ? model.category === currentModelCategory
-              : true,
+          models.filter(
+            (model) =>
+              model.lifecycle !== ModelLifecycle.RETIRED &&
+              (currentModelCategory
+                ? model.category === currentModelCategory
+                : true),
           ),
           favoriteModelKeys,
           sourceGroupResolver,
@@ -180,7 +186,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       sourceGroups.some((sourceGroup) => sourceGroup.id === group),
     );
   const canSelectAuto =
-    allOptions.length > 0 &&
+    allOptions.some(
+      (option) =>
+        option.lifecycle === ModelLifecycle.RECOMMENDED &&
+        option.model.isFree !== true &&
+        typeof option.model.cost === 'number' &&
+        option.model.cost > 0 &&
+        (!option.model.isDiscovered ||
+          option.model.reviewStatus === 'approved'),
+    ) &&
     hasAutoEligibleSource &&
     (!isSingleSelect || Boolean(autoLabel));
 
@@ -273,7 +287,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   );
 
   // Search reaches past the "All" pill's legacy exclusion — someone typing a
-  // retired model's name is looking for exactly that model.
+  // legacy model's name is looking for exactly that model.
   const searchResults = useMemo(() => {
     if (!normalizedSearchTerm) {
       return [];
@@ -330,58 +344,45 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       { heading: 'Recent', key: 'recent', options: recentOptions },
     ].filter((section) => section.options.length > 0);
 
-    if (effectiveCategoryId === MODEL_FILTER_ALL && sourceGroups.length > 0) {
-      const sourceSections = orderedSourceGroups.map((sourceGroup) => ({
-        heading: sourceGroup.label,
-        key: `source-${sourceGroup.id}`,
-        options: remainingOptions.filter(
-          (option) => option.sourceGroup === sourceGroup.id,
-        ),
-      }));
-      const groupedKeys = new Set(
-        sourceSections.flatMap((section) =>
-          section.options.map((option) => option.model.key),
-        ),
-      );
-      const ungroupedOptions = remainingOptions.filter(
-        (option) => !groupedKeys.has(option.model.key),
-      );
-
-      return [
-        ...rankedSections,
-        ...sourceSections,
-        {
-          heading: 'Catalog',
-          key: 'catalog',
-          options: ungroupedOptions,
-        },
-      ].filter((section) => section.options.length > 0);
-    }
-
     const activeCategoryLabel = categoryFilters.find(
       (filter) => filter.id === effectiveCategoryId,
     )?.label;
 
+    if (effectiveCapabilityFilterId === MODEL_LEGACY_FILTER.id) {
+      return [
+        ...rankedSections,
+        { heading: 'Legacy', key: 'legacy', options: remainingOptions },
+      ].filter((section) => section.options.length > 0);
+    }
+
     return [
       ...rankedSections,
       {
+        heading: 'Recommended',
+        key: 'recommended',
+        options: remainingOptions.filter(
+          (option) => option.lifecycle === ModelLifecycle.RECOMMENDED,
+        ),
+      },
+      {
         heading:
           effectiveCategoryId === MODEL_FILTER_ALL
-            ? 'Catalog'
+            ? 'More Models'
             : activeCategoryLabel,
-        key: 'catalog',
-        options: remainingOptions,
+        key: 'more-models',
+        options: remainingOptions.filter(
+          (option) => option.lifecycle !== ModelLifecycle.RECOMMENDED,
+        ),
       },
     ].filter((section) => section.options.length > 0);
   }, [
     catalogOptions,
     categoryFilters,
     effectiveCategoryId,
+    effectiveCapabilityFilterId,
     normalizedSearchTerm,
-    orderedSourceGroups,
     recentModelKeys,
     searchResults,
-    sourceGroups.length,
   ]);
 
   const selectedModels = useMemo(
@@ -428,6 +429,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const handleToggle = useCallback(
     (modelKey: string) => {
       const lockedModel = models.find((entry) => entry.key === modelKey);
+      if (lockedModel?.lifecycle === ModelLifecycle.RETIRED) {
+        return;
+      }
       if (lockedModel && isModelCreditLocked(lockedModel)) {
         return;
       }

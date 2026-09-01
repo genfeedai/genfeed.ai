@@ -168,6 +168,15 @@ const CONFIG_PATTERNS: Array<{
     isConfigurationError: false,
   },
   {
+    match:
+      /No endpoints found matching.*data polic|Request failed with status code 404\b|\bHTTP\s*404\b/i,
+    title: 'Chat model unavailable',
+    summary:
+      'No provider endpoint for the selected chat model satisfies the required privacy policy.',
+    recovery:
+      'A superadmin can select another Text default in Admin → Automation → Models, then retry.',
+  },
+  {
     match: /403|forbidden/i,
     title: 'Provider access denied',
     summary: 'The model provider blocked this request.',
@@ -283,7 +292,7 @@ export function formatAgentError(
         title: 'Run timed out',
       };
     }
-    if (source === 'provider') {
+    if (source === 'provider' && structured.status !== 404) {
       return {
         detail: null,
         isConfigurationError: false,
@@ -306,7 +315,11 @@ export function formatAgentError(
   }
 
   const original = structured
-    ? (structured.detail ?? structured.message ?? '').trim()
+    ? (
+        structured.detail ??
+        structured.message ??
+        (structured.status ? `HTTP ${structured.status}` : '')
+      ).trim()
     : typeof raw === 'string'
       ? raw.trim()
       : '';

@@ -1,4 +1,4 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_CHAT_MODEL_KEYS,
@@ -90,7 +90,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     }
   });
 
-  it('seeds retired chat keys as legacy rows pointing at their successor', () => {
+  it('seeds retired chat keys as Retired aliases pointing at their successor', () => {
     for (const [key, succeededBy] of Object.entries(
       RETIRED_AGENT_CHAT_MODELS,
     )) {
@@ -98,8 +98,9 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
       expect(row).toBeDefined();
 
-      expect(row?.isLegacy).toBe(true);
+      expect(row?.isLegacy).toBe(false);
       expect(row?.isActive).toBe(false);
+      expect(row?.lifecycle).toBe(ModelLifecycle.RETIRED);
       expect(row?.succeededBy).toBe(succeededBy);
       // A stale binding must never bill at zero by accident. Zero is only
       // legitimate when the successor is declared free — then the row must
@@ -124,14 +125,17 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(unpricedActiveRows).toEqual([]);
   });
 
-  it('marks the zero-cost pinned default free rather than leaving it unpriced', () => {
-    const freeRow = UNIFIED_MODEL_CATALOG.find(
+  it('seeds the retired Nemotron route inactive with a paid successor', () => {
+    const retiredRow = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
 
-    expect(freeRow?.isFree).toBe(true);
-    expect(freeRow?.isActive).toBe(true);
-    expect(freeRow?.cost).toBe(0);
+    expect(retiredRow).toMatchObject({
+      isActive: false,
+      isLegacy: false,
+      succeededBy: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+    });
+    expect(retiredRow?.cost).toBeGreaterThan(0);
   });
 
   // Only a $0-constrained route may carry the marker. Anything else wearing it
@@ -188,6 +192,25 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
     expect(row).not.toHaveProperty('hasEndFrame');
     expect(row).not.toHaveProperty('hasResolutionOptions');
+  });
+
+  it('activates MiniMax H3 Max with its exact fal endpoint and list price', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    );
+
+    expect(row).toMatchObject({
+      defaultDuration: 5,
+      endpoint: 'minimax/h3-max/text-to-video',
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      isActive: true,
+      key: 'fal/minimax/h3-max/text-to-video',
+      label: 'MiniMax H3 Max',
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.08,
+    });
   });
 
   it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {

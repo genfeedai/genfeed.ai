@@ -22,7 +22,7 @@ export interface UsePlatformOAuthConnectOptions {
   /**
    * Brand id for the connect payload. Defaults to the active brand context.
    */
-  brandId?: string;
+  brandId?: string | null;
 }
 
 /**
@@ -51,8 +51,10 @@ export function usePlatformOAuthConnect(
         }
 
         const brandId =
-          options.brandId ??
-          (selectedBrand ? getBrandEntityId(selectedBrand) : undefined);
+          options.brandId === null
+            ? undefined
+            : (options.brandId ??
+              (selectedBrand ? getBrandEntityId(selectedBrand) : undefined));
         if (!brandId) {
           throw new Error('Select a brand before connecting an account');
         }

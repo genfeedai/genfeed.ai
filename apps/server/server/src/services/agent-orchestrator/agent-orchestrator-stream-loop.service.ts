@@ -34,6 +34,7 @@ import type {
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { mergeAgentArtifactCompletionMetadata } from '@server/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@server/services/agent-orchestrator/utils/agent-final-content.util';
+import { runReservedAgentLlmRound } from '@server/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
@@ -52,11 +53,6 @@ import {
   mergeAllowedTools,
   resolveBlockedTools,
 } from '@server/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import {
-  resolveAgentNextRoundCreditRequirement,
-  resolveAgentRoundCreditCost,
-  settleAgentTurnCredits,
-} from '@server/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@server/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@server/services/integrations/openrouter/dto/openrouter.dto';
@@ -146,15 +142,7 @@ export class AgentOrchestratorStreamLoopService {
       // committed ledger write. Every settlement path is terminal.
       roundCredits = 0;
 
-      return await settleAgentTurnCredits({
-        actualModels: Array.from(actualModels),
-        creditsUtilsService: this.creditsUtilsService,
-        model,
-        organizationId: context.organizationId,
-        roundCredits: creditsToSettle,
-        toolCalls: toolRoundState.toolCalls,
-        userId: context.userId,
-      });
+      return creditsToSettle;
     };
 
     try {
@@ -239,37 +227,21 @@ export class AgentOrchestratorStreamLoopService {
           await this.handleCancelledStream(context, threadId);
           return;
         }
-        if (round > 0 && !terminalContent) {
-          const requiredCredits = resolveAgentNextRoundCreditRequirement({
-            nextRoundCredits: turnCost,
-            roundCredits,
-            toolCalls: toolRoundState.toolCalls,
-          });
-          const canAffordNextRound =
-            requiredCredits === 0 ||
-            (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-              context.organizationId,
-              requiredCredits,
-            ));
-
-          if (!canAffordNextRound) {
-            toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
-            throw new Error(
-              `Insufficient credits. You need at least ${requiredCredits} credits to continue this agent turn.`,
-            );
-          }
-        }
         round++;
 
         const chatParams = buildAgentChatCompletionParams({
+          autoAllowedModelKeys:
+            await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
           defaultModelKey:
             await this.agentChatModelRegistry.getDefaultModelKey(),
           messages,
           model,
           prompt: latestUserMessage,
+          prioritize: generationPriority,
           seedTitle: seedTitle ?? '',
           source,
           tools,
+          sessionId: threadId,
         });
 
         // Real deltas published live during this round; drives whether the
@@ -334,9 +306,13 @@ export class AgentOrchestratorStreamLoopService {
         // onStreamToken) is caught here and routed to the cancelled-stream
         // handler; any other error still propagates as a real failure.
         const isTerminalCompletion = Boolean(terminalContent);
-        const response: OpenRouterChatCompletionResponse | null =
-          terminalContent
-            ? {
+        const reservedRound: {
+          credits: number;
+          response: OpenRouterChatCompletionResponse;
+        } | null = terminalContent
+          ? {
+              credits: 0,
+              response: {
                 choices: [
                   {
                     finish_reason: 'stop',
@@ -348,44 +324,61 @@ export class AgentOrchestratorStreamLoopService {
                 ],
                 id: `terminal-tool-${context.executionId ?? threadId}`,
                 usage: latestProviderUsage,
-              }
-            : await (async () => {
-                try {
-                  return canStreamLiveTokens
-                    ? await this.llmDispatcher.streamChatCompletionAggregated(
-                        chatParams,
-                        context.organizationId,
-                        onStreamToken,
-                        {
-                          brandId: context.scope?.brandId,
-                          runId: context.executionId,
-                          threadId,
-                          userId: context.userId,
-                        },
-                      )
-                    : await this.llmDispatcher.chatCompletion(
-                        chatParams,
-                        context.organizationId,
-                        {
-                          brandId: context.scope?.brandId,
-                          runId: context.executionId,
-                          threadId,
-                          userId: context.userId,
-                        },
-                      );
-                } catch (error) {
-                  if (error instanceof StreamCancelledError) {
-                    return null;
-                  }
-                  throw error;
+              },
+            }
+          : await (async () => {
+              try {
+                return await runReservedAgentLlmRound({
+                  actorUserId: context.userId,
+                  credits: this.creditsUtilsService,
+                  estimatedCredits: (actualModel) =>
+                    this.agentChatModelRegistry.getRoundCredits(actualModel),
+                  idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
+                  maximumCredits:
+                    await this.agentChatModelRegistry.getMaximumRoundCredits(
+                      model,
+                    ),
+                  organizationId: context.organizationId,
+                  requestedModel: model,
+                  run: () =>
+                    canStreamLiveTokens
+                      ? this.llmDispatcher.streamChatCompletionAggregated(
+                          chatParams,
+                          context.organizationId,
+                          onStreamToken,
+                          {
+                            brandId: context.scope?.brandId,
+                            runId: context.executionId,
+                            threadId,
+                            userId: context.userId,
+                          },
+                        )
+                      : this.llmDispatcher.chatCompletion(
+                          chatParams,
+                          context.organizationId,
+                          {
+                            brandId: context.scope?.brandId,
+                            runId: context.executionId,
+                            threadId,
+                            userId: context.userId,
+                          },
+                        ),
+                  waived: turnCost === 0,
+                });
+              } catch (error) {
+                if (error instanceof StreamCancelledError) {
+                  return null;
                 }
-              })();
+                throw error;
+              }
+            })();
         terminalContent = undefined;
 
-        if (!response) {
+        if (!reservedRound) {
           await this.handleCancelledStream(context, threadId);
           return;
         }
+        const response = reservedRound.response;
         if (!isTerminalCompletion) {
           latestProviderUsage = response.usage;
           const actualModel =
@@ -399,12 +392,7 @@ export class AgentOrchestratorStreamLoopService {
               threadId,
             });
           actualModels.add(actualModel);
-          roundCredits += resolveAgentRoundCreditCost({
-            actualModel,
-            roundCreditsForModel:
-              await this.agentChatModelRegistry.getRoundCredits(actualModel),
-            turnCost,
-          });
+          roundCredits += reservedRound.credits;
         }
 
         const choice = response.choices[0];

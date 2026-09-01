@@ -1,12 +1,15 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateModelDto {
@@ -64,6 +67,39 @@ export class CreateModelDto {
     required: true,
   })
   readonly cost!: number;
+
+  @IsOptional()
+  @IsEnum(ModelLifecycle)
+  @ApiProperty({
+    default: ModelLifecycle.AVAILABLE,
+    description: 'Operator-controlled model lifecycle',
+    enum: ModelLifecycle,
+    enumName: 'ModelLifecycle',
+    required: false,
+  })
+  readonly lifecycle?: ModelLifecycle;
+
+  @IsString()
+  @ValidateIf(
+    (dto: CreateModelDto) =>
+      dto.lifecycle === ModelLifecycle.LEGACY ||
+      dto.lifecycle === ModelLifecycle.RETIRED,
+  )
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Replacement model key required for Legacy and Retired',
+    required: false,
+  })
+  readonly succeededBy?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: false,
+    description: 'Whether the provider guarantees this route costs zero',
+    required: false,
+  })
+  readonly isFree?: boolean;
 
   @IsOptional()
   @IsBoolean()

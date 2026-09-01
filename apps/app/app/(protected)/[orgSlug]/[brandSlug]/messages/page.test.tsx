@@ -16,6 +16,26 @@ assertSourceHasExport(
 );
 
 const mocks = vi.hoisted(() => ({
+  brandContext: {
+    brands: [
+      {
+        credentials: [
+          {
+            id: 'credential-1',
+            isConnected: true,
+            platform: 'YOUTUBE',
+          },
+        ],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ],
+    credentialsLoading: false,
+    isBrandScopeResolved: true,
+    organizationId: 'org-1',
+    selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
+  },
   getService: vi.fn(),
   href: vi.fn((path: string) => `/acme/demo${path}`),
   listMessagesPage: vi.fn(),
@@ -31,7 +51,17 @@ const mocks = vi.hoisted(() => ({
   syncX: vi.fn(),
   syncXDms: vi.fn(),
   syncYoutube: vi.fn(),
+  workspaceNavPanel: null as {
+    portalTarget: HTMLElement | null;
+    setPortalTarget: ReturnType<typeof vi.fn>;
+  } | null,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
@@ -63,11 +93,11 @@ vi.mock(
 );
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brands: [{ id: 'brand-1', label: 'Demo Brand', slug: 'demo' }],
-    organizationId: 'org-1',
-    selectedBrand: { id: 'brand-1', label: 'Demo Brand', slug: 'demo' },
-  }),
+  useBrand: () => mocks.brandContext,
+}));
+
+vi.mock('@/components/workspace-shell/WorkspaceNavPanelContext', () => ({
+  useWorkspaceNavPanel: () => mocks.workspaceNavPanel,
 }));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context.helpers', () => ({
@@ -274,6 +304,23 @@ const messages = [
 describe('SocialMessagesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.brandContext.brands = [
+      {
+        credentials: [
+          {
+            id: 'credential-1',
+            isConnected: true,
+            platform: 'YOUTUBE',
+          },
+        ],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ];
+    mocks.brandContext.credentialsLoading = false;
+    mocks.brandContext.isBrandScopeResolved = true;
+    mocks.workspaceNavPanel = null;
     mocks.getService.mockResolvedValue({
       approveDraft: vi.fn(),
       createDraft: vi.fn(),
@@ -402,7 +449,7 @@ describe('SocialMessagesPage', () => {
     expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
   });
 
-  it('keeps the empty inbox header fixed and contains the empty surface without page overflow', async () => {
+  it('shows sync as the primary empty action when an account is connected', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,
       hasPrevious: false,
@@ -417,7 +464,7 @@ describe('SocialMessagesPage', () => {
 
     const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
     expect(
-      within(sidebarEmpty).getByText('No inbox items yet'),
+      within(sidebarEmpty).getByText('No conversations yet'),
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('messages-empty-state')).getByText(
@@ -449,6 +496,71 @@ describe('SocialMessagesPage', () => {
       'min-h-0',
       'flex-1',
     );
+  });
+
+  it('makes account connection the first empty state when no social account is connected', async () => {
+    mocks.brandContext.brands = [
+      {
+        credentials: [],
+        id: 'brand-1',
+        label: 'Demo Brand',
+        slug: 'demo',
+      },
+    ];
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 50,
+      total: 0,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    const sidebarEmpty = await screen.findByTestId('messages-sidebar-empty');
+    expect(
+      within(sidebarEmpty).getByText('Connect your social accounts'),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebarEmpty).getByRole('button', {
+        name: 'Connect a social channel',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(sidebarEmpty).queryByRole('button', { name: 'Sync inbox' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('messages-empty-state')).getByText(
+        'Connect accounts to start your inbox',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('projects the conversation list into the Messages navigation column', async () => {
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+    mocks.workspaceNavPanel = {
+      portalTarget,
+      setPortalTarget: vi.fn(),
+    };
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await within(portalTarget).findByRole('navigation', {
+        name: 'Social conversations',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('navigation', { name: 'Social conversations' }),
+    ).toHaveLength(1);
+    expect(screen.getByTestId('messages-surface-layout')).not.toHaveClass(
+      'lg:grid-cols-[380px_minmax(0,1fr)]',
+    );
+
+    portalTarget.remove();
   });
 
   it('switches to the DM surface, queries DMs, and syncs direct messages', async () => {
@@ -585,5 +697,49 @@ describe('SocialMessagesPage', () => {
     ).toBeInTheDocument();
     // A DM hangs off no post, so the comment thread's source anchor stays away.
     expect(screen.queryByText('Launch video')).not.toBeInTheDocument();
+  });
+
+  it('renders TikTok conversations as read-only without a composer', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [
+        {
+          ...conversation,
+          availability: {
+            canPostReply: false,
+            canSendDm: false,
+            postReplyReason: 'TikTok conversations are read-only in Genfeed',
+            sendDmReason: 'TikTok conversations are read-only in Genfeed',
+          },
+          platform: 'tiktok',
+        },
+      ],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open social conversation with Taylor',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Read only').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText('TikTok conversations are read-only in Genfeed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('Write a reply or DM'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^Reply$/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^DM$/ }),
+    ).not.toBeInTheDocument();
   });
 });

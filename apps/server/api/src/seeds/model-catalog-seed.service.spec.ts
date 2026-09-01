@@ -1,4 +1,5 @@
 import {
+  AGENT_CHAT_MODEL_KEYS,
   getModelCatalogForDeployment,
   LOWEST_COST_VIDEO_MODEL_KEY,
   UNIFIED_MODEL_CATALOG,
@@ -103,11 +104,22 @@ describe('ModelCatalogSeedService', () => {
   });
 
   it('writes the zero price of a declared-free catalog entry', async () => {
-    const free = UNIFIED_MODEL_CATALOG.find((entry) => entry.isFree);
+    const template = UNIFIED_MODEL_CATALOG[0];
+    if (!template) {
+      throw new Error('Expected the unified model catalog to be non-empty');
+    }
+    const free = {
+      ...template,
+      cost: 0,
+      isActive: true,
+      isDefault: false,
+      isFree: true,
+      key: 'test/declared-free',
+    };
 
-    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+    await service.reconcileCatalog([free]);
 
-    const call = callForKey(free?.key ?? '');
+    const call = callForKey(free.key);
     expect(call?.update).toMatchObject({ cost: 0 });
     expect(call?.create).toMatchObject({ cost: 0, isActive: true });
   });
@@ -184,23 +196,42 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
-  it('carries the successor forward on retired rows', async () => {
-    const legacyEntry = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.isLegacy && entry.succeededBy,
+  it('keeps collision-safe fal keys separate from provider endpoints', async () => {
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+    expect(callForKey('fal/google/gemini-omni-flash')).toMatchObject({
+      create: { endpoint: 'google/gemini-omni-flash' },
+      update: { endpoint: 'google/gemini-omni-flash' },
+    });
+    expect(callForKey('fal/minimax/h3-max/text-to-video')).toMatchObject({
+      create: {
+        endpoint: 'minimax/h3-max/text-to-video',
+        pricingType: 'per-second',
+        providerCostUsd: 0.08,
+      },
+      update: { endpoint: 'minimax/h3-max/text-to-video' },
+    });
+  });
+
+  it('creates Retired aliases and carries successors forward without overwriting operator lifecycle', async () => {
+    const retiredEntry = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.lifecycle === 'RETIRED' && entry.succeededBy,
     );
-    expect(legacyEntry).toBeDefined();
+    expect(retiredEntry).toBeDefined();
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    const call = callForKey(legacyEntry?.key ?? '');
+    const call = callForKey(retiredEntry?.key ?? '');
     expect(call?.create).toMatchObject({
-      isLegacy: true,
-      succeededBy: legacyEntry?.succeededBy,
+      isLegacy: false,
+      lifecycle: 'RETIRED',
+      succeededBy: retiredEntry?.succeededBy,
     });
     expect(call?.update).toMatchObject({
-      isLegacy: true,
-      succeededBy: legacyEntry?.succeededBy,
+      succeededBy: retiredEntry?.succeededBy,
     });
+    expect(call?.update).not.toHaveProperty('isLegacy');
+    expect(call?.update).not.toHaveProperty('lifecycle');
   });
 
   it('demotes the previous category default before upserting a new one', async () => {
@@ -361,6 +392,17 @@ describe('ModelCatalogSeedService', () => {
 
       await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
+      expect(prisma.model.findFirst).toHaveBeenCalledWith({
+        select: { key: true },
+        where: expect.objectContaining({
+          category: defaultEntry?.category,
+          isActive: true,
+          isDefault: true,
+          isDeleted: false,
+          isLegacy: false,
+        }),
+      });
+
       expect(prisma.model.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { isDefault: false },
@@ -374,6 +416,34 @@ describe('ModelCatalogSeedService', () => {
         isActive: true,
         isDefault: true,
         isDiscovered: false,
+        isPublic: true,
+      });
+    });
+
+    it('replaces a retired active default during the same reconciliation', async () => {
+      const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+        (entry) =>
+          entry.category === 'text' &&
+          entry.key === AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      );
+      expect(defaultEntry?.isDefault).toBe(true);
+
+      prisma.model.findUnique.mockImplementation(
+        async ({ where }: { where: { key: string } }) =>
+          where.key === defaultEntry?.key ? { id: 'existing-row' } : null,
+      );
+      prisma.model.findFirst.mockImplementation(
+        async ({ where }: { where?: { category?: string } }) =>
+          where?.category === defaultEntry?.category
+            ? { key: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE }
+            : null,
+      );
+
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
+        isActive: true,
+        isDefault: true,
         isPublic: true,
       });
     });

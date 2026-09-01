@@ -24,6 +24,7 @@ export interface AppSidebarProps extends BaseMenuProps {
   secondaryItems?: MenuShellConfig['secondaryItems'];
   sectionLabel?: string;
   isCollapsed?: MenuSharedProps['isCollapsed'];
+  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   showPrimaryItems?: MenuSharedProps['showPrimaryItems'];
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   conversationActions?: MenuSharedProps['conversationActions'];
@@ -47,6 +48,7 @@ export default function AppSidebar({
   secondaryItems,
   sectionLabel,
   isCollapsed,
+  onToggleCollapse,
   showPrimaryItems,
   sidebarWidth,
   conversationActions,
@@ -79,6 +81,7 @@ export default function AppSidebar({
       backLabel={backLabel}
       sectionLabel={sectionLabel}
       isCollapsed={isCollapsed}
+      onToggleCollapse={onToggleCollapse}
       showPrimaryItems={showPrimaryItems}
       sidebarWidth={sidebarWidth}
       conversationActions={conversationActions}

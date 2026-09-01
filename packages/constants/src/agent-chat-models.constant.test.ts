@@ -73,11 +73,15 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('keeps the free tier at zero credits', () => {
+  it('retires the privacy-incompatible Nemotron free route onto DeepSeek', () => {
     expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)
-        ?.creditCostPerRound,
-    ).toBe(0);
+      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
+    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
+    expect(
+      SELECTABLE_AGENT_CHAT_MODELS.some(
+        (model) => model.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      ),
+    ).toBe(false);
   });
 
   // Zero credits is a claim about the provider, never an accident of a
@@ -91,10 +95,14 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('declares the pinned free default free', () => {
-    expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)?.isFree,
-    ).toBe(true);
+  it('uses the current low-cost DeepSeek tool model as the cloud fallback', () => {
+    expect(DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+    );
+    expect(getAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toMatchObject({
+      creditCostPerRound: 1,
+      pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
+    });
   });
 
   it('bills self-hosted models to the platform, not the round', () => {
@@ -111,18 +119,13 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toBe(false);
   });
 
-  it('offers no auto-routing entry at all', () => {
-    // `openrouter/auto` was retired because it picked any model at any price
-    // while we billed the cheapest tier. `openrouter/free` was retired next:
-    // every route it could pick was $0, so billing it was exact, but the
-    // underlying model still varied per request, which made chat performance
-    // untrackable. The catalogue now pins one concrete free model instead of
-    // offering any `openrouter/*` auto-router.
+  it('offers explicit Auto and experimental Free routes with exact-cost metadata', () => {
     expect(
-      AGENT_CHAT_MODELS.some((candidate) =>
-        candidate.key.startsWith('openrouter/'),
-      ),
-    ).toBe(false);
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO),
+    ).toMatchObject({ usesExactProviderCost: true });
+    expect(
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE),
+    ).toMatchObject({ isFree: true, usesExactProviderCost: true });
   });
 
   it('catalogues both defaults so they always have a price', () => {
@@ -141,10 +144,19 @@ describe('resolveAgentChatModelKey', () => {
     }
   });
 
-  it('retires openrouter auto onto the platform default', () => {
+  it('keeps openrouter auto live', () => {
     expect(resolveAgentChatModelKey('openrouter/auto')).toBe(
-      DEFAULT_AGENT_CHAT_MODEL_KEY,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
+  });
+
+  it('keeps the curated free router live and retires pinned Nemotron', () => {
+    expect(resolveAgentChatModelKey('openrouter/free')).toBe(
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+    );
+    expect(
+      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
+    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
   });
 
   it('falls back to the default for a blank stored key', () => {
@@ -160,7 +172,7 @@ describe('resolveAgentChatModelKey', () => {
 
   it('trims stored whitespace', () => {
     expect(resolveAgentChatModelKey(' openrouter/auto ')).toBe(
-      DEFAULT_AGENT_CHAT_MODEL_KEY,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
   });
 });
@@ -211,7 +223,8 @@ describe('getAgentChatModelRoundCredits', () => {
 
 describe('isRetiredAgentChatModel', () => {
   it('flags a retired key and clears a current one', () => {
-    expect(isRetiredAgentChatModel('openrouter/auto')).toBe(true);
+    expect(isRetiredAgentChatModel('openrouter/auto')).toBe(false);
+    expect(isRetiredAgentChatModel('openrouter/auto-beta')).toBe(true);
     expect(isRetiredAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toBe(false);
   });
 });

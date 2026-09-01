@@ -37,9 +37,9 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
   };
 });
 
-import type { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { ModelsService } from '@server/collections/models/services/models.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
@@ -107,98 +107,6 @@ describe('ModelDiscoveryService', () => {
       mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
     );
-  });
-
-  describe('syncKnownProviderCosts', () => {
-    const KNOWN_COSTS: Record<string, number> = {
-      'google/veo-3': 0.5,
-    };
-
-    beforeEach(() => {
-      mockModelPricingService.getKnownReplicateCost.mockImplementation(
-        (key: string) => KNOWN_COSTS[key] ?? null,
-      );
-    });
-
-    it('updates drifted providerCostUsd and logs the drift', async () => {
-      const summary = await service.syncKnownProviderCosts([
-        {
-          id: 'model-1',
-          isDeleted: false,
-          key: 'google/veo-3',
-          providerCostUsd: 0.4,
-        },
-      ] as never);
-
-      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 1 });
-      expect(mockModelsService.patch).toHaveBeenCalledWith('model-1', {
-        providerCostUsd: 0.5,
-      });
-      expect(mockLoggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('provider cost drift'),
-        { knownCostUsd: 0.5, modelKey: 'google/veo-3', storedCostUsd: 0.4 },
-      );
-    });
-
-    it('backfills models missing providerCostUsd', async () => {
-      const summary = await service.syncKnownProviderCosts([
-        { id: 'model-1', isDeleted: false, key: 'google/veo-3' },
-      ] as never);
-
-      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 1 });
-      expect(mockModelsService.patch).toHaveBeenCalledWith('model-1', {
-        providerCostUsd: 0.5,
-      });
-    });
-
-    it('leaves in-sync, unknown, deleted, and non-Replicate models alone', async () => {
-      const summary = await service.syncKnownProviderCosts([
-        {
-          id: 'in-sync',
-          isDeleted: false,
-          key: 'google/veo-3',
-          providerCostUsd: 0.5,
-        },
-        {
-          id: 'unknown',
-          isDeleted: false,
-          key: 'acme/unknown-model',
-          providerCostUsd: 0.1,
-        },
-        {
-          id: 'deleted',
-          isDeleted: true,
-          key: 'google/veo-3',
-          providerCostUsd: 0.4,
-        },
-        {
-          id: 'other-provider',
-          isDeleted: false,
-          key: 'google/veo-3',
-          provider: 'fal',
-          providerCostUsd: 0.4,
-        },
-      ] as never);
-
-      expect(summary).toEqual({ checked: 1, drifted: 0, updated: 0 });
-      expect(mockModelsService.patch).not.toHaveBeenCalled();
-    });
-
-    it('counts drift without update when the patch fails', async () => {
-      mockModelsService.patch.mockRejectedValue(new Error('db down'));
-
-      const summary = await service.syncKnownProviderCosts([
-        {
-          id: 'model-1',
-          isDeleted: false,
-          key: 'google/veo-3',
-          providerCostUsd: 0.4,
-        },
-      ] as never);
-
-      expect(summary).toEqual({ checked: 1, drifted: 1, updated: 0 });
-      expect(mockLoggerService.error).toHaveBeenCalled();
-    });
   });
 
   describe('createDraftModel', () => {
@@ -472,6 +380,44 @@ describe('ModelDiscoveryService', () => {
       );
 
       expect(result).toEqual(mockData);
+      fetchSpy.mockRestore();
+    });
+  });
+
+  describe('fetchReplicateModel', () => {
+    it('fetches the exact model endpoint for registry synchronization', async () => {
+      const mockData = {
+        latest_version: { id: 'version-1', openapi_schema: {} },
+        name: 'imagen-4',
+        owner: 'google',
+      };
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        json: vi.fn().mockResolvedValue(mockData),
+        ok: true,
+      } as unknown as Response);
+
+      await expect(
+        service.fetchReplicateModel('google', 'imagen-4'),
+      ).resolves.toEqual(mockData);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.replicate.com/v1/models/google/imagen-4',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      fetchSpy.mockRestore();
+    });
+
+    it('returns null without leaking an upstream response body', async () => {
+      const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      await expect(
+        service.fetchReplicateModel('google', 'missing'),
+      ).resolves.toBeNull();
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Replicate API returned 404'),
+      );
       fetchSpy.mockRestore();
     });
   });

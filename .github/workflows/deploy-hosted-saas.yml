@@ -61,6 +61,8 @@ on:
         required: true
       NEXT_PUBLIC_POSTHOG_KEY:
         required: true
+      SENTRY_AUTH_TOKEN:
+        required: true
       TURBO_TOKEN:
         required: false
 
@@ -136,4 +138,5 @@ jobs:
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}

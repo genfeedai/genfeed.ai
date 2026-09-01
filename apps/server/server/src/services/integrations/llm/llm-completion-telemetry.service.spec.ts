@@ -1,11 +1,11 @@
-import { LlmCompletionTelemetryService } from '@server/services/integrations/llm/llm-completion-telemetry.service';
-import { LlmVendorCostLedgerService } from '@server/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { LLM_GENERATION_TELEMETRY_EVENT } from '@genfeedai/constants';
 import type { ILlmCompletionTelemetryEvent } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { LlmCompletionTelemetryService } from '@server/services/integrations/llm/llm-completion-telemetry.service';
+import { LlmVendorCostLedgerService } from '@server/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@libs/security/destination-guard', () => ({
@@ -71,7 +71,7 @@ describe('LlmCompletionTelemetryService', () => {
         isByok: false,
         model: 'deepseek/deepseek-v4-flash-0731',
         organizationId: 'org-1',
-        vendorCostMicros: 180,
+        vendorCostMicros: 130,
       }),
     );
 

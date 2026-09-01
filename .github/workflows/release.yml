@@ -3,8 +3,8 @@ run-name: Release ${{ inputs.tag }}
 
 # Canonical stable-release entry point. A maintainer chooses the version and
 # dispatches this workflow from master. The workflow pins that master SHA,
-# verifies it once — reusing the master-push Full Suite run when a green one
-# already covers that SHA — publishes community and SaaS from the same commit,
+# verifies it once — waiting for or reusing the master-push Full Suite run when
+# it covers that SHA — publishes community and SaaS from the same commit,
 # and only then makes the GitHub release public.
 on:
   workflow_dispatch:
@@ -42,7 +42,10 @@ jobs:
   validate-release:
     name: Validate release and create draft
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Includes the bounded wait for the exact-SHA master Full Suite. That suite
+    # normally finishes in ~14 minutes; the previous 10-minute ceiling forced
+    # release validation to race it instead of consuming its result.
+    timeout-minutes: 35
     permissions:
       actions: read
       contents: write
@@ -452,33 +455,19 @@ jobs:
 
       # full-suite.yml already validates every master head on push (CI heavy
       # matrix + build-verify + E2E) — the exact suite verify-suite would run.
-      # A completed green push (or manual master) run for the release SHA is
-      # content-addressed evidence for the identical tree, so re-running it at
-      # release cut only added ~20 minutes. verify-suite runs only when no
-      # such run exists — e.g. the push run was superseded by a newer merge's
-      # cancel-in-progress before it finished, or it went red. Evidence
-      # lookup failures degrade to running the suite, never to skipping it.
+      # A green push (or manual master) run for the release SHA is
+      # content-addressed evidence for the identical tree. If that run is still
+      # queued or in progress, wait for it instead of launching the same matrix
+      # a second time. A hard-red run blocks release; a missing, superseded, or
+      # infrastructure-cancelled run falls back to verify-suite. Evidence lookup
+      # failures also fall back, never skip verification.
       - name: Check for existing Full Suite evidence
         id: suite
         if: ${{ inputs.recovery_run_id == '' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
-        run: |
-          set -euo pipefail
-          run_url="$(
-            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/full-suite.yml/runs?head_sha=${RELEASE_SHA}&status=success&per_page=100" \
-              --jq '[.workflow_runs[] | select((.event == "push" or .event == "workflow_dispatch") and .head_branch == "master" and .conclusion == "success")] | first | .html_url // empty' \
-              2>/dev/null || true
-          )"
-          if [ -n "${run_url}" ]; then
-            echo "suite_verified=true" >>"${GITHUB_OUTPUT}"
-            echo "Reusing green Full Suite evidence for ${RELEASE_SHA}: ${run_url}"
-            echo "Full Suite evidence reused for \`${RELEASE_SHA}\`: ${run_url}" >>"${GITHUB_STEP_SUMMARY}"
-          else
-            echo "suite_verified=false" >>"${GITHUB_OUTPUT}"
-            echo "No completed green Full Suite run covers ${RELEASE_SHA}; verify-suite will run."
-          fi
+        run: node scripts/ci/full-suite-evidence.mjs
 
   verify-suite:
     name: Full Suite
@@ -549,6 +538,7 @@ jobs:
     secrets:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
 
   deploy-saas-via-operations:

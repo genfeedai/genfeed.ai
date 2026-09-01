@@ -512,6 +512,7 @@ test.describe('Clip Factory', () => {
     authenticatedPage,
   }) => {
     let generateRequestBody: Record<string, unknown> | null = null;
+    let generateRequestCount = 0;
 
     await mockAnalyzeRequest(authenticatedPage);
     await mockHighlightsPolling(authenticatedPage);
@@ -521,6 +522,7 @@ test.describe('Clip Factory', () => {
       generateRequestBody = JSON.parse(
         route.request().postData() ?? '{}',
       ) as Record<string, unknown>;
+      generateRequestCount += 1;
       hasRequestedGeneration = true;
       await route.fulfill({
         body: JSON.stringify({
@@ -541,7 +543,7 @@ test.describe('Clip Factory', () => {
 
       await route.fulfill({
         body: JSON.stringify(
-          jsonApiProject(hasRequestedGeneration ? 'generating' : 'analyzed'),
+          jsonApiProject(hasRequestedGeneration ? 'completed' : 'analyzed'),
         ),
         contentType: 'application/json',
         status: 200,
@@ -549,8 +551,27 @@ test.describe('Clip Factory', () => {
     });
 
     await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
+      const editedHighlight = (
+        generateRequestBody?.editedHighlights as
+          | Array<{ id: string; summary: string; title: string }>
+          | undefined
+      )?.find((highlight) => highlight.id === 'h1');
+
       await route.fulfill({
-        body: JSON.stringify({ data: [] }),
+        body: JSON.stringify({
+          data: editedHighlight
+            ? [
+                {
+                  attributes: {
+                    ...mockCompletedClipResult,
+                    summary: editedHighlight.summary,
+                    title: editedHighlight.title,
+                  },
+                  id: 'clip-1',
+                },
+              ]
+            : [],
+        }),
         contentType: 'application/json',
         status: 200,
       });
@@ -562,11 +583,15 @@ test.describe('Clip Factory', () => {
       .getByRole('button', { name: /review highlights first/i })
       .click();
 
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`${CLIPS_URL}/${MOCK_PROJECT_ID}`),
+    );
     await expect(
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
 
     const editedTitleInput = authenticatedPage.getByRole('textbox').first();
+    await expect(editedTitleInput).toHaveValue('The Hook');
     await editedTitleInput.fill('Edited Hook Title');
     await authenticatedPage
       .getByPlaceholder('Edit the script or caption text for this clip...')
@@ -581,6 +606,7 @@ test.describe('Clip Factory', () => {
       .click();
 
     await expect.poll(() => generateRequestBody).not.toBeNull();
+    expect(generateRequestCount).toBe(1);
     expect(generateRequestBody).toMatchObject({
       avatarId: 'heygen-avatar-1',
       editedHighlights: expect.arrayContaining([
@@ -594,9 +620,29 @@ test.describe('Clip Factory', () => {
       mode: 'avatar',
       voiceId: 'heygen-voice-1',
     });
+    const submittedEditedHighlights = generateRequestBody?.editedHighlights;
+    expect(submittedEditedHighlights).toEqual(expect.any(Array));
+    expect(
+      (
+        submittedEditedHighlights as Array<{
+          id: string;
+          summary: string;
+          title: string;
+        }>
+      ).filter((highlight) => highlight.id === 'h1'),
+    ).toEqual([
+      {
+        id: 'h1',
+        summary: 'Edited hook summary for generation.',
+        title: 'Edited Hook Title',
+      },
+    ]);
 
     await expect(
-      authenticatedPage.getByText(/generating 3 avatar clips/i),
+      authenticatedPage.getByRole('heading', { name: /clips ready/i }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Edited Hook Title'),
     ).toBeVisible();
   });
 

@@ -15,8 +15,6 @@ export interface DemoCardProps {
 
 export interface OutputFormat {
   description: string;
-  /** Sample output asset shown in the format tile (public/images/home/formats) */
-  image: string;
   title: string;
 }
 

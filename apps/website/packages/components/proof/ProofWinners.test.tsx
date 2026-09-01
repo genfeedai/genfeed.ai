@@ -1,10 +1,24 @@
 import { getPublishedWinners } from '@data/winners.data';
 import { render, screen } from '@testing-library/react';
+import type { ImgHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProofWinners from './ProofWinners';
 
 vi.mock('@data/winners.data', () => ({
   getPublishedWinners: vi.fn(() => []),
+}));
+
+vi.mock('next/image', () => ({
+  default: ({
+    fill: _fill,
+    ...props
+  }: ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
+    <span
+      aria-label={props.alt ?? ''}
+      data-src={typeof props.src === 'string' ? props.src : undefined}
+      role="img"
+    />
+  ),
 }));
 
 const mockedPublishedWinners = vi.mocked(getPublishedWinners);
@@ -14,12 +28,23 @@ const LINKEDIN_WINNER = {
   id: 'linkedin-2026-08-23',
   linkLabel: 'View on LinkedIn',
   mediaType: 'Post copy + generated frame',
-  metricLabel: 'Impressions, read 29 Aug 2026',
-  metricValue: '30,000',
+  metricLabel: 'Impressions, read 1 Sep 2026',
+  metricValue: '33,793',
   platform: 'LinkedIn',
+  previewAlt: 'Generated outbid.lol frame',
+  previewSrc: 'https://cdn.genfeed.ai/linkedin-proof.jpg',
   provenance: 'Copy and frame generated in Genfeed.',
   publishedAt: '2026-08-23',
-  title: 'An organic LinkedIn post, written and framed in one pass',
+  socialProof: {
+    authorHandle: 'vincentshipsit',
+    authorHeadline: 'Agentic Founder',
+    authorName: 'Vincent Tellier',
+    captionExcerpt: 'The published post excerpt.',
+    comments: '40 comments',
+    reactions: '61 reactions',
+    reposts: '1 repost',
+  },
+  title: 'Copy and frame, made in one pass',
 };
 
 describe('ProofWinners', () => {
@@ -40,7 +65,10 @@ describe('ProofWinners', () => {
 
     render(<ProofWinners />);
 
-    expect(screen.getByText('30,000')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Your next post.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('33,793')).toBeInTheDocument();
     expect(screen.getByText(LINKEDIN_WINNER.metricLabel)).toBeInTheDocument();
     expect(screen.getByText(LINKEDIN_WINNER.title)).toBeInTheDocument();
     expect(
@@ -61,11 +89,22 @@ describe('ProofWinners', () => {
     expect(publishedAt).toHaveTextContent('Aug 23, 2026');
   });
 
-  it('omits the preview frame until a real asset exists', () => {
+  it('renders the published LinkedIn post with its source details', () => {
     mockedPublishedWinners.mockReturnValue([LINKEDIN_WINNER]);
 
     render(<ProofWinners />);
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('article', {
+        name: /published linkedin post by vincent tellier/i,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('The published post excerpt.')).toBeInTheDocument();
+    expect(screen.getByText('61 reactions')).toBeInTheDocument();
+    expect(screen.getByText(/40 comments/i)).toBeInTheDocument();
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'data-src',
+      LINKEDIN_WINNER.previewSrc,
+    );
   });
 });

@@ -1,20 +1,67 @@
+import { RouterPriority } from '@genfeedai/enums';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import type {
   AgentChatAttachment,
   AgentPageContext,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEnum,
   IsIn,
   IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
+  ValidateNested,
 } from 'class-validator';
+
+export class AgentGenerationSettingsDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  @ApiProperty({ example: '1:1', maxLength: 32 })
+  aspectRatio!: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  @Max(60)
+  @ApiProperty({ maximum: 60, minimum: 1, required: false })
+  duration?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  @MaxLength(256)
+  @ApiProperty({ maxLength: 256, required: false })
+  model?: string;
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  @Max(8)
+  @ApiProperty({ maximum: 8, minimum: 1, required: false })
+  outputs?: number;
+
+  @IsEnum(RouterPriority)
+  @IsOptional()
+  @ApiProperty({ enum: RouterPriority, required: false })
+  prioritize?: RouterPriority;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  @MaxLength(32)
+  @ApiProperty({ maxLength: 32, required: false })
+  resolution?: string;
+}
 
 /**
  * Body for the agent-turn endpoints.
@@ -98,6 +145,13 @@ export class AgentChatBodyDto {
     required: false,
   })
   generationMode?: 'auto' | 'image' | 'video';
+
+  @IsObject()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AgentGenerationSettingsDto)
+  @ApiProperty({ required: false, type: AgentGenerationSettingsDto })
+  generationSettings?: AgentGenerationSettingsDto;
 
   @IsBoolean()
   @IsOptional()

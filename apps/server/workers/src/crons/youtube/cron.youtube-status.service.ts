@@ -110,7 +110,7 @@ export class CronYoutubeStatusService implements OnModuleInit {
    * Checks status of non-public YouTube videos and syncs database status
    * with the actual YouTube video status. Stops checking once a video
    * becomes PUBLIC (final state). Fired daily at 1am UTC by the
-   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
+   * platform BullMQ schedule.
    */
   async checkScheduledYoutubeVideos() {
     const now = new Date();

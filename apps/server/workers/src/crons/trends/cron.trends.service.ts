@@ -10,7 +10,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { TrendsService } from '@server/collections/trends/services/trends.service';
 import {
   buildScopedTrendsRefreshWorkflowDefinition,
@@ -61,7 +60,6 @@ export class CronTrendsService implements OnModuleInit {
     );
   }
 
-  @Cron('0 15 0,12 * * *', { timeZone: 'UTC' })
   async refreshGlobalTrends(now = new Date()): Promise<void> {
     if (!this.configService.isDevSchedulersEnabled) return;
     const windowId = Math.floor(now.getTime() / REFRESH_WINDOW_MS);

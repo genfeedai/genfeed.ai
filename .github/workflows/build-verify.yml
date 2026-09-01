@@ -13,8 +13,11 @@ on:
   workflow_call:
 
 concurrency:
+  # Every caller on a ref writes the same Docker build cache. Queue those
+  # writers: a release fallback must never cancel the master-push evidence it
+  # is meant to consume, and parallel writers can clobber the shared cache.
   group: build-verify-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Least-privilege default token; jobs that need more request it explicitly.
 permissions:

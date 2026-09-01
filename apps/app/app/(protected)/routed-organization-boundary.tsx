@@ -90,21 +90,13 @@ export default function RoutedOrganizationBoundary({ children }: LayoutProps) {
 
   if (status === 'failed') {
     return (
-      <ErrorFallback
-        title={translate('failure.title')}
-        description={translate('failure.description')}
-        resetErrorBoundary={retry}
-      />
-    );
-  }
-
-  if (status === 'stale') {
-    return (
-      <ErrorFallback
-        title={translate('stale.title')}
-        description={translate('stale.description')}
-        resetErrorBoundary={retry}
-      />
+      <main className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-10 sm:px-6">
+        <ErrorFallback
+          title={translate('failure.title')}
+          description={translate('failure.description')}
+          resetErrorBoundary={retry}
+        />
+      </main>
     );
   }
 

@@ -1,3 +1,5 @@
+import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
 import type {
   SocialConversationAvailability,
   SocialConversationDocument,
@@ -8,14 +10,13 @@ import {
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@server/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { replaceMarkup } from '@server/shared/utils/string/strip-markup.util';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
-import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
 
 const SUPPORTED_PLATFORMS = new Set([
   'instagram',
   'linkedin',
+  'tiktok',
   'twitter',
   'youtube',
 ]);
@@ -28,6 +29,7 @@ const MAX_PAGE_SIZE = 100;
 // action time.
 const DM_POST_REPLY_REASON =
   'Direct message threads have no post or comment to reply on';
+const TIKTOK_READ_ONLY_REASON = 'TikTok conversations are read-only in Genfeed';
 const YOUTUBE_DM_REASON = 'YouTube Data API does not support channel DMs';
 
 export { LINKEDIN_DM_NOT_IMPLEMENTED_REASON, LINKEDIN_DM_UNAVAILABLE_REASON };
@@ -107,6 +109,15 @@ export function getAvailability(params: {
   }
 
   const isDirectMessage = params.conversationType === SocialConversationType.DM;
+
+  if (params.platform === Platform.TIKTOK) {
+    return {
+      canPostReply: false,
+      canSendDm: false,
+      postReplyReason: TIKTOK_READ_ONLY_REASON,
+      sendDmReason: TIKTOK_READ_ONLY_REASON,
+    };
+  }
 
   if (params.platform === Platform.YOUTUBE) {
     if (isDirectMessage) {
@@ -200,6 +211,13 @@ export function readAvailability(
 ): SocialConversationAvailability {
   const stored = asRecord(conversation.availability);
   const derived = getAvailability(conversation);
+
+  // Read-only platform policy is authoritative. A stale/imported availability
+  // JSON blob must never re-enable an outbound TikTok action.
+  if (normalizePlatform(conversation.platform) === Platform.TIKTOK) {
+    return derived;
+  }
+
   return {
     canPostReply:
       typeof stored.canPostReply === 'boolean'

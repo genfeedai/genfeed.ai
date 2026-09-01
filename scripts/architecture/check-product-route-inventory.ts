@@ -172,6 +172,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/launch-content',
     '/library',
     '/linkedin-content',
+    '/models',
     '/podcast-to-content',
     '/pricing',
     '/publishing',

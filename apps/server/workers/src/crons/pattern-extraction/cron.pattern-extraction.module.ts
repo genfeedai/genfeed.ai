@@ -7,6 +7,7 @@ import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/
 import { PatternExtractionWorkflowService } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction-workflow.service';
 
 @Module({
+  exports: [CronPatternExtractionService],
   imports: [
     CreativePatternsModule,
     LoggerModule,

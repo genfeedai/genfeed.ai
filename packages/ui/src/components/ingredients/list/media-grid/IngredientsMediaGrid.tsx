@@ -4,8 +4,13 @@ import { IngredientFormat } from '@genfeedai/enums';
 import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
-import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
+import {
+  getIngredientDisplayLabel,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
+import { getLibraryAssetTypeLabel } from '@genfeedai/utils/media/library-asset-type.util';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
+import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -80,10 +85,19 @@ export default function IngredientsMediaGrid({
 
   const renderIngredient = (ingredient: IIngredient) => {
     const isSelected = selectedIds.includes(ingredient.id);
+    const hoverDetails = (
+      <AssetHoverDetails
+        label={getIngredientDisplayLabel(ingredient) || 'Untitled asset'}
+        metadata={
+          ingredient.metadataModelLabel || ingredient.metadataModel || undefined
+        }
+        typeLabel={getLibraryAssetTypeLabel(ingredient.category)}
+      />
+    );
 
     if (isVideoIngredient(ingredient)) {
       return (
-        <div key={ingredient.id} className="min-w-0">
+        <div key={ingredient.id} className="group relative min-w-0">
           <LazyMasonryVideo
             video={new Video(ingredient as IVideo)}
             isSelected={isSelected}
@@ -109,12 +123,13 @@ export default function IngredientsMediaGrid({
             onPortraitVideo={onConvertToPortrait}
             onGenerateCaptions={onGenerateCaptions}
           />
+          {hoverDetails}
         </div>
       );
     }
 
     return (
-      <div key={ingredient.id} className="min-w-0">
+      <div key={ingredient.id} className="group relative min-w-0">
         <LazyMasonryImage
           image={ingredient as IImage}
           isSelected={isSelected}
@@ -133,6 +148,7 @@ export default function IngredientsMediaGrid({
           onScopeChange={onScopeChange}
           onConvertToVideo={onConvertToVideo}
         />
+        {hoverDetails}
       </div>
     );
   };

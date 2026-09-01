@@ -84,6 +84,44 @@ function readAxiosStatus(error: unknown): number | undefined {
   return readFiniteNumber(response?.status);
 }
 
+function readOAuthErrorText(error: unknown): string {
+  if (!isRecord(error)) {
+    return '';
+  }
+
+  const response = isRecord(error.response) ? error.response : undefined;
+  const responseData = isRecord(response?.data) ? response.data : undefined;
+  const data = isRecord(error.data) ? error.data : undefined;
+  return [
+    responseData?.error,
+    responseData?.error_description,
+    data?.error,
+    data?.error_description,
+    error.error,
+    error.error_description,
+  ]
+    .filter((value): value is string => typeof value === 'string')
+    .join(' ')
+    .toLowerCase();
+}
+
+/** Expected callback failures caused by an expired, reused, or mismatched PKCE code. */
+export function isTwitterOAuthCodeError(error: unknown): boolean {
+  const oauthText = readOAuthErrorText(error);
+  if (oauthText.includes('invalid_client')) {
+    return false;
+  }
+
+  return (
+    oauthText.includes('invalid_grant') ||
+    oauthText.includes('authorization code') ||
+    oauthText.includes('code verifier') ||
+    oauthText.includes('code_verifier') ||
+    oauthText.includes('expired code') ||
+    oauthText.includes('already used')
+  );
+}
+
 export function isTwitterAuthorizationError(error: unknown): boolean {
   if (isTwitterScopeOrTierError(error) || isTwitterRateLimitError(error)) {
     return false;

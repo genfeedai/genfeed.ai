@@ -4,6 +4,7 @@ import { authClient } from '@genfeedai/auth-client';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { PlatformRole } from '@genfeedai/enums';
 import type { IUser } from '@genfeedai/interfaces';
+import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import { logger } from '@services/core/logger.service';
@@ -15,6 +16,18 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Users, VenetianMask } from 'lucide-react';
 import { useEffect } from 'react';
+
+function formatUserName(user: IUser): string {
+  const splitName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+  return user.name?.trim() || splitName || 'No name';
+}
+
+function formatUserDate(
+  value: string | null | undefined,
+  fallback: string,
+): string {
+  return formatDate(value, DATE_FORMATS.DISPLAY_DATETIME) || fallback;
+}
 
 export default function UsersList() {
   const notificationsService = NotificationsService.getInstance();
@@ -68,14 +81,23 @@ export default function UsersList() {
   const columns: TableColumn<IUser>[] = [
     {
       header: 'Name',
-      key: 'firstName',
-      render: (u: IUser) => `${u.firstName} ${u.lastName}`,
+      key: 'name',
+      render: formatUserName,
     },
-    { header: 'Email', key: 'email' },
+    {
+      header: 'Email',
+      key: 'email',
+      render: (u: IUser) => u.email || 'No email',
+    },
     {
       header: 'Joined',
       key: 'createdAt',
-      render: (u: IUser) => new Date(u.createdAt).toLocaleString(),
+      render: (u: IUser) => formatUserDate(u.createdAt, '—'),
+    },
+    {
+      header: 'Last connected',
+      key: 'lastActiveAt',
+      render: (u: IUser) => formatUserDate(u.lastActiveAt, 'Never'),
     },
   ];
 

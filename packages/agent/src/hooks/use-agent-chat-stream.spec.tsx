@@ -754,7 +754,7 @@ describe('useAgentChatStream', () => {
     expect(() => JSON.stringify(payload)).not.toThrow();
   });
 
-  it('sends composer media settings through the supported page context', async () => {
+  it('sends composer media settings as structured workflow input', async () => {
     const chatStream = vi.fn().mockResolvedValue({
       executionId: 'run-image-settings',
       queuedAt: '2026-03-09T10:00:00.000Z',
@@ -777,13 +777,17 @@ describe('useAgentChatStream', () => {
     expect(chatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         generationMode: 'image',
-        pageContext: expect.objectContaining({
-          draftInstructions:
-            'Use these operator-selected generation settings exactly: {"aspectRatio":"4:5","model":"replicate/image-model","outputs":2}',
-        }),
+        generationSettings: {
+          aspectRatio: '4:5',
+          model: 'replicate/image-model',
+          outputs: 2,
+        },
       }),
       expect.any(AbortSignal),
     );
+
+    const [payload] = chatStream.mock.calls[0] ?? [];
+    expect(payload?.pageContext?.draftInstructions).toBeUndefined();
   });
 
   it('preserves an explicit model override for streaming sends', async () => {

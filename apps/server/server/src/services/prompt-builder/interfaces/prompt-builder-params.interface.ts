@@ -12,6 +12,8 @@ export interface PromptBuilderParams {
 
   // Model category (REQUIRED - from DB model.category via ModelsGuard)
   modelCategory: ModelCategory;
+  /** Reviewed provider input schema promoted from the versioned contract. */
+  modelInputSchema?: Record<string, unknown>;
 
   // Creative elements (for AI model prompts)
   mood?: string;

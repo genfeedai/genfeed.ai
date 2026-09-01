@@ -1,6 +1,7 @@
 import type {
   CostTier,
   ModelCategory,
+  ModelLifecycle,
   QualityTier,
   RouterPriority,
 } from '@genfeedai/enums';
@@ -19,6 +20,7 @@ export interface ModelSelectorOption {
   variantLabel: string;
   isFavorite: boolean;
   isDeprecated: boolean;
+  lifecycle: ModelLifecycle;
   sourceGroup?: string;
 }
 

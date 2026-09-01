@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
 
 const LLM_LAST_REQUEST_KEY = 'llm-instance:last-request';
@@ -38,7 +37,6 @@ export class CronLlmIdleService {
   /**
    * Every 5 minutes — stop the LLM instance if idle for more than 10 minutes.
    */
-  @Cron('*/5 * * * *')
   async shutdownIfIdle() {
     const instanceId = String(
       this.configService.get('GPU_LLM_INSTANCE_ID') || '',
