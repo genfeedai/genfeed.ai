@@ -590,7 +590,7 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
 
-    const editedTitleInput = authenticatedPage.getByRole('textbox').first();
+    const editedTitleInput = authenticatedPage.getByDisplayValue('The Hook');
     await editedTitleInput.fill('Edited Hook Title');
     await authenticatedPage
       .getByPlaceholder('Edit the script or caption text for this clip...')

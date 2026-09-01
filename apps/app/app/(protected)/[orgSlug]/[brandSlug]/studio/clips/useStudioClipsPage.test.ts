@@ -1,8 +1,11 @@
 import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockAnalyzeVideo = vi.fn();
+const mockGetHighlights = vi.fn();
+const mockGetHookApproval = vi.fn();
+const mockGetProject = vi.fn();
 const mockPush = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -38,6 +41,9 @@ vi.mock('@/lib/analytics', () => ({
 vi.mock('./services/clips-api.service', () => ({
   ClipsApiService: class {
     analyzeVideo = mockAnalyzeVideo;
+    getHighlights = mockGetHighlights;
+    getHookApproval = mockGetHookApproval;
+    getProject = mockGetProject;
   },
 }));
 
@@ -88,6 +94,72 @@ describe('review route transition', () => {
     );
     expect(result.current.project).toBeNull();
     expect(result.current.step).toBe('input');
+  });
+
+  it('does not expose review controls until analyzed highlights are hydrated', async () => {
+    let resolveHighlights:
+      | ((value: {
+          highlights: Array<{
+            clip_type: string;
+            end: number;
+            id: string;
+            start: number;
+            summary: string;
+            title: string;
+            virality_score: number;
+          }>;
+          status: string;
+        }) => void)
+      | undefined;
+
+    mockGetProject.mockResolvedValue({ status: 'analyzed' });
+    mockGetHookApproval.mockResolvedValue(null);
+    mockGetHighlights.mockReturnValue(
+      new Promise((resolve) => {
+        resolveHighlights = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'clip-project-1' }),
+    );
+
+    await waitFor(() => {
+      expect(mockGetHighlights).toHaveBeenCalledWith(
+        'clip-project-1',
+        expect.any(AbortSignal),
+      );
+    });
+
+    expect(result.current.isHydrating).toBe(true);
+    expect(result.current.project).toBeNull();
+    expect(result.current.step).toBe('input');
+
+    await act(async () => {
+      resolveHighlights?.({
+        highlights: [
+          {
+            clip_type: 'hook',
+            end: 8,
+            id: 'highlight-1',
+            start: 0,
+            summary: 'Original summary',
+            title: 'The Hook',
+            virality_score: 92,
+          },
+        ],
+        status: 'analyzed',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isHydrating).toBe(false);
+      expect(result.current.step).toBe('review');
+      expect(result.current.editedHighlights).toEqual([
+        expect.objectContaining({ id: 'highlight-1', title: 'The Hook' }),
+      ]);
+      expect(result.current.selectedIds).toEqual(new Set(['highlight-1']));
+    });
   });
 });
 
