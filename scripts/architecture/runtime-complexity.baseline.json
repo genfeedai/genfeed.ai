@@ -60,18 +60,6 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 165,
-    "file": "apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts",
-    "metric": "method-lines",
-    "symbol": "InstagramController.verify"
-  },
-  {
-    "actual": 200,
-    "file": "apps/server/api/src/services/integrations/instagram/services/instagram-authorized-signals.service.ts",
-    "metric": "method-lines",
-    "symbol": "InstagramAuthorizedSignalsService.refresh"
-  },
-  {
     "actual": 1483,
     "file": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts",
     "metric": "file-lines",
@@ -82,24 +70,6 @@
     "file": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts",
     "metric": "method-lines",
     "symbol": "LinkedInAuthorizedSignalsService.refresh"
-  },
-  {
-    "actual": 158,
-    "file": "apps/server/api/src/services/integrations/threads/controllers/threads.controller.ts",
-    "metric": "method-lines",
-    "symbol": "ThreadsController.verify"
-  },
-  {
-    "actual": 200,
-    "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok-authorized-signals.service.ts",
-    "metric": "method-lines",
-    "symbol": "TiktokAuthorizedSignalsService.refresh"
-  },
-  {
-    "actual": 218,
-    "file": "apps/server/api/src/services/integrations/youtube/controllers/youtube.controller.ts",
-    "metric": "method-lines",
-    "symbol": "YoutubeController.verify"
   },
   {
     "actual": 1526,

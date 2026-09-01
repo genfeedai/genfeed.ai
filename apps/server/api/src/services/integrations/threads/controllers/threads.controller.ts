@@ -263,13 +263,10 @@ export class ThreadsController {
       }
 
       // Get account details to store username
-      const accountDetails = (await this.threadsService.getAccountDetails(
+      const externalProfile = await this.resolveExternalProfile(
         access_token,
-      )) as {
-        id?: string;
-        threads_profile_picture_url?: string;
-        username?: string;
-      };
+        userId,
+      );
 
       // Update the credential with the access token
       let credential = await this.credentialsService.patch(
@@ -288,12 +285,7 @@ export class ThreadsController {
       credential = await this.credentialsService.updateExternalProfile(
         credential.id,
         organizationId,
-        {
-          avatarUrl: accountDetails?.threads_profile_picture_url,
-          handle: accountDetails?.username,
-          id: userId || accountDetails?.id,
-          name: accountDetails?.username,
-        },
+        externalProfile,
       );
 
       return serializeSingle(request, CredentialSerializer, credential);
@@ -304,6 +296,30 @@ export class ThreadsController {
       }
       return returnInternalServerError('Failed to verify Threads OAuth');
     }
+  }
+
+  private async resolveExternalProfile(
+    accessToken: string,
+    oauthUserId: string | undefined,
+  ): Promise<{
+    avatarUrl?: string;
+    handle?: string;
+    id?: string;
+    name?: string;
+  }> {
+    const accountDetails = (await this.threadsService.getAccountDetails(
+      accessToken,
+    )) as {
+      id?: string;
+      threads_profile_picture_url?: string;
+      username?: string;
+    };
+    return {
+      avatarUrl: accountDetails.threads_profile_picture_url,
+      handle: accountDetails.username,
+      id: oauthUserId || accountDetails.id,
+      name: accountDetails.username,
+    };
   }
 
   @Get('trends')

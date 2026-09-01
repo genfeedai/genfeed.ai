@@ -200,7 +200,6 @@ export class InstagramController {
         );
       }
 
-      // 1. Exchange code for short-lived user access token
       failureStage = 'configuration';
       const appId = this.configService.get('INSTAGRAM_APP_ID');
       const appSecret = this.configService.get('INSTAGRAM_APP_SECRET');
@@ -216,10 +215,7 @@ export class InstagramController {
         );
       }
 
-      // Authorization codes expire quickly (10-60 seconds) and can only be used once
-      // The redirect_uri must match EXACTLY (including protocol, domain, path, trailing slashes)
       failureStage = 'short_lived_token';
-      // Use POST method as per OAuth 2.0 specification and Facebook's recommendation
       const tokenRes: AxiosResponse<InstagramShortLivedTokenResponse> =
         await firstValueFrom(
           this.httpService.post(
@@ -296,26 +292,13 @@ export class InstagramController {
         },
       );
 
-      try {
-        await this.instagramAuthorizedSignalsService.refresh({
-          accessToken: access_token,
-          credentialId: credential.id.toString(),
-          force: true,
-          grantedScopes: scope,
-          organizationId: existingCredential.organizationId,
-        });
-        credential =
-          (await this.credentialsService.findOne({
-            id: credential.id.toString(),
-            organizationId: existingCredential.organizationId,
-            platform: CredentialPlatform.INSTAGRAM,
-          })) ?? credential;
-      } catch (signalError: unknown) {
-        this.loggerService.warn(
-          `${url} authorized signal refresh failed after connection`,
-          getSafeInstagramOAuthErrorLog(signalError),
-        );
-      }
+      credential = await this.refreshSignalsAfterConnection({
+        accessToken: access_token,
+        credential,
+        grantedScopes: scope,
+        organizationId: existingCredential.organizationId,
+        url,
+      });
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
@@ -327,6 +310,39 @@ export class InstagramController {
         error,
         'Failed to verify Instagram OAuth',
       );
+    }
+  }
+
+  private async refreshSignalsAfterConnection(params: {
+    accessToken: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    grantedScopes: string | undefined;
+    organizationId: string;
+    url: string;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { accessToken, credential, grantedScopes, organizationId, url } =
+      params;
+    try {
+      await this.instagramAuthorizedSignalsService.refresh({
+        accessToken,
+        credentialId: credential.id.toString(),
+        force: true,
+        grantedScopes,
+        organizationId,
+      });
+      return (
+        (await this.credentialsService.findOne({
+          id: credential.id.toString(),
+          organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        })) ?? credential
+      );
+    } catch (signalError: unknown) {
+      this.loggerService.warn(
+        `${url} authorized signal refresh failed after connection`,
+        getSafeInstagramOAuthErrorLog(signalError),
+      );
+      return credential;
     }
   }
 
