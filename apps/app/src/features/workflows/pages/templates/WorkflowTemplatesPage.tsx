@@ -491,10 +491,7 @@ function WorkflowTemplatesPageContent() {
                       <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">
                         {template.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
-                          {template.steps.length} steps
-                        </span>
+                      <div className="flex justify-end">
                         <Link
                           href={href(
                             `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
