@@ -97,6 +97,27 @@ export function loadModelSchema(modelId: string): ReplicateModelSchema | null {
 }
 
 /**
+ * Prefer the reviewed database projection. Checked-in JSON remains a
+ * compatibility fallback for legacy rows that have not promoted a provider
+ * contract yet.
+ */
+export function resolveModelSchema(
+  modelId: string,
+  reviewedSchema?: Record<string, unknown>,
+): ReplicateModelSchema | null {
+  if (
+    reviewedSchema &&
+    reviewedSchema.type === 'object' &&
+    reviewedSchema.properties &&
+    typeof reviewedSchema.properties === 'object' &&
+    !Array.isArray(reviewedSchema.properties)
+  ) {
+    return reviewedSchema as unknown as ReplicateModelSchema;
+  }
+  return loadModelSchema(modelId);
+}
+
+/**
  * Detects which image reference field name(s) a schema supports.
  * Returns the field names present in the schema's properties, ordered
  * by preference (array fields first, then single-value fields).
@@ -191,8 +212,9 @@ function isHttpUri(value: string): boolean {
 export function assertRequiredSchemaInput(
   modelId: string,
   input: Record<string, unknown>,
+  reviewedSchema?: Record<string, unknown>,
 ): void {
-  const schema = loadModelSchema(modelId);
+  const schema = resolveModelSchema(modelId, reviewedSchema);
   const isHailuo23Fast =
     modelIdToSchemaFilename(modelId) === HAILUO_23_FAST_SCHEMA;
   const required =

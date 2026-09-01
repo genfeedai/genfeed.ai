@@ -1,3 +1,10 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  calculateAspectRatio,
+  getDefaultAspectRatio,
+  normalizeAspectRatioForModel,
+} from '@genfeedai/helpers';
+import { Injectable, Logger } from '@nestjs/common';
 import { BaseReplicateBuilder } from '@server/services/prompt-builder/builders/replicate/base-replicate.builder';
 import type { PromptBuilderParams } from '@server/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
@@ -28,16 +35,9 @@ import {
   detectImageReferenceFields,
   getArrayImageLimit,
   isArrayImageField,
-  loadModelSchema,
+  resolveModelSchema,
   schemaHasField,
 } from '@server/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  calculateAspectRatio,
-  getDefaultAspectRatio,
-  normalizeAspectRatioForModel,
-} from '@genfeedai/helpers';
-import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Replicate image model prompt builder.
@@ -218,13 +218,14 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     params: PromptBuilderParams,
     promptText: string,
   ): GenericImageInput {
-    const schema = loadModelSchema(model);
+    const schema = resolveModelSchema(model, params.modelInputSchema);
 
     const calculatedAspectRatio = calculateAspectRatio(
       params.width,
       params.height,
     );
-    const hasImageInput = params.references && params.references.length > 0;
+    const references = params.references ?? [];
+    const hasImageInput = references.length > 0;
     const aspectRatio =
       calculatedAspectRatio ||
       (hasImageInput ? 'match_input_image' : getDefaultAspectRatio(model));
@@ -260,7 +261,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
     // Map image references using schema-aware field detection
     if (hasImageInput) {
-      this.mapImageReferences(input, params.references!, schema);
+      this.mapImageReferences(input, references, schema);
     }
 
     return input;
@@ -274,7 +275,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   private mapImageReferences(
     input: GenericImageInput,
     references: string[],
-    schema: ReturnType<typeof loadModelSchema>,
+    schema: ReturnType<typeof resolveModelSchema>,
   ): void {
     if (!schema) {
       input.image_input = references;

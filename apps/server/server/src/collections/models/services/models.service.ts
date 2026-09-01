@@ -13,6 +13,7 @@ import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto'
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
 import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@server/exceptions/validation.exception';
+import { isReplicateSchemaFamilyCompatible } from '@server/services/integrations/replicate/services/replicate-contract';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
@@ -608,7 +609,19 @@ export class ModelsService extends BaseService<
       pendingContract?.schemaFamily &&
       existing.provider === ModelProvider.FAL &&
       !isFalSchemaFamilyCompatible(
-        existing.category,
+        updateDto.category ?? existing.category,
+        pendingContract.schemaFamily,
+      )
+    ) {
+      throw new BadRequestException(
+        'The pending provider contract schema family does not match the model category',
+      );
+    }
+    if (
+      pendingContract?.schemaFamily &&
+      existing.provider === ModelProvider.REPLICATE &&
+      !isReplicateSchemaFamilyCompatible(
+        updateDto.category ?? existing.category,
         pendingContract.schemaFamily,
       )
     ) {

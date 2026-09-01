@@ -566,6 +566,7 @@ export class ImageGenerationService {
           isBrandingEnabled: createImageDto.isBrandingEnabled,
           lens: createImageDto.lens,
           lighting: createImageDto.lighting,
+          modelInputSchema,
           modelCategory: ModelCategory.IMAGE,
           mood: createImageDto.mood,
           outputs: createImageDto.outputs,

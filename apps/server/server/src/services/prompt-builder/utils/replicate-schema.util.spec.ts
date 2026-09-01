@@ -1,3 +1,6 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ErrorCode } from '@genfeedai/enums';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import type { ReplicateModelSchema } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
 import {
   assertRequiredSchemaInput,
@@ -7,11 +10,9 @@ import {
   isArrayImageField,
   loadModelSchema,
   modelIdToSchemaFilename,
+  resolveModelSchema,
   schemaHasField,
 } from '@server/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ErrorCode } from '@genfeedai/enums';
-import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('ReplicateSchemaUtil', () => {
   afterEach(() => {
@@ -74,6 +75,24 @@ describe('ReplicateSchemaUtil', () => {
       // Second call should not throw, returns cached null
       const result = loadModelSchema('missing/model');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('resolveModelSchema', () => {
+    it('prefers the reviewed provider contract projection', () => {
+      const reviewed = {
+        properties: { current_field: { type: 'string' } },
+        required: ['current_field'],
+        type: 'object',
+      };
+
+      expect(resolveModelSchema('google/imagen-4', reviewed)).toBe(reviewed);
+    });
+
+    it('falls back to the checked-in legacy schema before migration review', () => {
+      expect(resolveModelSchema('google/imagen-4')).toEqual(
+        loadModelSchema('google/imagen-4'),
+      );
     });
   });
 
@@ -235,6 +254,20 @@ describe('ReplicateSchemaUtil', () => {
   });
 
   describe('assertRequiredSchemaInput', () => {
+    it('validates required fields from the reviewed projection', () => {
+      expect(() =>
+        assertRequiredSchemaInput(
+          'unknown/dynamic-model',
+          {},
+          {
+            properties: { prompt: { type: 'string' } },
+            required: ['prompt'],
+            type: 'object',
+          },
+        ),
+      ).toThrow('prompt is required');
+    });
+
     it('loads the Hailuo 2.3 Fast schema and requires first_frame_image', () => {
       const schema = loadModelSchema(
         MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
