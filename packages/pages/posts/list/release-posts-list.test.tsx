@@ -15,11 +15,9 @@ describe('ReleasePostsList', () => {
     expect(source).not.toContain('findBrandPostsPage');
   });
 
-  it('renders target lifecycle and preserves the filtered return URL', () => {
+  it('renders target lifecycle and links to the canonical editor', () => {
     expect(source).toContain('target.executionState');
-    expect(source).toContain('withArtifactEditorReturn');
     expect(source).toContain('getPublishingPostHref(target.id)');
-    expect(source).toContain('returnUrl');
   });
 
   it('offers a target-specific variation action beside published navigation', () => {

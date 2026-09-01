@@ -1,8 +1,7 @@
 /**
  * Articles Content Service
- * Handles AI-powered content generation and editing:
+ * Handles AI-powered content generation:
  * - Generate articles from prompts using AI
- * - Edit existing articles with AI assistance
  * - Convert articles to Twitter threads
  * - Poll generation status
  * - Handle content generation failures
@@ -27,18 +26,15 @@ import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
 import {
   ArticleGenerationType,
-  type EditArticleWithAIDto,
   type GenerateArticlesDto,
 } from '@server/collections/articles/dto/generate-articles.dto';
 import { type ArticleDocument } from '@server/collections/articles/schemas/article.schema';
 import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
 import { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
 import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import type {
   ArticleCreateFn,
   ArticleCycleModelConfig,
@@ -60,9 +56,7 @@ import { HarnessProfilesService } from '@server/collections/harness-profiles/ser
 import type { PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
 import { ContentHarnessService } from '@server/services/harness/harness.service';
 import {
   buildHarnessInput,
@@ -90,7 +84,6 @@ export class ArticlesContentService {
   constructor(
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly moduleRef: ModuleRef,
     private readonly articleTextGenerationService: ArticleTextGenerationService,
     private readonly articleReviewService: ArticleReviewService,
     private readonly articleContentPersistenceService: ArticleContentPersistenceService,
@@ -105,23 +98,6 @@ export class ArticlesContentService {
     private readonly accountPublishingContextService?: AccountPublishingContextService,
     @Optional() private readonly replicateService?: ReplicateService,
   ) {}
-
-  /**
-   * Lazily resolve ArticlesService to break the module-init circular dependency
-   * with articles.service. Resolving via ModuleRef at call time (instead of
-   * constructor injection) keeps ArticlesService out of the emitted
-   * `design:paramtypes` metadata, which otherwise references the class before
-   * it is initialized under ESM (TDZ crash at boot). `strict: false` searches
-   * the whole app context; missing provider yields undefined to preserve the
-   * previous `@Optional()` behavior.
-   */
-  private get articlesService(): ArticlesService | undefined {
-    try {
-      return this.moduleRef.get(ArticlesService, { strict: false });
-    } catch {
-      return undefined;
-    }
-  }
 
   private appendAccountPublishingContextToPrompt(
     prompt: string,
@@ -440,126 +416,6 @@ export class ArticlesContentService {
       ],
       wordCount,
     };
-  }
-
-  /**
-   * Edit existing article using AI with version tracking
-   * Returns immediately with PROCESSING status, updates via websocket when complete
-   *
-   * @param templateKey - Template to use for enhancement (default: ARTICLE_EDIT, use ARTICLE_SEO for SEO optimization)
-   */
-  async enhance(
-    article: ArticleDocument,
-    editDto: EditArticleWithAIDto,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-    templateKey: PromptTemplateKey = PromptTemplateKey.ARTICLE_EDIT,
-  ): Promise<ArticleDocument> {
-    try {
-      this.logger.debug(`${this.constructorName} enhance`, {
-        articleId: article.id,
-        prompt: editDto.prompt,
-        templateKey,
-      });
-
-      if (!this.replicateService) {
-        throw new Error('OpenAI service not available');
-      }
-
-      // Get prompt template from database
-      const prompt = await this.templatesService?.getRenderedPrompt(
-        templateKey,
-        {
-          content: article.content,
-          summary: article.summary,
-          title: article.label,
-          userRequest: editDto.prompt,
-        },
-        organizationId,
-      );
-
-      if (!prompt) {
-        throw new Error('Template service not available');
-      }
-
-      // Update usage metadata
-      await this.templatesService?.updateMetadata(templateKey, {
-        incrementUsage: true,
-      });
-
-      this.logger.log('Article enhancement started', {
-        articleId: article.id,
-        prompt: editDto.prompt.substring(0, 50),
-      });
-
-      const harnessContext = await this.buildArticleHarnessContext({
-        brandId,
-        contentType: 'article',
-        objective: 'authority',
-        organizationId,
-        sourceLines: [`enhancement-request: ${editDto.prompt}`],
-        topic: this.getArticleLabel(article),
-      });
-      // Build prompt with PromptBuilderService then call Replicate.
-      // Enhancement is intentionally unbilled, so no onBilling callback is passed.
-      const responseText =
-        await this.articleTextGenerationService.runTextGenerationStep({
-          basePrompt: prompt,
-          buildPromptOptions: {
-            maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
-            modelCategory: ModelCategory.TEXT,
-            systemPromptTemplate: SystemPromptKey.ARTICLE,
-            temperature: 0.8,
-            useTemplate: false,
-          },
-          failureMessage: 'Failed to enhance content from AI service',
-          harnessContext,
-          model: DEFAULT_MINI_TEXT_MODEL,
-          organizationId,
-        });
-
-      // Parse JSON response
-      let response: ArticleGenerationResponse;
-      try {
-        response = JSON.parse(responseText) as ArticleGenerationResponse;
-      } catch (_parseError) {
-        // If not JSON, treat as plain text content
-        this.logger.debug('Response is not JSON, treating as plain text');
-        response = { content: responseText };
-      }
-
-      // Update article with enhanced content
-      await this.articleContentPersistenceService.updateArticleWithEnhancedContent(
-        article,
-        response,
-        prompt,
-        undefined, // assistantId no longer needed
-        userId,
-        organizationId,
-        brandId,
-      );
-
-      // Fetch and return updated article
-      const updatedArticle = await this.articlesService?.findOne({
-        id: article.id,
-      });
-      if (!updatedArticle) {
-        throw new Error('Article not found after enhancement');
-      }
-
-      this.logger.log(`${this.constructorName} enhancement complete`, {
-        articleId: article.id,
-      });
-
-      return updatedArticle;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} enhance failed`, {
-        articleId: article.id,
-        error,
-      });
-      throw error;
-    }
   }
 
   /**

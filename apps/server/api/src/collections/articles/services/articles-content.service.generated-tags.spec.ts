@@ -1,7 +1,6 @@
 import { ArticleCategory, TagCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
 import {
   ArticleGenerationType,
   type GenerateArticlesDto,
@@ -48,12 +47,6 @@ describe('ArticlesContentService generated tags', () => {
       get: vi.fn().mockReturnValue(4096),
     } as unknown as ConfigService;
 
-    const moduleRef = {
-      get: vi.fn(() => {
-        throw new Error('not available');
-      }),
-    } as unknown as ModuleRef;
-
     const articleTextGenerationService = {
       runTextGenerationStep: vi
         .fn()
@@ -97,18 +90,11 @@ describe('ArticlesContentService generated tags', () => {
     } as unknown as TagsService;
 
     const articleContentPersistenceService =
-      new ArticleContentPersistenceService(
-        logger,
-        moduleRef,
-        undefined,
-        undefined,
-        tagsService,
-      );
+      new ArticleContentPersistenceService(logger, tagsService);
 
     const service = new ArticlesContentService(
       logger,
       configService,
-      moduleRef,
       articleTextGenerationService,
       articleReviewService,
       articleContentPersistenceService,

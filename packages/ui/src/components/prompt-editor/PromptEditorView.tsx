@@ -47,7 +47,7 @@ function PromptEditorView({
         'aria-label': ariaLabel,
         'aria-multiline': 'true',
         class: cn(
-          'prose prose-sm max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
+          'prose prose-sm dark:prose-invert max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
           editorClassName,
         ),
         role: 'textbox',

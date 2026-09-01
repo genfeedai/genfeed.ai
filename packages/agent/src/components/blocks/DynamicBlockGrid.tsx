@@ -372,7 +372,7 @@ function MarkdownContent({ block }: { block: MarkdownBlock }): ReactElement {
   return (
     <SafeMarkdown
       content={block.content}
-      className="prose prose-sm max-w-none text-foreground"
+      className="prose prose-sm dark:prose-invert max-w-none text-foreground"
     />
   );
 }

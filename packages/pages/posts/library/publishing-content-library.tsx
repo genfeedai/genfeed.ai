@@ -4,7 +4,6 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
-  withArtifactEditorReturn,
 } from '@genfeedai/constants';
 import type { IPost } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
@@ -229,16 +228,13 @@ export default function PublishingContentLibrary() {
   const getRowLink = useCallback(
     (item: PublishingContentLibraryItem) => {
       const editorRoute = createArtifactEditorRoute(item.type, item.id);
-      const returnTo = searchParamsString
-        ? `${pathname}?${searchParamsString}`
-        : pathname;
 
       return {
-        href: withArtifactEditorReturn(href(editorRoute), returnTo),
+        href: href(editorRoute),
         label: `Open ${item.title}`,
       };
     },
-    [href, pathname, searchParamsString],
+    [href],
   );
 
   const columns = useMemo<TableColumn<PublishingContentLibraryItem>[]>(

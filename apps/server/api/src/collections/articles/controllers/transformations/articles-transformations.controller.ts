@@ -3,7 +3,6 @@
  * Handles routes that derive new content or analysis from an existing article:
  * - Convert to a social thread
  * - Analyze virality
- * - Enhance with AI
  * - Score SEO
  * - Create a remix
  * - Generate a media prompt
@@ -38,7 +37,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { EditArticleWithAIDto } from '@server/collections/articles/dto/generate-articles.dto';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -111,34 +109,6 @@ export class ArticlesTransformationsController {
       user.organizationId,
       user.brandId,
     );
-  }
-
-  /**
-   * Edit article with AI
-   */
-  @Post(':articleId/enhancements')
-  @UseGuards(SubscriptionGuard, CreditsGuard)
-  @Credits({
-    description: 'Article enhancement (text model)',
-    modelKey: DEFAULT_MINI_TEXT_MODEL,
-    source: ActivitySource.ARTICLE_ENHANCEMENT,
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async editWithAI(
-    @Req() request: Request,
-    @Param('articleId') articleId: string,
-    @Body() dto: EditArticleWithAIDto,
-    @CurrentUser() user: User,
-  ) {
-    const updatedArticle = await this.articlesService.enhance(
-      articleId,
-      dto,
-      user.userId ?? user.id,
-      user.organizationId,
-      user.brandId,
-    );
-
-    return serializeSingle(request, this.serializer, updatedArticle);
   }
 
   @Post(':articleId/seo-scores')

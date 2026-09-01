@@ -11,9 +11,6 @@ function readUiSource(relativePath: string): string {
 const THEME_AWARE_CHROME = [
   'primitives/switch.tsx',
   'primitives/calendar.tsx',
-  'components/prompt-bars/content/PromptBarContentCollapsedView.tsx',
-  'components/prompt-bars/content/PromptBarContentExpandedView.tsx',
-  'components/prompt-bars/content/prompt-bar-content.helpers.ts',
   'components/quick-actions/menu/QuickActionsMenu.tsx',
   'components/ingredients/detail/shared/IngredientWorkspacePanel.tsx',
   'components/ingredients/tabs/info/IngredientTabsInfo.tsx',

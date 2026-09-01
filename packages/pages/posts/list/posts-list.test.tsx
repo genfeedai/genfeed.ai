@@ -310,7 +310,7 @@ describe('PostsList', () => {
     expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
   });
 
-  it('opens the dedicated post editor and carries the list back with it', () => {
+  it('opens the dedicated post editor', () => {
     resourceData = [postFixture];
 
     render(
@@ -326,7 +326,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit grid card/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/publishing/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing',
+      '/genfeed-ai/paperclip/publishing/posts/post-1',
     );
   });
 

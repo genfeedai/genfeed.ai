@@ -4,11 +4,9 @@ import { ArticleCategory } from '@genfeedai/enums';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
-import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
 import type { ChangeEvent } from 'react';
 
 const ARTICLE_CATEGORY_OPTIONS = Object.values(ArticleCategory)
@@ -27,17 +25,11 @@ type ArticleEditFormProps = {
     key: K,
     value: ArticleFormState[K],
   ) => void;
-  isNew: boolean;
-  isEnhancing: boolean;
-  onEnhance: (prompt: string) => Promise<void>;
 };
 
 export default function ArticleEditForm({
   form,
   setFormField,
-  isNew,
-  isEnhancing,
-  onEnhance,
 }: ArticleEditFormProps) {
   return (
     <>
@@ -110,13 +102,6 @@ export default function ArticleEditForm({
           minHeight={{ desktop: 500, mobile: 300 }}
         />
       </Card>
-
-      {/* AI Enhancement Bar */}
-      {!isNew && (
-        <PromptBarContainer layoutMode="inflow" maxWidth="full">
-          <PromptBarContent onSubmit={onEnhance} isEnhancing={isEnhancing} />
-        </PromptBarContainer>
-      )}
     </>
   );
 }

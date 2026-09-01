@@ -5,20 +5,12 @@ import type { ReactNode } from 'react';
 /**
  * Contracts for the dedicated artifact editor pages at `/edit/{type}/{id}`.
  * Refinement belongs to the artifact, so every text artifact shares one shell.
- * Back-link is optional — workspace breadcrumbs already cover list return on
- * Publishing routes; keep the explicit link only when the page has no breadcrumb.
+ * Workspace breadcrumbs own navigation; the editor shell only owns artifact
+ * identity, actions, and content.
  */
-export interface ArtifactEditorBackLinkProps {
-  backHref: string;
-  backLabel: string;
-}
-
 export interface ArtifactEditorShellProps {
   actions?: ReactNode;
   artifactLabel: string;
-  /** Optional; omit when the workspace breadcrumb already covers list return. */
-  backHref?: string;
-  backLabel?: string;
   badges?: ReactNode;
   children: ReactNode;
   description?: string;

@@ -154,25 +154,6 @@ export class ArticlesService extends BaseService<Article> {
       .then((res) => res.data);
   }
 
-  /**
-   * Enhance article content using AI assistant (e.g., "rephrase first paragraph")
-   * @param id - Article ID
-   * @param prompt - User prompt describing how to enhance the content
-   * @returns Article with enhanced content. May include summary and suggestions in meta if backend supports it.
-   * @note The backend may return enhancement metadata (summary, suggestions) in the response meta or as additional fields.
-   *       The frontend should check for these fields and display them in the AI Insights Panel.
-   */
-  public async enhance(id: string, prompt: string): Promise<Article> {
-    return await this.instance
-      .post<JsonApiResponseDocument>(`/${id}/enhancements`, { prompt })
-      .then((res) => {
-        const article = this.mapOne(res.data);
-        // If the API returns summary/suggestions in meta or as direct fields, they will be available
-        // on the response object. The frontend handles extracting these in the component.
-        return article;
-      });
-  }
-
   public async scoreSeo(
     id: string,
     data: ScoreSeoRequest = {},

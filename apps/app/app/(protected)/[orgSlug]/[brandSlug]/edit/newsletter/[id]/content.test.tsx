@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => ({
   loggerError: vi.fn(),
   patch: vi.fn(),
   publish: vi.fn(),
-  returnTo: null as string | null,
   success: vi.fn(),
 }));
 
@@ -46,15 +45,6 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    brandSlug: 'main',
-    href: (path: string) => `/acme/main${path}`,
-    orgHref: (path: string) => `/acme${path}`,
-    orgSlug: 'acme',
-  }),
-}));
-
 vi.mock('@services/content/newsletters.service', () => ({
   NewslettersService: { getInstance: vi.fn() },
 }));
@@ -67,13 +57,6 @@ vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({ error: mocks.error, success: mocks.success }),
   },
-}));
-
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
-  useSearchParams: () => ({
-    get: (key: string) => (key === 'returnTo' ? mocks.returnTo : null),
-  }),
 }));
 
 const newsletter = {
@@ -89,7 +72,6 @@ const newsletter = {
 describe('NewsletterEditorContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.returnTo = '/acme/main/publishing/newsletters?status=review';
     mocks.findOne.mockResolvedValue(newsletter);
     mocks.getContext.mockResolvedValue({
       contextSources: [],
@@ -99,7 +81,7 @@ describe('NewsletterEditorContent', () => {
     mocks.patch.mockResolvedValue({ ...newsletter, label: 'Issue 1 revised' });
   });
 
-  it('loads the issue and honors an explicit compatible return target', async () => {
+  it('loads the issue without duplicating workspace navigation', async () => {
     render(<NewsletterEditorContent artifactId="newsletter-1" />);
 
     expect(
@@ -112,24 +94,8 @@ describe('NewsletterEditorContent', () => {
     );
     expect(screen.getByText('Ready For Review')).toBeVisible();
     expect(
-      screen.getByRole('link', { name: /back to agent/i }),
-    ).toHaveAttribute(
-      'href',
-      '/acme/main/publishing/newsletters?status=review',
-    );
-  });
-
-  it('falls back to Agent without a usable return target', async () => {
-    mocks.returnTo = null;
-
-    render(<NewsletterEditorContent artifactId="newsletter-1" />);
-
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'Issue 1' }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole('link', { name: /back to agent/i }),
-    ).toHaveAttribute('href', '/acme/main/agent/new');
+      screen.queryByRole('link', { name: /back/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('enables saving only once the issue has been edited', async () => {

@@ -512,7 +512,7 @@ describe('ContentCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'open:article-9' }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/acme-org/acme-creator/publishing/posts/article-9?returnTo=%2Facme-org%2Facme-creator%2Fpublishing%2Fcalendar',
+      '/acme-org/acme-creator/publishing/posts/article-9',
     );
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('closed');
   });
@@ -1081,7 +1081,7 @@ describe('ContentCalendarPage', () => {
       expect(writeSlotMock).toHaveBeenCalledWith('article-slot');
     });
     expect(pushMock).toHaveBeenCalledWith(
-      '/acme-org/acme-creator/publishing/posts/article-slot-1?returnTo=%2Facme-org%2Facme-creator%2Fpublishing%2Fcalendar',
+      '/acme-org/acme-creator/publishing/posts/article-slot-1',
     );
   });
 

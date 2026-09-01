@@ -82,7 +82,7 @@ export default function ArticlesList({ articles }: ArticlesListProps) {
                   )}
 
                   {excerpt && (
-                    <p className="prose prose-sm mb-4 line-clamp-3 max-w-none text-foreground/70">
+                    <p className="prose prose-sm dark:prose-invert mb-4 line-clamp-3 max-w-none text-foreground/70">
                       {excerpt}
                     </p>
                   )}

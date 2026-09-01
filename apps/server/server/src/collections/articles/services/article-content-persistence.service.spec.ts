@@ -1,79 +1,10 @@
-import type { ArticleDocument } from '@server/collections/articles/schemas/article.schema';
-import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import type { ArticlesService } from '@server/collections/articles/services/articles.service';
-import type { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import type { TagsService } from '@server/collections/tags/services/tags.service';
-import type { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { ArticleCategory, ArticleStatus, TagCategory } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
+import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
+import type { TagsService } from '@server/collections/tags/services/tags.service';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ArticleContentPersistenceService', () => {
-  it('persists enhanced content, version history, and completion status', async () => {
-    const articlesService = {
-      findOne: vi.fn().mockResolvedValue(null),
-      patch: vi.fn().mockResolvedValue({ id: 'article_1' }),
-    } as unknown as ArticlesService;
-    const promptsService = {
-      create: vi.fn().mockResolvedValue({ id: 'prompt_1' }),
-    } as unknown as PromptsService;
-    const websocketService = {
-      publishArticleStatus: vi.fn().mockResolvedValue(undefined),
-    } as unknown as NotificationsPublisherService;
-    const logger = {
-      error: vi.fn(),
-      log: vi.fn(),
-    } as unknown as LoggerService;
-    const moduleRef = {
-      get: vi.fn().mockReturnValue(articlesService),
-    } as unknown as ModuleRef;
-    const service = new ArticleContentPersistenceService(
-      logger,
-      moduleRef,
-      promptsService,
-      websocketService,
-    );
-
-    await service.updateArticleWithEnhancedContent(
-      {
-        content: 'Old body',
-        id: 'article_1',
-        label: 'Old title',
-        slug: 'old-title',
-        summary: 'Old summary',
-      } as unknown as ArticleDocument,
-      {
-        content: 'New body',
-        label: 'New title',
-        slug: 'new-title',
-        summary: 'New summary',
-      },
-      'Improve this article',
-      undefined,
-      'user_1',
-      'org_1',
-      'brand_1',
-    );
-
-    expect(articlesService.patch).toHaveBeenCalledWith(
-      'article_1',
-      expect.objectContaining({
-        content: 'New body',
-        label: 'New title',
-        slug: 'new-title',
-        summary: 'New summary',
-      }),
-    );
-    expect(promptsService.create).toHaveBeenCalledTimes(1);
-    expect(websocketService.publishArticleStatus).toHaveBeenCalledWith(
-      'article_1',
-      'completed',
-      'user_1',
-      expect.objectContaining({ label: 'New title' }),
-    );
-  });
-
   describe('persistGeneratedArticle', () => {
     const userId = 'user_1';
     const organizationId = 'org_1';
@@ -87,11 +18,6 @@ describe('ArticleContentPersistenceService', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService;
-      const moduleRef = {
-        get: vi.fn(() => {
-          throw new Error('not available');
-        }),
-      } as unknown as ModuleRef;
       let createdTagCount = 0;
       const tagsService = {
         create: vi.fn().mockImplementation(() => {
@@ -107,13 +33,7 @@ describe('ArticleContentPersistenceService', () => {
             );
           }),
       } as unknown as TagsService;
-      const service = new ArticleContentPersistenceService(
-        logger,
-        moduleRef,
-        undefined,
-        undefined,
-        tagsService,
-      );
+      const service = new ArticleContentPersistenceService(logger, tagsService);
       const createArticleFn = vi.fn().mockResolvedValue({ id: 'article_1' });
 
       return { createArticleFn, service, tagsService };

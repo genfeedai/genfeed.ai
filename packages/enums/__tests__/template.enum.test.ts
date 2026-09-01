@@ -13,8 +13,8 @@ import {
 
 describe('template.enum', () => {
   describe('TemplateCategory', () => {
-    it('should have 30 members', () => {
-      expect(Object.values(TemplateCategory)).toHaveLength(30);
+    it('should have 29 members', () => {
+      expect(Object.values(TemplateCategory)).toHaveLength(29);
     });
 
     it('should have correct values', () => {
@@ -34,7 +34,6 @@ describe('template.enum', () => {
       expect(TemplateCategory.CORPORATE).toBe('corporate');
       expect(TemplateCategory.NONPROFIT).toBe('nonprofit');
       expect(TemplateCategory.ARTICLE_GENERATION).toBe('article-generation');
-      expect(TemplateCategory.ARTICLE_EDIT).toBe('article-edit');
       expect(TemplateCategory.ARTICLE_VIRALITY_ANALYSIS).toBe(
         'article-virality-analysis',
       );
@@ -174,8 +173,8 @@ describe('template.enum', () => {
   });
 
   describe('PromptTemplateKey', () => {
-    it('should have 26 members', () => {
-      expect(Object.values(PromptTemplateKey)).toHaveLength(26);
+    it('should have 24 members', () => {
+      expect(Object.values(PromptTemplateKey)).toHaveLength(24);
     });
 
     it('should have correct values', () => {
@@ -205,8 +204,6 @@ describe('template.enum', () => {
       expect(PromptTemplateKey.ARTICLE_GENERATE).toBe(
         'prompt.article.generate',
       );
-      expect(PromptTemplateKey.ARTICLE_EDIT).toBe('prompt.article.edit');
-      expect(PromptTemplateKey.ARTICLE_SEO).toBe('prompt.article.seo');
       expect(PromptTemplateKey.ARTICLE_VIRALITY).toBe(
         'prompt.article.virality',
       );

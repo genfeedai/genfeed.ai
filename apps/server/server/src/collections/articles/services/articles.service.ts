@@ -1,9 +1,5 @@
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import {
-  ArticleScope,
-  PromptTemplateKey,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -22,7 +18,6 @@ import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-quer
 import { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
 import {
   ArticleGenerationType,
-  EditArticleWithAIDto,
   GenerateArticlesDto,
 } from '@server/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@server/collections/articles/dto/update-article.dto';
@@ -1101,51 +1096,6 @@ export class ArticlesService
       reviewModel: settings?.defaultModelReview || DEFAULT_MINI_TEXT_MODEL,
       updateModel: settings?.defaultModelUpdate || DEFAULT_MINI_TEXT_MODEL,
     };
-  }
-
-  /**
-   * Edit existing article using AI - delegates to ArticlesContentService
-   *
-   * Template is selected based on editDto.enhanceType:
-   * - 'edit' (default): Uses ARTICLE_EDIT template
-   * - 'seo': Uses ARTICLE_SEO template for SEO optimization
-   */
-  async enhance(
-    articleId: string,
-    editDto: EditArticleWithAIDto,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-  ): Promise<ArticleDocument> {
-    if (!this.articlesContentService) {
-      throw new Error('ArticlesContentService not available');
-    }
-
-    // Get the existing article
-    const article = await this.findOne({
-      id: articleId,
-      OR: [{ userId }, { organizationId }],
-    });
-
-    if (!article) {
-      throw new NotFoundException('Article');
-    }
-
-    // Select template based on enhanceType
-    const templateKey =
-      editDto.enhanceType === 'seo'
-        ? PromptTemplateKey.ARTICLE_SEO
-        : PromptTemplateKey.ARTICLE_EDIT;
-
-    // Returns immediately with PROCESSING status, updates via websocket when complete
-    return this.articlesContentService.enhance(
-      article,
-      editDto,
-      userId,
-      organizationId,
-      brandId,
-      templateKey,
-    );
   }
 
   /**

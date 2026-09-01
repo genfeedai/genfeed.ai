@@ -13,8 +13,6 @@ import {
   isUserFacingAppPathname,
   LEGACY_APP_ROUTES,
   parseScopedAppPath,
-  resolveArtifactEditorBackHref,
-  withArtifactEditorReturn,
   withPlatformQuery,
 } from './routes.constant';
 
@@ -136,59 +134,6 @@ describe('routes.constant', () => {
         createArtifactEditorRoute('post', 'post-1'),
       ),
     ).toBe('/genfeed-ai/paperclip/publishing/posts/post-1');
-  });
-
-  it('round-trips the originating list through the return parameter', () => {
-    expect(
-      withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publishing/posts/post-1',
-        '/genfeed-ai/paperclip/publishing/posts?status=draft',
-      ),
-    ).toBe(
-      '/genfeed-ai/paperclip/publishing/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing%2Fposts%3Fstatus%3Ddraft',
-    );
-    expect(
-      resolveArtifactEditorBackHref(
-        '/genfeed-ai/paperclip/publishing?status=draft',
-        '/genfeed-ai/paperclip/publishing',
-      ),
-    ).toBe('/genfeed-ai/paperclip/publishing?status=draft');
-
-    expect(
-      withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publishing/posts/article-1',
-        '/genfeed-ai/paperclip/publishing/posts',
-      ),
-    ).toBe(
-      '/genfeed-ai/paperclip/publishing/posts/article-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublishing%2Fposts',
-    );
-  });
-
-  it('falls back to the owning list for unusable return targets', () => {
-    const fallbackHref = '/genfeed-ai/paperclip/publishing';
-
-    expect(resolveArtifactEditorBackHref(null, fallbackHref)).toBe(
-      fallbackHref,
-    );
-    expect(resolveArtifactEditorBackHref(undefined, fallbackHref)).toBe(
-      fallbackHref,
-    );
-    expect(resolveArtifactEditorBackHref('', fallbackHref)).toBe(fallbackHref);
-    expect(resolveArtifactEditorBackHref('//evil.com', fallbackHref)).toBe(
-      fallbackHref,
-    );
-    expect(resolveArtifactEditorBackHref('/\\evil.com', fallbackHref)).toBe(
-      fallbackHref,
-    );
-    expect(resolveArtifactEditorBackHref('/\\\\evil.com', fallbackHref)).toBe(
-      fallbackHref,
-    );
-    expect(
-      resolveArtifactEditorBackHref('https://evil.com/posts', fallbackHref),
-    ).toBe(fallbackHref);
-    expect(resolveArtifactEditorBackHref('posts', fallbackHref)).toBe(
-      fallbackHref,
-    );
   });
 
   it('documents canonical settings route templates', () => {
