@@ -73,11 +73,15 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('keeps the free tier at zero credits', () => {
+  it('retires the privacy-incompatible Nemotron free route onto DeepSeek', () => {
     expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)
-        ?.creditCostPerRound,
-    ).toBe(0);
+      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
+    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
+    expect(
+      SELECTABLE_AGENT_CHAT_MODELS.some(
+        (model) => model.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      ),
+    ).toBe(false);
   });
 
   // Zero credits is a claim about the provider, never an accident of a
@@ -91,10 +95,14 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('declares the pinned free default free', () => {
-    expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)?.isFree,
-    ).toBe(true);
+  it('uses the current low-cost DeepSeek tool model as the cloud fallback', () => {
+    expect(DEFAULT_AGENT_CHAT_MODEL_KEY).toBe(
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+    );
+    expect(getAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toMatchObject({
+      creditCostPerRound: 1,
+      pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
+    });
   });
 
   it('bills self-hosted models to the platform, not the round', () => {
@@ -140,6 +148,15 @@ describe('resolveAgentChatModelKey', () => {
     expect(resolveAgentChatModelKey('openrouter/auto')).toBe(
       AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
+  });
+
+  it('retires the old free router and pinned Nemotron key onto the paid fallback', () => {
+    expect(resolveAgentChatModelKey('openrouter/free')).toBe(
+      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+    );
+    expect(
+      resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),
+    ).toBe(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
   });
 
   it('falls back to the default for a blank stored key', () => {

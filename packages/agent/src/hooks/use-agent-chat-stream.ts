@@ -558,20 +558,6 @@ export function useAgentChatStream(
 
         const resolvedModel = model?.trim() || undefined;
         const requestPageContext = toAgentRequestPageContext(pageContext);
-        const generationInstructions = sendOptions?.generationSettings
-          ? `Use these operator-selected generation settings exactly: ${JSON.stringify(sendOptions.generationSettings)}`
-          : undefined;
-        const resolvedPageContext = generationInstructions
-          ? {
-              ...requestPageContext,
-              draftInstructions: [
-                requestPageContext?.draftInstructions,
-                generationInstructions,
-              ]
-                .filter(Boolean)
-                .join('\n'),
-            }
-          : requestPageContext;
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === currentActiveThreadId);
@@ -588,8 +574,9 @@ export function useAgentChatStream(
                 content,
                 expectedContextVersion: currentThread?.contextVersion,
                 generationMode: sendOptions?.generationMode,
+                generationSettings: sendOptions?.generationSettings,
                 model: resolvedModel,
-                pageContext: resolvedPageContext,
+                pageContext: requestPageContext,
                 planModeEnabled: sendOptions?.planModeEnabled,
                 source: sendOptions?.source,
                 threadId: currentActiveThreadId ?? undefined,

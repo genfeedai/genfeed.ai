@@ -125,14 +125,17 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(unpricedActiveRows).toEqual([]);
   });
 
-  it('marks the zero-cost pinned default free rather than leaving it unpriced', () => {
-    const freeRow = UNIFIED_MODEL_CATALOG.find(
+  it('seeds the retired Nemotron route inactive with a paid successor', () => {
+    const retiredRow = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
 
-    expect(freeRow?.isFree).toBe(true);
-    expect(freeRow?.isActive).toBe(true);
-    expect(freeRow?.cost).toBe(0);
+    expect(retiredRow).toMatchObject({
+      isActive: false,
+      isLegacy: true,
+      succeededBy: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+    });
+    expect(retiredRow?.cost).toBeGreaterThan(0);
   });
 
   // Only a $0-constrained route may carry the marker. Anything else wearing it

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { RouterPriority } from '@genfeedai/enums';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { AGENT_RUNTIME_ACTION_IDS } from '@server/collections/workflows/services/agent-runtime-workflow-definitions';
 import { AgentTurnWorkflowExecutionService } from '@server/services/agent-orchestrator/agent-turn-workflow-execution.service';
@@ -82,6 +83,90 @@ describe('agent runtime workflow registration contract', () => {
       state,
       toolItems: [],
     });
+  });
+
+  it('executes explicit media through the shared UI-action workflow path without resolving or billing a chat round', async () => {
+    const settingsService = { findOne: vi.fn() };
+    const creditsUtilsService = {
+      checkOrganizationCreditsAvailable: vi.fn(),
+    };
+    const contextService = { resolveSystemPromptAndModel: vi.fn() };
+    const uiActionService = {
+      handleThreadUiAction: vi.fn().mockResolvedValue({
+        creditsRemaining: 90,
+        creditsUsed: 10,
+        message: {
+          content: 'Image generation accepted.',
+          metadata: { artifactReferences: [{ id: 'image-1' }] },
+          role: 'assistant',
+        },
+        threadId: 'thread-1',
+        toolCalls: [],
+      }),
+    };
+    const dependencies = Array.from({ length: 18 }, () => ({}));
+    dependencies[1] = settingsService;
+    dependencies[4] = creditsUtilsService;
+    dependencies[6] = contextService;
+    dependencies[12] = uiActionService;
+    dependencies[15] = { runExclusive: vi.fn() };
+    const service = Reflect.construct(
+      AgentTurnWorkflowExecutionService,
+      dependencies,
+    ) as AgentTurnWorkflowExecutionService;
+
+    const result = await service.execute({
+      executionId: 'execution-1',
+      organizationId: 'organization-1',
+      request: {
+        content: 'Generate a red apple',
+        expectedContextVersion: 4,
+        generationMode: 'image',
+        generationSettings: {
+          aspectRatio: '1:1',
+          model: 'black-forest-labs/flux-schnell',
+          outputs: 1,
+          prioritize: RouterPriority.SPEED,
+        },
+        threadId: 'thread-1',
+      },
+      threadId: 'thread-1',
+      userId: 'user-1',
+    });
+
+    expect(uiActionService.handleThreadUiAction).toHaveBeenCalledWith(
+      {
+        action: 'confirm_generate_media',
+        expectedContextVersion: 4,
+        payload: {
+          aspectRatio: '1:1',
+          generationType: 'image',
+          model: 'black-forest-labs/flux-schnell',
+          outputs: 1,
+          prioritize: 'speed',
+          prompt: 'Generate a red apple',
+          sourceActionId: 'composer-generation:execution-1',
+        },
+        threadId: 'thread-1',
+      },
+      expect.objectContaining({
+        executionId: 'execution-1',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      }),
+      expect.objectContaining({ runInThreadLane: expect.any(Function) }),
+    );
+    expect(result).toMatchObject({
+      content: 'Image generation accepted.',
+      creditsUsed: 10,
+      model: null,
+      threadId: 'thread-1',
+    });
+    expect(settingsService.findOne).not.toHaveBeenCalled();
+    expect(contextService.resolveSystemPromptAndModel).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('returns the declared failure action envelope', async () => {

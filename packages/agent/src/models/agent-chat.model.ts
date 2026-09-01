@@ -1,6 +1,10 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
-import type { AgentThreadStatus, PostVisibility } from '@genfeedai/enums';
+import type {
+  AgentThreadStatus,
+  PostVisibility,
+  RouterPriority,
+} from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
@@ -546,6 +550,14 @@ export interface AgentChatPayload {
   clientRequestId?: string;
   expectedContextVersion?: number;
   generationMode?: 'auto' | 'image' | 'video';
+  generationSettings?: {
+    aspectRatio: string;
+    duration?: number;
+    model?: string;
+    outputs?: number;
+    prioritize?: RouterPriority;
+    resolution?: string;
+  };
   content: string;
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';

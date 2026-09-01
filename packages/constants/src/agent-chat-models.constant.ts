@@ -134,11 +134,10 @@ export type AgentChatModelKey =
  */
 export const LLM_DEFAULTS = {
   /**
-   * Agent picker / chat turns (OpenRouter). Pinned to one concrete free model
-   * — not the `openrouter/free` auto-router — so chat performance is
-   * trackable against a stable model instead of a random free-tier draw.
+   * Seed fallback for agent chat turns. The live default is operator-owned in
+   * Admin → Automation → Models and is read from the model registry at runtime.
    */
-  agentChat: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+  agentChat: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
   /** Background scoring, intel, launch copy. */
   background: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   /** xAI / Grok jobs (trends, X realtime). */
@@ -208,10 +207,13 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
   },
   {
     brandSlug: 'deepseek-ai',
-    description: 'Cheapest capable chat — everyday questions and drafting',
+    description:
+      'Fast, low-cost agent chat with current tool-calling support and 1M context',
+    isReasoning: true,
     key: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     label: 'DeepSeek V4 Flash',
-    pricing: { completionPerMillion: 0.18, promptPerMillion: 0.09 },
+    // OpenRouter live (2026-09-01): $0.05 / $0.16 per 1M
+    pricing: { completionPerMillion: 0.16, promptPerMillion: 0.05 },
   },
   {
     brandSlug: 'google',
@@ -367,8 +369,7 @@ export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
  * to point at Grok 4.6 ($2/$6): the only xAI row in the catalogue, so it looked
  * right and silently moved every stale binding onto a 10x model. Cross-brand is
  * normal here — `openai/gpt-4o-mini` and `openai/o4-mini` both resolve to
- * Gemini 2.5 Flash Lite, and `openrouter/free` resolves to Nemotron 3 Ultra
- * (NVIDIA), for the same reason: match price tier (free → free), not brand.
+ * Gemini 2.5 Flash Lite for the same reason: match price tier, not brand.
  *
  * Map *values* must always be {@link AGENT_CHAT_MODEL_KEYS} members.
  * Map *keys* are historical aliases (only place retired strings may appear).
@@ -382,6 +383,8 @@ export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
   'deepseek/deepseek-chat': AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
   'google/gemini-3-flash-preview': AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
   'moonshotai/kimi-k2.5': AGENT_CHAT_MODEL_KEYS.KIMI_K3,
+  [AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE]:
+    AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
   'openai/gpt-4o': AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
   'openai/gpt-4o-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   'openai/o3': AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
@@ -422,10 +425,9 @@ export function getAgentChatModel(
 
 /**
  * Round cost for a model that is not in the catalogue yet. Deliberately the
- * priciest catalogued model's rate rather than the pinned default's: the
- * default is a free model (round cost 0), and an unknown key is far more
- * likely to be a new frontier release than a bargain — under-billing it is
- * the exact failure `openrouter/auto` shipped.
+ * priciest catalogued model's rate rather than the pinned default's. An unknown
+ * key is far more likely to be a new frontier release than a bargain —
+ * under-billing it is the exact failure `openrouter/auto` shipped.
  */
 export const AGENT_FALLBACK_ROUND_CREDITS: number = Math.max(
   4,

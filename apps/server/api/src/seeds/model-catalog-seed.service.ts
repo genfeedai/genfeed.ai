@@ -10,6 +10,7 @@
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   getModelCatalogForDeployment,
+  isRetiredAgentChatModel,
   type ModelCatalogSeedEntry,
   shouldUseLowestCostModelDefaults,
 } from '@genfeedai/constants';
@@ -168,8 +169,8 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
    *
    * When the catalog does name this key as the default, the seed still only
    * self-heals: it reclaims the pin when the category has no usable
-   * (active, non-deleted) default at all, and otherwise leaves whatever
-   * already holds the pin — this row or another — untouched.
+   * (active, non-deleted, non-legacy) default at all, and otherwise leaves
+   * whatever already holds the pin — this row or another — untouched.
    */
   private async resolveUpdateIsDefault(
     entry: ModelCatalogSeedEntry,
@@ -186,10 +187,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         isActive: true,
         isDefault: true,
         isDeleted: false,
+        isLegacy: false,
       },
     });
 
-    if (!activeDefault) {
+    if (!activeDefault || isRetiredAgentChatModel(activeDefault.key)) {
       return true;
     }
 
@@ -244,6 +246,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
+      ...(entry.isLegacy
+        ? { isActive: false, isDefault: false, isPublic: false }
+        : {}),
     };
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
