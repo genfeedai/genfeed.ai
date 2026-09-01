@@ -7,7 +7,6 @@ import { ALL_QUEUE_NAMES, hasQueueConsumer } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
 import type { OperationalQueueHealthSnapshot } from '@workers/monitoring/queue-health.types';
 import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-monitor.service';
@@ -71,7 +70,6 @@ export class QueueMetricsService implements OnModuleDestroy {
     });
   }
 
-  @Cron('*/5 * * * *')
   async publishQueueMetrics(): Promise<void> {
     if (!this.configService.isProduction || this.collecting) {
       return;

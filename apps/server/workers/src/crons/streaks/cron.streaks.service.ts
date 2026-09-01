@@ -106,7 +106,7 @@ export class CronStreaksService implements OnModuleInit {
   /**
    * Processes daily streak state per organization: at-risk reminders,
    * streak freezes, and broken streaks. Fired at 00:30 UTC by the
-   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor). Each
+   * platform BullMQ schedule. Each
    * organization's run is recorded as a system workflow execution.
    */
   async processStreaks(): Promise<void> {

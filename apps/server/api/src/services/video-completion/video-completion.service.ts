@@ -17,7 +17,6 @@ import {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
@@ -158,7 +157,6 @@ export class VideoCompletionService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async reconcileEditorRenders(): Promise<void> {
     const projects = await this.editorProjectsService.findRenderingProjects();
 
@@ -249,7 +247,6 @@ export class VideoCompletionService {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async reconcileRawCutClips(): Promise<void> {
     await this.cacheService.withLock(
       RAW_CUT_RECONCILIATION_LOCK,

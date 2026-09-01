@@ -539,15 +539,11 @@ export function runCheckPlatformCronBoundary(
   const rootDir = options.rootDir ?? process.cwd();
   const includeGlobs = options.includeGlobs ?? DEFAULT_INCLUDE_GLOBS;
   const ignoreGlobs = options.ignoreGlobs ?? DEFAULT_IGNORE_GLOBS;
-  const platformAllowlist =
-    options.platformAllowlist ?? PLATFORM_CRON_ALLOWLIST;
+  const platformAllowlist = options.platformAllowlist ?? [];
   const pendingMigrations =
     options.pendingMigrations ?? PENDING_TENANT_CRON_MIGRATIONS;
-  const sweepServiceAllowlist =
-    options.sweepServiceAllowlist ?? SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST;
-  const workersCronServiceGlobs = options.workersCronServiceGlobs ?? [
-    'apps/server/workers/src/crons/**/*.service.ts',
-  ];
+  const sweepServiceAllowlist = options.sweepServiceAllowlist ?? [];
+  const workersCronServiceGlobs = options.workersCronServiceGlobs ?? [];
 
   const indexedEntries = new Map<string, IndexedEntry>();
   const violations: CronBoundaryViolation[] = [];
@@ -716,7 +712,7 @@ if (isMainModule()) {
     }
 
     console.error(
-      '\nUse workflows for tenant recurring automation, or add a reviewed platform-maintenance allowlist entry with a reason.',
+      '\nNest timers are retired. Use a database-backed Workflow schedule or the typed BullMQ platform schedule catalog.',
     );
     process.exit(1);
   }
@@ -734,6 +730,6 @@ if (isMainModule()) {
   }
 
   console.log(
-    `Platform cron boundary passed. ${result.platformCrons.length} platform cron(s), ${result.pendingMigrationCrons.length} tracked migration cron(s), ${result.orphanCronServices.length} system-sweep service(s).`,
+    'Scheduler boundary passed. No process-local Nest timers detected.',
   );
 }

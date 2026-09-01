@@ -17,7 +17,6 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -34,7 +33,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     ServicesModule,
     ControllersModule,
     CronModule,
-    ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
