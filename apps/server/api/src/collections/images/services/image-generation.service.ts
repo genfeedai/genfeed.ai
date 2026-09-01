@@ -223,6 +223,7 @@ export class ImageGenerationService {
         generationSource: compiledBrief.generationSource,
         height,
         model,
+        modelInputSchema,
         promptBuilderBrand,
         promptOriginalText,
         user,
@@ -418,6 +419,7 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto;
     height: number;
     model: string;
+    modelInputSchema?: Record<string, unknown>;
     promptOriginalText: string;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
@@ -511,6 +513,7 @@ export class ImageGenerationService {
       generationSource,
       height,
       model,
+      modelInputSchema,
       promptBuilderBrand,
       promptOriginalText,
       user,

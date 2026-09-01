@@ -158,7 +158,7 @@ export class CronModelWatcherService {
 
       // Step 5: The public listing is intentionally bounded. Add exact fetches
       // for existing rows outside those pages so the full registry is synced.
-      const candidates = new Map(
+      const candidates = new Map<string, IReplicateModel>(
         officialModels.map(
           (model) => [`${model.owner}/${model.name}`, model] as const,
         ),
