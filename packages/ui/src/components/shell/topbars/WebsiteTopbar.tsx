@@ -71,6 +71,11 @@ export default function WebsiteTopbar() {
     <TopbarPublic
       dropdowns={[{ items: PRODUCT_LINKS, label: 'Product' }]}
       megaMenu
+      megaMenuFooter={{
+        description: 'One content system from first brief to verified result.',
+        href: '/features',
+        label: 'Explore every capability',
+      }}
       navLinks={NAV_LINKS}
       rightContent={
         <div className="flex items-center gap-3 lg:gap-6">

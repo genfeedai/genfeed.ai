@@ -17,7 +17,9 @@ import {
 } from 'react';
 
 import { useMounted } from '../../../lib/hooks';
-import TopbarPublicDesktopDropdown from './TopbarPublicDesktopDropdown';
+import TopbarPublicDesktopDropdown, {
+  type TopbarPublicMegaMenuFooter,
+} from './TopbarPublicDesktopDropdown';
 import TopbarPublicMobileMenu from './TopbarPublicMobileMenu';
 
 const EMPTY_ARRAY: never[] = [];
@@ -45,6 +47,7 @@ interface TopbarPublicProps {
   dropdowns?: Dropdown[];
   rightContent?: ReactNode;
   megaMenu?: boolean;
+  megaMenuFooter?: TopbarPublicMegaMenuFooter;
 }
 
 interface DropdownPosition {
@@ -81,6 +84,7 @@ export default function TopbarPublic({
   dropdowns = EMPTY_ARRAY,
   rightContent,
   megaMenu = false,
+  megaMenuFooter,
 }: TopbarPublicProps): React.ReactElement {
   const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -292,6 +296,7 @@ export default function TopbarPublic({
         openDropdown={openDropdown}
         currentDropdown={currentDropdown}
         dropdownPosition={dropdownPosition}
+        megaMenuFooter={megaMenuFooter}
         pathname={pathname}
         onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
         onMouseLeaveDropdown={handleDropdownClose}
