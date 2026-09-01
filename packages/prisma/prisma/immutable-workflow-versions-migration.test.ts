@@ -32,17 +32,14 @@ const workflowExecutorDirectory = join(
   prismaDir,
   '../../workflows/src/engine/executors',
 );
-
-const engineNativeExecutorNodeTypes = new Set([
-  'commentTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'engagementTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'keywordTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'mentionTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'newFollowerTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'newLikeTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'newRepostTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-  'postPublishTrigger', // Trigger dispatch stays engine-native and is never rewritten to an action node.
-]);
+const workflowRegistrarDirectory = join(
+  prismaDir,
+  '../../apps/server/server/src/collections/workflows/services',
+);
+const actionNodeSource = readFileSync(
+  join(prismaDir, '../../workflows/src/engine/utils/action-node.ts'),
+  'utf8',
+);
 
 const nonActionSentinels = [
   'immediate', // Publish scheduling mode, not an executable action id.
@@ -50,25 +47,7 @@ const nonActionSentinels = [
   'video', // Media port/value type, not an executable action id.
 ] as const;
 
-const migrationOnlyAtomicActionIds = [
-  'ai-enhance',
-  'ai-transcribe',
-  'aiAvatarVideo',
-  'attachPostIngredient',
-  'effect-captions',
-  'effect-ken-burns',
-  'effect-portrait-blur',
-  'effect-split-screen',
-  'effect-watermark',
-  'llm',
-  'newsletterGen',
-  'postGen',
-  'sourceCorpus',
-  'videoFrameExtract',
-] as const;
-
 const workflowControlActionIds = [
-  'workflow.collect-output',
   'workflow.for-each',
   'workflow.for-each-tenant',
   'workflow.run-child',
@@ -115,18 +94,47 @@ function findFilesRecursively(directory: string): string[] {
   });
 }
 
-function executorNodeTypes(): string[] {
-  return findFilesRecursively(workflowExecutorDirectory)
+function registeredExecutorNodeTypes(): string[] {
+  const registrarSource = readdirSync(workflowRegistrarDirectory, {
+    withFileTypes: true,
+  })
     .filter(
-      (path) => path.endsWith('-executor.ts') && !path.endsWith('.spec.ts'),
+      (entry) =>
+        entry.isFile() && entry.name.endsWith('-executor-registrar.service.ts'),
     )
+    .map((entry) =>
+      readFileSync(join(workflowRegistrarDirectory, entry.name), 'utf8'),
+    )
+    .join('\n');
+
+  const executorNodeTypes = findFilesRecursively(workflowExecutorDirectory)
+    .filter((path) => path.endsWith('-executor.ts'))
     .flatMap((path) => {
       const source = readFileSync(path, 'utf8');
-      return [...source.matchAll(/readonly nodeType = '([^']+)'/g)].map(
-        (match) => match[1],
+      const registrationSymbols = [
+        ...source.matchAll(/export (?:class|function) (\w+)/g),
+      ].flatMap((match) => (match[1] ? [match[1]] : []));
+      const isRegistered = registrationSymbols.some((symbol) => {
+        const occurrences = registrarSource.match(
+          new RegExp(`\\b${symbol}\\b`, 'g'),
+        );
+        return (occurrences?.length ?? 0) >= 2;
+      });
+      if (!isRegistered) {
+        return [];
+      }
+
+      return [...source.matchAll(/readonly nodeType = '([^']+)'/g)].flatMap(
+        (match) => (match[1] ? [match[1]] : []),
       );
-    })
-    .filter((nodeType): nodeType is string => Boolean(nodeType));
+    });
+  const directlyRegisteredNodeTypes = [
+    ...registrarSource.matchAll(/registerExecutor\(\s*'([^']+)'/g),
+  ].flatMap((match) => (match[1] ? [match[1]] : []));
+
+  return [
+    ...new Set([...executorNodeTypes, ...directlyRegisteredNodeTypes]),
+  ].sort();
 }
 
 function sqlStringLiterals(source: string): string[] {
@@ -327,11 +335,17 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain(
       'OR NOT workflow_action_has_atomic_executor(action_id)',
     );
+    const engineNativeExecutorNodeTypes = new Set(
+      sqlStringLiterals(
+        actionNodeSource.match(
+          /ENGINE_NATIVE_NODE_TYPES[\s\S]*?new Set\(\[([\s\S]*?)\]\)/,
+        )?.[1] ?? '',
+      ),
+    );
     const expectedAtomicActionIds = [
-      ...executorNodeTypes().filter(
+      ...registeredExecutorNodeTypes().filter(
         (nodeType) => !engineNativeExecutorNodeTypes.has(nodeType),
       ),
-      ...migrationOnlyAtomicActionIds,
       ...workflowControlActionIds,
     ].sort();
     const atomicActionIds = sqlStringLiterals(atomicExecutorSnapshot).sort();

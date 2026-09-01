@@ -18,6 +18,15 @@ import {
 import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
+export class RetiredWorkflowExecutionError extends Error {
+  constructor(workflowId: string, workflowVersionId: string) {
+    super(
+      `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
+    );
+    this.name = 'RetiredWorkflowExecutionError';
+  }
+}
+
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -133,9 +142,7 @@ export class WorkflowExecutorDocumentService {
     workflowVersionId: string,
   ): void {
     if (isDeleted) {
-      throw new Error(
-        `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
-      );
+      throw new RetiredWorkflowExecutionError(workflowId, workflowVersionId);
     }
   }
 
