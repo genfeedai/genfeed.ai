@@ -1,7 +1,10 @@
 import {
+  collectScheduledRunFailures,
   recordScheduledWorkflowGreen,
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
+
+export { collectScheduledRunFailures };
 
 export const NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL =
   'nightly-playwright-full-failure';
@@ -64,7 +67,6 @@ export async function resolveNightlyPlaywrightFullFailures({
     github,
     owner,
     repo,
-    trackerLabel: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,
     workflowIdentity: NIGHTLY_PLAYWRIGHT_FULL_WORKFLOW_IDENTITY,
     sha,
     runId,

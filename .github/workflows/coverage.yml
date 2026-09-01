@@ -445,6 +445,7 @@ jobs:
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
             const {
+              collectScheduledRunFailures,
               reportCoverageFailures,
               resolveCoverageFailures,
             } = await import(
@@ -481,7 +482,7 @@ jobs:
               });
               return;
             }
-            const failures = failedJobs.map((job) => {
+            const jobsForTracking = failedJobs.map((job) => {
               const failedStep = job.steps?.find((step) =>
                 ['failure', 'cancelled', 'timed_out'].includes(step.conclusion),
               );
@@ -494,7 +495,18 @@ jobs:
               } else if (job.conclusion === 'cancelled' || job.conclusion === 'timed_out') {
                 excerpt = `Runner cancellation or timeout in coverage step: ${stepName}.`;
               }
-              return { failedJob: job.name, excerpt };
+              return {
+                ...job,
+                trackerJob: job.name.replace(/ \(shard \d+\/4\)$/i, ''),
+                fallbackExcerpt: excerpt,
+              };
+            });
+            const failures = await collectScheduledRunFailures({
+              github,
+              owner,
+              repo,
+              jobs: jobsForTracking,
+              core,
             });
             await reportCoverageFailures({
               github,
