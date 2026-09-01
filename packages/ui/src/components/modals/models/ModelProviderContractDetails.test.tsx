@@ -1,8 +1,13 @@
 import type { IModelProviderContracts } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModelProviderContractDetails from '@ui/modals/models/ModelProviderContractDetails';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 const contracts: IModelProviderContracts = {
   endpoint: 'minimax/h3-max/text-to-video',

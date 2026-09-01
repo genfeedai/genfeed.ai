@@ -64,6 +64,24 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 }
 
 const UI_TEST_MESSAGES = {
+  common: {
+    modelProviderContract: {
+      empty: 'No reviewed or pending provider contract is stored yet.',
+      familyLabel: 'Family:',
+      inputSchema: 'Input schema',
+      lastSeenLabel: 'Last seen:',
+      loadError: 'Provider contract details could not be loaded.',
+      loading: 'Loading contract details…',
+      noTopLevelFields: 'No top-level fields.',
+      outputSchema: 'Output schema',
+      pendingReview: 'Pending review',
+      pricingLabel: 'Pricing:',
+      required: 'required',
+      reviewedRuntime: 'Reviewed runtime',
+      title: 'Provider contract',
+      versionLabel: 'Version:',
+    },
+  },
   agent: {
     composerToolbar: {
       addContext: 'Add context',
