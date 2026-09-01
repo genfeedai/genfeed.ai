@@ -1,3 +1,9 @@
+import { AGENT_CHAT_MODEL_KEYS, LLM_DEFAULTS } from '@genfeedai/constants';
+import { ByokProvider } from '@genfeedai/enums';
+import type { ILlmCompletionCallContext } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { ByokService } from '@server/services/byok/byok.service';
 import { AnthropicService } from '@server/services/integrations/anthropic/services/anthropic.service';
 import { LlmCompletionTelemetryService } from '@server/services/integrations/llm/llm-completion-telemetry.service';
@@ -10,12 +16,6 @@ import type {
   OpenRouterStreamTokenHandler,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { ByokProvider } from '@genfeedai/enums';
-import type { ILlmCompletionCallContext } from '@genfeedai/interfaces';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type LlmProvider = 'anthropic' | 'openai' | 'openrouter' | 'local';
 
@@ -362,19 +362,33 @@ export class LlmDispatcherService {
   ): Promise<OpenRouterChatCompletionResponse> {
     const startedAt = Date.now();
     const response = await run();
+    const carriesExactCost =
+      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO ||
+      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE ||
+      typeof response.usage.cost === 'number';
+    const billedResponse: OpenRouterChatCompletionResponse = carriesExactCost
+      ? { ...response, usage: { ...response.usage, is_byok: isByok } }
+      : response;
     try {
       await this.llmCompletionTelemetryService.recordCompletion({
         brandId: callContext?.brandId,
-        completionTokens: response.usage?.completion_tokens ?? 0,
+        completionTokens: billedResponse.usage?.completion_tokens ?? 0,
         isByok,
         latencyMs: Date.now() - startedAt,
-        model: response.model ?? params.model,
+        model: billedResponse.model ?? params.model,
         organizationId,
-        promptTokens: response.usage?.prompt_tokens ?? 0,
+        promptTokens: billedResponse.usage?.prompt_tokens ?? 0,
         provider,
         runId: callContext?.runId,
         threadId: callContext?.threadId,
         userId: callContext?.userId,
+        ...(typeof billedResponse.usage.cost === 'number'
+          ? {
+              vendorCostMicros: isByok
+                ? 0
+                : Math.round(billedResponse.usage.cost * 1_000_000),
+            }
+          : {}),
       });
     } catch (error: unknown) {
       this.loggerService.error(
@@ -382,7 +396,7 @@ export class LlmDispatcherService {
         error,
       );
     }
-    return response;
+    return billedResponse;
   }
 
   private async callProvider(
@@ -396,7 +410,26 @@ export class LlmDispatcherService {
       case 'openai':
         return this.openAiLlmService.chatCompletion(params, apiKeyOverride);
       default:
-        return this.openRouterService.chatCompletion(params, apiKeyOverride);
+        try {
+          return await this.openRouterService.chatCompletion(
+            params,
+            apiKeyOverride,
+          );
+        } catch (error: unknown) {
+          if (!this.shouldFallbackFreeRouter(params.model, error)) {
+            throw error;
+          }
+          this.loggerService.warn(
+            `${this.constructorName}: Free router unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH}`,
+          );
+          return this.openRouterService.chatCompletion(
+            {
+              ...params,
+              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+            },
+            apiKeyOverride,
+          );
+        }
     }
   }
 
@@ -420,12 +453,38 @@ export class LlmDispatcherService {
           onToken,
         );
       default:
-        return this.openRouterService.streamChatCompletionAggregated(
-          params,
-          apiKeyOverride,
-          onToken,
-        );
+        try {
+          return await this.openRouterService.streamChatCompletionAggregated(
+            params,
+            apiKeyOverride,
+            onToken,
+          );
+        } catch (error: unknown) {
+          if (!this.shouldFallbackFreeRouter(params.model, error)) {
+            throw error;
+          }
+          this.loggerService.warn(
+            `${this.constructorName}: Free router stream unavailable — falling back to ${AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH}`,
+          );
+          return this.openRouterService.streamChatCompletionAggregated(
+            {
+              ...params,
+              model: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+            },
+            apiKeyOverride,
+            onToken,
+          );
+        }
     }
+  }
+
+  private shouldFallbackFreeRouter(model: string, error: unknown): boolean {
+    if (model !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
+      return false;
+    }
+    const value = error as { status?: number; response?: { status?: number } };
+    const status = value.status ?? value.response?.status;
+    return status === 400 || status === 404 || status === 422 || status === 429;
   }
 
   /**

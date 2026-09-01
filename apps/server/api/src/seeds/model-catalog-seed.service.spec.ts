@@ -201,23 +201,25 @@ describe('ModelCatalogSeedService', () => {
     });
   });
 
-  it('carries the successor forward on retired rows', async () => {
-    const legacyEntry = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.isLegacy && entry.succeededBy,
+  it('creates Retired aliases and carries successors forward without overwriting operator lifecycle', async () => {
+    const retiredEntry = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.lifecycle === 'RETIRED' && entry.succeededBy,
     );
-    expect(legacyEntry).toBeDefined();
+    expect(retiredEntry).toBeDefined();
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    const call = callForKey(legacyEntry?.key ?? '');
+    const call = callForKey(retiredEntry?.key ?? '');
     expect(call?.create).toMatchObject({
-      isLegacy: true,
-      succeededBy: legacyEntry?.succeededBy,
+      isLegacy: false,
+      lifecycle: 'RETIRED',
+      succeededBy: retiredEntry?.succeededBy,
     });
     expect(call?.update).toMatchObject({
-      isLegacy: true,
-      succeededBy: legacyEntry?.succeededBy,
+      succeededBy: retiredEntry?.succeededBy,
     });
+    expect(call?.update).not.toHaveProperty('isLegacy');
+    expect(call?.update).not.toHaveProperty('lifecycle');
   });
 
   it('demotes the previous category default before upserting a new one', async () => {

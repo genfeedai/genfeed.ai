@@ -38,15 +38,4 @@ export class ModelsService extends BaseService<Model> {
     };
     return this.patch(id, body);
   }
-
-  public markRegistryModelLegacy(
-    id: string,
-    succeededBy?: string,
-  ): Promise<Model> {
-    const body: Partial<Model> & { succeededBy?: string } = {
-      reviewStatus: 'legacy',
-      succeededBy,
-    };
-    return this.patch(id, body);
-  }
 }

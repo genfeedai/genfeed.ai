@@ -1,4 +1,9 @@
-import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  RouterPriority,
+} from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -792,7 +797,7 @@ describe('ModelSelectorPopover', () => {
       headings.indexOf('Recent'),
     );
     expect(headings.indexOf('Recent')).toBeLessThan(
-      headings.indexOf('Catalog'),
+      headings.indexOf('More Models'),
     );
     expect(screen.getAllByText('Model B')).toHaveLength(1);
     expect(screen.getAllByText('Model C')).toHaveLength(1);
@@ -849,6 +854,41 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Legacy Alpha')).toBeInTheDocument();
     expect(screen.getByText('Legacy Beta')).toBeInTheDocument();
     expect(screen.queryByText('Current Alpha')).not.toBeInTheDocument();
+  });
+
+  it('never renders Retired models and groups current choices by lifecycle', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/recommended',
+            label: 'Recommended Model',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+          }),
+          createModel({
+            key: 'google/available',
+            label: 'Available Model',
+            lifecycle: ModelLifecycle.AVAILABLE,
+          }),
+          createModel({
+            isActive: false,
+            key: 'google/retired',
+            label: 'Retired Model',
+            lifecycle: ModelLifecycle.RETIRED,
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await openPicker(user);
+    expect(screen.getByRole('heading', { name: 'Recommended' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'More Models' })).toBeVisible();
+    expect(screen.queryByText('Retired Model')).not.toBeInTheDocument();
   });
 
   it('collapses search to one flat list that still reaches legacy models', async () => {

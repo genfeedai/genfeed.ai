@@ -5,6 +5,17 @@ export enum ModelProvider {
   GENFEED_AI = 'genfeed-ai',
 }
 
+/**
+ * Operator-controlled model availability. Persisted values intentionally match
+ * the Prisma enum exactly; UI labels title-case these values at the boundary.
+ */
+export enum ModelLifecycle {
+  RECOMMENDED = 'RECOMMENDED',
+  AVAILABLE = 'AVAILABLE',
+  LEGACY = 'LEGACY',
+  RETIRED = 'RETIRED',
+}
+
 export enum ModelCategory {
   TEXT = 'text',
   EMBEDDING = 'embedding',

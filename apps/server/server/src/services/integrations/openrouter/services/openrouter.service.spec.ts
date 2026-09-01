@@ -57,6 +57,11 @@ describe('OpenRouterService', () => {
     } as unknown as Mocked<LoggerService>;
 
     httpService = {
+      get: vi
+        .fn()
+        .mockReturnValue(
+          of(makeAxiosResponse({ data: { model: mockResponse.model } })),
+        ),
       post: vi.fn(),
     } as unknown as Mocked<HttpService>;
 
@@ -87,6 +92,35 @@ describe('OpenRouterService', () => {
       const result = await service.chatCompletion(defaultParams);
 
       expect(result).toEqual(mockResponse);
+    });
+
+    it('falls back to generation metadata for exact cost and actual model', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      httpService.get.mockReturnValue(
+        of(
+          makeAxiosResponse({
+            data: {
+              is_byok: false,
+              model: 'openai/gpt-5.6-terra',
+              total_cost: 0.0142,
+            },
+          }),
+        ),
+      );
+
+      const result = await service.chatCompletion({
+        ...defaultParams,
+        model: 'openrouter/auto',
+      });
+
+      expect(httpService.get).toHaveBeenCalledWith(
+        'https://openrouter.ai/api/v1/generation',
+        expect.objectContaining({ params: { id: 'gen-123' } }),
+      );
+      expect(result).toMatchObject({
+        model: 'openai/gpt-5.6-terra',
+        usage: { cost: 0.0142, cost_source: 'generation' },
+      });
     });
 
     it('uses OPENROUTER_API_KEY from config by default', async () => {

@@ -5,26 +5,31 @@
  * `UNIFIED_MODEL_CATALOG` → ModelCatalogSeedService). After seed, pickers,
  * defaults, round costs, and key resolution must not re-read that list.
  */
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
 import {
   AGENT_CHAT_CAPABILITY,
+  AGENT_CHAT_MODEL_KEYS,
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
 } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export interface AgentChatRegistryRow {
   cost: number;
   isActive: boolean;
   isDefault: boolean;
-  isLegacy: boolean;
+  isFree: boolean;
   key: string;
   label: string;
   provider: string;
   succeededBy: string | null;
+  lifecycle: ModelLifecycle;
+  isDiscovered: boolean;
+  reviewStatus: string | null;
 }
 
 const CACHE_TTL_MS = 30_000;
@@ -52,15 +57,19 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         cost: true,
         isActive: true,
         isDefault: true,
-        isLegacy: true,
+        isDiscovered: true,
+        isFree: true,
         key: true,
         label: true,
         provider: true,
         succeededBy: true,
+        lifecycle: true,
+        reviewStatus: true,
       },
       where: {
         category: ModelCategory.TEXT,
         isDeleted: false,
+        organizationId: null,
         OR: [
           { capabilities: { has: AGENT_CHAT_CAPABILITY } },
           { recommendedFor: { has: AGENT_CHAT_CAPABILITY } },
@@ -74,11 +83,14 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         cost: typeof row.cost === 'number' ? row.cost : 0,
         isActive: row.isActive,
         isDefault: row.isDefault,
-        isLegacy: row.isLegacy,
+        isDiscovered: row.isDiscovered,
+        isFree: row.isFree,
         key: row.key,
         label: row.label,
         provider: row.provider,
         succeededBy: row.succeededBy ?? null,
+        lifecycle: row.lifecycle,
+        reviewStatus: row.reviewStatus,
       });
     }
 
@@ -107,11 +119,11 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     await this.loadPromise;
   }
 
-  /** Active (non-legacy) agent-chat rows. */
+  /** Explicit picker rows: Recommended, Available, and Legacy. */
   async listSelectable(): Promise<AgentChatRegistryRow[]> {
     await this.ensureFresh();
     return [...this.byKey.values()]
-      .filter((row) => row.isActive && !row.isLegacy)
+      .filter((row) => row.isActive && row.lifecycle !== ModelLifecycle.RETIRED)
       .sort((left, right) => {
         if (left.cost !== right.cost) {
           return left.cost - right.cost;
@@ -127,7 +139,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
   async getDefaultModelKey(): Promise<string> {
     await this.ensureFresh();
     const active = [...this.byKey.values()].filter(
-      (row) => row.isActive && !row.isLegacy,
+      (row) => row.isActive && row.lifecycle === ModelLifecycle.RECOMMENDED,
     );
     const marked = active.find((row) => row.isDefault);
     if (marked) {
@@ -150,7 +162,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     const local = [...this.byKey.values()].filter(
       (row) =>
         row.isActive &&
-        !row.isLegacy &&
+        row.lifecycle === ModelLifecycle.RECOMMENDED &&
         (row.provider === ModelProvider.GENFEED_AI ||
           row.key.startsWith('local/')),
     );
@@ -183,7 +195,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
       if (!row) {
         return current;
       }
-      if (row.succeededBy?.trim()) {
+      if (row.lifecycle === ModelLifecycle.RETIRED && row.succeededBy?.trim()) {
         current = row.succeededBy.trim();
         continue;
       }
@@ -209,6 +221,47 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     return AGENT_FALLBACK_ROUND_CREDITS;
   }
 
+  /** Maximum hold before a round. Dynamic routes reserve their paid fallback. */
+  async getMaximumRoundCredits(key?: string | null): Promise<number> {
+    await this.ensureFresh();
+    const resolved = await this.resolveModelKey(key);
+    if (resolved === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO) {
+      const autoRow = this.byKey.get(resolved);
+      const candidates = [...this.byKey.values()].filter((row) =>
+        this.isAutoEligible(row),
+      );
+      return Math.max(
+        AGENT_FALLBACK_ROUND_CREDITS,
+        Math.max(1, Math.round(autoRow?.cost ?? 0)),
+        ...candidates.map((row) => Math.max(1, Math.round(row.cost))),
+      );
+    }
+    if (resolved === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
+      return this.getRoundCredits(AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH);
+    }
+    return this.getRoundCredits(resolved);
+  }
+
+  async getAutoAllowedModelKeys(): Promise<string[]> {
+    await this.ensureFresh();
+    return [...this.byKey.values()]
+      .filter((row) => this.isAutoEligible(row))
+      .map((row) => row.key)
+      .sort();
+  }
+
+  private isAutoEligible(row: AgentChatRegistryRow): boolean {
+    return (
+      row.key !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO &&
+      row.key !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE &&
+      row.lifecycle === ModelLifecycle.RECOMMENDED &&
+      row.isActive &&
+      !row.isFree &&
+      row.cost > 0 &&
+      (!row.isDiscovered || row.reviewStatus === 'approved')
+    );
+  }
+
   async getRoundCostsMap(): Promise<Record<string, number>> {
     const selectable = await this.listSelectable();
     return Object.fromEntries(
@@ -219,7 +272,12 @@ export class AgentChatModelRegistryService implements OnModuleInit {
   async isTrustedSelectableKey(key: string): Promise<boolean> {
     await this.ensureFresh();
     const row = this.byKey.get(key.trim());
-    return Boolean(row?.isActive && !row.isLegacy);
+    if (!row) return false;
+    const resolved = await this.resolveModelKey(row.key);
+    const resolvedRow = this.byKey.get(resolved);
+    return Boolean(
+      resolvedRow?.isActive && resolvedRow.lifecycle !== ModelLifecycle.RETIRED,
+    );
   }
 
   async getCheapestSelectableKey(): Promise<string> {

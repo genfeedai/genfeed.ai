@@ -13,12 +13,13 @@
  * are seed *input* only — never a parallel runtime allowlist.
  */
 import type { CostTier } from '@genfeedai/enums';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import {
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   getAgentChatModel,
+  HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
   RETIRED_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import {
@@ -66,6 +67,7 @@ export interface ModelCatalogSeedEntry {
   isHighlighted?: boolean;
   isImagenModel?: boolean;
   isLegacy?: boolean;
+  lifecycle: ModelLifecycle;
   isPublic?: boolean;
   isReferencesMandatory?: boolean;
   key: string;
@@ -143,6 +145,10 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
       isLegacy: false,
+      lifecycle:
+        curated?.isDefault || curated?.isHighlighted
+          ? ModelLifecycle.RECOMMENDED
+          : ModelLifecycle.AVAILABLE,
       isPublic: isCurated,
       key,
       label: curated?.label ?? labelFromKey(key),
@@ -246,6 +252,10 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isDefault,
       isHighlighted: isDefault,
       isLegacy: false,
+      lifecycle:
+        isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
+          ? ModelLifecycle.RECOMMENDED
+          : ModelLifecycle.AVAILABLE,
       isPublic: !isSelfHosted,
       key: model.key,
       label: model.label,
@@ -282,7 +292,8 @@ function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: false,
       isDefault: false,
       isHighlighted: false,
-      isLegacy: true,
+      isLegacy: false,
+      lifecycle: ModelLifecycle.RETIRED,
       isPublic: false,
       key,
       label: labelFromKey(key),
@@ -338,6 +349,7 @@ function applyLowestCostDefaults(
         ...entry,
         isActive: isLowestCost ? true : entry.isActive,
         isDefault: isLowestCost,
+        ...(isLowestCost ? { lifecycle: ModelLifecycle.RECOMMENDED } : {}),
       };
     }
 
@@ -348,6 +360,7 @@ function applyLowestCostDefaults(
         ...entry,
         isActive: isLowestCost ? true : entry.isActive,
         isDefault: isLowestCost,
+        ...(isLowestCost ? { lifecycle: ModelLifecycle.RECOMMENDED } : {}),
       };
     }
 
@@ -358,6 +371,7 @@ function applyLowestCostDefaults(
         ...entry,
         isDefault: isLowestCost,
         isHighlighted: isLowestCost,
+        ...(isLowestCost ? { lifecycle: ModelLifecycle.RECOMMENDED } : {}),
       };
     }
 

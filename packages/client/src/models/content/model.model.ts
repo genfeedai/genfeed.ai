@@ -2,6 +2,7 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   CostTier,
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   PricingType,
   QualityTier,
@@ -17,6 +18,7 @@ export class Model extends BaseEntity implements IModel {
   public declare cost: number;
   public declare isDefault: boolean;
   public declare isActive: boolean;
+  public declare lifecycle: ModelLifecycle;
   public declare description?: string;
   public declare isHighlighted?: boolean;
   public declare trigger?: string;
@@ -33,6 +35,8 @@ export class Model extends BaseEntity implements IModel {
   public declare minCost?: number;
   public declare isDiscovered?: boolean;
   public declare isLegacy?: boolean;
+  public declare isFree?: boolean;
+  public declare succeededBy?: string;
   public declare rejectionReason?: string;
   public declare reviewStatus?: IModel['reviewStatus'];
   public declare reviewedAt?: Date;

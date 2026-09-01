@@ -1,4 +1,9 @@
-import { CostTier, ModelCategory, QualityTier } from '@genfeedai/enums';
+import {
+  CostTier,
+  ModelCategory,
+  ModelLifecycle,
+  QualityTier,
+} from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -13,6 +18,7 @@ function buildModel(overrides: Partial<IModel> = {}): IModel {
     id: 'model-1',
     isActive: true,
     isDefault: false,
+    lifecycle: ModelLifecycle.AVAILABLE,
     isDeleted: false,
     key: 'flux-dev',
     label: 'Flux Dev',
@@ -29,12 +35,14 @@ function renderColumn(
 ): void {
   const columns = buildModelsTableColumns({
     handleAdminToggle: vi.fn(),
+    handleLifecycleChange: vi.fn(),
     handleToggleModel: vi.fn(),
     isAdminScope,
     isModelEnabled: () => true,
     isOnlyDefaultInCategory: () => false,
     onOpenDetails,
     togglingModelId: null,
+    models: [model],
   });
   const column = columns.find((entry) => entry.header === header);
   if (!column?.render) {
@@ -47,12 +55,14 @@ describe('buildModelsTableColumns', () => {
   it('shows a quality bar and pricing symbol instead of a Value label', () => {
     const columns = buildModelsTableColumns({
       handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
       handleToggleModel: vi.fn(),
       isAdminScope: false,
       isModelEnabled: () => true,
       isOnlyDefaultInCategory: () => false,
       onOpenDetails: vi.fn(),
       togglingModelId: null,
+      models: [],
     });
 
     expect(columns.map((column) => column.header)).toContain('Quality');
@@ -63,6 +73,15 @@ describe('buildModelsTableColumns', () => {
         .filter((column) => column.header)
         .every((column) => column.sortable),
     ).toBe(true);
+  });
+
+  it('renders lifecycle and requires a successor for a terminal transition', () => {
+    const model = buildModel({ lifecycle: ModelLifecycle.AVAILABLE });
+    renderColumn('Lifecycle', model, true);
+
+    expect(
+      screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the picker quality meter and dollar cost mark', () => {
