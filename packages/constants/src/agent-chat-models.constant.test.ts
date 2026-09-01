@@ -150,9 +150,9 @@ describe('resolveAgentChatModelKey', () => {
     );
   });
 
-  it('retires the old free router and pinned Nemotron key onto the paid fallback', () => {
+  it('keeps the curated free router live and retires pinned Nemotron', () => {
     expect(resolveAgentChatModelKey('openrouter/free')).toBe(
-      AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
     );
     expect(
       resolveAgentChatModelKey(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE),

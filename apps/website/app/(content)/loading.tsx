@@ -1,9 +1,5 @@
-import BrandLoader from '@ui/feedback/brand-loader/BrandLoader';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 
 export default function Loading() {
-  return (
-    <main className="grid min-h-[calc(100vh-5rem)] place-items-center bg-background">
-      <BrandLoader />
-    </main>
-  );
+  return <LazyLoadingFallback variant="grid" />;
 }

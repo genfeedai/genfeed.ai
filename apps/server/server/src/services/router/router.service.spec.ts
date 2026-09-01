@@ -497,12 +497,12 @@ describe('RouterService', () => {
             prioritize: 'quality',
             prompt: 'A cinematic brand still',
           }),
-        ).rejects.toThrow('No models enabled for this workspace');
+        ).rejects.toThrow('No Recommended models enabled for this workspace');
 
         expect(modelsService.findOne).not.toHaveBeenCalled();
       });
 
-      it('falls back to the catalog default for conversation TEXT when the allowlist is empty', async () => {
+      it('does not fall back to the catalog default for conversation TEXT when the allowlist is empty', async () => {
         const freeChat = createMockModel({
           category: ModelCategory.TEXT,
           id: testId('model', 16),
@@ -521,14 +521,16 @@ describe('RouterService', () => {
           id: testId('setting'),
         });
 
-        const result = await service.selectModel({
-          category: ModelCategory.TEXT,
-          organizationId: testId('org'),
-          prioritize: 'cost',
-          prompt: 'Help me draft a caption',
-        });
+        await expect(
+          service.selectModel({
+            category: ModelCategory.TEXT,
+            organizationId: testId('org'),
+            prioritize: 'cost',
+            prompt: 'Help me draft a caption',
+          }),
+        ).rejects.toThrow('No Recommended models enabled for this workspace');
 
-        expect(result.selectedModel).toBe(LOWEST_COST_AGENT_CHAT_MODEL_KEY);
+        expect(modelsService.findOne).not.toHaveBeenCalled();
       });
 
       it('should prefer default models slightly', async () => {
