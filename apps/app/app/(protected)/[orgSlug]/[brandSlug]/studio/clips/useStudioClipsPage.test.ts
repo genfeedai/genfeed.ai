@@ -6,6 +6,7 @@ const mockAnalyzeVideo = vi.fn();
 const mockGetHighlights = vi.fn();
 const mockGetHookApproval = vi.fn();
 const mockGetProject = vi.fn();
+const mockGetToken = vi.fn();
 const mockPush = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -13,7 +14,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
-  useAuthIdentity: () => ({ getToken: vi.fn() }),
+  useAuthIdentity: () => ({ getToken: mockGetToken }),
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({

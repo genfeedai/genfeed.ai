@@ -340,9 +340,16 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         projectIdFromRoute,
         abortController.signal,
       );
-      return [data, hookApproval] as const;
+      const highlightsResponse =
+        data.status === 'analyzed'
+          ? await clipsService.getHighlights(
+              projectIdFromRoute,
+              abortController.signal,
+            )
+          : null;
+      return [data, hookApproval, highlightsResponse] as const;
     })()
-      .then(([data, hookApproval]) => {
+      .then(([data, hookApproval, highlightsResponse]) => {
         if (cancelled) {
           return;
         }
@@ -351,10 +358,11 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         const mode = isClipResultMode(data.settings?.mode)
           ? data.settings.mode
           : 'avatar';
+        const highlights = highlightsResponse?.highlights ?? [];
 
         setProject({
           clips: [],
-          highlights: [],
+          highlights,
           hookApproval,
           mode,
           projectId: projectIdFromRoute,
@@ -362,6 +370,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           source: data.source,
           status,
         });
+        setEditedHighlights(highlights);
+        setSelectedIds(new Set(highlights.map((highlight) => highlight.id)));
         setGenerationMode(mode);
         setStep(resolveClipsStepFromStatus(status));
         setError(null);
