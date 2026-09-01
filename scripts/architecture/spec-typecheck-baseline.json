@@ -1753,22 +1753,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
-      "fingerprint": "7a3cd95c73371b2722e7",
-      "message": "Argument of type '{ docs: { id: string; key: string; label: string; }[]; page: number; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Type '{ docs: { id: string; key: string; label: string; }[]; page: number; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<ModelDocument>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
-      "fingerprint": "3f28f88f929ee36c3cab",
-      "message": "Conversion of type '[input: unknown, options: AggregationOptions]' to type '[{ where: Record<string, unknown>; }]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Source has 2 element(s) but target allows only 1.",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 3,
       "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",

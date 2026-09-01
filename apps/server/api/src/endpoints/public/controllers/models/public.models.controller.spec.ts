@@ -50,13 +50,14 @@ describe('PublicModelsController', () => {
     ],
     page: 1,
     totalDocs: 2,
-  };
+  } as unknown as Awaited<ReturnType<ModelsService['findPublicCatalog']>>;
 
   function filtersFromLastCall(): Record<string, unknown> {
-    const [filters] = modelsService.findPublicCatalog.mock.calls[0] as [
-      Record<string, unknown>,
-    ];
-    return filters;
+    const filters = modelsService.findPublicCatalog.mock.calls[0]?.[0];
+    if (!filters) {
+      throw new Error('Expected public catalog query');
+    }
+    return { ...filters };
   }
 
   function buildQuery(

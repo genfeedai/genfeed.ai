@@ -722,7 +722,7 @@ describe('ModelsController', () => {
       modelsService.findOne.mockResolvedValue({
         id,
         isDefault: false,
-      });
+      } as unknown as ModelDocument);
 
       await controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
         reason: 'Not content-generation relevant',
