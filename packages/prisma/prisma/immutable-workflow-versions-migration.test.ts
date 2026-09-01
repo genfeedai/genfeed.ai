@@ -20,6 +20,10 @@ const migrationSource = readFileSync(
   ),
   'utf8',
 );
+const atomicExecutorSnapshot =
+  migrationSource.match(
+    /CREATE FUNCTION workflow_action_has_atomic_executor\(action_id TEXT\)[\s\S]*?AS \$\$([\s\S]*?)\$\$;/,
+  )?.[1] ?? '';
 
 const rejectedLegacyStepCategories = [
   'transform',
@@ -89,6 +93,8 @@ async function createLegacyWorkflowSchema(client: PoolClient): Promise<void> {
       "inputVariables" jsonb NOT NULL DEFAULT '[]',
       "lockedNodeIds" jsonb NOT NULL DEFAULT '[]',
       "metadata" jsonb,
+      "isDeleted" boolean NOT NULL DEFAULT false,
+      "isScheduleEnabled" boolean,
       "createdAt" timestamp NOT NULL DEFAULT now(),
       "updatedAt" timestamp NOT NULL DEFAULT now()
     );
@@ -198,6 +204,20 @@ function retiredSeededSystemWorkflowMetadata(canonicalId: string): JsonRecord {
   };
 }
 
+function retiredSeededMacroWorkflowMetadata(canonicalId: string): JsonRecord {
+  return {
+    sourceTemplateId: canonicalId,
+    sourceType: 'seeded-template',
+    systemWorkflow: {
+      canonicalId,
+      immutable: true,
+      kind: 'system-workflow',
+      owner: 'genfeed',
+      visibility: 'organization',
+    },
+  };
+}
+
 describe('immutable workflow version migration', () => {
   it('owns one atomic hard-cut transaction', () => {
     expect(migrationSource.trimStart().startsWith('BEGIN;')).toBe(true);
@@ -233,6 +253,8 @@ describe('immutable workflow version migration', () => {
     );
     expect(migrationSource).toContain("'workflow.for-each'");
     expect(migrationSource).toContain("'workflow.run-child'");
+    expect(atomicExecutorSnapshot).toContain("'sendEmail'");
+    expect(atomicExecutorSnapshot).toContain("'trendDigest'");
     expect(migrationSource).toContain('references removed macro');
     expect(migrationSource).toContain('has unconvertible legacy type');
   });
@@ -303,6 +325,77 @@ const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
 describePostgres('immutable workflow version migration on PostgreSQL', () => {
+  it('retires only exact seeded macro clones while preserving their history', async () => {
+    const fixture = await openMigrationFixture('workflow_version_seeded_macro');
+    const { client } = fixture;
+    const nodes = [
+      graphNode('legacy_macro', 'proactiveAgentStrategies', { config: {} }),
+    ];
+
+    try {
+      await client.query(
+        `
+          INSERT INTO "workflows"
+            ("id", "organizationId", "userId", "nodes", "metadata", "isScheduleEnabled")
+          VALUES
+            ('workflow_seeded_macro', 'org_fixture', 'user_fixture', $1::jsonb, $2::jsonb, true)
+        `,
+        [
+          JSON.stringify(nodes),
+          JSON.stringify(
+            retiredSeededMacroWorkflowMetadata('proactive-agent-strategies'),
+          ),
+        ],
+      );
+      await client.query(`
+        INSERT INTO "workflow_executions"
+          ("id", "workflowId", "organizationId", "userId")
+        VALUES
+          ('execution_seeded_macro', 'workflow_seeded_macro', 'org_fixture', 'user_fixture')
+      `);
+
+      await client.query(migrationSource);
+
+      const workflow = await client.query<{
+        currentVersionId: string;
+        isDeleted: boolean;
+        isScheduleEnabled: boolean;
+      }>(`
+        SELECT "currentVersionId", "isDeleted", "isScheduleEnabled"
+        FROM "workflows"
+        WHERE "id" = 'workflow_seeded_macro'
+      `);
+      expect(workflow.rows).toEqual([
+        {
+          currentVersionId: 'wv_legacy_workflow_seeded_macro',
+          isDeleted: true,
+          isScheduleEnabled: false,
+        },
+      ]);
+
+      const version = await client.query<{
+        actionId: string;
+        workflowVersionId: string;
+      }>(`
+        SELECT
+          version."graph"->'nodes'->0->'data'->'config'->>'actionId' AS "actionId",
+          execution."workflowVersionId"
+        FROM "workflow_versions" version
+        JOIN "workflow_executions" execution
+          ON execution."workflowId" = version."workflowId"
+        WHERE version."workflowId" = 'workflow_seeded_macro'
+      `);
+      expect(version.rows).toEqual([
+        {
+          actionId: 'proactiveAgentStrategies',
+          workflowVersionId: 'wv_legacy_workflow_seeded_macro',
+        },
+      ]);
+    } finally {
+      await closeMigrationFixture(fixture);
+    }
+  });
+
   it('converts equivalent graph aliases/data fields and delay millisecond boundaries', async () => {
     const fixture = await openMigrationFixture('workflow_version_cutover');
     const { client } = fixture;
