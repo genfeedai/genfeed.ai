@@ -19,8 +19,10 @@ on:
   workflow_call:
 
 concurrency:
+  # Release and recovery callers write the same selfhosted cache scope. Queue
+  # them so one publication path cannot cancel another or race its cache write.
   group: build-verify-selfhosted-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
