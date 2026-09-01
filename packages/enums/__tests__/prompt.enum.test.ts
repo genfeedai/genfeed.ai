@@ -62,15 +62,14 @@ describe('prompt.enum', () => {
   });
 
   describe('PromptTemplateCategory', () => {
-    it('should have 15 members', () => {
-      expect(Object.values(PromptTemplateCategory)).toHaveLength(15);
+    it('should have 14 members', () => {
+      expect(Object.values(PromptTemplateCategory)).toHaveLength(14);
     });
 
     it('should have correct values', () => {
       expect(PromptTemplateCategory.ARTICLE_GENERATION).toBe(
         'article-generation',
       );
-      expect(PromptTemplateCategory.ARTICLE_EDIT).toBe('article-edit');
       expect(PromptTemplateCategory.ARTICLE_VIRALITY_ANALYSIS).toBe(
         'article-virality-analysis',
       );

@@ -249,7 +249,7 @@ const InsightsOverview = memo(function InsightsOverview({
             iconClassName="text-warning"
             className="bg-secondary"
           >
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
               {criticalAlerts === 0 && warningAlerts === 0 ? (
                 <div className="flex items-center gap-3 text-success">
                   <CircleCheck className="size-6 flex-shrink-0" />

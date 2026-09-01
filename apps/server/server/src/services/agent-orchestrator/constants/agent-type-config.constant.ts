@@ -1,7 +1,7 @@
-import { ORCHESTRATOR_AGENT_TYPE } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { ORCHESTRATOR_AGENT_TYPE } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 
 export interface AgentTypeConfig {
   defaultDailyCreditBudget: number;
@@ -504,7 +504,6 @@ YouTube-specific guidelines:
     defaultModel: VOLUME_AGENT_MODEL,
     defaultTools: [
       ...SHARED_READ_TOOLS,
-      AgentToolName.LIST_AGENT_RUNS,
       AgentToolName.LIST_REVIEW_QUEUE,
       AgentToolName.UPDATE_STRATEGY_STATE,
       AgentToolName.GET_APPROVAL_SUMMARY,

@@ -11,6 +11,10 @@ import {
   findRawChromeColorTokens,
   formatDesignSystemRegressions,
 } from './check-design-system';
+import {
+  loadDesignEvalScenario,
+  validateDesignEvalScenario,
+} from './design-eval/contract';
 
 function finding(
   file: string,
@@ -119,8 +123,8 @@ describe('packages/ui design-system guards', () => {
     );
 
     expect(findings.map((entry) => entry.token)).toEqual([
-      'text-[10px]',
       'text-[0.625rem]',
+      'text-[10px]',
     ]);
     expect(findings.every((entry) => entry.kind === 'sub-11-text')).toBe(true);
   });
@@ -211,5 +215,44 @@ describe('design-system debt baseline', () => {
     expect(report).toContain('text-white');
     expect(report).toContain('b.tsx:1');
     expect(report).toContain('bg-black');
+  });
+});
+
+describe('design evaluation seed', () => {
+  it('keeps the frozen scenario executable and reviewable', () => {
+    expect(validateDesignEvalScenario(loadDesignEvalScenario())).toEqual([]);
+  });
+
+  it('rejects comparisons that can mutate more than the guidance', () => {
+    const scenario = structuredClone(loadDesignEvalScenario());
+    scenario.comparison.inputMutation = 'allowed';
+    scenario.comparison.sameModel = false;
+
+    expect(validateDesignEvalScenario(scenario)).toEqual(
+      expect.arrayContaining([
+        'comparison.inputMutation must be forbidden',
+        'comparison.sameModel must be true',
+      ]),
+    );
+  });
+
+  it('requires observable score anchors and reproducibility metadata', () => {
+    const scenario = structuredClone(loadDesignEvalScenario());
+    scenario.requiredRunRecordFields = ['scenarioVersion'];
+    const firstCriterion = scenario.rubric.at(0);
+    if (!firstCriterion) {
+      throw new Error(
+        'Expected the design evaluation fixture to have a rubric',
+      );
+    }
+    firstCriterion.scoreAnchors['2'] = '';
+
+    expect(validateDesignEvalScenario(scenario)).toEqual(
+      expect.arrayContaining([
+        'requiredRunRecordFields must include modelVersion',
+        'requiredRunRecordFields must include guidanceCommitSha',
+        'rubric[0].scoreAnchors.2 must be a non-empty string',
+      ]),
+    );
   });
 });

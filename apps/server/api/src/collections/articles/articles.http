@@ -173,96 +173,6 @@ Authorization: Bearer {{bearerToken}}
 
 ###
 
-########################################
-# 🤖 AI-Powered Editing
-########################################
-
-### Edit: Rephrase Paragraph
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "generate an article about vibe coding"
-}
-
-# Expected: Returns ONLY changed fields (e.g., just "content")
-
-###
-
-### Edit: Add Content
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "add a section about recent AI breakthroughs in medical imaging"
-}
-
-###
-
-### Edit: Make Shorter
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "make it 30% shorter while keeping key points"
-}
-
-###
-
-### Edit: Change Tone
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "rewrite in a more professional tone for C-level executives"
-}
-
-###
-
-### Edit: Improve SEO (general prompt)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "optimize for SEO with focus on 'AI healthcare solutions' keyword"
-}
-
-###
-
-########################################
-# 🔍 SEO Enhancement (enhanceType: 'seo')
-########################################
-
-### Enhance for SEO - Full Optimization
-# Uses ARTICLE_SEO template for comprehensive SEO rewriting
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "Focus on keywords: AI, healthcare, medical imaging",
-  "enhanceType": "seo"
-}
-
-###
-
-### Enhance for SEO - Target Specific Keyword
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "Optimize for ranking on 'AI medical diagnosis' keyword",
-  "enhanceType": "seo"
-}
-
-###
-
 ### Score Article SEO
 POST {{apiBaseUrl}}/articles/{{articleId}}/seo-scores
 Authorization: Bearer {{bearerToken}}
@@ -491,37 +401,13 @@ Content-Type: application/json
 
 ###
 
-### STEP 2: Edit with AI (Add Content)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "add a section about online learning platforms with examples"
-}
-
-###
-
-### STEP 3: Edit with AI (Improve Engagement)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "make the introduction more engaging with a compelling hook"
-}
-
-###
-
-### STEP 4: Check Version History
+### STEP 2: Check Version History
 GET {{apiBaseUrl}}/articles/{{articleId}}/versions
 Authorization: Bearer {{bearerToken}}
 
-# You'll see 2 prompts (from step 2 and 3)
-
 ###
 
-### STEP 5: Analyze Virality
+### STEP 3: Analyze Virality
 POST {{apiBaseUrl}}/articles/{{articleId}}/virality-analyses
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
@@ -532,18 +418,7 @@ Content-Type: application/json
 
 ###
 
-### STEP 6: Apply Virality Suggestions
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "apply the virality suggestions to improve emotional appeal"
-}
-
-###
-
-### STEP 7: Re-Analyze (Should Show Improvement)
+### STEP 4: Re-Analyze
 POST {{apiBaseUrl}}/articles/{{articleId}}/virality-analyses
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
@@ -552,7 +427,7 @@ Content-Type: application/json
 
 ###
 
-### STEP 8: Convert to Twitter Thread
+### STEP 5: Convert to Twitter Thread
 POST {{apiBaseUrl}}/articles/{{articleId}}/thread-conversions
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
@@ -561,7 +436,7 @@ Content-Type: application/json
 
 ###
 
-### STEP 9: Publish Article
+### STEP 6: Publish Article
 PATCH {{apiBaseUrl}}/articles/{{articleId}}
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
@@ -607,17 +482,6 @@ Content-Type: application/json
 {
   "prompt": "test",
   "type": "long-form"
-}
-
-###
-
-### Edit Non-Existent Article
-POST {{apiBaseUrl}}/articles/507f1f77bcf86cd799439999/enhancements
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "prompt": "edit this"
 }
 
 ###

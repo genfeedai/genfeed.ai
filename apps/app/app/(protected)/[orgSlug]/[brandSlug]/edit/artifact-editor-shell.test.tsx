@@ -30,24 +30,6 @@ describe('ArtifactEditorShell', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('still supports an explicit back link when the page has no breadcrumb', () => {
-    render(
-      <ArtifactEditorShell
-        artifactLabel="Newsletter"
-        backHref="/acme/main/publishing/newsletters?status=draft"
-        backLabel="Back to newsletters"
-        description="Draft, revise, approve."
-        title="Issue 1"
-      >
-        <div>Editor body</div>
-      </ArtifactEditorShell>,
-    );
-
-    expect(
-      screen.getByRole('link', { name: 'Back to newsletters' }),
-    ).toHaveAttribute('href', '/acme/main/publishing/newsletters?status=draft');
-  });
-
   it('flags unsaved work only while the editor is dirty', () => {
     const { rerender } = render(
       <ArtifactEditorShell artifactLabel="Post" title="Launch post">

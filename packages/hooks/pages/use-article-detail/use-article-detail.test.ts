@@ -11,7 +11,6 @@ const patchMock = vi.fn();
 const publishMock = vi.fn();
 const archiveMock = vi.fn();
 const deleteMock = vi.fn();
-const enhanceMock = vi.fn();
 const notificationsServiceMock = {
   error: vi.fn(),
   success: vi.fn(),
@@ -19,7 +18,6 @@ const notificationsServiceMock = {
 const articlesServiceMock = {
   archive: archiveMock,
   delete: deleteMock,
-  enhance: enhanceMock,
   findOne: findOneMock,
   patch: patchMock,
   post: postMock,
@@ -99,7 +97,6 @@ describe('useArticleDetail', () => {
     expect(result.current).toHaveProperty('article');
     expect(result.current).toHaveProperty('isLoading');
     expect(result.current).toHaveProperty('isSaving');
-    expect(result.current).toHaveProperty('isEnhancing');
     expect(result.current).toHaveProperty('isScoringSeo');
     expect(result.current).toHaveProperty('isDirty');
     expect(result.current).toHaveProperty('error');
@@ -109,7 +106,6 @@ describe('useArticleDetail', () => {
     expect(result.current).toHaveProperty('handlePublish');
     expect(result.current).toHaveProperty('handleArchive');
     expect(result.current).toHaveProperty('handleDelete');
-    expect(result.current).toHaveProperty('handleEnhance');
     expect(result.current).toHaveProperty('handleScoreSeo');
   });
 
@@ -145,7 +141,6 @@ describe('useArticleDetail', () => {
     expect(typeof result.current.handlePublish).toBe('function');
     expect(typeof result.current.handleArchive).toBe('function');
     expect(typeof result.current.handleDelete).toBe('function');
-    expect(typeof result.current.handleEnhance).toBe('function');
     expect(typeof result.current.handleScoreSeo).toBe('function');
     expect(typeof result.current.setFormField).toBe('function');
   });
@@ -400,57 +395,6 @@ describe('useArticleDetail', () => {
     );
   });
 
-  it('enhances the article and adopts the returned content', async () => {
-    enhanceMock.mockResolvedValue({
-      category: 'post',
-      content: 'Enhanced body',
-      id: 'article-1',
-      label: 'Enhanced label',
-      slug: 'existing-article',
-      status: ArticleStatus.DRAFT,
-      summary: 'Enhanced summary',
-    });
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.handleEnhance('make it better');
-    });
-
-    expect(enhanceMock).toHaveBeenCalledWith('article-1', 'make it better');
-    expect(result.current.form.content).toBe('Enhanced body');
-    expect(result.current.form.label).toBe('Enhanced label');
-    expect(result.current.isDirty).toBe(false);
-    expect(notificationsServiceMock.success).toHaveBeenCalledWith(
-      'Article enhanced',
-    );
-  });
-
-  it('notifies when enhancement fails', async () => {
-    enhanceMock.mockRejectedValue(new Error('boom'));
-    const { result } = renderHook(() =>
-      useArticleDetail({ articleId: 'article-1' }),
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.handleEnhance('prompt');
-    });
-
-    expect(notificationsServiceMock.error).toHaveBeenCalledWith(
-      'Failed to enhance article',
-    );
-    expect(result.current.isEnhancing).toBe(false);
-  });
-
   it('skips SEO scoring while the form is dirty', async () => {
     const { result } = renderHook(() =>
       useArticleDetail({ articleId: 'article-1' }),
@@ -471,21 +415,19 @@ describe('useArticleDetail', () => {
     expect(scoreSeoMock).not.toHaveBeenCalled();
   });
 
-  it('ignores publish, archive, delete, and enhance without an id', async () => {
+  it('ignores publish, archive, delete, and SEO scoring without an id', async () => {
     const { result } = renderHook(() => useArticleDetail({}));
 
     await act(async () => {
       await result.current.handlePublish();
       await result.current.handleArchive();
       await result.current.handleDelete();
-      await result.current.handleEnhance('prompt');
       await result.current.handleScoreSeo();
     });
 
     expect(publishMock).not.toHaveBeenCalled();
     expect(archiveMock).not.toHaveBeenCalled();
     expect(deleteMock).not.toHaveBeenCalled();
-    expect(enhanceMock).not.toHaveBeenCalled();
     expect(scoreSeoMock).not.toHaveBeenCalled();
   });
 });

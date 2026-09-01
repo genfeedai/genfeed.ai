@@ -266,6 +266,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
   ],
   WorkflowTemplate: [
     'category',
+    'changeSummary',
     'description',
     'edges',
     'icon',
@@ -276,8 +277,8 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'nodes',
     'routine',
     'schedule',
-    'steps',
     'timezone',
+    'version',
   ],
 };
 

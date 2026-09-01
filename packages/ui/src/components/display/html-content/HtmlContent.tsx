@@ -23,7 +23,12 @@ export default function HtmlContent({ content, className }: HtmlContentProps) {
   }
 
   return (
-    <div className={cn('prose prose-sm max-w-none', className)}>
+    <div
+      className={cn(
+        'prose prose-sm dark:prose-invert max-w-none text-foreground',
+        className,
+      )}
+    >
       {parse(sanitizeHtml(content))}
     </div>
   );

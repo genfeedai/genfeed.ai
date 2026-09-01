@@ -1,5 +1,5 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { ArticleCategory } from '@genfeedai/enums';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsBoolean,
   IsEnum,
@@ -76,21 +76,4 @@ export class GenerateArticlesDto {
   @IsOptional()
   @IsBoolean()
   wait?: boolean; // If true, waits for generation to complete before returning
-}
-
-/**
- * Enhancement types for article editing
- * - 'edit': General editing (default) - uses ARTICLE_EDIT template
- * - 'seo': SEO optimization - uses ARTICLE_SEO template
- */
-export type ArticleEnhanceType = 'edit' | 'seo';
-
-export class EditArticleWithAIDto {
-  @IsString()
-  @MaxLength(500)
-  prompt!: string; // e.g., "rephrase the first paragraph"
-
-  @IsOptional()
-  @IsString()
-  enhanceType?: ArticleEnhanceType; // 'edit' (default) or 'seo'
 }

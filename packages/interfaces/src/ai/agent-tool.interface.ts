@@ -41,7 +41,6 @@ export enum AgentToolName {
   COMPLETE_CAMPAIGN = 'complete_campaign',
   GET_CAMPAIGN_ANALYTICS = 'get_campaign_analytics',
   RESOLVE_HANDLE = 'resolve_handle',
-  LIST_AGENT_RUNS = 'list_agent_runs',
   LIST_REVIEW_QUEUE = 'list_review_queue',
   BATCH_APPROVE_REJECT = 'batch_approve_reject',
   // Proactive agent tools

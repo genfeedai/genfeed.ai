@@ -187,7 +187,7 @@ function graphNode(
 function retiredSeededSystemWorkflowMetadata(canonicalId: string): JsonRecord {
   return {
     sourceTemplateId: canonicalId,
-    sourceType: 'seeded-template',
+    sourceType: 'system-action-workflow',
     systemWorkflow: {
       canonicalId,
       immutable: true,
@@ -245,7 +245,7 @@ describe('immutable workflow version migration', () => {
       `@.type == "systemWorkflowAction"`,
     );
     expect(seededSystemCleanupMigrationSource).toContain(
-      `workflow_metadata->>'sourceType' = 'seeded-template'`,
+      `workflow_metadata->>'sourceType' = 'system-action-workflow'`,
     );
     expect(seededSystemCleanupMigrationSource).toContain(
       `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
@@ -254,7 +254,7 @@ describe('immutable workflow version migration', () => {
       'jsonb_array_length(workflow_nodes) = 1',
     );
     expect(seededSystemCleanupMigrationSource).toContain(
-      `workflow_nodes->0->'data'->'config'->>'actionId'`,
+      `workflow_nodes->0->'data'->'config'->>'canonicalId'`,
     );
     expect(seededSystemCleanupMigrationSource).toContain('SELECT COALESCE(');
     expect(seededSystemCleanupMigrationSource).toContain(
@@ -619,7 +619,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
     const { client } = fixture;
     const retiredNodes = [
       graphNode('system_action', 'systemWorkflowAction', {
-        config: { actionId: 'scheduled-publish' },
+        config: { canonicalId: 'scheduled-publish' },
       }),
     ];
     const executableNodes = [graphNode('llm_node', 'llm', { config: {} })];
@@ -676,7 +676,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
     const { client } = fixture;
     const nodes = [
       graphNode('system_action', 'systemWorkflowAction', {
-        config: { actionId: 'customer-template' },
+        config: { canonicalId: 'customer-template' },
       }),
     ];
 
@@ -756,7 +756,7 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
     const { client } = fixture;
     const nodes = [
       graphNode('system_action', 'systemWorkflowAction', {
-        config: { actionId: 'scheduled-publish' },
+        config: { canonicalId: 'scheduled-publish' },
       }),
     ];
 

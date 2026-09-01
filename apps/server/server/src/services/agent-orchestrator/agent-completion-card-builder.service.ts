@@ -49,7 +49,6 @@ const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   AgentToolName.LIST_POSTS,
   AgentToolName.LIST_WORKFLOWS,
   AgentToolName.LIST_WORKFLOW_RUNS,
-  AgentToolName.LIST_AGENT_RUNS,
   AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
   AgentToolName.LIST_GENFEED_TOOLS,
   AgentToolName.LIST_REVIEW_QUEUE,

@@ -150,9 +150,7 @@ describe('PublishingContentLibrary', () => {
 
     fireEvent.click(screen.getByRole('button', { name: title }));
 
-    expect(mocks.push).toHaveBeenCalledWith(
-      `/acme/main${route}?returnTo=%2Facme%2Fmain%2Fpublishing%2Fposts`,
-    );
+    expect(mocks.push).toHaveBeenCalledWith(`/acme/main${route}`);
   });
 
   it('shows the combination empty state when URL filters match no rows', () => {

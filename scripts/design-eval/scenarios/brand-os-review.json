@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "scenarioVersion": "1.0.0",
+  "id": "brand-os-evidence-review",
+  "title": "Brand OS evidence review",
+  "objective": "Measure whether DESIGN.md improves the first-attempt hierarchy, density, semantics, and visual identity of a realistic Genfeed operational page without changing its facts or task.",
+  "frozenPrompt": "Create one responsive, self-contained index.html page for the authenticated Genfeed Brand OS evidence-review task described in MOCK_INPUTS. Return only the complete HTML. Use inline CSS and no external assets, libraries, fonts, images, or network requests. The reader must be able to understand readiness, inspect evidence, decide each recommendation, and apply accepted changes. Preserve every supplied fact and state; do not invent customer proof, source claims, or capabilities. Support the supplied desktop viewport and a useful 390px mobile layout. Use semantic HTML, visible keyboard focus, accessible names, and sufficient contrast.",
+  "mockInputs": {
+    "reader": "A founder reviewing an automatically extracted Brand OS before applying it to their brand",
+    "primaryTask": "Inspect evidence, accept or reject recommendations, and apply accepted changes",
+    "brand": {
+      "name": "Northstar Roasters",
+      "readinessScore": 72,
+      "status": "Needs review",
+      "reviewedRecommendations": 2,
+      "totalRecommendations": 6
+    },
+    "recommendations": [
+      {
+        "id": "positioning",
+        "label": "Positioning",
+        "kind": "extracted",
+        "confidence": 0.94,
+        "detail": "Small-lot coffee with transparent sourcing for design-conscious home brewers.",
+        "decision": "accepted",
+        "sources": ["northstar.example/about", "northstar.example/sourcing"]
+      },
+      {
+        "id": "voice",
+        "label": "Voice",
+        "kind": "inferred",
+        "confidence": 0.82,
+        "detail": "Precise, calm, sensory, and candid about tradeoffs.",
+        "decision": "pending",
+        "sources": ["northstar.example/journal"]
+      },
+      {
+        "id": "palette",
+        "label": "Campaign palette",
+        "kind": "candidate",
+        "confidence": 0.64,
+        "detail": "Charcoal, parchment, oxidized copper, and washed sage.",
+        "decision": "pending",
+        "sources": ["northstar.example"]
+      },
+      {
+        "id": "customer-proof",
+        "label": "Customer proof",
+        "kind": "missing",
+        "confidence": null,
+        "detail": "No verified testimonial or case-study corpus was found.",
+        "decision": "preserved",
+        "sources": []
+      },
+      {
+        "id": "content-principle",
+        "label": "Content principle",
+        "kind": "extracted",
+        "confidence": 0.91,
+        "detail": "Teach one repeatable brewing decision before presenting a product.",
+        "decision": "pending",
+        "sources": ["northstar.example/journal/brew-guides"]
+      },
+      {
+        "id": "cta",
+        "label": "Primary CTA",
+        "kind": "inferred",
+        "confidence": 0.77,
+        "detail": "Choose your next roast",
+        "decision": "pending",
+        "sources": ["northstar.example/coffee"]
+      }
+    ],
+    "availableActions": ["accept", "preserve", "reject"],
+    "primaryAction": "Apply 1 accepted change",
+    "secondaryAction": "Save draft",
+    "diagnostics": [
+      {
+        "severity": "warning",
+        "message": "Customer proof is missing and cannot be accepted."
+      },
+      {
+        "severity": "info",
+        "message": "Candidate palette remains exploration until explicitly accepted."
+      }
+    ]
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "deviceScaleFactor": 1,
+    "colorScheme": "dark"
+  },
+  "generator": {
+    "selection": "record-at-run-time",
+    "providerField": "modelProvider",
+    "modelVersionField": "modelVersion"
+  },
+  "guidance": {
+    "baseline": {
+      "mode": "none",
+      "version": "none"
+    },
+    "candidate": {
+      "mode": "file",
+      "path": "DESIGN.md",
+      "versionField": "guidanceCommitSha"
+    }
+  },
+  "comparison": {
+    "attemptsPerVariant": 1,
+    "firstAttemptOnly": true,
+    "guidanceOnlyVariable": true,
+    "inputMutation": "forbidden",
+    "reviewOrder": "blind-shuffled",
+    "sameModel": true,
+    "samePromptAndInputs": true,
+    "sameViewport": true
+  },
+  "requiredRunRecordFields": [
+    "artifactPath",
+    "generatedAt",
+    "guidanceCommitSha",
+    "guidanceMode",
+    "inputsDigest",
+    "modelProvider",
+    "modelVersion",
+    "promptDigest",
+    "scenarioId",
+    "scenarioVersion",
+    "screenshotPath",
+    "viewport"
+  ],
+  "rubric": [
+    {
+      "id": "reader-task-clarity",
+      "label": "Reader and task clarity",
+      "weight": 20,
+      "scoreAnchors": {
+        "0": "Readiness, review progress, or the apply action is absent or requires hunting.",
+        "1": "The task is discoverable, but readiness, progress, and the primary action compete or lack a clear order.",
+        "2": "Readiness, review progress, blocking diagnostic, and the applicable accepted-change action are legible in the first viewport."
+      },
+      "blockingFailures": [
+        "The page presents the data as a generic analytics dashboard instead of a review task.",
+        "The apply action claims more than the one accepted pending change."
+      ]
+    },
+    {
+      "id": "evidence-integrity",
+      "label": "Evidence and factual integrity",
+      "weight": 20,
+      "scoreAnchors": {
+        "0": "Evidence kinds, confidence, decisions, or supplied sources are materially missing or invented.",
+        "1": "Facts survive, but evidence and decision states are hard to compare or inconsistently labeled.",
+        "2": "Every recommendation preserves its evidence kind, confidence, decision, detail, and safe supplied sources without invented proof."
+      },
+      "blockingFailures": [
+        "Any customer proof is invented.",
+        "The missing recommendation can be accepted.",
+        "A candidate is presented as an approved brand token."
+      ]
+    },
+    {
+      "id": "information-hierarchy",
+      "label": "Information hierarchy and composition",
+      "weight": 20,
+      "scoreAnchors": {
+        "0": "All content has equal weight, critical evidence is squeezed, or decorative composition obstructs comparison.",
+        "1": "The summary and recommendations are separated, but scanning across evidence, sources, and decisions is uneven.",
+        "2": "The composition supports a quick readiness decision and a detailed evidence audit without forcing all content into one template."
+      },
+      "blockingFailures": [
+        "Recommendation evidence is hidden behind hover-only interaction.",
+        "Core review content is nested inside multiple decorative card layers."
+      ]
+    },
+    {
+      "id": "genfeed-identity",
+      "label": "Genfeed visual identity",
+      "weight": 15,
+      "scoreAnchors": {
+        "0": "The page uses generic SaaS gradients, colored chrome, glow effects, or arbitrary typography and geometry.",
+        "1": "The page is mostly neutral but inconsistently applies surface depth, control sizes, text tiers, or semantic color.",
+        "2": "The page reads as neutral studio chrome: content and evidence carry color, surfaces use disciplined depth, and controls follow a coherent compact scale."
+      },
+      "blockingFailures": [
+        "Decorative gradients or glow textures dominate product chrome.",
+        "Platform or status colors are used as general page accents."
+      ]
+    },
+    {
+      "id": "operational-usability",
+      "label": "Operational usability",
+      "weight": 15,
+      "scoreAnchors": {
+        "0": "Recommendation decisions are ambiguous, inaccessible, or disconnected from apply state.",
+        "1": "The main flow works, but pending, accepted, preserved, and missing states require extra interpretation.",
+        "2": "Each allowed decision is clear, state changes are predictable, and primary versus secondary actions match the supplied workflow."
+      },
+      "blockingFailures": [
+        "Navigation is rendered as an action or an action as navigation.",
+        "Missing or preserved states appear actionable when they are not."
+      ]
+    },
+    {
+      "id": "responsive-accessible",
+      "label": "Responsive and accessible behavior",
+      "weight": 10,
+      "scoreAnchors": {
+        "0": "The desktop viewport clips core content, the 390px layout is unusable, or keyboard and contrast requirements are absent.",
+        "1": "The page adapts, but reading order, target size, focus visibility, or dense evidence scanning degrades on one viewport.",
+        "2": "Both viewports preserve task order, legible evidence, usable controls, semantic structure, visible focus, and sufficient contrast."
+      },
+      "blockingFailures": [
+        "Core review or apply controls are unreachable at either required viewport.",
+        "Evidence kind is conveyed by color alone."
+      ]
+    }
+  ]
+}

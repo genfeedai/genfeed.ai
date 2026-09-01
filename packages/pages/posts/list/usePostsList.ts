@@ -7,7 +7,6 @@ import {
   createArtifactEditorRoute,
   createBrandAppRoute,
   ITEMS_PER_PAGE,
-  withArtifactEditorReturn,
 } from '@genfeedai/constants';
 import {
   ModelCategory,
@@ -511,14 +510,9 @@ export function usePostsList({
             )
           : href(editorRoute);
 
-      router.push(
-        withArtifactEditorReturn(
-          editorHref,
-          searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
-        ),
-      );
+      router.push(editorHref);
     },
-    [href, pathname, router, scope, searchParamsString],
+    [href, router, scope],
   );
 
   const handleOpenPostDetail = useCallback((post: IPost) => {
