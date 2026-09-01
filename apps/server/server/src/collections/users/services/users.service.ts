@@ -1,3 +1,7 @@
+import type { PopulateOption } from '@genfeedai/interfaces';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from '@server/collections/users/dto/create-user.dto';
 import { UpdateUserDto } from '@server/collections/users/dto/update-user.dto';
 import type { UserDocument } from '@server/collections/users/schemas/user.schema';
@@ -7,18 +11,17 @@ import {
   type PrismaFindAllInput,
 } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import type { PopulateOption } from '@genfeedai/interfaces';
-import type { AggregationOptions } from '@libs/interfaces/query.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const USER_FIND_ALL_SELECT = {
   id: true,
   handle: true,
   firstName: true,
   lastName: true,
+  name: true,
   email: true,
   avatar: true,
+  createdAt: true,
+  lastActiveAt: true,
   platformRole: true,
   isOnboardingCompleted: true,
   onboardingStartedAt: true,
