@@ -1,6 +1,5 @@
 import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 import {
   buildCampaignPreparationCacheKey,
   type CampaignTransition,
@@ -36,7 +35,6 @@ type ConfirmedCampaignIntent = {
  * stays domain-neutral. Campaign-specific preparation and nonce redaction
  * belong here; additional confirmed tools can join without changing the loop.
  */
-@Injectable()
 export class AgentToolConfirmationService {
   constructor(
     private readonly loggerService: LoggerService,
@@ -71,10 +69,10 @@ export class AgentToolConfirmationService {
       };
     }
 
-    const claimedConfirmation =
+    const hasClaimedConfirmation =
       input.parameters.confirmed === true ||
       input.parameters.sourceActionId !== undefined;
-    if (claimedConfirmation) {
+    if (hasClaimedConfirmation) {
       this.loggerService.warn(
         'Rejected untrusted campaign confirmation proof',
         {
