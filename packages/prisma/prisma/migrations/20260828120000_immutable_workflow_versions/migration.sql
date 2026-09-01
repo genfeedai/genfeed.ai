@@ -134,6 +134,8 @@ AS $$
         'ads.performance.persist',
         'ads.tiktok.performance.fetch',
         'ads.tiktok.performance.normalize',
+        'ai-enhance',
+        'ai-transcribe',
         'aiAvatarVideo',
         'ai-influencer.caption.generate',
         'ai-influencer.daily.discover',
@@ -761,8 +763,6 @@ LANGUAGE SQL
 IMMUTABLE
 AS $$
     SELECT action_id IN (
-        'ai-enhance',
-        'ai-transcribe',
         'aiAvatarVideo',
         'analyticsFeedback',
         'attachPostIngredient',
