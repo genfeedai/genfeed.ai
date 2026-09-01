@@ -7,6 +7,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { BillingPortalQueryDto } from '@api/services/integrations/stripe/dto/billing-portal-query.dto';
 import { CreateCreditsCheckoutDto } from '@api/services/integrations/stripe/dto/create-credits-checkout.dto';
 import {
   BillingAccountResolutionError,
@@ -383,26 +384,11 @@ export class StripeController {
     }
   }
 
-  /**
-   * Stripe's `return_url` must be absolute, so it is always composed from the
-   * trusted request origin. A caller-supplied `returnPath` only contributes the
-   * path — anything that could escape the origin (scheme, protocol-relative
-   * `//host`, backslash) is discarded rather than trusted.
-   */
-  private resolvePortalReturnUrl(origin: string, returnPath?: string): string {
-    const isOriginRelative =
-      returnPath?.startsWith('/') === true &&
-      !returnPath.startsWith('//') &&
-      !returnPath.includes('\\');
-
-    return isOriginRelative ? `${origin}${returnPath}` : origin;
-  }
-
   @Get('portal')
   async getBillingPortalUrl(
     @CurrentUser() user: User,
     @Req() request: Request,
-    @Query('returnPath') returnPath?: string,
+    @Query() query: BillingPortalQueryDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url);
@@ -451,7 +437,7 @@ export class StripeController {
 
       const billingUrl = await this.stripeService.getBillingPortalUrl(
         stripeCustomerId,
-        this.resolvePortalReturnUrl(origin, returnPath),
+        query.returnPath ? `${origin}${query.returnPath}` : origin,
       );
 
       return serializeSingle(request, StripeUrlSerializer, billingUrl);

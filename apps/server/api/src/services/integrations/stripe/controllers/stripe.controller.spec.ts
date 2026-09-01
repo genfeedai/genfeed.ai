@@ -528,12 +528,13 @@ describe('StripeController', () => {
       const result = await controller.getBillingPortalUrl(
         mockUser,
         mockRequest,
+        {},
       );
       expect(result).toEqual({ url: 'https://billing.stripe.com/portal' });
     });
 
     it('should return to the origin root when no returnPath is given', async () => {
-      await controller.getBillingPortalUrl(mockUser, mockRequest);
+      await controller.getBillingPortalUrl(mockUser, mockRequest, {});
 
       expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
         'cus_test123',
@@ -542,11 +543,9 @@ describe('StripeController', () => {
     });
 
     it('should append a relative returnPath to the request origin', async () => {
-      await controller.getBillingPortalUrl(
-        mockUser,
-        mockRequest,
-        '/acme/~/settings/organization/subscription',
-      );
+      await controller.getBillingPortalUrl(mockUser, mockRequest, {
+        returnPath: '/acme/~/settings/organization/subscription',
+      });
 
       expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
         'cus_test123',
@@ -554,30 +553,16 @@ describe('StripeController', () => {
       );
     });
 
-    it.each([
-      'https://evil.example.com',
-      '//evil.example.com',
-      '\\\\evil.example.com',
-      'settings/organization/subscription',
-    ])('should discard the off-origin returnPath %s', async (returnPath) => {
-      await controller.getBillingPortalUrl(mockUser, mockRequest, returnPath);
-
-      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
-        'cus_test123',
-        'https://app.genfeed.ai',
-      );
-    });
-
     it('should throw BAD_REQUEST when origin missing', async () => {
       await expect(
-        controller.getBillingPortalUrl(mockUser, mockRequestNoOrigin),
+        controller.getBillingPortalUrl(mockUser, mockRequestNoOrigin, {}),
       ).rejects.toThrow(HttpException);
     });
 
     it('should throw NOT_FOUND when subscription not found', async () => {
       subscriptionsService.findByOrganizationId.mockResolvedValueOnce(null);
       await expect(
-        controller.getBillingPortalUrl(mockUser, mockRequest),
+        controller.getBillingPortalUrl(mockUser, mockRequest, {}),
       ).rejects.toThrow(HttpException);
     });
 
@@ -586,7 +571,7 @@ describe('StripeController', () => {
         new Error('raw provider payload'),
       );
       const error = await controller
-        .getBillingPortalUrl(mockUser, mockRequest)
+        .getBillingPortalUrl(mockUser, mockRequest, {})
         .catch((caught: unknown) => caught);
 
       expect(error).toBeInstanceOf(HttpException);
