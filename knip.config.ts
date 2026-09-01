@@ -75,10 +75,6 @@ const config: KnipConfig = {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },
-    'apps/server/images': {
-      entry: ['src/main.ts'],
-      ignore: ['dist/**'],
-    },
     'apps/server/mcp': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
@@ -92,14 +88,6 @@ const config: KnipConfig = {
       ignore: ['dist/**'],
     },
     'apps/server/telegram': {
-      entry: ['src/main.ts'],
-      ignore: ['dist/**'],
-    },
-    'apps/server/videos': {
-      entry: ['src/main.ts'],
-      ignore: ['dist/**'],
-    },
-    'apps/server/voices': {
       entry: ['src/main.ts'],
       ignore: ['dist/**'],
     },

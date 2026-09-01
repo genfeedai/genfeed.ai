@@ -477,16 +477,6 @@
         "@types/multer": "2.2.0",
       },
     },
-    "apps/server/images": {
-      "name": "@genfeedai/images",
-      "version": "1.0.0",
-      "dependencies": {
-        "@genfeedai/config": "workspace:*",
-        "@genfeedai/libs": "workspace:*",
-        "@genfeedai/workflows": "workspace:*",
-        "tsconfig-paths": "4.2.0",
-      },
-    },
     "apps/server/mcp": {
       "name": "@genfeedai/mcp",
       "version": "1.0.0",
@@ -595,24 +585,6 @@
       },
       "devDependencies": {
         "unplugin-swc": "1.5.11",
-      },
-    },
-    "apps/server/videos": {
-      "name": "@genfeedai/videos",
-      "version": "1.0.0",
-      "dependencies": {
-        "@genfeedai/config": "workspace:*",
-        "@genfeedai/libs": "workspace:*",
-        "tsconfig-paths": "4.2.0",
-      },
-    },
-    "apps/server/voices": {
-      "name": "@genfeedai/voices",
-      "version": "1.0.0",
-      "dependencies": {
-        "@genfeedai/config": "workspace:*",
-        "@genfeedai/libs": "workspace:*",
-        "tsconfig-paths": "4.2.0",
       },
     },
     "apps/server/workers": {
@@ -2041,8 +2013,6 @@
 
     "@genfeedai/hooks": ["@genfeedai/hooks@workspace:packages/hooks"],
 
-    "@genfeedai/images": ["@genfeedai/images@workspace:apps/server/images"],
-
     "@genfeedai/integrations": ["@genfeedai/integrations@workspace:packages/integrations"],
 
     "@genfeedai/interfaces": ["@genfeedai/interfaces@workspace:packages/interfaces"],
@@ -2090,10 +2060,6 @@
     "@genfeedai/ui": ["@genfeedai/ui@workspace:packages/ui"],
 
     "@genfeedai/utils": ["@genfeedai/utils@workspace:packages/utils"],
-
-    "@genfeedai/videos": ["@genfeedai/videos@workspace:apps/server/videos"],
-
-    "@genfeedai/voices": ["@genfeedai/voices@workspace:apps/server/voices"],
 
     "@genfeedai/website": ["@genfeedai/website@workspace:apps/website"],
 

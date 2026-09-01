@@ -141,13 +141,13 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
 import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
@@ -299,7 +299,7 @@ const WORKER_DOMAIN_SERVICES = [
   FalService,
   FanvuePublisherService,
   FilesClientService,
-  FleetService,
+  ManagedInferenceRuntimeService,
   GenerationEventWebhookService,
   GhostPublisherService,
   GoogleAdsService,

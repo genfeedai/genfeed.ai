@@ -9,8 +9,8 @@ import type { StepExecutionContext } from '@server/services/content-orchestratio
 import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('StepExecutorService', () => {
@@ -19,7 +19,10 @@ describe('StepExecutorService', () => {
   let mockFalService: Record<string, ReturnType<typeof vi.fn>>;
   let mockHiggsFieldService: Record<string, ReturnType<typeof vi.fn>>;
   let mockElevenLabsService: Record<string, ReturnType<typeof vi.fn>>;
-  let mockFleetService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockManagedInferenceRuntimeService: Record<
+    string,
+    ReturnType<typeof vi.fn>
+  >;
   let mockLoggerService: Record<string, ReturnType<typeof vi.fn>>;
   let mockReplicateService: Record<string, ReturnType<typeof vi.fn>>;
 
@@ -43,7 +46,7 @@ describe('StepExecutorService', () => {
     mockElevenLabsService = {
       textToSpeech: vi.fn(),
     };
-    mockFleetService = {
+    mockManagedInferenceRuntimeService = {
       generateVideo: vi.fn(),
       pollJob: vi.fn(),
     };
@@ -59,7 +62,7 @@ describe('StepExecutorService', () => {
       mockFalService as unknown as FalService,
       mockHiggsFieldService as unknown as HiggsFieldService,
       mockElevenLabsService as unknown as ElevenLabsService,
-      mockFleetService as unknown as FleetService,
+      mockManagedInferenceRuntimeService as unknown as ManagedInferenceRuntimeService,
       mockReplicateService as unknown as ReplicateService,
     );
   });
@@ -327,9 +330,11 @@ describe('StepExecutorService', () => {
   });
 
   describe('image-to-video - ComfyUI', () => {
-    it('should route COMFYUI to FleetService and poll for completion', async () => {
-      mockFleetService.generateVideo.mockResolvedValue({ jobId: 'job-123' });
-      mockFleetService.pollJob
+    it('should route COMFYUI to ManagedInferenceRuntimeService and poll for completion', async () => {
+      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
+        jobId: 'job-123',
+      });
+      mockManagedInferenceRuntimeService.pollJob
         .mockResolvedValueOnce({ status: 'processing' })
         .mockResolvedValueOnce({
           output: { video_url: 'https://comfy.ai/video.mp4' },
@@ -357,8 +362,10 @@ describe('StepExecutorService', () => {
         contentType: 'video/mp4',
         url: 'https://comfy.ai/video.mp4',
       });
-      expect(mockFleetService.generateVideo).toHaveBeenCalled();
-      expect(mockFleetService.pollJob).toHaveBeenCalledWith(
+      expect(
+        mockManagedInferenceRuntimeService.generateVideo,
+      ).toHaveBeenCalled();
+      expect(mockManagedInferenceRuntimeService.pollJob).toHaveBeenCalledWith(
         'videos',
         'job-123',
         'org-123',
@@ -367,8 +374,8 @@ describe('StepExecutorService', () => {
       setTimeoutSpy.mockRestore();
     });
 
-    it('should throw when FleetService is not available', async () => {
-      mockFleetService.generateVideo.mockResolvedValue(null);
+    it('should throw when ManagedInferenceRuntimeService is not available', async () => {
+      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue(null);
 
       await expect(
         service.execute(
@@ -383,8 +390,12 @@ describe('StepExecutorService', () => {
     });
 
     it('should throw when ComfyUI job fails', async () => {
-      mockFleetService.generateVideo.mockResolvedValue({ jobId: 'job-fail' });
-      mockFleetService.pollJob.mockResolvedValue({ status: 'failed' });
+      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
+        jobId: 'job-fail',
+      });
+      mockManagedInferenceRuntimeService.pollJob.mockResolvedValue({
+        status: 'failed',
+      });
       const setTimeoutSpy = vi
         .spyOn(globalThis, 'setTimeout')
         .mockImplementation(((callback: TimerHandler) => {
@@ -412,10 +423,12 @@ describe('StepExecutorService', () => {
     });
 
     it('should timeout after 10 minutes', async () => {
-      mockFleetService.generateVideo.mockResolvedValue({
+      mockManagedInferenceRuntimeService.generateVideo.mockResolvedValue({
         jobId: 'job-timeout',
       });
-      mockFleetService.pollJob.mockResolvedValue({ status: 'processing' });
+      mockManagedInferenceRuntimeService.pollJob.mockResolvedValue({
+        status: 'processing',
+      });
       const dateNowSpy = vi
         .spyOn(Date, 'now')
         .mockReturnValueOnce(0)
