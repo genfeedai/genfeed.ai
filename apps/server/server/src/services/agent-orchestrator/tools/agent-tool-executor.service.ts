@@ -112,7 +112,6 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
   AgentToolName.GET_WORKFLOW_RUN,
   AgentToolName.INSPECT_WORKFLOW,
   AgentToolName.LIST_ADS_RESEARCH,
-  AgentToolName.LIST_AGENT_RUNS,
   AgentToolName.LIST_AGENT_CONVERSATIONS,
   AgentToolName.LIST_BRANDS,
   AgentToolName.LIST_CHARACTERS,

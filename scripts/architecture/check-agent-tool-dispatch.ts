@@ -5,8 +5,8 @@ import ts from 'typescript';
 import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
 
 /**
- * Guard: keep the in-app agent's executable surface equal to the curated
- * action catalog.
+ * Guard: keep every in-app agent advertisement surface dispatchable, and keep
+ * the executable surface equal to the curated action catalog.
  *
  * MCP already crashes on boot when its surface and its dispatch disagree
  * (`ToolRegistryService.validateDispatchCoverage`). The agent had no
@@ -25,8 +25,9 @@ import { parseCatalogSource } from '../../packages/actions/scripts/report-curate
  *     through a registry extension that bypasses review.
  *
  * `agent-tool-registry.ts` throws at module load on the second shape, so a
- * bypass cannot boot. This guard is the spec-time half: it also catches the
- * first shape, which no runtime check can see until a user hits it.
+ * bypass cannot boot. This guard is the spec-time half: it also checks the
+ * curated catalog, per-agent `defaultTools`, and `BRANDLESS_AGENT_TOOLS` for
+ * the first shape, which no runtime check can see until a user hits it.
  *
  * Scope: `case AgentToolName.X:` clauses in the agent-orchestrator tool
  * handlers. Handler services that own their own `execute` switch (the
@@ -39,6 +40,10 @@ import { parseCatalogSource } from '../../packages/actions/scripts/report-curate
 const DEFAULT_CATALOG_PATH =
   'packages/actions/src/registry/curated-action-catalog.ts';
 const DEFAULT_ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
+const DEFAULT_AGENT_TYPE_CONFIG_PATH =
+  'apps/server/server/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
+const DEFAULT_BRANDLESS_TOOLS_PATH =
+  'apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 const DEFAULT_DISPATCH_GLOBS = [
   'apps/server/api/src/services/agent-orchestrator/tools/**/*.ts',
   'apps/server/server/src/services/agent-orchestrator/tools/**/*.ts',
@@ -50,12 +55,20 @@ const DEFAULT_IGNORE_GLOBS = [
   '**/dist/**',
 ];
 const TOOL_NAME_ENUM = 'AgentToolName';
+const DEFAULT_TOOLS_PROPERTY = 'defaultTools';
+const BRANDLESS_TOOLS_VARIABLE = 'BRANDLESS_AGENT_TOOLS';
+
+export type AgentToolAdvertisementSurface =
+  | 'curated-catalog'
+  | 'defaultTools'
+  | 'BRANDLESS_AGENT_TOOLS';
 
 export type AgentToolDispatchViolation =
   | {
       action: string;
       kind: 'missing-dispatch';
       message: string;
+      surfaces: AgentToolAdvertisementSurface[];
     }
   | {
       action: string;
@@ -65,12 +78,15 @@ export type AgentToolDispatchViolation =
     };
 
 export type AgentToolDispatchResult = {
+  advertisedActions: string[];
   coveredActions: string[];
   surfacedActions: string[];
   violations: AgentToolDispatchViolation[];
 };
 
 export type AgentToolDispatchOptions = {
+  agentTypeConfigPath?: string;
+  brandlessToolsPath?: string;
   catalogPath?: string;
   dispatchGlobs?: string[];
   enumPath?: string;
@@ -158,12 +174,198 @@ export function collectDispatchedToolNames(
   return [...dispatched].sort((a, b) => a.localeCompare(b));
 }
 
+function unwrapExpression(expression: ts.Expression): ts.Expression {
+  let current = expression;
+
+  while (
+    ts.isAsExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isTypeAssertionExpression(current)
+  ) {
+    current = current.expression;
+  }
+
+  return current;
+}
+
+function collectVariableInitializers(
+  sourceFile: ts.SourceFile,
+): Map<string, ts.Expression> {
+  const initializers = new Map<string, ts.Expression>();
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      initializers.set(node.name.text, node.initializer);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return initializers;
+}
+
+function isAllToolNamesExpression(expression: ts.Expression): boolean {
+  const candidate = unwrapExpression(expression);
+
+  return (
+    ts.isCallExpression(candidate) &&
+    ts.isPropertyAccessExpression(candidate.expression) &&
+    ts.isIdentifier(candidate.expression.expression) &&
+    candidate.expression.expression.text === 'Object' &&
+    candidate.expression.name.text === 'values' &&
+    candidate.arguments.length === 1 &&
+    ts.isIdentifier(candidate.arguments[0]) &&
+    candidate.arguments[0].text === TOOL_NAME_ENUM
+  );
+}
+
+function collectToolNamesFromExpression(
+  expression: ts.Expression,
+  enumValues: ReadonlyMap<string, string>,
+  variableInitializers: ReadonlyMap<string, ts.Expression>,
+  toolNames: Set<string>,
+  resolvingVariables: Set<string>,
+): void {
+  const candidate = unwrapExpression(expression);
+
+  if (
+    ts.isPropertyAccessExpression(candidate) &&
+    ts.isIdentifier(candidate.expression) &&
+    candidate.expression.text === TOOL_NAME_ENUM
+  ) {
+    const wireName = enumValues.get(candidate.name.text);
+    if (wireName) {
+      toolNames.add(wireName);
+    }
+    return;
+  }
+
+  if (isAllToolNamesExpression(candidate)) {
+    for (const wireName of enumValues.values()) {
+      toolNames.add(wireName);
+    }
+    return;
+  }
+
+  if (ts.isArrayLiteralExpression(candidate)) {
+    for (const element of candidate.elements) {
+      collectToolNamesFromExpression(
+        ts.isSpreadElement(element) ? element.expression : element,
+        enumValues,
+        variableInitializers,
+        toolNames,
+        resolvingVariables,
+      );
+    }
+    return;
+  }
+
+  if (!ts.isIdentifier(candidate)) {
+    return;
+  }
+
+  const variableName = candidate.text;
+  const initializer = variableInitializers.get(variableName);
+  if (!initializer || resolvingVariables.has(variableName)) {
+    return;
+  }
+
+  resolvingVariables.add(variableName);
+  collectToolNamesFromExpression(
+    initializer,
+    enumValues,
+    variableInitializers,
+    toolNames,
+    resolvingVariables,
+  );
+  resolvingVariables.delete(variableName);
+}
+
+/** Wire names made available by an AgentTypeConfig.defaultTools array. */
+export function collectDefaultToolNames(
+  sourceText: string,
+  enumValues: ReadonlyMap<string, string>,
+  fileName = DEFAULT_AGENT_TYPE_CONFIG_PATH,
+): string[] {
+  const sourceFile = createSourceFile(fileName, sourceText);
+  const variableInitializers = collectVariableInitializers(sourceFile);
+  const toolNames = new Set<string>();
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      ((ts.isIdentifier(node.name) &&
+        node.name.text === DEFAULT_TOOLS_PROPERTY) ||
+        (ts.isStringLiteral(node.name) &&
+          node.name.text === DEFAULT_TOOLS_PROPERTY))
+    ) {
+      collectToolNamesFromExpression(
+        node.initializer,
+        enumValues,
+        variableInitializers,
+        toolNames,
+        new Set(),
+      );
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return [...toolNames].sort((a, b) => a.localeCompare(b));
+}
+
+/** Wire names allowed to execute without a selected brand. */
+export function collectBrandlessToolNames(
+  sourceText: string,
+  enumValues: ReadonlyMap<string, string>,
+  fileName = DEFAULT_BRANDLESS_TOOLS_PATH,
+): string[] {
+  const sourceFile = createSourceFile(fileName, sourceText);
+  const variableInitializers = collectVariableInitializers(sourceFile);
+  const initializer = variableInitializers.get(BRANDLESS_TOOLS_VARIABLE);
+  const toolNames = new Set<string>();
+  const candidate = initializer ? unwrapExpression(initializer) : undefined;
+
+  if (
+    !candidate ||
+    !ts.isNewExpression(candidate) ||
+    !ts.isIdentifier(candidate.expression) ||
+    candidate.expression.text !== 'Set'
+  ) {
+    return [];
+  }
+
+  const [toolsExpression] = candidate.arguments ?? [];
+  if (toolsExpression) {
+    collectToolNamesFromExpression(
+      toolsExpression,
+      enumValues,
+      variableInitializers,
+      toolNames,
+      new Set(),
+    );
+  }
+
+  return [...toolNames].sort((a, b) => a.localeCompare(b));
+}
+
 export function runCheckAgentToolDispatch(
   options: AgentToolDispatchOptions = {},
 ): AgentToolDispatchResult {
   const rootDir = options.rootDir ?? process.cwd();
   const catalogPath = options.catalogPath ?? DEFAULT_CATALOG_PATH;
   const enumPath = options.enumPath ?? DEFAULT_ENUM_PATH;
+  const agentTypeConfigPath =
+    options.agentTypeConfigPath ?? DEFAULT_AGENT_TYPE_CONFIG_PATH;
+  const brandlessToolsPath =
+    options.brandlessToolsPath ?? DEFAULT_BRANDLESS_TOOLS_PATH;
   const dispatchGlobs = options.dispatchGlobs ?? DEFAULT_DISPATCH_GLOBS;
   const ignoreGlobs = options.ignoreGlobs ?? DEFAULT_IGNORE_GLOBS;
 
@@ -176,6 +378,41 @@ export function runCheckAgentToolDispatch(
   const enumValues = parseToolNameEnum(
     readFileSync(path.join(rootDir, enumPath), 'utf8'),
     enumPath,
+  );
+  const defaultToolNames = collectDefaultToolNames(
+    readFileSync(path.join(rootDir, agentTypeConfigPath), 'utf8'),
+    enumValues,
+    agentTypeConfigPath,
+  );
+  const brandlessToolNames = collectBrandlessToolNames(
+    readFileSync(path.join(rootDir, brandlessToolsPath), 'utf8'),
+    enumValues,
+    brandlessToolsPath,
+  );
+
+  const advertisementSurfaces = new Map<
+    string,
+    Set<AgentToolAdvertisementSurface>
+  >();
+  const addAdvertisements = (
+    actions: readonly string[],
+    surface: AgentToolAdvertisementSurface,
+  ): void => {
+    for (const action of actions) {
+      const surfaces =
+        advertisementSurfaces.get(action) ??
+        new Set<AgentToolAdvertisementSurface>();
+      surfaces.add(surface);
+      advertisementSurfaces.set(action, surfaces);
+    }
+  };
+
+  addAdvertisements(surfacedActions, 'curated-catalog');
+  addAdvertisements(defaultToolNames, 'defaultTools');
+  addAdvertisements(brandlessToolNames, 'BRANDLESS_AGENT_TOOLS');
+
+  const advertisedActions = [...advertisementSurfaces.keys()].sort((a, b) =>
+    a.localeCompare(b),
   );
 
   const files = globSync(dispatchGlobs, {
@@ -202,12 +439,14 @@ export function runCheckAgentToolDispatch(
   const surfacedSet = new Set(surfacedActions);
   const violations: AgentToolDispatchViolation[] = [];
 
-  for (const action of surfacedActions) {
+  for (const action of advertisedActions) {
     if (!filesByAction.has(action)) {
+      const surfaces = [...(advertisementSurfaces.get(action) ?? [])];
       violations.push({
         action,
         kind: 'missing-dispatch',
-        message: `'${action}' is surfaced to the agent by the curated action catalog but no tool handler dispatches it. The model would receive 'Unknown tool: ${action}'.`,
+        message: `'${action}' is advertised by ${surfaces.join(', ')} but no agent tool handler dispatches it. The model would receive 'Unknown tool: ${action}'.`,
+        surfaces,
       });
     }
   }
@@ -226,6 +465,7 @@ export function runCheckAgentToolDispatch(
   }
 
   return {
+    advertisedActions,
     coveredActions: [...filesByAction.keys()].sort((a, b) =>
       a.localeCompare(b),
     ),
@@ -256,6 +496,6 @@ if (isMainModule()) {
   }
 
   console.log(
-    `Agent tool dispatch coverage passed. ${result.surfacedActions.length} curated agent action(s) routed.`,
+    `Agent tool dispatch coverage passed. ${result.advertisedActions.length} advertised agent action(s) routed and ${result.surfacedActions.length} curated action(s) reviewed.`,
   );
 }
