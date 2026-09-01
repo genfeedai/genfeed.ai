@@ -139,6 +139,53 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
   );
 });
 
+test('e2e.yml downloads the four current-run blob reports with bounded diagnostics', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const frontend = jobBlock(workflow, 'e2e-frontend', 'e2e.yml');
+  const merge = jobBlock(workflow, 'e2e-merge-reports', 'e2e.yml');
+
+  assert.match(
+    frontend,
+    /name: blob-report-\$\{\{ matrix\.shard \}\}[\s\S]*?if-no-files-found: error/,
+    'a shard that produced no blob report must fail at the named upload step',
+  );
+
+  for (const shard of [1, 2, 3, 4]) {
+    assert.match(
+      merge,
+      new RegExp(
+        `- name: Download blob report \\(shard ${shard}\\)[\\s\\S]*?` +
+          `id: download-blob-report-${shard}[\\s\\S]*?` +
+          `continue-on-error: true[\\s\\S]*?` +
+          `name: blob-report-${shard}[\\s\\S]*?` +
+          `repository: \\$\\{\\{ github\\.repository \\}\\}[\\s\\S]*?` +
+          `run-id: \\$\\{\\{ github\\.run_id \\}\\}`,
+      ),
+      `blob-report-${shard} must be downloaded explicitly from the current run`,
+    );
+    assert.match(
+      merge,
+      new RegExp(
+        `BLOB_REPORT_${shard}_RESULT: \\$\\{\\{ steps\\.download-blob-report-${shard}\\.outcome \\}\\}`,
+      ),
+      `blob-report-${shard} must contribute to the bounded diagnostic`,
+    );
+  }
+
+  assert.doesNotMatch(
+    merge,
+    /pattern: blob-report-\*/,
+    'parallel wildcard downloads obscure which required artifact failed',
+  );
+  assert.match(merge, /Classification: report-infrastructure/);
+  assert.match(merge, /Missing or unavailable required artifacts:/);
+  assert.match(merge, /\$GITHUB_STEP_SUMMARY/);
+  assert.match(
+    merge,
+    /name: playwright-report-merged[\s\S]*?retention-days: 7[\s\S]*?if-no-files-found: error/,
+  );
+});
+
 test('isolated-publish lane is nightly-only and off the production gate', () => {
   const workflow = readWorkflow('e2e.yml');
   const isolated = jobBlock(workflow, 'e2e-isolated-publish', 'e2e.yml');
