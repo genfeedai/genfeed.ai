@@ -3,10 +3,10 @@ version = 1
 name = "localhost"
 
 [setup]
-script = "bunx \"bun@$(xargs < .bun-version)\" install --frozen-lockfile"
+script = "bash scripts/sync-worktree-includes.sh"
 
 [cleanup]
-script = "rm -fr node_modules"
+script = "rm -rf node_modules"
 
 [[actions]]
 name = "Lint"
