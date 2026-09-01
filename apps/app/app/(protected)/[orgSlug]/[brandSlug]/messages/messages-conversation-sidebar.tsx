@@ -41,6 +41,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
@@ -172,6 +173,7 @@ function ConversationRow({
   isSelected: boolean;
   onSelect: (conversationId: string) => void;
 }) {
+  const translate = useTranslations('common.messages');
   const relativeTime = formatRelativeTime(conversation.latestMessageAt);
   const needsReview =
     conversation.needsReview || conversation.status === 'needs_review';
@@ -263,12 +265,16 @@ function ConversationRow({
           {isReadOnly ? (
             <>
               <span aria-hidden="true">·</span>
-              <span className="shrink-0 text-warning">Read only</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.readOnly')}
+              </span>
             </>
           ) : needsReview ? (
             <>
               <span aria-hidden="true">·</span>
-              <span className="shrink-0 text-warning">Needs review</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.needsReviewCompact')}
+              </span>
             </>
           ) : null}
         </span>
@@ -339,6 +345,7 @@ export function MessagesConversationSidebar({
   selectedId,
   view,
 }: MessagesConversationSidebarProps) {
+  const translate = useTranslations('common.messages');
   const groups = groupMessageConversations(conversations);
   const brandLabels = new Map(
     brandOptions.map((option) => [option.id, option.label]),
@@ -391,7 +398,7 @@ export function MessagesConversationSidebar({
       : view === 'archived'
         ? 'Archived'
         : view === 'review'
-          ? 'Needs review'
+          ? translate('conversation.needsReviewCompact')
           : view === 'unread'
             ? 'Unread'
             : null;
@@ -411,10 +418,12 @@ export function MessagesConversationSidebar({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72 space-y-3 p-3">
           <p className="text-xs font-semibold text-foreground/72">
-            Inbox filters
+            {translate('sidebar.filters')}
           </p>
           <div className="space-y-1.5">
-            <p className="text-2xs font-medium text-foreground/54">Status</p>
+            <p className="text-2xs font-medium text-foreground/54">
+              {translate('sidebar.status')}
+            </p>
             <Select
               value={view}
               onValueChange={(value) => {
@@ -435,13 +444,17 @@ export function MessagesConversationSidebar({
           </div>
           {brandOptions.length > 0 ? (
             <div className="space-y-1.5">
-              <p className="text-2xs font-medium text-foreground/54">Brand</p>
+              <p className="text-2xs font-medium text-foreground/54">
+                {translate('sidebar.brand')}
+              </p>
               <Select value={brandFilter} onValueChange={onBrandFilterChange}>
                 <SelectTrigger aria-label="Filter conversations by brand">
-                  <SelectValue placeholder="All brands" />
+                  <SelectValue placeholder={translate('sidebar.allBrands')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All brands</SelectItem>
+                  <SelectItem value="all">
+                    {translate('sidebar.allBrands')}
+                  </SelectItem>
                   {brandOptions.map((option) => (
                     <SelectItem key={option.id} value={option.id}>
                       {option.label}
@@ -452,7 +465,9 @@ export function MessagesConversationSidebar({
             </div>
           ) : null}
           <div className="space-y-1.5">
-            <p className="text-2xs font-medium text-foreground/54">Platform</p>
+            <p className="text-2xs font-medium text-foreground/54">
+              {translate('sidebar.platform')}
+            </p>
             <Select
               value={platform}
               onValueChange={(value) => {
@@ -485,7 +500,7 @@ export function MessagesConversationSidebar({
     >
       <div className="flex items-center justify-between px-3 py-1.5">
         <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
-          Conversations
+          {translate('sidebar.title')}
         </span>
         {pagination.total > 0 ? (
           <span className="text-2xs tabular-nums text-foreground/28">
@@ -540,7 +555,7 @@ export function MessagesConversationSidebar({
                   withWrapper={false}
                 >
                   <RefreshCw aria-hidden="true" className="size-3.5" />
-                  Sync now
+                  {translate('sidebar.syncNow')}
                 </Button>
               ) : !hasConnectedAccounts && onOAuthConnect ? (
                 <AgentOAuthConnectMenu
@@ -562,7 +577,7 @@ export function MessagesConversationSidebar({
               ) : null}
               {!hasConnectedAccounts && !onOAuthConnect ? (
                 <p className="text-2xs leading-4 text-warning">
-                  Choose a brand in Filters before connecting an account.
+                  {translate('sidebar.chooseBrandToConnect')}
                 </p>
               ) : null}
             </div>
@@ -648,7 +663,10 @@ export function MessagesConversationSidebar({
               withWrapper={false}
             />
             <span className="flex-1 text-center text-xs text-foreground/38">
-              Page {pagination.page} of {pagination.totalPages}
+              {translate('pagination.conversationPage', {
+                page: pagination.page,
+                pages: pagination.totalPages,
+              })}
             </span>
             <Button
               ariaLabel="Next conversations page"
@@ -662,8 +680,9 @@ export function MessagesConversationSidebar({
           </>
         ) : (
           <span className="flex-1 text-xs text-foreground/32">
-            {pagination.total} conversation
-            {pagination.total === 1 ? '' : 's'}
+            {translate('pagination.conversationCount', {
+              count: pagination.total,
+            })}
           </span>
         )}
         <span
