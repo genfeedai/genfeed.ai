@@ -34,7 +34,7 @@ const workflowExecutorDirectory = join(
 );
 const workflowRegistrarDirectory = join(
   prismaDir,
-  '../../apps/server/server/src/collections/workflows/services',
+  '../../../apps/server/server/src/collections/workflows/services',
 );
 const actionNodeSource = readFileSync(
   join(prismaDir, '../../workflows/src/engine/utils/action-node.ts'),
