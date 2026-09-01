@@ -1,3 +1,17 @@
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentIntelligencePlatform,
+  fromPrismaCredentialPlatform,
+  PostVisibility,
+  TargetExecutionState,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
+import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import type { PostCreateInput } from '@server/collections/posts/services/posts.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -26,20 +40,6 @@ import {
 } from '@server/services/batch-generation/batch-topic-angles.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import {
-  BatchItemStatus,
-  BatchStatus,
-  ContentIntelligencePlatform,
-  fromPrismaCredentialPlatform,
-  PostVisibility,
-  TargetExecutionState,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 type BatchProcessingCounts = {
   cancelled: boolean;
@@ -317,120 +317,20 @@ export class BatchGenerationProcessingService {
           topics[i % Math.max(topics.length, 1)] ??
           `${item.format} content`;
 
-        // Posts store lowercase platform strings; credentials use Prisma
-        // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
-        // Reject unmappable platforms *before* content generation so a bad
-        // persisted item cannot burn credits or create posts (#2696).
-        const platformRaw =
-          typeof item.platform === 'string' && item.platform.trim().length > 0
-            ? item.platform.trim()
-            : undefined;
-        const platformForCredential = platformRaw
-          ? toPrismaCredentialPlatform(platformRaw)
-          : undefined;
-        if (platformRaw && !platformForCredential) {
-          throw new BadRequestException(
-            `Invalid batch item platform "${platformRaw}"`,
-          );
-        }
-
-        await this.invokeLifecycleCallback(
-          'onItemStarted',
-          () =>
-            options?.onItemStarted?.({
-              batchId,
-              completedCount,
-              failedCount,
-              index: i,
-              item,
-              topic,
-              totalCount,
-            }),
-          { batchId, itemId: item.id },
-        );
-
-        const generated = await this.contentGeneratorService.generateContent(
+        const postId = await this.generateBatchItemPost({
+          batchConfig,
+          batchId,
+          batchRecord,
+          completedCount,
+          failedCount,
+          index: i,
+          item,
+          options,
           orgId,
-          {
-            additionalContext: buildBatchDiversityContext({
-              index: i,
-              priorCaptions,
-              style: batchConfig.style,
-              totalCount,
-            }),
-            brandId: batchRecord.brandId ?? undefined,
-            platform: item.platform as ContentIntelligencePlatform,
-            topic,
-            variationsCount: 1,
-          },
-        );
-
-        const content = generated[0];
-        item.prompt = content?.content ?? topic;
-        item.caption = content?.content ?? '';
-
-        if (!batchRecord.brandId || !batchRecord.userId) {
-          throw new BadRequestException(
-            'Batch is missing brandId or userId; cannot create draft posts',
-          );
-        }
-
-        const caption =
-          item.caption?.trim() ||
-          item.prompt?.trim() ||
-          topic.trim() ||
-          'Draft post';
-        // Derive the post spelling from the same mapper the credential lookup
-        // uses, so one item cannot persist a post platform that disagrees with
-        // the credential it was matched against. Lowercasing the raw input
-        // instead produced `dev_to` where the domain value is `devto`, and left
-        // the alias `x` unresolved to `twitter` — two spellings for one
-        // platform in `posts.platform`, which every downstream filter misses.
-        const platformForPost =
-          fromPrismaCredentialPlatform(platformForCredential) ??
-          (platformRaw ? toPostPlatform(platformRaw) : undefined);
-
-        // Pre-target the draft only when the answer is unambiguous. A brand may
-        // hold several accounts on one platform, and a batch item carries no
-        // account of its own — picking whichever row the database returned
-        // first would silently commit the draft to an account the operator
-        // never chose. Two or more accounts leaves credentialId null; the
-        // review queue is where the account gets picked. Fanning out here would
-        // multiply the queue instead, which is the publish path's job.
-        let credentialId: string | null = null;
-        if (platformForCredential) {
-          const credentials = await this.prisma.credential.findMany({
-            orderBy: { createdAt: 'asc' },
-            select: { id: true },
-            take: 2,
-            where: scopedWhere(orgId, {
-              brandId: batchRecord.brandId,
-              isConnected: true,
-              isDeleted: false,
-              platform: platformForCredential,
-            }),
-          });
-          credentialId =
-            credentials.length === 1 ? (credentials[0]?.id ?? null) : null;
-        }
-
-        const post = await this.postsService.create({
-          brandId: batchRecord.brandId,
-          ...(credentialId ? { credentialId } : {}),
-          description: caption,
-          ingredients: [],
-          label: `Batch: ${topic}`.slice(0, 200),
-          organizationId: orgId,
-          platform: platformForPost,
-          scheduledDate: item.scheduledDate
-            ? new Date(item.scheduledDate)
-            : undefined,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          userId: batchRecord.userId,
-          visibility: PostVisibility.PUBLIC,
-        } as PostCreateInput);
-
-        const postId = String((post as Record<string, unknown>).id ?? post.id);
+          priorCaptions,
+          topic,
+          totalCount,
+        });
         item.postId = postId;
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;
@@ -486,6 +386,150 @@ export class BatchGenerationProcessingService {
       }
     }
     return { cancelled: false, completedCount, failedCount };
+  }
+
+  private async generateBatchItemPost(params: {
+    batchConfig: BatchConfig;
+    batchId: string;
+    batchRecord: BatchWithConfig;
+    completedCount: number;
+    failedCount: number;
+    index: number;
+    item: BatchItemFull;
+    options?: BatchProcessOptions;
+    orgId: string;
+    priorCaptions: string[];
+    topic: string;
+    totalCount: number;
+  }): Promise<string> {
+    const {
+      batchConfig,
+      batchId,
+      batchRecord,
+      completedCount,
+      failedCount,
+      index: i,
+      item,
+      options,
+      orgId,
+      priorCaptions,
+      topic,
+      totalCount,
+    } = params;
+    // Posts store lowercase platform strings; credentials use Prisma
+    // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
+    // Reject unmappable platforms *before* content generation so a bad
+    // persisted item cannot burn credits or create posts (#2696).
+    const platformRaw =
+      typeof item.platform === 'string' && item.platform.trim().length > 0
+        ? item.platform.trim()
+        : undefined;
+    const platformForCredential = platformRaw
+      ? toPrismaCredentialPlatform(platformRaw)
+      : undefined;
+    if (platformRaw && !platformForCredential) {
+      throw new BadRequestException(
+        `Invalid batch item platform "${platformRaw}"`,
+      );
+    }
+
+    await this.invokeLifecycleCallback(
+      'onItemStarted',
+      () =>
+        options?.onItemStarted?.({
+          batchId,
+          completedCount,
+          failedCount,
+          index: i,
+          item,
+          topic,
+          totalCount,
+        }),
+      { batchId, itemId: item.id },
+    );
+
+    const generated = await this.contentGeneratorService.generateContent(
+      orgId,
+      {
+        additionalContext: buildBatchDiversityContext({
+          index: i,
+          priorCaptions,
+          style: batchConfig.style,
+          totalCount,
+        }),
+        brandId: batchRecord.brandId ?? undefined,
+        platform: item.platform as ContentIntelligencePlatform,
+        topic,
+        variationsCount: 1,
+      },
+    );
+
+    const content = generated[0];
+    item.prompt = content?.content ?? topic;
+    item.caption = content?.content ?? '';
+
+    if (!batchRecord.brandId || !batchRecord.userId) {
+      throw new BadRequestException(
+        'Batch is missing brandId or userId; cannot create draft posts',
+      );
+    }
+
+    const caption =
+      item.caption?.trim() ||
+      item.prompt?.trim() ||
+      topic.trim() ||
+      'Draft post';
+    // Derive the post spelling from the same mapper the credential lookup
+    // uses, so one item cannot persist a post platform that disagrees with
+    // the credential it was matched against. Lowercasing the raw input
+    // instead produced `dev_to` where the domain value is `devto`, and left
+    // the alias `x` unresolved to `twitter` — two spellings for one
+    // platform in `posts.platform`, which every downstream filter misses.
+    const platformForPost =
+      fromPrismaCredentialPlatform(platformForCredential) ??
+      (platformRaw ? toPostPlatform(platformRaw) : undefined);
+
+    // Pre-target the draft only when the answer is unambiguous. A brand may
+    // hold several accounts on one platform, and a batch item carries no
+    // account of its own — picking whichever row the database returned
+    // first would silently commit the draft to an account the operator
+    // never chose. Two or more accounts leaves credentialId null; the
+    // review queue is where the account gets picked. Fanning out here would
+    // multiply the queue instead, which is the publish path's job.
+    let credentialId: string | null = null;
+    if (platformForCredential) {
+      const credentials = await this.prisma.credential.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+        take: 2,
+        where: scopedWhere(orgId, {
+          brandId: batchRecord.brandId,
+          isConnected: true,
+          isDeleted: false,
+          platform: platformForCredential,
+        }),
+      });
+      credentialId =
+        credentials.length === 1 ? (credentials[0]?.id ?? null) : null;
+    }
+
+    const post = await this.postsService.create({
+      brandId: batchRecord.brandId,
+      ...(credentialId ? { credentialId } : {}),
+      description: caption,
+      ingredients: [],
+      label: `Batch: ${topic}`.slice(0, 200),
+      organizationId: orgId,
+      platform: platformForPost,
+      scheduledDate: item.scheduledDate
+        ? new Date(item.scheduledDate)
+        : undefined,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      userId: batchRecord.userId,
+      visibility: PostVisibility.PUBLIC,
+    } as PostCreateInput);
+
+    return String((post as Record<string, unknown>).id ?? post.id);
   }
 
   private async findScopedBatch(

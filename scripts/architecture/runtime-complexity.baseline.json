@@ -390,30 +390,6 @@
     "symbol": "AgentToolExecutorService.dispatch"
   },
   {
-    "actual": 186,
-    "file": "apps/server/server/src/services/batch-generation/batch-generation-credits.service.ts",
-    "metric": "method-lines",
-    "symbol": "BatchGenerationCreditsService.settleBatchCredits"
-  },
-  {
-    "actual": 242,
-    "file": "apps/server/server/src/services/batch-generation/batch-generation-processing.service.ts",
-    "metric": "method-lines",
-    "symbol": "BatchGenerationProcessingService.processItems"
-  },
-  {
-    "actual": 161,
-    "file": "apps/server/server/src/services/batch-generation/batch-generation-review.service.ts",
-    "metric": "method-lines",
-    "symbol": "BatchGenerationReviewService.approveItems"
-  },
-  {
-    "actual": 163,
-    "file": "apps/server/server/src/services/batch-generation/batch-generation-summary.service.ts",
-    "metric": "method-lines",
-    "symbol": "BatchGenerationSummaryService.toBatchSummaries"
-  },
-  {
     "actual": 253,
     "file": "apps/server/server/src/services/byok-billing/byok-billing.service.ts",
     "metric": "method-lines",
