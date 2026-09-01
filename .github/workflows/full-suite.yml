@@ -87,6 +87,7 @@ jobs:
     # even see the E2E reds waiting behind it. Running both layers together
     # makes one red run report every broken layer at once.
     permissions:
+      actions: read
       contents: read
       issues: write
     uses: ./.github/workflows/e2e.yml

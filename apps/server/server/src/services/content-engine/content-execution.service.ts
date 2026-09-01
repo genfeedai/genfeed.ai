@@ -14,7 +14,7 @@ import { ContentPlansService } from '@server/collections/content-plans/services/
 import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 
 export interface ExecutionResult {
   itemId: string;
@@ -31,7 +31,7 @@ export class ContentExecutionService {
     private readonly contentPlansService: ContentPlansService,
     private readonly contentPlanItemsService: ContentPlanItemsService,
     private readonly reviewablePostsService: ReviewablePostsService,
-    private readonly skillExecutorService: SkillExecutorService,
+    private readonly skillWorkflowService: SkillWorkflowService,
     private readonly contentOrchestrationService: ContentOrchestrationService,
     private readonly logger: LoggerService,
   ) {}
@@ -222,7 +222,7 @@ export class ContentExecutionService {
     const itemPrompt = item.prompt ?? undefined;
     const itemTopic = item.topic ?? undefined;
 
-    const result = await this.skillExecutorService.execute(
+    const result = await this.skillWorkflowService.execute(
       skillSlug,
       {
         brandId,
@@ -235,26 +235,27 @@ export class ContentExecutionService {
         prompt: itemPrompt,
         topic: itemTopic,
       },
+      userId,
     );
 
     const post = await this.reviewablePostsService.create({
       brandId,
       confidence: result.draft.confidence,
       content: result.draft.content,
-      contentRunId: result.runId,
       generatedBy: `content-engine:${skillSlug}`,
       idempotencyKey: `content-plan-item:${itemId}`,
       mediaUrls: result.draft.mediaUrls ?? [],
       metadata: {
         ...result.draft.metadata,
         contentPlanItemId: itemId,
-        source: result.source,
+        workflowExecutionId: result.executionId,
       },
       organizationId,
       platforms: itemPlatforms,
       skillSlug,
       type: result.draft.type,
       userId,
+      workflowExecutionId: result.executionId,
     });
 
     const postId = String(post.id);

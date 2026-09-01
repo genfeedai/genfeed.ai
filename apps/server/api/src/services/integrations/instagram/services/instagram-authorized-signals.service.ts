@@ -1,6 +1,21 @@
+import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  type InstagramAuthorizedSignalEvidence,
+  type InstagramAuthorizedSignalReason,
+  type InstagramAuthorizedSignalsSnapshot,
+  instagramAuthorizedSignalStatusValues,
+  instagramAuthorizedSignalsSnapshotSchema,
+} from '@api-types/contracts/instagram-authorized-signals.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -17,20 +32,6 @@ import {
 } from '@server/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
-  type InstagramAuthorizedSignalEvidence,
-  type InstagramAuthorizedSignalReason,
-  type InstagramAuthorizedSignalsSnapshot,
-  instagramAuthorizedSignalStatusValues,
-  instagramAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
-import {
   InstagramAuthorizedSignalsProvider,
   type InstagramMediaFetch,
   type InstagramUserResponse,
@@ -38,7 +39,6 @@ import {
   readNonNegativeInteger,
   readRecord,
   readString,
-  type SettledResult,
 } from './instagram-authorized-signals.provider';
 
 const INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
@@ -377,7 +377,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildProfileEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramUserResponse>,
+    result: AuthorizedSignalsSettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -431,7 +431,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildOwnedMediaEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramMediaFetch>,
+    result: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -482,7 +482,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildPublishingCapabilityEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramUserResponse>,
+    result: AuthorizedSignalsSettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -546,7 +546,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildDerivedMediaEvidence(
     ownedMedia: InstagramAuthorizedSignalEvidence,
-    mediaResult: SettledResult<InstagramMediaFetch>,
+    mediaResult: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     grantedScopes: string[],
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
@@ -585,7 +585,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildMediaPerformanceEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramMediaFetch>,
+    result: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     ownedMedia: InstagramAuthorizedSignalEvidence,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,

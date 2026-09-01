@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/workflows/engine';
 import { BadRequestException } from '@nestjs/common';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import type { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
@@ -17,7 +18,10 @@ import {
   ReviewGateApprovalResult,
   ReviewGateTimeoutResolution,
 } from '@server/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
+import {
+  RetiredWorkflowExecutionError,
+  WorkflowExecutorDocumentService,
+} from '@server/collections/workflows/services/workflow-executor-document.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
@@ -76,12 +80,20 @@ export class WorkflowReviewGateService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const normalizedWorkflowDoc = await this.documentService.findPinnedWorkflow(
-      workflowId,
-      execution.workflowVersionId,
-      organizationId,
-      execution.userId,
-    );
+    let normalizedWorkflowDoc: WorkflowDocument | null;
+    try {
+      normalizedWorkflowDoc = await this.documentService.findPinnedWorkflow(
+        workflowId,
+        execution.workflowVersionId,
+        organizationId,
+        execution.userId,
+      );
+    } catch (error) {
+      if (error instanceof RetiredWorkflowExecutionError) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
     if (!normalizedWorkflowDoc) {
       throw new NotFoundException(
         `Workflow version ${execution.workflowVersionId} not found`,

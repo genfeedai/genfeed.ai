@@ -42,6 +42,26 @@ describe('formatAgentError', () => {
 
     expect(formatted.title).toBe('AI provider not connected');
     expect(formatted.isConfigurationError).toBe(true);
+    expect(formatted.isRetryable).toBe(false);
+  });
+
+  it('marks only known transient failures as immediately retryable', () => {
+    expect(
+      formatAgentError({ source: 'acknowledgement', status: 504 }),
+    ).toMatchObject({ isRetryable: true });
+    expect(
+      formatAgentError('Request failed with status code 503'),
+    ).toMatchObject({ isRetryable: true });
+    expect(formatAgentError({ source: 'provider', status: 401 })).toMatchObject(
+      {
+        isRetryable: false,
+        title: 'Provider authentication failed',
+      },
+    );
+    expect(formatAgentError('Unknown terminal failure')).toMatchObject({
+      isRetryable: false,
+      title: 'Run failed',
+    });
   });
 
   it('does not map user not found to provider-connection guidance', () => {

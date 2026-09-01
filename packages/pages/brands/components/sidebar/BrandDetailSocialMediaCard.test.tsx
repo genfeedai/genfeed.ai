@@ -1,8 +1,16 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
+
+vi.mock(
+  '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms',
+  () => ({ useOAuthConnectPlatforms }),
+);
 
 const getToken = vi.fn(async () => 'token-123');
 const postConnect = vi.fn(async () => ({
@@ -198,6 +206,51 @@ Object.defineProperty(window, 'open', {
 describe('BrandDetailSocialMediaCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useOAuthConnectPlatforms.mockReturnValue(
+      resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
+    );
+  });
+
+  it.each(['unknown', 'unavailable'] as const)(
+    'disables Threads and cannot issue a connect request when readiness is %s',
+    (readiness) => {
+      useOAuthConnectPlatforms.mockReturnValue(
+        resolveOAuthConnectPlatformCatalog({ threads: readiness }),
+      );
+      render(
+        <BrandDetailSocialMediaCard
+          brandId="brand-1"
+          connections={[]}
+          connectedPlatformsCount={0}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+      const threads = screen.getByRole('button', { name: 'Threads' });
+      expect(threads).toBeDisabled();
+      fireEvent.click(threads);
+      expect(postConnect).not.toHaveBeenCalled();
+    },
+  );
+
+  it('starts one available Threads action through the canonical service path', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Threads' }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('threads');
+      expect(postConnect).toHaveBeenCalledOnce();
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+    });
   });
 
   it('renders the social media card shell', () => {

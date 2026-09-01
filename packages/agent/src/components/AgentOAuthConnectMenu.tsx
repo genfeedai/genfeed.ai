@@ -2,10 +2,10 @@
 
 import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import {
   groupOAuthConnectPlatforms,
-  OAUTH_CONNECT_PLATFORMS,
-  type OAuthConnectPlatform,
+  type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
 import { Button } from '@ui/primitives/button';
@@ -52,12 +52,14 @@ export function AgentOAuthConnectMenu({
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const catalog = useOAuthConnectPlatforms();
   const platforms = useMemo(
     () =>
-      OAUTH_CONNECT_PLATFORMS.filter(
-        (item) => !excludePlatforms?.has(item.platform),
+      catalog.filter(
+        (item) =>
+          item.isConnectAvailable && !excludePlatforms?.has(item.platform),
       ),
-    [excludePlatforms],
+    [catalog, excludePlatforms],
   );
   const groups = useMemo(
     () => groupOAuthConnectPlatforms(platforms),
@@ -65,8 +67,8 @@ export function AgentOAuthConnectMenu({
   );
 
   const handleConnect = useCallback(
-    async (item: OAuthConnectPlatform) => {
-      if (!onOAuthConnect || connectingPlatform) {
+    async (item: ResolvedOAuthConnectPlatform) => {
+      if (!onOAuthConnect || !item.isConnectAvailable || connectingPlatform) {
         return;
       }
 

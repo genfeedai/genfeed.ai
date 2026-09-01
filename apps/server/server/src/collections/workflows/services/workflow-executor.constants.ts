@@ -50,6 +50,7 @@ export const EXECUTABLE_WORKFLOW_IDENTITY_SELECT = {
   config: true,
   description: true,
   id: true,
+  isDeleted: true,
   label: true,
   metadata: true,
   organizationId: true,

@@ -6,6 +6,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   mapSnapshotPendingInputRequest,
   mapSnapshotWorkEvents,
+  readSnapshotRunError,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -137,6 +138,7 @@ export function useAgentThreadPrefetch({
               return;
             }
             primeConversationCache(threadId, {
+              error: readSnapshotRunError(snapshot),
               hasMoreMessages: page.hasMore,
               latestProposedPlan:
                 (snapshot.latestProposedPlan as AgentProposedPlan | null) ??

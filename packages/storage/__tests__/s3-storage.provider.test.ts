@@ -132,12 +132,19 @@ describe('S3StorageProvider', () => {
   });
 
   describe('object-key containment', () => {
-    it('rejects traversal before sending an S3 command', async () => {
+    it.each([
+      '../escaped.png',
+      '/absolute.png',
+      'nested\\escaped.png',
+      'nested/%2e%2e/escaped.png',
+      'nested/%252e%252e/escaped.png',
+      'nested%2fescaped.png',
+    ])('rejects unsafe key %s before sending an S3 command', async (key) => {
       const provider = new S3StorageProvider({ bucket: 'b' });
 
       await expect(
-        provider.upload(Buffer.from('payload'), '../escaped.png'),
-      ).rejects.toThrow(/invalid path segment/);
+        provider.upload(Buffer.from('payload'), key),
+      ).rejects.toThrow(Error);
 
       expect(mockSend).not.toHaveBeenCalled();
     });
@@ -167,7 +174,11 @@ describe('S3StorageProvider', () => {
       await fs.writeFile(source, 'video-bytes');
       const provider = new S3StorageProvider({ bucket: 'b' });
 
-      const result = await provider.uploadFromFile('videos/clip.mp4', source);
+      const result = await provider.uploadFromFile(
+        'videos/clip.mp4',
+        source,
+        scratchDir,
+      );
 
       expect(result).toBe('videos/clip.mp4');
       expect(mockSend).not.toHaveBeenCalled();
@@ -187,14 +198,41 @@ describe('S3StorageProvider', () => {
       expect(Buffer.isBuffer(config.params.Body)).toBe(false);
     });
 
+    it.each([
+      '../outside.mp4',
+      'nested\\outside.mp4',
+      'nested/%2e%2e/outside.mp4',
+      'nested/%252e%252e/outside.mp4',
+    ])(
+      'rejects unsafe local source %s before filesystem access',
+      async (source) => {
+        const provider = new S3StorageProvider({ bucket: 'b' });
+
+        await expect(
+          provider.uploadFromFile('videos/clip.mp4', source, scratchDir),
+        ).rejects.toThrow(Error);
+
+        expect(uploadCtorMock).not.toHaveBeenCalled();
+      },
+    );
+
     it('respects an explicit content type and maps safetensors/pth to octet-stream', async () => {
       uploadDoneMock.mockResolvedValue({});
       const source = path.join(scratchDir, 'model.safetensors');
       await fs.writeFile(source, 'weights');
       const provider = new S3StorageProvider({ bucket: 'b' });
 
-      await provider.uploadFromFile('loras/model.safetensors', source);
-      await provider.uploadFromFile('loras/model.safetensors', source, 'x/y');
+      await provider.uploadFromFile(
+        'loras/model.safetensors',
+        source,
+        scratchDir,
+      );
+      await provider.uploadFromFile(
+        'loras/model.safetensors',
+        source,
+        scratchDir,
+        'x/y',
+      );
 
       const [first] = uploadCtorMock.mock.calls[0] as [
         { params: Record<string, unknown> },

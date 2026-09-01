@@ -96,7 +96,7 @@ describe('LocalStorageProvider path containment', () => {
   describe('uploadFromFile', () => {
     it.each(ESCAPING_PATHS)('rejects %s', async (filePath) => {
       await expect(
-        provider.uploadFromFile(filePath, '/tmp/source.txt'),
+        provider.uploadFromFile(filePath, '/tmp/source.txt', '/tmp'),
       ).rejects.toThrow(/must stay within/);
 
       expect(mockCopyFile).not.toHaveBeenCalled();

@@ -114,7 +114,7 @@ export function AgentRunFailureCard({
                 )
               }
             />
-            {onRetry ? (
+            {onRetry && formatted.isRetryable ? (
               <Button
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}

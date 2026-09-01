@@ -1,11 +1,3 @@
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import {
-  type PostCreateInput,
-  PostsService,
-} from '@server/collections/posts/services/posts.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import type { GeneratedContentInput } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type CredentialPlatform,
   PostCategory,
@@ -16,17 +8,25 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { PostDocument } from '@server/collections/posts/post.schema';
+import {
+  type PostCreateInput,
+  PostsService,
+} from '@server/collections/posts/services/posts.service';
+import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
+import type { GeneratedContentInput } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const LABEL_LENGTH = 80;
 
 export interface ReviewablePostInput extends GeneratedContentInput {
   brandId: string;
-  contentRunId?: string;
   generatedBy: string;
   idempotencyKey?: string;
   organizationId: string;
   skillSlug: string;
   userId?: string;
+  workflowExecutionId?: string;
 }
 
 @Injectable()
@@ -61,7 +61,6 @@ export class ReviewablePostsService {
       post = await this.postsService.create({
         brandId: input.brandId,
         category: this.resolveCategory(input.type, input.mediaUrls),
-        contentRunId: input.contentRunId,
         description: input.content,
         ingredients: [],
         label: this.labelFromContent(input.content),
@@ -84,6 +83,7 @@ export class ReviewablePostsService {
         } as Prisma.InputJsonValue,
         userId,
         visibility: PostVisibility.PUBLIC,
+        workflowExecutionId: input.workflowExecutionId,
       } as PostCreateInput);
     }
 
@@ -120,8 +120,8 @@ export class ReviewablePostsService {
   createFromSkillExecution(input: {
     brandId: string;
     drafts: GeneratedContentInput[];
+    executionId: string;
     organizationId: string;
-    runId: string;
     skillSlug: string;
     userId?: string;
   }): Promise<PostDocument[]> {
@@ -130,12 +130,12 @@ export class ReviewablePostsService {
         this.create({
           ...draft,
           brandId: input.brandId,
-          contentRunId: input.runId,
           generatedBy: input.skillSlug,
-          idempotencyKey: `skill-run:${input.runId}:${input.skillSlug}:${index}`,
+          idempotencyKey: `skill-execution:${input.executionId}:${input.skillSlug}:${index}`,
           organizationId: input.organizationId,
           skillSlug: input.skillSlug,
           userId: input.userId,
+          workflowExecutionId: input.executionId,
         }),
       ),
     );

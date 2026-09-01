@@ -159,6 +159,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'videos/job123/video.mp4',
         '/tmp/video.mp4',
+        '/tmp',
         'video/mp4',
       );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
@@ -175,6 +176,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'images/photo.jpg',
         '/tmp/p.jpg',
+        '/tmp',
         undefined,
       );
     });
@@ -203,6 +205,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'images/jobs/job-1/photo.jpg',
         '/tmp/photo.jpg',
+        '/tmp',
         undefined,
       );
     });
@@ -224,6 +227,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/trainings/loras/my-lora.safetensors',
         '/tmp/my-lora.safetensors',
+        '/tmp',
         'application/octet-stream',
       );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
@@ -253,6 +257,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/trainings/loras/org-1.model.safetensors',
         '/tmp/org-1.model.safetensors',
+        '/tmp',
         'application/octet-stream',
       );
     });

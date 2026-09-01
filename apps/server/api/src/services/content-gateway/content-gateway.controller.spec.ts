@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
-import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import type { Request } from 'express';
 
 const organizationId = testId('org');
@@ -34,10 +34,10 @@ describe('ContentGatewayController', () => {
           useValue: {
             processManualRequest: vi
               .fn()
-              .mockResolvedValue({ posts: [], runs: ['run-2'] }),
+              .mockResolvedValue({ executions: ['execution-2'], posts: [] }),
             routeSignal: vi
               .fn()
-              .mockResolvedValue({ posts: [], runs: ['run-1'] }),
+              .mockResolvedValue({ executions: ['execution-1'], posts: [] }),
           },
         },
       ],
@@ -64,7 +64,7 @@ describe('ContentGatewayController', () => {
         type: 'cron',
       }),
     );
-    expect(result.runs).toEqual(['run-1']);
+    expect(result.executions).toEqual(['execution-1']);
   });
 
   it('executes a manual skill', async () => {
@@ -136,7 +136,7 @@ describe('ContentGatewayController', () => {
           targetSettings: { internal: true },
         },
       ],
-      runs: ['run-1'],
+      executions: ['execution-1'],
     });
 
     const result = await controller.routeSignal(mockRequest, mockUser, {

@@ -16,6 +16,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import {
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
+  resolveContainedPathWithoutSymlinks,
 } from './path-containment';
 import type {
   FileEntry,
@@ -120,12 +121,18 @@ export class S3StorageProvider implements StorageProvider {
   async uploadFromFile(
     filePath: string,
     localPath: string,
+    localRoot: string,
     contentType?: string,
   ): Promise<string> {
     const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
-    const fileStats = await stat(localPath);
-    const resolvedContentType = contentType ?? mimeFromPath(localPath);
-    const fileStream = createReadStream(localPath);
+    const containedLocalPath = await resolveContainedPathWithoutSymlinks(
+      localRoot,
+      localPath,
+      createStorageError,
+    );
+    const fileStats = await stat(containedLocalPath);
+    const resolvedContentType = contentType ?? mimeFromPath(containedLocalPath);
+    const fileStream = createReadStream(containedLocalPath);
 
     try {
       const upload = new Upload({

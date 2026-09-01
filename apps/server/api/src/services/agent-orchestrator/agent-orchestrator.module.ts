@@ -50,6 +50,7 @@ import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { BotsService } from '@server/collections/bots/services/bots.service';
@@ -107,6 +108,7 @@ import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/to
 import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import { CacheService } from '@server/services/cache/cache.service';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
@@ -214,7 +216,12 @@ import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/to
     AgentThreadEventRecorderService,
     AgentTurnAcceptanceService,
     AgentToolExecutorService,
-    AgentToolConfirmationService,
+    {
+      inject: [LoggerService, CacheService],
+      provide: AgentToolConfirmationService,
+      useFactory: (loggerService: LoggerService, cacheService: CacheService) =>
+        new AgentToolConfirmationService(loggerService, cacheService),
+    },
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
     {
