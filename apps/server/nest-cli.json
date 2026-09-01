@@ -16,11 +16,6 @@
             "include": "config/**/*.json",
             "outDir": "dist/server/api/src",
             "watchAssets": true
-          },
-          {
-            "include": "src/services/integrations/replicate/schemas/**/*.json",
-            "outDir": "dist/apps/api/services/integrations/replicate/schemas",
-            "watchAssets": true
           }
         ],
         "builder": {

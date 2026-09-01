@@ -4,7 +4,7 @@ Comprehensive documentation for all Replicate AI models integrated into Genfeed.
 
 ## Overview
 
-The Replicate service provides access to multiple AI models for image generation, video generation, and media transformation through Replicate's unified API. This document details the official input schemas for each model and how they map to Genfeed's universal parameter system.
+The Replicate service provides access to multiple AI models for image generation, video generation, and media transformation through Replicate's unified API. The schema excerpts below document specialized mappings but are not runtime inputs. The model watcher fetches exact-version OpenAPI contracts into `ModelProviderContract`; only a reviewed contract is projected onto `Model` and used by the prompt bar and generation runtime.
 
 ## Supported Models
 
@@ -630,7 +630,7 @@ import { calculateAspectRatio, getDefaultAspectRatio } from '@genfeedai/helpers'
 
 #### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/flux-2-dev.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -679,7 +679,7 @@ See: `services/integrations/replicate/schemas/flux-2-dev.schema.json`
 
 #### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/flux-2-pro.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -729,7 +729,7 @@ See: `services/integrations/replicate/schemas/flux-2-pro.schema.json`
 
 #### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/flux-2-flex.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -2911,11 +2911,6 @@ This structured format is then stringified and sent to models as the `prompt` pa
 ```
 services/integrations/replicate/
 ├── README.md                              # This file
-├── schemas/                               # JSON schema definitions
-│   ├── nano-banana.schema.json
-│   ├── imagen-4.schema.json
-│   ├── veo-3.schema.json
-│   └── ...
 ├── helpers/
 │   └── replicate.interface.ts            # TypeScript interfaces
 └── replicate.service.ts                  # Main service
@@ -3051,12 +3046,12 @@ npm test -- replicate-prompt.builder.spec.ts
 
 When adding a new Replicate model:
 
-1. **Get Official Schema:** Fetch from Replicate API or docs
-2. **Create Schema File:** Add to `schemas/[model-name].schema.json`
-3. **Update Enum:** Add to `ModelKey` enum in `packages/common/enums/src/model.enum.ts`
-4. **Add Mapping:** Implement in `replicate-prompt.builder.ts`
-5. **Document:** Add section to this README
-6. **Test:** Add test cases for the new model
+1. **Discover Contract:** Let the model watcher fetch the exact Replicate version and OpenAPI schema
+2. **Review Contract:** Approve the pending `ModelProviderContract` in the superadmin inspector
+3. **Update Constants:** Add a model constant only when specialized routing requires one
+4. **Add Mapping:** Add a dedicated prompt builder only when generic schema-aware mapping is insufficient
+5. **Document:** Add a section to this README for specialized behavior
+6. **Test:** Cover contract review and any specialized mapping
 
 ---
 
@@ -3081,7 +3076,7 @@ When adding a new Replicate model:
 
 ### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/ideogram-character.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -3146,7 +3141,7 @@ See: `services/integrations/replicate/schemas/ideogram-character.schema.json`
 
 ### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/ideogram-v3-balanced.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -3204,7 +3199,7 @@ See: `services/integrations/replicate/schemas/ideogram-v3-balanced.schema.json`
 
 ### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/ideogram-v3-quality.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 
@@ -3262,7 +3257,7 @@ See: `services/integrations/replicate/schemas/ideogram-v3-quality.schema.json`
 
 ### Official Replicate Schema
 
-See: `services/integrations/replicate/schemas/ideogram-v3-turbo.schema.json`
+The active input schema is the reviewed `ModelProviderContract` projection.
 
 **Key Properties:**
 

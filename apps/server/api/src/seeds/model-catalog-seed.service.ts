@@ -210,7 +210,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
       isPublic: entry.isPublic ?? true,
-      endpoint: entry.key,
+      endpoint: entry.endpoint ?? entry.key,
       key: entry.key,
       label: entry.label,
       provider: entry.provider,
@@ -224,6 +224,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
     const updateData: Prisma.ModelUpdateInput = {
       ...shared,
+      endpoint: entry.endpoint ?? entry.key,
       isDeleted: false,
       // `isActive` and `cost` stay operator/discovery territory: a curated row
       // may have been priced or disabled deliberately, and the seed's 0 for an

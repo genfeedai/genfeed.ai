@@ -114,6 +114,29 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.13,
   },
   /**
+   * fal publishes separate text-to-video and image-to-video endpoints. The
+   * registry tracks the text contract; dispatch switches to image-to-video
+   * when a first frame is present.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 134,
+    costPerUnit: 27,
+    costTier: CostTier.HIGH,
+    description:
+      'MiniMax H3 Max via fal — 5–15 second video with native synchronized audio, 480P/768P output, and optional first/last frames.',
+    endpoint: 'minimax/h3-max/text-to-video',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    label: 'MiniMax H3 Max',
+    minCost: 84,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'h3-max/text-to-video', owner: 'minimax' },
+    providerCostUsd: 0.08,
+  },
+  /**
    * Premium long-form video. providerCostUsd is **per second**
    * (720p-safe ~$0.24/s). 5s → applyMargin(1.20) ≈ 400 credits.
    */
@@ -146,6 +169,7 @@ export const SELF_HOSTED_MODELS = [
     costTier: CostTier.HIGH,
     description:
       'Google Gemini Omni Flash via fal — synchronized-audio video from text, a first image, or up to three reference images.',
+    endpoint: 'google/gemini-omni-flash',
     isDefault: false,
     isHighlighted: true,
     key: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,

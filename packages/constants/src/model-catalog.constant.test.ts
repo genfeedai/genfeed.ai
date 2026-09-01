@@ -190,6 +190,25 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
+  it('activates MiniMax H3 Max with its exact fal endpoint and list price', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    );
+
+    expect(row).toMatchObject({
+      defaultDuration: 5,
+      endpoint: 'minimax/h3-max/text-to-video',
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      isActive: true,
+      key: 'fal/minimax/h3-max/text-to-video',
+      label: 'MiniMax H3 Max',
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.08,
+    });
+  });
+
   it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {
     const catalog = getModelCatalogForDeployment(false);
     const imageDefaults = catalog.filter(
