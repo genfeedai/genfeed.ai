@@ -5,8 +5,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
+import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
-import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
@@ -150,9 +150,10 @@ export default function MenuShared({
 
   const collapseControl =
     onToggleCollapse && !isCollapsed ? (
-      <SidebarToggleButton
+      <SidebarLogoToggleButton
         ariaLabel="Collapse sidebar"
         className="hidden md:flex"
+        direction="collapse"
         onClick={onToggleCollapse}
       />
     ) : null;

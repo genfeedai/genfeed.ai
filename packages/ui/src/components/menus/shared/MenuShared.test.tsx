@@ -318,7 +318,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('keeps one stable desktop collapse icon and the mobile home link inside the sidebar header', () => {
+  it('shows the Genfeed mark at rest and the collapse icon on hover or focus', () => {
     const onToggleCollapse = vi.fn();
     mockLogoUrl.value = '/logo.svg';
 
@@ -335,20 +335,29 @@ describe('MenuShared', () => {
       name: 'Collapse sidebar',
     });
     const toggleIcon = collapseToggle.querySelector('svg');
+    const logo = collapseToggle.querySelector('img');
 
     expect(headerShell).toContainElement(collapseToggle);
     expect(screen.getByRole('link', { name: 'Genfeed home' })).toHaveAttribute(
       'href',
       '/',
     );
-    expect(collapseToggle.querySelector('img')).toBeNull();
+    expect(collapseToggle).toHaveClass('group');
+    expect(logo?.getAttribute('src')).toContain('logo.svg');
     expect(toggleIcon).toBeInTheDocument();
+    expect(logo?.parentElement).toHaveClass('group-hover:opacity-0');
+    expect(logo?.parentElement).toHaveClass('group-focus-visible:opacity-0');
+    expect(toggleIcon?.parentElement).toHaveClass('opacity-0');
+    expect(toggleIcon?.parentElement).toHaveClass('group-hover:opacity-100');
+    expect(toggleIcon?.parentElement).toHaveClass(
+      'group-focus-visible:opacity-100',
+    );
 
     fireEvent.mouseEnter(collapseToggle);
     fireEvent.focus(collapseToggle);
 
     expect(collapseToggle.querySelector('svg')).toBe(toggleIcon);
-    expect(collapseToggle.querySelector('img')).toBeNull();
+    expect(collapseToggle.querySelector('img')).toBe(logo);
 
     fireEvent.click(collapseToggle);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
