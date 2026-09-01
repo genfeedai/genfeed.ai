@@ -1,8 +1,30 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 import {
   retryProviderRequest,
   settleProviderRequest,
 } from './authorized-signals-request.util';
+
+const authorizedSignalsSources = [
+  [
+    'Instagram provider',
+    '../instagram/services/instagram-authorized-signals.provider.ts',
+  ],
+  [
+    'Instagram service',
+    '../instagram/services/instagram-authorized-signals.service.ts',
+  ],
+  [
+    'LinkedIn service',
+    '../linkedin/services/linkedin-authorized-signals.service.ts',
+  ],
+  [
+    'TikTok provider',
+    '../tiktok/services/tiktok-authorized-signals.provider.ts',
+  ],
+  ['TikTok service', '../tiktok/services/tiktok-authorized-signals.service.ts'],
+] as const;
 
 describe('authorized signals request utilities', () => {
   it('retries retryable failures using the provider delay policy', async () => {
@@ -54,4 +76,17 @@ describe('authorized signals request utilities', () => {
       { error },
     );
   });
+
+  it.each(authorizedSignalsSources)(
+    '%s uses the shared settled-result contract directly',
+    (_label, path) => {
+      const source = readFileSync(
+        fileURLToPath(new URL(path, import.meta.url)),
+        'utf8',
+      );
+
+      expect(source).toContain('AuthorizedSignalsSettledResult');
+      expect(source).not.toMatch(/\bSettledResult\b/);
+    },
+  );
 });
