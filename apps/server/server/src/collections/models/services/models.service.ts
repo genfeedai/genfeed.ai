@@ -399,6 +399,7 @@ export class ModelsService extends BaseService<
       ...(filters.provider ? { provider: filters.provider } : {}),
     };
     const [rows, totalDocs] = await Promise.all([
+      // tenant-scope-ignore: anonymous catalog reads are intentionally platform-global; the shared where pins organizationId:null and isDeleted:false
       this.prisma.model.findMany({
         orderBy: [
           { isHighlighted: 'desc' },
@@ -410,6 +411,7 @@ export class ModelsService extends BaseService<
         take: limit,
         where,
       }),
+      // tenant-scope-ignore: catalog totals reuse the same explicit platform-global, non-deleted scope as the row query above
       this.prisma.model.count({ where }),
     ]);
     const totalPages = Math.ceil(totalDocs / limit);
