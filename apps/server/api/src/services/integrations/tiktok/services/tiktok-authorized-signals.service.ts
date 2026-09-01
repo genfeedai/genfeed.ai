@@ -1,4 +1,5 @@
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import {
   type TikTokAuthorizedSignalEvidence,
@@ -108,31 +109,6 @@ type PlatformEvidenceKey = Exclude<
   TikTokAuthorizedSignalEvidence['key'],
   'genfeed-publish-activity'
 >;
-
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
 
 @Injectable()
 export class TiktokAuthorizedSignalsService {
@@ -272,6 +248,38 @@ export class TiktokAuthorizedSignalsService {
       throw error;
     }
 
+    return await this.fetchAndPersistSnapshot({
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    });
+  }
+
+  private async fetchAndPersistSnapshot(params: {
+    accessToken: string;
+    cacheKey: string;
+    credential: CredentialDocument;
+    genfeedEvidence: TikTokAuthorizedSignalEvidence;
+    grantedScopes: string[];
+    organizationId: string;
+    previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined;
+    refreshAttemptedAt: string;
+  }): Promise<TikTokAuthorizedSignalsSnapshot> {
+    const {
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    } = params;
     const providerResult = await this.provider.fetch(
       accessToken,
       grantedScopes,
@@ -293,7 +301,7 @@ export class TiktokAuthorizedSignalsService {
       );
       return await this.persistSnapshot(
         credential,
-        params.organizationId,
+        organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -352,7 +360,7 @@ export class TiktokAuthorizedSignalsService {
 
     return await this.persistSnapshot(
       credential,
-      params.organizationId,
+      organizationId,
       cacheKey,
       snapshot,
     );
@@ -366,8 +374,7 @@ export class TiktokAuthorizedSignalsService {
   ): TikTokAuthorizedSignalEvidence {
     const requiredScopes = [USER_BASIC_SCOPE, USER_PROFILE_SCOPE];
     // Mirror buildStatisticsEvidence: with no profile scope granted the
-    // evidence must omit `value` entirely instead of emitting an object of
-    // undefined members, so permission-limited siblings share one shape.
+    // evidence must omit `value` instead of emitting undefined members.
     if (
       !requiredScopes.some((scope) => grantedScopes.includes(scope)) ||
       !result.value
@@ -765,7 +772,7 @@ export class TiktokAuthorizedSignalsService {
       }),
     });
     const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
+      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
       if (!outcome) {
         return [];
       }
