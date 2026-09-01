@@ -12,6 +12,7 @@ function listTrackedFiles(): string[] | null {
       cwd: rootDir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 10 * 1024 * 1024,
     })
       .split('\n')
       .filter(Boolean);
