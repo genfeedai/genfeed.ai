@@ -15,6 +15,7 @@ import type {
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { TimelineEntry } from '@genfeedai/agent/utils/derive-timeline';
+import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { groupTimelineTurns } from '@genfeedai/agent/utils/group-timeline-turns.util';
 import { type ReactElement, type RefObject, useMemo } from 'react';
 
@@ -106,8 +107,11 @@ export function AgentChatTimeline({
     : null;
   const isTerminalFailedRunWithoutAssistant =
     Boolean(terminalFailedWorkGroup) && !isGenerating && !isStreamingActive;
+  const isTerminalFailureRetryable =
+    isTerminalFailedRunWithoutAssistant &&
+    formatAgentError(lastFailedDetail).isRetryable;
   const retryableUserEntry =
-    isTerminalFailedRunWithoutAssistant && !hasDockedGenerationCard
+    isTerminalFailureRetryable && !hasDockedGenerationCard
       ? [...timeline]
           .slice(0, -1)
           .reverse()
@@ -182,7 +186,11 @@ export function AgentChatTimeline({
         <AgentRunFailureCard
           error={lastFailedDetail}
           isRetrying={isBusy}
-          onRetry={isReadOnly ? undefined : onRetryLastFailedRun}
+          onRetry={
+            isReadOnly || !isTerminalFailureRetryable
+              ? undefined
+              : onRetryLastFailedRun
+          }
         />
       ) : null}
 

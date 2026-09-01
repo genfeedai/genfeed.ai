@@ -59,6 +59,11 @@ async function mockThreadBundle(
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
+    snapshot?: {
+      activeRun: { runId: string; status: string } | null;
+      lastSequence: number;
+      timeline: Array<Record<string, unknown>>;
+    };
     title: string;
   },
 ): Promise<void> {
@@ -99,9 +104,9 @@ async function mockThreadBundle(
   await page.route(`**/threads/${thread.id}/snapshot`, async (route) => {
     await route.fulfill({
       body: JSON.stringify({
-        activeRun: null,
+        activeRun: thread.snapshot?.activeRun ?? null,
         lastAssistantMessage: null,
-        lastSequence: 0,
+        lastSequence: thread.snapshot?.lastSequence ?? 0,
         latestProposedPlan: null,
         latestUiBlocks: null,
         memorySummaryRefs: [],
@@ -112,7 +117,7 @@ async function mockThreadBundle(
         source: 'onboarding',
         threadId: thread.id,
         threadStatus: 'active',
-        timeline: [],
+        timeline: thread.snapshot?.timeline ?? [],
         title: thread.title,
       }),
       contentType: 'application/json',
@@ -137,6 +142,11 @@ async function mockThreads(
     id: string;
     messageContent?: string;
     messageMetadata?: Record<string, unknown>;
+    snapshot?: {
+      activeRun: { runId: string; status: string } | null;
+      lastSequence: number;
+      timeline: Array<Record<string, unknown>>;
+    };
     title: string;
   }>,
 ): Promise<void> {
@@ -374,5 +384,46 @@ test.describe('Agent Onboarding', () => {
         },
       },
     });
+  });
+
+  test('restores a terminal failure after reload without offering an unsafe retry', async ({
+    authenticatedPage,
+  }) => {
+    const threadId = 'thread-terminal-failure-e2e';
+    await mockThreads(authenticatedPage, [
+      {
+        id: threadId,
+        messageContent: 'I could not complete that request.',
+        snapshot: {
+          activeRun: { runId: 'run-terminal-failure-e2e', status: 'failed' },
+          lastSequence: 1,
+          timeline: [
+            {
+              createdAt: '2026-08-28T17:01:00.000Z',
+              detail: 'Provider authentication failed',
+              id: 'failure-terminal-e2e',
+              kind: 'error',
+              label: 'Agent error',
+              runId: 'run-terminal-failure-e2e',
+              sequence: 1,
+              status: 'failed',
+            },
+          ],
+        },
+        title: 'Terminal failure',
+      },
+    ]);
+
+    const threadPath = `${orgPath(APP_ROUTES.AGENT.ROOT)}/${threadId}`;
+    await authenticatedPage.goto(threadPath);
+    await authenticatedPage.waitForLoadState('domcontentloaded');
+    await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(
+      authenticatedPage.getByText('Provider authentication failed').first(),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { exact: true, name: 'Retry' }),
+    ).toHaveCount(0);
   });
 });

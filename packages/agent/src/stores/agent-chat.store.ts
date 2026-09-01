@@ -215,6 +215,7 @@ interface AgentComposerSeed {
 interface CachedConversation {
   /** `Date.now()` when this entry was written — drives freshness (below). */
   cachedAt: number;
+  error: string | null;
   latestProposedPlan: AgentProposedPlan | null;
   hasMoreMessages: boolean;
   messages: AgentChatMessage[];
@@ -697,6 +698,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         ...retained,
         [threadId]: {
           cachedAt: Date.now(),
+          error: state.error,
           hasMoreMessages: state.hasMoreMessages,
           latestProposedPlan: state.latestProposedPlan,
           messages: state.messages,
@@ -949,7 +951,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunStatus: 'idle',
       composerSeed: null,
       draftPlanModeEnabled: false,
-      error: null,
+      error: cached.error,
       latestProposedPlan: cached.latestProposedPlan,
       hasMoreMessages: cached.hasMoreMessages,
       isGenerating: false,

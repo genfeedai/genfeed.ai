@@ -14,6 +14,8 @@ export type FormattedAgentError = {
   recovery: string | null;
   /** True when the operator must fix env / billing / provider setup */
   isConfigurationError: boolean;
+  /** True only when immediately repeating the request is known to be safe. */
+  isRetryable: boolean;
 };
 
 export type AgentErrorDescriptor = {
@@ -39,6 +41,8 @@ const CONFIG_PATTERNS: Array<{
   includeRawDetail?: boolean;
   /** Defaults to true. Session/auth recoveries are not env configuration. */
   isConfigurationError?: boolean;
+  /** Defaults to false. Retry must be explicitly safe for this error class. */
+  isRetryable?: boolean;
 }> = [
   {
     match:
@@ -63,6 +67,7 @@ const CONFIG_PATTERNS: Array<{
     title: 'Provider rate limited',
     summary: 'The model provider asked us to slow down.',
     recovery: 'Wait a moment, then retry the message.',
+    isRetryable: true,
   },
   {
     // Must run before the broader "timeout" connection pattern below.
@@ -73,6 +78,7 @@ const CONFIG_PATTERNS: Array<{
       'The agent run took too long to confirm completion over the live stream.',
     recovery:
       'Refresh the conversation — the run may already have finished. Then retry if needed.',
+    isRetryable: true,
   },
   {
     match:
@@ -102,6 +108,7 @@ const CONFIG_PATTERNS: Array<{
     summary:
       'The connection to the agent service was interrupted before it could respond.',
     recovery: 'Check your connection, then retry the message.',
+    isRetryable: true,
   },
   {
     // Must run before the UI-action-500 "local reload" rule. A cancelled
@@ -113,6 +120,7 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Retry Generate on the card. You do not need to switch models.',
     includeRawDetail: true,
     isConfigurationError: false,
+    isRetryable: true,
   },
   {
     // Tool wrappers often surface bare "Generation failed: 500" when the local
@@ -123,6 +131,7 @@ const CONFIG_PATTERNS: Array<{
     title: 'Connection interrupted',
     summary: 'The agent service returned a server error mid-request.',
     recovery: 'Wait a moment, then retry the message.',
+    isRetryable: true,
   },
   {
     // Also match this rule's own copy. Errors reach the composer from several
@@ -190,6 +199,7 @@ const CONFIG_PATTERNS: Array<{
     summary: 'The model provider returned a server error.',
     recovery:
       'Retry in a moment. If it keeps failing, try Auto or another model.',
+    isRetryable: true,
   },
 ];
 
@@ -275,6 +285,7 @@ export function formatAgentError(
       return {
         detail: null,
         isConfigurationError: false,
+        isRetryable: true,
         recovery:
           'Retry the message. The same request identity prevents a duplicate run.',
         summary:
@@ -286,16 +297,23 @@ export function formatAgentError(
       return {
         detail: null,
         isConfigurationError: false,
+        isRetryable: true,
         recovery:
           'Refresh the conversation to reconcile the run, then retry if it did not finish.',
         summary: 'The run took too long to confirm over the live stream.',
         title: 'Run timed out',
       };
     }
-    if (source === 'provider' && structured.status !== 404) {
+    if (
+      source === 'provider' &&
+      (structured.status === 408 ||
+        structured.status === 429 ||
+        (structured.status !== undefined && structured.status >= 500))
+    ) {
       return {
         detail: null,
         isConfigurationError: false,
+        isRetryable: true,
         recovery: 'Retry in a moment or choose another available model.',
         summary:
           'The generation provider did not complete the request in time.',
@@ -306,6 +324,7 @@ export function formatAgentError(
       return {
         detail: null,
         isConfigurationError: false,
+        isRetryable: true,
         recovery: 'Check your connection, then retry the message.',
         summary:
           'The connection to the agent service was interrupted before it could respond.',
@@ -328,7 +347,9 @@ export function formatAgentError(
     return {
       detail: null,
       isConfigurationError: false,
-      recovery: 'Retry the message. If it fails again, try Auto.',
+      isRetryable: false,
+      recovery:
+        'Copy the error details and inspect the failing step before trying again.',
       summary: 'The agent run did not finish.',
       title: 'Run failed',
     };
@@ -348,6 +369,7 @@ export function formatAgentError(
       return {
         detail,
         isConfigurationError: pattern.isConfigurationError !== false,
+        isRetryable: pattern.isRetryable === true,
         recovery: pattern.recovery,
         summary: pattern.summary,
         title: pattern.title,
@@ -365,7 +387,9 @@ export function formatAgentError(
     return {
       detail: null,
       isConfigurationError: code === '401' || code === '403',
-      recovery: 'Retry the message, or pick a different model.',
+      isRetryable: false,
+      recovery:
+        'Copy the error details and inspect the response before trying again.',
       summary: `The model request failed (HTTP ${code}).`,
       title: code === '401' ? 'Provider authentication failed' : 'Run failed',
     };
@@ -380,7 +404,9 @@ export function formatAgentError(
   return {
     detail,
     isConfigurationError: false,
-    recovery: 'Retry the message, or pick a different model.',
+    isRetryable: false,
+    recovery:
+      'Copy the error details and inspect the failing step before trying again.',
     summary: 'The agent hit an error while running.',
     title: 'Run failed',
   };
