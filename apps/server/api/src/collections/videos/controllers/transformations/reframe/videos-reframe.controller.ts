@@ -119,37 +119,11 @@ export class VideosReframeController {
 
     const parentMetadata = parent.metadata as unknown as MetadataEntity;
     const format = createVideoDto.format || 'landscape';
-    let targetWidth = createVideoDto.width;
-    let targetHeight = createVideoDto.height;
-
-    if (!targetWidth || !targetHeight) {
-      if (format === 'square') {
-        targetWidth = 1080;
-        targetHeight = 1080;
-      } else if (format === 'portrait') {
-        targetWidth = 1080;
-        targetHeight = 1920;
-      } else {
-        targetWidth = 1920;
-        targetHeight = 1080;
-      }
-    }
-
-    // Hard-cap dimensions to a predictable cost tier until dynamic pricing is added.
-    const maxLandscape = { height: 1080, width: 1920 };
-    const maxPortrait = { height: 1920, width: 1080 };
-    const maxSquare = { height: 1080, width: 1080 };
-
-    if (format === 'square') {
-      targetWidth = Math.min(targetWidth, maxSquare.width);
-      targetHeight = Math.min(targetHeight, maxSquare.height);
-    } else if (format === 'portrait') {
-      targetWidth = Math.min(targetWidth, maxPortrait.width);
-      targetHeight = Math.min(targetHeight, maxPortrait.height);
-    } else {
-      targetWidth = Math.min(targetWidth, maxLandscape.width);
-      targetHeight = Math.min(targetHeight, maxLandscape.height);
-    }
+    const { targetHeight, targetWidth } = this.resolveTargetDimensions(
+      format,
+      createVideoDto.width,
+      createVideoDto.height,
+    );
 
     const promptText =
       createVideoDto.text || `Reframe video to ${format} format`;
@@ -243,6 +217,27 @@ export class VideosReframeController {
     });
 
     return serializeSingle(request, IngredientSerializer, ingredientData);
+  }
+
+  private resolveTargetDimensions(
+    format: string,
+    requestedWidth?: number,
+    requestedHeight?: number,
+  ): { targetHeight: number; targetWidth: number } {
+    const defaults =
+      format === 'square'
+        ? { height: 1080, width: 1080 }
+        : format === 'portrait'
+          ? { height: 1920, width: 1080 }
+          : { height: 1080, width: 1920 };
+    const requested =
+      requestedWidth && requestedHeight
+        ? { height: requestedHeight, width: requestedWidth }
+        : defaults;
+    return {
+      targetHeight: Math.min(requested.height, defaults.height),
+      targetWidth: Math.min(requested.width, defaults.width),
+    };
   }
 
   private async dispatchReframe(params: {
