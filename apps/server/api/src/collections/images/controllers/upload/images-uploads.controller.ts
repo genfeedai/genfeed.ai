@@ -11,19 +11,14 @@ import { randomUUID } from 'node:crypto';
 import { createReadStream, existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { UploadImageDto } from '@api/collections/images/dto/upload-image.dto';
 import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   AssetScope,
   categoryToPlural,
@@ -40,6 +35,7 @@ import {
 } from '@genfeedai/serializers';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { resolveContainedPath } from '@libs/security';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpService } from '@nestjs/axios';
 import {
@@ -55,13 +51,19 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 import { diskStorage } from 'multer';
 import { firstValueFrom } from 'rxjs';
 
 const LARGE_MEDIA_BYTES = 1 * 1024 * 1024;
 const IMAGE_UPLOAD_TMP_ROOT = path.join(tmpdir(), 'genfeed-image-uploads');
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 function imageUploadDiskStorage() {
   return diskStorage({
@@ -83,8 +85,13 @@ function unlinkImageUploadTemp(filePath: string | undefined): void {
     return;
   }
   try {
-    if (existsSync(filePath)) {
-      unlinkSync(filePath);
+    const containedPath = resolveContainedPath(
+      IMAGE_UPLOAD_TMP_ROOT,
+      filePath,
+      createBadRequest,
+    );
+    if (existsSync(containedPath)) {
+      unlinkSync(containedPath);
     }
   } catch {
     // Temp cleanup must not mask the upload result.
@@ -121,7 +128,13 @@ export class ImagesUploadsController {
     key: string;
   }): Promise<void> {
     const source = params.file.path
-      ? createReadStream(params.file.path)
+      ? createReadStream(
+          resolveContainedPath(
+            IMAGE_UPLOAD_TMP_ROOT,
+            params.file.path,
+            createBadRequest,
+          ),
+        )
       : params.file.buffer;
 
     if (!source) {

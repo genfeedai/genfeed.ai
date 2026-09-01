@@ -45,7 +45,11 @@ describe('LocalStorageProvider', () => {
       const source = path.join(scratchDir, 'video.mp4');
       await fs.writeFile(source, 'video-bytes');
 
-      const result = await provider.uploadFromFile('videos/clip.mp4', source);
+      const result = await provider.uploadFromFile(
+        'videos/clip.mp4',
+        source,
+        scratchDir,
+      );
 
       expect(result).toBe('videos/clip.mp4');
       const written = await fs.readFile(
@@ -60,6 +64,7 @@ describe('LocalStorageProvider', () => {
         provider.uploadFromFile(
           'videos/clip.mp4',
           path.join(scratchDir, 'missing.mp4'),
+          scratchDir,
         ),
       ).rejects.toThrow();
     });

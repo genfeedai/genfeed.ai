@@ -122,6 +122,7 @@ export class S3Service {
     await this.providerFor(bucket).uploadFromFile(
       safeKey,
       containedLocalPath,
+      localRoot,
       contentType,
     );
     const fileStats = await stat(containedLocalPath);
@@ -167,6 +168,7 @@ export class S3Service {
     await this.providerFor(bucket).uploadFromFile(
       s3Key,
       containedLocalPath,
+      localRoot,
       'application/octet-stream',
     );
     const fileStats = await stat(containedLocalPath);

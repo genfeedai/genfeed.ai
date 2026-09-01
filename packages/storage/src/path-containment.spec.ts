@@ -37,6 +37,19 @@ describe('path containment', () => {
     ).toThrow(ContainmentError);
   });
 
+  it.each([
+    'nested/../file.txt',
+    'nested\\file.txt',
+    'C:/Windows/System32/config',
+    'nested/%2e%2e/file.txt',
+    'nested/%252e%252e/file.txt',
+    'nested%2ffile.txt',
+  ])('rejects ambiguous filesystem syntax %s', (candidate) => {
+    expect(() =>
+      resolveContainedPath('/srv/genfeed/files', candidate, createError),
+    ).toThrow(ContainmentError);
+  });
+
   it('rejects a missing containment root', () => {
     expect(() =>
       resolveContainedPath('', 'nested/file.txt', createError),
@@ -194,6 +207,9 @@ describe('object-key containment', () => {
     'nested\\escaped.png',
     'nested//empty.png',
     './same.png',
+    'nested/%2e%2e/escaped.png',
+    'nested/%252e%252e/escaped.png',
+    'nested%2fescaped.png',
   ])('rejects object-key escape %s', (candidate) => {
     expect(() =>
       resolveContainedObjectKey('ingredients/images', candidate, createError),
@@ -202,6 +218,11 @@ describe('object-key containment', () => {
 
   it('validates a legitimate nested key without imposing a prefix', () => {
     const key = 'transcripts/job-1/audio.mp3';
+    expect(assertSafeObjectKey(key, createError)).toBe(key);
+  });
+
+  it('preserves harmless percent-encoded bytes in a legitimate nested key', () => {
+    const key = 'transcripts/job-1/audio%2Emp3';
     expect(assertSafeObjectKey(key, createError)).toBe(key);
   });
 
