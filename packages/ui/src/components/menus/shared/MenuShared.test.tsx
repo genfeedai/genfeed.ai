@@ -318,22 +318,35 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the logo as a stable home link instead of a hover-only toggle', () => {
-    mockLogoUrl.value = '/logo.svg';
+  it('keeps one stable collapse icon inside the sidebar header', () => {
+    const onToggleCollapse = vi.fn();
 
-    render(<MenuShared config={config} />);
+    render(
+      <MenuShared
+        config={config}
+        onToggleCollapse={onToggleCollapse}
+        orgSwitcherSlot={<div data-testid="organization-switcher">Acme</div>}
+      />,
+    );
 
-    const logoLink = screen.getByRole('link', {
-      name: 'Genfeed home',
+    const headerShell = screen.getByTestId('sidebar-header-shell');
+    const collapseToggle = screen.getByRole('button', {
+      name: 'Collapse sidebar',
     });
+    const toggleIcon = collapseToggle.querySelector('svg');
 
-    expect(logoLink).toHaveAttribute('href', '/');
-    expect(logoLink.querySelector('img')).toBeInTheDocument();
-    fireEvent.mouseEnter(logoLink);
-    expect(logoLink.querySelector('img')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Collapse sidebar' }),
-    ).not.toBeInTheDocument();
+    expect(headerShell).toContainElement(collapseToggle);
+    expect(collapseToggle.querySelector('img')).toBeNull();
+    expect(toggleIcon).toBeInTheDocument();
+
+    fireEvent.mouseEnter(collapseToggle);
+    fireEvent.focus(collapseToggle);
+
+    expect(collapseToggle.querySelector('svg')).toBe(toggleIcon);
+    expect(collapseToggle.querySelector('img')).toBeNull();
+
+    fireEvent.click(collapseToggle);
+    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
 
   it('omits the org switcher slot when not provided', () => {

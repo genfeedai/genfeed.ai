@@ -1264,11 +1264,14 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('forwards collapsed state into the dedicated Library sidebar', () => {
+  it('forwards collapse state and control into the dedicated Library sidebar', () => {
+    const onToggleCollapse = vi.fn();
+
     render(
       <AppProtectedLayoutSidebar
         currentApp="library"
         isCollapsed
+        onToggleCollapse={onToggleCollapse}
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
@@ -1301,11 +1304,9 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'library',
         isCollapsed: true,
+        onToggleCollapse,
         sectionLabel: 'Library',
       }),
-    );
-    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
-      'onToggleCollapse',
     );
   });
 
