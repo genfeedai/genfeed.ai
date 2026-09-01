@@ -72,17 +72,17 @@ export class WorkflowExecutorDocumentService {
     if (!version) {
       return null;
     }
-    if (version.workflow.isDeleted) {
-      throw new Error(
-        `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
-      );
-    }
 
     const isTenantOwned =
       version.organizationId === organizationId &&
       version.organizationId === version.workflow.organizationId &&
       version.userId === version.workflow.userId;
     if (isTenantOwned) {
+      this.assertWorkflowIsExecutable(
+        version.workflow.isDeleted,
+        workflowId,
+        workflowVersionId,
+      );
       return this.normalizeWorkflowDocument({
         ...version.workflow,
         currentVersion: version,
@@ -98,6 +98,11 @@ export class WorkflowExecutorDocumentService {
     if (!isGlobalHiddenMirror) {
       return null;
     }
+    this.assertWorkflowIsExecutable(
+      version.workflow.isDeleted,
+      workflowId,
+      workflowVersionId,
+    );
 
     return this.normalizeWorkflowDocument({
       ...version.workflow,
@@ -120,6 +125,18 @@ export class WorkflowExecutorDocumentService {
     return typeof workflow.label === 'string' && workflow.label.length > 0
       ? workflow.label
       : 'Workflow';
+  }
+
+  private assertWorkflowIsExecutable(
+    isDeleted: boolean,
+    workflowId: string,
+    workflowVersionId: string,
+  ): void {
+    if (isDeleted) {
+      throw new Error(
+        `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
+      );
+    }
   }
 
   private resolveNodeType(visualNodeType: string): string {

@@ -202,6 +202,20 @@ describe('WorkflowExecutorDocumentService', () => {
       ),
     ).resolves.toBeNull();
   });
+
+  it('does not disclose retired state across the tenant boundary', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue({
+      ...pinnedVersionRow('org-other', 'user-other'),
+      workflow: {
+        ...pinnedVersionRow('org-other', 'user-other').workflow,
+        isDeleted: true,
+      },
+    });
+
+    await expect(
+      service.findPinnedWorkflow('workflow-1', 'version-1', 'org-1', 'actor-1'),
+    ).resolves.toBeNull();
+  });
 });
 
 function pinnedVersionRow(
