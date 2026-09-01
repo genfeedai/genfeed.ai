@@ -1,8 +1,11 @@
+'use client';
+
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Workflow } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface OrganizationAutomationBrandEmptyStateProps {
   orgSlug: string;
@@ -17,21 +20,22 @@ interface OrganizationAutomationBrandEmptyStateProps {
 export default function OrganizationAutomationBrandEmptyState({
   orgSlug,
 }: OrganizationAutomationBrandEmptyStateProps) {
+  const translate = useTranslations('common.automation.brandEmpty');
+
   return (
     <div className="flex min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
       <Workflow className="size-10 text-foreground/20" />
       <h1 className="text-lg font-semibold text-foreground">
-        Select a brand to use Automation
+        {translate('title')}
       </h1>
       <p className="max-w-md text-sm text-foreground/55">
-        Choose a brand from the top bar to open this Automation page. Your
-        current destination will stay selected when you switch brands.
+        {translate('description')}
       </p>
       <Button asChild size={ButtonSize.SM} variant={ButtonVariant.SECONDARY}>
         <Link
           href={createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.BRANDS)}
         >
-          Manage brands
+          {translate('action')}
         </Link>
       </Button>
     </div>

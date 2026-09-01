@@ -50,8 +50,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/moodboard/page.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/voices/library-voices-page.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-row.tsx": 4,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-conversation-sidebar.tsx": 6,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-page.tsx": 20,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/messages-surface-adapter.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/messages/reply-drip/reply-drip-page.tsx": 15,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/content-calendar-page.tsx": 1,

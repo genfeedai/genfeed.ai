@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -122,6 +123,7 @@ function MessageBubble({
   onRejectDraft: (messageId: string) => void;
   onToggleReference: (message: SocialMessageModel) => void;
 }) {
+  const translate = useTranslations('common.messages');
   const isOutbound = message.direction === 'outbound';
   const isDraft = isOutbound && message.status === 'draft';
   const provenanceItems = getMessageProvenanceItems(message);
@@ -170,7 +172,7 @@ function MessageBubble({
               isLoading={busyAction === `approve:${message.id}`}
               onClick={() => onApproveDraft(message.id)}
             >
-              Approve
+              {translate('actions.approve')}
             </Button>
             <Button
               variant={ButtonVariant.GHOST}
@@ -179,7 +181,7 @@ function MessageBubble({
               isLoading={busyAction === `reject:${message.id}`}
               onClick={() => onRejectDraft(message.id)}
             >
-              Reject
+              {translate('actions.reject')}
             </Button>
           </div>
         ) : null}
@@ -206,6 +208,7 @@ function MessageBubble({
 }
 
 export default function MessagesPage() {
+  const translate = useTranslations('common.messages');
   const { brandSlug, href } = useOrgUrl();
   const {
     brands,
@@ -471,7 +474,9 @@ export default function MessagesPage() {
   const advancedFilters = (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <p className="text-2xs font-medium text-foreground/54">Automation</p>
+        <p className="text-2xs font-medium text-foreground/54">
+          {translate('actions.automation')}
+        </p>
         <Select
           value={filters.automationState}
           onValueChange={(value) => {
@@ -479,7 +484,7 @@ export default function MessagesPage() {
           }}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Automation" />
+            <SelectValue placeholder={translate('actions.automation')} />
           </SelectTrigger>
           <SelectContent>
             {AUTOMATION_OPTIONS.map((option) => (
@@ -559,7 +564,7 @@ export default function MessagesPage() {
   const isConversationNavProjected = workspaceNavPanel !== null;
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-      <h1 className="sr-only">Messages</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
       {workspaceNavPanel?.portalTarget
         ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
         : null}
@@ -603,12 +608,12 @@ export default function MessagesPage() {
                       {isTikTokReadOnly ? (
                         <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
                           <LockKeyhole aria-hidden="true" className="size-3" />
-                          Read only
+                          {translate('conversation.readOnly')}
                         </span>
                       ) : null}
                       {selectedConversation.needsReview ? (
                         <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
-                          Review
+                          {translate('conversation.review')}
                         </span>
                       ) : null}
                     </div>
@@ -635,7 +640,7 @@ export default function MessagesPage() {
                     >
                       <Link href={automationHref}>
                         <Zap className="size-4" />
-                        Automation
+                        {translate('actions.automation')}
                       </Link>
                     </Button>
                     {selectedConversation.status === 'resolved' ? (
@@ -650,7 +655,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Reopen
+                        {translate('actions.reopen')}
                       </Button>
                     ) : (
                       <Button
@@ -665,7 +670,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Resolve
+                        {translate('actions.resolve')}
                       </Button>
                     )}
                     {selectedConversation.status !== 'needs_review' ? (
@@ -680,7 +685,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Needs Review
+                        {translate('conversation.needsReview')}
                       </Button>
                     ) : null}
                   </div>
@@ -692,7 +697,7 @@ export default function MessagesPage() {
                   <LazyLoadingFallback variant="minimal" />
                 ) : messages.length === 0 ? (
                   <div className="flex h-full min-h-64 items-center justify-center text-sm text-muted-foreground">
-                    No messages in this thread yet.
+                    {translate('empty.noMessages')}
                   </div>
                 ) : (
                   messages.map((message) => (
@@ -722,8 +727,10 @@ export default function MessagesPage() {
                       withWrapper={false}
                     />
                     <span className="text-xs text-gray-800">
-                      Messages page {messagePagination.page} of{' '}
-                      {messagePagination.totalPages}
+                      {translate('pagination.messagePage', {
+                        page: messagePagination.page,
+                        pages: messagePagination.totalPages,
+                      })}
                     </span>
                     <Button
                       ariaLabel="Next messages page"
@@ -748,7 +755,7 @@ export default function MessagesPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Read only
+                      {translate('conversation.readOnly')}
                     </p>
                     <p className="mt-0.5 text-xs text-foreground/48">
                       {availability.postReplyReason}
@@ -761,10 +768,10 @@ export default function MessagesPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Reply composer
+                          {translate('replyComposer.title')}
                         </p>
                         <p className="mt-1 text-xs text-foreground/45">
-                          Review every draft before it is sent or published.
+                          {translate('replyComposer.description')}
                         </p>
                       </div>
                       <Button
@@ -779,7 +786,7 @@ export default function MessagesPage() {
                         }
                         variant={ButtonVariant.SECONDARY}
                       >
-                        Draft with Agent
+                        {translate('actions.draftWithAgent')}
                       </Button>
                     </div>
                   </div>
@@ -805,7 +812,7 @@ export default function MessagesPage() {
                         isLoading={busyAction === 'draft'}
                         onClick={() => handleAction('draft')}
                       >
-                        Save Draft
+                        {translate('actions.saveDraft')}
                       </Button>
                       <Button
                         variant={ButtonVariant.DEFAULT}
@@ -820,7 +827,7 @@ export default function MessagesPage() {
                         title={availability.postReplyReason}
                         onClick={() => handleAction('reply')}
                       >
-                        Reply
+                        {translate('actions.reply')}
                       </Button>
                       <Button
                         variant={ButtonVariant.GHOST}
@@ -834,7 +841,7 @@ export default function MessagesPage() {
                         title={availability.sendDmReason}
                         onClick={() => handleAction('dm')}
                       >
-                        DM
+                        {translate('actions.dm')}
                       </Button>
                     </div>
                   </div>
@@ -873,8 +880,7 @@ export default function MessagesPage() {
               ) : null}
               {!hasConnectedAccounts && !availableOAuthConnect ? (
                 <p className="text-2xs leading-4 text-warning">
-                  Choose a brand in the conversation filters before connecting
-                  an account.
+                  {translate('empty.chooseBrandToConnect')}
                 </p>
               ) : null}
             </div>
