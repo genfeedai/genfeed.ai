@@ -377,7 +377,11 @@ function LibraryVoicesContent() {
   );
 }
 
-function LibraryVoicesPageContent({ scope }: { scope: PageScope }) {
+function LibraryVoicesPageContent({
+  scope,
+}: {
+  scope: PageScope.BRAND | PageScope.ORGANIZATION;
+}) {
   return (
     <IngredientsLayout scope={scope} defaultType="voices" hideTypeTabs>
       <LibraryVoicesContent />
