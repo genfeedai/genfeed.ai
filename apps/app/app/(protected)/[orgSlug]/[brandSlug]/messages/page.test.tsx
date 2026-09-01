@@ -57,6 +57,12 @@ const mocks = vi.hoisted(() => ({
   } | null,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
     selector({
