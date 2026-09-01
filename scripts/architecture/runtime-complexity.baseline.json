@@ -60,30 +60,6 @@
     "symbol": "HeygenWebhookService.handleCallback"
   },
   {
-    "actual": 1483,
-    "file": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts"
-  },
-  {
-    "actual": 221,
-    "file": "apps/server/api/src/services/integrations/linkedin/services/linkedin-authorized-signals.service.ts",
-    "metric": "method-lines",
-    "symbol": "LinkedInAuthorizedSignalsService.refresh"
-  },
-  {
-    "actual": 1526,
-    "file": "apps/server/api/src/services/integrations/youtube/services/youtube-authorized-signals.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/services/integrations/youtube/services/youtube-authorized-signals.service.ts"
-  },
-  {
-    "actual": 219,
-    "file": "apps/server/api/src/services/integrations/youtube/services/youtube-authorized-signals.service.ts",
-    "metric": "method-lines",
-    "symbol": "YoutubeAuthorizedSignalsService.refresh"
-  },
-  {
     "actual": 172,
     "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
     "metric": "method-lines",
