@@ -32,11 +32,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
 
-  return {
-    useTranslations:
-      (namespace: string) => (key: string, values?: Record<string, unknown>) =>
-        translateFromCatalog(namespace, key, values),
-  };
+  return { useTranslations: translateFromCatalog };
 });
 
 vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
