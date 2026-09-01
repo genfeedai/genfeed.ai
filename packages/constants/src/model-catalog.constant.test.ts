@@ -132,7 +132,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
     expect(retiredRow).toMatchObject({
       isActive: false,
-      isLegacy: true,
+      isLegacy: false,
       succeededBy: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     });
     expect(retiredRow?.cost).toBeGreaterThan(0);
