@@ -743,6 +743,7 @@ describe('ModelsController', () => {
         isDefault: false,
         lifecycle: ModelLifecycle.AVAILABLE,
       } as unknown as ModelDocument;
+      modelsService.findOne.mockResolvedValue(availableModel);
       modelsService.transitionLifecycle.mockResolvedValue(availableModel);
 
       const result = await controller.patch(
