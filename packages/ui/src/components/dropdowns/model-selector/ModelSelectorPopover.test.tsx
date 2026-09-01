@@ -239,6 +239,7 @@ function createModel(
     isDeleted: false,
     key: overrides.key,
     label: overrides.label,
+    lifecycle: ModelLifecycle.AVAILABLE,
     provider: ModelProvider.REPLICATE,
     updatedAt: '2026-01-01',
     ...overrides,
@@ -538,6 +539,7 @@ describe('ModelSelectorPopover', () => {
             id: 'model-1',
             key: 'google/nano-banana',
             label: 'Nano Banana',
+            lifecycle: ModelLifecycle.RECOMMENDED,
           }),
           createModel({
             id: 'training-1',
@@ -694,6 +696,7 @@ describe('ModelSelectorPopover', () => {
           createModel({
             key: 'google/nano-banana',
             label: 'Nano Banana',
+            lifecycle: ModelLifecycle.RECOMMENDED,
           }),
         ]}
         values={['__auto_model__']}
@@ -746,6 +749,7 @@ describe('ModelSelectorPopover', () => {
           createModel({
             key: 'google/nano-banana',
             label: 'Nano Banana',
+            lifecycle: ModelLifecycle.RECOMMENDED,
           }),
         ]}
         values={['__auto_model__']}

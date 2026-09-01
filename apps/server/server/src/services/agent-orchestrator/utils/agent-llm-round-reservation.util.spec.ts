@@ -4,7 +4,7 @@ import { runReservedAgentLlmRound } from '@server/services/agent-orchestrator/ut
 describe('runReservedAgentLlmRound', () => {
   it('holds the maximum and idempotently settles exact Auto cost', async () => {
     const credits = {
-      releaseReservation: vi.fn(),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
       reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
       settleReservation: vi.fn(),
     };
@@ -50,7 +50,7 @@ describe('runReservedAgentLlmRound', () => {
 
   it('releases the hold when the provider fails', async () => {
     const credits = {
-      releaseReservation: vi.fn(),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
       reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
       settleReservation: vi.fn(),
     };

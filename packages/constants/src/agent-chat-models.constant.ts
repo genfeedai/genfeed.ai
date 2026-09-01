@@ -196,16 +196,6 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     usesExactProviderCost: true,
   },
   {
-    brandSlug: 'nvidia',
-    description:
-      'Default daily driver — $0 chat, reasoning-capable, ~1M context',
-    isFree: true,
-    isReasoning: true,
-    key: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
-    label: 'Nemotron 3 Ultra (Free)',
-    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
-  },
-  {
     brandSlug: 'deepseek-ai',
     description:
       'Fast, low-cost agent chat with current tool-calling support and 1M context',

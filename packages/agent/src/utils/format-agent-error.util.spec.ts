@@ -84,7 +84,7 @@ describe('formatAgentError', () => {
     const formatted = formatAgentError('Request failed with status code 404');
 
     expect(formatted.title).toBe('Chat model unavailable');
-    expect(formatted.summary).toMatch(/compatible provider endpoint/i);
+    expect(formatted.summary).toMatch(/provider endpoint.*privacy policy/i);
     expect(formatted.recovery).toMatch(/Admin.*Models/i);
     expect(formatted.isConfigurationError).toBe(true);
   });
