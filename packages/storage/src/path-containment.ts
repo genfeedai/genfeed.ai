@@ -118,7 +118,6 @@ export function resolveContainedPath(
 ): string {
   assertConfiguredRoot(rootDir, createError);
   assertCandidatePath(candidatePath, createError);
-  assertUnambiguousPathSyntax(candidatePath, 'File path', createError);
 
   const resolvedRoot = path.resolve(rootDir);
   const resolved = path.resolve(resolvedRoot, candidatePath);
@@ -126,6 +125,8 @@ export function resolveContainedPath(
   if (!isPathWithinRoot(resolvedRoot, resolved)) {
     throw createError(`File path must stay within ${resolvedRoot}`);
   }
+
+  assertUnambiguousPathSyntax(candidatePath, 'File path', createError);
 
   return resolved;
 }
