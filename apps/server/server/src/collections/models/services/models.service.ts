@@ -551,7 +551,11 @@ export class ModelsService extends BaseService<
   }
 
   private async assertValidSuccessor(
-    model: Pick<ModelDocument, 'category' | 'key' | 'organizationId'>,
+    model: {
+      category: string;
+      key: string;
+      organizationId?: string | null;
+    },
     successorKey: string,
   ): Promise<void> {
     if (successorKey === model.key) {

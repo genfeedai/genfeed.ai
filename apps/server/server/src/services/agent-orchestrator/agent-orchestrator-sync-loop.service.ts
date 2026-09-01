@@ -186,7 +186,10 @@ export class AgentOrchestratorSyncLoopService {
         round++;
 
         const isTerminalCompletion = Boolean(terminalContent);
-        const reservedRound = terminalContent
+        const reservedRound: {
+          credits: number;
+          response: OpenRouterChatCompletionResponse;
+        } = terminalContent
           ? {
               credits: 0,
               response: {

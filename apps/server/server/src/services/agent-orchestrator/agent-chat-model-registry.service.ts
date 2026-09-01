@@ -89,7 +89,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         label: row.label,
         provider: row.provider,
         succeededBy: row.succeededBy ?? null,
-        lifecycle: row.lifecycle,
+        lifecycle: row.lifecycle as ModelLifecycle,
         reviewStatus: row.reviewStatus,
       });
     }
