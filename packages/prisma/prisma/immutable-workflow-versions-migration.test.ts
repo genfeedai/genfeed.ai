@@ -259,6 +259,72 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain('has unconvertible legacy type');
   });
 
+  it('removes only unexecuted legacy seeded system mirrors before versioning', () => {
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'CREATE FUNCTION workflow_is_retired_seeded_system_clone',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `@.type == "systemWorkflowAction"`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_metadata->>'sourceType' = 'system-action-workflow'`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'jsonb_array_length(workflow_nodes) = 1',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      `workflow_nodes->0->'data'->'config'->>'canonicalId'`,
+    );
+    expect(seededSystemCleanupMigrationSource).toContain('SELECT COALESCE(');
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'FROM "batch_workflow_jobs" batch_job',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      'DELETE FROM "workflows" workflow',
+    );
+    expect(seededSystemCleanupMigrationSource).toContain(
+      "column_name = 'nodes'",
+    );
+    expect(migrationSource).not.toContain(
+      'workflow_is_retired_seeded_system_clone',
+    );
+  });
+
+  it('pins identity and every execution to tenant-owned immutable v1', () => {
+    expect(migrationSource).toContain(
+      'ALTER TABLE "workflows" ALTER COLUMN "currentVersionId" SET NOT NULL',
+    );
+    expect(migrationSource).toMatch(
+      /ADD CONSTRAINT "workflows_currentVersionId_fkey"[\s\S]*?DEFERRABLE INITIALLY DEFERRED/,
+    );
+    expect(migrationSource).toContain(
+      'ALTER TABLE "workflow_executions" ALTER COLUMN "workflowVersionId" SET NOT NULL',
+    );
+    expect(migrationSource).toContain(
+      'version."organizationId" = execution."organizationId"',
+    );
+    expect(migrationSource).toContain('version."userId" = execution."userId"');
+    expect(migrationSource).toContain(
+      'FOREIGN KEY ("workflowVersionId") REFERENCES "workflow_versions"("id")',
+    );
+  });
+
+  it('uses the runtime sha256:v1 stable-key hash contract', () => {
+    expect(migrationSource).toContain('CREATE FUNCTION workflow_stable_json');
+    expect(migrationSource).toContain(`ORDER BY entry.key COLLATE "C"`);
+    expect(migrationSource).toContain(`'sha256:v1:' || encode(`);
+    expect(migrationSource).toContain(`'sha256'`);
+    expect(migrationSource).not.toContain('md5(');
+  });
+});
+
+const databaseUrl = process.env.DATABASE_URL;
+const describePostgres = databaseUrl ? describe : describe.skip;
+
+describePostgres('immutable workflow version migration on PostgreSQL', () => {
   it('retires only exact seeded macro clones while preserving their history', async () => {
     const fixture = await openMigrationFixture('workflow_version_seeded_macro');
     const { client } = fixture;
@@ -330,72 +396,6 @@ describe('immutable workflow version migration', () => {
     }
   });
 
-  it('removes only unexecuted legacy seeded system mirrors before versioning', () => {
-    expect(seededSystemCleanupMigrationSource).toContain(
-      'CREATE FUNCTION workflow_is_retired_seeded_system_clone',
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      `@.type == "systemWorkflowAction"`,
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      `workflow_metadata->>'sourceType' = 'system-action-workflow'`,
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      `workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb`,
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      'jsonb_array_length(workflow_nodes) = 1',
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      `workflow_nodes->0->'data'->'config'->>'canonicalId'`,
-    );
-    expect(seededSystemCleanupMigrationSource).toContain('SELECT COALESCE(');
-    expect(seededSystemCleanupMigrationSource).toContain(
-      'FROM "batch_workflow_jobs" batch_job',
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      'DELETE FROM "workflows" workflow',
-    );
-    expect(seededSystemCleanupMigrationSource).toContain(
-      "column_name = 'nodes'",
-    );
-    expect(migrationSource).not.toContain(
-      'workflow_is_retired_seeded_system_clone',
-    );
-  });
-
-  it('pins identity and every execution to tenant-owned immutable v1', () => {
-    expect(migrationSource).toContain(
-      'ALTER TABLE "workflows" ALTER COLUMN "currentVersionId" SET NOT NULL',
-    );
-    expect(migrationSource).toMatch(
-      /ADD CONSTRAINT "workflows_currentVersionId_fkey"[\s\S]*?DEFERRABLE INITIALLY DEFERRED/,
-    );
-    expect(migrationSource).toContain(
-      'ALTER TABLE "workflow_executions" ALTER COLUMN "workflowVersionId" SET NOT NULL',
-    );
-    expect(migrationSource).toContain(
-      'version."organizationId" = execution."organizationId"',
-    );
-    expect(migrationSource).toContain('version."userId" = execution."userId"');
-    expect(migrationSource).toContain(
-      'FOREIGN KEY ("workflowVersionId") REFERENCES "workflow_versions"("id")',
-    );
-  });
-
-  it('uses the runtime sha256:v1 stable-key hash contract', () => {
-    expect(migrationSource).toContain('CREATE FUNCTION workflow_stable_json');
-    expect(migrationSource).toContain(`ORDER BY entry.key COLLATE "C"`);
-    expect(migrationSource).toContain(`'sha256:v1:' || encode(`);
-    expect(migrationSource).toContain(`'sha256'`);
-    expect(migrationSource).not.toContain('md5(');
-  });
-});
-
-const databaseUrl = process.env.DATABASE_URL;
-const describePostgres = databaseUrl ? describe : describe.skip;
-
-describePostgres('immutable workflow version migration on PostgreSQL', () => {
   it('converts equivalent graph aliases/data fields and delay millisecond boundaries', async () => {
     const fixture = await openMigrationFixture('workflow_version_cutover');
     const { client } = fixture;
