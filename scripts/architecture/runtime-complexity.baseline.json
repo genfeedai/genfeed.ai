@@ -42,18 +42,6 @@
     "symbol": "PostVariationService.generate"
   },
   {
-    "actual": 17,
-    "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "BatchInterpolationController.constructor"
-  },
-  {
-    "actual": 357,
-    "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.ts",
-    "metric": "method-lines",
-    "symbol": "BatchInterpolationController.createBatchInterpolation"
-  },
-  {
     "actual": 266,
     "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
     "metric": "method-lines",
