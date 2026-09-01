@@ -4,7 +4,7 @@ This document maps Genfeed's delivery rules to the mechanism that enforces
 them. It distinguishes repository code, which changes through pull requests,
 from GitHub settings, which a repository administrator must maintain.
 
-Last audited: 2026-08-26 against `master`, repository rulesets, Actions policy,
+Last audited: 2026-09-01 against `master`, repository rulesets, Actions policy,
 deployment environments, recent workflow runs, and the current workflow test
 suite.
 
@@ -17,6 +17,50 @@ runners, uses Vitest's dependency graph and Turbo's affected graph instead of a
 hand-maintained path approximation, and cancels only superseded pull-request
 runs. Release, deployment, full E2E, and broad coverage remain separate because
 they have different permissions, secrets, and runtime budgets.
+
+## Studio remediation contract
+
+Studio verification narrows repair work; it does not mint reusable GitHub
+check results. When CI fails, reproduce and rerun only the broken jobs, test
+files, packages, or application surfaces on Studio, plus any focused regression
+added by the fix. Do not rerun the entire repository locally just because one CI
+surface failed.
+
+After a code fix is pushed, GitHub sees a new commit SHA and recomputes the
+affected graph for that SHA. The pull-request and merge-queue workflows run the
+cheap static/security gates plus the changed surfaces and their dependents.
+GitHub's **Re-run failed jobs** is reserved for a transient failure on the same
+SHA; it cannot carry green jobs forward to a new commit.
+
+The post-merge contract is intentionally broader: `full-suite.yml` validates
+each surviving `master` tip once. The stable Release workflow waits for that
+exact-SHA run and reuses its green result instead of starting a duplicate Full
+Suite. A hard-red exact-SHA run blocks release until its failed surfaces are
+fixed on a new SHA. Missing or infrastructure-cancelled evidence falls back to
+the reusable Full Suite so verification is never skipped.
+
+## Workflow inventory audit — 2026-09-01
+
+The repository contains 32 workflow files: 29 have a direct event or manual
+entry point, 12 are reusable, and three of those are reusable-only cores with
+checked-in callers. No checked-in workflow is orphaned. Manual release,
+extension, mobile, desktop, and recovery workflows remain intentionally
+infrequent; no recent run is not evidence that those entry points are dead.
+
+GitHub still registered three deleted branch-only diagnostics: `Tmp Spec
+Baseline`, `Copy Turbo token to console (one-shot)`, and `ZZ Throwaway Test
+Inventory`. They were disabled after confirming their files were absent from
+`master` and their only runs came from temporary branches. GitHub-managed
+Dependency Graph, Dependabot, and CodeQL registrations are platform-owned and
+were kept separate from repository workflow cleanup.
+
+The release audit found one unsafe reusable-workflow collision. Both the
+master-push and Release callers entered `build-verify.yml` under
+`build-verify-master`; the Release run cancelled the still-green master build
+writer and made the otherwise-green master Full Suite conclude `cancelled`.
+Server and self-hosted build verification now serialize shared-cache writers
+without cancellation. The Release evidence step also discovers and waits for an
+in-flight exact-SHA master Full Suite, eliminating the duplicate heavy matrix.
 
 The alternatives considered for this audit were:
 
