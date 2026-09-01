@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { NIGHTLY_E2E_FAILURE_LABEL } from './nightly-e2e-failure-reporter.mjs';
 import {
@@ -9,6 +11,16 @@ import {
   NIGHTLY_PLAYWRIGHT_FULL_WORKFLOW_IDENTITY,
 } from './nightly-playwright-full-failure-reporter.mjs';
 import { classifyScheduledFailure } from './scheduled-failure-tracker.mjs';
+
+const WORKFLOW = readFileSync(
+  fileURLToPath(
+    new URL(
+      '../../.github/workflows/playwright-full-nightly.yml',
+      import.meta.url,
+    ),
+  ),
+  'utf8',
+);
 
 test('Playwright full-tier keeps a distinct scheduled tracker identity', () => {
   assert.equal(
@@ -44,4 +56,11 @@ test('full-tier adapter produces deterministic bounded assertion evidence', () =
   assert.equal(classified.failureClass, 'test-assertion');
   assert.match(classified.publicExcerpt, /Discovered: 120/u);
   assert.match(classified.signature, /discovered: <n>/u);
+});
+
+test('full-tier reporter separates failed scenarios from matrix job logs', () => {
+  assert.match(WORKFLOW, /actions: read/u);
+  assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/u);
+  assert.match(WORKFLOW, /collectScheduledRunFailures/u);
+  assert.match(WORKFLOW, /trackerJob: 'e2e-frontend-full'/u);
 });

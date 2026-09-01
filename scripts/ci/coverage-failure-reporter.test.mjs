@@ -23,6 +23,7 @@ test('coverage has a dedicated scheduled tracker identity', () => {
 test('coverage reports failed jobs and records green recovery without masking source results', () => {
   assert.match(WORKFLOW, /^ {2}scheduled-failure-report:/m);
   assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/);
+  assert.match(WORKFLOW, /collectScheduledRunFailures/);
   assert.match(WORKFLOW, /reportCoverageFailures/);
   assert.match(WORKFLOW, /resolveCoverageFailures/);
   assert.match(WORKFLOW, /continue-on-error: true/);
