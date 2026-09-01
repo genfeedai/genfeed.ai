@@ -18,52 +18,10 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 184,
-    "file": "apps/server/api/src/collections/images/controllers/images.controller.ts",
-    "metric": "method-lines",
-    "symbol": "ImagesController.findAll"
-  },
-  {
-    "actual": 186,
-    "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.ts",
-    "metric": "method-lines",
-    "symbol": "ImagesOperationsController.splitContactSheet"
-  },
-  {
-    "actual": 16,
-    "file": "apps/server/api/src/collections/images/services/image-generation.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "ImageGenerationService.constructor"
-  },
-  {
-    "actual": 191,
-    "file": "apps/server/api/src/collections/images/services/image-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "ImageGenerationService.generateImage"
-  },
-  {
-    "actual": 192,
-    "file": "apps/server/api/src/collections/images/services/image-reframe.service.ts",
-    "metric": "method-lines",
-    "symbol": "ImageReframeService.reframeImage"
-  },
-  {
     "actual": 154,
     "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
     "metric": "method-lines",
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
-  },
-  {
-    "actual": 16,
-    "file": "apps/server/api/src/collections/musics/services/music-generation.service.ts",
-    "metric": "constructor-dependencies",
-    "symbol": "MusicGenerationService.constructor"
-  },
-  {
-    "actual": 308,
-    "file": "apps/server/api/src/collections/musics/services/music-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "MusicGenerationService.generateMusic"
   },
   {
     "actual": 172,
@@ -94,36 +52,6 @@
     "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.ts",
     "metric": "method-lines",
     "symbol": "BatchInterpolationController.createBatchInterpolation"
-  },
-  {
-    "actual": 215,
-    "file": "apps/server/api/src/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller.ts",
-    "metric": "method-lines",
-    "symbol": "VideosLipSyncController.createLipSyncVideo"
-  },
-  {
-    "actual": 233,
-    "file": "apps/server/api/src/collections/videos/controllers/transformations/reframe/videos-reframe.controller.ts",
-    "metric": "method-lines",
-    "symbol": "VideosReframeController.reframeVideo"
-  },
-  {
-    "actual": 193,
-    "file": "apps/server/api/src/collections/videos/controllers/transformations/upscale/videos-upscale.controller.ts",
-    "metric": "method-lines",
-    "symbol": "VideosUpscaleController.upscaleVideo"
-  },
-  {
-    "actual": 170,
-    "file": "apps/server/api/src/collections/videos/services/video-generation-preparation.service.ts",
-    "metric": "method-lines",
-    "symbol": "VideoGenerationPreparationService.prepare"
-  },
-  {
-    "actual": 270,
-    "file": "apps/server/api/src/collections/videos/services/video-merge-orchestration.service.ts",
-    "metric": "method-lines",
-    "symbol": "VideoMergeOrchestrationService.mergeVideos"
   },
   {
     "actual": 266,
