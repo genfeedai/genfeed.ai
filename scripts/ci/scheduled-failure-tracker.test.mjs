@@ -270,6 +270,8 @@ test('body carries a parseable marker and implementation-ready bounded contract'
   });
   assert.equal(parseTrackerState(body).fingerprint, 'abc123');
   assert.match(body, /Occurrences: \*\*2\*\*/u);
+  assert.match(body, /Actionable signature/u);
+  assert.match(body, /reopen the oldest canonical tracker/u);
   assert.match(body, /Acceptance criteria/u);
   assert.match(body, /Verification plan/u);
   assert.match(body, /111111111111/u);
@@ -298,6 +300,31 @@ test('recurrence updates one issue with occurrence and first/last run evidence',
   assert.equal(state.occurrences, 2);
   assert.equal(state.firstRunUrl, 'https://github.test/runs/10');
   assert.equal(state.lastRunUrl, 'https://github.test/runs/11');
+});
+
+test('different test scenarios in one job create distinct named trackers', async () => {
+  const fixture = githubFixture();
+  const first = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt:
+        'Test failed: [app-core] › workflows.spec.ts:42:7 › Workflows › restores editor chrome',
+    }),
+  });
+  const second = await reportScheduledFailure({
+    github: fixture.github,
+    ...failure({
+      excerpt:
+        'Test failed: [app-core] › agent.spec.ts:99:2 › Agent › sends a queued follow-up',
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    }),
+  });
+
+  assert.notEqual(first.fingerprint, second.fingerprint);
+  assert.equal(fixture.issues.length, 2);
+  assert.match(fixture.issues[0].body, /restores editor chrome/u);
+  assert.match(fixture.issues[1].body, /sends a queued follow-up/u);
 });
 
 test('recurrence finds an unlabeled canonical tracker and reopens it after recovery', async () => {
