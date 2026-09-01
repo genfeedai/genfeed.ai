@@ -908,14 +908,6 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "4b12ad4dd518cba8d0c1",
-      "message": "Argument of type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; id: string; organizationId: string | null; key: string; createdAt: Date; updatedAt: Date; isDefault: boolean; ... 63 more ...; providerSyncFailureCode: string | null; }': description, label, category, isDeleted, and 66 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "68abc46b70741edbef50",
       "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; id: string; organizationId: string | null; key: string; createdAt: Date; updatedAt: Date; isDefault: boolean; ... 63 more ...; providerSyncFailureCode: string | null; }': description, isDeleted, organizationId, createdAt, and 64 more.",
       "workspace": "api"
@@ -942,14 +934,6 @@
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
       "fingerprint": "d26e34dbcca19b34feae",
       "message": "Argument of type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; key: string; reviewStatus: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; id: string; organizationId: string | null; key: string; createdAt: Date; updatedAt: Date; isDefault: boolean; ... 63 more ...; providerSyncFailureCode: string | null; }': description, label, category, isDeleted, and 66 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "d52d4d00572b8a04bdc2",
-      "message": "Argument of type '{ id: string; isDefault: false; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: false; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; id: string; organizationId: string | null; key: string; createdAt: Date; updatedAt: Date; isDefault: boolean; ... 63 more ...; providerSyncFailureCode: string | null; }': description, label, category, isDeleted, and 68 more.",
       "workspace": "api"
     },
     {

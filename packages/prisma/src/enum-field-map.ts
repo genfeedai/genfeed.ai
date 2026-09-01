@@ -3087,6 +3087,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isDeleted',
       'isDeprecated',
       'isDiscovered',
+      'isFree',
       'isHighlighted',
       'isImagenModel',
       'isLegacy',
@@ -3095,6 +3096,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'key',
       'label',
       'lastSyncedAt',
+      'lifecycle',
       'margin',
       'maxDimensions',
       'maxOutputs',
@@ -3142,7 +3144,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'recommendedFor',
       'supportsFeatures',
     ],
-    enumFields: {},
+    enumFields: {
+      lifecycle: { enumType: 'ModelLifecycle', isRequired: true },
+    },
     relationIdFields: {
       organization: 'organizationId',
       parentModel: 'parentModelId',
