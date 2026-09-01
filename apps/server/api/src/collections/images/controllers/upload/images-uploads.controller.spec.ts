@@ -19,6 +19,7 @@ vi.mock('node:fs', async (importOriginal) => {
   return {
     ...actual,
     createReadStream: vi.fn().mockReturnValue('mock-read-stream'),
+    existsSync: vi.fn(actual.existsSync),
   };
 });
 
