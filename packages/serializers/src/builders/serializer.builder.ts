@@ -191,7 +191,7 @@ function transformSerializerRecord(
   const transformed = { ...record };
   for (const [attribute, transform] of Object.entries(transforms)) {
     if (attribute in record) {
-      transformed[attribute] = transform(record);
+      transformed[attribute] = transform(transformed);
     }
   }
   return transformed;
