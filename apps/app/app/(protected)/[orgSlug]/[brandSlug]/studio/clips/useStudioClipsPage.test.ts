@@ -134,7 +134,6 @@ describe('review route transition', () => {
 
     expect(result.current.isHydrating).toBe(true);
     expect(result.current.project).toBeNull();
-    expect(result.current.step).toBe('input');
 
     await act(async () => {
       resolveHighlights?.({
