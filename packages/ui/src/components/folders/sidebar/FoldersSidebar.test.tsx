@@ -6,15 +6,18 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/drag-drop/zone-folder/DropZoneFolder', () => ({
   default: ({
+    className,
     children,
     folder,
     isSelected,
   }: {
+    className?: string;
     children?: ReactNode;
     folder: unknown;
     isSelected: boolean;
   }) => (
     <div
+      className={className}
       data-testid={folder ? 'folder-item' : 'all-folder'}
       data-selected={isSelected}
     >
@@ -104,5 +107,27 @@ describe('FoldersSidebar navigation tree', () => {
     expect(
       screen.queryByRole('button', { name: /Expand|Collapse/ }),
     ).not.toBeInTheDocument();
+  });
+
+  it('uses the canonical navigation row geometry without a root spacer', () => {
+    render(
+      <FoldersSidebar
+        folders={[{ id: '1', label: 'Campaigns' }] as IFolder[]}
+        onSelectFolder={vi.fn()}
+        variant="navigation"
+      />,
+    );
+
+    const allAssetsRow = screen.getByTestId('all-folder');
+    const folderRow = screen.getByTestId('folder-item');
+    const allAssetsContent = screen.getByText('All assets').parentElement;
+    const folderContent = screen.getByText('Campaigns').parentElement;
+
+    expect(allAssetsRow).toHaveClass('h-8', '!px-2.5', '!py-1.5');
+    expect(folderRow).toHaveClass('h-8', '!px-2.5', '!py-1.5');
+    expect(allAssetsContent).toHaveClass('gap-3');
+    expect(folderContent).toHaveClass('gap-3');
+    expect(allAssetsContent?.firstElementChild).toHaveClass('size-5');
+    expect(folderContent?.firstElementChild).toHaveClass('size-5');
   });
 });

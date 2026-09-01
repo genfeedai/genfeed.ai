@@ -248,11 +248,9 @@ function AppProtectedTopbarContent({
         className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3"
       >
         <div className="flex min-w-0 items-center gap-1.5 justify-self-start">
-          {onSidebarToggle ? (
+          {onSidebarToggle && isSidebarCollapsed ? (
             <SidebarToggleButton
-              ariaLabel={
-                isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
-              }
+              ariaLabel="Expand sidebar"
               className="hidden md:flex"
               onClick={onSidebarToggle}
             />

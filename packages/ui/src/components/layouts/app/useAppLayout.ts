@@ -186,6 +186,7 @@ export function useAppLayout({
         isCollapsed?: boolean;
         mobileSidebarWidth?: number;
         onClose?: (...args: unknown[]) => void;
+        onToggleCollapse?: () => void;
         sidebarWidth?: number;
       }>;
       const originalOnClose = element.props?.onClose;
@@ -210,11 +211,23 @@ export function useAppLayout({
             (originalOnClose as (...innerArgs: unknown[]) => void)(...args);
           }
         },
+        // The mobile drawer owns its close action and must not duplicate the
+        // desktop collapse control inside its cloned menu tree.
+        onToggleCollapse:
+          extraProps.isCollapsed === false
+            ? undefined
+            : handleToggleDesktopSidebar,
       });
     },
     // Intentionally omit sidebarExpandedWidth: desktop rail width is a CSS var
     // updated during drag without re-cloning the menu tree every frame.
-    [menuComponent, isDesktopCollapsed, currentApp, sidebarExpandedWidth],
+    [
+      menuComponent,
+      handleToggleDesktopSidebar,
+      isDesktopCollapsed,
+      currentApp,
+      sidebarExpandedWidth,
+    ],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
