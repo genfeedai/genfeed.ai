@@ -818,6 +818,7 @@ describe('agent-chat.store conversation cache', () => {
     store.setLatestProposedPlan(makePlan('plan-1'));
     store.setWorkEvents([makeWorkEvent('w-1')]);
     store.setPendingInputRequest(makeInputRequest('req-1'));
+    store.setError('Stored terminal failure');
 
     useAgentChatStore.getState().cacheConversation('thread-1');
     useAgentChatStore.getState().resetActiveConversationState();
@@ -836,7 +837,7 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
     expect(state.hasMoreMessages).toBe(true);
     expect(state.messagesCursor).toBe('cursor-2');
-    expect(state.error).toBeNull();
+    expect(state.error).toBe('Stored terminal failure');
     expect(state.isGenerating).toBe(false);
   });
 
@@ -933,6 +934,7 @@ describe('agent-chat.store conversation cache', () => {
   describe('primeConversationCache (#2790 prefetch)', () => {
     function makePrefetchedData(id: string) {
       return {
+        error: null,
         hasMoreMessages: true,
         latestProposedPlan: null,
         messages: [makeMessage(id)],

@@ -396,7 +396,61 @@ describe('AgentFullPage', () => {
     expect(apiService.getThread).toHaveBeenCalledTimes(2);
     expect(apiService.getMessages).toHaveBeenCalledTimes(2);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(2);
-    expect(storeState.setError).not.toHaveBeenCalled();
+    expect(storeState.setError).toHaveBeenCalledWith(null);
+  });
+
+  it('restores a durable terminal error during cold thread hydration', async () => {
+    const apiService = createApiService({
+      getMessages: vi.fn().mockResolvedValue([]),
+      getThread: vi.fn().mockResolvedValue({
+        createdAt: '2026-08-28T17:00:00.000Z',
+        id: 'thread-failed',
+        status: AgentThreadStatus.ACTIVE,
+        title: 'Failed thread',
+        updatedAt: '2026-08-28T17:01:00.000Z',
+      }),
+      getThreadSnapshot: vi.fn().mockResolvedValue({
+        activeRun: { runId: 'run-failed', status: 'failed' },
+        lastAssistantMessage: null,
+        lastSequence: 1,
+        latestProposedPlan: null,
+        latestUiBlocks: null,
+        memorySummaryRefs: [],
+        pendingApprovals: [],
+        pendingInputRequests: [],
+        profileSnapshot: null,
+        sessionBinding: null,
+        source: 'agent',
+        threadId: 'thread-failed',
+        threadStatus: AgentThreadStatus.ACTIVE,
+        timeline: [
+          {
+            createdAt: '2026-08-28T17:01:00.000Z',
+            detail: 'Provider authentication failed',
+            id: 'failure-1',
+            kind: 'error',
+            label: 'Agent error',
+            runId: 'run-failed',
+            sequence: 1,
+            status: 'failed',
+          },
+        ],
+        title: 'Failed thread',
+      }),
+    });
+
+    render(
+      <AgentFullPage
+        apiService={apiService as never}
+        threadId="thread-failed"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Provider authentication failed',
+      );
+    });
   });
 
   it('skips the thread and snapshot requests when the conversation cache is fresh (#2790)', async () => {
@@ -754,7 +808,7 @@ describe('AgentFullPage', () => {
     expect(apiService.getThread).toHaveBeenCalledTimes(1);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(1);
     expect(apiService.getMessages).toHaveBeenCalledTimes(1);
-    expect(storeState.setError).not.toHaveBeenCalled();
+    expect(storeState.setError).toHaveBeenCalledWith(null);
   });
 
   it('never fetches thread data for a stringified "undefined" thread id', async () => {
