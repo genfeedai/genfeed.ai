@@ -1,12 +1,9 @@
-const WORKFLOW_RESERVED_SEGMENTS = new Set([
-  'executions',
-  'library',
-  'templates',
-]);
+const WORKFLOW_RESERVED_SEGMENTS = new Set(['library', 'templates']);
 
 export interface WorkflowSurfaceRouteSelection {
   readonly executionId: string | null;
   readonly isGraphCanvas: boolean;
+  readonly runsBaseHref: string | null;
   readonly workflowBaseHref: string | null;
   readonly workflowId: string | null;
 }
@@ -16,30 +13,47 @@ export function resolveWorkflowSurfaceRoute(
   searchParams: URLSearchParams,
 ): WorkflowSurfaceRouteSelection {
   const segments = pathname.split('/').filter(Boolean);
+  const automationIndex = segments.indexOf('automation');
   const workflowsIndex = segments.indexOf('workflows');
-  if (workflowsIndex < 0) {
+  const runsIndex = segments.indexOf('runs');
+  const isTemplatesRoute = segments[automationIndex + 1] === 'templates';
+  if (workflowsIndex < 0 && runsIndex < 0 && !isTemplatesRoute) {
     return {
       executionId: null,
       isGraphCanvas: false,
+      runsBaseHref: null,
       workflowBaseHref: null,
       workflowId: null,
     };
   }
 
-  const workflowBaseHref = `/${segments
-    .slice(0, workflowsIndex + 1)
+  const automationBaseHref = `/${segments
+    .slice(0, automationIndex + 1)
     .join('/')}`;
-  const section = segments[workflowsIndex + 1];
-  const detailId = segments[workflowsIndex + 2];
+  const runsBaseHref = `${automationBaseHref}/runs`;
+  const workflowBaseHref = `${automationBaseHref}/workflows`;
 
-  if (section === 'executions') {
+  if (runsIndex >= 0) {
     return {
-      executionId: detailId ?? null,
+      executionId: segments[runsIndex + 1] ?? null,
       isGraphCanvas: false,
+      runsBaseHref,
       workflowBaseHref,
       workflowId: null,
     };
   }
+
+  if (isTemplatesRoute) {
+    return {
+      executionId: null,
+      isGraphCanvas: false,
+      runsBaseHref,
+      workflowBaseHref,
+      workflowId: null,
+    };
+  }
+
+  const section = segments[workflowsIndex + 1];
 
   const workflowId =
     section && section !== 'new' && !WORKFLOW_RESERVED_SEGMENTS.has(section)
@@ -49,6 +63,7 @@ export function resolveWorkflowSurfaceRoute(
   return {
     executionId: searchParams.get('execution'),
     isGraphCanvas: section === 'new' || Boolean(workflowId),
+    runsBaseHref,
     workflowBaseHref,
     workflowId,
   };

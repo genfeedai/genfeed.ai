@@ -239,7 +239,7 @@ export function WorkflowExecuteCard({
   }, []);
 
   const executionHref = executionId
-    ? href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${executionId}`)
+    ? href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)
     : null;
 
   return (

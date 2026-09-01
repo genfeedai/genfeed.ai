@@ -14,6 +14,7 @@ describe('workflow surface routing', () => {
     ).toEqual({
       executionId: 'run-1',
       isGraphCanvas: true,
+      runsBaseHref: '/acme/moonrise/automation/runs',
       workflowBaseHref: '/acme/moonrise/automation/workflows',
       workflowId: 'workflow-1',
     });
@@ -22,12 +23,28 @@ describe('workflow surface routing', () => {
   it('resolves brand and organization run inspection canvases', () => {
     expect(
       resolveWorkflowSurfaceRoute(
-        '/acme/moonrise/automation/workflows/executions/run-1',
+        '/acme/moonrise/automation/runs/run-1',
         new URLSearchParams(),
       ),
     ).toEqual({
       executionId: 'run-1',
       isGraphCanvas: false,
+      runsBaseHref: '/acme/moonrise/automation/runs',
+      workflowBaseHref: '/acme/moonrise/automation/workflows',
+      workflowId: null,
+    });
+  });
+
+  it('keeps the canonical templates page in the workflow inspector family', () => {
+    expect(
+      resolveWorkflowSurfaceRoute(
+        '/acme/moonrise/automation/templates',
+        new URLSearchParams(),
+      ),
+    ).toEqual({
+      executionId: null,
+      isGraphCanvas: false,
+      runsBaseHref: '/acme/moonrise/automation/runs',
       workflowBaseHref: '/acme/moonrise/automation/workflows',
       workflowId: null,
     });

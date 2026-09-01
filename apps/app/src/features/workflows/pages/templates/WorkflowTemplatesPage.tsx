@@ -494,7 +494,7 @@ function WorkflowTemplatesPageContent() {
                       <div className="flex justify-end">
                         <Link
                           href={href(
-                            `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
+                            `${APP_ROUTES.AUTOMATION.TEMPLATES}?template=${template.id}`,
                           )}
                           className="bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100"
                         >

@@ -109,11 +109,7 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    [
-      '/acme/moonrise/automation/workflows/templates',
-      'Automation',
-      'Templates',
-    ],
+    ['/acme/moonrise/automation/templates', 'Automation', 'Templates'],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [
       '/acme/moonrise/automation/workflows/workflow-1',
@@ -331,7 +327,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/publishing/review',
       '/acme/~/publishing/pending',
       '/acme/~/publishing/processing',
-      '/acme/moonrise/automation/workflows/executions/run-1',
+      '/acme/moonrise/automation/runs/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/usage',
       '/acme/moonrise/settings/organization/credentials',

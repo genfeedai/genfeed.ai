@@ -186,9 +186,7 @@ export function WorkflowTriggerCard({
             </div>
             {executionId && (
               <a
-                href={href(
-                  `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${executionId}`,
-                )}
+                href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)}
                 className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution →

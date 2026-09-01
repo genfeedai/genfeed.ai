@@ -4595,7 +4595,7 @@ describe('AgentToolExecutorService', () => {
             href: `/genfeed-ai/genfeed/automation/workflows/${recurringWorkflowId}`,
           }),
           expect.objectContaining({
-            href: '/genfeed-ai/genfeed/automation/workflows/executions',
+            href: '/genfeed-ai/genfeed/automation/runs',
           }),
         ],
         type: 'workflow_created_card',

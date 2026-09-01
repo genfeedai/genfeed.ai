@@ -37,7 +37,7 @@ test.describe('Workflow Execution', () => {
 
     await workflowPage.gotoExecutions();
 
-    await expect(authenticatedPage).toHaveURL(/workflows\/executions/);
+    await expect(authenticatedPage).toHaveURL(/automation\/runs/);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -48,7 +48,7 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutionById(execution.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`workflows/executions/${execution.id}`),
+      new RegExp(`automation/runs/${execution.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible();
   });
@@ -64,7 +64,7 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutionById(completedExec?.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`workflows/executions/${completedExec?.id}`),
+      new RegExp(`automation/runs/${completedExec?.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible();
 
@@ -84,7 +84,7 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutionById(runningExec?.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`workflows/executions/${runningExec?.id}`),
+      new RegExp(`automation/runs/${runningExec?.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible();
   });
@@ -100,7 +100,7 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutionById(failedExec?.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`workflows/executions/${failedExec?.id}`),
+      new RegExp(`automation/runs/${failedExec?.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible();
   });
@@ -138,7 +138,7 @@ test.describe('Workflow Execution', () => {
     await workflowPage.gotoExecutionById(execution.id);
 
     await expect(authenticatedPage).toHaveURL(
-      new RegExp(`workflows/executions/${execution.id}`),
+      new RegExp(`automation/runs/${execution.id}`),
     );
     await expect(workflowPage.mainContent).toBeVisible();
 

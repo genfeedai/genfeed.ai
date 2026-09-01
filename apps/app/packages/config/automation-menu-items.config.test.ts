@@ -36,7 +36,8 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ['Autopilot', '/automation/autopilot'],
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
-    ['Templates', '/automation/workflows/templates'],
+    ['Runs', '/automation/runs'],
+    ['Templates', '/automation/templates'],
     ['Workflows', '/automation/workflows'],
   ])('uses the canonical automation route for %s', (label, canonicalHref) => {
     const item = AUTOMATION_MENU_ITEMS.find(
@@ -116,7 +117,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     '/automation/hire',
     '/automation/orchestrator',
     '/automation/agents/new',
-    '/automation/workflows/templates',
+    '/automation/templates',
     '/automation/workflows/new',
     '/automation/autopilot',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {

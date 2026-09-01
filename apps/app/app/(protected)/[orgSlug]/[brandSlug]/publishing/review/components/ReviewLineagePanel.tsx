@@ -101,7 +101,7 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
         >
           <NextLink
             href={href(
-              `${APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS}/${item.workflowExecutionId}`,
+              `${APP_ROUTES.AUTOMATION.RUNS}/${item.workflowExecutionId}`,
             )}
           >
             {translate('openWorkflowRun')}

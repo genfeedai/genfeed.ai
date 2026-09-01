@@ -1013,9 +1013,9 @@ export const testRoutes = {
   studio: '/studio',
   workflow: {
     editor: '/automation/workflows/new',
-    executions: '/automation/workflows/executions',
+    executions: '/automation/runs',
     library: '/automation/workflows',
-    templates: '/automation/workflows/templates',
+    templates: '/automation/templates',
   },
 };
 

@@ -143,7 +143,7 @@ export class WorkflowExecutionFinalizerService {
         organizationId,
         userId,
         notification: {
-          link: `/automation/workflows/executions/${completedExecution.id}`,
+          link: `/automation/runs/${completedExecution.id}`,
           message: `${workflowLabel} failed during a scheduled run: ${error}`,
           metadata: {
             executionId: completedExecution.id,

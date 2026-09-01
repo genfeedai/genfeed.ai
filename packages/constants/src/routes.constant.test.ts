@@ -110,9 +110,7 @@ describe('routes.constant', () => {
   it('aliases /workflows onto Automation workflows instead of a new app', () => {
     expect(LEGACY_APP_ROUTES.WORKFLOWS).toBe('/workflows');
     expect(APP_ROUTES.AUTOMATION.WORKFLOWS).toBe('/automation/workflows');
-    expect(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES).toBe(
-      '/automation/workflows/templates',
-    );
+    expect(APP_ROUTES.AUTOMATION.TEMPLATES).toBe('/automation/templates');
   });
 
   it('builds canonical Publishing editor paths without a kind query param', () => {

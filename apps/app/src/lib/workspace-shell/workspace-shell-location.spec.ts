@@ -42,7 +42,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/publishing/calendar',
     '/acme/moonrise/studio/storyboard',
     '/acme/moonrise/workspace/tasks/task-1',
-    '/acme/moonrise/automation/workflows/templates',
+    '/acme/moonrise/automation/templates',
     '/acme/moonrise/workspace/inbox/all',
   ])('registers the protected product family %s as canvas', (pathname) => {
     expect(
@@ -79,7 +79,7 @@ describe('workspace shell URL restoration', () => {
   it('restores the workflow picker and canonical run URL', () => {
     expect(
       restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/automation/workflows/executions/run-1',
+        pathname: '/acme/moonrise/automation/runs/run-1',
         searchParams: new URLSearchParams({
           overlay: 'workflow-picker',
           thread: 'thread-1',
@@ -87,8 +87,7 @@ describe('workspace shell URL restoration', () => {
       }),
     ).toMatchObject({
       overlay: { key: 'workflow-picker', parameters: {} },
-      routeKey:
-        'route:/:orgSlug/:brandSlug/automation/workflows/executions/:id',
+      routeKey: 'route:/:orgSlug/:brandSlug/automation/runs/:id',
       state: 'overlay',
       threadId: null,
     });

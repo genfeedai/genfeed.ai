@@ -729,7 +729,7 @@ describe('MenuShared', () => {
   });
 
   it('prefers a specific child destination over its parent route prefix', () => {
-    mockPathname.value = '/acme/moonrise/automation/workflows/templates';
+    mockPathname.value = '/acme/moonrise/automation/templates';
 
     render(
       <MenuShared
@@ -737,11 +737,11 @@ describe('MenuShared', () => {
           items: [
             { href: '/automation/workflows', label: 'Workflows' },
             {
-              href: '/automation/workflows/templates',
+              href: '/automation/templates',
               label: 'Templates',
             },
             {
-              href: '/automation/workflows/executions',
+              href: '/automation/runs',
               label: 'Runs',
             },
           ],

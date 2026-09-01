@@ -9,7 +9,7 @@ describe('WorkflowCreatedCard', () => {
       ctas: [
         { href: '/automation/workflows/wf-1', label: 'Open workflow' },
         {
-          href: '/automation/workflows/executions',
+          href: '/automation/runs',
           label: 'Open executions',
         },
       ],
@@ -31,7 +31,7 @@ describe('WorkflowCreatedCard', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open executions' }),
-    ).toHaveAttribute('href', '/automation/workflows/executions');
+    ).toHaveAttribute('href', '/automation/runs');
   });
 
   it('renders action CTAs and invokes the UI action handler', async () => {

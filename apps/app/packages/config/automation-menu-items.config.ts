@@ -45,18 +45,17 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Workflows',
-    href: APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
+    href: APP_ROUTES.AUTOMATION.TEMPLATES,
     label: 'Templates',
-    matchPaths: [APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES],
+    matchPaths: [APP_ROUTES.AUTOMATION.TEMPLATES],
     outline: LayoutTemplate,
     solid: LayoutTemplate,
   },
   {
     group: 'Workflows',
-    href: APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
+    href: APP_ROUTES.AUTOMATION.RUNS,
     label: 'Runs',
     matchPaths: [
-      APP_ROUTES.AUTOMATION.WORKFLOWS_EXECUTIONS,
       APP_ROUTES.AUTOMATION.RUNS,
       APP_ROUTES.AUTOMATION.CONTENT_RUNS,
     ],
