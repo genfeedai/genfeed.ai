@@ -123,8 +123,8 @@ describe('packages/ui design-system guards', () => {
     );
 
     expect(findings.map((entry) => entry.token)).toEqual([
-      'text-[10px]',
       'text-[0.625rem]',
+      'text-[10px]',
     ]);
     expect(findings.every((entry) => entry.kind === 'sub-11-text')).toBe(true);
   });
