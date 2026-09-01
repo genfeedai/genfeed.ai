@@ -91,6 +91,7 @@ export default function IngredientsListContent({
   type,
   scope,
   singularType,
+  viewMode,
   formatFilter,
   isLoading,
   filteredIngredients,
@@ -130,6 +131,28 @@ export default function IngredientsListContent({
     singularType === IngredientCategory.IMAGE ||
     singularType === IngredientCategory.VIDEO ||
     singularType === IngredientCategory.GIF;
+
+  const { nonVisualIngredients, visualIngredients } = useMemo(() => {
+    const visual: IIngredient[] = [];
+    const nonVisual: IIngredient[] = [];
+
+    for (const ingredient of filteredIngredients) {
+      const assetType = getLibraryAssetType(ingredient.category)?.id;
+
+      if (
+        assetType === 'image' ||
+        assetType === 'video' ||
+        assetType === 'gif' ||
+        assetType === 'avatar'
+      ) {
+        visual.push(ingredient);
+      } else {
+        nonVisual.push(ingredient);
+      }
+    }
+
+    return { nonVisualIngredients: nonVisual, visualIngredients: visual };
+  }, [filteredIngredients]);
 
   const columns = useMemo(
     () => [
@@ -199,7 +222,7 @@ export default function IngredientsListContent({
 
   const handleMediaClick = useCallback(
     (ingredient: IIngredient) => {
-      if (scope === PageScope.SUPERADMIN || scope === PageScope.ORGANIZATION) {
+      if (scope === PageScope.SUPERADMIN) {
         return;
       }
 
@@ -240,6 +263,21 @@ export default function IngredientsListContent({
   );
 
   const content = useMemo(() => {
+    if (viewMode === 'list') {
+      return (
+        <AppTable
+          items={filteredIngredients}
+          isLoading={isLoading}
+          columns={columns}
+          selectable
+          selectedIds={selectedIngredientIds}
+          onSelectionChange={onSelectionChange}
+          getItemId={(ingredient: IIngredient) => ingredient.id}
+          actions={tableActions}
+        />
+      );
+    }
+
     if (isAudioCategory) {
       if (isLoading) {
         return <SkeletonList count={6} />;
@@ -262,36 +300,64 @@ export default function IngredientsListContent({
       );
     }
 
-    if (isMediaCategory) {
+    if (isMediaCategory || viewMode === 'grid') {
+      const mediaItems = isMediaCategory
+        ? filteredIngredients
+        : visualIngredients;
+
       return (
-        <IngredientsMediaGrid
-          emptyLabel={`No ${type} yet`}
-          items={filteredIngredients}
-          onDeleteIngredient={onDeleteIngredient}
-          onMarkArchived={onArchiveIngredient}
-          onConvertToPortrait={onConvertToPortrait}
-          onGenerateCaptions={onGenerateCaptions}
-          onReverse={onReverse}
-          onMirror={onMirror}
-          onSeeDetails={onSeeDetails}
-          onUpdateParent={onUpdateParent}
-          onRefresh={onRefresh}
-          selectedIds={selectedIngredientIds}
-          isPortraiting={isPortraiting}
-          isGeneratingCaptions={isGeneratingCaptions}
-          isMirroring={isMirroring}
-          isReversing={isReversing}
-          isLoading={isLoading}
-          isActionsEnabled={isActionsEnabled}
-          isDragEnabled={isDragEnabled}
-          format={formatFilter ? (formatFilter as IngredientFormat) : undefined}
-          onPublishIngredient={onPublishIngredient}
-          onClickIngredient={handleMediaClick}
-          onScopeChange={onScopeChange}
-          onConvertToVideo={onConvertToVideo}
-          onCopyPrompt={onCopyPrompt}
-          onReprompt={onReprompt}
-        />
+        <div className="flex flex-col gap-6">
+          {mediaItems.length > 0 || nonVisualIngredients.length === 0 ? (
+            <IngredientsMediaGrid
+              emptyLabel={`No ${type === 'ingredients' ? 'assets' : type} yet`}
+              items={mediaItems}
+              onDeleteIngredient={onDeleteIngredient}
+              onMarkArchived={onArchiveIngredient}
+              onConvertToPortrait={onConvertToPortrait}
+              onGenerateCaptions={onGenerateCaptions}
+              onReverse={onReverse}
+              onMirror={onMirror}
+              onSeeDetails={onSeeDetails}
+              onUpdateParent={onUpdateParent}
+              onRefresh={onRefresh}
+              selectedIds={selectedIngredientIds}
+              isPortraiting={isPortraiting}
+              isGeneratingCaptions={isGeneratingCaptions}
+              isMirroring={isMirroring}
+              isReversing={isReversing}
+              isLoading={isLoading}
+              isActionsEnabled={isActionsEnabled}
+              isDragEnabled={isDragEnabled}
+              format={
+                formatFilter ? (formatFilter as IngredientFormat) : undefined
+              }
+              onPublishIngredient={onPublishIngredient}
+              onClickIngredient={handleMediaClick}
+              onScopeChange={onScopeChange}
+              onConvertToVideo={onConvertToVideo}
+              onCopyPrompt={onCopyPrompt}
+              onReprompt={onReprompt}
+            />
+          ) : null}
+
+          {viewMode === 'grid' && nonVisualIngredients.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
+                Other assets
+              </h3>
+              <AppTable
+                items={nonVisualIngredients}
+                isLoading={false}
+                columns={columns}
+                selectable
+                selectedIds={selectedIngredientIds}
+                onSelectionChange={onSelectionChange}
+                getItemId={(ingredient: IIngredient) => ingredient.id}
+                actions={tableActions}
+              />
+            </section>
+          ) : null}
+        </div>
       );
     }
 
@@ -337,10 +403,13 @@ export default function IngredientsListContent({
     onUpdateParent,
     onDeleteIngredient,
     onPublishIngredient,
+    nonVisualIngredients,
     selectedIngredientIds,
     singularType,
     tableActions,
     type,
+    viewMode,
+    visualIngredients,
   ]);
 
   /**

@@ -272,7 +272,11 @@ export default function LibrarySidebarNav() {
 
           <div className="mt-4 border-t border-foreground/8 pt-2">
             <ul className="flex flex-col gap-px">
-              {LIBRARY_TAIL_MENU_ITEMS.map(renderMenuItem)}
+              {LIBRARY_TAIL_MENU_ITEMS.filter(
+                (item) =>
+                  item.href !== APP_ROUTES.LIBRARY.MOODBOARD ||
+                  Boolean(brandId),
+              ).map(renderMenuItem)}
             </ul>
           </div>
         </div>

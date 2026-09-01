@@ -53,6 +53,7 @@ const TYPE_OPTIONS = LIBRARY_TYPE_CHIPS.map((chip) => ({
 export default function LibraryBrowserToolbar({
   categories,
   search,
+  searchPlaceholder = "Search this brand's assets",
   sort,
   sortOptions,
   viewMode,
@@ -103,7 +104,7 @@ export default function LibraryBrowserToolbar({
               onSearchChange(event.target.value)
             }
             onClear={() => onSearchChange('')}
-            placeholder="Search this brand's assets"
+            placeholder={searchPlaceholder}
             size={ComponentSize.SM}
             value={search}
           />

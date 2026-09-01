@@ -377,22 +377,22 @@ function LibraryVoicesContent() {
   );
 }
 
-function LibraryVoicesPageContent() {
+function LibraryVoicesPageContent({ scope }: { scope: PageScope }) {
   return (
-    <IngredientsLayout
-      scope={PageScope.BRAND}
-      defaultType="voices"
-      hideTypeTabs
-    >
+    <IngredientsLayout scope={scope} defaultType="voices" hideTypeTabs>
       <LibraryVoicesContent />
     </IngredientsLayout>
   );
 }
 
-export default function LibraryVoicesPage() {
+export default function LibraryVoicesPage({
+  scope = PageScope.BRAND,
+}: {
+  scope?: PageScope.BRAND | PageScope.ORGANIZATION;
+}) {
   return (
     <Suspense fallback={null}>
-      <LibraryVoicesPageContent />
+      <LibraryVoicesPageContent scope={scope} />
     </Suspense>
   );
 }

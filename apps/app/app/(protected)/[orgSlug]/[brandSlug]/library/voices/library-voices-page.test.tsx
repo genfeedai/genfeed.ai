@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { VoiceProvider } from '@genfeedai/enums';
+import { PageScope, VoiceProvider } from '@genfeedai/enums';
 import type { IAsset, IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -82,8 +82,10 @@ vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
 }));
 
 vi.mock('@pages/ingredients/layout/ingredients-layout', () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <div data-testid="ingredients-layout">{children}</div>
+  default: ({ children, scope }: { children: ReactNode; scope: PageScope }) => (
+    <div data-scope={scope} data-testid="ingredients-layout">
+      {children}
+    </div>
   ),
 }));
 
@@ -277,6 +279,21 @@ describe('LibraryVoicesPage', () => {
 
     expect(screen.getByTestId('ingredients-layout')).toBeInTheDocument();
     expect(screen.getByTestId('voice-row-skeleton')).toBeInTheDocument();
+  });
+
+  it('uses organization scope when the shared org route requests it', () => {
+    mockUseVoiceCatalog.mockReturnValue({
+      isLoading: true,
+      refresh: vi.fn(),
+      voices: [],
+    });
+
+    render(<LibraryVoicesPage scope={PageScope.ORGANIZATION} />);
+
+    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
   });
 
   it('renders the row list when voices are available', () => {

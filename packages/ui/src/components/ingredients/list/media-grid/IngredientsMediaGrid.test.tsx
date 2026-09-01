@@ -46,6 +46,8 @@ describe('IngredientsMediaGrid', () => {
         category: IngredientCategory.IMAGE,
         id: 'image-1',
         metadata: { height: 1200, width: 900 },
+        metadataLabel: 'Campaign still',
+        metadataModelLabel: 'Flux',
         status: IngredientStatus.GENERATED,
       },
       {
@@ -60,6 +62,11 @@ describe('IngredientsMediaGrid', () => {
 
     expect(screen.getByTestId('image-tile-image-1')).toBeInTheDocument();
     expect(screen.getByTestId('video-tile-video-1')).toBeInTheDocument();
+    expect(screen.getByText('Campaign still')).toBeInTheDocument();
+    expect(
+      screen.getByText('Campaign still').closest('[data-asset-hover-details]'),
+    ).toHaveClass('opacity-0', 'group-hover:opacity-100');
+    expect(screen.getByText('Image · Flux')).toBeInTheDocument();
   });
 
   it('renders loading skeletons while fetching items', () => {
