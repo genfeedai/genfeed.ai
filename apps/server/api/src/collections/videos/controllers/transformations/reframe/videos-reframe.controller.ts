@@ -42,7 +42,7 @@ import {
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
@@ -242,10 +242,10 @@ export class VideosReframeController {
 
   private async dispatchReframe(params: {
     createVideoDto: CreateVideoDto;
-    ingredientData: IngredientEntity;
+    ingredientData: IngredientDocument;
     metadataId: string;
     parentId: string;
-    promptData: PromptEntity;
+    promptData: Awaited<ReturnType<PromptsService['create']>>;
     request: Request;
     targetHeight: number;
     targetWidth: number;

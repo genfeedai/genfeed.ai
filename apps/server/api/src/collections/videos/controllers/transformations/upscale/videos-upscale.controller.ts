@@ -45,7 +45,7 @@ import {
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosService } from '@server/collections/videos/services/videos.service';
@@ -152,7 +152,7 @@ export class VideosUpscaleController {
     targetResolution: string;
     url: string;
     user: User;
-    video: IngredientEntity;
+    video: IngredientDocument;
     videoId: string;
     videoUrl: string;
   }): Promise<JsonApiSingleResponse> {

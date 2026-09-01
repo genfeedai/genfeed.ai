@@ -34,7 +34,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
@@ -159,7 +159,7 @@ export class VideosLipSyncController {
   private async resolveImageIngredient(
     ingredientId: string,
     organizationId: string,
-  ): Promise<IngredientEntity> {
+  ): Promise<IngredientDocument> {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
       organizationId,
@@ -189,7 +189,7 @@ export class VideosLipSyncController {
   private async resolveAudioIngredient(
     ingredientId: string,
     organizationId: string,
-  ): Promise<IngredientEntity> {
+  ): Promise<IngredientDocument> {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
       organizationId,
@@ -220,7 +220,7 @@ export class VideosLipSyncController {
   }
 
   private assertIngredientReady(
-    ingredient: IngredientEntity,
+    ingredient: IngredientDocument,
     label: 'Audio' | 'Image',
   ): void {
     if (
@@ -240,8 +240,8 @@ export class VideosLipSyncController {
   private async dispatchLipSyncGeneration(
     user: User,
     dto: CreateLipSyncDto,
-    imageIngredient: IngredientEntity,
-    audioIngredient: IngredientEntity,
+    imageIngredient: IngredientDocument,
+    audioIngredient: IngredientDocument,
     ingredientId: string,
     metadataId: string,
     url: string,

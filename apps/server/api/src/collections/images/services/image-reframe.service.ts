@@ -197,7 +197,7 @@ export class ImageReframeService {
     ingredientData: IngredientDocument;
     metadataId: string;
     parentId: string;
-    promptData: PromptEntity;
+    promptData: Awaited<ReturnType<PromptsService['create']>>;
     request: Request;
     targetHeight: number;
     targetWidth: number;
