@@ -47,6 +47,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_seo_hard_cut_routes](feedback_seo_hard_cut_routes.md) — retired/moved public routes are hard cuts: remove current references, add no redirects
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 - [feedback_campaign_information_architecture](feedback_campaign_information_architecture.md) — Campaign = Publish content program; Automate Programs; outreach in Messages
+- [feedback_messages_conversation_inbox](feedback_messages_conversation_inbox.md) — Messages nav lists social conversations; disconnected state connects accounts; read-only platforms have no composer
 - [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 - [feedback_dev_orphan_watchdog](feedback_dev_orphan_watchdog.md) — wrappers reap orphan next-server children; `dev:status` before blaming Genfeed; never kill :443
 - [feedback_local_replicate_key_source](feedback_local_replicate_key_source.md) — edit only root `.env.local`; `env:sync local` regenerates app copies; never hand-edit generated env files
