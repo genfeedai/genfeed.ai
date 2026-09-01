@@ -36,6 +36,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ['Autopilot', '/automation/autopilot'],
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
+    ['Templates', '/automation/workflows/templates'],
     ['Workflows', '/automation/workflows'],
   ])('uses the canonical automation route for %s', (label, canonicalHref) => {
     const item = AUTOMATION_MENU_ITEMS.find(
@@ -136,7 +137,11 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     }
 
     expect(byGroup.get('')).toEqual(['Overview']);
-    expect(byGroup.get('Workflows')).toEqual(['Workflows', 'Runs']);
+    expect(byGroup.get('Workflows')).toEqual([
+      'Workflows',
+      'Templates',
+      'Runs',
+    ]);
     expect(byGroup.get('Agents')).toEqual(['Agents', 'Autopilot', 'Programs']);
     expect(byGroup.get('Campaigns')).toBeUndefined();
     expect(byGroup.get('Settings')).toBeUndefined();

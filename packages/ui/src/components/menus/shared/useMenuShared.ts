@@ -88,6 +88,18 @@ export function useMenuShared({
       }
 
       const itemPathname = item.href.split('?')[0] ?? item.href;
+      const hasMoreSpecificRouteMatch = config.items.some((candidate) => {
+        if (candidate === item || !candidate.href) {
+          return false;
+        }
+
+        const candidatePathname =
+          candidate.href.split('?')[0] ?? candidate.href;
+        return (
+          candidatePathname.startsWith(`${itemPathname}/`) &&
+          isConfiguredItemActive(candidate)
+        );
+      });
       const hasMoreSpecificQueryMatch = config.items.some((candidate) => {
         if (
           candidate === item ||
@@ -105,7 +117,7 @@ export function useMenuShared({
         );
       });
 
-      return !hasMoreSpecificQueryMatch;
+      return !hasMoreSpecificRouteMatch && !hasMoreSpecificQueryMatch;
     },
     [config.items, isConfiguredItemActive],
   );

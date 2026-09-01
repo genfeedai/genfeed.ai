@@ -728,6 +728,37 @@ describe('MenuShared', () => {
     });
   });
 
+  it('prefers a specific child destination over its parent route prefix', () => {
+    mockPathname.value = '/acme/moonrise/automation/workflows/templates';
+
+    render(
+      <MenuShared
+        config={{
+          items: [
+            { href: '/automation/workflows', label: 'Workflows' },
+            {
+              href: '/automation/workflows/templates',
+              label: 'Templates',
+            },
+            {
+              href: '/automation/workflows/executions',
+              label: 'Runs',
+            },
+          ],
+          logoHref: '/automation',
+        }}
+        sectionLabel="Automation"
+      />,
+    );
+
+    const activeLabels = screen
+      .getAllByTestId('menu-item')
+      .filter((node) => node.getAttribute('data-active') === 'true')
+      .map((node) => node.textContent);
+
+    expect(activeLabels).toEqual(['Templates']);
+  });
+
   describe('settings exact-match active state', () => {
     // Mirrors the nested settings sidebar (#1231/#1264 follow-up): scope-scoped
     // items sharing the /settings root must only light up on an exact route.

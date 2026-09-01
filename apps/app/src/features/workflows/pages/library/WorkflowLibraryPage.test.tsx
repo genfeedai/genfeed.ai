@@ -111,6 +111,15 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('@ui/layout/section-topbar/SectionTopbar', () => ({
+  default: ({ actions, tabs }: { actions?: ReactNode; tabs?: ReactNode }) => (
+    <header data-testid="section-topbar">
+      {tabs}
+      {actions}
+    </header>
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     asChild,
@@ -276,9 +285,7 @@ describe('WorkflowLibraryPage card semantics', () => {
   it('keeps card navigation separate from schedule and menu actions', () => {
     render(<WorkflowLibraryPage />);
 
-    expect(
-      screen.getByRole('link', { name: 'Templates' }).querySelector('button'),
-    ).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
     for (const link of screen.getAllByRole('link', {
       name: 'New Workflow',
     })) {
@@ -379,18 +386,19 @@ describe('WorkflowLibraryPage card semantics', () => {
     expect(screen.queryByText('Platform-managed')).not.toBeInTheDocument();
   });
 
-  it('keeps the toolbar and search bar mounted while the initial load is pending', () => {
+  it('keeps search and creation in the sub-navbar while the initial load is pending', () => {
     mocks.isLoading = true;
     mocks.workflows = [];
     render(<WorkflowLibraryPage />);
 
-    expect(screen.getByRole('link', { name: 'Templates' })).toBeInTheDocument();
-    expect(
-      screen.getAllByRole('link', { name: 'New Workflow' }).length,
-    ).toBeGreaterThan(0);
-    expect(
-      screen.getByPlaceholderText('Search workflows...'),
-    ).toBeInTheDocument();
+    const topbar = screen.getByTestId('section-topbar');
+    const search = screen.getByPlaceholderText('Search workflows...');
+    const createLinks = screen.getAllByRole('link', { name: 'New Workflow' });
+
+    expect(topbar).toContainElement(search);
+    expect(createLinks.some((link) => topbar.contains(link))).toBe(true);
+    expect(screen.queryByRole('link', { name: 'Templates' })).toBeNull();
+    expect(screen.queryByText('Autopilot')).toBeNull();
     expect(screen.getByTestId('library-skeleton')).toBeInTheDocument();
     expect(screen.queryByTestId('library-content')).not.toBeInTheDocument();
   });
