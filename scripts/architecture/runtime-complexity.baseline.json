@@ -222,24 +222,6 @@
     "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
   },
   {
-    "actual": 1033,
-    "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts"
-  },
-  {
-    "actual": 155,
-    "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
-    "metric": "method-lines",
-    "symbol": "WorkflowExecutionsService.completeExecution"
-  },
-  {
-    "actual": 155,
-    "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
-    "metric": "method-lines",
-    "symbol": "WorkflowExecutionsService.updateNodeResult"
-  },
-  {
     "actual": 1070,
     "file": "apps/server/server/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
