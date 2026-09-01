@@ -11,6 +11,7 @@ import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
+import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
 const ORG_LIBRARY_TYPE_BY_SEGMENT: Record<string, string> = {
   avatar: 'avatars',
@@ -126,9 +127,10 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'automation') {
-    // Automation's only org-scoped surface is the cross-brand overview at
-    // `/~/automation`; deeper automation paths are brand-scoped.
-    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.AUTOMATION.ROOT));
+    // Deeper Automation pages own brand resources, but the brandless URL is a
+    // valid navigation state. Keep the requested path mounted so the sidebar
+    // remains usable and selecting a brand can reopen this exact surface.
+    return <OrganizationAutomationBrandEmptyState orgSlug={orgSlug} />;
   }
 
   if (orgRootApp === 'library') {

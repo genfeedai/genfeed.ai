@@ -253,18 +253,39 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it('sends deeper org-scoped automation paths to the Automation overview', async () => {
-    await expect(
-      OrgRootAppPage({
+  it.each([
+    ['overview'],
+    ['workflows'],
+    ['workflows', 'executions'],
+    ['runs'],
+    ['agents'],
+    ['autopilot'],
+    ['campaigns'],
+  ])(
+    'renders the brand-selection empty state for org Automation path %s',
+    async (...segments) => {
+      const element = await OrgRootAppPage({
         params: Promise.resolve({
           orgRootApp: 'automation',
           orgSlug: 'acme',
-          segments: ['workflows'],
+          segments,
         }),
-      }),
-    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/automation');
-    expect(notFoundMock).not.toHaveBeenCalled();
-  });
+      });
+
+      render(element);
+
+      expect(
+        screen.getByRole('heading', {
+          name: 'Select a brand to use Automation',
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Manage brands' }),
+      ).toHaveAttribute('href', '/acme/~/settings/brands');
+      expect(redirectMock).not.toHaveBeenCalled();
+      expect(notFoundMock).not.toHaveBeenCalled();
+    },
+  );
 
   it('renders the studio edit projects surface', async () => {
     const element = await OrgRootAppPage({
