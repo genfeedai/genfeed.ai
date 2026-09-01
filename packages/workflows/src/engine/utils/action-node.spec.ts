@@ -11,6 +11,7 @@ describe('createExecutableActionNode', () => {
         actionId: 'videoGen',
         id: 'video',
         inputs: ['prompt'],
+        isLocked: false,
         parameters: { duration: 8 },
       }),
     ).toEqual({
@@ -20,6 +21,7 @@ describe('createExecutableActionNode', () => {
       },
       id: 'video',
       inputs: ['prompt'],
+      isLocked: false,
       label: 'Generate Video',
       type: 'genfeedAction',
     });
@@ -62,5 +64,17 @@ describe('createExecutableActionNode', () => {
         type: 'generateVideo',
       }),
     ).toThrow('must use the Genfeed action envelope');
+  });
+
+  it('rejects action envelopes whose catalog identity is unknown', () => {
+    expect(() =>
+      getExecutableNodeOperationId({
+        config: { actionId: 'removed-action' },
+        id: 'removed',
+        inputs: [],
+        label: 'Removed action',
+        type: 'genfeedAction',
+      }),
+    ).toThrow('references unknown Genfeed action removed-action');
   });
 });
