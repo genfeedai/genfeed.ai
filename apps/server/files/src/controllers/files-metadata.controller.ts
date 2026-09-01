@@ -29,6 +29,8 @@ export class FilesMetadataController {
 
   @Post('metadata')
   async getFileMetadata(@Body() body: { filePath?: string; url?: string }) {
+    this.tempFileCleanupCron.cleanupTempFiles();
+
     let filePath: string | undefined;
     let tempFilePath: string | undefined;
     let shouldCleanup = true; // Flag to control cleanup
@@ -300,7 +302,7 @@ export class FilesMetadataController {
 
   /**
    * Manual cleanup endpoint for temporary files
-   * Note: Automatic cleanup runs daily at 2 AM via @Cron decorator in TempFileCleanupCron
+   * Metadata traffic also runs a throttled local cleanup pass.
    */
   @Post('cleanup-temp-files')
   async cleanupTempFiles() {

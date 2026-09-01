@@ -4,7 +4,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { ModelsService } from '@server/collections/models/services/models.service';
 
 /** Threshold in days before a succeeded model can be auto-deprecated */
@@ -57,7 +56,6 @@ export class CronModelDeprecationService {
    *
    * Models are never deleted -- only deactivated (isActive: false, isHighlighted: false)
    */
-  @Cron('0 3 * * 0')
   async deprecateSupersededModels(): Promise<DeprecationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);

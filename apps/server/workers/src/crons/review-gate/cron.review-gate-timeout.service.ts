@@ -78,7 +78,7 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
 
   /**
    * Auto-resolves review gates whose reviewer timeout has elapsed. Fired every
-   * 15 minutes by the system-sweeps BullMQ Job Scheduler. Each resolution is
+   * 15 minutes by the platform BullMQ schedule. Each resolution is
    * recorded as a system workflow execution for tenant-visible provenance.
    */
   async resolveTimedOutReviewGates(): Promise<void> {

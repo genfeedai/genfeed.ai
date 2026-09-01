@@ -3,6 +3,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 
 @Module({
+  exports: [CronModelDeprecationService],
   imports: [forwardRef(() => ModelsModule)],
   providers: [CronModelDeprecationService],
 })
