@@ -1108,6 +1108,63 @@ function getSafeSignedInCallbackPath(req: NextRequest): string | null {
     : null;
 }
 
+function getContinuationWorkspaceSlugs(
+  continuation: string,
+): WorkspaceSlugs | null {
+  try {
+    return slugsFromPathname(
+      new URL(continuation, 'https://app.invalid').pathname,
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function resolveAuthorizedWorkspaceContinuation(
+  continuation: string,
+  canonicalPath: string,
+  token: string,
+  req: NextRequest,
+): Promise<string | null> {
+  const continuationSlugs = getContinuationWorkspaceSlugs(continuation);
+  if (!continuationSlugs) {
+    return continuation;
+  }
+
+  const canonicalSlugs = slugsFromPathname(canonicalPath);
+  if (!canonicalSlugs) {
+    return null;
+  }
+
+  if (
+    continuationSlugs.orgSlug === canonicalSlugs.orgSlug &&
+    (!continuationSlugs.brandSlug ||
+      continuationSlugs.brandSlug === canonicalSlugs.brandSlug)
+  ) {
+    return continuation;
+  }
+
+  const bootstrapRead = await readBootstrap(token, req);
+  if (!bootstrapRead.isAvailable) {
+    return null;
+  }
+
+  const isAuthorized = (bootstrapRead.bootstrap?.brands ?? []).some((brand) => {
+    const brandOrgSlug = brand.organization?.slug;
+    const belongsToContinuationOrg = brandOrgSlug
+      ? brandOrgSlug === continuationSlugs.orgSlug
+      : continuationSlugs.orgSlug === canonicalSlugs.orgSlug;
+
+    return (
+      belongsToContinuationOrg &&
+      (!continuationSlugs.brandSlug ||
+        brand.slug === continuationSlugs.brandSlug)
+    );
+  });
+
+  return isAuthorized ? continuation : null;
+}
+
 async function redirectSignedInUserToDefaultRoute(
   req: NextRequest,
   token: string,
@@ -1115,10 +1172,11 @@ async function redirectSignedInUserToDefaultRoute(
   isDesktopSurface = false,
 ): Promise<NextResponse | null> {
   // Prefer an explicit post-auth destination from session restore through
-  // /login?callbackUrl=…. Do this before onboarding defaulting
-  // so deep links like /settings/credits survive a cold reload.
+  // /login?callbackUrl=…. Continuations without an explicit workspace claim
+  // can proceed immediately; scoped continuations must be checked against the
+  // authenticated bootstrap below before they can render a protected shell.
   const callbackPath = getSafeSignedInCallbackPath(req);
-  if (callbackPath) {
+  if (callbackPath && !getContinuationWorkspaceSlugs(callbackPath)) {
     return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
   }
 
@@ -1160,7 +1218,18 @@ async function redirectSignedInUserToDefaultRoute(
     return null;
   }
 
-  const response = redirectDroppingSearch(req, resolved.path);
+  const authorizedCallbackPath = callbackPath
+    ? await resolveAuthorizedWorkspaceContinuation(
+        callbackPath,
+        resolved.path,
+        token,
+        req,
+      )
+    : null;
+  const response = redirectDroppingSearch(
+    req,
+    authorizedCallbackPath ?? resolved.path,
+  );
   if (resolved.cookieValue) {
     setSlugCookie(response, resolved.cookieValue);
   }
@@ -1304,7 +1373,7 @@ async function routeBetterAuthRequest(
   // after the session token has been confirmed here.
   const callbackPath =
     pathname === APP_ROUTES.ROOT ? getSafeSignedInCallbackPath(req) : null;
-  if (callbackPath) {
+  if (callbackPath && !getContinuationWorkspaceSlugs(callbackPath)) {
     return NextResponse.redirect(createSafeRedirectUrl(req, callbackPath));
   }
 
@@ -1421,7 +1490,21 @@ async function routeBetterAuthRequest(
       return NextResponse.next();
     }
 
-    const response = redirectPreservingSearch(req, resolved.path);
+    const authorizedCallbackPath = callbackPath
+      ? await resolveAuthorizedWorkspaceContinuation(
+          callbackPath,
+          resolved.path,
+          token,
+          req,
+        )
+      : null;
+    const response = authorizedCallbackPath
+      ? NextResponse.redirect(
+          createSafeRedirectUrl(req, authorizedCallbackPath),
+        )
+      : callbackPath
+        ? redirectDroppingSearch(req, resolved.path)
+        : redirectPreservingSearch(req, resolved.path);
     if (resolved.cookieValue) {
       setSlugCookie(response, resolved.cookieValue);
     }
