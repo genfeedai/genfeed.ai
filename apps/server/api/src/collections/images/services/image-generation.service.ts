@@ -237,13 +237,25 @@ export class ImageGenerationService {
       abortSignal: createRequestAbortSignal(request),
     };
 
+    return this.dispatchAndFinish(
+      context,
+      onPlaceholderCreated,
+      onCreditsPrepared,
+    );
+  }
+
+  private async dispatchAndFinish(
+    context: ImageGenerationContext,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    onCreditsPrepared?: () => Promise<void>,
+  ): Promise<JsonApiSingleResponse> {
     try {
-      await onPlaceholderCreated?.(ingredientData.id.toString());
+      await onPlaceholderCreated?.(context.ingredientData.id.toString());
       await this.admissionService.ensureCredits(
-        createImageDto,
-        model,
-        user.organizationId,
-        request,
+        context.createImageDto,
+        context.model,
+        context.user.organizationId,
+        context.request,
         onCreditsPrepared,
       );
     } catch (error: unknown) {
@@ -252,16 +264,12 @@ export class ImageGenerationService {
         error,
       );
     }
-
-    // Create activity + websocket update for image generation start
     await this.imageGenerationProviderDispatchService.createPlaceholderActivity(
       context,
-      ingredientData.id,
+      context.ingredientData.id,
     );
-
     const plan =
       await this.imageGenerationProviderDispatchService.dispatch(context);
-
     return this.finishGeneration(context, plan);
   }
 
