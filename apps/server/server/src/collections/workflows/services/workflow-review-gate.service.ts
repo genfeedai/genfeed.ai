@@ -45,6 +45,25 @@ type ContinueWorkflowGraph = (input: {
   workflowLabel: string;
 }) => Promise<ExecutionRunResult>;
 
+type ReviewGateExecution = NonNullable<
+  Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
+>;
+
+type ApproveReviewGateInput = {
+  workflowId: string;
+  executionId: string;
+  userId: string;
+  nodeId: string;
+  approvedAt: Date;
+  approvedAtIso: string;
+  pendingApproval: PendingReviewGateState;
+  workflowLabel: string;
+  normalizedWorkflowDoc: Parameters<
+    WorkflowEngineAdapterService['convertToExecutableWorkflow']
+  >[0];
+  execution: ReviewGateExecution;
+};
+
 export class WorkflowReviewGateService {
   constructor(
     private readonly engineAdapter: WorkflowEngineAdapterService,
@@ -458,22 +477,9 @@ export class WorkflowReviewGateService {
     };
   }
 
-  private async approveReviewGate(input: {
-    workflowId: string;
-    executionId: string;
-    userId: string;
-    nodeId: string;
-    approvedAt: Date;
-    approvedAtIso: string;
-    pendingApproval: PendingReviewGateState;
-    workflowLabel: string;
-    normalizedWorkflowDoc: Parameters<
-      WorkflowEngineAdapterService['convertToExecutableWorkflow']
-    >[0];
-    execution: NonNullable<
-      Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
-    >;
-  }): Promise<ReviewGateApprovalResult> {
+  private async approveReviewGate(
+    input: ApproveReviewGateInput,
+  ): Promise<ReviewGateApprovalResult> {
     const keepsWorkflowActive =
       input.execution.metadata?.isSystemAction === true;
     const approvedOutput = this.buildReviewGateApprovedOutput(
@@ -506,47 +512,8 @@ export class WorkflowReviewGateService {
       'approved',
     );
 
-    let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
-      input.normalizedWorkflowDoc,
-    );
-    executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
-      input.normalizedWorkflowDoc,
-      executableWorkflow,
-      input.execution.inputValues ?? {},
-    );
-
-    for (const node of executableWorkflow.nodes) {
-      if (node.id === input.nodeId) {
-        node.cachedOutput = approvedOutput;
-        continue;
-      }
-
-      const nodeResult = input.execution.nodeResults.find(
-        (result) =>
-          result.nodeId === node.id &&
-          result.status === WorkflowExecutionStatus.COMPLETED &&
-          result.output !== undefined,
-      );
-
-      if (nodeResult?.output !== undefined) {
-        node.cachedOutput = nodeResult.output;
-      }
-    }
-
-    const remainingNodeIds = this.graphService
-      .collectDownstreamNodeIds(
-        input.nodeId,
-        executableWorkflow.edges,
-        executableWorkflow.nodes,
-      )
-      .filter(
-        (downstreamNodeId) =>
-          !input.execution.nodeResults.some(
-            (result) =>
-              result.nodeId === downstreamNodeId &&
-              result.status === WorkflowExecutionStatus.COMPLETED,
-          ),
-      );
+    const { executableWorkflow, remainingNodeIds } =
+      this.prepareApprovedWorkflow(input, approvedOutput);
 
     if (remainingNodeIds.length === 0) {
       const result = this.buildReviewGateRunResult(
@@ -646,6 +613,52 @@ export class WorkflowReviewGateService {
       nodeId: input.nodeId,
       status: 'approved',
     };
+  }
+
+  private prepareApprovedWorkflow(
+    input: ApproveReviewGateInput,
+    approvedOutput: Record<string, unknown>,
+  ): { executableWorkflow: ExecutableWorkflow; remainingNodeIds: string[] } {
+    let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
+      input.normalizedWorkflowDoc,
+    );
+    executableWorkflow = this.engineAdapter.applyRuntimeInputValues(
+      input.normalizedWorkflowDoc,
+      executableWorkflow,
+      input.execution.inputValues ?? {},
+    );
+
+    for (const node of executableWorkflow.nodes) {
+      if (node.id === input.nodeId) {
+        node.cachedOutput = approvedOutput;
+        continue;
+      }
+      const nodeResult = input.execution.nodeResults.find(
+        (result) =>
+          result.nodeId === node.id &&
+          result.status === WorkflowExecutionStatus.COMPLETED &&
+          result.output !== undefined,
+      );
+      if (nodeResult?.output !== undefined) {
+        node.cachedOutput = nodeResult.output;
+      }
+    }
+
+    const remainingNodeIds = this.graphService
+      .collectDownstreamNodeIds(
+        input.nodeId,
+        executableWorkflow.edges,
+        executableWorkflow.nodes,
+      )
+      .filter(
+        (downstreamNodeId) =>
+          !input.execution.nodeResults.some(
+            (result) =>
+              result.nodeId === downstreamNodeId &&
+              result.status === WorkflowExecutionStatus.COMPLETED,
+          ),
+      );
+    return { executableWorkflow, remainingNodeIds };
   }
 
   private buildReviewGateRunResult(

@@ -14,6 +14,7 @@ import {
   type TalkingHeadScriptGenerationRequest,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { Injectable, Optional } from '@nestjs/common';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
 import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
@@ -48,14 +49,16 @@ function buildTalkingHeadScriptUserPrompt(
   );
 }
 
+@Injectable()
 export class WorkflowContentExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
-    private readonly postsService?: PostsService,
-    private readonly credentialsService?: CredentialsService,
-    private readonly newslettersService?: NewslettersService,
-    private readonly openRouterService?: OpenRouterService,
-    private readonly sourcePostsService?: SourcePostsService,
+    @Optional() private readonly postsService?: PostsService,
+    @Optional() private readonly credentialsService?: CredentialsService,
+    @Optional() private readonly newslettersService?: NewslettersService,
+    @Optional() private readonly openRouterService?: OpenRouterService,
+    @Optional() private readonly sourcePostsService?: SourcePostsService,
+    @Optional()
     private readonly postAccountFanoutService?: PostAccountFanoutService,
   ) {}
 

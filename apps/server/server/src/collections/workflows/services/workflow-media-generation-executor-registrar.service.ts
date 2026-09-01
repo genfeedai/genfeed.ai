@@ -18,6 +18,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -53,15 +54,16 @@ function replaceReferenceTokens(
   return value;
 }
 
+@Injectable()
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly loggerService: LoggerService,
-    private readonly promptBuilderService?: PromptBuilderService,
-    private readonly heyGenService?: HeyGenService,
-    private readonly elevenLabsService?: ElevenLabsService,
-    private readonly replicateService?: ReplicateService,
-    private readonly filesClientService?: FilesClientService,
+    @Optional() private readonly promptBuilderService?: PromptBuilderService,
+    @Optional() private readonly heyGenService?: HeyGenService,
+    @Optional() private readonly elevenLabsService?: ElevenLabsService,
+    @Optional() private readonly replicateService?: ReplicateService,
+    @Optional() private readonly filesClientService?: FilesClientService,
   ) {}
 
   register(engine: WorkflowEngine): void {

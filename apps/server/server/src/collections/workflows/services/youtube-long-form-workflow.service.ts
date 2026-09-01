@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ArticleCategory,
@@ -15,7 +14,14 @@ import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
+import {
+  YOUTUBE_LONG_FORM_ACTION_IDS,
+  YOUTUBE_LONG_FORM_OUTPUT_TYPES,
+  YOUTUBE_LONG_FORM_WORKFLOW_ID,
+  YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
+  type YoutubeLongFormOutputType,
+} from '@server/collections/workflows/services/youtube-long-form-workflow.constants';
+import { registerYoutubeLongFormWorkflowDefinitions } from '@server/collections/workflows/services/youtube-long-form-workflow.definitions';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -26,31 +32,16 @@ import { WhisperService } from '@server/services/whisper/whisper.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 
-export const YOUTUBE_LONG_FORM_WORKFLOW_ID = 'youtube-to-long-form-text';
-export const YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID = 'youtube-source-to-library';
-
-export const YOUTUBE_LONG_FORM_ACTION_IDS = {
-  CREATE_SOURCE_LIBRARY_ASSET: 'youtube.create-source-library-asset',
-  EXTRACT_AUDIO: 'youtube.extract-audio',
-  PERSIST_OUTPUT: 'long-form.persist-output',
-  PLAN_SOURCE_LIBRARY_ASSET: 'youtube.plan-source-library-asset',
-  RESOLVE_SOURCE: 'youtube.resolve-source',
-  TRANSCRIBE_AUDIO: 'youtube.transcribe-audio',
-  TRANSFORM_TEXT: 'long-form.transform-text',
-} as const;
+export {
+  YOUTUBE_LONG_FORM_ACTION_IDS,
+  YOUTUBE_LONG_FORM_OUTPUT_TYPES,
+  YOUTUBE_LONG_FORM_WORKFLOW_ID,
+  YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
+  type YoutubeLongFormOutputType,
+} from '@server/collections/workflows/services/youtube-long-form-workflow.constants';
 
 export const PUBLIC_LONG_FORM_ORGANIZATION_ID = 'genfeed-public-tools';
 export const PUBLIC_LONG_FORM_USER_ID = 'genfeed-public-tools';
-
-export const YOUTUBE_LONG_FORM_OUTPUT_TYPES = [
-  'article',
-  'linkedin-article',
-  'x-article',
-  'newsletter',
-] as const;
-
-export type YoutubeLongFormOutputType =
-  (typeof YOUTUBE_LONG_FORM_OUTPUT_TYPES)[number];
 
 export type YoutubeLongFormResult = {
   content: string;
@@ -158,244 +149,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
       (request) => this.createSourceLibraryAssetAction(request),
     );
-    this.runner.registerWorkflow({
-      canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
-      changeSummary:
-        'Resolve YouTube once, keep processing media ephemeral, transform the transcript, and persist only authenticated account output.',
-      definition: {
-        edges: [
-          {
-            id: 'source-to-extraction',
-            source: 'resolve-source',
-            target: 'extract-audio',
-            targetHandle: 'source',
-          },
-          {
-            id: 'transcript-to-transform',
-            source: 'transcribe-audio',
-            target: 'transform-text',
-            targetHandle: 'transcript',
-          },
-          {
-            id: 'audio-to-register',
-            source: 'extract-audio',
-            sourceHandle: 'audioStorageKey',
-            target: 'register-audio',
-            targetHandle: 'storageKey',
-          },
-          {
-            id: 'source-to-register',
-            source: 'extract-audio',
-            sourceHandle: 'sourceStorageKey',
-            target: 'register-source',
-            targetHandle: 'storageKey',
-          },
-          {
-            id: 'source-metadata-to-register',
-            source: 'extract-audio',
-            sourceHandle: 'sourceArtifactMetadata',
-            target: 'register-source',
-            targetHandle: 'metadata',
-          },
-          {
-            id: 'extraction-to-transcription',
-            source: 'extract-audio',
-            target: 'transcribe-audio',
-            targetHandle: 'media',
-          },
-          {
-            id: 'audio-registration-to-transcription',
-            source: 'register-audio',
-            target: 'transcribe-audio',
-            targetHandle: 'audioArtifact',
-          },
-          {
-            id: 'source-registration-to-transcription',
-            source: 'register-source',
-            target: 'transcribe-audio',
-            targetHandle: 'sourceArtifact',
-          },
-          {
-            id: 'transform-to-persist',
-            source: 'transform-text',
-            target: 'persist-output',
-            targetHandle: 'document',
-          },
-          {
-            id: 'audio-registration-to-persist',
-            source: 'register-audio',
-            target: 'persist-output',
-            targetHandle: 'audioArtifact',
-          },
-          {
-            id: 'source-registration-to-persist',
-            source: 'register-source',
-            target: 'persist-output',
-            targetHandle: 'sourceArtifact',
-          },
-        ],
-        inputVariables: [
-          {
-            key: 'youtubeUrl',
-            label: 'YouTube URL',
-            required: true,
-            type: 'string',
-          },
-          {
-            key: 'outputType',
-            label: 'Output type',
-            required: true,
-            type: 'string',
-            validation: { options: [...YOUTUBE_LONG_FORM_OUTPUT_TYPES] },
-          },
-          {
-            key: 'persistence',
-            label: 'Persistence',
-            required: true,
-            type: 'string',
-            validation: { options: ['account', 'preview'] },
-          },
-          {
-            key: 'retentionPolicy',
-            label: 'Source retention policy',
-            required: true,
-            type: 'string',
-            validation: { options: ['terminal', 'ttl'] },
-          },
-          {
-            key: 'brandId',
-            label: 'Brand ID',
-            required: false,
-            type: 'string',
-          },
-        ],
-        nodes: [
-          this.actionNode(
-            'resolve-source',
-            YOUTUBE_LONG_FORM_ACTION_IDS.RESOLVE_SOURCE,
-            'Resolve YouTube source',
-            ['youtubeUrl'],
-            0,
-          ),
-          this.actionNode(
-            'extract-audio',
-            YOUTUBE_LONG_FORM_ACTION_IDS.EXTRACT_AUDIO,
-            'Extract YouTube audio',
-            [],
-            280,
-          ),
-          this.actionNode(
-            'register-audio',
-            WORKFLOW_ARTIFACT_ACTION_IDS.REGISTER,
-            'Register temporary audio',
-            [],
-            560,
-            {
-              kind: 'audio',
-              producerNodeId: 'extract-audio',
-              retentionPolicy: 'terminal',
-            },
-          ),
-          this.actionNode(
-            'register-source',
-            WORKFLOW_ARTIFACT_ACTION_IDS.REGISTER,
-            'Register temporary source video',
-            ['retentionPolicy'],
-            560,
-            {
-              kind: 'source-video',
-              producerNodeId: 'extract-audio',
-            },
-          ),
-          this.actionNode(
-            'transcribe-audio',
-            YOUTUBE_LONG_FORM_ACTION_IDS.TRANSCRIBE_AUDIO,
-            'Transcribe YouTube audio',
-            [],
-            840,
-          ),
-          this.actionNode(
-            'transform-text',
-            YOUTUBE_LONG_FORM_ACTION_IDS.TRANSFORM_TEXT,
-            'Transform long-form text',
-            ['outputType'],
-            1120,
-          ),
-          this.actionNode(
-            'persist-output',
-            YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT,
-            'Persist selected output',
-            ['brandId', 'persistence'],
-            1400,
-          ),
-        ],
-      },
-      description:
-        'Transforms one public YouTube video into a preview or tenant-owned long-form text output.',
-      label: 'YouTube to Long-form Text',
-      resultNodeId: 'persist-output',
-      version: 2,
-    });
-    this.runner.registerWorkflow({
-      canonicalId: YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
-      changeSummary:
-        'Promote one explicitly selected YouTube source into the authenticated tenant Library.',
-      definition: {
-        edges: [
-          {
-            id: 'plan-to-promotion',
-            source: 'plan-source-asset',
-            sourceHandle: 'ingredientId',
-            target: 'promote-artifact',
-            targetHandle: 'targetId',
-          },
-          {
-            id: 'promotion-to-asset',
-            source: 'promote-artifact',
-            sourceHandle: 'targetId',
-            target: 'create-source-asset',
-            targetHandle: 'ingredientId',
-          },
-        ],
-        inputVariables: [
-          {
-            key: 'artifactId',
-            label: 'Source artifact ID',
-            required: true,
-            type: 'string',
-          },
-        ],
-        nodes: [
-          this.actionNode(
-            'plan-source-asset',
-            YOUTUBE_LONG_FORM_ACTION_IDS.PLAN_SOURCE_LIBRARY_ASSET,
-            'Plan source Library asset',
-            ['artifactId'],
-            0,
-          ),
-          this.actionNode(
-            'promote-artifact',
-            WORKFLOW_ARTIFACT_ACTION_IDS.PROMOTE,
-            'Retain source artifact',
-            ['artifactId'],
-            280,
-            { targetType: 'ingredient' },
-          ),
-          this.actionNode(
-            'create-source-asset',
-            YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
-            'Create source Library asset',
-            ['artifactId'],
-            560,
-          ),
-        ],
-      },
-      description:
-        'Promotes one retained YouTube source from a completed long-form execution into the tenant Library.',
-      label: 'YouTube Source to Library',
-      resultNodeId: 'create-source-asset',
-      version: 1,
-    });
+    registerYoutubeLongFormWorkflowDefinitions(this.runner);
   }
 
   async runPublic(
@@ -869,24 +623,6 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       }
     }
     return { artifactId, ingredientId, status: 'linked' };
-  }
-
-  private actionNode(
-    id: string,
-    actionId: string,
-    label: string,
-    inputVariableKeys: string[],
-    x: number,
-    parameters?: Record<string, unknown>,
-  ) {
-    return createGenfeedActionNode({
-      actionId,
-      id,
-      parameters,
-      position: { x, y: 120 },
-      inputVariableKeys,
-      label,
-    });
   }
 
   private normalizeYoutubeUrl(input: string): {

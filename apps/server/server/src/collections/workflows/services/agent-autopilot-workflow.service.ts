@@ -396,47 +396,54 @@ export class AgentAutopilotWorkflowService {
       await this.scheduleNextRun(strategyId, config.runFrequency);
       return executionId;
     } catch (error) {
-      const consecutiveFailures = config.consecutiveFailures ?? 0;
-      const newFailureCount = consecutiveFailures + 1;
-      const shouldPause = newFailureCount >= FAILURES_BEFORE_PAUSE;
-      const updatedConfig: AgentStrategyConfig = {
-        ...config,
-        consecutiveFailures: newFailureCount,
-      };
-
-      await this.prisma.agentStrategy.update({
-        data: {
-          config: toPrismaJson(updatedConfig),
-          ...(shouldPause ? { isActive: false } : {}),
-        },
-        where: scopedWhere(organizationId, { id: strategyId }),
-      });
-
-      if (newFailureCount >= MAX_CONSECUTIVE_FAILURES) {
-        await this.prisma.agentStrategy.update({
-          data: {
-            config: toPrismaJson({
-              ...updatedConfig,
-              requiresManualReactivation: true,
-            }),
-          },
-          where: scopedWhere(organizationId, { id: strategyId }),
-        });
-      }
-
-      await this.scheduleNextRun(
-        strategyId,
-        config.runFrequency,
-        FAILURE_RETRY_MINUTES,
-      );
-
-      this.logger.error(`${this.logContext} strategy execution failed`, {
-        error,
-        organizationId,
-        strategyId,
-      });
+      await this.recordStrategyFailure(strategy, config, error);
       return null;
     }
+  }
+
+  private async recordStrategyFailure(
+    strategy: AgentStrategySnapshot,
+    config: AgentStrategyConfig,
+    error: unknown,
+  ): Promise<void> {
+    const newFailureCount = (config.consecutiveFailures ?? 0) + 1;
+    const updatedConfig: AgentStrategyConfig = {
+      ...config,
+      consecutiveFailures: newFailureCount,
+    };
+
+    await this.prisma.agentStrategy.update({
+      data: {
+        config: toPrismaJson(updatedConfig),
+        ...(newFailureCount >= FAILURES_BEFORE_PAUSE
+          ? { isActive: false }
+          : {}),
+      },
+      where: scopedWhere(strategy.organizationId, { id: strategy.id }),
+    });
+
+    if (newFailureCount >= MAX_CONSECUTIVE_FAILURES) {
+      await this.prisma.agentStrategy.update({
+        data: {
+          config: toPrismaJson({
+            ...updatedConfig,
+            requiresManualReactivation: true,
+          }),
+        },
+        where: scopedWhere(strategy.organizationId, { id: strategy.id }),
+      });
+    }
+
+    await this.scheduleNextRun(
+      strategy.id,
+      config.runFrequency,
+      FAILURE_RETRY_MINUTES,
+    );
+    this.logger.error(`${this.logContext} strategy execution failed`, {
+      error,
+      organizationId: strategy.organizationId,
+      strategyId: strategy.id,
+    });
   }
 
   private buildExecutionMetadata(

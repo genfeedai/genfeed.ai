@@ -15,6 +15,7 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
+import { Injectable, Optional } from '@nestjs/common';
 import { CaptionsService } from '@server/collections/captions/services/captions.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
@@ -29,20 +30,24 @@ import { FileQueueService } from '@server/services/files-microservice/queue/file
 import { WhisperService } from '@server/services/whisper/whisper.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
 
+@Injectable()
 export class WorkflowMediaProcessingExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly configService: ConfigService,
+    @Optional()
     private readonly avatarVideoGenerationService?: AvatarVideoGenerationService,
-    private readonly captionsService?: CaptionsService,
-    private readonly fileQueueService?: FileQueueService,
-    private readonly filesClientService?: FilesClientService,
-    private readonly ingredientsService?: IngredientsService,
-    private readonly metadataService?: MetadataService,
-    private readonly musicsService?: MusicsService,
-    private readonly sharedService?: SharedService,
+    @Optional() private readonly captionsService?: CaptionsService,
+    @Optional() private readonly fileQueueService?: FileQueueService,
+    @Optional() private readonly filesClientService?: FilesClientService,
+    @Optional() private readonly ingredientsService?: IngredientsService,
+    @Optional() private readonly metadataService?: MetadataService,
+    @Optional() private readonly musicsService?: MusicsService,
+    @Optional() private readonly sharedService?: SharedService,
+    @Optional()
     private readonly videoMusicOrchestrationService?: VideoMusicOrchestrationService,
-    private readonly whisperService?: WhisperService,
+    @Optional() private readonly whisperService?: WhisperService,
+    @Optional()
     private readonly continuityResolver?: VideoQaContinuityResolverService,
   ) {}
 
