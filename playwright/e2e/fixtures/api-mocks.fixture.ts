@@ -151,6 +151,18 @@ function buildJsonApiResource<T extends Record<string, unknown>>(
   };
 }
 
+export function buildExecutionJsonApiResource(
+  id: string,
+  attributes: Record<string, unknown>,
+  type = 'workflow-executions',
+) {
+  const resourceAttributes = { ...attributes };
+  delete resourceAttributes.id;
+  delete resourceAttributes.type;
+
+  return buildJsonApiResource(type, id, resourceAttributes);
+}
+
 function buildJsonApiCollection<T extends Record<string, unknown>>(
   type: string,
   resources: Array<{ id: string; attributes: T }>,
@@ -2131,13 +2143,15 @@ export async function mockWorkflowExecutions(
   await routeApiPattern(page, '/workflow-executions**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      const resources = executions.map((execution) => ({
-        attributes: normalizeExecution(
-          execution,
-          workflowLabels.get(execution.workflowId),
+      const resources = executions.map((execution) =>
+        buildExecutionJsonApiResource(
+          execution.id,
+          normalizeExecution(
+            execution,
+            workflowLabels.get(execution.workflowId),
+          ),
         ),
-        id: execution.id,
-      }));
+      );
       await route.fulfill({
         body: JSON.stringify(
           buildJsonApiCollection('workflow-executions', resources),
@@ -2161,9 +2175,9 @@ export async function mockWorkflowExecutions(
         'Social Media Pipeline',
       );
       await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiDocument('workflow-executions', 'exec-new', execution),
-        ),
+        body: JSON.stringify({
+          data: buildExecutionJsonApiResource('exec-new', execution),
+        }),
         contentType: 'application/json',
         status: 201,
       });
@@ -2189,9 +2203,9 @@ export async function mockWorkflowExecutions(
     const normalized = normalizeExecution(execution, execution.workflowId);
 
     await route.fulfill({
-      body: JSON.stringify(
-        buildJsonApiDocument('workflow-executions', id, normalized),
-      ),
+      body: JSON.stringify({
+        data: buildExecutionJsonApiResource(id, normalized),
+      }),
       contentType: 'application/json',
       status: 200,
     });
@@ -2521,10 +2535,9 @@ export async function mockAutomationData(page: Page): Promise<void> {
       body: JSON.stringify(
         buildJsonApiCollection(
           'workflow-executions',
-          filteredExecutions.map((execution) => ({
-            attributes: execution,
-            id: execution.id,
-          })),
+          filteredExecutions.map((execution) =>
+            buildExecutionJsonApiResource(execution.id, execution),
+          ),
         ),
       ),
       contentType: 'application/json',

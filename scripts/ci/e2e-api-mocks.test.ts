@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildExecutionJsonApiResource } from '../../playwright/e2e/fixtures/api-mocks.fixture';
 import { buildEmptyElementsAggregatePayload } from '../../playwright/e2e/utils/api-interceptor';
 
 const ELEMENT_COLLECTION_KEYS = [
@@ -14,6 +15,34 @@ const ELEMENT_COLLECTION_KEYS = [
 ] as const;
 
 describe('Playwright API mocks', () => {
+  it.each([
+    ['workflow execution', undefined],
+    ['legacy execution', 'executions'],
+  ])(
+    'keeps reserved JSON:API members out of %s attributes',
+    (_fixtureName, type) => {
+      const resource = buildExecutionJsonApiResource(
+        'exec-top-level',
+        {
+          id: 'exec-attributes',
+          status: 'running',
+          type: 'reserved-attributes-type',
+        },
+        type,
+      );
+
+      expect(resource).toEqual({
+        attributes: {
+          status: 'running',
+        },
+        id: 'exec-top-level',
+        type: type ?? 'workflow-executions',
+      });
+      expect(resource.attributes).not.toHaveProperty('id');
+      expect(resource.attributes).not.toHaveProperty('type');
+    },
+  );
+
   it('matches the aggregate elements JSON:API contract used by the app shell', () => {
     const payload = buildEmptyElementsAggregatePayload();
 
