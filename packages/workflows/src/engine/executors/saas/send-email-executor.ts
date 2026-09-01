@@ -1,3 +1,4 @@
+import { deriveWorkflowActionIdempotencyKey } from '../../utils/idempotency';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -23,9 +24,10 @@ export interface SendEmailResult {
  * stays free of app/server dependencies.
  */
 export type EmailSender = (params: {
-  to: string;
-  subject: string;
   html: string;
+  idempotencyKey?: string;
+  subject: string;
+  to: string;
 }) => Promise<void>;
 
 // =============================================================================
@@ -51,7 +53,7 @@ export class SendEmailExecutor extends BaseExecutor {
   }
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
-    const { node, inputs } = input;
+    const { context, inputs, node } = input;
 
     if (!this.sender) {
       throw new Error('Email sender not configured');
@@ -99,7 +101,13 @@ export class SendEmailExecutor extends BaseExecutor {
       throw new Error('Email body (html) is required (via input or config)');
     }
 
-    await this.sender({ html, subject, to });
+    const idempotencyKey = deriveWorkflowActionIdempotencyKey({
+      actionId: this.nodeType,
+      executionId: context.executionId,
+      nodeId: node.id,
+    });
+
+    await this.sender({ html, idempotencyKey, subject, to });
 
     const result: SendEmailResult = { sent: true, to };
     return {
