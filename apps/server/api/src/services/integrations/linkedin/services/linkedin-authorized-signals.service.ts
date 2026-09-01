@@ -14,11 +14,9 @@ import {
 } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
 import {
   type LinkedinAuthorizedSignalEvidence,
-  type LinkedinAuthorizedSignalReason,
   type LinkedinAuthorizedSignalsSnapshot,
   type LinkedinOwnedPostPerformanceSignal,
   type LinkedinOwnedPostSignal,
-  linkedinAuthorizedSignalStatusValues,
   linkedinAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
@@ -39,6 +37,33 @@ import { CacheService } from '@server/services/cache/cache.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
+import {
+  hasAnyScope,
+  hasScope,
+  LINKEDIN_MEMBER_POSTS_SCOPE,
+  LINKEDIN_MEMBER_PUBLISH_SCOPE,
+  LINKEDIN_OPENID_SCOPE,
+  LINKEDIN_ORG_ADMIN_SCOPE,
+  LINKEDIN_ORG_PUBLISH_SCOPE,
+  LINKEDIN_ORG_READ_SCOPE,
+  LINKEDIN_PROFILE_SCOPE,
+  LinkedInAuthorizedSignalsEvidenceMapper,
+  type PlatformEvidenceKey,
+  readNonNegativeInteger,
+  readRecord,
+  readString,
+} from './linkedin-authorized-signals-evidence.mapper';
+
+export {
+  LINKEDIN_EMAIL_SCOPE,
+  LINKEDIN_MEMBER_POSTS_SCOPE,
+  LINKEDIN_MEMBER_PUBLISH_SCOPE,
+  LINKEDIN_OPENID_SCOPE,
+  LINKEDIN_ORG_ADMIN_SCOPE,
+  LINKEDIN_ORG_PUBLISH_SCOPE,
+  LINKEDIN_ORG_READ_SCOPE,
+  LINKEDIN_PROFILE_SCOPE,
+} from './linkedin-authorized-signals-evidence.mapper';
 
 const LINKEDIN_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const LINKEDIN_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
@@ -50,75 +75,6 @@ const LINKEDIN_SIGNAL_RETRY_MAX_MS = 5_000;
 const LINKEDIN_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const LINKEDIN_POST_LIMIT = 20;
 const LINKEDIN_API = 'https://api.linkedin.com/v2';
-
-export const LINKEDIN_OPENID_SCOPE = 'openid';
-export const LINKEDIN_PROFILE_SCOPE = 'profile';
-export const LINKEDIN_EMAIL_SCOPE = 'email';
-export const LINKEDIN_MEMBER_PUBLISH_SCOPE = 'w_member_social';
-export const LINKEDIN_MEMBER_POSTS_SCOPE = 'r_member_social';
-export const LINKEDIN_ORG_READ_SCOPE = 'r_organization_social';
-export const LINKEDIN_ORG_PUBLISH_SCOPE = 'w_organization_social';
-export const LINKEDIN_ORG_ADMIN_SCOPE = 'rw_organization_admin';
-
-const MEMBER_PROFILE_FIELDS = [
-  'accountKind',
-  'email',
-  'firstName',
-  'id',
-  'lastName',
-  'name',
-  'picture',
-] as const;
-
-const ORGANIZATION_PAGE_FIELDS = [
-  'accountKind',
-  'id',
-  'name',
-  'role',
-  'vanityName',
-] as const;
-
-const MEMBER_PUBLISHING_FIELDS = [
-  'accountKind',
-  'canPublish',
-  'personUrn',
-] as const;
-
-const ORGANIZATION_PUBLISHING_FIELDS = [
-  'accountKind',
-  'canPublish',
-  'organizationId',
-  'organizationUrn',
-] as const;
-
-const OWNED_POST_FIELDS = [
-  'authorUrn',
-  'commentCount',
-  'createTime',
-  'id',
-  'likeCount',
-  'mediaType',
-  'text',
-] as const;
-
-const PERFORMANCE_FIELDS = [
-  'clicks',
-  'commentCount',
-  'id',
-  'impressions',
-  'likeCount',
-  'shares',
-  'views',
-] as const;
-
-type LinkedinSignalFieldStatus =
-  (typeof linkedinAuthorizedSignalStatusValues)[number];
-
-function toFieldAvailability(
-  entries: ReadonlyArray<readonly [string, LinkedinSignalFieldStatus]>,
-): Record<string, LinkedinSignalFieldStatus> {
-  return Object.fromEntries(entries);
-}
 
 interface LinkedinUgcPostNode {
   author?: unknown;
@@ -173,10 +129,16 @@ export interface RefreshLinkedinAuthorizedSignalsParams {
   organizationId: string;
 }
 
-type PlatformEvidenceKey = Exclude<
-  LinkedinAuthorizedSignalEvidence['key'],
-  'genfeed-publish-outcomes-observed'
->;
+type LinkedinAuthorizedRefreshContext = {
+  accessToken: string;
+  cacheKey: string;
+  credential: CredentialDocument;
+  genfeedEvidence: LinkedinAuthorizedSignalEvidence;
+  grantedScopes: string[];
+  organizationId: string;
+  previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined;
+  refreshAttemptedAt: string;
+};
 
 type GenfeedPublishOutcome =
   | 'scheduled'
@@ -186,49 +148,6 @@ type GenfeedPublishOutcome =
   | 'paused'
   | 'cancelled'
   | 'skipped';
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(candidate);
-    return ['http:', 'https:'].includes(url.protocol) ? candidate : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readNonNegativeInteger(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
-    ? value
-    : undefined;
-}
-
-function hasScope(grantedScopes: string[], scope: string): boolean {
-  return grantedScopes.includes(scope);
-}
-
-function hasAnyScope(
-  grantedScopes: string[],
-  scopes: readonly string[],
-): boolean {
-  return scopes.some((scope) => grantedScopes.includes(scope));
-}
 
 function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
   const outcomes = new Set<string>([
@@ -257,6 +176,8 @@ function organizationIdFromUrn(urn: string | undefined): string | undefined {
 @Injectable()
 export class LinkedInAuthorizedSignalsService {
   private readonly constructorName = this.constructor.name;
+  private readonly evidenceMapper =
+    new LinkedInAuthorizedSignalsEvidenceMapper();
 
   constructor(
     private readonly cacheService: CacheService,
@@ -360,6 +281,31 @@ export class LinkedInAuthorizedSignalsService {
       throw error;
     }
 
+    return await this.fetchAndPersistSnapshot({
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    });
+  }
+
+  private async fetchAndPersistSnapshot(
+    input: LinkedinAuthorizedRefreshContext,
+  ): Promise<LinkedinAuthorizedSignalsSnapshot> {
+    const {
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    } = input;
     const memberProfilePromise = hasAnyScope(grantedScopes, [
       LINKEDIN_OPENID_SCOPE,
       LINKEDIN_PROFILE_SCOPE,
@@ -402,7 +348,7 @@ export class LinkedInAuthorizedSignalsService {
       await this.markCredentialDisconnected(credential.id);
       return await this.persistSnapshot(
         credential,
-        params.organizationId,
+        organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -417,7 +363,7 @@ export class LinkedInAuthorizedSignalsService {
     const memberId =
       readString(memberProfileResult.value?.id) ??
       readString(credential.externalId);
-    const ownedPostsEvidence = this.buildOwnedPostsEvidence(
+    const ownedPostsEvidence = this.evidenceMapper.buildOwnedPostsEvidence(
       grantedScopes,
       ownedPostsResult,
       previousSnapshot,
@@ -437,40 +383,43 @@ export class LinkedInAuthorizedSignalsService {
     const performanceResult = await this.settle(performancePromise);
 
     const evidence: LinkedinAuthorizedSignalEvidence[] = [
-      this.buildMemberProfileEvidence(
+      this.evidenceMapper.buildMemberProfileEvidence(
         grantedScopes,
         memberProfileResult,
         previousSnapshot,
         refreshAttemptedAt,
       ),
-      this.buildOrganizationPageEvidence(
+      this.evidenceMapper.buildOrganizationPageEvidence(
         grantedScopes,
         organizationResult,
         previousSnapshot,
         refreshAttemptedAt,
       ),
-      this.buildMemberPublishingEvidence(
+      this.evidenceMapper.buildMemberPublishingEvidence(
         grantedScopes,
         memberId,
         memberProfileResult.error,
         previousSnapshot,
         refreshAttemptedAt,
       ),
-      this.buildOrganizationPublishingEvidence(
+      this.evidenceMapper.buildOrganizationPublishingEvidence(
         grantedScopes,
         organizationResult,
         previousSnapshot,
         refreshAttemptedAt,
       ),
       ownedPostsEvidence,
-      this.buildOwnedPostPerformanceEvidence(
+      this.evidenceMapper.buildOwnedPostPerformanceEvidence(
         grantedScopes,
         ownedPostsEvidence,
         performanceResult,
         previousSnapshot,
         refreshAttemptedAt,
       ),
-      this.buildFirstPublishEvidence(ownedPostsEvidence, refreshAttemptedAt),
+      this.evidenceMapper.buildFirstPublishEvidence(
+        ownedPostsEvidence,
+        refreshAttemptedAt,
+      ),
       genfeedEvidence,
     ];
     const snapshot = linkedinAuthorizedSignalsSnapshotSchema.parse({
@@ -484,7 +433,7 @@ export class LinkedInAuthorizedSignalsService {
 
     return await this.persistSnapshot(
       credential,
-      params.organizationId,
+      organizationId,
       cacheKey,
       snapshot,
     );
@@ -728,513 +677,6 @@ export class LinkedInAuthorizedSignalsService {
     );
   }
 
-  private buildMemberProfileEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        email?: string;
-        firstName: string;
-        id: string;
-        lastName: string;
-        picture?: string;
-      };
-    },
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_OPENID_SCOPE, LINKEDIN_PROFILE_SCOPE];
-    if (!result.value) {
-      return this.buildUnavailableEvidence(
-        'member-profile-fields-platform-signal',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const name = `${result.value.firstName} ${result.value.lastName}`.trim();
-    const value = {
-      accountKind: 'member' as const,
-      email: result.value.email,
-      firstName: result.value.firstName,
-      id: result.value.id,
-      lastName: result.value.lastName,
-      name: name.length > 0 ? name : undefined,
-      picture: readHttpUrl(result.value.picture),
-    };
-    const fieldAvailability = toFieldAvailability(
-      MEMBER_PROFILE_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'member-profile-fields-platform-signal',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildOrganizationPageEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        id?: string;
-        name?: string;
-        role?: string;
-        vanityName?: string;
-      };
-    },
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_ORG_READ_SCOPE];
-    if (
-      !hasAnyScope(grantedScopes, [
-        LINKEDIN_ORG_READ_SCOPE,
-        LINKEDIN_ORG_ADMIN_SCOPE,
-      ])
-    ) {
-      return this.buildUnavailableEvidence(
-        'organization-page-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    if (!result.value) {
-      return this.buildUnavailableEvidence(
-        'organization-page-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      accountKind: 'organization' as const,
-      id: result.value.id,
-      name: result.value.name,
-      role: result.value.role,
-      vanityName: result.value.vanityName,
-    };
-    const fieldAvailability = toFieldAvailability(
-      ORGANIZATION_PAGE_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'organization-page-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(
-        requiredScopes,
-        hasScope(grantedScopes, LINKEDIN_ORG_ADMIN_SCOPE)
-          ? [...grantedScopes, LINKEDIN_ORG_READ_SCOPE]
-          : grantedScopes,
-      ),
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildMemberPublishingEvidence(
-    grantedScopes: string[],
-    memberId: string | undefined,
-    error: unknown,
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_MEMBER_PUBLISH_SCOPE];
-    if (!hasScope(grantedScopes, LINKEDIN_MEMBER_PUBLISH_SCOPE)) {
-      return this.buildUnavailableEvidence(
-        'member-publishing-capability-snapshot',
-        requiredScopes,
-        grantedScopes,
-        error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      accountKind: 'member' as const,
-      canPublish: true,
-      personUrn: memberId ? `urn:li:person:${memberId}` : undefined,
-    };
-    const fieldAvailability = toFieldAvailability(
-      MEMBER_PUBLISHING_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'member-publishing-capability-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildOrganizationPublishingEvidence(
-    grantedScopes: string[],
-    organizationResult: {
-      error?: unknown;
-      value?: { id?: string };
-    },
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_ORG_PUBLISH_SCOPE];
-    const hasOrgPage = Boolean(organizationResult.value?.id);
-    if (!hasScope(grantedScopes, LINKEDIN_ORG_PUBLISH_SCOPE) || !hasOrgPage) {
-      const reason: LinkedinAuthorizedSignalReason | undefined = !hasScope(
-        grantedScopes,
-        LINKEDIN_ORG_PUBLISH_SCOPE,
-      )
-        ? 'missing_scope'
-        : isLinkedinOrganizationSelectionError(organizationResult.error)
-          ? 'organization_page_selection_required'
-          : organizationResult.error
-            ? undefined
-            : 'organization_page_selection_required';
-
-      if (
-        reason === 'missing_scope' ||
-        reason === 'organization_page_selection_required'
-      ) {
-        return this.buildUnavailableEvidence(
-          'organization-publishing-capability-snapshot',
-          requiredScopes,
-          grantedScopes,
-          organizationResult.error ?? {
-            response: {
-              data: {
-                message: 'No organization ACL found for this company page',
-                status: 400,
-              },
-              status: 400,
-            },
-          },
-          previousSnapshot,
-          observedAt,
-        );
-      }
-
-      return this.buildUnavailableEvidence(
-        'organization-publishing-capability-snapshot',
-        requiredScopes,
-        grantedScopes,
-        organizationResult.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const organizationId = organizationResult.value?.id;
-    const value = {
-      accountKind: 'organization' as const,
-      canPublish: true,
-      organizationId,
-      organizationUrn: organizationId
-        ? `urn:li:organization:${organizationId}`
-        : undefined,
-    };
-    const fieldAvailability = toFieldAvailability(
-      ORGANIZATION_PUBLISHING_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'organization-publishing-capability-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildOwnedPostsEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        hasMore: boolean;
-        posts: LinkedinOwnedPostSignal[];
-        rawCount: number;
-      };
-    },
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_MEMBER_POSTS_SCOPE];
-    if (!result.value) {
-      return this.buildUnavailableEvidence(
-        'owned-posts-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const malformedResponse =
-      result.value.rawCount > 0 && result.value.posts.length === 0;
-    const fieldAvailability = toFieldAvailability(
-      OWNED_POST_FIELDS.map((field) => [
-        field,
-        result.value?.posts.length === 0 ||
-        result.value?.posts.every((item) => item[field] !== undefined)
-          ? 'available'
-          : 'unavailable',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'owned-posts-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      ...(malformedResponse ? { reason: 'empty_response' as const } : {}),
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: malformedResponse
-        ? 'unavailable'
-        : result.value.posts.length === 0
-          ? 'empty'
-          : 'available',
-      value: {
-        hasMore: result.value.hasMore,
-        posts: result.value.posts,
-      },
-    };
-  }
-
-  private buildOwnedPostPerformanceEvidence(
-    grantedScopes: string[],
-    ownedPosts: LinkedinAuthorizedSignalEvidence,
-    result: {
-      error?: unknown;
-      value?: LinkedinOwnedPostPerformanceSignal[];
-    },
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const requiredScopes = [LINKEDIN_MEMBER_POSTS_SCOPE];
-    if (ownedPosts.key !== 'owned-posts-snapshot') {
-      return this.buildUnavailableEvidence(
-        'owned-post-performance-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    if (ownedPosts.status === 'permission_limited') {
-      return this.buildUnavailableEvidence(
-        'owned-post-performance-snapshot',
-        requiredScopes,
-        grantedScopes,
-        undefined,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    if (ownedPosts.status === 'empty') {
-      return {
-        fieldAvailability: toFieldAvailability(
-          PERFORMANCE_FIELDS.map((field) => [field, 'available'] as const),
-        ),
-        key: 'owned-post-performance-snapshot',
-        observedAt: ownedPosts.observedAt ?? observedAt,
-        provenance: 'platform_verified',
-        scope: this.buildScope(requiredScopes, grantedScopes),
-        staleAt: ownedPosts.staleAt,
-        status: 'empty',
-        value: { posts: [] },
-      };
-    }
-
-    if (!result.value) {
-      return this.buildUnavailableEvidence(
-        'owned-post-performance-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const fieldAvailability = toFieldAvailability(
-      PERFORMANCE_FIELDS.map((field) => [
-        field,
-        result.value?.length === 0 ||
-        result.value?.every((item) => item[field] !== undefined)
-          ? 'available'
-          : 'unavailable',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'owned-post-performance-snapshot',
-      observedAt: ownedPosts.observedAt ?? observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: ownedPosts.staleAt,
-      status: result.value.length === 0 ? 'empty' : 'available',
-      value: { posts: result.value },
-    };
-  }
-
-  private buildFirstPublishEvidence(
-    ownedPosts: LinkedinAuthorizedSignalEvidence,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    if (ownedPosts.key !== 'owned-posts-snapshot') {
-      throw new Error('LinkedIn owned-posts evidence is missing');
-    }
-
-    const posts = ownedPosts.value?.posts ?? [];
-    return {
-      fieldAvailability: ownedPosts.fieldAvailability,
-      key: 'first-publish-platform-signal',
-      observedAt: ownedPosts.observedAt ?? observedAt,
-      provenance: 'platform_verified',
-      ...(ownedPosts.reason ? { reason: ownedPosts.reason } : {}),
-      scope: ownedPosts.scope,
-      staleAt: ownedPosts.staleAt,
-      status: ownedPosts.status,
-      value: posts.length > 0 ? { post: posts[0] } : {},
-    };
-  }
-
-  private buildUnavailableEvidence(
-    key: PlatformEvidenceKey,
-    requiredScopes: string[],
-    grantedScopes: string[],
-    error: unknown,
-    previousSnapshot: LinkedinAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): LinkedinAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-    const reason: LinkedinAuthorizedSignalReason =
-      scope.missing.length > 0 || isLinkedinScopeError(error)
-        ? 'missing_scope'
-        : isLinkedinOrganizationSelectionError(error)
-          ? 'organization_page_selection_required'
-          : isLinkedinRateLimitError(error)
-            ? 'rate_limited'
-            : 'provider_error';
-    const previous = previousSnapshot?.evidence.find(
-      (evidence) => evidence.key === key,
-    );
-
-    if (
-      previous &&
-      reason !== 'missing_scope' &&
-      reason !== 'organization_page_selection_required'
-    ) {
-      return {
-        ...previous,
-        reason,
-        scope,
-        staleAt: observedAt,
-        status: 'stale',
-      };
-    }
-
-    const fieldNames = this.fieldNamesForKey(key);
-    const effectiveScope =
-      isLinkedinScopeError(error) && scope.missing.length === 0
-        ? { granted: [], missing: requiredScopes, required: requiredScopes }
-        : scope;
-
-    return {
-      fieldAvailability: toFieldAvailability(
-        fieldNames.map((field) => [
-          field,
-          reason === 'missing_scope' ||
-          reason === 'organization_page_selection_required'
-            ? 'permission_limited'
-            : 'unavailable',
-        ]),
-      ),
-      key,
-      observedAt,
-      provenance: 'platform_verified',
-      reason,
-      scope: effectiveScope,
-      staleAt: null,
-      status:
-        reason === 'missing_scope' ||
-        reason === 'organization_page_selection_required'
-          ? 'permission_limited'
-          : 'unavailable',
-    } as LinkedinAuthorizedSignalEvidence;
-  }
-
-  private fieldNamesForKey(key: PlatformEvidenceKey): readonly string[] {
-    if (key === 'member-profile-fields-platform-signal') {
-      return MEMBER_PROFILE_FIELDS;
-    }
-    if (key === 'organization-page-snapshot') {
-      return ORGANIZATION_PAGE_FIELDS;
-    }
-    if (key === 'member-publishing-capability-snapshot') {
-      return MEMBER_PUBLISHING_FIELDS;
-    }
-    if (key === 'organization-publishing-capability-snapshot') {
-      return ORGANIZATION_PUBLISHING_FIELDS;
-    }
-    if (key === 'owned-post-performance-snapshot') {
-      return PERFORMANCE_FIELDS;
-    }
-    return OWNED_POST_FIELDS;
-  }
-
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
   private async buildGenfeedEvidence(
     credential: CredentialDocument,
     organizationId: string,
@@ -1322,14 +764,17 @@ export class LinkedInAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.buildScope(this.requiredScopesForKey(key), grantedScopes),
+          scope: this.evidenceMapper.buildScope(
+            this.requiredScopesForKey(key),
+            grantedScopes,
+          ),
           staleAt: refreshAttemptedAt,
           status: 'revoked' as const,
         };
       }
 
       return {
-        ...this.buildUnavailableEvidence(
+        ...this.evidenceMapper.buildUnavailableEvidence(
           key,
           this.requiredScopesForKey(key),
           grantedScopes,
