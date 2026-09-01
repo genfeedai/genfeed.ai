@@ -6,6 +6,7 @@ import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
+import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
 
 @Module({
   exports: [CronModelWatcherService],
@@ -15,6 +16,7 @@ import { PlatformMarginService } from '@workers/services/platform-margin.service
     ModelDiscoveryService,
     ModelPricingService,
     PlatformMarginService,
+    ReplicateModelContractSyncService,
   ],
 })
 export class CronModelWatcherModule {}

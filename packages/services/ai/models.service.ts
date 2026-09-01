@@ -1,5 +1,6 @@
 import { Model } from '@genfeedai/client/models';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IModelProviderContracts } from '@genfeedai/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
@@ -10,6 +11,17 @@ export class ModelsService extends BaseService<Model> {
 
   public static getInstance(token: string): ModelsService {
     return BaseService.getDataServiceInstance(ModelsService, token);
+  }
+
+  public async getProviderContracts(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IModelProviderContracts> {
+    const response = await this.instance.get<IModelProviderContracts>(
+      `/${id}/provider-contracts`,
+      { signal },
+    );
+    return response.data;
   }
 
   public approveRegistryModel(

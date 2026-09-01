@@ -3,14 +3,14 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
-import {
-  assertRequiredSchemaInput,
-  modelIdToSchemaFilename,
-} from '@server/services/prompt-builder/utils/replicate-schema.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import {
+  assertRequiredSchemaInput,
+  replicateModelIdToSlug,
+} from '@server/services/prompt-builder/utils/replicate-schema.util';
 
 @Injectable()
 export class ReplicateVideoGenerationProviderAdapter
@@ -49,10 +49,11 @@ export class ReplicateVideoGenerationProviderAdapter
     assertRequiredSchemaInput(
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       params.promptParams,
+      params.modelInputSchema,
     );
   }
 
   private isHailuo23Fast(modelId: string): boolean {
-    return modelIdToSchemaFilename(modelId) === 'hailuo-2.3-fast.schema.json';
+    return replicateModelIdToSlug(modelId) === 'hailuo-2.3-fast';
   }
 }

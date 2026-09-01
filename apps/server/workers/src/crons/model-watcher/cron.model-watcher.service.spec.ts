@@ -1,14 +1,15 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
+import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
 
 describe('CronModelWatcherService', () => {
   let service: CronModelWatcherService;
@@ -16,6 +17,7 @@ describe('CronModelWatcherService', () => {
   let configService: vi.Mocked<ConfigService>;
   let loggerService: vi.Mocked<LoggerService>;
   let notificationsService: vi.Mocked<NotificationsService>;
+  let replicateContractSyncService: vi.Mocked<ReplicateModelContractSyncService>;
 
   const mockExistingModels = [
     {
@@ -27,7 +29,9 @@ describe('CronModelWatcherService', () => {
       isDeleted: false,
       key: 'google/imagen-4',
       label: 'Imagen 4',
+      pricingType: 'per-request',
       provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.04,
     },
     {
       id: 'model-2',
@@ -38,7 +42,9 @@ describe('CronModelWatcherService', () => {
       isDeleted: false,
       key: 'google/veo-3',
       label: 'Veo 3',
+      pricingType: 'per-second',
       provider: ModelProvider.REPLICATE,
+      providerCostUsd: 0.5,
     },
   ] as unknown as ServerModelRecord[];
 
@@ -52,9 +58,11 @@ describe('CronModelWatcherService', () => {
         {
           provide: ModelsService,
           useValue: {
-            find: vi.fn().mockResolvedValue(mockExistingModels),
-            findAll: vi.fn(),
-            findAllActive: vi.fn().mockResolvedValue(mockExistingModels),
+            prisma: {
+              model: {
+                findMany: vi.fn().mockResolvedValue(mockExistingModels),
+              },
+            },
           },
         },
         {
@@ -62,10 +70,33 @@ describe('CronModelWatcherService', () => {
           useValue: {
             createDraftModel: vi.fn(),
             detectCategory: vi.fn().mockReturnValue(ModelCategory.IMAGE),
-            fetchReplicateSchema: vi.fn(),
-            syncKnownProviderCosts: vi
+            fetchReplicateModel: vi
               .fn()
-              .mockResolvedValue({ checked: 0, drifted: 0, updated: 0 }),
+              .mockImplementation((owner: string, name: string) =>
+                Promise.resolve({
+                  description: 'Existing model',
+                  latest_version: {
+                    cog_version: 'cog-v1',
+                    created_at: '2026-08-01T00:00:00.000Z',
+                    id: `version-${name}`,
+                    openapi_schema: {
+                      components: {
+                        schemas: {
+                          Input: {
+                            properties: { prompt: { type: 'string' } },
+                            type: 'object',
+                          },
+                          Output: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                  name,
+                  owner,
+                  url: `https://replicate.com/${owner}/${name}`,
+                }),
+              ),
+            fetchReplicateSchema: vi.fn(),
             touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -98,6 +129,17 @@ describe('CronModelWatcherService', () => {
           },
         },
         {
+          provide: ReplicateModelContractSyncService,
+          useValue: {
+            recordFailure: vi.fn().mockResolvedValue(undefined),
+            synchronizeModel: vi.fn().mockResolvedValue({
+              drifted: false,
+              quarantined: false,
+              version: 'sha256:current',
+            }),
+          },
+        },
+        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),
@@ -113,6 +155,9 @@ describe('CronModelWatcherService', () => {
     modelDiscoveryService = module.get(ModelDiscoveryService);
     configService = module.get(ConfigService);
     notificationsService = module.get(NotificationsService);
+    replicateContractSyncService = module.get(
+      ReplicateModelContractSyncService,
+    );
     loggerService = module.get(LoggerService);
   });
 
@@ -176,24 +221,22 @@ describe('CronModelWatcherService', () => {
       );
     });
 
-    it('runs the provider-cost passthrough over existing models', async () => {
+    it('records schema and pricing drift as a pending provider contract', async () => {
       globalThis.fetch = vi.fn().mockResolvedValueOnce({
         json: () => Promise.resolve({ next: null, results: [] }),
         ok: true,
       } as Response);
-      modelDiscoveryService.syncKnownProviderCosts.mockResolvedValueOnce({
-        checked: 2,
-        drifted: 1,
-        updated: 1,
+      replicateContractSyncService.synchronizeModel.mockResolvedValueOnce({
+        drifted: true,
+        quarantined: false,
+        version: 'sha256:changed',
       });
 
       const result = await service.discoverNewModels();
 
-      expect(modelDiscoveryService.syncKnownProviderCosts).toHaveBeenCalledWith(
-        mockExistingModels,
-      );
-      expect(result.providerCostsDrifted).toBe(1);
-      expect(result.providerCostsUpdated).toBe(1);
+      expect(replicateContractSyncService.synchronizeModel).toHaveBeenCalled();
+      expect(result.providerContractsDrifted).toBe(1);
+      expect(result.providerContractsSynchronized).toBe(2);
     });
 
     it('should ignore models already in DB', async () => {

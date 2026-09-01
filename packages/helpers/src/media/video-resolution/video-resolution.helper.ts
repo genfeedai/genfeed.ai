@@ -28,6 +28,14 @@ export const videoModelResolutions: VideoModelResolution[] = [
     ],
   },
   {
+    default: '768P',
+    model: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    resolutions: [
+      { label: '480P', value: '480P' },
+      { label: '768P', value: '768P' },
+    ],
+  },
+  {
     default: '720p',
     model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_LITE,
     resolutions: [

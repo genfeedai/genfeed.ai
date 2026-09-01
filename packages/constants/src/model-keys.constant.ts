@@ -110,6 +110,7 @@ export const MODEL_KEYS = {
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
   FAL_GOOGLE_GEMINI_OMNI_FLASH: 'fal/google/gemini-omni-flash',
+  FAL_MINIMAX_H3_MAX: 'fal/minimax/h3-max/text-to-video',
   FAL_STABLE_VIDEO: 'fal-ai/stable-video-diffusion',
   FAL_WHISPER: 'fal-ai/whisper',
   FAL_ELEVEN_LABS_TTS: 'fal-ai/eleven-labs-tts',
