@@ -255,7 +255,7 @@ describe('ReplicateSchemaUtil', () => {
 
   describe('assertRequiredSchemaInput', () => {
     it('validates required fields from the reviewed projection', () => {
-      expect(() =>
+      try {
         assertRequiredSchemaInput(
           'unknown/dynamic-model',
           {},
@@ -264,8 +264,14 @@ describe('ReplicateSchemaUtil', () => {
             required: ['prompt'],
             type: 'object',
           },
-        ),
-      ).toThrow('prompt is required');
+        );
+        throw new Error('expected validation failure');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(HttpException);
+        expect((error as HttpException).getResponse()).toEqual(
+          expect.objectContaining({ detail: 'prompt is required' }),
+        );
+      }
     });
 
     it('loads the Hailuo 2.3 Fast schema and requires first_frame_image', () => {
