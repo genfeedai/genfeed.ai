@@ -216,6 +216,9 @@ describe('OAuthPlatformForm', () => {
       'href',
       '/settings/api-keys',
     );
+    expect(
+      screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
   });
 });

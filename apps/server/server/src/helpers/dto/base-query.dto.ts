@@ -1,7 +1,7 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { resolveFolderIdAlias } from '@server/helpers/dto/folder-id-alias.transform';
 import { RESOLVE_QUERY_ALIASES } from '@server/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
-import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -143,6 +143,8 @@ export class BaseQueryDto {
     required: false,
     type: String,
   })
+  @IsOptional()
+  @IsEntityId()
   folderId?: string | null;
 
   /**

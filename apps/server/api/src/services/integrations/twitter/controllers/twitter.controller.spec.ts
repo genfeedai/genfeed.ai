@@ -320,6 +320,63 @@ describe('TwitterController', () => {
         controller.verify({} as Request, { code: 'code', state }),
       ).rejects.toThrow(HttpException);
     });
+
+    it('returns BAD_REQUEST when X rejects an expired authorization code', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'cred',
+        oauthTokenSecret: 'encrypted-code-verifier',
+        organizationId: testId('org'),
+      });
+      mockLoginWithOAuth2.mockRejectedValue({
+        data: {
+          error: 'invalid_grant',
+          error_description: 'The authorization code has expired',
+        },
+      });
+
+      const failure = await controller
+        .verify({} as Request, {
+          code: 'expired-code',
+          state: 'opaque-oauth-state',
+        })
+        .then(
+          () => null,
+          (error: unknown) => error,
+        );
+
+      expect(failure).toBeInstanceOf(HttpException);
+      expect((failure as HttpException).getStatus()).toBe(
+        HttpStatus.BAD_REQUEST,
+      );
+      expect((failure as HttpException).getResponse()).toMatchObject({
+        detail: 'X authorization expired or was already used. Connect X again.',
+      });
+    });
+
+    it('keeps invalid X client credentials as a server failure', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'cred',
+        oauthTokenSecret: 'encrypted-code-verifier',
+        organizationId: testId('org'),
+      });
+      const providerFailure = {
+        response: {
+          data: {
+            error: 'invalid_client',
+            error_description: 'Client authentication failed',
+          },
+          status: 401,
+        },
+      };
+      mockLoginWithOAuth2.mockRejectedValue(providerFailure);
+
+      await expect(
+        controller.verify({} as Request, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        }),
+      ).rejects.toBe(providerFailure);
+    });
   });
 
   describe('refreshAuthorizedSignals', () => {

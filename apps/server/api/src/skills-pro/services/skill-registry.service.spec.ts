@@ -108,7 +108,7 @@ describe('SkillRegistryService', () => {
       const result = await service.getRegistry();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://cdn.genfeed.ai/registry/skills-pro.json',
+        'https://cdn.genfeed.ai/skills/registry.json',
       );
       expect(result).toEqual({
         bundlePrice: 49,
@@ -252,7 +252,7 @@ describe('SkillRegistryService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('fetching registry'),
         expect.objectContaining({
-          url: expect.stringContaining('registry/skills-pro.json'),
+          url: 'https://cdn.genfeed.ai/skills/registry.json',
         }),
       );
       expect(loggerService.log).toHaveBeenCalledWith(

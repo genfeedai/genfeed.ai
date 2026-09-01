@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getTwitterRetryAfterMs,
   isTwitterAuthorizationError,
+  isTwitterOAuthCodeError,
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
   mapTwitterApiError,
@@ -82,5 +83,27 @@ describe('mapTwitterApiError', () => {
         5_000,
       ),
     ).toBe(2_000);
+  });
+
+  it('distinguishes callback-code failures from client configuration failures', () => {
+    expect(
+      isTwitterOAuthCodeError({
+        data: {
+          error: 'invalid_grant',
+          error_description: 'The authorization code has expired',
+        },
+      }),
+    ).toBe(true);
+    expect(
+      isTwitterOAuthCodeError({
+        response: {
+          data: {
+            error: 'invalid_client',
+            error_description: 'Client authentication failed',
+          },
+          status: 401,
+        },
+      }),
+    ).toBe(false);
   });
 });
