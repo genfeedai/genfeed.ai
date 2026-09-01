@@ -3,7 +3,6 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
-  type AgentClipRunIdentity,
   type ClipProcessingFlow,
   type ClipProjectReadResponse,
   type ClipSourceKind,
@@ -258,8 +257,6 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   const [referenceFrameError, setReferenceFrameError] = useState<string | null>(
     null,
   );
-  const [resolvedIdentity, setResolvedIdentity] =
-    useState<AgentClipRunIdentity | null>(null);
 
   // Highlight selection state (maps highlight id -> highlight with edits)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -275,23 +272,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   // (e.g. tab visibility toggles) after a project already reached a terminal state.
   const clipCompletionReportedRef = useRef<string | null>(null);
   const isDocumentVisible = useDocumentVisibility();
-  const localIdentityDefaults = useMemo(
+  const identityDefaults = useMemo(
     () => resolveStudioClipIdentityDefaults({ selectedBrand, settings }),
     [selectedBrand, settings],
-  );
-  const identityDefaults = useMemo<StudioClipIdentityDefaults>(
-    () =>
-      resolvedIdentity
-        ? {
-            avatarId: resolvedIdentity.avatarId,
-            avatarProvider: 'heygen',
-            isComplete: resolvedIdentity.isComplete,
-            missing: resolvedIdentity.missing,
-            source: resolvedIdentity.source,
-            voiceId: resolvedIdentity.voiceId,
-          }
-        : localIdentityDefaults,
-    [localIdentityDefaults, resolvedIdentity],
   );
 
   const selectAvatarProvider = useCallback(
@@ -357,9 +340,16 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         projectIdFromRoute,
         abortController.signal,
       );
-      return [data, hookApproval] as const;
+      const highlightsResponse =
+        data.status === 'analyzed'
+          ? await clipsService.getHighlights(
+              projectIdFromRoute,
+              abortController.signal,
+            )
+          : null;
+      return [data, hookApproval, highlightsResponse] as const;
     })()
-      .then(([data, hookApproval]) => {
+      .then(([data, hookApproval, highlightsResponse]) => {
         if (cancelled) {
           return;
         }
@@ -368,10 +358,11 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         const mode = isClipResultMode(data.settings?.mode)
           ? data.settings.mode
           : 'avatar';
+        const highlights = highlightsResponse?.highlights ?? [];
 
         setProject({
           clips: [],
-          highlights: [],
+          highlights,
           hookApproval,
           mode,
           projectId: projectIdFromRoute,
@@ -379,6 +370,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           source: data.source,
           status,
         });
+        setEditedHighlights(highlights);
+        setSelectedIds(new Set(highlights.map((highlight) => highlight.id)));
         setGenerationMode(mode);
         setStep(resolveClipsStepFromStatus(status));
         setError(null);
@@ -465,6 +458,12 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         setUploadProgress,
       );
       const started = await clipsService.finalizeUpload(prepared.projectId);
+
+      if (flow === 'review') {
+        goToProject(prepared.projectId);
+        return;
+      }
+
       const persistedProject = await clipsService.getProject(
         prepared.projectId,
       );
@@ -476,11 +475,11 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         mode: generationMode,
         projectId: prepared.projectId,
         source: persistedProject.source,
-        status: flow === 'review' ? 'analyzing' : started.status,
+        status: started.status,
       });
       setSelectedIds(new Set());
       setEditedHighlights([]);
-      setStep(flow === 'review' ? 'review' : 'progress');
+      setStep('progress');
       goToProject(prepared.projectId);
     },
     [
@@ -525,15 +524,6 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         youtubeUrl,
       });
 
-      setResolvedIdentity(data.identity);
-      setProject({
-        clips: [],
-        highlights: [],
-        mode: generationMode,
-        projectId: data.projectId,
-        status: 'analyzing',
-      });
-      setStep('review');
       goToProject(data.projectId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -547,7 +537,6 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     selectedBrand?.id,
     maxClips,
     minViralityScore,
-    generationMode,
     clipsService,
     goToProject,
     startUploadedSource,
@@ -1111,7 +1100,6 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setPendingReferenceFrameId(null);
     setFailedReferenceFrameId(null);
     setReferenceFrameError(null);
-    setResolvedIdentity(null);
     setSourceFileState(null);
     setUploadProgress(0);
     router.push(href(APP_ROUTES.STUDIO.CLIPS));
