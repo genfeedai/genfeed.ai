@@ -174,6 +174,15 @@ const CONTENT_ITEM = closedObjectSchema(
   { ...CONTENT_REQUEST_PROPERTIES, itemIndex: { type: 'integer' } },
   ['brandId', 'count', 'itemIndex', 'organizationId', 'skillSlug'],
 );
+const SKILL_CONTEXT = closedObjectSchema(
+  {
+    brandId: STRING_SCHEMA,
+    brandVoice: STRING_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    platforms: arraySchema(STRING_SCHEMA),
+  },
+  ['brandId', 'brandVoice', 'organizationId', 'platforms'],
+);
 const GENERATED_CONTENT = closedObjectSchema(
   {
     confidence: NUMBER_SCHEMA,
@@ -227,9 +236,12 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
     outputSchema: closedObjectSchema({ settled: BOOLEAN_SCHEMA }, ['settled']),
   },
-  'content.batch.item.generate': {
+  'content.batch.item.prepare': {
     inputSchema: closedObjectSchema({ item: CONTENT_ITEM }, ['item']),
-    outputSchema: GENERATED_CONTENT,
+    outputSchema: closedObjectSchema(
+      { context: SKILL_CONTEXT, params: JSON_DOCUMENT_SCHEMA },
+      ['context', 'params'],
+    ),
   },
   'content.batch.plan': {
     inputSchema: closedObjectSchema({ request: CONTENT_REQUEST }, ['request']),

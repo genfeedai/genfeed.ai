@@ -29,19 +29,7 @@ export interface SkillExecutionResult {
   draft: GeneratedContent;
   duration: number;
   creditsUsed: number;
-  runId: string;
-  source: 'byok' | 'hosted' | 'managed';
-}
-
-export interface GatewayExecutionContext {
-  organizationId: string;
-  brandId: string;
-  signalType: string;
-}
-
-export interface GatewayExecutionResult {
-  runId: string;
-  drafts: GeneratedContentInput[];
+  executionId: string;
 }
 
 export interface SkillHandler {

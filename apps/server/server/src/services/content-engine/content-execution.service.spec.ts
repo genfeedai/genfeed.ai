@@ -401,6 +401,7 @@ describe('ContentExecutionService', () => {
         'content-writing',
         expect.anything(),
         expect.anything(),
+        userId,
       );
     });
 
@@ -415,8 +416,7 @@ describe('ContentExecutionService', () => {
           metadata: { keywords: ['seo'] },
           type: 'text',
         },
-        runId: 'run-seo-blog',
-        source: 'cache',
+        executionId: 'execution-seo-blog',
       });
 
       await executePlanAtomically(orgId, brandId, planId, userId);
@@ -425,11 +425,11 @@ describe('ContentExecutionService', () => {
         expect.objectContaining({
           confidence: 0.88,
           content: 'SEO blog content',
-          contentRunId: 'run-seo-blog',
           generatedBy: 'content-engine:seo-blog',
           platforms: ['twitter'],
           skillSlug: 'seo-blog',
           userId,
+          workflowExecutionId: 'execution-seo-blog',
         }),
       );
     });

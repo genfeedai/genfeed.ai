@@ -5,7 +5,6 @@ import type { SystemWorkflowRunnerService } from '@server/collections/workflows/
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchContentService } from '@server/services/batch-content/batch-content.service';
 import type { BatchContentRequest } from '@server/services/batch-content/interfaces/batch-content.interfaces';
-import type { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 
 describe('BatchContentService', () => {
   const request: BatchContentRequest = {
@@ -27,7 +26,6 @@ describe('BatchContentService', () => {
   };
   const service = new BatchContentService(
     brands as unknown as BrandsService,
-    {} as unknown as SkillExecutorService,
     workflowRunner as unknown as SystemWorkflowRunnerService,
     workflowQueue as unknown as WorkflowExecutionQueueService,
     { log: vi.fn() } as unknown as LoggerService,
@@ -50,7 +48,7 @@ describe('BatchContentService', () => {
 
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        canonicalId: 'content.batch.generate',
+        canonicalId: 'content.batch.generate.content-writing',
         inputValues: { request },
         organizationId: request.organizationId,
         userId: 'user-1',
