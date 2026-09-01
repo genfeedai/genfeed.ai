@@ -47,6 +47,10 @@ const REPOSITORY_CONTRACTS = [
     name: 'relation alias writes',
   },
   {
+    command: ['bun', 'run', 'check:runtime-complexity'],
+    name: 'runtime complexity ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:route-shadowing'],
     name: 'controller route shadowing',
   },

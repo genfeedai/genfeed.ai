@@ -163,6 +163,7 @@ test('enforces executable contracts through the aggregate suite', () => {
     'check:bull-board-parity',
     'check:relation-alias-reads',
     'check:relation-alias-writes',
+    'check:runtime-complexity',
   ]) {
     assert.match(
       contracts,
