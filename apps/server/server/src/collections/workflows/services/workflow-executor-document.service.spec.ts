@@ -129,6 +129,31 @@ describe('WorkflowExecutorDocumentService', () => {
       userId: 'user-1',
       versionId: 'version-1',
     });
+    expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          workflow: {
+            select: expect.objectContaining({ isDeleted: true }),
+          },
+        }),
+      }),
+    );
+  });
+
+  it('rejects a pinned version owned by a retired workflow before dispatch', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue({
+      ...pinnedVersionRow('org-1', 'user-1'),
+      workflow: {
+        ...pinnedVersionRow('org-1', 'user-1').workflow,
+        isDeleted: true,
+      },
+    });
+
+    await expect(
+      service.findPinnedWorkflow('workflow-1', 'version-1', 'org-1', 'actor-1'),
+    ).rejects.toThrow(
+      'Workflow workflow-1 is retired and cannot resume pinned version version-1',
+    );
   });
 
   it('projects a proven global hidden mirror into the execution tenant and actor', async () => {
@@ -196,6 +221,7 @@ function pinnedVersionRow(
       config: {},
       description: null,
       id: 'workflow-1',
+      isDeleted: false,
       label: 'Workflow',
       metadata,
       organizationId,

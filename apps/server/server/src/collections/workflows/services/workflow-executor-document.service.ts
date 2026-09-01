@@ -72,6 +72,11 @@ export class WorkflowExecutorDocumentService {
     if (!version) {
       return null;
     }
+    if (version.workflow.isDeleted) {
+      throw new Error(
+        `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
+      );
+    }
 
     const isTenantOwned =
       version.organizationId === organizationId &&
