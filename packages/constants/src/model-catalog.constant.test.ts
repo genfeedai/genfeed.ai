@@ -1,4 +1,4 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_CHAT_MODEL_KEYS,
@@ -90,7 +90,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     }
   });
 
-  it('seeds retired chat keys as legacy rows pointing at their successor', () => {
+  it('seeds retired chat keys as Retired aliases pointing at their successor', () => {
     for (const [key, succeededBy] of Object.entries(
       RETIRED_AGENT_CHAT_MODELS,
     )) {
@@ -98,8 +98,9 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
       expect(row).toBeDefined();
 
-      expect(row?.isLegacy).toBe(true);
+      expect(row?.isLegacy).toBe(false);
       expect(row?.isActive).toBe(false);
+      expect(row?.lifecycle).toBe(ModelLifecycle.RETIRED);
       expect(row?.succeededBy).toBe(succeededBy);
       // A stale binding must never bill at zero by accident. Zero is only
       // legitimate when the successor is declared free — then the row must

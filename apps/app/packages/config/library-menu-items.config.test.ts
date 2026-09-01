@@ -3,6 +3,7 @@ import {
   LIBRARY_MENU_ITEMS,
   LIBRARY_PLACE_MENU_ITEMS,
   LIBRARY_SHELF_MENU_ITEMS,
+  LIBRARY_TAIL_MENU_ITEMS,
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
@@ -68,6 +69,12 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ).toBe(false);
     expect(LIBRARY_MENU_ITEMS.some((item) => item.label === 'Activity')).toBe(
       false,
+    );
+  });
+
+  it('keeps Library destinations flat without obsolete divider metadata', () => {
+    expect(LIBRARY_TAIL_MENU_ITEMS.every((item) => !item.hasDividerAbove)).toBe(
+      true,
     );
   });
 });

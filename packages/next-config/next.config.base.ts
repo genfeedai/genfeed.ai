@@ -172,6 +172,9 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       authToken: process.env.SENTRY_AUTH_TOKEN,
       org: resolvedSentryOrg,
       project: resolvedSentryProject,
+      release: {
+        name: process.env.SENTRY_RELEASE || process.env.BUILD_ID,
+      },
       silent: !process.env.CI,
       sourcemaps: {
         deleteSourcemapsAfterUpload: true,

@@ -32,6 +32,8 @@ export interface AgentChatModel {
    * also zero-priced, and treating that as free is how a round goes unbilled.
    */
   isFree?: boolean;
+  /** Provider chooses the concrete model; settle from response usage.cost. */
+  usesExactProviderCost?: boolean;
   isReasoning?: boolean;
   /** Self-hosted models run on our own fleet: platform cost, never per-user. */
   isSelfHosted?: boolean;
@@ -71,6 +73,19 @@ export function calculateAgentRoundCredits(
   return Math.max(1, Math.ceil(retailUsd / AGENT_CREDIT_USD));
 }
 
+/** Exact retail credits for a provider-reported USD charge. */
+export function calculateAgentExactCredits(providerCostUsd: number): number {
+  if (!Number.isFinite(providerCostUsd) || providerCostUsd <= 0) {
+    return 0;
+  }
+  return Number(
+    (
+      (providerCostUsd * AGENT_CREDIT_MARGIN_MULTIPLIER) /
+      AGENT_CREDIT_USD
+    ).toFixed(6),
+  );
+}
+
 function resolveCostTier(creditCostPerRound: number): CostTier {
   if (creditCostPerRound <= 2) {
     return CostTier.LOW;
@@ -101,6 +116,8 @@ export const AGENT_CHAT_MODEL_KEYS = {
   LOCAL_MISTRAL_SMALL: 'local/mistral-small',
   LOCAL_QWEN_32B: 'local/qwen-32b',
   NEMOTRON_3_ULTRA_FREE: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+  OPENROUTER_AUTO: 'openrouter/auto',
+  OPENROUTER_FREE: 'openrouter/free',
 } as const;
 
 export type AgentChatModelKey =
@@ -148,6 +165,7 @@ interface AgentChatModelDefinition {
   description: string;
   /** See {@link AgentChatModel.isFree} — only a $0-constrained route may set it. */
   isFree?: boolean;
+  usesExactProviderCost?: boolean;
   isReasoning?: boolean;
   isSelfHosted?: boolean;
   key: AgentChatModelKey;
@@ -156,6 +174,37 @@ interface AgentChatModelDefinition {
 }
 
 const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
+  {
+    brandSlug: 'openrouter',
+    description:
+      'Dynamic quality/cost router — exact provider cost is settled after each round',
+    isReasoning: true,
+    key: AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
+    label: 'OpenRouter Auto',
+    // Maximum reservation envelope: current most expensive curated route.
+    pricing: { completionPerMillion: 60, promptPerMillion: 5 },
+    usesExactProviderCost: true,
+  },
+  {
+    brandSlug: 'openrouter',
+    description:
+      'Experimental free router with capability-aware DeepSeek fallback',
+    isFree: true,
+    key: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+    label: 'OpenRouter Free (Experimental)',
+    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+    usesExactProviderCost: true,
+  },
+  {
+    brandSlug: 'nvidia',
+    description:
+      'Default daily driver — $0 chat, reasoning-capable, ~1M context',
+    isFree: true,
+    isReasoning: true,
+    key: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+    label: 'Nemotron 3 Ultra (Free)',
+    pricing: { completionPerMillion: 0, promptPerMillion: 0 },
+  },
   {
     brandSlug: 'deepseek-ai',
     description:
@@ -311,11 +360,8 @@ export const DEFAULT_GROK_MODEL_KEY = LLM_DEFAULTS.grok;
  * read path maps them forward instead of failing or falling back to a price
  * that no longer reflects what the provider charges.
  *
- * `openrouter/auto` is retired on purpose: it let OpenRouter pick any model at
- * any price while we billed the cheapest tier. `openrouter/free` and the pinned
- * Nemotron free route are retired because a zero-retention request may have no
- * compatible endpoint and fail before the agent can run. Both map to the
- * current low-cost tool-capable fallback.
+ * Dynamic OpenRouter routes are live catalog rows. Only their historical beta
+ * alias remains here; runtime billing now settles their exact provider cost.
  *
  * **A successor preserves price tier, not brand.** These are not aliases — a
  * retired key is a dead model, and the successor is whatever currently does its
@@ -343,9 +389,7 @@ export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
   'openai/gpt-4o-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   'openai/o3': AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
   'openai/o4-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
-  'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,
-  'openrouter/auto-beta': DEFAULT_AGENT_CHAT_MODEL_KEY,
-  'openrouter/free': AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  'openrouter/auto-beta': AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
   'x-ai/grok-4': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
   'x-ai/grok-4.5': AGENT_CHAT_MODEL_KEYS.GROK_4_6,
   'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,

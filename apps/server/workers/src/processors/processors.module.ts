@@ -58,7 +58,7 @@ import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } f
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
-import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
+import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.module';
 // --- services/ processors ---
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -71,6 +71,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     LoggerModule,
     HttpModule,
     WorkersQueuesModule,
+    NotificationDeliveryRecoveryModule,
     forwardRef(() => CronPostsModule),
     // Config
     forwardRef(() => ConfigModule),
@@ -122,7 +123,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     CreditDeductionProcessor,
     HeygenPollProcessor,
     NotificationDeliveryProcessor,
-    NotificationDeliveryRecoveryService,
 
     // --- services/ processors ---
     WebhookClientProcessor,

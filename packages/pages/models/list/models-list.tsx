@@ -11,7 +11,7 @@ import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
-import { Archive, CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
+import { CircleCheck, CircleX, Cpu, Info, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 
 import ModelsAdminHeader from './components/ModelsAdminHeader';
@@ -47,7 +47,6 @@ export default function ModelsList({
     handleDelete,
     handleApproveRegistryModel,
     handleRejectRegistryModel,
-    handleMarkRegistryModelLegacy,
     handleSortChange,
     openConfirm,
   } = useModelsList({
@@ -102,19 +101,6 @@ export default function ModelsList({
               tooltip: 'Reject',
             },
             {
-              icon: <Archive />,
-              isVisible: (model: IModel) => model.isActive && !model.isLegacy,
-              onClick: (model: IModel) => {
-                openConfirm({
-                  confirmLabel: 'Mark Legacy',
-                  label: 'Mark Model Legacy',
-                  message: `Mark "${model.label}" as legacy and disable it for generation?`,
-                  onConfirm: () => handleMarkRegistryModelLegacy(model),
-                });
-              },
-              tooltip: 'Mark Legacy',
-            },
-            {
               icon: <Trash2 />,
               onClick: (model: IModel) => {
                 setSelectedModel(model);
@@ -138,7 +124,6 @@ export default function ModelsList({
       handleDelete,
       handleApproveRegistryModel,
       handleRejectRegistryModel,
-      handleMarkRegistryModelLegacy,
       setSelectedModel,
     ],
   );

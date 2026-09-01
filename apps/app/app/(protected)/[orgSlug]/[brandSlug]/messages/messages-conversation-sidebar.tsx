@@ -4,6 +4,8 @@ import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthCon
 import {
   ButtonSize,
   ButtonVariant,
+  ComponentSize,
+  Platform,
   SocialConversationType,
 } from '@genfeedai/enums';
 import type { SocialPlatform } from '@genfeedai/interfaces';
@@ -16,7 +18,9 @@ import {
   conversationSidebarRowClassName,
 } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -37,6 +41,7 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 export type MessagesInboxView =
@@ -86,6 +91,7 @@ const PLATFORM_OPTIONS: Array<{
   { label: 'All platforms', value: 'all' },
   { label: 'YouTube', value: 'youtube' },
   { label: 'Instagram', value: 'instagram' },
+  { label: 'TikTok', value: 'tiktok' },
   { label: 'X / Twitter', value: 'twitter' },
   { label: 'LinkedIn', value: 'linkedin' },
 ];
@@ -155,19 +161,29 @@ export function groupMessageConversations(
 }
 
 function ConversationRow({
+  brandLabel,
   conversation,
   isDisabled,
   isSelected,
   onSelect,
 }: {
+  brandLabel?: string;
   conversation: SocialConversationModel;
   isDisabled: boolean;
   isSelected: boolean;
   onSelect: (conversationId: string) => void;
 }) {
+  const translate = useTranslations('common.messages');
   const relativeTime = formatRelativeTime(conversation.latestMessageAt);
   const needsReview =
     conversation.needsReview || conversation.status === 'needs_review';
+  const participantLabel = getParticipantLabel(conversation);
+  const participantInitials = participantLabel
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+  const isReadOnly = conversation.platform === Platform.TIKTOK;
 
   return (
     <Button
@@ -178,57 +194,89 @@ function ConversationRow({
       withWrapper={false}
       className={cn(
         conversationSidebarRowClassName({ isSelected }),
-        'block min-h-16 px-3 py-2',
+        'flex min-h-[4.5rem] items-start gap-2.5 px-2.5 py-2 text-left',
       )}
       onClick={() => onSelect(conversation.id)}
     >
-      <span className="flex min-w-0 items-center gap-2">
-        <span
-          aria-hidden="true"
-          className={cn(
-            'size-2 shrink-0 rounded-full border border-foreground/15',
-            needsReview
-              ? 'bg-warning'
-              : conversation.unreadCount > 0
-                ? 'bg-info'
-                : 'bg-foreground/10',
-          )}
+      <span className="relative mt-0.5 shrink-0">
+        <Avatar className="size-8 bg-background-secondary shadow-border">
+          {conversation.participantAvatarUrl ? (
+            <AvatarImage
+              alt={`${participantLabel} profile picture`}
+              className="object-cover"
+              src={conversation.participantAvatarUrl}
+            />
+          ) : null}
+          <AvatarFallback className="text-2xs font-semibold text-foreground/65">
+            {participantInitials || '?'}
+          </AvatarFallback>
+        </Avatar>
+        <PlatformBadge
+          className="absolute -bottom-1 -right-1 size-4 justify-center rounded-full border border-background p-0"
+          platform={conversation.platform}
+          showLabel={false}
+          size={ComponentSize.SM}
         />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
-          {getParticipantLabel(conversation)}
-        </span>
-        {relativeTime ? (
-          <span className="shrink-0 text-2xs text-foreground/34">
-            {relativeTime}
-          </span>
-        ) : null}
       </span>
-      <span className="mt-1 flex min-w-0 items-center gap-2 pl-4">
-        <span className="min-w-0 flex-1 truncate text-2xs text-foreground/42">
-          {conversation.latestMessageText || 'No message preview available'}
-        </span>
-        {conversation.unreadCount > 0 ? (
-          <span className="shrink-0 rounded-full bg-info/15 px-1.5 py-0.5 text-2xs font-semibold tabular-nums text-info">
-            {conversation.unreadCount}
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className={cn(
+              'size-1.5 shrink-0 rounded-full',
+              needsReview
+                ? 'bg-warning'
+                : conversation.unreadCount > 0
+                  ? 'bg-info'
+                  : 'bg-foreground/15',
+            )}
+          />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
+            {participantLabel}
           </span>
-        ) : null}
-      </span>
-      <span className="mt-1 flex items-center gap-1.5 pl-4 text-2xs font-medium uppercase tracking-wider text-foreground/28">
-        <span>{conversation.platform}</span>
-        <span aria-hidden="true">·</span>
-        <span>
-          {conversation.conversationType === SocialConversationType.DM
-            ? 'DM'
-            : 'Comment'}
+          {relativeTime ? (
+            <span className="shrink-0 text-2xs tabular-nums text-foreground/34">
+              {relativeTime}
+            </span>
+          ) : null}
         </span>
-        <span aria-hidden="true">·</span>
-        <span
-          className={cn(
-            needsReview && 'text-warning',
-            conversation.status === 'resolved' && 'text-success',
-          )}
-        >
-          {needsReview ? 'Needs review' : conversation.status}
+        <span className="mt-0.5 flex min-w-0 items-center gap-2">
+          <span className="min-w-0 flex-1 truncate text-2xs text-foreground/42">
+            {conversation.latestMessageText || 'No message preview available'}
+          </span>
+          {conversation.unreadCount > 0 ? (
+            <span className="shrink-0 rounded-full bg-info/15 px-1.5 py-0.5 text-2xs font-semibold tabular-nums text-info">
+              {conversation.unreadCount}
+            </span>
+          ) : null}
+        </span>
+        <span className="mt-1 flex min-w-0 items-center gap-1.5 text-2xs font-medium text-foreground/30">
+          <span className="shrink-0 uppercase tracking-wider">
+            {conversation.conversationType === SocialConversationType.DM
+              ? 'DM'
+              : 'Comment'}
+          </span>
+          {brandLabel ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="min-w-0 truncate">{brandLabel}</span>
+            </>
+          ) : null}
+          {isReadOnly ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.readOnly')}
+              </span>
+            </>
+          ) : needsReview ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="shrink-0 text-warning">
+                {translate('conversation.needsReviewCompact')}
+              </span>
+            </>
+          ) : null}
         </span>
       </span>
     </Button>
@@ -248,11 +296,14 @@ interface MessagesConversationSidebarProps {
   connectionState: string;
   conversations: SocialConversationModel[];
   conversationType: MessagesSurface;
+  hasConnectedAccounts: boolean;
+  hasSyncableAccounts: boolean;
+  isAccountsLoading: boolean;
   isLoading: boolean;
   onBrandFilterChange: (brandId: string) => void;
   onConversationTypeChange: (conversationType: MessagesSurface) => void;
   onNextPage: () => void;
-  onOAuthConnect: (platform: string) => void | Promise<void>;
+  onOAuthConnect?: (platform: string) => void | Promise<void>;
   onPlatformChange: (platform: SocialPlatform | 'all') => void;
   onPreviousPage: () => void;
   onSearchChange: (search: string) => void;
@@ -274,6 +325,9 @@ export function MessagesConversationSidebar({
   connectionState,
   conversations,
   conversationType,
+  hasConnectedAccounts,
+  hasSyncableAccounts,
+  isAccountsLoading,
   isLoading,
   onBrandFilterChange,
   onConversationTypeChange,
@@ -291,27 +345,11 @@ export function MessagesConversationSidebar({
   selectedId,
   view,
 }: MessagesConversationSidebarProps) {
+  const translate = useTranslations('common.messages');
   const groups = groupMessageConversations(conversations);
-  const filters = VIEW_FILTERS.map((filter) => {
-    if (filter.value === 'unread') {
-      return {
-        ...filter,
-        count: conversations.filter(
-          (conversation) => conversation.unreadCount > 0,
-        ).length,
-      };
-    }
-    if (filter.value === 'review') {
-      return {
-        ...filter,
-        count: conversations.filter(
-          (conversation) =>
-            conversation.needsReview || conversation.status === 'needs_review',
-        ).length,
-      };
-    }
-    return filter;
-  });
+  const brandLabels = new Map(
+    brandOptions.map((option) => [option.id, option.label]),
+  );
   const isDmSurface = conversationType === SocialConversationType.DM;
   const syncLabel =
     conversationType === 'all'
@@ -319,54 +357,159 @@ export function MessagesConversationSidebar({
       : isDmSurface
         ? 'Sync direct messages'
         : 'Sync comments';
-  const syncAction = (
-    <Button
-      ariaLabel={syncLabel}
-      className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
-      icon={<RefreshCw className="size-4" />}
-      isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-      isLoading={busyAction === 'sync'}
-      size={ButtonSize.ICON}
-      tooltip={syncLabel}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onSync}
-    />
-  );
-  const emptyStateTitle =
-    conversationType === 'all'
-      ? 'No inbox items yet'
+  const syncAction =
+    hasSyncableAccounts && conversations.length > 0 ? (
+      <Button
+        ariaLabel={syncLabel}
+        className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/48 hover:bg-foreground/[0.07] hover:text-foreground"
+        icon={<RefreshCw className="size-4" />}
+        isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+        isLoading={busyAction === 'sync'}
+        size={ButtonSize.ICON}
+        tooltip={syncLabel}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        onClick={onSync}
+      />
+    ) : null;
+  const emptyStateTitle = !hasConnectedAccounts
+    ? 'Connect your social accounts'
+    : conversationType === 'all'
+      ? 'No conversations yet'
       : isDmSurface
         ? 'No direct messages yet'
         : 'No comments yet';
   // DMs are polled rather than pushed, so an empty DM surface is the expected
   // state until the first sync — say so instead of implying something is wrong.
-  const emptyStateBody =
-    conversationType === 'all'
-      ? 'Connect a social account, then sync to collect comments and direct messages in one inbox.'
-      : isDmSurface
-        ? 'Direct messages are pulled in by sync. Connect an account, then sync to fill this thread list.'
-        : brandFilter === 'all'
-          ? 'Connect a social account, then sync to pull comments into this inbox.'
-          : 'No comments for this brand yet. Connect accounts, sync, or switch brands.';
+  const emptyStateBody = !hasConnectedAccounts
+    ? 'Bring comments and direct messages from every connected channel into one place.'
+    : !hasSyncableAccounts
+      ? 'Your connected TikTok account is read-only. New conversations will appear here when available.'
+      : conversationType === 'all'
+        ? 'Your accounts are connected. Sync now to collect the latest comments and direct messages.'
+        : isDmSurface
+          ? 'Direct messages are pulled in by sync. Sync now to fill this conversation list.'
+          : brandFilter === 'all'
+            ? 'Sync your connected accounts to pull comments into this inbox.'
+            : 'No comments for this brand yet. Sync or switch brands.';
   const singleSectionLabel =
     view === 'resolved'
       ? 'Resolved'
       : view === 'archived'
         ? 'Archived'
         : view === 'review'
-          ? 'Needs review'
+          ? translate('conversation.needsReviewCompact')
           : view === 'unread'
             ? 'Unread'
             : null;
+  const filterAction = (
+    <div className="flex items-center gap-1">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            ariaLabel="Filter social conversations"
+            className="size-8 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/42 hover:bg-foreground/[0.07] hover:text-foreground"
+            icon={<SlidersHorizontal className="size-3.5" />}
+            size={ButtonSize.ICON}
+            tooltip="Filter conversations"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+          />
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72 space-y-3 p-3">
+          <p className="text-xs font-semibold text-foreground/72">
+            {translate('sidebar.filters')}
+          </p>
+          <div className="space-y-1.5">
+            <p className="text-2xs font-medium text-foreground/54">
+              {translate('sidebar.status')}
+            </p>
+            <Select
+              value={view}
+              onValueChange={(value) => {
+                onViewChange(value as MessagesInboxView);
+              }}
+            >
+              <SelectTrigger aria-label="Filter conversations by status">
+                <SelectValue placeholder="Inbox" />
+              </SelectTrigger>
+              <SelectContent>
+                {VIEW_FILTERS.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {brandOptions.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-2xs font-medium text-foreground/54">
+                {translate('sidebar.brand')}
+              </p>
+              <Select value={brandFilter} onValueChange={onBrandFilterChange}>
+                <SelectTrigger aria-label="Filter conversations by brand">
+                  <SelectValue placeholder={translate('sidebar.allBrands')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {translate('sidebar.allBrands')}
+                  </SelectItem>
+                  {brandOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
+          <div className="space-y-1.5">
+            <p className="text-2xs font-medium text-foreground/54">
+              {translate('sidebar.platform')}
+            </p>
+            <Select
+              value={platform}
+              onValueChange={(value) => {
+                onPlatformChange(value as SocialPlatform | 'all');
+              }}
+            >
+              <SelectTrigger aria-label="Filter conversations by platform">
+                <SelectValue placeholder="All platforms" />
+              </SelectTrigger>
+              <SelectContent>
+                {PLATFORM_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {advancedFilters}
+        </PopoverContent>
+      </Popover>
+      {syncAction}
+    </div>
+  );
 
   return (
     <nav
       aria-label="Social conversations"
-      className="flex h-full min-h-0 flex-col pt-2"
+      className="flex h-full min-h-0 flex-col pt-1"
     >
+      <div className="flex items-center justify-between px-3 py-1.5">
+        <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/40">
+          {translate('sidebar.title')}
+        </span>
+        {pagination.total > 0 ? (
+          <span className="text-2xs tabular-nums text-foreground/28">
+            {pagination.total}
+          </span>
+        ) : null}
+      </div>
       <ConversationSidebarSearch
-        action={syncAction}
+        action={filterAction}
         ariaLabel="Search social conversations"
         placeholder="Search messages"
         value={search}
@@ -378,75 +521,8 @@ export function MessagesConversationSidebar({
         value={conversationType}
         onChange={onConversationTypeChange}
       />
-      <ConversationSidebarFilters
-        ariaLabel="Filter social conversations"
-        filters={filters}
-        value={view}
-        onChange={onViewChange}
-      />
-      <div className="space-y-2 px-3 pb-2">
-        {brandOptions.length > 0 ? (
-          <Select value={brandFilter} onValueChange={onBrandFilterChange}>
-            <SelectTrigger
-              aria-label="Filter conversations by brand"
-              className="h-7 w-full rounded-md border-border bg-foreground/[0.025] px-2.5 text-2xs text-foreground/58"
-            >
-              <SelectValue placeholder="All brands" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All brands</SelectItem>
-              {brandOptions.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
-        <div className="flex gap-2">
-          <Select
-            value={platform}
-            onValueChange={(value) => {
-              onPlatformChange(value as SocialPlatform | 'all');
-            }}
-          >
-            <SelectTrigger
-              aria-label="Filter conversations by platform"
-              className="h-7 min-w-0 flex-1 rounded-md border-border bg-foreground/[0.025] px-2.5 text-2xs text-foreground/58"
-            >
-              <SelectValue placeholder="All platforms" />
-            </SelectTrigger>
-            <SelectContent>
-              {PLATFORM_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                ariaLabel="Open advanced message filters"
-                className="size-7 shrink-0 rounded-md border border-border bg-foreground/[0.025] text-foreground/42 hover:bg-foreground/[0.07] hover:text-foreground"
-                icon={<SlidersHorizontal className="size-3.5" />}
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              />
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-72 p-3">
-              <p className="mb-3 text-xs font-semibold text-foreground/72">
-                Advanced filters
-              </p>
-              {advancedFilters}
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto pb-3 scrollbar-thin">
-        {isLoading ? (
+        {isLoading || (isAccountsLoading && conversations.length === 0) ? (
           <div className="p-4">
             <LazyLoadingFallback variant="minimal" />
           </div>
@@ -468,24 +544,42 @@ export function MessagesConversationSidebar({
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-              <AgentOAuthConnectMenu
-                hideIcon
-                onOAuthConnect={onOAuthConnect}
-                triggerLabel="Connect accounts"
-                triggerSize={ButtonSize.SM}
-                triggerVariant={ButtonVariant.SECONDARY}
-              />
-              <Button
-                isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-                isLoading={busyAction === 'sync'}
-                onClick={onSync}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              >
-                <RefreshCw aria-hidden="true" className="size-3.5" />
-                Sync
-              </Button>
+              {hasSyncableAccounts ? (
+                <Button
+                  ariaLabel={syncLabel}
+                  isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+                  isLoading={busyAction === 'sync'}
+                  onClick={onSync}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.DEFAULT}
+                  withWrapper={false}
+                >
+                  <RefreshCw aria-hidden="true" className="size-3.5" />
+                  {translate('sidebar.syncNow')}
+                </Button>
+              ) : !hasConnectedAccounts && onOAuthConnect ? (
+                <AgentOAuthConnectMenu
+                  hideIcon
+                  onOAuthConnect={onOAuthConnect}
+                  triggerLabel="Connect accounts"
+                  triggerSize={ButtonSize.SM}
+                  triggerVariant={ButtonVariant.DEFAULT}
+                />
+              ) : null}
+              {hasConnectedAccounts && onOAuthConnect ? (
+                <AgentOAuthConnectMenu
+                  hideIcon
+                  onOAuthConnect={onOAuthConnect}
+                  triggerLabel="Connect another"
+                  triggerSize={ButtonSize.SM}
+                  triggerVariant={ButtonVariant.GHOST}
+                />
+              ) : null}
+              {!hasConnectedAccounts && !onOAuthConnect ? (
+                <p className="text-2xs leading-4 text-warning">
+                  {translate('sidebar.chooseBrandToConnect')}
+                </p>
+              ) : null}
             </div>
           </div>
         ) : singleSectionLabel ? (
@@ -495,6 +589,11 @@ export function MessagesConversationSidebar({
           >
             {conversations.map((conversation) => (
               <ConversationRow
+                brandLabel={
+                  conversation.brandId
+                    ? brandLabels.get(conversation.brandId)
+                    : undefined
+                }
                 conversation={conversation}
                 isDisabled={Boolean(busyAction)}
                 isSelected={conversation.id === selectedId}
@@ -512,6 +611,11 @@ export function MessagesConversationSidebar({
               >
                 {groups.needsYou.map((conversation) => (
                   <ConversationRow
+                    brandLabel={
+                      conversation.brandId
+                        ? brandLabels.get(conversation.brandId)
+                        : undefined
+                    }
                     conversation={conversation}
                     isDisabled={Boolean(busyAction)}
                     isSelected={conversation.id === selectedId}
@@ -528,6 +632,11 @@ export function MessagesConversationSidebar({
               >
                 {groups.inbox.map((conversation) => (
                   <ConversationRow
+                    brandLabel={
+                      conversation.brandId
+                        ? brandLabels.get(conversation.brandId)
+                        : undefined
+                    }
                     conversation={conversation}
                     isDisabled={Boolean(busyAction)}
                     isSelected={conversation.id === selectedId}
@@ -554,7 +663,10 @@ export function MessagesConversationSidebar({
               withWrapper={false}
             />
             <span className="flex-1 text-center text-xs text-foreground/38">
-              Page {pagination.page} of {pagination.totalPages}
+              {translate('pagination.conversationPage', {
+                page: pagination.page,
+                pages: pagination.totalPages,
+              })}
             </span>
             <Button
               ariaLabel="Next conversations page"
@@ -568,8 +680,9 @@ export function MessagesConversationSidebar({
           </>
         ) : (
           <span className="flex-1 text-xs text-foreground/32">
-            {pagination.total} conversation
-            {pagination.total === 1 ? '' : 's'}
+            {translate('pagination.conversationCount', {
+              count: pagination.total,
+            })}
           </span>
         )}
         <span

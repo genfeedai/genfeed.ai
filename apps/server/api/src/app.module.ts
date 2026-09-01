@@ -225,7 +225,6 @@ import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -258,7 +257,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
       wildcard: true,
     }),
     SentryModule.forRoot(),
-    ScheduleModule.forRoot(),
     FeatureFlagModule,
     SystemModule,
     // Docs (OpenAPI, GPT Actions)

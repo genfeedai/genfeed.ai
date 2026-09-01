@@ -22,10 +22,12 @@ const clearBootstrapCacheMock = vi.hoisted(() => vi.fn());
 const cancelAndClearServicesMock = vi.hoisted(() => vi.fn());
 const setRequestOrganizationIdMock = vi.hoisted(() => vi.fn());
 const loggerWarnMock = vi.hoisted(() => vi.fn());
+const replaceMock = vi.hoisted(() => vi.fn());
 let pathname = '/alpha/~/workspace/overview';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
+  useRouter: () => ({ replace: replaceMock }),
 }));
 
 vi.mock('@genfeedai/auth-client', () => ({
@@ -143,6 +145,7 @@ describe('RoutedOrganizationProvider', () => {
     cancelAndClearServicesMock.mockReset();
     setRequestOrganizationIdMock.mockReset();
     loggerWarnMock.mockReset();
+    replaceMock.mockReset();
   });
 
   it('confirms an already-matched route before exposing its organization id', async () => {
@@ -198,6 +201,7 @@ describe('RoutedOrganizationProvider', () => {
     expect(loggerWarnMock).toHaveBeenCalledWith(
       'Routed organization context mismatch',
       expect.objectContaining({
+        reportToSentry: false,
         tags: expect.objectContaining({
           reason: 'route-auth-mismatch',
         }),
@@ -217,6 +221,13 @@ describe('RoutedOrganizationProvider', () => {
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
     expect(switchOrganizationMock).not.toHaveBeenCalled();
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: false,
+        tags: expect.objectContaining({ reason: 'route-unauthorized' }),
+      }),
+    );
   });
 
   it('keeps a failed switch recoverable without confirming stale data', async () => {
@@ -237,6 +248,13 @@ describe('RoutedOrganizationProvider', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('failed'),
     );
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: true,
+        tags: expect.objectContaining({ reason: 'switch-failed' }),
+      }),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
@@ -273,8 +291,11 @@ describe('RoutedOrganizationProvider', () => {
     expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
   });
 
-  it('blocks a tab when another tab changes organization context', async () => {
-    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+  it('moves another tab to the authoritative organization while preserving its current surface', async () => {
+    pathname = '/alpha/moonrise/studio/generate';
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(BRAVO_ACTIVE);
     renderProvider();
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent('matched'),
@@ -289,8 +310,47 @@ describe('RoutedOrganizationProvider', () => {
       );
     });
 
-    expect(screen.getByTestId('status')).toHaveTextContent('stale');
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith('/bravo/~/studio/generate'),
+    );
+    expect(screen.getByTestId('status')).toHaveTextContent('switching');
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(getOrganizationsServiceMock).toHaveBeenLastCalledWith({
+      forceRefresh: true,
+    });
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
+    expect(clearBootstrapCacheMock).toHaveBeenCalled();
+    expect(cancelAndClearServicesMock).toHaveBeenCalled();
+  });
+
+  it('reports failed cross-tab reconciliation to Sentry', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockRejectedValueOnce(new Error('refresh failed'));
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: true,
+        tags: expect.objectContaining({ reason: 'cross-tab-sync-failed' }),
+      }),
+    );
   });
 });

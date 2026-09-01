@@ -55,7 +55,7 @@ export class SkillRegistryService {
       return this.cachedRegistry;
     }
 
-    const registryUrl = `${this.configService.cdnUrl}/registry/skills-pro.json`;
+    const registryUrl = `${this.configService.cdnUrl}/skills/registry.json`;
 
     this.loggerService.log(`${this.constructorName} fetching registry`, {
       url: registryUrl,

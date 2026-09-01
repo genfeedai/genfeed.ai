@@ -5,7 +5,7 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -36,6 +36,8 @@ function makeModel(overrides: Record<string, unknown> = {}) {
     isActive: true,
     isDefault: false,
     isDeleted: false,
+    isDiscovered: false,
+    lifecycle: ModelLifecycle.AVAILABLE,
     endpoint: 'google/imagen-4',
     key: 'google/imagen-4',
     label: 'Imagen 4',
@@ -117,16 +119,59 @@ describe('ModelsService', () => {
         category: ModelCategory.IMAGE,
         config: { owner: 'google' },
         cost: 5,
-        isDefault: true,
+        isActive: true,
+        isDefault: false,
+        isDeprecated: false,
         isDiscovered: true,
+        isLegacy: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
         endpoint: 'google/imagen-4',
         key: 'google/imagen-4',
         label: 'Imagen 4',
         margin: 0.2,
         provider: ModelProvider.REPLICATE,
+        succeededBy: null,
       },
     });
     expect(result.providerConfig).toEqual({ owner: 'google' });
+  });
+
+  it('requires and validates a successor when creating Legacy', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        id: 'model-2',
+        key: 'google/imagen-5',
+        lifecycle: ModelLifecycle.RECOMMENDED,
+      }),
+    );
+    modelDelegate.create.mockResolvedValue(
+      makeModel({
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: 'google/imagen-5',
+      }),
+    );
+
+    await service.create({
+      category: ModelCategory.IMAGE,
+      cost: 5,
+      key: 'google/imagen-4',
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.LEGACY,
+      provider: ModelProvider.REPLICATE,
+      succeededBy: 'google/imagen-5',
+    });
+
+    expect(modelDelegate.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: true,
+        isDefault: false,
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: 'google/imagen-5',
+      }),
+    });
   });
 
   it('queries canonical fields directly', async () => {
@@ -136,6 +181,54 @@ describe('ModelsService', () => {
 
     expect(modelDelegate.findFirst).toHaveBeenCalledWith({
       where: { isDeleted: false, key: 'google/imagen-4' },
+    });
+  });
+
+  it('requires a successor before moving a model to Legacy', async () => {
+    modelDelegate.findFirst.mockResolvedValue(makeModel());
+
+    await expect(
+      service.transitionLifecycle('model-1', ModelLifecycle.LEGACY),
+    ).rejects.toThrow('successor model is required');
+    expect(modelDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps Legacy callable and synchronizes compatibility fields', async () => {
+    const current = makeModel();
+    const successor = makeModel({
+      id: 'model-2',
+      key: 'google/imagen-5',
+      lifecycle: ModelLifecycle.RECOMMENDED,
+    });
+    modelDelegate.findFirst
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce(successor);
+    modelDelegate.findUnique.mockResolvedValue(current);
+    modelDelegate.update.mockResolvedValue(
+      makeModel({
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: successor.key,
+      }),
+    );
+
+    await service.transitionLifecycle(
+      'model-1',
+      ModelLifecycle.LEGACY,
+      successor.key,
+    );
+
+    expect(modelDelegate.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isActive: true,
+        isDefault: false,
+        isDeprecated: true,
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+        succeededBy: successor.key,
+      }),
+      where: { id: 'model-1' },
     });
   });
 

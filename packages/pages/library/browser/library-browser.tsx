@@ -55,19 +55,32 @@ export default function LibraryBrowser({
   const [headerMeta, setHeaderMeta] = useState<ReactNode>();
 
   const destination = useMemo(() => {
+    const adaptDescription = (description: string) =>
+      scope === PageScope.ORGANIZATION
+        ? description.replace('this brand', 'this organization')
+        : description;
+
     if (shelf) {
       return {
-        description: LIBRARY_SHELF_DESCRIPTIONS[shelf],
+        description: adaptDescription(LIBRARY_SHELF_DESCRIPTIONS[shelf]),
         label: LIBRARY_SHELF_LABELS[shelf],
       };
     }
 
     if (preset) {
-      return preset;
+      return {
+        ...preset,
+        description: adaptDescription(preset.description),
+      };
     }
 
-    return LIBRARY_PLACE_COPY[place ?? LibraryPlace.ASSETS];
-  }, [place, preset, shelf]);
+    const placeCopy = LIBRARY_PLACE_COPY[place ?? LibraryPlace.ASSETS];
+
+    return {
+      ...placeCopy,
+      description: adaptDescription(placeCopy.description),
+    };
+  }, [place, preset, scope, shelf]);
 
   const description = headerMeta ? (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -107,6 +120,11 @@ export default function LibraryBrowser({
               onUpload={handleUpload}
               onViewModeChange={handleViewModeChange}
               search={search}
+              searchPlaceholder={
+                scope === PageScope.ORGANIZATION
+                  ? 'Search organization assets'
+                  : "Search this brand's assets"
+              }
               sort={sort}
               sortOptions={[...LIBRARY_SORT_OPTIONS]}
               viewMode={viewMode}

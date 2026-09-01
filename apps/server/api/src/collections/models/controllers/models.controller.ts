@@ -11,6 +11,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ModelLifecycle } from '@genfeedai/enums';
 import type {
   IModelProviderContracts,
   JsonApiCollectionResponse,
@@ -164,7 +165,7 @@ export class ModelsController extends BaseCRUDController<
       case 'discovered':
         return { isDiscovered: true };
       case 'legacy':
-        return { isLegacy: true };
+        return { lifecycle: ModelLifecycle.LEGACY };
       case 'pending':
         return { isActive: false, isDiscovered: true, reviewStatus: 'pending' };
       case 'rejected':
@@ -199,6 +200,7 @@ export class ModelsController extends BaseCRUDController<
       category: model.category,
       isDefault: true,
       isDeleted: false,
+      organizationId: model.organizationId ?? null,
     });
 
     if (otherDefaults === 0) {
@@ -319,7 +321,27 @@ export class ModelsController extends BaseCRUDController<
     @Param('modelId') modelId: string,
     @Body() updateDto: UpdateModelDto,
   ): Promise<JsonApiSingleResponse> {
-    // Registry review transitions (approve/reject/legacy) route through the
+    if (updateDto.lifecycle) {
+      this.assertCanManageRegistry(user, request as unknown as Request);
+      if (updateDto.lifecycle !== ModelLifecycle.RECOMMENDED) {
+        await this.assertCanDisableModel(modelId);
+      }
+      const data = await this.modelsService.transitionLifecycle(
+        modelId,
+        updateDto.lifecycle,
+        updateDto.succeededBy,
+      );
+      if (!data) {
+        ErrorResponse.notFound(this.entityName, modelId);
+      }
+      return serializeSingle(
+        request as unknown as Request,
+        ModelSerializer,
+        data,
+      );
+    }
+
+    // Registry review transitions (approve/reject) route through the
     // dedicated service methods, preserving the superadmin guard and the
     // last-default protection — rather than a plain field write.
     if (updateDto.reviewStatus) {
@@ -354,6 +376,15 @@ export class ModelsController extends BaseCRUDController<
 
     // If setting isDefault to true, clear other defaults in same category
     if (updateDto.isDefault === true) {
+      if (model.lifecycle !== ModelLifecycle.RECOMMENDED || !model.isActive) {
+        ErrorResponse.validationFailed([
+          {
+            code: 'DEFAULT_REQUIRES_RECOMMENDED',
+            field: 'isDefault',
+            message: 'Only an active Recommended model can be the default.',
+          },
+        ]);
+      }
       await this.modelsService.clearOtherDefaults(
         model.category,
         model.organizationId ?? null,
@@ -366,9 +397,9 @@ export class ModelsController extends BaseCRUDController<
   }
 
   /**
-   * Apply a registry review transition (approve/reject/legacy) driven by the
-   * `reviewStatus` field on a `PATCH /models/:id`. Superadmin-guarded; reject and
-   * legacy additionally protect the last default model in a category. Approve
+   * Apply a registry review transition (approve/reject) driven by the
+   * `reviewStatus` field on a `PATCH /models/:id`. Superadmin-guarded; reject
+   * additionally protects the last default model in a category. Approve
    * carries any remaining update fields through (e.g. `label`).
    */
   private async applyRegistryReview(
@@ -379,7 +410,12 @@ export class ModelsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     this.assertCanManageRegistry(user, request as unknown as Request);
 
-    const { reviewStatus, reason, succeededBy, ...updates } = updateDto;
+    const {
+      reviewStatus,
+      reason,
+      succeededBy: _succeededBy,
+      ...updates
+    } = updateDto;
     const reviewedBy = this.getReviewerId(user);
 
     let data: ModelDocument | null;
@@ -396,13 +432,6 @@ export class ModelsController extends BaseCRUDController<
         data = await this.modelsService.rejectRegistryModel(modelId, {
           reason,
           reviewedBy,
-        });
-        break;
-      case 'legacy':
-        await this.assertCanDisableModel(modelId);
-        data = await this.modelsService.markRegistryModelLegacy(modelId, {
-          reviewedBy,
-          succeededBy,
         });
         break;
       default:

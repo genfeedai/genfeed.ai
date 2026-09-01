@@ -1,7 +1,6 @@
-import { WorkflowNotificationDeliveryService } from '@server/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
+import { WorkflowNotificationDeliveryService } from '@server/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 
 @Injectable()
 export class NotificationDeliveryRecoveryService {
@@ -14,7 +13,6 @@ export class NotificationDeliveryRecoveryService {
     private readonly logger: LoggerService,
   ) {}
 
-  @Interval(60_000)
   async recover(): Promise<void> {
     try {
       const count = await this.deliveryService.recoverDueDeliveries();

@@ -21,9 +21,14 @@ describe('SidebarActionTrigger', () => {
     expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
     expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
     expect(button).toHaveClass(
+      'h-8',
+      'gap-3',
+      'px-2.5',
+      'py-1.5',
       'rounded',
       'hover:bg-foreground/[0.06]',
       'focus-visible:ring-offset-background',
     );
+    expect(button.firstElementChild).toHaveClass('size-5', 'shrink-0');
   });
 });

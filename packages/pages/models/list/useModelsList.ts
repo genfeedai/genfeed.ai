@@ -1,6 +1,11 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModalEnum, ModelCategory, PageScope } from '@genfeedai/enums';
+import {
+  ModalEnum,
+  ModelCategory,
+  type ModelLifecycle,
+  PageScope,
+} from '@genfeedai/enums';
 import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
 import type {
   IFilters,
@@ -360,7 +365,7 @@ export function useModelsList({
 
   // Admin toggle handler (isActive/isDefault)
   const handleAdminToggle = useCallback(
-    async (model: IModel, field: 'isActive' | 'isDefault') => {
+    async (model: IModel, field: 'isDefault') => {
       if (!model.id) {
         return;
       }
@@ -402,9 +407,7 @@ export function useModelsList({
         // Refresh to get updated default models
         await handleRefresh();
 
-        notificationsService.success(
-          `Model ${field === 'isActive' ? 'activation' : 'default status'} updated`,
-        );
+        notificationsService.success('Model default status updated');
       } catch (error: unknown) {
         logger.error(`${url} failed`, error);
         const errorDetails = ErrorHandler.extractErrorDetails(error);
@@ -425,6 +428,29 @@ export function useModelsList({
       setModels,
       models,
     ],
+  );
+
+  const handleLifecycleChange = useCallback(
+    async (model: IModel, lifecycle: ModelLifecycle, succeededBy?: string) => {
+      if (!model.id || togglingModelId === model.id) return;
+      setTogglingModelId(model.id);
+      try {
+        const service = await getModelsService();
+        await service.patch(model.id, { lifecycle, succeededBy });
+        await handleRefresh();
+        notificationsService.success('Model lifecycle updated');
+      } catch (error: unknown) {
+        logger.error(`PATCH /models/${model.id} lifecycle failed`, error);
+        notificationsService.error(
+          ErrorHandler.extractErrorDetails(error).message ||
+            'Failed to update model lifecycle',
+        );
+        await handleRefresh();
+      } finally {
+        setTogglingModelId(null);
+      }
+    },
+    [getModelsService, handleRefresh, notificationsService, togglingModelId],
   );
 
   // Organization toggle handler (enabled/disabled for org)
@@ -543,29 +569,6 @@ export function useModelsList({
     [getModelsService, handleRefresh, notificationsService],
   );
 
-  const handleMarkRegistryModelLegacy = useCallback(
-    async (model: IModel) => {
-      if (!model.id) {
-        return;
-      }
-
-      const url = `PATCH /models/${model.id}/legacy`;
-      try {
-        const service = await getModelsService();
-        await service.markRegistryModelLegacy(model.id);
-        await handleRefresh();
-        notificationsService.success('Model marked legacy');
-      } catch (error) {
-        logger.error(`${url} failed`, error);
-        const errorDetails = ErrorHandler.extractErrorDetails(error);
-        notificationsService.error(
-          errorDetails.message || 'Failed to mark model legacy',
-        );
-      }
-    },
-    [getModelsService, handleRefresh, notificationsService],
-  );
-
   const handleViewDetails = useCallback((model: IModel) => {
     setSelectedModel(model);
     openModal(ModalEnum.MODEL);
@@ -586,18 +589,22 @@ export function useModelsList({
         isModelEnabled,
         isOnlyDefaultInCategory,
         handleAdminToggle,
+        handleLifecycleChange,
         handleToggleModel,
         onOpenDetails: handleViewDetails,
         togglingModelId,
+        models,
       }),
     [
       isAdminScope,
       isModelEnabled,
       isOnlyDefaultInCategory,
       handleAdminToggle,
+      handleLifecycleChange,
       handleToggleModel,
       handleViewDetails,
       togglingModelId,
+      models,
     ],
   );
 
@@ -619,7 +626,6 @@ export function useModelsList({
     handleDelete,
     handleApproveRegistryModel,
     handleRejectRegistryModel,
-    handleMarkRegistryModelLegacy,
     handleSortChange,
     openConfirm,
   };

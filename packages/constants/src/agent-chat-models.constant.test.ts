@@ -119,18 +119,13 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toBe(false);
   });
 
-  it('offers no auto-routing entry at all', () => {
-    // `openrouter/auto` was retired because it picked any model at any price
-    // while we billed the cheapest tier. `openrouter/free` was retired next:
-    // every route it could pick was $0, so billing it was exact, but the
-    // underlying model still varied per request, which made chat performance
-    // untrackable. The catalogue now pins one concrete free model instead of
-    // offering any `openrouter/*` auto-router.
+  it('offers explicit Auto and experimental Free routes with exact-cost metadata', () => {
     expect(
-      AGENT_CHAT_MODELS.some((candidate) =>
-        candidate.key.startsWith('openrouter/'),
-      ),
-    ).toBe(false);
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO),
+    ).toMatchObject({ usesExactProviderCost: true });
+    expect(
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE),
+    ).toMatchObject({ isFree: true, usesExactProviderCost: true });
   });
 
   it('catalogues both defaults so they always have a price', () => {
@@ -149,9 +144,9 @@ describe('resolveAgentChatModelKey', () => {
     }
   });
 
-  it('retires openrouter auto onto the platform default', () => {
+  it('keeps openrouter auto live', () => {
     expect(resolveAgentChatModelKey('openrouter/auto')).toBe(
-      DEFAULT_AGENT_CHAT_MODEL_KEY,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
   });
 
@@ -177,7 +172,7 @@ describe('resolveAgentChatModelKey', () => {
 
   it('trims stored whitespace', () => {
     expect(resolveAgentChatModelKey(' openrouter/auto ')).toBe(
-      DEFAULT_AGENT_CHAT_MODEL_KEY,
+      AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO,
     );
   });
 });
@@ -228,7 +223,8 @@ describe('getAgentChatModelRoundCredits', () => {
 
 describe('isRetiredAgentChatModel', () => {
   it('flags a retired key and clears a current one', () => {
-    expect(isRetiredAgentChatModel('openrouter/auto')).toBe(true);
+    expect(isRetiredAgentChatModel('openrouter/auto')).toBe(false);
+    expect(isRetiredAgentChatModel('openrouter/auto-beta')).toBe(true);
     expect(isRetiredAgentChatModel(DEFAULT_AGENT_CHAT_MODEL_KEY)).toBe(false);
   });
 });

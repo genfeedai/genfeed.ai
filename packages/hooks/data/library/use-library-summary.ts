@@ -5,7 +5,10 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
+import {
+  isCollectionFetchReady,
+  useCollectionScope,
+} from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UseLibrarySummaryReturn {
@@ -24,7 +27,9 @@ export interface UseLibrarySummaryReturn {
  * `useWorkflowBuilder` for endpoints without a service wrapper.
  */
 export function useLibrarySummary(): UseLibrarySummaryReturn {
-  const { brandId, isReady } = useCollectionScope();
+  const collectionScope = useCollectionScope();
+  const { brandId } = collectionScope;
+  const isFetchReady = isCollectionFetchReady(collectionScope);
   const { getToken } = useAuthIdentity();
   const [summary, setSummary] = useState<ILibrarySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +42,7 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger, not a value the effect reads.
   useEffect(() => {
-    if (!isReady) {
+    if (!isFetchReady) {
       return;
     }
 
@@ -98,7 +103,7 @@ export function useLibrarySummary(): UseLibrarySummaryReturn {
     return () => {
       controller.abort();
     };
-  }, [brandId, isReady, getToken, reloadToken]);
+  }, [brandId, getToken, isFetchReady, reloadToken]);
 
   return { summary, isLoading, error, refresh };
 }

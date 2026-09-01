@@ -598,6 +598,7 @@
     "inspector": {
       "type": "Type"
     },
+    "otherAssets": "Other assets",
     "sidebar": {
       "shelvesGroup": "Shelves",
       "storageLabel": "Storage"
@@ -736,10 +737,6 @@
     "failure": {
       "description": "The requested organization could not be confirmed. No tenant data was loaded.",
       "title": "Organization switch failed"
-    },
-    "stale": {
-      "description": "Another tab changed organization context. Synchronize this tab before continuing.",
-      "title": "Organization context changed"
     },
     "unavailable": {
       "chooseOrganization": "Choose an organization you can access",

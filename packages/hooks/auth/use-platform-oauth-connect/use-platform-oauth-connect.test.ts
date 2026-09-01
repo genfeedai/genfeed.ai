@@ -157,6 +157,18 @@ describe('usePlatformOAuthConnect', () => {
     expect(mockPostConnect).not.toHaveBeenCalled();
   });
 
+  it('does not fall back to the selected brand when brandId is explicitly null', async () => {
+    const { result } = renderHook(() =>
+      usePlatformOAuthConnect({ brandId: null }),
+    );
+
+    await expect(result.current('twitter')).rejects.toThrow(
+      'Select a brand before connecting an account',
+    );
+
+    expect(mockPostConnect).not.toHaveBeenCalled();
+  });
+
   it('logs and rethrows connect failures', async () => {
     const error = new Error('OAuth unavailable');
     mockPostConnect.mockRejectedValue(error);

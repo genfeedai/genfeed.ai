@@ -1,3 +1,7 @@
+import { ByokProvider } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ByokService } from '@server/services/byok/byok.service';
 import { AnthropicService } from '@server/services/integrations/anthropic/services/anthropic.service';
 import { LlmInstanceService } from '@server/services/integrations/llm/llm-instance.service';
@@ -8,10 +12,6 @@ import type {
   OpenRouterChatCompletionResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { ByokProvider } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LlmCompletionTelemetryService } from './llm-completion-telemetry.service';
@@ -203,6 +203,27 @@ describe('LlmDispatcherService', () => {
       await service.chatCompletion(makeParams('x-ai/grok-3'));
 
       expect(openRouterService.chatCompletion).toHaveBeenCalled();
+    });
+
+    it('falls back from the experimental Free router to DeepSeek on capability failure', async () => {
+      openRouterService.chatCompletion
+        .mockRejectedValueOnce({ response: { status: 404 } })
+        .mockResolvedValueOnce({
+          ...mockResponse,
+          model: 'deepseek/deepseek-v4-flash-0731',
+          usage: { ...mockResponse.usage, cost: 0.001 },
+        });
+
+      const result = await service.chatCompletion(
+        makeParams('openrouter/free'),
+        orgId,
+      );
+
+      expect(openRouterService.chatCompletion).toHaveBeenLastCalledWith(
+        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
+        undefined,
+      );
+      expect(result.model).toBe('deepseek/deepseek-v4-flash-0731');
     });
   });
 
@@ -547,6 +568,24 @@ describe('LlmDispatcherService', () => {
   });
 
   describe('completion telemetry wrapper', () => {
+    it('records exact OpenRouter vendor cost and actual routed model', async () => {
+      openRouterService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        model: 'openai/gpt-5.6-terra',
+        usage: { ...mockResponse.usage, cost: 0.012345 },
+      });
+
+      await service.chatCompletion(makeParams('openrouter/auto'), orgId);
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'openai/gpt-5.6-terra',
+          vendorCostMicros: 12_345,
+        }),
+      );
+    });
     it('emits one telemetry event per chatCompletion without prompt content', async () => {
       await service.chatCompletion(
         makeParams('deepseek/deepseek-v4-flash-0731'),

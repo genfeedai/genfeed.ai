@@ -125,7 +125,7 @@ export class CronTiktokStatusService implements OnModuleInit {
   /**
    * Checks status of PENDING TikTok posts and polls the TikTok API for a
    * post_id once moderation completes. Fired every 5 minutes by the
-   * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
+   * platform BullMQ schedule.
    */
   async checkPendingTiktokPosts(): Promise<void> {
     const now = new Date();

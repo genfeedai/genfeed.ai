@@ -1,12 +1,14 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
   ButtonSize,
   ButtonVariant,
+  Platform,
   SocialConversationType,
 } from '@genfeedai/enums';
 import type {
@@ -19,7 +21,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
-import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -36,6 +37,7 @@ import {
   ChevronRight,
   CircleCheck,
   LinkIcon,
+  LockKeyhole,
   MessageSquare,
   Send,
   Sparkles,
@@ -43,13 +45,18 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+
+import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 
 import {
   getParticipantLabel,
   MessagesConversationSidebar,
 } from './messages-conversation-sidebar';
 import {
+  ALL_BRANDS_FILTER,
   AUTOMATION_OPTIONS,
   formatMessageTime,
   getMessageProvenanceItems,
@@ -61,6 +68,22 @@ import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
 import { useMessagesActions } from './use-messages-actions';
 import { useMessagesConversations } from './use-messages-conversations';
 import { useMessagesInboxFilters } from './use-messages-inbox-filters';
+
+const MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.INSTAGRAM,
+  Platform.LINKEDIN,
+  Platform.TIKTOK,
+  Platform.TWITTER,
+  Platform.UNIPILE,
+  Platform.YOUTUBE,
+]);
+const SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS = new Set([
+  Platform.INSTAGRAM,
+  Platform.LINKEDIN,
+  Platform.TWITTER,
+  Platform.UNIPILE,
+  Platform.YOUTUBE,
+]);
 
 function StatusPill({ status }: { status: string }) {
   return (
@@ -100,6 +123,7 @@ function MessageBubble({
   onRejectDraft: (messageId: string) => void;
   onToggleReference: (message: SocialMessageModel) => void;
 }) {
+  const translate = useTranslations('common.messages');
   const isOutbound = message.direction === 'outbound';
   const isDraft = isOutbound && message.status === 'draft';
   const provenanceItems = getMessageProvenanceItems(message);
@@ -148,7 +172,7 @@ function MessageBubble({
               isLoading={busyAction === `approve:${message.id}`}
               onClick={() => onApproveDraft(message.id)}
             >
-              Approve
+              {translate('actions.approve')}
             </Button>
             <Button
               variant={ButtonVariant.GHOST}
@@ -157,7 +181,7 @@ function MessageBubble({
               isLoading={busyAction === `reject:${message.id}`}
               onClick={() => onRejectDraft(message.id)}
             >
-              Reject
+              {translate('actions.reject')}
             </Button>
           </div>
         ) : null}
@@ -184,8 +208,15 @@ function MessageBubble({
 }
 
 export default function MessagesPage() {
+  const translate = useTranslations('common.messages');
   const { brandSlug, href } = useOrgUrl();
-  const { brands, organizationId: scopedOrganizationId } = useBrand();
+  const {
+    brands,
+    credentialsLoading,
+    isBrandScopeResolved,
+    organizationId: scopedOrganizationId,
+  } = useBrand();
+  const workspaceNavPanel = useWorkspaceNavPanel();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
@@ -224,6 +255,49 @@ export default function MessagesPage() {
     brandSlug,
     routeBrandId,
   });
+
+  const inboxBrands = useMemo(
+    () =>
+      filters.brandFilter === ALL_BRANDS_FILTER
+        ? brands
+        : brands.filter(
+            (brand) => getBrandEntityId(brand) === filters.brandFilter,
+          ),
+    [brands, filters.brandFilter],
+  );
+  const hasConnectedAccounts = useMemo(
+    () =>
+      inboxBrands.some((brand) =>
+        (brand.credentials ?? []).some(
+          (credential) =>
+            credential.isConnected === true &&
+            MESSAGE_CREDENTIAL_PLATFORMS.has(
+              String(credential.platform).toLowerCase() as Platform,
+            ),
+        ),
+      ),
+    [inboxBrands],
+  );
+  const hasSyncableAccounts = useMemo(
+    () =>
+      inboxBrands.some((brand) =>
+        (brand.credentials ?? []).some(
+          (credential) =>
+            credential.isConnected === true &&
+            SYNCABLE_MESSAGE_CREDENTIAL_PLATFORMS.has(
+              String(credential.platform).toLowerCase() as Platform,
+            ),
+        ),
+      ),
+    [inboxBrands],
+  );
+  const isAccountsLoading =
+    credentialsLoading || isBrandScopeResolved === false;
+  const connectionBrandId =
+    filters.brandFilter !== ALL_BRANDS_FILTER
+      ? filters.brandFilter
+      : (routeBrandId ??
+        (brandOptions.length === 1 ? brandOptions[0]?.id : undefined));
 
   const updateSelectedConversationParam = useCallback(
     (conversationId: string | null) => {
@@ -351,9 +425,15 @@ export default function MessagesPage() {
   // on its own instead of hanging off a source-content anchor.
   const isDmThread =
     selectedConversation?.conversationType === SocialConversationType.DM;
+  const isTikTokReadOnly = selectedConversation?.platform === Platform.TIKTOK;
 
   const handleDraftWithAgent = useCallback(() => {
-    if (!activeThreadId || !selectedConversation || !canAttachReferences) {
+    if (
+      !activeThreadId ||
+      !selectedConversation ||
+      !canAttachReferences ||
+      isTikTokReadOnly
+    ) {
       return;
     }
 
@@ -373,20 +453,30 @@ export default function MessagesPage() {
     handleToggleConversationReference,
     isConversationReferenced,
     isDmThread,
+    isTikTokReadOnly,
     seedAgentComposer,
     selectedConversation,
     setAgentOpen,
   ]);
-  const availability = selectedConversation?.availability ?? {
-    canPostReply: false,
-    canSendDm: false,
-    postReplyReason: 'Select a conversation before replying.',
-    sendDmReason: 'Select a conversation before sending a DM.',
-  };
+  const availability = isTikTokReadOnly
+    ? {
+        canPostReply: false,
+        canSendDm: false,
+        postReplyReason: 'TikTok conversations are read-only in Genfeed',
+        sendDmReason: 'TikTok conversations are read-only in Genfeed',
+      }
+    : (selectedConversation?.availability ?? {
+        canPostReply: false,
+        canSendDm: false,
+        postReplyReason: 'Select a conversation before replying.',
+        sendDmReason: 'Select a conversation before sending a DM.',
+      });
   const advancedFilters = (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <p className="text-2xs font-medium text-foreground/54">Automation</p>
+        <p className="text-2xs font-medium text-foreground/54">
+          {translate('actions.automation')}
+        </p>
         <Select
           value={filters.automationState}
           onValueChange={(value) => {
@@ -394,7 +484,7 @@ export default function MessagesPage() {
           }}
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Automation" />
+            <SelectValue placeholder={translate('actions.automation')} />
           </SelectTrigger>
           <SelectContent>
             {AUTOMATION_OPTIONS.map((option) => (
@@ -422,11 +512,16 @@ export default function MessagesPage() {
     </div>
   );
   // In-place OAuth connect — return to this messages surface after verify.
-  const handleOAuthConnect = usePlatformOAuthConnect();
+  const handleOAuthConnect = usePlatformOAuthConnect({
+    brandId: connectionBrandId ?? null,
+  });
+  const availableOAuthConnect = connectionBrandId
+    ? handleOAuthConnect
+    : undefined;
 
   const conversationNavPanel = (
     <MessagesConversationSidebar
-      onOAuthConnect={handleOAuthConnect}
+      onOAuthConnect={availableOAuthConnect}
       advancedFilters={advancedFilters}
       brandFilter={filters.brandFilter}
       brandOptions={brandOptions}
@@ -434,6 +529,9 @@ export default function MessagesPage() {
       connectionState={connectionState}
       conversations={conversations}
       conversationType={filters.conversationType}
+      hasConnectedAccounts={hasConnectedAccounts}
+      hasSyncableAccounts={hasSyncableAccounts}
+      isAccountsLoading={isAccountsLoading}
       isLoading={isLoadingConversations}
       onBrandFilterChange={(value) => {
         filters.setBrandFilter(value);
@@ -463,15 +561,16 @@ export default function MessagesPage() {
       view={filters.inboxView}
     />
   );
+  const isConversationNavProjected = workspaceNavPanel !== null;
   return (
-    <Container
-      bodyClassName="flex min-h-0 flex-1 flex-col"
-      className="flex h-full min-h-0 flex-col overflow-hidden"
-    >
-      <h1 className="sr-only">Messages</h1>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+      <h1 className="sr-only">{translate('title')}</h1>
+      {workspaceNavPanel?.portalTarget
+        ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
+        : null}
       {error ? (
         <div
-          className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="mx-4 mt-3 shrink-0 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           role="alert"
         >
           {error}
@@ -480,7 +579,7 @@ export default function MessagesPage() {
       {notice ? (
         <div
           aria-live="polite"
-          className="mb-4 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
+          className="mx-4 mt-3 shrink-0 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
           role="status"
         >
           {notice}
@@ -488,14 +587,16 @@ export default function MessagesPage() {
       ) : null}
 
       <div
-        className="grid min-h-0 flex-1 overflow-hidden rounded bg-card shadow-border lg:grid-cols-[380px_minmax(0,1fr)]"
+        className="flex min-h-0 flex-1 overflow-hidden"
         data-testid="messages-surface-layout"
       >
-        <div className="border-b border-border lg:border-b-0 lg:border-r">
-          {conversationNavPanel}
-        </div>
+        {!isConversationNavProjected ? (
+          <div className="w-[20rem] shrink-0 border-r border-border">
+            {conversationNavPanel}
+          </div>
+        ) : null}
 
-        <div className="flex min-h-0 min-w-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {selectedConversation ? (
             <>
               <div className="border-b border-border px-5 py-4">
@@ -504,9 +605,15 @@ export default function MessagesPage() {
                     <div className="mb-2 flex flex-wrap items-center gap-2">
                       <PlatformPill platform={selectedConversation.platform} />
                       <StatusPill status={selectedConversation.status} />
+                      {isTikTokReadOnly ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
+                          <LockKeyhole aria-hidden="true" className="size-3" />
+                          {translate('conversation.readOnly')}
+                        </span>
+                      ) : null}
                       {selectedConversation.needsReview ? (
                         <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-warning">
-                          Review
+                          {translate('conversation.review')}
                         </span>
                       ) : null}
                     </div>
@@ -533,7 +640,7 @@ export default function MessagesPage() {
                     >
                       <Link href={automationHref}>
                         <Zap className="size-4" />
-                        Automation
+                        {translate('actions.automation')}
                       </Link>
                     </Button>
                     {selectedConversation.status === 'resolved' ? (
@@ -548,7 +655,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Reopen
+                        {translate('actions.reopen')}
                       </Button>
                     ) : (
                       <Button
@@ -563,7 +670,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Resolve
+                        {translate('actions.resolve')}
                       </Button>
                     )}
                     {selectedConversation.status !== 'needs_review' ? (
@@ -578,7 +685,7 @@ export default function MessagesPage() {
                           )
                         }
                       >
-                        Needs Review
+                        {translate('conversation.needsReview')}
                       </Button>
                     ) : null}
                   </div>
@@ -590,7 +697,7 @@ export default function MessagesPage() {
                   <LazyLoadingFallback variant="minimal" />
                 ) : messages.length === 0 ? (
                   <div className="flex h-full min-h-64 items-center justify-center text-sm text-muted-foreground">
-                    No messages in this thread yet.
+                    {translate('empty.noMessages')}
                   </div>
                 ) : (
                   messages.map((message) => (
@@ -620,8 +727,10 @@ export default function MessagesPage() {
                       withWrapper={false}
                     />
                     <span className="text-xs text-gray-800">
-                      Messages page {messagePagination.page} of{' '}
-                      {messagePagination.totalPages}
+                      {translate('pagination.messagePage', {
+                        page: messagePagination.page,
+                        pages: messagePagination.totalPages,
+                      })}
                     </span>
                     <Button
                       ariaLabel="Next messages page"
@@ -636,89 +745,108 @@ export default function MessagesPage() {
                 ) : null}
               </div>
 
-              <div className="border-t border-border p-4">
-                <div className="mb-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Reply composer
-                      </p>
-                      <p className="mt-1 text-xs text-foreground/45">
-                        Review every draft before it is sent or published.
-                      </p>
+              {isTikTokReadOnly ? (
+                <div
+                  className="flex shrink-0 items-center gap-3 border-t border-border bg-background-secondary px-5 py-4"
+                  data-testid="messages-read-only-notice"
+                >
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-warning/10 text-warning ring-1 ring-inset ring-warning/20">
+                    <LockKeyhole aria-hidden="true" className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {translate('conversation.readOnly')}
+                    </p>
+                    <p className="mt-0.5 text-xs text-foreground/48">
+                      {availability.postReplyReason}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="border-t border-border p-4">
+                  <div className="mb-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {translate('replyComposer.title')}
+                        </p>
+                        <p className="mt-1 text-xs text-foreground/45">
+                          {translate('replyComposer.description')}
+                        </p>
+                      </div>
+                      <Button
+                        icon={<Sparkles className="size-4" />}
+                        isDisabled={!canAttachReferences || Boolean(busyAction)}
+                        onClick={handleDraftWithAgent}
+                        size={ButtonSize.SM}
+                        title={
+                          canAttachReferences
+                            ? 'Attach this conversation and draft with the agent'
+                            : 'Select an agent thread for this brand first'
+                        }
+                        variant={ButtonVariant.SECONDARY}
+                      >
+                        {translate('actions.draftWithAgent')}
+                      </Button>
                     </div>
-                    <Button
-                      icon={<Sparkles className="size-4" />}
-                      isDisabled={!canAttachReferences || Boolean(busyAction)}
-                      onClick={handleDraftWithAgent}
-                      size={ButtonSize.SM}
-                      title={
-                        canAttachReferences
-                          ? 'Attach this conversation and draft with the agent'
-                          : 'Select an agent thread for this brand first'
-                      }
-                      variant={ButtonVariant.SECONDARY}
-                    >
-                      Draft with Agent
-                    </Button>
+                  </div>
+                  <Textarea
+                    aria-label="Social reply or direct message"
+                    className="min-h-24 w-full"
+                    placeholder="Write a reply or DM"
+                    rows={4}
+                    value={draft}
+                    onChange={handleDraftChange}
+                  />
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-gray-800">
+                      {availability.canSendDm
+                        ? 'DM is available for this thread.'
+                        : availability.sendDmReason}
+                    </p>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={Boolean(busyAction) || !draft.trim()}
+                        isLoading={busyAction === 'draft'}
+                        onClick={() => handleAction('draft')}
+                      >
+                        {translate('actions.saveDraft')}
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.DEFAULT}
+                        size={ButtonSize.SM}
+                        icon={<Send className="size-4" />}
+                        isDisabled={
+                          Boolean(busyAction) ||
+                          !draft.trim() ||
+                          !availability.canPostReply
+                        }
+                        isLoading={busyAction === 'reply'}
+                        title={availability.postReplyReason}
+                        onClick={() => handleAction('reply')}
+                      >
+                        {translate('actions.reply')}
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.GHOST}
+                        size={ButtonSize.SM}
+                        isDisabled={
+                          Boolean(busyAction) ||
+                          !draft.trim() ||
+                          !availability.canSendDm
+                        }
+                        isLoading={busyAction === 'dm'}
+                        title={availability.sendDmReason}
+                        onClick={() => handleAction('dm')}
+                      >
+                        {translate('actions.dm')}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <Textarea
-                  aria-label="Social reply or direct message"
-                  className="min-h-24 w-full"
-                  placeholder="Write a reply or DM"
-                  rows={4}
-                  value={draft}
-                  onChange={handleDraftChange}
-                />
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-gray-800">
-                    {availability.canSendDm
-                      ? 'DM is available for this thread.'
-                      : availability.sendDmReason}
-                  </p>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={Boolean(busyAction) || !draft.trim()}
-                      isLoading={busyAction === 'draft'}
-                      onClick={() => handleAction('draft')}
-                    >
-                      Save Draft
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.DEFAULT}
-                      size={ButtonSize.SM}
-                      icon={<Send className="size-4" />}
-                      isDisabled={
-                        Boolean(busyAction) ||
-                        !draft.trim() ||
-                        !availability.canPostReply
-                      }
-                      isLoading={busyAction === 'reply'}
-                      title={availability.postReplyReason}
-                      onClick={() => handleAction('reply')}
-                    >
-                      Reply
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.GHOST}
-                      size={ButtonSize.SM}
-                      isDisabled={
-                        Boolean(busyAction) ||
-                        !draft.trim() ||
-                        !availability.canSendDm
-                      }
-                      isLoading={busyAction === 'dm'}
-                      title={availability.sendDmReason}
-                      onClick={() => handleAction('dm')}
-                    >
-                      DM
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              )}
             </>
           ) : (
             <div
@@ -731,17 +859,34 @@ export default function MessagesPage() {
               />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Select a conversation
+                  {hasConnectedAccounts
+                    ? 'Select a conversation'
+                    : 'Connect accounts to start your inbox'}
                 </p>
                 <p className="max-w-sm text-xs leading-5 text-foreground/38">
-                  Review the thread, draft a response with the agent, then send
-                  or resolve it here.
+                  {hasConnectedAccounts
+                    ? 'Review the thread, draft a response with the agent, then send or resolve it here.'
+                    : 'Comments and direct messages from your connected social channels will appear in the conversation list.'}
                 </p>
               </div>
+              {!hasConnectedAccounts && availableOAuthConnect ? (
+                <AgentOAuthConnectMenu
+                  hideIcon
+                  onOAuthConnect={availableOAuthConnect}
+                  triggerLabel="Connect accounts"
+                  triggerSize={ButtonSize.SM}
+                  triggerVariant={ButtonVariant.DEFAULT}
+                />
+              ) : null}
+              {!hasConnectedAccounts && !availableOAuthConnect ? (
+                <p className="text-2xs leading-4 text-warning">
+                  {translate('empty.chooseBrandToConnect')}
+                </p>
+              ) : null}
             </div>
           )}
         </div>
       </div>
-    </Container>
+    </div>
   );
 }

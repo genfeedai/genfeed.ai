@@ -1,6 +1,7 @@
 import type {
   CostTier,
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   PricingType,
   QualityTier,
@@ -16,6 +17,7 @@ export interface IModel extends IBaseEntity {
   cost: number;
   isActive: boolean;
   isDefault: boolean;
+  lifecycle: ModelLifecycle;
   description?: string;
   isHighlighted?: boolean;
   trigger?: string;
@@ -70,6 +72,7 @@ export interface IModel extends IBaseEntity {
   trainingId?: string;
   isPublic?: boolean;
   isLegacy?: boolean;
+  isFree?: boolean;
   isDiscovered?: boolean;
   discoveredAt?: Date;
   lastSyncedAt?: Date;

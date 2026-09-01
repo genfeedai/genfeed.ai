@@ -1,3 +1,4 @@
+import type { LibraryViewMode } from '@genfeedai/constants';
 import type { ReactNode } from 'react';
 import type { IFilters, IFiltersState } from '../utils/filters.interface';
 
@@ -12,6 +13,8 @@ export interface IProviderWithValue<T> extends LayoutProps {
 export interface IIngredientsContextValue extends IFilterContextValue {
   ingredientType: string;
   setIngredientType: (type: string) => void;
+  /** Present for the unified Library browser; legacy ingredient pages omit it. */
+  viewMode?: LibraryViewMode;
 }
 
 export interface IFilterContextValue {

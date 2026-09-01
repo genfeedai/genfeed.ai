@@ -16,7 +16,6 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
@@ -424,7 +423,6 @@ export class ReferralsService {
     };
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
   async settleDueRewards(): Promise<void> {
     if (!hasOrganizationBilling()) {
       return;

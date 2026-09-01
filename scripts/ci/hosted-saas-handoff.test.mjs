@@ -37,11 +37,13 @@ const publicDeployVercel = readFileSync(
 const ENTRY_SECRETS = [
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
+  'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
 const ENGINE_SECRETS = [
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
+  'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
 

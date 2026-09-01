@@ -62,7 +62,7 @@ export default function IngredientsList({
   type: typeProp,
   scope = PageScope.BRAND,
 }: IngredientsListProps) {
-  const { ingredientType } = useIngredientsContext();
+  const { ingredientType, viewMode } = useIngredientsContext();
   const { setHeaderMeta } = useIngredientsHeaderContext();
   const { selectedBrand } = useBrand();
   const type = ingredientType || typeProp;
@@ -283,6 +283,7 @@ export default function IngredientsList({
               type={type}
               scope={scope}
               singularType={singularType}
+              viewMode={viewMode}
               formatFilter={formatFilter}
               isLoading={isLoading}
               filteredIngredients={filteredIngredients}

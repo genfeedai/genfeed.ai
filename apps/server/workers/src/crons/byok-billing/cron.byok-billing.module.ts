@@ -4,6 +4,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { CronByokBillingService } from '@workers/crons/byok-billing/cron.byok-billing.service';
 
 @Module({
+  exports: [CronByokBillingService],
   imports: [
     forwardRef(() => ByokBillingModule),
     forwardRef(() => OrganizationSettingsModule),

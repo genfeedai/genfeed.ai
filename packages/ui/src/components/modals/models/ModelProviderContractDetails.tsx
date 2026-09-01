@@ -29,26 +29,6 @@ function getSchemaProperties(
   );
 }
 
-function formatField(property: SchemaProperty): string {
-  const parts: string[] = [];
-  if (typeof property.type === 'string') {
-    parts.push(property.type);
-  }
-  if (Array.isArray(property.enum)) {
-    parts.push(property.enum.map(String).join(' | '));
-  }
-  if (property.default !== undefined) {
-    parts.push(`default ${String(property.default)}`);
-  }
-  if (typeof property.minimum === 'number') {
-    parts.push(`min ${property.minimum}`);
-  }
-  if (typeof property.maximum === 'number') {
-    parts.push(`max ${property.maximum}`);
-  }
-  return parts.join(' · ') || 'structured value';
-}
-
 function SchemaFields({
   label,
   schema,
@@ -61,6 +41,27 @@ function SchemaFields({
   const required = new Set(
     Array.isArray(schema.required) ? schema.required.map(String) : [],
   );
+  const formatField = (property: SchemaProperty): string => {
+    const parts: string[] = [];
+    if (typeof property.type === 'string') {
+      parts.push(property.type);
+    }
+    if (Array.isArray(property.enum)) {
+      parts.push(property.enum.map(String).join(' | '));
+    }
+    if (property.default !== undefined) {
+      parts.push(
+        translate('field.default', { value: String(property.default) }),
+      );
+    }
+    if (typeof property.minimum === 'number') {
+      parts.push(translate('field.minimum', { value: property.minimum }));
+    }
+    if (typeof property.maximum === 'number') {
+      parts.push(translate('field.maximum', { value: property.maximum }));
+    }
+    return parts.join(' · ') || translate('field.structuredValue');
+  };
 
   return (
     <div>
@@ -82,7 +83,7 @@ function SchemaFields({
                 <code className="text-xs text-foreground">{name}</code>
                 {required.has(name) && (
                   <Badge variant="outline" size={ComponentSize.SM}>
-                    {translate('required')}
+                    {translate('field.required')}
                   </Badge>
                 )}
               </div>
@@ -184,6 +185,7 @@ export default function ModelProviderContractDetails({
   isLoading: boolean;
 }) {
   const translate = useTranslations('common.modelProviderContract');
+
   return (
     <div className="mt-6 space-y-3 border-t border-white/[0.08] pt-4">
       <div>
@@ -200,7 +202,7 @@ export default function ModelProviderContractDetails({
         <p className="text-sm text-foreground/60">{translate('loading')}</p>
       )}
       {isError && (
-        <p className="text-sm text-destructive">{translate('loadError')}</p>
+        <p className="text-sm text-destructive">{translate('error')}</p>
       )}
       {!isLoading && !isError && contracts?.pending && (
         <ContractSnapshot

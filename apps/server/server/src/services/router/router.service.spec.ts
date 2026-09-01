@@ -11,11 +11,9 @@ import { isCloudDeployment } from '@genfeedai/config';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
-  LOWEST_COST_IMAGE_MODEL_KEY,
-  LOWEST_COST_VIDEO_MODEL_KEY,
   MODEL_KEYS,
 } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -23,7 +21,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { ModelSelectionOptions } from '@server/services/router/interfaces/router.interfaces';
 import { RouterService } from '@server/services/router/router.service';
 
@@ -45,17 +42,22 @@ describe('RouterService', () => {
       category: ModelCategory.IMAGE,
       cost: 50,
       costTier: 'medium' as const,
+      isActive: true,
       isDefault: false,
       isDeleted: false,
+      isDiscovered: false,
+      isFree: false,
       isHighlighted: false,
       key: 'test-model',
       label: 'Test Model',
+      lifecycle: ModelLifecycle.RECOMMENDED,
       maxDimensions: { height: 2048, width: 2048 },
       provider: 'test-provider',
       qualityTier: 'standard' as const,
       recommendedFor: [],
       speedTier: 'medium' as const,
       supportsFeatures: [],
+      organizationId: null,
       ...overrides,
     }) as unknown as ModelDocument;
 
@@ -921,28 +923,17 @@ describe('RouterService', () => {
     });
 
     describe('Error Handling', () => {
-      it('should use fallback when no models found for category', async () => {
+      it('should refuse Auto when no Recommended model exists', async () => {
         modelsService.findAllActive.mockResolvedValue([]);
-
-        const defaultModel = createMockModel({
-          category: ModelCategory.IMAGE,
-          key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
-        });
-
-        modelsService.findOne.mockResolvedValue(defaultModel);
 
         const options: ModelSelectionOptions = {
           category: ModelCategory.IMAGE,
           prompt: 'A test image',
         };
 
-        const result = await service.selectModel(options);
-
-        expect(result.selectedModel).toBe(
-          MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+        await expect(service.selectModel(options)).rejects.toThrow(
+          'No Recommended models enabled',
         );
-        expect(result.reason).toContain('Default model');
-        expect(loggerService.warn).toHaveBeenCalled();
       });
 
       it('should throw NotFoundException when no models found and no fallback available', async () => {
@@ -955,7 +946,7 @@ describe('RouterService', () => {
         };
 
         await expect(service.selectModel(options)).rejects.toThrow(
-          NotFoundException,
+          ForbiddenException,
         );
       });
 
@@ -1157,81 +1148,17 @@ describe('RouterService', () => {
       expect(result).toBe('database-default');
       expect(modelsService.findAllActive).toHaveBeenCalledWith({
         category: ModelCategory.IMAGE,
-        isLegacy: false,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+        organizationId: null,
       });
     });
 
-    it('should return fallback for IMAGE category when the registry is empty', async () => {
+    it('should reject default resolution when no Recommended model exists', async () => {
       modelsService.findAllActive.mockResolvedValue([]);
 
-      const result = await service.getDefaultModel(ModelCategory.IMAGE);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL);
-      expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should return fallback for VIDEO category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.VIDEO);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO);
-    });
-
-    it('should return fallback for TEXT category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.TEXT);
-
-      expect(result).toBe(LOWEST_COST_AGENT_CHAT_MODEL_KEY);
-    });
-
-    it('should return fallback for IMAGE_EDIT category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.IMAGE_EDIT);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE);
-    });
-
-    it('should return fallback for IMAGE_UPSCALE category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.IMAGE_UPSCALE);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE);
-    });
-
-    it('should return fallback for VIDEO_EDIT category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.VIDEO_EDIT);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO);
-    });
-
-    it('should return fallback for VIDEO_UPSCALE category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.VIDEO_UPSCALE);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE);
-    });
-
-    it('should return fallback for MUSIC category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.MUSIC);
-
-      expect(result).toBe(MODEL_KEYS.REPLICATE_META_MUSICGEN);
-    });
-
-    it('should return fallback for VOICE category when the registry is empty', async () => {
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const result = await service.getDefaultModel(ModelCategory.VOICE);
-
-      expect(result).toBe('elevenlabs');
+      await expect(
+        service.getDefaultModel(ModelCategory.IMAGE),
+      ).rejects.toThrow('No Recommended models available');
     });
 
     it('should return the fixed BGE model for EMBEDDING category', async () => {
@@ -1291,6 +1218,39 @@ describe('RouterService', () => {
       });
     });
 
+    it('resolves a Retired alias through its same-owner successor', async () => {
+      const retired = createMockModel({
+        isActive: false,
+        key: 'retired-model',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'available-successor',
+      });
+      const successor = createMockModel({
+        key: 'available-successor',
+        lifecycle: ModelLifecycle.AVAILABLE,
+      });
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+      modelsService.findOne
+        .mockResolvedValueOnce(retired)
+        .mockResolvedValueOnce(successor);
+
+      const result = await service.resolveModelKey({
+        candidates: ['retired-model'],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'available-successor',
+        source: 'candidate',
+      });
+      expect(modelsService.findOne).toHaveBeenNthCalledWith(2, {
+        key: 'available-successor',
+        organizationId: null,
+      });
+    });
+
     it('should exclude legacy rows at the query level', async () => {
       modelsService.findAllActive.mockResolvedValue([
         createMockModel({ key: 'active-model' }),
@@ -1300,7 +1260,8 @@ describe('RouterService', () => {
 
       expect(modelsService.findAllActive).toHaveBeenCalledWith({
         category: ModelCategory.VIDEO,
-        isLegacy: false,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+        organizationId: null,
       });
     });
 
@@ -1418,85 +1379,12 @@ describe('RouterService', () => {
       });
     });
 
-    it('should log an error when it falls back to the constant', async () => {
+    it('does not bypass lifecycle with a constant when the registry is empty', async () => {
       modelsService.findAllActive.mockResolvedValue([]);
 
-      const result = await service.resolveModelKey({
-        candidates: ['retired-model'],
-        category: ModelCategory.MUSIC,
-      });
-
-      expect(result).toEqual({
-        key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
-        source: 'fallback-constant',
-      });
-      expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('uses Nano Banana 2 Lite and MiniMax H3 when the cloud-production registry is empty', async () => {
-      vi.mocked(isCloudDeployment).mockReturnValue(true);
-      vi.stubEnv('NODE_ENV', 'production');
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const image = await service.resolveModelKey({
-        category: ModelCategory.IMAGE,
-      });
-      const video = await service.resolveModelKey({
-        category: ModelCategory.VIDEO,
-      });
-
-      expect(image).toEqual({
-        key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE,
-        source: 'fallback-constant',
-      });
-      expect(video).toEqual({
-        key: MODEL_KEYS.REPLICATE_MINIMAX_H3,
-        source: 'fallback-constant',
-      });
-    });
-
-    it('uses lowest-cost image and video keys when cloud staging has an empty registry', async () => {
-      vi.mocked(isCloudDeployment).mockReturnValue(true);
-      vi.stubEnv('NODE_ENV', 'staging');
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const image = await service.resolveModelKey({
-        category: ModelCategory.IMAGE,
-      });
-      const video = await service.resolveModelKey({
-        category: ModelCategory.VIDEO,
-      });
-
-      expect(image).toEqual({
-        key: LOWEST_COST_IMAGE_MODEL_KEY,
-        source: 'fallback-constant',
-      });
-      expect(video).toEqual({
-        key: LOWEST_COST_VIDEO_MODEL_KEY,
-        source: 'fallback-constant',
-      });
-    });
-
-    it('uses lowest-cost image and video keys when NODE_ENV is unset', async () => {
-      vi.mocked(isCloudDeployment).mockReturnValue(true);
-      vi.stubEnv('NODE_ENV', '');
-      modelsService.findAllActive.mockResolvedValue([]);
-
-      const image = await service.resolveModelKey({
-        category: ModelCategory.IMAGE,
-      });
-      const video = await service.resolveModelKey({
-        category: ModelCategory.VIDEO,
-      });
-
-      expect(image).toEqual({
-        key: LOWEST_COST_IMAGE_MODEL_KEY,
-        source: 'fallback-constant',
-      });
-      expect(video).toEqual({
-        key: LOWEST_COST_VIDEO_MODEL_KEY,
-        source: 'fallback-constant',
-      });
+      await expect(
+        service.resolveModelKey({ category: ModelCategory.MUSIC }),
+      ).rejects.toThrow('No Recommended models available');
     });
   });
 

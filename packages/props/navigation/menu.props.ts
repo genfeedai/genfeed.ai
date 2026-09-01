@@ -61,6 +61,8 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   renderTopSlot?: () => ReactNode;
   /** Whether the sidebar is collapsed (Todoist-style) */
   isCollapsed?: boolean;
+  /** Toggles the desktop sidebar from its unified header control. */
+  onToggleCollapse?: () => void;
   /** When false, primary actions are not rendered above the sidebar body */
   showPrimaryItems?: boolean;
   /** Replaces the default body (search + grouped items + setup card) with custom content */

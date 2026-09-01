@@ -67,16 +67,22 @@ const UI_TEST_MESSAGES = {
   common: {
     modelProviderContract: {
       empty: 'No reviewed or pending provider contract is stored yet.',
+      error: 'Provider contract details could not be loaded.',
       familyLabel: 'Family:',
+      field: {
+        default: 'default {value}',
+        maximum: 'max {value}',
+        minimum: 'min {value}',
+        required: 'required',
+        structuredValue: 'structured value',
+      },
       inputSchema: 'Input schema',
       lastSeenLabel: 'Last seen:',
-      loadError: 'Provider contract details could not be loaded.',
       loading: 'Loading contract details…',
       noTopLevelFields: 'No top-level fields.',
       outputSchema: 'Output schema',
       pendingReview: 'Pending review',
       pricingLabel: 'Pricing:',
-      required: 'required',
       reviewedRuntime: 'Reviewed runtime',
       title: 'Provider contract',
       versionLabel: 'Version:',
@@ -156,6 +162,7 @@ const UI_TEST_MESSAGES = {
       inspector: {
         type: 'Type',
       },
+      otherAssets: 'Other assets',
     },
     publish: {
       calendar: {
