@@ -318,8 +318,9 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('keeps one stable collapse icon inside the sidebar header', () => {
+  it('keeps one stable desktop collapse icon and the mobile home link inside the sidebar header', () => {
     const onToggleCollapse = vi.fn();
+    mockLogoUrl.value = '/logo.svg';
 
     render(
       <MenuShared
@@ -336,6 +337,10 @@ describe('MenuShared', () => {
     const toggleIcon = collapseToggle.querySelector('svg');
 
     expect(headerShell).toContainElement(collapseToggle);
+    expect(screen.getByRole('link', { name: 'Genfeed home' })).toHaveAttribute(
+      'href',
+      '/',
+    );
     expect(collapseToggle.querySelector('img')).toBeNull();
     expect(toggleIcon).toBeInTheDocument();
 

@@ -8,6 +8,7 @@ import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -178,6 +179,9 @@ export default function MenuShared({
           data-testid="sidebar-header-shell"
           className="flex h-12 flex-shrink-0 items-center gap-1.5 border-b border-border px-3"
         >
+          <div className="md:hidden">
+            <TopbarLogo logoHref={config.logoHref} size="compact" />
+          </div>
           {collapseControl}
           {orgSwitcherSlot ? (
             <div
