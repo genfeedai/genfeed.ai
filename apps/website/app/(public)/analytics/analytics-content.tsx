@@ -4,11 +4,11 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   ChartColumn,
   ChartLine,
@@ -20,16 +20,6 @@ import {
 } from 'lucide-react';
 
 const CALENDLY_URL = EnvironmentService.calendly;
-
-const SURFACES = [
-  'Overview',
-  'Post Analytics',
-  'Trend Analytics',
-  'Streaks',
-  'Hooks',
-  'Performance Lab',
-  'Per-Brand',
-];
 
 const METRICS = [
   {
@@ -108,30 +98,17 @@ const STEPS = [
 const HIGHLIGHT_TAGS = ['Revenue', 'Trends', 'Hooks', 'Streaks'];
 
 const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Post, trend, and per-brand analytics tied to revenue, not vanity metrics."
-    eyebrow="Analytics Surface"
-    footer={<span>Every metric ties back to revenue</span>}
-    items={[
-      {
-        label: 'Surfaces',
-        value: SURFACES.slice(0, 4).join(' / '),
-      },
-      {
-        label: 'Signal',
-        value: 'Revenue attribution, not just impressions.',
-      },
-      {
-        label: 'Workflow',
-        value: 'Publish -> measure -> learn -> double down.',
-      },
-      {
-        label: 'Outcome',
-        value: 'Know exactly which content pays and repeat it.',
-      },
-    ]}
-    subtitle="Revenue, trends, and per-brand rollups"
-    title="Revenue, not vanity metrics."
+  <ProductInterfacePreview
+    product={{
+      category: 'Intelligence',
+      features: FEATURES,
+      headline: 'Revenue, trend, hook, and per-brand performance in one view.',
+      name: 'Analytics',
+      useCases: STEPS.map((step) => ({
+        description: step.sublabel,
+        title: step.label,
+      })),
+    }}
   />
 );
 

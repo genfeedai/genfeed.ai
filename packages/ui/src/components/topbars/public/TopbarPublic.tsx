@@ -89,6 +89,7 @@ export default function TopbarPublic({
     top: 0,
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useMounted();
   const isScrolled = useSyncExternalStore(
     subscribeScroll,
@@ -115,6 +116,10 @@ export default function TopbarPublic({
 
   const handleDropdownOpen = useCallback(
     (label: string) => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
       if (megaMenu && dropdowns.length > 0) {
         // For mega-menu, position based on first dropdown trigger
         const firstTrigger = triggerRefsMap.get(dropdowns[0].label);
@@ -142,11 +147,37 @@ export default function TopbarPublic({
   );
 
   const handleDropdownClose = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setOpenDropdown(null);
+      closeTimeoutRef.current = null;
+    }, 140);
+  }, []);
+
+  const handleDropdownCloseNow = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     setOpenDropdown(null);
   }, []);
 
+  useEffect(
+    () => () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
   // Get the current open dropdown data
-  const currentDropdown = dropdowns.find((d) => d.label === openDropdown);
+  const currentDropdown =
+    openDropdown === 'mega'
+      ? dropdowns[0]
+      : dropdowns.find((d) => d.label === openDropdown);
 
   return (
     <>
@@ -184,6 +215,8 @@ export default function TopbarPublic({
                           }
                         }}
                         type="button"
+                        aria-expanded={isOpen || openDropdown === 'mega'}
+                        aria-haspopup="menu"
                         variant={ButtonVariant.UNSTYLED}
                         className={cn(
                           'text-xs font-bold tracking-[0.1em] uppercase transition-colors inline-flex items-center gap-2 py-2',
@@ -191,17 +224,13 @@ export default function TopbarPublic({
                             ? 'text-foreground'
                             : 'text-foreground/60 hover:text-foreground',
                         )}
-                        onClick={() =>
-                          isOpen
-                            ? handleDropdownClose()
-                            : handleDropdownOpen(dropdown.label)
-                        }
+                        onClick={() => handleDropdownOpen(dropdown.label)}
                       >
                         {dropdown.label}
                         <ChevronDown
                           className={cn(
                             'size-4 transition-transform duration-200',
-                            isOpen && 'rotate-180',
+                            (isOpen || openDropdown === 'mega') && 'rotate-180',
                           )}
                         />
                       </Button>
@@ -266,7 +295,7 @@ export default function TopbarPublic({
         pathname={pathname}
         onMouseEnterDropdown={() => handleDropdownOpen(openDropdown ?? '')}
         onMouseLeaveDropdown={handleDropdownClose}
-        onItemClick={handleDropdownClose}
+        onItemClick={handleDropdownCloseNow}
       />
 
       {/* Mobile Menu Portal */}

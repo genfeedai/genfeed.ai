@@ -3,15 +3,17 @@ import HomeFooter from '@web-components/home/_footer';
 import HomeFormats from '@web-components/home/_formats';
 import HomeHero from '@web-components/home/_hero';
 import HomeHow from '@web-components/home/_how';
+import HomeProduct from '@web-components/home/_product';
 import ProofWinners from '@web-components/proof/ProofWinners';
 
 export default function HomeContent() {
   return (
     <>
       <HomeHero />
+      <HomeProduct />
+      <ProofWinners />
       <HomeHow />
       <HomeFormats />
-      <ProofWinners />
       <HomeCTA />
       <HomeFooter />
     </>

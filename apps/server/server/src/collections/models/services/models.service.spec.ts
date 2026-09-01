@@ -340,6 +340,58 @@ describe('ModelsService', () => {
     expect(result.totalDocs).toBe(1);
   });
 
+  it('reads the public catalog through a narrow, platform-only projection', async () => {
+    modelDelegate.findMany.mockResolvedValue([
+      makeModel({
+        capabilities: ['text-to-image'],
+        isHighlighted: true,
+        providerCostUsd: 0.01,
+      }),
+    ]);
+    modelDelegate.count.mockResolvedValue(1);
+
+    const result = await service.findPublicCatalog(
+      { category: ModelCategory.IMAGE },
+      { limit: 100, page: 1, pagination: true },
+    );
+
+    expect(modelDelegate.findMany).toHaveBeenCalledWith({
+      orderBy: [
+        { isHighlighted: 'desc' },
+        { isDefault: 'desc' },
+        { label: 'asc' },
+      ],
+      select: expect.objectContaining({
+        capabilities: true,
+        category: true,
+        id: true,
+        isHighlighted: true,
+        key: true,
+        label: true,
+        providerCostUsd: true,
+      }),
+      skip: 0,
+      take: 100,
+      where: {
+        category: ModelCategory.IMAGE,
+        isActive: true,
+        isDeleted: false,
+        isLegacy: false,
+        isPublic: true,
+        organizationId: null,
+      },
+    });
+    const findManyArgs = modelDelegate.findMany.mock.calls[0]?.[0];
+    if (!findManyArgs) {
+      throw new Error('Expected public catalog query');
+    }
+    expect(findManyArgs.select).not.toHaveProperty('endpoint');
+    expect(findManyArgs.select).not.toHaveProperty('providerConfig');
+    expect(findManyArgs.select).not.toHaveProperty('providerSyncStatus');
+    expect(result.docs[0]).not.toHaveProperty('providerCostUsd');
+    expect(result.totalDocs).toBe(1);
+  });
+
   it('clears only competing defaults in the same registry scope', async () => {
     modelDelegate.updateMany.mockResolvedValue({ count: 1 });
 

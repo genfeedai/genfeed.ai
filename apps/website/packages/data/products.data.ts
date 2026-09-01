@@ -532,7 +532,7 @@ export const products: Product[] = [
       {
         problem: 'Expensive subscriptions to multiple AI tools',
         solution:
-          'All AI models in one platform - save $500+/month on subscriptions',
+          'Available generation models in one platform instead of separate subscriptions',
       },
       {
         problem: 'Learning curve for each AI tool',
@@ -547,43 +547,41 @@ export const products: Product[] = [
     category: 'Content Creation',
     cta: 'Start Creating',
     description:
-      'Generate videos, images, and music with 7+ cutting-edge AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. The complete content creation workspace for AI-powered creators.',
+      'Generate video, images, voice, music, and written content from one workspace. Model availability updates directly from the product registry.',
     features: [
       {
         description:
-          'Create videos in 2 minutes with Google Veo 3, OpenAI Sora 2, and GPT-powered models.',
+          'Create short-form clips, campaign footage, and finished video from a brief or reference.',
         icon: '',
         title: 'AI Video Generation',
       },
       {
         description:
-          'Generate images with Google Imagen 4, DALL-E, and GPT Image models.',
+          'Generate campaign stills, product imagery, and design variations in every required ratio.',
         icon: '',
         title: 'AI Image Generation',
       },
       {
         description:
-          'AI voice cloning with ElevenLabs and music generation. Avatars and articles coming soon.',
+          'Create spoken tracks, voiceovers, music, and audio packages in the same production flow.',
         icon: '',
-        title: 'Voice & Music (Coming Soon)',
+        title: 'Voice & Music',
       },
       {
         description:
-          '7+ AI models available - choose the best one for each project.',
+          'Choose from the same current model registry used inside the app.',
         icon: '',
-        title: 'Multi-Model Support',
+        title: 'Live Model Catalog',
       },
     ],
     headline: 'Create AI Content in Minutes, Not Hours',
     icon: '',
     integrations: [
-      'Google Veo 3 (Video)',
-      'Google Imagen 4 (Images)',
-      'OpenAI Sora 2 (Video)',
-      'OpenAI DALL-E (Images)',
-      'OpenAI GPT (Images)',
-      'ElevenLabs (Voice - Coming Soon)',
-      'Replicate (Multiple Models)',
+      'Video models',
+      'Image models',
+      'Voice models',
+      'Music models',
+      'Language models',
     ],
     name: 'Studio',
     pricing: {

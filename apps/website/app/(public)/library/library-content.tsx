@@ -4,11 +4,11 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   FolderInput,
   FolderOpen,
@@ -24,17 +24,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const CALENDLY_URL = EnvironmentService.calendly;
-
-const ASSET_TYPES = [
-  'Images',
-  'Videos',
-  'Voices',
-  'Music',
-  'Captions',
-  'Gifs',
-  'Moodboards',
-  'Avatars',
-];
 
 const SHOWCASE_IMAGES = [
   {
@@ -104,30 +93,17 @@ const STEPS = [
 const HIGHLIGHT_TAGS = ['Images', 'Video', 'Voice', 'Music', 'Moodboards'];
 
 const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Ingredients, images, videos, voices, music, captions, gifs, moodboards, and avatars all saved in one searchable library."
-    eyebrow="Library Canvas"
-    footer={<span>Every asset lives in one system</span>}
-    items={[
-      {
-        label: 'Assets',
-        value: ASSET_TYPES.slice(0, 4).join(' / '),
-      },
-      {
-        label: 'Formats',
-        value: 'Images, video, voice, music, captions, and moodboards.',
-      },
-      {
-        label: 'Workflow',
-        value: 'Generate -> save -> organize -> reuse.',
-      },
-      {
-        label: 'Outcome',
-        value: 'Reuse what already works instead of recreating it.',
-      },
-    ]}
-    subtitle="Every asset your team creates"
-    title="One library, reused everywhere."
+  <ProductInterfacePreview
+    product={{
+      category: 'Asset system',
+      features: FEATURES,
+      headline: 'Every generated and approved asset in one reusable library.',
+      name: 'Library',
+      useCases: STEPS.map((step) => ({
+        description: step.sublabel,
+        title: step.label,
+      })),
+    }}
   />
 );
 

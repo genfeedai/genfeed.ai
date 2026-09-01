@@ -7,6 +7,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
   ChartColumn,
+  Cpu,
   Send,
   ShieldCheck,
   Sparkles,
@@ -15,31 +16,43 @@ import {
 
 const PRODUCT_LINKS = [
   {
-    description: 'Generate images, video, ads, voice, and articles on-brand',
+    description: 'Generate every format in one workspace',
+    group: 'Create',
     href: '/studio',
     icon: Sparkles,
     label: 'Studio',
   },
   {
-    description: 'Review, schedule, and publish across every channel',
+    description: 'Browse the live generation catalog',
+    group: 'Create',
+    href: '/models',
+    icon: Cpu,
+    label: 'Models',
+  },
+  {
+    description: 'Review, schedule, and publish everywhere',
+    group: 'Operate',
     href: '/publishing',
     icon: Send,
     label: 'Publishing',
   },
   {
     description: 'Track revenue, not vanity metrics',
+    group: 'Operate',
     href: '/analytics',
     icon: ChartColumn,
     label: 'Analytics',
   },
   {
-    description: 'Approvals, assets, integrations, and audit in one place',
+    description: 'Approvals, assets, integrations, and audit',
+    group: 'Operate',
     href: '/features',
     icon: ShieldCheck,
     label: 'Control Plane',
   },
   {
-    description: 'Connect Claude Code, Codex, and other MCP clients',
+    description: 'Connect agents and MCP clients',
+    group: 'Build',
     href: '/mcp',
     icon: Terminal,
     label: 'MCP Server',
@@ -57,6 +70,7 @@ export default function WebsiteTopbar() {
   return (
     <TopbarPublic
       dropdowns={[{ items: PRODUCT_LINKS, label: 'Product' }]}
+      megaMenu
       navLinks={NAV_LINKS}
       rightContent={
         <div className="flex items-center gap-3 lg:gap-6">
@@ -92,7 +106,7 @@ export default function WebsiteTopbar() {
                 trackingName="topbar_cta_click"
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start for free
+                  Start creating
                 </a>
               </ButtonTracked>
             </>

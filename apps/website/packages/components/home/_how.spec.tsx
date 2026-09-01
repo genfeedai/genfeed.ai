@@ -16,10 +16,10 @@ describe('HomeHow', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the complete brief-to-analytics lifecycle as an ordered list', () => {
+  it('renders the three-beat brief-to-learning lifecycle as an ordered list', () => {
     render(<HomeHow />);
 
-    for (const title of ['Brief', 'Review', 'Publish', 'Measure']) {
+    for (const title of ['Brief', 'Create & review', 'Publish & learn']) {
       expect(
         screen.getByRole('heading', { level: 3, name: title }),
       ).toBeInTheDocument();
@@ -29,6 +29,6 @@ describe('HomeHow', () => {
       'aria-labelledby',
       'home-workflow-heading',
     );
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 });

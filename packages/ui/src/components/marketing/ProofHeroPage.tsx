@@ -66,7 +66,7 @@ export default function ProofHeroPage({
         </div>
       </section>
 
-      <div className="relative">{children}</div>
+      <div className="relative pt-16 sm:pt-24">{children}</div>
     </>
   );
 }

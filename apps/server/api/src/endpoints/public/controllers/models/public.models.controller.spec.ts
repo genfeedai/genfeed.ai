@@ -1,4 +1,3 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -7,6 +6,7 @@ import { modelCatalogAttributes } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import type { Request as ExpressRequest } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -52,12 +52,11 @@ describe('PublicModelsController', () => {
     totalDocs: 2,
   };
 
-  /** The `where` clause the controller handed to the service. */
-  function whereFromLastCall(): Record<string, unknown> {
-    const [aggregate] = modelsService.findAll.mock.calls[0] as [
-      { where: Record<string, unknown> },
+  function filtersFromLastCall(): Record<string, unknown> {
+    const [filters] = modelsService.findPublicCatalog.mock.calls[0] as [
+      Record<string, unknown>,
     ];
-    return aggregate.where;
+    return filters;
   }
 
   function buildQuery(
@@ -73,7 +72,7 @@ describe('PublicModelsController', () => {
         {
           provide: ModelsService,
           useValue: {
-            findAll: vi.fn().mockResolvedValue(mockCatalog),
+            findPublicCatalog: vi.fn().mockResolvedValue(mockCatalog),
           },
         },
         {
@@ -93,7 +92,7 @@ describe('PublicModelsController', () => {
     modelsService = module.get(ModelsService);
 
     vi.clearAllMocks();
-    modelsService.findAll.mockResolvedValue(mockCatalog);
+    modelsService.findPublicCatalog.mockResolvedValue(mockCatalog);
   });
 
   it('should be defined', () => {
@@ -107,20 +106,14 @@ describe('PublicModelsController', () => {
         buildQuery(),
       );
 
-      expect(modelsService.findAll).toHaveBeenCalled();
+      expect(modelsService.findPublicCatalog).toHaveBeenCalled();
       expect(result).toEqual({ data: mockCatalog.docs });
     });
 
-    it('gates on public, active, non-legacy, platform-owned rows', async () => {
+    it('uses the dedicated public-catalog service boundary', async () => {
       await controller.findPublicModels(mockRequest, buildQuery());
 
-      expect(whereFromLastCall()).toEqual({
-        isActive: true,
-        isDeleted: false,
-        isLegacy: false,
-        isPublic: true,
-        organizationId: null,
-      });
+      expect(filtersFromLastCall()).toEqual({});
     });
 
     it('filters by category when provided', async () => {
@@ -129,7 +122,7 @@ describe('PublicModelsController', () => {
         buildQuery({ category: ModelCategory.VIDEO }),
       );
 
-      expect(whereFromLastCall().category).toBe(ModelCategory.VIDEO);
+      expect(filtersFromLastCall().category).toBe(ModelCategory.VIDEO);
     });
 
     it('filters by provider when provided', async () => {
@@ -138,7 +131,7 @@ describe('PublicModelsController', () => {
         buildQuery({ provider: ModelProvider.FAL }),
       );
 
-      expect(whereFromLastCall().provider).toBe(ModelProvider.FAL);
+      expect(filtersFromLastCall().provider).toBe(ModelProvider.FAL);
     });
 
     it('never lets a caller widen the visibility gate', async () => {
@@ -155,23 +148,7 @@ describe('PublicModelsController', () => {
 
       await controller.findPublicModels(mockRequest, hostileQuery);
 
-      const where = whereFromLastCall();
-      expect(where.organizationId).toBeNull();
-      expect(where.isDeleted).toBe(false);
-      expect(where.registryStatus).toBeUndefined();
-    });
-
-    it('orders highlighted then default then alphabetical', async () => {
-      await controller.findPublicModels(mockRequest, buildQuery());
-
-      const [aggregate] = modelsService.findAll.mock.calls[0] as [
-        { orderBy: Record<string, number> },
-      ];
-      expect(aggregate.orderBy).toEqual({
-        isDefault: -1,
-        isHighlighted: -1,
-        label: 1,
-      });
+      expect(filtersFromLastCall()).toEqual({});
     });
 
     it('caps the page size', async () => {
@@ -180,7 +157,7 @@ describe('PublicModelsController', () => {
         buildQuery({ limit: 500 }),
       );
 
-      const [, options] = modelsService.findAll.mock.calls[0] as [
+      const [, options] = modelsService.findPublicCatalog.mock.calls[0] as [
         unknown,
         { limit: number; page: number },
       ];
@@ -193,7 +170,7 @@ describe('PublicModelsController', () => {
         buildQuery({ limit: 20, page: 3 }),
       );
 
-      const [, options] = modelsService.findAll.mock.calls[0] as [
+      const [, options] = modelsService.findPublicCatalog.mock.calls[0] as [
         unknown,
         { limit: number; page: number },
       ];
