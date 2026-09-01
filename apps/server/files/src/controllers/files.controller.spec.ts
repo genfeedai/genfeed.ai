@@ -210,6 +210,7 @@ describe('FilesController', () => {
   };
 
   const mockTempFileCleanupCron = {
+    cleanupTempFiles: vi.fn(),
     manualCleanup: vi.fn().mockResolvedValue({
       filesDeleted: 5,
       message: 'Cleanup completed',
@@ -1320,6 +1321,7 @@ describe('FilesController', () => {
       expect(ffmpegService.getVideoMetadata).toHaveBeenCalledWith(
         '/path/to/video.mp4',
       );
+      expect(mockTempFileCleanupCron.cleanupTempFiles).toHaveBeenCalledOnce();
       expect(result.duration).toBe(120);
       expect(result.width).toBe(1920);
       expect(result.height).toBe(1080);

@@ -112,7 +112,6 @@ export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] = [
 export const LIBRARY_TAIL_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Library',
-    hasDividerAbove: true,
     href: APP_ROUTES.LIBRARY.MOODBOARD,
     label: 'Mood board',
     matchPaths: [APP_ROUTES.LIBRARY.MOODBOARD],

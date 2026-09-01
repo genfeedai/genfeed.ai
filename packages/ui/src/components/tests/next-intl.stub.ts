@@ -64,6 +64,30 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 }
 
 const UI_TEST_MESSAGES = {
+  common: {
+    modelProviderContract: {
+      empty: 'No reviewed or pending provider contract is stored yet.',
+      error: 'Provider contract details could not be loaded.',
+      familyLabel: 'Family:',
+      field: {
+        default: 'default {value}',
+        maximum: 'max {value}',
+        minimum: 'min {value}',
+        required: 'required',
+        structuredValue: 'structured value',
+      },
+      inputSchema: 'Input schema',
+      lastSeenLabel: 'Last seen:',
+      loading: 'Loading contract details…',
+      noTopLevelFields: 'No top-level fields.',
+      outputSchema: 'Output schema',
+      pendingReview: 'Pending review',
+      pricingLabel: 'Pricing:',
+      reviewedRuntime: 'Reviewed runtime',
+      title: 'Provider contract',
+      versionLabel: 'Version:',
+    },
+  },
   agent: {
     composerToolbar: {
       addContext: 'Add context',
@@ -139,22 +163,6 @@ const UI_TEST_MESSAGES = {
         type: 'Type',
       },
       otherAssets: 'Other assets',
-    },
-    modelProviderContract: {
-      empty: 'No reviewed or pending provider contract is stored yet.',
-      family: 'Family:',
-      inputSchema: 'Input schema',
-      lastSeen: 'Last seen:',
-      loadError: 'Provider contract details could not be loaded.',
-      loading: 'Loading contract details…',
-      noTopLevelFields: 'No top-level fields.',
-      outputSchema: 'Output schema',
-      pendingReview: 'Pending review',
-      pricing: 'Pricing:',
-      required: 'required',
-      reviewedRuntime: 'Reviewed runtime',
-      title: 'Provider contract',
-      version: 'Version:',
     },
     publish: {
       calendar: {

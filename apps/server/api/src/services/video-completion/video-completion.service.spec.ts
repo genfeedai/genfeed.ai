@@ -1,12 +1,6 @@
-import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
-import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
+import { VideoCompletionSubscriberService } from '@api/services/video-completion/video-completion-subscriber.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
 import { IngredientStatus, Status } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
@@ -15,9 +9,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 
 describe('VideoCompletionService', () => {
   let service: VideoCompletionService;
+  let subscriberService: VideoCompletionSubscriberService;
   let redisService: vi.Mocked<RedisService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
@@ -92,6 +94,7 @@ describe('VideoCompletionService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VideoCompletionService,
+        VideoCompletionSubscriberService,
         {
           provide: EditorProjectsService,
           useValue: editorProjectsService,
@@ -149,6 +152,9 @@ describe('VideoCompletionService', () => {
     }).compile();
 
     service = module.get<VideoCompletionService>(VideoCompletionService);
+    subscriberService = module.get<VideoCompletionSubscriberService>(
+      VideoCompletionSubscriberService,
+    );
     redisService = module.get(RedisService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
@@ -160,14 +166,39 @@ describe('VideoCompletionService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('onModuleInit', () => {
+  describe('completion subscription', () => {
     it('should subscribe to video completion channel', async () => {
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
 
       expect(redisService.subscribe).toHaveBeenCalledWith(
         'video-processing-complete',
         expect.any(Function),
       );
+    });
+
+    it.each([
+      null,
+      {},
+      {
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        ingredientId: mockIngredientId,
+        status: Status.COMPLETED,
+        timestamp: new Date().toISOString(),
+      },
+    ])('ignores an invalid completion payload: %j', async (payload) => {
+      const handleVideoCompletion = vi.spyOn(service, 'handleVideoCompletion');
+      await subscriberService.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+
+      await subscribeCallback(payload);
+
+      expect(handleVideoCompletion).not.toHaveBeenCalled();
     });
   });
 
@@ -193,7 +224,7 @@ describe('VideoCompletionService', () => {
         width: 1920,
       };
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
       await subscribeCallback({
@@ -234,7 +265,7 @@ describe('VideoCompletionService', () => {
         new ConflictException('Render job no longer owns this project'),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
       await subscribeCallback({
@@ -278,7 +309,7 @@ describe('VideoCompletionService', () => {
         new Error('database unavailable'),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
       await subscribeCallback({
@@ -314,7 +345,7 @@ describe('VideoCompletionService', () => {
         new ConflictException('Render job no longer owns this project'),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
       await subscribeCallback({
@@ -369,7 +400,7 @@ describe('VideoCompletionService', () => {
       );
 
       // Get the callback function passed to subscribe
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -409,7 +440,7 @@ describe('VideoCompletionService', () => {
       );
 
       // Get the callback function passed to subscribe
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -452,7 +483,7 @@ describe('VideoCompletionService', () => {
         }),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -498,7 +529,7 @@ describe('VideoCompletionService', () => {
         }),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -531,7 +562,7 @@ describe('VideoCompletionService', () => {
         }),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -576,7 +607,7 @@ describe('VideoCompletionService', () => {
         }),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -602,7 +633,7 @@ describe('VideoCompletionService', () => {
       const error = new Error('Database update failed');
       ingredientsService.patch.mockRejectedValue(error);
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -634,7 +665,7 @@ describe('VideoCompletionService', () => {
         createIngredientDocumentFixture({ id: mockIngredientId }),
       );
 
-      await service.onModuleInit();
+      await subscriberService.onModuleInit();
       const subscribeCallback = (redisService.subscribe as vi.Mock).mock
         .calls[0][1];
 
@@ -705,7 +736,7 @@ describe('VideoCompletionService', () => {
 
   it('routes raw-cut events without treating clip results as ingredients', async () => {
     rawCutClipCompletionService.handleCompletion.mockResolvedValue(true);
-    await service.onModuleInit();
+    await subscriberService.onModuleInit();
     const subscribeCallback = (redisService.subscribe as vi.Mock).mock
       .calls[0][1];
     const event = {
@@ -730,7 +761,7 @@ describe('VideoCompletionService', () => {
   it('never falls through raw-cut events to ingredient persistence', async () => {
     rawCutClipCompletionService.handleCompletion.mockResolvedValue(false);
 
-    await service.onModuleInit();
+    await subscriberService.onModuleInit();
     const subscribeCallback = (redisService.subscribe as vi.Mock).mock
       .calls[0][1];
     await subscribeCallback({

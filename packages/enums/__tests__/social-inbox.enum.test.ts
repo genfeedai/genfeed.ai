@@ -14,6 +14,7 @@ describe('social inbox enums', () => {
     expect(Object.values(SocialInboxPlatform)).toEqual([
       'youtube',
       'instagram',
+      'tiktok',
       'twitter',
       'linkedin',
       'unipile',

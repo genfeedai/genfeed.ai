@@ -20,7 +20,7 @@ import { buildFolderTree, getFolderAncestorIds } from './folder-tree.util';
 const FOLDER_DEPTH_INDENT = 14;
 
 const FOLDER_ROW_CLASS_NAME =
-  'flex h-8 min-w-0 flex-1 !rounded !border-transparent !px-2.5 !py-1.5 text-left text-foreground/72 hover:!bg-foreground/[0.06] hover:text-foreground';
+  'group flex h-8 w-full min-w-0 flex-1 !rounded !border-transparent !px-2.5 !py-1.5 text-left text-foreground/72 hover:!bg-foreground/[0.06] hover:text-foreground';
 
 function FoldersSidebar({
   folders,
@@ -62,28 +62,47 @@ function FoldersSidebar({
     });
   };
 
-  const renderFolderRow = (folder: IFolder | null) => (
-    <DropZoneFolder
-      folder={folder}
-      onDrop={(ingredient: IIngredient) =>
-        onDropIngredient?.(ingredient, folder)
-      }
-      onClick={() => onSelectFolder?.(folder)}
-      className={cn(
-        FOLDER_ROW_CLASS_NAME,
-        (folder ? selectedFolderId === folder.id : !selectedFolderId) &&
-          '!bg-foreground/[0.06] text-foreground',
-      )}
-      isSelected={folder ? selectedFolderId === folder.id : !selectedFolderId}
-    >
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Folder className="size-5 shrink-0 text-foreground/42" />
-        <span className="truncate text-sm font-medium tracking-[-0.01em]">
-          {folder ? folder.label : 'All assets'}
-        </span>
-      </div>
-    </DropZoneFolder>
-  );
+  const renderFolderRow = (folder: IFolder | null, hasDisclosure = false) => {
+    const isSelected = folder
+      ? selectedFolderId === folder.id
+      : !selectedFolderId;
+
+    return (
+      <DropZoneFolder
+        folder={folder}
+        onDrop={(ingredient: IIngredient) =>
+          onDropIngredient?.(ingredient, folder)
+        }
+        onClick={() => onSelectFolder?.(folder)}
+        className={cn(
+          FOLDER_ROW_CLASS_NAME,
+          isSelected && '!bg-foreground/[0.06] text-foreground',
+        )}
+        isSelected={isSelected}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className={cn(
+              'flex size-5 shrink-0 items-center justify-center transition-colors duration-200',
+              isSelected
+                ? 'text-foreground'
+                : 'text-foreground/42 group-hover:text-foreground/78',
+            )}
+          >
+            {hasDisclosure ? null : <Folder className="size-4" />}
+          </span>
+          <span
+            className={cn(
+              'truncate text-sm font-medium tracking-[-0.01em]',
+              isSelected && 'font-semibold',
+            )}
+          >
+            {folder ? folder.label : 'All assets'}
+          </span>
+        </div>
+      </DropZoneFolder>
+    );
+  };
 
   const renderFolderNode = (node: FolderTreeNode) => {
     const { children, depth, folder } = node;
@@ -93,19 +112,20 @@ function FoldersSidebar({
     return (
       <div className="flex flex-col gap-px" key={folder.id}>
         <div
-          className="flex items-center"
+          className="relative flex items-center"
           style={{ paddingLeft: depth * FOLDER_DEPTH_INDENT }}
         >
           {hasChildren ? (
             <Button
               aria-expanded={isOpen}
               ariaLabel={`${isOpen ? 'Collapse' : 'Expand'} ${folder.label}`}
-              className="size-5 shrink-0 p-0 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground"
+              className="absolute top-1.5 z-10 size-5 shrink-0 p-0 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground"
               onClick={() => toggleFolder(folder.id)}
               size={ButtonSize.ICON}
               textTransform="none"
               variant={ButtonVariant.GHOST}
               withWrapper={false}
+              style={{ left: depth * FOLDER_DEPTH_INDENT + 10 }}
             >
               <ChevronRight
                 aria-hidden
@@ -115,10 +135,8 @@ function FoldersSidebar({
                 )}
               />
             </Button>
-          ) : (
-            <span aria-hidden className="size-5 shrink-0" />
-          )}
-          {renderFolderRow(folder)}
+          ) : null}
+          {renderFolderRow(folder, hasChildren)}
         </div>
 
         {hasChildren && isOpen ? children.map(renderFolderNode) : null}
@@ -128,7 +146,7 @@ function FoldersSidebar({
 
   if (variant === 'navigation') {
     return (
-      <div className="mt-3 border-t border-border pt-2">
+      <div className="mt-3">
         <div className="mb-1 flex items-center justify-between gap-1 px-1">
           <span className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
             Folders
@@ -153,10 +171,7 @@ function FoldersSidebar({
         </div>
 
         <div className="flex flex-col gap-px">
-          <div className="flex items-center">
-            <span aria-hidden className="size-5 shrink-0" />
-            {renderFolderRow(null)}
-          </div>
+          {renderFolderRow(null)}
 
           {isLoading ? (
             <div className="flex items-center justify-center py-4">

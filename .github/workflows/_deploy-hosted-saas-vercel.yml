@@ -17,6 +17,8 @@ on:
         required: true
       NEXT_PUBLIC_POSTHOG_KEY:
         required: true
+      SENTRY_AUTH_TOKEN:
+        required: true
       TURBO_TOKEN:
         required: false
 permissions:
@@ -49,6 +51,7 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: ${{ vars.STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY }}
       STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: ${{ vars.STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY }}
       # Same remote cache as public CI. Empty token is a no-op (turbo still builds).
@@ -125,6 +128,11 @@ jobs:
           } >> "${env_file}.tmp"
 
           if [ "${{ matrix.label }}" = "app" ]; then
+            if [ -z "${SENTRY_AUTH_TOKEN}" ]; then
+              echo "::error::SENTRY_AUTH_TOKEN is required to upload app source maps."
+              exit 1
+            fi
+
             if [ -z "${DOMAIN}" ]; then
               echo "::error::DOMAIN is required to configure the app API proxy."
               exit 1

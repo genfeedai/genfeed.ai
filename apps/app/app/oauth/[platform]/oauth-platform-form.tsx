@@ -21,7 +21,7 @@ interface OAuthPlatformFormProps {
 type VerifyResult =
   | { status: 'loading' }
   | { status: 'success' }
-  | { status: 'error'; errorMessage: string };
+  | { status: 'error'; canRetry: boolean; errorMessage: string };
 
 const OAUTH1_PLATFORMS = ['x-ads'];
 
@@ -80,6 +80,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
 
       const url = `POST /services/${platform}/verify`;
       const returnTo = resolveReturnTo() || DEFAULT_RETURN_PATH;
+      let callbackSubmitted = false;
 
       try {
         const service = await getServicesService(
@@ -98,6 +99,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               state,
             };
 
+        callbackSubmitted = true;
         await service.postVerify(body);
 
         logger.info(`${url} success`);
@@ -110,6 +112,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       } catch (error) {
         logger.error(`${url} failed`, error);
         setResult({
+          canRetry: !callbackSubmitted,
           status: 'error',
           errorMessage: translate('error.description'),
         });
@@ -193,7 +196,9 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               {result.errorMessage}
             </p>
             <div className="flex justify-center gap-2">
-              <Button onClick={retry}>{translate('actions.retry')}</Button>
+              {result.canRetry && (
+                <Button onClick={retry}>{translate('actions.retry')}</Button>
+              )}
               <Button asChild variant={ButtonVariant.LINK} withWrapper={false}>
                 <Link
                   href={resolveReturnTo() || DEFAULT_RETURN_PATH}

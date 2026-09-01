@@ -29,26 +29,6 @@ function getSchemaProperties(
   );
 }
 
-function formatField(property: SchemaProperty): string {
-  const parts: string[] = [];
-  if (typeof property.type === 'string') {
-    parts.push(property.type);
-  }
-  if (Array.isArray(property.enum)) {
-    parts.push(property.enum.map(String).join(' | '));
-  }
-  if (property.default !== undefined) {
-    parts.push(`default ${String(property.default)}`);
-  }
-  if (typeof property.minimum === 'number') {
-    parts.push(`min ${property.minimum}`);
-  }
-  if (typeof property.maximum === 'number') {
-    parts.push(`max ${property.maximum}`);
-  }
-  return parts.join(' · ') || 'structured value';
-}
-
 function SchemaFields({
   label,
   schema,
@@ -56,11 +36,32 @@ function SchemaFields({
   label: string;
   schema: Record<string, unknown>;
 }) {
-  const translate = useTranslations('pages.modelProviderContract');
+  const translate = useTranslations('common.modelProviderContract');
   const properties = getSchemaProperties(schema);
   const required = new Set(
     Array.isArray(schema.required) ? schema.required.map(String) : [],
   );
+  const formatField = (property: SchemaProperty): string => {
+    const parts: string[] = [];
+    if (typeof property.type === 'string') {
+      parts.push(property.type);
+    }
+    if (Array.isArray(property.enum)) {
+      parts.push(property.enum.map(String).join(' | '));
+    }
+    if (property.default !== undefined) {
+      parts.push(
+        translate('field.default', { value: String(property.default) }),
+      );
+    }
+    if (typeof property.minimum === 'number') {
+      parts.push(translate('field.minimum', { value: property.minimum }));
+    }
+    if (typeof property.maximum === 'number') {
+      parts.push(translate('field.maximum', { value: property.maximum }));
+    }
+    return parts.join(' · ') || translate('field.structuredValue');
+  };
 
   return (
     <div>
@@ -82,7 +83,7 @@ function SchemaFields({
                 <code className="text-xs text-foreground">{name}</code>
                 {required.has(name) && (
                   <Badge variant="outline" size={ComponentSize.SM}>
-                    {translate('required')}
+                    {translate('field.required')}
                   </Badge>
                 )}
               </div>
@@ -109,7 +110,7 @@ function ContractSnapshot({
   label: string;
   snapshot: IModelProviderContractSnapshot;
 }) {
-  const translate = useTranslations('pages.modelProviderContract');
+  const translate = useTranslations('common.modelProviderContract');
   const pricing = [snapshot.unitPrice, snapshot.currency, snapshot.billingUnit]
     .filter(Boolean)
     .join(' · ');
@@ -131,23 +132,31 @@ function ContractSnapshot({
       </div>
       <div className="space-y-1 text-xs text-foreground/60">
         <p>
-          <span className="text-foreground/80">{translate('version')}</span>{' '}
+          <span className="text-foreground/80">
+            {translate('versionLabel')}
+          </span>{' '}
           <code className="break-all">{snapshot.version}</code>
         </p>
         {snapshot.schemaFamily && (
           <p>
-            <span className="text-foreground/80">{translate('family')}</span>{' '}
+            <span className="text-foreground/80">
+              {translate('familyLabel')}
+            </span>{' '}
             {snapshot.schemaFamily}
           </p>
         )}
         {pricing && (
           <p>
-            <span className="text-foreground/80">{translate('pricing')}</span>{' '}
+            <span className="text-foreground/80">
+              {translate('pricingLabel')}
+            </span>{' '}
             {pricing}
           </p>
         )}
         <p>
-          <span className="text-foreground/80">{translate('lastSeen')}</span>{' '}
+          <span className="text-foreground/80">
+            {translate('lastSeenLabel')}
+          </span>{' '}
           {new Date(snapshot.lastSeenAt).toLocaleString()}
         </p>
         {snapshot.unsupportedReason && (
@@ -175,7 +184,7 @@ export default function ModelProviderContractDetails({
   isError: boolean;
   isLoading: boolean;
 }) {
-  const translate = useTranslations('pages.modelProviderContract');
+  const translate = useTranslations('common.modelProviderContract');
 
   return (
     <div className="mt-6 space-y-3 border-t border-white/[0.08] pt-4">
@@ -193,7 +202,7 @@ export default function ModelProviderContractDetails({
         <p className="text-sm text-foreground/60">{translate('loading')}</p>
       )}
       {isError && (
-        <p className="text-sm text-destructive">{translate('loadError')}</p>
+        <p className="text-sm text-destructive">{translate('error')}</p>
       )}
       {!isLoading && !isError && contracts?.pending && (
         <ContractSnapshot

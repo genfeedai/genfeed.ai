@@ -109,7 +109,7 @@ describe('TempFileCleanupCron', () => {
   });
 
   describe('cleanupTempFiles', () => {
-    it('runs the scheduled cleanup and logs a summary', () => {
+    it('runs opportunistic cleanup and logs a summary', () => {
       (fs.existsSync as Mock).mockReturnValue(true);
       (fs.readdirSync as Mock).mockReturnValue(['old.json']);
       (fs.statSync as Mock).mockReturnValue({
@@ -119,11 +119,22 @@ describe('TempFileCleanupCron', () => {
       cron.cleanupTempFiles();
 
       expect(logger.log).toHaveBeenCalledWith(
-        'Starting scheduled temp file cleanup...',
+        'Starting local temp file cleanup...',
       );
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('Cleanup completed: 1 files deleted'),
       );
+    });
+
+    it('throttles repeated opportunistic cleanup calls', () => {
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (fs.readdirSync as Mock).mockReturnValue([]);
+
+      cron.cleanupTempFiles();
+      cron.cleanupTempFiles();
+
+      expect(fs.readdirSync).toHaveBeenCalledTimes(1);
+      expect(logger.log).toHaveBeenCalledTimes(2);
     });
 
     it('logs an error instead of throwing when cleanup fails', () => {

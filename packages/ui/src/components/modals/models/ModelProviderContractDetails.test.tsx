@@ -6,7 +6,6 @@ import '@testing-library/jest-dom/vitest';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
-
   return { useTranslations: translateFromCatalog };
 });
 

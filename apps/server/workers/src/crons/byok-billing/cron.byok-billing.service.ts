@@ -1,10 +1,9 @@
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
 import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
 
 @Injectable()
 export class CronByokBillingService {
@@ -20,7 +19,6 @@ export class CronByokBillingService {
    * Monthly BYOK billing cron — 1st of each month, 2am UTC
    * Aggregates BYOK usage for the previous month and creates Stripe invoices.
    */
-  @Cron('0 2 1 * *')
   async processMonthlyByokBilling() {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} starting monthly BYOK billing`);

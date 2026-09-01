@@ -1,12 +1,167 @@
 import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
-import { describe, expect, it } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockAnalyzeVideo = vi.fn();
+const mockGetHighlights = vi.fn();
+const mockGetHookApproval = vi.fn();
+const mockGetProject = vi.fn();
+const mockGetToken = vi.fn();
+const mockPush = vi.fn();
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ selectedBrand: { id: 'brand-1' }, settings: null }),
+}));
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ getToken: mockGetToken }),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/test-org/brand-1${path}`,
+  }),
+}));
+
+vi.mock('@hooks/ui/use-document-visibility/use-document-visibility', () => ({
+  useDocumentVisibility: () => true,
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  ANALYTICS_EVENTS: {
+    GENERATION_COMPLETED: 'generation_completed',
+    GENERATION_STARTED: 'generation_started',
+  },
+  captureAnalyticsEvent: vi.fn(),
+}));
+
+vi.mock('./services/clips-api.service', () => ({
+  ClipsApiService: class {
+    analyzeVideo = mockAnalyzeVideo;
+    getHighlights = mockGetHighlights;
+    getHookApproval = mockGetHookApproval;
+    getProject = mockGetProject;
+  },
+}));
 
 import {
   resolveAvatarProviderSelection,
   resolveClipsStepFromStatus,
   resolveQuickAvatarIdentity,
   resolveStudioClipIdentityDefaults,
+  useStudioClipsPage,
 } from './useStudioClipsPage';
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAnalyzeVideo.mockResolvedValue({
+    identity: {
+      avatarProvider: 'heygen',
+      isComplete: false,
+      label: 'Missing clip identity',
+      missing: ['avatar', 'voice'],
+      source: 'missing',
+    },
+    projectId: 'clip-project-1',
+  });
+});
+
+describe('review route transition', () => {
+  it('keeps editable review state behind the canonical project route', async () => {
+    const { result } = renderHook(() => useStudioClipsPage());
+
+    act(() => {
+      result.current.setYoutubeUrl(
+        'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      );
+    });
+
+    await act(async () => {
+      await result.current.handleAnalyze();
+    });
+
+    expect(mockAnalyzeVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      }),
+    );
+    expect(mockPush).toHaveBeenCalledWith(
+      '/test-org/brand-1/studio/clips/clip-project-1',
+    );
+    expect(result.current.project).toBeNull();
+    expect(result.current.step).toBe('input');
+  });
+
+  it('does not expose review controls until analyzed highlights are hydrated', async () => {
+    let resolveHighlights:
+      | ((value: {
+          highlights: Array<{
+            clip_type: string;
+            end: number;
+            id: string;
+            start: number;
+            summary: string;
+            title: string;
+            virality_score: number;
+          }>;
+          status: string;
+        }) => void)
+      | undefined;
+
+    mockGetProject.mockResolvedValue({ status: 'analyzed' });
+    mockGetHookApproval.mockResolvedValue(null);
+    mockGetHighlights.mockReturnValue(
+      new Promise((resolve) => {
+        resolveHighlights = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useStudioClipsPage({ projectId: 'clip-project-1' }),
+    );
+
+    await waitFor(() => {
+      expect(mockGetHighlights).toHaveBeenCalledWith(
+        'clip-project-1',
+        expect.any(AbortSignal),
+      );
+    });
+
+    expect(result.current.isHydrating).toBe(true);
+    expect(result.current.project).toBeNull();
+
+    await act(async () => {
+      resolveHighlights?.({
+        highlights: [
+          {
+            clip_type: 'hook',
+            end: 8,
+            id: 'highlight-1',
+            start: 0,
+            summary: 'Original summary',
+            title: 'The Hook',
+            virality_score: 92,
+          },
+        ],
+        status: 'analyzed',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isHydrating).toBe(false);
+      expect(result.current.step).toBe('review');
+      expect(result.current.editedHighlights).toEqual([
+        expect.objectContaining({ id: 'highlight-1', title: 'The Hook' }),
+      ]);
+      expect(result.current.selectedIds).toEqual(new Set(['highlight-1']));
+    });
+  });
+});
 
 const identityDefaults = {
   avatarId: 'saved-heygen-avatar',

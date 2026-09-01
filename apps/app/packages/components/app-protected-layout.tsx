@@ -41,7 +41,10 @@ import {
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
-import { WorkspaceNavPanelProvider } from '@/components/workspace-shell/WorkspaceNavPanelContext';
+import {
+  useWorkspaceNavPanel,
+  WorkspaceNavPanelProvider,
+} from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   isFocusedOnboardingPath,
   normalizeProtectedPathname,
@@ -129,6 +132,7 @@ function AppLayoutWithDynamicMenu({
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const workspaceNavPanel = useWorkspaceNavPanel();
 
   const {
     isAdminRoute,
@@ -282,7 +286,25 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isLibraryRoute],
   );
-  const activeNavPanel = conversationNavPanel ?? libraryNavPanel;
+  const setMessagesNavPortalTarget = workspaceNavPanel?.setPortalTarget;
+  const messagesNavPanel = useMemo<SidebarNavPanel | null>(() => {
+    if (!isMessagesRoute || !setMessagesNavPortalTarget) {
+      return null;
+    }
+
+    return {
+      render: () => (
+        <div
+          className="flex h-full min-h-0 flex-col"
+          data-testid="messages-nav-panel"
+          ref={setMessagesNavPortalTarget}
+        />
+      ),
+      sectionLabel: 'Messages',
+    };
+  }, [isMessagesRoute, setMessagesNavPortalTarget]);
+  const activeNavPanel =
+    conversationNavPanel ?? libraryNavPanel ?? messagesNavPanel;
 
   const menuComponent = useMemo(() => {
     // Focused onboarding has no module nav. Editor/workflow canvas routes also

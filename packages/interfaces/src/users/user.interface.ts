@@ -6,7 +6,9 @@ export interface IUser extends IBaseEntity {
   handle: string;
   firstName: string;
   lastName: string;
+  name?: string | null;
   email: string;
+  lastActiveAt?: string | null;
   // Platform access role; SUPERADMIN gates /admin surfaces and impersonation.
   platformRole?: PlatformRole;
   avatar?: string;
