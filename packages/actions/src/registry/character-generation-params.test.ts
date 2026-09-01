@@ -13,9 +13,11 @@ describe('character generation tool params (#3441)', () => {
     (tool) => tool.name === 'list_characters',
   );
 
-  it('adds references and characterHandles to generate_image', () => {
+  it('declares every image parameter consumed by confirmed generation', () => {
     expect(generateImage?.parameters.properties).toMatchObject({
+      aspectRatio: { type: 'string' },
       characterHandles: { maxItems: 4, type: 'array' },
+      outputs: { maximum: 8, minimum: 1, type: 'integer' },
       references: { maxItems: 8, type: 'array' },
     });
   });
