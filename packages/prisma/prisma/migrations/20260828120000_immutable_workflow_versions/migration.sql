@@ -786,9 +786,11 @@ AS $$
         'publish',
         'reframe',
         'sendDm',
+        'sendEmail',
         'soundOverlay',
         'sourceCorpus',
         'textToSpeech',
+        'trendDigest',
         'upscale',
         'videoFrameExtract',
         'videoGen',
@@ -845,6 +847,70 @@ AS $$
             'youtubeAnalyticsSync'
         ) THEN 'legacy orchestration action was removed by the hard cut and has no one-node semantic equivalent'
         ELSE NULL
+    END;
+$$;
+
+-- Before the hard cut, deployment seeding created one immutable per-tenant
+-- clone for each product automation. Those clones preserve useful execution
+-- history, but their one-node macro graphs were replaced by code-owned explicit
+-- system workflows and must never be scheduled by the new runtime. Retire only
+-- exact Genfeed-owned seeded clones whose entire graph consists of the removed
+-- macro node types observed in that legacy seeder generation.
+CREATE FUNCTION workflow_is_retired_seeded_macro_clone(
+    workflow_nodes JSONB,
+    workflow_metadata JSONB
+)
+RETURNS BOOLEAN
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT CASE
+        WHEN jsonb_typeof(workflow_nodes) IS DISTINCT FROM 'array'
+            OR jsonb_array_length(workflow_nodes) = 0
+        THEN FALSE
+        ELSE COALESCE(
+            jsonb_typeof(workflow_metadata) = 'object'
+                AND workflow_metadata->>'sourceType' = 'seeded-template'
+                AND NULLIF(workflow_metadata->>'sourceTemplateId', '') IS NOT NULL
+                AND jsonb_typeof(workflow_metadata->'systemWorkflow') = 'object'
+                AND workflow_metadata->'systemWorkflow'->>'canonicalId'
+                    = workflow_metadata->>'sourceTemplateId'
+                AND workflow_metadata->'systemWorkflow'->>'kind' = 'system-workflow'
+                AND workflow_metadata->'systemWorkflow'->>'owner' = 'genfeed'
+                AND workflow_metadata->'systemWorkflow'->'immutable' = 'true'::jsonb
+                AND workflow_metadata->'systemWorkflow'->>'visibility' = 'organization'
+                AND NOT EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(workflow_nodes) AS node
+                    WHERE node->>'type' NOT IN (
+                        'adOptimization',
+                        'adSyncGoogle',
+                        'adSyncMeta',
+                        'adSyncTikTok',
+                        'agentCampaignOrchestration',
+                        'agentCampaignTriggerEvaluation',
+                        'aiInfluencerDailyPosts',
+                        'analyticsFacebookSync',
+                        'analyticsGenericSync',
+                        'analyticsSocialSync',
+                        'analyticsThreadsSync',
+                        'analyticsTwitterSync',
+                        'contentEngineProduction',
+                        'contentPipelineAutopilot',
+                        'harnessWinnerPromotionSweep',
+                        'livestreamBotSessionProcessing',
+                        'outreachCampaignDispatch',
+                        'paidCreativeResearchIngestion',
+                        'proactiveAgentStrategies',
+                        'replyBotPolling',
+                        'restreamChatIngest',
+                        'socialTriggerPolling',
+                        'trendSummaryNotifications',
+                        'youtubeAnalyticsSync'
+                    )
+                ),
+            FALSE
+        )
     END;
 $$;
 
@@ -906,7 +972,11 @@ AS $$
     END;
 $$;
 
-CREATE FUNCTION workflow_action_node(source_node JSONB, workflow_id TEXT)
+CREATE FUNCTION workflow_action_node(
+    source_node JSONB,
+    workflow_id TEXT,
+    allow_retired_macro BOOLEAN DEFAULT FALSE
+)
 RETURNS JSONB
 LANGUAGE PLPGSQL
 IMMUTABLE
@@ -1020,7 +1090,7 @@ BEGIN
     END IF;
 
     rejection_reason := workflow_unconvertible_node_reason(node_type);
-    IF rejection_reason IS NOT NULL THEN
+    IF rejection_reason IS NOT NULL AND NOT allow_retired_macro THEN
         RAISE EXCEPTION
             'Workflow % node % has unconvertible legacy type %: %',
             workflow_id,
@@ -1052,7 +1122,7 @@ BEGIN
     END IF;
 
     rejection_reason := workflow_removed_macro_reason(action_id);
-    IF rejection_reason IS NOT NULL THEN
+    IF rejection_reason IS NOT NULL AND NOT allow_retired_macro THEN
         RAISE EXCEPTION
             'Workflow % action node % references removed macro %: %',
             workflow_id,
@@ -1061,8 +1131,10 @@ BEGIN
             rejection_reason;
     END IF;
 
-    IF NOT workflow_action_is_supported(action_id)
+    IF NOT allow_retired_macro AND (
+        NOT workflow_action_is_supported(action_id)
         OR NOT workflow_action_has_atomic_executor(action_id)
+    )
     THEN
         RAISE EXCEPTION
             'Workflow % action node % references unsupported or unregistered atomic action %',
@@ -1419,6 +1491,7 @@ DECLARE
     dependency TEXT;
     step_id TEXT;
     rejection_reason TEXT;
+    retired_seeded_macro BOOLEAN;
 BEGIN
     IF EXISTS (
         SELECT 1
@@ -1447,6 +1520,16 @@ BEGIN
         SELECT * FROM "workflows" ORDER BY "createdAt", "id"
     LOOP
         source_nodes := COALESCE(workflow_row."nodes", '[]'::jsonb);
+        retired_seeded_macro := workflow_is_retired_seeded_macro_clone(
+            source_nodes,
+            workflow_row."metadata"
+        );
+        IF retired_seeded_macro THEN
+            UPDATE "workflows"
+            SET "isDeleted" = TRUE,
+                "isScheduleEnabled" = FALSE
+            WHERE "id" = workflow_row."id";
+        END IF;
         IF jsonb_typeof(source_nodes) <> 'array'
             OR jsonb_typeof(COALESCE(workflow_row."edges", '[]'::jsonb)) <> 'array'
             OR jsonb_typeof(COALESCE(workflow_row."steps", '[]'::jsonb)) <> 'array'
@@ -1474,7 +1557,11 @@ BEGIN
         IF jsonb_array_length(source_nodes) > 0 THEN
             SELECT COALESCE(
                 jsonb_agg(
-                    workflow_action_node(node, workflow_row."id")
+                    workflow_action_node(
+                        node,
+                        workflow_row."id",
+                        retired_seeded_macro
+                    )
                     ORDER BY ordinality
                 ),
                 '[]'::jsonb
@@ -1705,10 +1792,11 @@ DROP FUNCTION workflow_step_rejection_reason(TEXT);
 DROP FUNCTION workflow_validate_graph(JSONB, TEXT);
 DROP FUNCTION workflow_normalize_input_schema(JSONB, TEXT);
 DROP FUNCTION workflow_stable_json(JSONB);
-DROP FUNCTION workflow_action_node(JSONB, TEXT);
+DROP FUNCTION workflow_action_node(JSONB, TEXT, BOOLEAN);
 DROP FUNCTION workflow_unconvertible_node_reason(TEXT);
 DROP FUNCTION workflow_node_parameters(JSONB);
 DROP FUNCTION workflow_removed_macro_reason(TEXT);
+DROP FUNCTION workflow_is_retired_seeded_macro_clone(JSONB, JSONB);
 DROP FUNCTION workflow_action_has_atomic_executor(TEXT);
 DROP FUNCTION workflow_action_is_supported(TEXT);
 DROP FUNCTION workflow_node_action_id(TEXT);
