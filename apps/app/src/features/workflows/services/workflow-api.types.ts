@@ -276,6 +276,7 @@ export interface WorkflowTemplate {
   name: string;
   description: string;
   category: string;
+  changeSummary?: string;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: WorkflowInputVariable[];
@@ -321,14 +322,8 @@ export interface WorkflowTemplate {
   schedule?: string;
   nodes?: Node[];
   edges?: Edge[];
-  steps: Array<{
-    id: string;
-    name: string;
-    category: string;
-    config: Record<string, unknown>;
-    dependsOn?: string[];
-  }>;
   timezone?: string;
+  version?: number;
 }
 
 /** Webhook info returned from the API */
