@@ -9,10 +9,10 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import process from 'node:process';
+import { CredentialPlatform, SubscriptionTier } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
 import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SubscriptionTier } from '@genfeedai/enums';
-import type { ConfigService } from '@libs/config/config.service';
 
 const KEY =
   process.env.TOKEN_ENCRYPTION_KEY ?? 'test-encryption-key-for-testing-only';
@@ -25,6 +25,8 @@ describe('CredentialsService', () => {
     $transaction: ReturnType<typeof vi.fn>;
     credential: Record<string, ReturnType<typeof vi.fn>>;
     organizationSetting: Record<string, ReturnType<typeof vi.fn>>;
+    post: Record<string, ReturnType<typeof vi.fn>>;
+    postAnalytics: Record<string, ReturnType<typeof vi.fn>>;
     tag: Record<string, ReturnType<typeof vi.fn>>;
   };
   let logger: Record<string, ReturnType<typeof vi.fn>>;
@@ -56,6 +58,12 @@ describe('CredentialsService', () => {
         findUnique: vi.fn().mockResolvedValue({
           subscriptionTier: SubscriptionTier.FREE,
         }),
+      },
+      post: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      postAnalytics: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       tag: {
         create: vi.fn().mockResolvedValue({ id: 'tag-1' }),
@@ -157,6 +165,71 @@ describe('CredentialsService', () => {
           organizationId: orgId,
         },
       });
+    });
+  });
+
+  describe('provider callback purge', () => {
+    it('irreversibly clears provider identity and tokens across matching rows', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        { id: 'credential-1' },
+        { id: 'credential-2' },
+      ]);
+      prisma.credential.updateMany.mockResolvedValue({ count: 2 });
+
+      const count = await service.purgeProviderAccount(
+        CredentialPlatform.THREADS,
+        '  provider-user-1  ',
+      );
+
+      expect(count).toBe(2);
+      expect(prisma.postAnalytics.deleteMany).toHaveBeenCalledWith({
+        where: {
+          platform: 'THREADS',
+          post: {
+            credentialId: { in: ['credential-1', 'credential-2'] },
+          },
+        },
+      });
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          analyticsCollectionState: 'unavailable',
+          externalId: null,
+          externalShortcode: null,
+          url: null,
+        }),
+        where: {
+          credentialId: { in: ['credential-1', 'credential-2'] },
+          platform: CredentialPlatform.THREADS,
+        },
+      });
+      expect(prisma.credential.updateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          accessToken: null,
+          externalAvatar: null,
+          externalHandle: null,
+          externalId: null,
+          externalName: null,
+          grantedScopes: [],
+          isConnected: false,
+          isDeleted: true,
+          oauthState: null,
+          refreshToken: null,
+          username: null,
+          warmupSignals: {},
+        }),
+        where: {
+          id: { in: ['credential-1', 'credential-2'] },
+          platform: 'THREADS',
+        },
+      });
+    });
+
+    it('rejects an empty provider id without touching credentials', async () => {
+      await expect(
+        service.purgeProviderAccount(CredentialPlatform.THREADS, '   '),
+      ).rejects.toThrow('external id');
+
+      expect(prisma.credential.updateMany).not.toHaveBeenCalled();
     });
   });
 

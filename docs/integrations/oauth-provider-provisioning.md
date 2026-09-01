@@ -125,12 +125,17 @@ and [Share on LinkedIn](https://learn.microsoft.com/en-us/linkedin/consumer/inte
 
 1. Create or open a Meta app and add the Threads API use case.
 2. Register `{APP_ORIGIN}/oauth/threads` exactly.
-3. Request `threads_basic`, `threads_content_publish`,
+3. Set the deauthorize callback URL to
+   `{API_ORIGIN}/v1/services/threads/deauthorize` and the data deletion request
+   URL to `{API_ORIGIN}/v1/services/threads/data-deletion`. Both callbacks
+   validate Meta's `signed_request` with `THREADS_CLIENT_SECRET`; never append
+   the secret to either URL.
+4. Request `threads_basic`, `threads_content_publish`,
    `threads_manage_insights`, `threads_manage_replies`, and
    `threads_read_replies`.
-4. Add the test account while the app is in development mode and complete the
+5. Add the test account while the app is in development mode and complete the
    required Threads review before production use.
-5. Set `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`,
+6. Set `THREADS_CLIENT_ID`, `THREADS_CLIENT_SECRET`, `THREADS_REDIRECT_URI`,
    `THREADS_API_VERSION`, and `THREADS_GRAPH_URL=https://graph.threads.net`.
 
 Reference: [Threads API getting started](https://developers.facebook.com/docs/threads/get-started).
