@@ -1,5 +1,9 @@
 import type { Page, Route } from '@playwright/test';
-import { expect, test } from '../../fixtures/auth.fixture';
+import {
+  createAuthenticatedPage,
+  expect,
+  test,
+} from '../../fixtures/auth.fixture';
 
 const ALPHA_ORGANIZATION_ID = 'org_alpha_e2e';
 const BRAVO_ORGANIZATION_ID = 'org_bravo_e2e';
@@ -176,6 +180,7 @@ test.describe('Routed organization context', () => {
   }) => {
     await authenticatedPage.goto('about:blank');
     const otherTab = await authenticatedPage.context().newPage();
+    await createAuthenticatedPage(otherTab, authenticatedPage.context());
     const sharedState: OrganizationContextMockState = {
       activeOrganizationId: ALPHA_ORGANIZATION_ID,
       switchCount: 0,
