@@ -269,7 +269,6 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
-          SUMMARY_RESULT: ${{ needs.summarize.result }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -311,9 +310,6 @@ jobs:
               result: process.env.FULL_TIER_RESULT,
               inventory,
             });
-            const summaryFailed = ['failure', 'cancelled'].includes(
-              process.env.SUMMARY_RESULT,
-            );
             const { owner, repo } = context.repo;
             const jobs = await github.paginate(
               github.rest.actions.listJobsForWorkflowRun,
@@ -335,19 +331,24 @@ jobs:
                 job.name === 'Write full-tier inventory' &&
                 ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
             );
+            const jobsForTracking =
+              failedShards.length > 0
+                ? failedShards.map((job) => ({
+                    ...job,
+                    trackerJob: 'e2e-frontend-full',
+                    fallbackExcerpt,
+                  }))
+                : summaryJobs.map((job) => ({
+                    ...job,
+                    trackerJob: 'summarize',
+                    fallbackExcerpt:
+                      'Missing Playwright full-tier summary report or artifact.',
+                  }));
             const failures = await collectScheduledRunFailures({
               github,
               owner,
               repo,
-              jobs: (failedShards.length > 0 ? failedShards : summaryJobs).map(
-                (job) => ({
-                  ...job,
-                  trackerJob: summaryFailed ? 'summarize' : 'e2e-frontend-full',
-                  fallbackExcerpt: summaryFailed
-                    ? 'Missing Playwright full-tier summary report or artifact.'
-                    : fallbackExcerpt,
-                }),
-              ),
+              jobs: jobsForTracking,
               core,
             });
             for (const failure of failures) {
