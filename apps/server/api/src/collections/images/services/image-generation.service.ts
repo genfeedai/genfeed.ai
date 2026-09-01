@@ -419,7 +419,6 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto;
     height: number;
     model: string;
-    modelInputSchema?: Record<string, unknown>;
     promptOriginalText: string;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
@@ -491,6 +490,7 @@ export class ImageGenerationService {
     generationSource: string;
     height: number;
     model: string;
+    modelInputSchema?: Record<string, unknown>;
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
     referenceIds: string[];
