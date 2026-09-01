@@ -76,6 +76,11 @@ describe('RoutedOrganizationBoundary', () => {
 
     expect(screen.queryByText('Tenant content')).not.toBeInTheDocument();
     expect(screen.getByText('Organization switch failed')).toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveClass(
+      'min-h-dvh',
+      'items-center',
+      'justify-center',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(contextState.retry).toHaveBeenCalledTimes(1);
   });
