@@ -8,6 +8,7 @@ import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { PlatformMarginService } from '@workers/services/platform-margin.service';
 
 @Module({
+  exports: [CronModelWatcherService],
   imports: [forwardRef(() => ModelsModule), NotificationsModule, ConfigModule],
   providers: [
     CronModelWatcherService,
