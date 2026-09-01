@@ -24,11 +24,18 @@ interface DropdownPosition {
   left: number;
 }
 
+export interface TopbarPublicMegaMenuFooter {
+  description: string;
+  href: string;
+  label: string;
+}
+
 type TopbarPublicDesktopDropdownProps = {
   mounted: boolean;
   openDropdown: string | null;
   currentDropdown: CurrentDropdown | undefined;
   dropdownPosition: DropdownPosition;
+  megaMenuFooter?: TopbarPublicMegaMenuFooter;
   pathname: string | null;
   onMouseEnterDropdown: () => void;
   onMouseLeaveDropdown: () => void;
@@ -67,6 +74,7 @@ export default function TopbarPublicDesktopDropdown({
   openDropdown,
   currentDropdown,
   dropdownPosition,
+  megaMenuFooter,
   pathname,
   onMouseEnterDropdown,
   onMouseLeaveDropdown,
@@ -134,25 +142,27 @@ export default function TopbarPublicDesktopDropdown({
                 key={groupLabel}
               >
                 {groupLabel && (
-                  <div className="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-foreground/55">
+                  <div className="px-3 pb-2 pt-1 text-2xs font-bold uppercase tracking-[0.16em] text-foreground/55">
                     {groupLabel}
                   </div>
                 )}
                 <ul>{items.map(renderItem)}</ul>
               </div>
             ))}
-            <div className="col-span-3 flex items-center justify-between border-t border-edge/15 px-4 pt-5">
-              <p className="text-xs text-foreground/55">
-                One content system from first brief to verified result.
-              </p>
-              <Link
-                className="text-xs font-semibold text-foreground underline underline-offset-4"
-                href="/features"
-                onClick={onItemClick}
-              >
-                Explore every capability
-              </Link>
-            </div>
+            {megaMenuFooter ? (
+              <div className="col-span-3 flex items-center justify-between border-t border-edge/15 px-4 pt-5">
+                <p className="text-xs text-foreground/55">
+                  {megaMenuFooter.description}
+                </p>
+                <Link
+                  className="text-xs font-semibold text-foreground underline underline-offset-4"
+                  href={megaMenuFooter.href}
+                  onClick={onItemClick}
+                >
+                  {megaMenuFooter.label}
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (
