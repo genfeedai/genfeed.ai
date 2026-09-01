@@ -225,7 +225,7 @@ describe('UsersList', () => {
     render(<UsersList />);
 
     expect(screen.getByText('Last connected')).toBeInTheDocument();
-    expect(screen.getByTestId('user-3-firstName')).toHaveTextContent(
+    expect(screen.getByTestId('user-3-name')).toHaveTextContent(
       'New Better Auth User',
     );
     expect(screen.getByTestId('user-3-createdAt')).not.toHaveTextContent(
