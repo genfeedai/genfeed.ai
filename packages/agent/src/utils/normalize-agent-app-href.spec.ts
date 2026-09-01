@@ -33,6 +33,18 @@ describe('normalizeAgentAppHref', () => {
     );
   });
 
+  it('rewrites retired gallery asset paths to canonical Library deep links', () => {
+    expect(normalizeAgentAppHref('/g/image/cmtd5pqsx0048rbxnstnzwnrx')).toBe(
+      '/library/images?asset=cmtd5pqsx0048rbxnstnzwnrx',
+    );
+    expect(normalizeAgentAppHref('/g/video/video-123#details')).toBe(
+      '/library/videos?asset=video-123#details',
+    );
+    expect(normalizeAgentAppHref('/acme/launch/g/voice/voice-123')).toBe(
+      '/acme/launch/library/voices?asset=voice-123',
+    );
+  });
+
   it('leaves already-valid and unknown paths unchanged', () => {
     expect(normalizeAgentAppHref(APP_ROUTES.PUBLISHING.REVIEW)).toBe(
       APP_ROUTES.PUBLISHING.REVIEW,

@@ -184,4 +184,28 @@ describe('ContentPreviewCard', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/undefined/u)).not.toBeInTheDocument();
   });
+
+  it('repairs retired gallery CTAs from persisted image conversations', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          ctas: [
+            {
+              href: '/g/image/cmtd5pqsx0048rbxnstnzwnrx',
+              label: 'View in gallery',
+            },
+          ],
+          id: 'legacy-image-output',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'View in Library' }),
+    ).toHaveAttribute(
+      'href',
+      '/library/images?asset=cmtd5pqsx0048rbxnstnzwnrx',
+    );
+  });
 });
