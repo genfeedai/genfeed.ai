@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { FleetReviewStatus, IngredientCategory } from '@genfeedai/enums';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -249,13 +249,13 @@ describe('IngredientsList', () => {
         campaign: 'spring-drop',
         category: IngredientCategory.IMAGE,
         id: 'img-1',
-        reviewStatus: 'approved',
+        reviewStatus: FleetReviewStatus.APPROVED,
       },
       {
         campaign: 'spring-drop',
         category: IngredientCategory.IMAGE,
         id: 'img-2',
-        reviewStatus: 'approved',
+        reviewStatus: FleetReviewStatus.APPROVED,
       },
     ];
 
@@ -291,13 +291,13 @@ describe('IngredientsList', () => {
             campaign: 'spring-drop',
             category: IngredientCategory.IMAGE,
             id: 'img-1',
-            reviewStatus: 'approved',
+            reviewStatus: FleetReviewStatus.APPROVED,
           },
           {
             campaign: 'summer-drop',
             category: IngredientCategory.IMAGE,
             id: 'img-2',
-            reviewStatus: 'approved',
+            reviewStatus: FleetReviewStatus.APPROVED,
           },
         ],
         selectedIngredientIds: ['img-1', 'img-2'],

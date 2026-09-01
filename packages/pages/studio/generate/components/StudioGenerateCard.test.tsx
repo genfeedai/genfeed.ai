@@ -84,7 +84,9 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(screen.getByText(generatedJob.prompt)).toBeInTheDocument();
-    expect(screen.getByText(generatedJob.modelKey)).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(generatedJob.modelKey)),
+    ).toBeInTheDocument();
     expect(container.querySelector('[data-asset-details]')).toBeNull();
     expect(
       screen
