@@ -7,7 +7,7 @@ import type {
   ImageGenerationSavedIngredient,
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
-import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
@@ -20,7 +20,6 @@ import type {
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
-  IngredientStatus,
   MetadataExtension,
   ModelCategory,
   PromptCategory,
@@ -59,15 +58,6 @@ import { RouterService } from '@server/services/router/router.service';
 import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
-
-/** Populate patterns for every image read on the wait/serialize path. */
-const IMAGE_POPULATE = [
-  PopulatePatterns.promptFull,
-  PopulatePatterns.metadataFull,
-  PopulatePatterns.brandMinimal,
-];
-const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Owns the full image-generation workflow extracted out of
@@ -89,7 +79,7 @@ export class ImageGenerationService {
     private readonly configService: ConfigService,
     private readonly assetsService: AssetsService,
     private readonly brandsService: BrandsService,
-    private readonly creditsService: ImageGenerationCreditsService,
+    private readonly admissionService: ImageGenerationAdmissionService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly imageGenerationProviderDispatchService: ImageGenerationProviderDispatchService,
     private readonly imagesService: ImagesService,
@@ -123,48 +113,19 @@ export class ImageGenerationService {
       promptOriginalText,
     } = await this.resolveAndValidate(user, createImageDto, request);
 
-    if (createImageDto.sourceActionId) {
-      const accepted = await this.imagesService.findOne(
-        {
-          category: IngredientCategory.IMAGE,
-          isDeleted: false,
-          organizationId: user.organizationId,
-          sourceActionId: createImageDto.sourceActionId,
-          status: {
-            in: [
-              IngredientStatus.PROCESSING,
-              IngredientStatus.GENERATED,
-              IngredientStatus.VALIDATED,
-            ],
-          },
-        },
-        IMAGE_POPULATE,
+    const accepted = await this.admissionService.findReusableIngredient(
+      createImageDto.sourceActionId,
+      user.organizationId,
+    );
+    if (accepted) {
+      await this.admissionService.ensureCredits(
+        createImageDto,
+        model,
+        user.organizationId,
+        request,
+        onCreditsPrepared,
       );
-      if (accepted) {
-        const isFreshUndispatchedPlaceholder =
-          accepted.status === IngredientStatus.PROCESSING &&
-          !accepted.metadata?.externalId &&
-          accepted.createdAt instanceof Date &&
-          Date.now() - accepted.createdAt.getTime() <
-            PROVIDER_DISPATCH_GRACE_MS;
-        const wasDispatched =
-          accepted.status !== IngredientStatus.PROCESSING ||
-          Boolean(accepted.metadata?.externalId) ||
-          isFreshUndispatchedPlaceholder;
-        if (wasDispatched) {
-          await this.creditsService.ensureDeferredCredits(
-            createImageDto,
-            model,
-            user.organizationId,
-            request,
-          );
-          await onCreditsPrepared?.();
-          return serializeSingle(request, IngredientSerializer, accepted);
-        }
-        await this.imagesService.patch(accepted.id, {
-          status: IngredientStatus.FAILED,
-        });
-      }
+      return serializeSingle(request, IngredientSerializer, accepted);
     }
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
@@ -270,13 +231,13 @@ export class ImageGenerationService {
 
     try {
       await onPlaceholderCreated?.(ingredientData.id.toString());
-      await this.creditsService.ensureDeferredCredits(
+      await this.admissionService.ensureCredits(
         createImageDto,
         model,
         user.organizationId,
         request,
+        onCreditsPrepared,
       );
-      await onCreditsPrepared?.();
     } catch (error: unknown) {
       return this.imageGenerationProviderDispatchService.failPlaceholderBeforeDispatch(
         context,
