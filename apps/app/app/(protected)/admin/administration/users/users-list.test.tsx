@@ -69,6 +69,7 @@ vi.mock('@tanstack/react-query', () => ({
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
     actions,
+    columns,
     items,
     emptyLabel,
     getRowKey,
@@ -77,6 +78,11 @@ vi.mock('@ui/display/table/Table', () => ({
       isVisible?: (item: IUser) => boolean;
       onClick?: (item: IUser) => void;
       tooltip: string;
+    }>;
+    columns: Array<{
+      header: string;
+      key: string;
+      render?: (item: IUser) => ReactNode;
     }>;
     emptyLabel: string;
     getRowKey: (item: IUser, index: number) => string;
@@ -87,9 +93,20 @@ vi.mock('@ui/display/table/Table', () => ({
     }
     return (
       <div>
+        {columns.map((column) => (
+          <span key={column.key}>{column.header}</span>
+        ))}
         {items.map((item, index) => (
           <div key={getRowKey(item, index)}>
-            <span>{item.email}</span>
+            {columns.map((column) => (
+              <span key={column.key} data-testid={`${item.id}-${column.key}`}>
+                {column.render?.(item) ??
+                  String(
+                    (item as unknown as Record<string, unknown>)[column.key] ??
+                      '',
+                  )}
+              </span>
+            ))}
             {actions
               .filter((action) => action.isVisible?.(item) ?? true)
               .map((action) => (
@@ -134,6 +151,17 @@ const superAdminUser = {
   id: 'user-2',
   lastName: 'Erator',
   platformRole: PlatformRole.SUPERADMIN,
+} as unknown as IUser;
+
+const betterAuthUser = {
+  createdAt: '2026-08-29T11:55:29.273Z',
+  email: 'new-user@example.com',
+  firstName: null,
+  id: 'user-3',
+  lastActiveAt: '2026-08-29T11:55:29.729Z',
+  lastName: null,
+  name: 'New Better Auth User',
+  platformRole: PlatformRole.USER,
 } as unknown as IUser;
 
 const originalLocation = window.location;
@@ -183,6 +211,45 @@ describe('UsersList', () => {
         name: 'Impersonate operator@example.com',
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows Better Auth names plus valid joined and last-connected dates', () => {
+    mocks.useQuery.mockReturnValue({
+      data: [betterAuthUser],
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
+
+    render(<UsersList />);
+
+    expect(screen.getByText('Last connected')).toBeInTheDocument();
+    expect(screen.getByTestId('user-3-firstName')).toHaveTextContent(
+      'New Better Auth User',
+    );
+    expect(screen.getByTestId('user-3-createdAt')).not.toHaveTextContent(
+      'Invalid Date',
+    );
+    expect(screen.getByTestId('user-3-lastActiveAt')).not.toHaveTextContent(
+      'Invalid Date',
+    );
+  });
+
+  it('shows Never when the user has not connected yet', () => {
+    mocks.useQuery.mockReturnValue({
+      data: [{ ...betterAuthUser, lastActiveAt: null }],
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
+
+    render(<UsersList />);
+
+    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent(
+      'Never',
+    );
   });
 
   it('impersonates the user and reloads into their account', async () => {
