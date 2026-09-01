@@ -323,6 +323,9 @@ describe('check-platform-cron-boundary', () => {
       pendingMigrations: [],
       platformAllowlist: [],
       sweepServiceAllowlist: [],
+      workersCronServiceGlobs: [
+        'apps/server/workers/src/crons/**/*.service.ts',
+      ],
     });
 
     expect(
@@ -352,6 +355,9 @@ describe('check-platform-cron-boundary', () => {
           methodName: 'publishScheduledPosts',
           reason: 'Fixture system sweep.',
         },
+      ],
+      workersCronServiceGlobs: [
+        'apps/server/workers/src/crons/**/*.service.ts',
       ],
     });
 
