@@ -3,24 +3,32 @@ import { expect, test } from '../../fixtures/auth.fixture';
 
 const ALPHA_ORGANIZATION_ID = 'org_alpha_e2e';
 const BRAVO_ORGANIZATION_ID = 'org_bravo_e2e';
+const ROUTED_ORGANIZATION_STORAGE_KEY =
+  'genfeed:routed-organization-context:v1';
 
 interface OrganizationContextMockOptions {
   failSwitch?: boolean;
 }
 
+interface OrganizationContextMockState {
+  activeOrganizationId: string;
+  switchCount: number;
+}
+
 async function mockOrganizationContext(
   page: Page,
   options: OrganizationContextMockOptions = {},
+  state: OrganizationContextMockState = {
+    activeOrganizationId: BRAVO_ORGANIZATION_ID,
+    switchCount: 0,
+  },
 ) {
-  let activeOrganizationId = BRAVO_ORGANIZATION_ID;
-  let switchCount = 0;
-
   const fulfillOrganizations = async (route: Route): Promise<void> => {
     const organizations = [
       {
         brand: { id: 'brand-alpha', label: 'Alpha Brand' },
         id: ALPHA_ORGANIZATION_ID,
-        isActive: activeOrganizationId === ALPHA_ORGANIZATION_ID,
+        isActive: state.activeOrganizationId === ALPHA_ORGANIZATION_ID,
         isOwner: true,
         label: 'Alpha Organization',
         slug: 'alpha',
@@ -28,7 +36,7 @@ async function mockOrganizationContext(
       {
         brand: { id: 'brand-bravo', label: 'Bravo Brand' },
         id: BRAVO_ORGANIZATION_ID,
-        isActive: activeOrganizationId === BRAVO_ORGANIZATION_ID,
+        isActive: state.activeOrganizationId === BRAVO_ORGANIZATION_ID,
         isOwner: true,
         label: 'Bravo Organization',
         slug: 'bravo',
@@ -55,7 +63,7 @@ async function mockOrganizationContext(
       request.method() === 'PATCH' &&
       url.pathname.endsWith(`/organizations/${ALPHA_ORGANIZATION_ID}/activate`)
     ) {
-      switchCount += 1;
+      state.switchCount += 1;
       if (options.failSwitch) {
         await route.fulfill({
           body: JSON.stringify({ message: 'switch rejected' }),
@@ -65,7 +73,7 @@ async function mockOrganizationContext(
         return;
       }
 
-      activeOrganizationId = ALPHA_ORGANIZATION_ID;
+      state.activeOrganizationId = ALPHA_ORGANIZATION_ID;
       await route.fulfill({
         body: JSON.stringify({
           brand: { id: 'brand-alpha', label: 'Alpha Brand' },
@@ -84,7 +92,7 @@ async function mockOrganizationContext(
   });
 
   return {
-    getSwitchCount: () => switchCount,
+    getSwitchCount: () => state.switchCount,
   };
 }
 
@@ -161,5 +169,45 @@ test.describe('Routed organization context', () => {
     await expect.poll(contextMock.getSwitchCount).toBe(2);
     expect(tenantRequests).toEqual([]);
     await expect(authenticatedPage.getByTestId('sidebar-shell')).toHaveCount(0);
+  });
+
+  test('an organization change moves every open tab to the same organization and keeps each surface', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto('about:blank');
+    const otherTab = await authenticatedPage.context().newPage();
+    const sharedState: OrganizationContextMockState = {
+      activeOrganizationId: ALPHA_ORGANIZATION_ID,
+      switchCount: 0,
+    };
+    await mockOrganizationContext(authenticatedPage, {}, sharedState);
+    await mockOrganizationContext(otherTab, {}, sharedState);
+
+    await authenticatedPage.goto('/alpha/~/workspace', {
+      waitUntil: 'domcontentloaded',
+    });
+    await otherTab.goto('/alpha/moonrise/studio/generate', {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(
+      otherTab
+        .getByTestId('desktop-sidebar-rail')
+        .getByTestId('organization-switcher-trigger'),
+    ).toContainText('Alpha Organization');
+
+    sharedState.activeOrganizationId = BRAVO_ORGANIZATION_ID;
+    await authenticatedPage.evaluate((storageKey) => {
+      window.localStorage.setItem(storageKey, `${Date.now()}:${Math.random()}`);
+    }, ROUTED_ORGANIZATION_STORAGE_KEY);
+
+    await expect(otherTab).toHaveURL(/\/bravo\/~\/studio\/generate$/);
+    await expect(
+      otherTab
+        .getByTestId('desktop-sidebar-rail')
+        .getByTestId('organization-switcher-trigger'),
+    ).toContainText('Bravo Organization');
+    await expect(
+      otherTab.getByText('Organization context changed'),
+    ).toHaveCount(0);
   });
 });

@@ -22,10 +22,12 @@ const clearBootstrapCacheMock = vi.hoisted(() => vi.fn());
 const cancelAndClearServicesMock = vi.hoisted(() => vi.fn());
 const setRequestOrganizationIdMock = vi.hoisted(() => vi.fn());
 const loggerWarnMock = vi.hoisted(() => vi.fn());
+const replaceMock = vi.hoisted(() => vi.fn());
 let pathname = '/alpha/~/workspace/overview';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
+  useRouter: () => ({ replace: replaceMock }),
 }));
 
 vi.mock('@genfeedai/auth-client', () => ({
@@ -143,6 +145,7 @@ describe('RoutedOrganizationProvider', () => {
     cancelAndClearServicesMock.mockReset();
     setRequestOrganizationIdMock.mockReset();
     loggerWarnMock.mockReset();
+    replaceMock.mockReset();
   });
 
   it('confirms an already-matched route before exposing its organization id', async () => {
@@ -273,8 +276,11 @@ describe('RoutedOrganizationProvider', () => {
     expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
   });
 
-  it('blocks a tab when another tab changes organization context', async () => {
-    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+  it('moves another tab to the authoritative organization while preserving its current surface', async () => {
+    pathname = '/alpha/moonrise/studio/generate';
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(BRAVO_ACTIVE);
     renderProvider();
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent('matched'),
@@ -289,8 +295,17 @@ describe('RoutedOrganizationProvider', () => {
       );
     });
 
-    expect(screen.getByTestId('status')).toHaveTextContent('stale');
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith('/bravo/~/studio/generate'),
+    );
+    expect(screen.getByTestId('status')).toHaveTextContent('switching');
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(getOrganizationsServiceMock).toHaveBeenLastCalledWith({
+      forceRefresh: true,
+    });
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
+    expect(clearBootstrapCacheMock).toHaveBeenCalled();
+    expect(cancelAndClearServicesMock).toHaveBeenCalled();
   });
 });
