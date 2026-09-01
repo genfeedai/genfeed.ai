@@ -1,17 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { VotesService } from '@server/collections/votes/services/votes.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -19,8 +12,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -39,6 +30,15 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { VotesService } from '@server/collections/votes/services/votes.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -83,60 +83,7 @@ export class ImagesController {
     // excluded, plus the org's brand-default images, ordered by createdAt desc
     // and capped at 50. Bypasses the standard list filters entirely.
     if (query.latest) {
-      const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
-      const latestBrand = user.brandId;
-
-      const latestAggregate = {
-        where: {
-          AND: [
-            {
-              OR: [
-                {
-                  AND: [
-                    {
-                      brandId: latestBrand,
-                      category: imageCategory,
-                      isDeleted: latestIsDeleted,
-                      organizationId: user.organizationId,
-                      // Exclude training source images by default
-                      trainingId: null,
-                      userId: user.userId ?? user.id,
-                    },
-                  ],
-                },
-                {
-                  AND: [
-                    {
-                      // Filter default images by brand when brand is specified
-                      brandId: latestBrand,
-                      category: imageCategory,
-                      isDefault: true,
-                      isDeleted: latestIsDeleted,
-                      OR: [
-                        {
-                          organizationId: user.organizationId,
-                        },
-                        { organizationId: null },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        orderBy: { createdAt: -1 },
-      };
-
-      // pagination:false used to discard the limit entirely in BaseService
-      // (findMany without take); paginate so the 50-row cap actually applies.
-      const latestData = await this.imagesService.findAll(latestAggregate, {
-        limit: Math.min(Number(query.limit) || 10, 50),
-        page: 1,
-        pagination: true,
-      });
-
-      return serializeCollection(request, IngredientSerializer, latestData);
+      return this.findLatest(request, user, query, imageCategory);
     }
 
     const options = {
@@ -235,6 +182,58 @@ export class ImagesController {
     };
 
     const data = await this.imagesService.findAll(aggregate, options);
+    return serializeCollection(request, IngredientSerializer, data);
+  }
+
+  private async findLatest(
+    request: Request,
+    user: User,
+    query: ImagesQueryDto,
+    imageCategory: ReturnType<typeof CategoryPrismaUtil.toIngredientCategory>,
+  ): Promise<JsonApiCollectionResponse> {
+    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
+    const aggregate = {
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                AND: [
+                  {
+                    brandId: user.brandId,
+                    category: imageCategory,
+                    isDeleted,
+                    organizationId: user.organizationId,
+                    trainingId: null,
+                    userId: user.userId ?? user.id,
+                  },
+                ],
+              },
+              {
+                AND: [
+                  {
+                    brandId: user.brandId,
+                    category: imageCategory,
+                    isDefault: true,
+                    isDeleted,
+                    OR: [
+                      { organizationId: user.organizationId },
+                      { organizationId: null },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      orderBy: { createdAt: -1 },
+    };
+    const data = await this.imagesService.findAll(aggregate, {
+      limit: Math.min(Number(query.limit) || 10, 50),
+      page: 1,
+      pagination: true,
+    });
     return serializeCollection(request, IngredientSerializer, data);
   }
 
