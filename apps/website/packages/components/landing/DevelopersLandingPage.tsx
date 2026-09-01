@@ -129,7 +129,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingData={{ action: 'start_free' }}
             >
               <Link href={signUpHref} target="_blank" rel="noopener noreferrer">
-                Start for free
+                Start creating
                 <ArrowRight className="size-4" />
               </Link>
             </ButtonTracked>
@@ -289,7 +289,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Start for free
+                  Start creating
                 </Link>
               </ButtonTracked>
               <ButtonTracked

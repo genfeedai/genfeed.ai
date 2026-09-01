@@ -10,7 +10,7 @@ const overlay = (
 const topbar = (
   <LandingTopbar
     ctaHref={`${EnvironmentService.apps.app}/sign-up`}
-    ctaLabel="Start for free"
+    ctaLabel="Start creating"
   />
 );
 

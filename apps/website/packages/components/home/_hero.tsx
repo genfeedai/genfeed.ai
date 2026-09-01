@@ -25,15 +25,44 @@ export default function HomeHero(): React.ReactElement {
         </Heading>
         <Text
           as="p"
-          className="mx-auto mt-7 max-w-2xl text-base leading-7 text-surface/72 md:text-lg"
+          className="mx-auto mt-7 max-w-xl text-base leading-7 text-surface/72 md:text-lg"
         >
-          Campaigns, creators, video, voice, articles, and every format between
-          them—generated as one recognisable brand.
+          Every format. One recognisable brand.
         </Text>
+
+        <div className="mt-9" data-testid="home-hero-actions">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ButtonTracked
+              asChild
+              size={ButtonSize.PUBLIC}
+              className="hero-cta"
+              trackingData={{ action: 'start_creating_hero' }}
+              trackingName="home_hero_click"
+            >
+              <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                Start creating
+              </a>
+            </ButtonTracked>
+
+            <ButtonTracked
+              asChild
+              className="hero-cta"
+              size={ButtonSize.PUBLIC}
+              trackingData={{ action: 'use_agent_hero' }}
+              trackingName="home_hero_click"
+              variant={ButtonVariant.SECONDARY}
+            >
+              <Link href={AGENT_HREF}>Use the Agent</Link>
+            </ButtonTracked>
+          </div>
+          <Text as="p" className="mt-5 text-center text-[13px] text-surface/72">
+            Free to start. No card required.
+          </Text>
+        </div>
       </div>
 
       <div
-        className="mt-14 w-screen px-6 sm:mt-20 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
+        className="mt-20 w-screen px-6 sm:mt-28 lg:px-[max(3rem,calc((100vw-90rem)/2))]"
         data-testid="home-hero-output-carousel"
       >
         <HorizontalCarousel
@@ -82,36 +111,6 @@ export default function HomeHero(): React.ReactElement {
             );
           })}
         </HorizontalCarousel>
-      </div>
-
-      <div className="container mx-auto mt-10 px-6">
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <ButtonTracked
-            asChild
-            size={ButtonSize.PUBLIC}
-            className="hero-cta"
-            trackingData={{ action: 'start_creating_hero' }}
-            trackingName="home_hero_click"
-          >
-            <a href={`${EnvironmentService.apps.app}/sign-up`}>
-              Start creating
-            </a>
-          </ButtonTracked>
-
-          <ButtonTracked
-            asChild
-            className="hero-cta"
-            size={ButtonSize.PUBLIC}
-            trackingData={{ action: 'use_agent_hero' }}
-            trackingName="home_hero_click"
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link href={AGENT_HREF}>Use the Agent</Link>
-          </ButtonTracked>
-        </div>
-        <Text as="p" className="mt-5 text-center text-[13px] text-surface/72">
-          Free to start. No card required.
-        </Text>
       </div>
     </section>
   );

@@ -38,11 +38,11 @@ vi.mock('next/link', () => ({
 }));
 
 describe('WebsiteTopbar', () => {
-  it('leads with a free SaaS sign-up and the studio navigation', () => {
+  it('leads with the primary creation action and studio navigation', () => {
     render(<WebsiteTopbar />);
 
     expect(
-      screen.getByRole('link', { name: /start for free/i }),
+      screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(screen.getByRole('link', { name: /book a demo/i })).toHaveAttribute(
       'href',

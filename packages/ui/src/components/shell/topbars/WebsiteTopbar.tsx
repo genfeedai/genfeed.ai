@@ -92,7 +92,7 @@ export default function WebsiteTopbar() {
                 trackingName="topbar_cta_click"
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start for free
+                  Start creating
                 </a>
               </ButtonTracked>
             </>

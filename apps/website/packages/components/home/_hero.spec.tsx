@@ -45,11 +45,19 @@ describe('HomeHero', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/made with genfeed/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/campaigns, creators, video, voice, articles/i),
+      screen.getByText(/every format\. one recognisable brand\./i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
     ).toEqual(['Start creating', 'Use the Agent']);
+
+    const actions = screen.getByTestId('home-hero-actions');
+    const carousel = screen.getByTestId('home-hero-output-carousel');
+
+    expect(
+      actions.compareDocumentPosition(carousel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('states the mechanism instead of an adjective', () => {
