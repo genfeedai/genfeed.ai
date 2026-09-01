@@ -3,6 +3,11 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from './portless-env';
 
+const PORTLESS_CLI_PATH = path.resolve(
+  import.meta.dirname,
+  '../../node_modules/.bin/portless',
+);
+
 export const PORTLESS_SERVICE_INSTALL_ARGS = [
   'service',
   'install',
@@ -29,8 +34,17 @@ export function isPortlessServiceReady(statusOutput: string): boolean {
   );
 }
 
+export function buildPortlessCommand(
+  args: readonly string[],
+  nodeExecutable = 'node',
+  portlessCliPath = PORTLESS_CLI_PATH,
+): string[] {
+  return [nodeExecutable, portlessCliPath, ...args];
+}
+
 function readServiceStatus(): string | null {
-  const result = spawnSync('portless', ['service', 'status'], {
+  const [executable, ...args] = buildPortlessCommand(['service', 'status']);
+  const result = spawnSync(executable, args, {
     encoding: 'utf8',
     env: process.env,
     stdio: ['ignore', 'pipe', 'inherit'],
@@ -46,18 +60,19 @@ function readServiceStatus(): string | null {
 function installService(): void {
   const stateDirectory =
     process.env.PORTLESS_STATE_DIR ?? path.join(homedir(), '.portless');
-  const result = spawnSync(
-    'portless',
-    [...PORTLESS_SERVICE_INSTALL_ARGS, '--state-dir', stateDirectory],
-    {
-      env: {
-        ...process.env,
-        ...PORTLESS_PROXY_ENVIRONMENT,
-        PORTLESS_STATE_DIR: stateDirectory,
-      },
-      stdio: 'inherit',
+  const [executable, ...args] = buildPortlessCommand([
+    ...PORTLESS_SERVICE_INSTALL_ARGS,
+    '--state-dir',
+    stateDirectory,
+  ]);
+  const result = spawnSync(executable, args, {
+    env: {
+      ...process.env,
+      ...PORTLESS_PROXY_ENVIRONMENT,
+      PORTLESS_STATE_DIR: stateDirectory,
     },
-  );
+    stdio: 'inherit',
+  });
 
   if (result.error) {
     throw result.error;

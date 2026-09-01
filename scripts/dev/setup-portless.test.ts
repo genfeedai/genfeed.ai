@@ -1,10 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPortlessCommand,
   isPortlessServiceReady,
   PORTLESS_SERVICE_INSTALL_ARGS,
 } from './setup-portless';
 
 describe('Portless developer setup', () => {
+  it('runs the pinned Portless CLI with Node instead of the Bun parent runtime', () => {
+    expect(
+      buildPortlessCommand(
+        ['service', 'status'],
+        '/opt/homebrew/bin/node',
+        '/repo/node_modules/.bin/portless',
+      ),
+    ).toEqual([
+      '/opt/homebrew/bin/node',
+      '/repo/node_modules/.bin/portless',
+      'service',
+      'status',
+    ]);
+  });
+
   it('pins the startup service to the canonical HTTPS contract', () => {
     expect(PORTLESS_SERVICE_INSTALL_ARGS).toEqual([
       'service',
