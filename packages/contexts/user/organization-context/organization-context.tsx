@@ -71,8 +71,16 @@ const INITIAL_STATE: RoutedOrganizationState = {
 const RoutedOrganizationContext =
   createContext<RoutedOrganizationContextValue | null>(null);
 
-function emitSanitizedMismatch(reason: string): void {
+type RoutedOrganizationMismatchReason =
+  | 'cross-tab-sync-failed'
+  | 'route-auth-mismatch'
+  | 'route-unauthorized'
+  | 'switch-failed';
+
+function emitSanitizedMismatch(reason: RoutedOrganizationMismatchReason): void {
   logger.warn('Routed organization context mismatch', {
+    reportToSentry:
+      reason === 'cross-tab-sync-failed' || reason === 'switch-failed',
     tags: {
       eventType: 'organization-context-mismatch',
       reason,

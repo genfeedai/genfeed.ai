@@ -201,6 +201,7 @@ describe('RoutedOrganizationProvider', () => {
     expect(loggerWarnMock).toHaveBeenCalledWith(
       'Routed organization context mismatch',
       expect.objectContaining({
+        reportToSentry: false,
         tags: expect.objectContaining({
           reason: 'route-auth-mismatch',
         }),
@@ -220,6 +221,13 @@ describe('RoutedOrganizationProvider', () => {
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
     expect(switchOrganizationMock).not.toHaveBeenCalled();
     expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: false,
+        tags: expect.objectContaining({ reason: 'route-unauthorized' }),
+      }),
+    );
   });
 
   it('keeps a failed switch recoverable without confirming stale data', async () => {
@@ -240,6 +248,13 @@ describe('RoutedOrganizationProvider', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('failed'),
     );
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: true,
+        tags: expect.objectContaining({ reason: 'switch-failed' }),
+      }),
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
@@ -307,5 +322,35 @@ describe('RoutedOrganizationProvider', () => {
     expect(switchOrganizationMock).not.toHaveBeenCalled();
     expect(clearBootstrapCacheMock).toHaveBeenCalled();
     expect(cancelAndClearServicesMock).toHaveBeenCalled();
+  });
+
+  it('reports failed cross-tab reconciliation to Sentry', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockRejectedValueOnce(new Error('refresh failed'));
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      expect.objectContaining({
+        reportToSentry: true,
+        tags: expect.objectContaining({ reason: 'cross-tab-sync-failed' }),
+      }),
+    );
   });
 });
