@@ -19,8 +19,8 @@ import type {
 } from '@server/services/content-orchestration/pipeline.interfaces';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface StepExecutionContext {
@@ -43,7 +43,7 @@ export class StepExecutorService {
     private readonly falService: FalService,
     private readonly higgsFieldService: HiggsFieldService,
     private readonly elevenLabsService: ElevenLabsService,
-    private readonly fleetService: FleetService,
+    private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly replicateService: ReplicateService,
   ) {}
 
@@ -132,7 +132,7 @@ export class StepExecutorService {
       }
 
       case VideoTaskModel.COMFYUI: {
-        const result = await this.fleetService.generateVideo({
+        const result = await this.managedInferenceRuntimeService.generateVideo({
           imageUrl,
           organizationId: context.organizationId,
           prompt,
@@ -227,7 +227,7 @@ export class StepExecutorService {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const status = await this.fleetService.pollJob(
+      const status = await this.managedInferenceRuntimeService.pollJob(
         'videos',
         jobId,
         organizationId,

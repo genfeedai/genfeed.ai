@@ -20,8 +20,8 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
-import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
+import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { Module } from '@nestjs/common';
@@ -47,7 +47,7 @@ import { VoicesService } from '@server/collections/voices/services/voices.servic
     ElevenLabsModule,
     FailedGenerationModule,
     FilesClientModule,
-    FleetModule,
+    ManagedInferenceRuntimeModule,
     HeyGenModule,
     NotificationsPublisherModule,
     QueuesModule,

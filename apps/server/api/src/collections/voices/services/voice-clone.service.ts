@@ -1,14 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
-import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   ByokProvider,
   IngredientCategory,
@@ -20,7 +10,17 @@ import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { ByokService } from '@server/services/byok/byok.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @Injectable()
@@ -30,7 +30,7 @@ export class VoiceCloneService {
   constructor(
     private readonly byokService: ByokService,
     private readonly elevenLabsService: ElevenLabsService,
-    private readonly fleetService: FleetService,
+    private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly loggerService: LoggerService,
     private readonly notificationsPublisherService: NotificationsPublisherService,
     private readonly sharedService: SharedService,
@@ -239,7 +239,7 @@ export class VoiceCloneService {
     const ingredientId = String(ingredientData.id);
 
     await this.markGenfeedAiCloneStarted(ingredientId, dto, user);
-    const result = await this.fleetService.cloneVoice({
+    const result = await this.managedInferenceRuntimeService.cloneVoice({
       audioUrl: dto.audioUrl as string,
       handle: ingredientId,
       label: dto.name,
@@ -272,7 +272,8 @@ export class VoiceCloneService {
   }
 
   private async assertGenfeedAiAvailable(dto: CloneVoiceDto): Promise<void> {
-    const isAvailable = await this.fleetService.isAvailable('voices');
+    const isAvailable =
+      await this.managedInferenceRuntimeService.isAvailable('voices');
     if (!isAvailable) {
       throw new HttpException(
         {

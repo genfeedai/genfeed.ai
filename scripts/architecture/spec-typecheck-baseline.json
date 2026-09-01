@@ -1609,30 +1609,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/fleet/fleet.controller.spec.ts",
-      "fingerprint": "90d3bf26be98199c6cc3",
-      "message": "Conversion of type '{ description: string; name: string; slug: string; }' to type 'CreateCharacterDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'label' is missing in type '{ description: string; name: string; slug: string; }' but required in type 'CreateCharacterDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/fleet/fleet.controller.spec.ts",
-      "fingerprint": "6ea14679b3d8080b471c",
-      "message": "Object literal may only specify known properties, and 'description' does not exist in type 'UpdateCharacterDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/admin/fleet/services/fleet-character.service.spec.ts",
-      "fingerprint": "c5730546cd2a1763e8e6",
-      "message": "Argument of type '{ brand: string; organization: string; slug: string; user: string; }' is not assignable to parameter of type 'Partial<PersonaDocument> & { userId: string; organizationId: string; brandId?: string | null | undefined; }'.   Type '{ brand: string; organization: string; slug: string; user: string; }' is missing the following properties from type '{ userId: string; organizationId: string; brandId?: string | null | undefined; }': userId, organizationId",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 3,
       "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.controller.spec.ts",
@@ -3047,22 +3023,6 @@
       "fingerprint": "3820abffb062ff6c3fa5",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "files"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/images/src/controllers/training.controller.spec.ts",
-      "fingerprint": "5985ab7d7feb79c4f988",
-      "message": "Conversion of type '{ imageUrls: string[]; instancePrompt: string; triggerWord: string; }' to type 'TrainingRequest' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ imageUrls: string[]; instancePrompt: string; triggerWord: string; }' is missing the following properties from type 'TrainingRequest': personaSlug, loraName",
-      "workspace": "images"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/images/src/services/training.service.spec.ts",
-      "fingerprint": "747808201318df098322",
-      "message": "Cannot assign to 'pid' because it is a read-only property.",
-      "workspace": "images"
     },
     {
       "code": 2540,
@@ -5999,14 +5959,6 @@
       "fingerprint": "0153da429e4f5af1b63c",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "telegram"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/voices/src/services/voice-training.service.spec.ts",
-      "fingerprint": "a23c48ca834393dd057c",
-      "message": "Cannot assign to 'pid' because it is a read-only property.",
-      "workspace": "voices"
     },
     {
       "code": 2540,

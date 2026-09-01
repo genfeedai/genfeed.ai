@@ -2,7 +2,7 @@
 # Usage: docker build --target <service> -t genfeedai/<service> .
 #
 # Targets: api, web, website, workers, files, notifications,
-#          clips, mcp, discord, slack, telegram, images, videos, voices
+#          mcp, discord, slack, telegram
 
 # ─── Base ───────────────────────────────────────────────────────────
 # Docker resolves FROM before repository files are available, so this explicit
@@ -142,45 +142,6 @@ COPY --from=telegram-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/telegram
 EXPOSE 3019
 CMD ["bun", "run", "apps/server/telegram/dist/main.js"]
-
-# ─── GPU: Images ────────────────────────────────────────────────────
-FROM pruner AS images-pruned
-RUN turbo prune @genfeedai/images --docker
-
-FROM base AS images
-WORKDIR /app
-COPY --from=images-pruned /app/out/json/ .
-RUN bun install --frozen-lockfile
-COPY --from=images-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/images
-EXPOSE 3020
-CMD ["bun", "run", "apps/server/images/dist/main.js"]
-
-# ─── GPU: Videos ────────────────────────────────────────────────────
-FROM pruner AS videos-pruned
-RUN turbo prune @genfeedai/videos --docker
-
-FROM base AS videos
-WORKDIR /app
-COPY --from=videos-pruned /app/out/json/ .
-RUN bun install --frozen-lockfile
-COPY --from=videos-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/videos
-EXPOSE 3021
-CMD ["bun", "run", "apps/server/videos/dist/main.js"]
-
-# ─── GPU: Voices ────────────────────────────────────────────────────
-FROM pruner AS voices-pruned
-RUN turbo prune @genfeedai/voices --docker
-
-FROM base AS voices
-WORKDIR /app
-COPY --from=voices-pruned /app/out/json/ .
-RUN bun install --frozen-lockfile
-COPY --from=voices-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/voices
-EXPOSE 3022
-CMD ["bun", "run", "apps/server/voices/dist/main.js"]
 
 # ─── MCP ────────────────────────────────────────────────────────────
 FROM pruner AS mcp-pruned

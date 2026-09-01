@@ -1,11 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
-import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
-import { ByokService } from '@server/services/byok/byok.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   IngredientStatus,
   VoiceCloneStatus,
@@ -14,7 +7,14 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { ByokService } from '@server/services/byok/byok.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 
 describe('VoiceCloneService', () => {
@@ -33,7 +33,7 @@ describe('VoiceCloneService', () => {
     cloneVoice: ReturnType<typeof vi.fn>;
     deleteVoice: ReturnType<typeof vi.fn>;
   };
-  let fleet: {
+  let managedInferenceRuntime: {
     cloneVoice: ReturnType<typeof vi.fn>;
     isAvailable: ReturnType<typeof vi.fn>;
   };
@@ -56,7 +56,7 @@ describe('VoiceCloneService', () => {
       cloneVoice: vi.fn().mockResolvedValue({ voiceId: 'external-voice-1' }),
       deleteVoice: vi.fn(),
     };
-    fleet = {
+    managedInferenceRuntime = {
       cloneVoice: vi.fn().mockResolvedValue({ jobId: 'job-1' }),
       isAvailable: vi.fn().mockResolvedValue(true),
     };
@@ -75,7 +75,7 @@ describe('VoiceCloneService', () => {
     service = new VoiceCloneService(
       byok as unknown as ByokService,
       elevenLabs as unknown as ElevenLabsService,
-      fleet as unknown as FleetService,
+      managedInferenceRuntime as unknown as ManagedInferenceRuntimeService,
       logger as unknown as LoggerService,
       notifications as unknown as NotificationsPublisherService,
       shared as unknown as SharedService,
@@ -137,7 +137,7 @@ describe('VoiceCloneService', () => {
       ),
     ).resolves.toMatchObject({ id: ingredientId });
     expect(credits.settleElevenLabsCloneCredits).not.toHaveBeenCalled();
-    expect(fleet.cloneVoice).toHaveBeenCalledWith({
+    expect(managedInferenceRuntime.cloneVoice).toHaveBeenCalledWith({
       audioUrl: 'https://example.com/audio.mp3',
       handle: ingredientId,
       label: 'Clone',
@@ -151,7 +151,7 @@ describe('VoiceCloneService', () => {
   });
 
   it('marks an ingredient failed when Fleet rejects the clone job', async () => {
-    fleet.cloneVoice.mockResolvedValue(null);
+    managedInferenceRuntime.cloneVoice.mockResolvedValue(null);
 
     await expect(
       service.clone(

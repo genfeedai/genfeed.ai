@@ -173,16 +173,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/admin/fleet/pipeline/pipeline-page.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'apps/app/app/(protected)/admin/fleet/training/training-page.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/admin/overview/analytics/organizations/analytics-organizations-list.tsx',
     'to-locale-string',
     3,
