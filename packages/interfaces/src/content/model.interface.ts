@@ -79,3 +79,27 @@ export interface IModel extends IBaseEntity {
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
 }
+
+export interface IModelProviderContractSnapshot {
+  billingUnit?: string;
+  conditionalDimensions: Record<string, unknown>;
+  currency?: string;
+  discoveredAt: Date | string;
+  inputSchema: Record<string, unknown>;
+  lastSeenAt: Date | string;
+  mappingStatus: string;
+  outputSchema: Record<string, unknown>;
+  pricingType?: string;
+  reviewStatus: string;
+  schemaFamily?: string;
+  unitPrice?: string;
+  unsupportedReason?: string;
+  version: string;
+}
+
+export interface IModelProviderContracts {
+  endpoint: string;
+  pending: IModelProviderContractSnapshot | null;
+  provider: string;
+  reviewed: IModelProviderContractSnapshot | null;
+}

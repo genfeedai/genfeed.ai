@@ -69,6 +69,7 @@ const FIRST_FRAME_NATIVE_FIELDS = new Set([
 ]);
 const LAST_FRAME_NATIVE_FIELDS = new Set([
   'end_image',
+  'end_image_url',
   'last_frame',
   'last_frame_image',
   'last_image',

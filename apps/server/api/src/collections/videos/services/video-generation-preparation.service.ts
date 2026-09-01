@@ -276,6 +276,7 @@ export class VideoGenerationPreparationService {
           isBrandingEnabled: createVideoDto.isBrandingEnabled,
           lens: createVideoDto.lens,
           lighting: createVideoDto.lighting,
+          modelInputSchema: resolved.modelInputSchema,
           modelCategory:
             ((request as unknown as { selectedModel?: { category?: string } })
               .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,

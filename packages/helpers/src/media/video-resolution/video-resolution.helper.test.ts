@@ -53,6 +53,16 @@ describe('getVideoResolutionsByModel', () => {
     );
   });
 
+  it('returns the official MiniMax H3 Max fal resolution values', () => {
+    expect(getVideoResolutionsByModel(MODEL_KEYS.FAL_MINIMAX_H3_MAX)).toEqual([
+      { isDraft: true, label: '480P · Draft', value: '480P' },
+      { label: '768P', value: '768P' },
+    ]);
+    expect(getDefaultVideoResolution(MODEL_KEYS.FAL_MINIMAX_H3_MAX)).toBe(
+      '768P',
+    );
+  });
+
   it('lists only the two resolutions published for Seedance 2.5', () => {
     expect(
       getVideoResolutionsByModel(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),

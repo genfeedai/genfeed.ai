@@ -45,6 +45,8 @@ export interface ModelCatalogSeedEntry {
   defaultDuration?: number;
   description: string;
   durations?: readonly number[];
+  /** Exact provider endpoint when the collision-safe public key is prefixed. */
+  endpoint?: string;
   hasAudioToggle?: boolean;
   hasDurationEditing?: boolean;
   hasEndFrame?: boolean;
@@ -134,6 +136,9 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       cost: curated?.cost ?? 0,
       description:
         curated?.description ?? `${labelFromKey(key)} (${capability.category})`,
+      ...(curated && 'endpoint' in curated && curated.endpoint
+        ? { endpoint: curated.endpoint }
+        : {}),
       isActive: isCurated,
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,

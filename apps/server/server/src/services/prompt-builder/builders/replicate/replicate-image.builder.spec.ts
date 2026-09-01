@@ -22,27 +22,14 @@ vi.mock('@genfeedai/helpers', async () => ({
 // Mock schema util — we control schema loading in tests
 vi.mock('@server/services/prompt-builder/utils/replicate-schema.util', () => ({
   assertRequiredSchemaInput: vi.fn(),
-  clearSchemaCache: vi.fn(),
   detectImageReferenceFields: vi.fn(() => []),
   getArrayImageLimit: vi.fn(() => undefined),
   isArrayImageField: vi.fn(() => false),
-  loadModelSchema: vi.fn(() => null),
-  modelIdToSchemaFilename: vi.fn(
-    (modelId: string) => `${modelId.split('/').pop()}.schema.json`,
-  ),
+  resolveModelSchema: vi.fn(() => null),
+  replicateModelIdToSlug: vi.fn((modelId: string) => modelId.split('/').pop()),
   schemaHasField: vi.fn(() => false),
 }));
 
-import { ReplicateImageBuilder } from '@server/services/prompt-builder/builders/replicate/replicate-image.builder';
-import type { PromptBuilderParams } from '@server/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import type { ReplicateModelSchema } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
-import {
-  detectImageReferenceFields,
-  getArrayImageLimit,
-  isArrayImageField,
-  loadModelSchema,
-  schemaHasField,
-} from '@server/services/prompt-builder/utils/replicate-schema.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import {
@@ -50,6 +37,16 @@ import {
   getDefaultAspectRatio,
 } from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
+import { ReplicateImageBuilder } from '@server/services/prompt-builder/builders/replicate/replicate-image.builder';
+import type { PromptBuilderParams } from '@server/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import type { ReplicateModelSchema } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
+import {
+  detectImageReferenceFields,
+  getArrayImageLimit,
+  isArrayImageField,
+  resolveModelSchema,
+  schemaHasField,
+} from '@server/services/prompt-builder/utils/replicate-schema.util';
 
 const createParams = (
   overrides: Partial<PromptBuilderParams> = {},
@@ -99,7 +96,7 @@ describe('ReplicateImageBuilder', () => {
       },
     );
     (getDefaultAspectRatio as ReturnType<typeof vi.fn>).mockReturnValue('16:9');
-    (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(null);
     (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue(
       [],
     );
@@ -341,7 +338,7 @@ describe('ReplicateImageBuilder', () => {
     };
 
     it('should map references to schema-detected array field', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         fluxLikeSchema,
       );
       (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue([
@@ -370,7 +367,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should respect array image limit from schema', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         fluxLikeSchema,
       );
       (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue([
@@ -394,7 +391,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should map references to single-value field for non-array schemas', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         singleImageSchema,
       );
       (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue([
@@ -419,7 +416,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should include safety_filter_level when schema has it', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         imagenLikeSchema,
       );
       (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
@@ -437,7 +434,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should omit safety_filter_level when schema lacks it', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         singleImageSchema,
       );
       (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
@@ -455,7 +452,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should include output_format only when schema has it', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         singleImageSchema,
       );
       (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
@@ -474,7 +471,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should include seed only when schema has it and param is provided', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         singleImageSchema,
       );
       (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
@@ -498,7 +495,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should include resolution only when schema has it', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         fluxLikeSchema,
       );
       (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
@@ -516,7 +513,7 @@ describe('ReplicateImageBuilder', () => {
     });
 
     it('should handle schema with no image reference fields gracefully', () => {
-      (loadModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
+      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         imagenLikeSchema,
       );
       (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue(

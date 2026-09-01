@@ -118,4 +118,73 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       );
     },
   );
+
+  it.each([
+    {
+      endpoint: 'minimax/h3-max/text-to-video',
+      expectedInput: {
+        aspect_ratio: '21:9',
+        duration: 7,
+        enable_safety_checker: true,
+        prompt: 'a silver airship crossing the desert',
+        prompt_expansion_mode: 'quality',
+        resolution: '768P',
+        seed: 42,
+      },
+      promptParams: {
+        aspect_ratio: '21:9',
+        duration: 7,
+        prompt_expansion_mode: 'quality',
+        resolution: '768P',
+        seed: 42,
+      },
+    },
+    {
+      endpoint: 'minimax/h3-max/image-to-video',
+      expectedInput: {
+        duration: 12,
+        enable_safety_checker: true,
+        end_image_url: 'https://cdn.test/end.png',
+        image_url: 'https://cdn.test/start.png',
+        prompt: 'a silver airship crossing the desert',
+        prompt_expansion_mode: 'balanced',
+        resolution: '480P',
+      },
+      promptParams: {
+        aspect_ratio: '9:16',
+        duration: 12,
+        end_image_url: 'https://cdn.test/end.png',
+        image_url: 'https://cdn.test/start.png',
+        prompt_expansion_mode: 'balanced',
+        resolution: '480P',
+      },
+    },
+  ])(
+    'routes MiniMax H3 Max to $endpoint with the published contract',
+    async ({ endpoint, expectedInput, promptParams }) => {
+      const falService = {
+        generateVideo: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://cdn.test/out.mp4' }),
+      };
+      const adapter = new FalVideoGenerationProviderAdapter(
+        falService as unknown as FalService,
+      );
+
+      await adapter.generate({
+        duration: 5,
+        height: 1080,
+        model: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+        modelEndpoint: 'minimax/h3-max/text-to-video',
+        prompt: 'a silver airship crossing the desert',
+        promptParams,
+        width: 1920,
+      });
+
+      expect(falService.generateVideo).toHaveBeenCalledWith(
+        endpoint,
+        expectedInput,
+      );
+    },
+  );
 });

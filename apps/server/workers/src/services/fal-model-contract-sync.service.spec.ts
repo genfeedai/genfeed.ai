@@ -1,13 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelProvider } from '@genfeedai/enums';
+import type { ModelsService } from '@server/collections/models/services/models.service';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
-import {
-  FalModelContractSyncService,
-  hashFalContract,
-} from '@workers/services/fal-model-contract-sync.service';
+import { FalModelContractSyncService } from '@workers/services/fal-model-contract-sync.service';
+import { hashProviderContract } from '@workers/services/provider-contract.util';
 
 const fixtureDir = fileURLToPath(
   new URL('../../test/fixtures/fal/', import.meta.url),
@@ -240,8 +238,8 @@ describe('FalModelContractSyncService', () => {
   });
 
   it('hashes object-key order deterministically', () => {
-    expect(hashFalContract({ a: 1, nested: { x: 2, y: 3 } })).toBe(
-      hashFalContract({ nested: { y: 3, x: 2 }, a: 1 }),
+    expect(hashProviderContract({ a: 1, nested: { x: 2, y: 3 } })).toBe(
+      hashProviderContract({ nested: { y: 3, x: 2 }, a: 1 }),
     );
   });
 });

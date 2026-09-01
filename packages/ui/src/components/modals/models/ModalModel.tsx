@@ -2,11 +2,13 @@ import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModalEnum, ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IModel } from '@genfeedai/interfaces';
+import type { IModel, IModelProviderContracts } from '@genfeedai/interfaces';
 import { Model } from '@genfeedai/models/ai/model.model';
 import type { ModalModelProps } from '@genfeedai/props/modals/modal.props';
 import { ModelsService } from '@genfeedai/services/ai/models.service';
+import { useQuery } from '@tanstack/react-query';
 import Modal from '@ui/modals/modal/Modal';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
 import ModalModelFormContent from './ModalModelFormContent';
@@ -19,6 +21,17 @@ export default function ModalModel({
   mode = 'edit',
 }: ModalModelProps) {
   const isViewMode = mode === 'view';
+  const getModelsService = useAuthedService((token: string) =>
+    ModelsService.getInstance(token),
+  );
+  const providerContractsQuery = useQuery<IModelProviderContracts>({
+    enabled: !isViewMode && Boolean(model?.id),
+    queryFn: async ({ signal }) => {
+      const service = await getModelsService();
+      return service.getProviderContracts(model?.id ?? '', signal);
+    },
+    queryKey: ['model-provider-contracts', model?.id],
+  });
 
   const modelCategories = useMemo(
     () => Object.values(ModelCategory) as ModelCategory[],
@@ -161,6 +174,9 @@ export default function ModalModel({
           model={model}
           modelProviders={modelProviders}
           modelCategories={modelCategories}
+          providerContracts={providerContractsQuery.data}
+          isProviderContractsError={providerContractsQuery.isError}
+          isProviderContractsLoading={providerContractsQuery.isLoading}
         />
       )}
     </Modal>
