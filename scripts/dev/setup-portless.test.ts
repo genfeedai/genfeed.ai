@@ -1,10 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPortlessCommand,
   isPortlessServiceReady,
   PORTLESS_SERVICE_INSTALL_ARGS,
+  shouldInstallPortlessService,
+  waitForPortlessServiceReady,
 } from './setup-portless';
 
 describe('Portless developer setup', () => {
+  it('runs the pinned Portless CLI with Node instead of the Bun parent runtime', () => {
+    expect(
+      buildPortlessCommand(
+        ['service', 'status'],
+        '/opt/homebrew/bin/node',
+        '/repo/node_modules/.bin/portless',
+      ),
+    ).toEqual([
+      '/opt/homebrew/bin/node',
+      '/repo/node_modules/.bin/portless',
+      'service',
+      'status',
+    ]);
+  });
+
   it('pins the startup service to the canonical HTTPS contract', () => {
     expect(PORTLESS_SERVICE_INSTALL_ARGS).toEqual([
       'service',
@@ -18,8 +36,7 @@ describe('Portless developer setup', () => {
   });
 
   it('accepts the required installed service status', () => {
-    expect(
-      isPortlessServiceReady(`
+    const readyStatus = `
         Manager state: running
         Installed: yes
         Proxy on 443: responding
@@ -27,8 +44,14 @@ describe('Portless developer setup', () => {
         TLDs: .localhost
         LAN mode: no
         Wildcard: no
-      `),
-    ).toBe(true);
+      `;
+
+    expect(isPortlessServiceReady(readyStatus)).toBe(true);
+    expect(shouldInstallPortlessService(readyStatus)).toBe(false);
+  });
+
+  it('installs Portless when no healthy startup service is available', () => {
+    expect(shouldInstallPortlessService(null)).toBe(true);
   });
 
   it('rejects an HTTP or non-standard-port service', () => {
@@ -57,5 +80,42 @@ describe('Portless developer setup', () => {
         Wildcard: no
       `),
     ).toBe(false);
+  });
+
+  it('waits for the startup service to become ready', async () => {
+    const statuses = [
+      null,
+      `
+        Manager state: stopped
+        Installed: yes
+        Proxy on 443: not responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `,
+      `
+        Manager state: running
+        Installed: yes
+        Proxy on 443: responding
+        HTTPS: yes
+        TLDs: .localhost
+        LAN mode: no
+        Wildcard: no
+      `,
+    ];
+    const sleepCalls: number[] = [];
+
+    await expect(
+      waitForPortlessServiceReady(
+        () => statuses.shift() ?? null,
+        async (milliseconds) => {
+          sleepCalls.push(milliseconds);
+        },
+        3,
+        250,
+      ),
+    ).resolves.toBe(true);
+    expect(sleepCalls).toEqual([250, 250]);
   });
 });
