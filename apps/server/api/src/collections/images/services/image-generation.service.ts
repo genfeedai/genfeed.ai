@@ -10,7 +10,6 @@ import type {
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type {
@@ -27,16 +26,13 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
 import { ImagesService } from '@server/collections/images/services/images.service';
 import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
@@ -84,14 +80,11 @@ export class ImageGenerationService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly assetsService: AssetsService,
     private readonly brandsService: BrandsService,
     private readonly admissionService: ImageGenerationAdmissionService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly imageGenerationProviderDispatchService: ImageGenerationProviderDispatchService,
     private readonly imagesService: ImagesService,
-    private readonly ingredientsService: IngredientsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly loggerService: LoggerService,
     private readonly modelRegistrationService: ModelRegistrationService,
@@ -160,14 +153,11 @@ export class ImageGenerationService {
       ? createImageDto.references.map((id) => id.toString())
       : [];
 
-    const referenceImageUrls: string[] = await buildReferenceImageUrls({
-      assetsService: this.assetsService,
-      configService: this.configService,
-      ingredientsService: this.ingredientsService,
-      loggerService: this.loggerService,
-      organizationId: user.organizationId,
-      referenceIds,
-    });
+    const referenceImageUrls =
+      await this.admissionService.resolveReferenceImageUrls(
+        user.organizationId,
+        referenceIds,
+      );
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 

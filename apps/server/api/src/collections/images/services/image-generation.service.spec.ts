@@ -275,19 +275,20 @@ const createService = () => {
     } as never,
   );
   const admissionService = new ImageGenerationAdmissionService(
+    assetsService as never,
+    configService as never,
     creditsService,
     imagesService as never,
+    ingredientsService as never,
+    loggerService,
   );
 
   const service = new ImageGenerationService(
-    configService as never,
-    assetsService as never,
     brandsService as never,
     admissionService,
     pollingService as never,
     providerDispatchService,
     imagesService as never,
-    ingredientsService as never,
     organizationSettingsService as never,
     loggerService,
     modelRegistrationService as never,
