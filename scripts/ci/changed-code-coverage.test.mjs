@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +23,7 @@ import {
   parseLcov,
   parseUnifiedDiff,
   readBaseline,
+  readSurfacePath,
   resolveDiffInputs,
   worstResult,
 } from './changed-code-coverage.mjs';
@@ -235,6 +244,7 @@ test('normalized report inputs use resolved commit IDs, not commit-ish aliases',
     baseline: BASELINE,
   });
 
+  assert.equal(built.version, 2);
   assert.equal(built.normalized.baseSha, canonicalBase);
   assert.equal(built.normalized.headSha, canonicalHead);
 });
@@ -562,6 +572,7 @@ test('annotations collapse contiguous uncovered runs and stay bounded', () => {
     annotations[0],
     /^::notice file=apps\/app\/a\.ts,line=1,endLine=3::/,
   );
+  assert.match(annotations[0], /changed-code coverage, observation mode/);
   assert.match(annotations[1], /line=9,endLine=9::/);
   assert.equal(formatAnnotations(built, 1).length, 1);
 });
@@ -607,6 +618,7 @@ test('the committed baseline is a reviewable observation-phase record', () => {
   assert.equal(BASELINE.treatUnmeasuredAsUncovered, false);
   assert.ok(BASELINE.observation.requiredRuns >= 1);
   assert.ok(BASELINE.observation.latencyBudgetMinutesP95 <= 20);
+  assert.equal(BASELINE.observation.evidence.minimumReportVersion, 2);
   assert.ok(Array.isArray(BASELINE.ratchetHistory));
   assert.ok(BASELINE.ratchetHistory.length >= 1);
 });
@@ -702,6 +714,36 @@ test('shard lcov reports concatenate into one merged surface report', () => {
   );
 });
 
+test('a surface root LCOV is paired with child shard outcomes and latency', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'changed-coverage-surface-'));
+  try {
+    for (const [shard, seconds] of [
+      ['shard-1', '120'],
+      ['shard-2', '240'],
+    ]) {
+      const directory = path.join(root, shard);
+      mkdirSync(directory);
+      writeFileSync(path.join(directory, 'outcome'), 'success\n');
+      writeFileSync(path.join(directory, 'seconds'), `${seconds}\n`);
+    }
+    const lcov = 'SF:src/a.ts\nDA:1,1\nend_of_record\n';
+    writeFileSync(path.join(root, 'lcov.info'), lcov);
+
+    const shards = readSurfacePath(root);
+
+    assert.equal(shards.length, 2);
+    assert.equal(shards[0].lcov, lcov);
+    assert.equal(shards[1].lcov, null);
+    assert.deepEqual(aggregateSurfaceShards(shards), {
+      latencySeconds: 240,
+      lcov,
+      result: 'success',
+    });
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
 test('worst-of folds the job result together with the shard outcomes', () => {
   // Step-level continue-on-error leaves the job `success` when a step failed…
   assert.equal(worstResult('success', 'failure'), 'failure');
@@ -741,7 +783,7 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('coverage rides the changed-test shards, instrumented on pull requests only', () => {
+test('coverage rides the changed-test shards as mergeable blobs on pull requests only', () => {
   // #1969: the standalone coverage matrix re-ran the same `--changed`
   // selection the test shards had just executed — ~31% of CI runner-minutes
   // for a duplicate signal. The fold runs each changed-test shard once,
@@ -762,11 +804,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
       /if \[ "\$WITH_COVERAGE" = "true" \]/,
       `${name} must branch on the env flag, not the raw event name`,
     );
-    assert.match(
-      job,
-      /--coverage\.reporter=lcovonly/,
-      `${name} must emit lcov for the observation report`,
-    );
+    assert.match(job, /--reporter=default --reporter=blob/);
     // One slow or red shard must not cancel its siblings and destroy their
     // lcov — and every shard's verdict still reaches the gate individually.
     assert.match(job, /fail-fast: false/, `${name} must not fail fast`);
@@ -781,7 +819,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
     assert.match(job, /(?<!\.)coverage-shard\/seconds/);
     assert.match(
       job,
-      new RegExp(`changed-code-coverage-lcov-${surface}-`),
+      new RegExp(`changed-code-coverage-blob-${surface}-`),
       `${name} must upload shards under the ${surface} artifact prefix`,
     );
     assert.match(job, /-shard-\$\{\{ matrix\.shard \}\}\n/);
@@ -806,7 +844,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
   }
 });
 
-test('the report reads each surface as its own directory of shards', () => {
+test('the report merges blobs and reads each surface as its own shard directory', () => {
   const job = ciJob('coverage-changed-report');
 
   // The surface result now comes from the folded changed-test jobs — the
@@ -818,7 +856,7 @@ test('the report reads each surface as its own directory of shards', () => {
     assert.match(
       job,
       new RegExp(
-        `pattern: changed-code-coverage-lcov-${surface}-[^\\n]*-shard-\\*`,
+        `pattern: changed-code-coverage-blob-${surface}-[^\\n]*-shard-\\*`,
       ),
       `report must collect every ${surface} shard`,
     );
@@ -830,6 +868,21 @@ test('the report reads each surface as its own directory of shards', () => {
       `report must pass the ${surface} shard directory, not a single lcov`,
     );
   }
+
+  assert.match(job, /bunx vitest --merge-reports \.vitest-reports/);
+  assert.match(job, /--coverage\.reporter=lcovonly/);
+  assert.match(
+    job,
+    /merge_surface app apps\/app \.\/vitest\.config\.mts "\$APP_RESULT"/,
+  );
+  assert.match(
+    job,
+    /merge_surface api apps\/server\/api vitest\.config\.ts "\$API_RESULT"/,
+  );
+  assert.match(
+    job,
+    /PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}/,
+  );
 });
 
 test('the API surface suppresses whole-repo thresholds it can never meet', () => {
