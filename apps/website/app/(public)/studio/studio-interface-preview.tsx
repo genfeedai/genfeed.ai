@@ -87,7 +87,7 @@ export default function StudioInterfacePreview({
 
         <MediaCanvasShell
           ambientColor="#54446e"
-          ambientIntensity={0.18}
+          ambientIntensity="default"
           className="min-w-0"
           hasTexture={false}
         >
