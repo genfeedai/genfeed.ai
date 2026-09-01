@@ -5,6 +5,7 @@ import { ConfigService } from '@workers/config/config.service';
 import {
   PLATFORM_SCHEDULE_CATALOG,
   PLATFORM_SCHEDULE_QUEUE,
+  type PlatformSchedule,
   type PlatformScheduledTaskName,
   platformSchedulerId,
   RETIRED_SYSTEM_SWEEP_SCHEDULER_IDS,
@@ -37,7 +38,7 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
   async reconcile(): Promise<void> {
     const desiredSchedulerIds = new Set<string>();
     const entries = Object.entries(PLATFORM_SCHEDULE_CATALOG) as Array<
-      [PlatformScheduledTaskName, { pattern: string; timezone: 'UTC' }]
+      [PlatformScheduledTaskName, PlatformSchedule]
     >;
 
     for (const [taskName, schedule] of entries) {

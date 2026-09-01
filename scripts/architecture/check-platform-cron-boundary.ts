@@ -73,13 +73,13 @@ export type CronBoundaryViolation =
     }
   | {
       entry: CronBoundaryEntry;
-      kind: 'stale-sweep-allowlist';
+      kind: 'stale-handler-allowlist';
       message: string;
     };
 
 export type CronBoundaryResult = {
   detectedCrons: DetectedCron[];
-  orphanCronServices: CronBoundaryEntry[];
+  platformScheduleHandlerServices: CronBoundaryEntry[];
   pendingMigrationCrons: Array<{
     cron: DetectedCron;
     entry: PendingCronMigrationEntry;
@@ -97,52 +97,16 @@ export type CronBoundaryOptions = {
   pendingMigrations?: PendingCronMigrationEntry[];
   platformAllowlist?: CronBoundaryEntry[];
   rootDir?: string;
-  sweepServiceAllowlist?: CronBoundaryEntry[];
+  handlerAllowlist?: CronBoundaryEntry[];
   workersCronServiceGlobs?: string[];
 };
 
-export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
-  {
-    file: 'apps/server/api/src/collections/referrals/services/referrals.service.ts',
-    id: 'referral-reward-settlement',
-    methodName: 'settleDueRewards',
-    reason:
-      'Platform billing-ledger maintenance for durable, idempotent referral reward settlement. The schedule is not tenant-configurable and must recover pending Postgres state after API restarts.',
-  },
-  {
-    file: 'apps/server/workers/src/processors/api/queues/notification-delivery/notification-delivery-recovery.service.ts',
-    id: 'notification-delivery-recovery',
-    methodName: 'recover',
-    reason:
-      'Platform recovery for durable notification deliveries after Redis outages, worker crashes, or expired delivery leases.',
-  },
-  {
-    file: 'apps/server/api/src/services/video-completion/video-completion.service.ts',
-    id: 'editor-render-reconciliation',
-    methodName: 'reconcileEditorRenders',
-    reason:
-      'Platform recovery for durable editor render completion after missed Redis pub/sub events or API restarts.',
-  },
-  {
-    file: 'apps/server/api/src/services/video-completion/video-completion.service.ts',
-    id: 'raw-cut-clip-reconciliation',
-    methodName: 'reconcileRawCutClips',
-    reason:
-      'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
-  },
-  {
-    file: 'apps/server/files/src/cron/temp-file-cleanup.cron.ts',
-    id: 'temp-file-cleanup',
-    methodName: 'cleanupTempFiles',
-    reason: 'Platform temporary file cleanup.',
-  },
-  {
-    file: 'apps/server/workers/src/monitoring/queue-metrics.service.ts',
-    id: 'queue-operational-metrics',
-    methodName: 'publishQueueMetrics',
-    reason:
-      'Platform operational telemetry and threshold alerts for BullMQ health. CloudWatch stays fixed-cardinality; per-queue snapshots contain metadata only and never tenant-configurable values.',
-  },
+/**
+ * Every decorator-less handler retained under workers/crons and invoked by
+ * PlatformSchedulesProcessor. The boundary scans this inventory so a stale
+ * cron-named service cannot survive the hard cut without an explicit task.
+ */
+export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
   {
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
     id: 'credentials-refresh',
@@ -206,89 +170,76 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'refreshGlobalTrends',
     reason: 'Platform global trends corpus refresh.',
   },
-];
-
-/**
- * Decorator-less services under workers/crons that SystemSweepsProcessor
- * (BullMQ job schedulers, #1092) still invokes. They must NOT regain @Cron.
- */
-export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
   {
     file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
-    id: 'batch-generation-reconcile-sweep',
+    id: 'batch-generation-reconcile',
     methodName: 'reconcileSettlementShortfalls',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts',
-    id: 'engagement-triggers-sweep',
+    id: 'engagement-triggers',
     methodName: 'processArmedRules',
     reason:
-      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant rule runs through engagement-rule-evaluation.',
+      'Platform schedule discovery handler; every tenant rule runs through engagement-rule-evaluation.',
   },
   {
     file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
-    id: 'scheduled-posts-sweep',
+    id: 'posts-publish',
     methodName: 'publishScheduledPosts',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',
-    id: 'rss-autopost-sweep',
+    id: 'rss-autopost',
     methodName: 'pollEnabledSources',
     reason:
-      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant source runs through rss-source-poll.',
+      'Platform schedule discovery handler; every tenant source runs through rss-source-poll.',
   },
   {
     file: 'apps/server/workers/src/crons/review-gate/cron.review-gate-timeout.service.ts',
-    id: 'review-gate-timeout-sweep',
+    id: 'review-gate-timeout',
     methodName: 'resolveTimedOutReviewGates',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/streaks/cron.streaks.service.ts',
-    id: 'streaks-sweep',
+    id: 'streak-maintenance',
     methodName: 'processStreaks',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts',
-    id: 'tiktok-status-sweep',
+    id: 'tiktok-status',
     methodName: 'checkPendingTiktokPosts',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/transcript-purge/cron.transcript-purge.service.ts',
-    id: 'transcript-purge-sweep',
+    id: 'transcript-purge',
     methodName: 'purgeExpiredTranscripts',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; #3030 daily wipe of soft-deleted agent transcripts.',
+      'Platform schedule handler for the #3030 daily wipe of soft-deleted agent transcripts.',
   },
   {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-status.service.ts',
-    id: 'youtube-status-sweep',
+    id: 'youtube-status',
     methodName: 'checkScheduledYoutubeVideos',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+    reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
     file: 'apps/server/workers/src/crons/workflow-artifacts/cron.workflow-artifacts.service.ts',
-    id: 'workflow-artifacts-cleanup-sweep',
+    id: 'workflow-artifact-cleanup',
     methodName: 'queueExpiredArtifactCleanup',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
+      'Platform schedule handler that enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
   },
   {
     file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
-    id: 'youtube-messages-sweep',
+    id: 'youtube-messages',
     methodName: 'syncYoutubeMessages',
     reason:
-      'System sweep adapter; each connected credential fans out to the existing YouTube comment-sync workflow.',
+      'Platform schedule handler; each connected credential fans out to the existing YouTube comment-sync workflow.',
   },
 ];
 
@@ -465,17 +416,17 @@ function detectCronDecorators(
   return detected;
 }
 
-function detectOrphanCronServices(
+function detectPlatformScheduleHandlerServices(
   rootDir: string,
   workersCronServiceGlobs: string[],
   ignoreGlobs: string[],
-  sweepServiceAllowlist: CronBoundaryEntry[],
+  handlerAllowlist: CronBoundaryEntry[],
   violations: CronBoundaryViolation[],
 ): CronBoundaryEntry[] {
   const allowlistedFiles = new Set(
-    sweepServiceAllowlist.map((entry) => normalizePath(entry.file)),
+    handlerAllowlist.map((entry) => normalizePath(entry.file)),
   );
-  const orphanCronServices: CronBoundaryEntry[] = [];
+  const platformScheduleHandlerServices: CronBoundaryEntry[] = [];
   const files = globSync(workersCronServiceGlobs, {
     absolute: true,
     cwd: rootDir,
@@ -492,12 +443,12 @@ function detectOrphanCronServices(
     }
 
     if (allowlistedFiles.has(relativeFile)) {
-      const entry = sweepServiceAllowlist.find(
+      const entry = handlerAllowlist.find(
         (candidate) => normalizePath(candidate.file) === relativeFile,
       );
 
       if (entry) {
-        orphanCronServices.push(entry);
+        platformScheduleHandlerServices.push(entry);
       }
       continue;
     }
@@ -511,11 +462,11 @@ function detectOrphanCronServices(
       },
       kind: 'orphan-cron-service',
       message:
-        'Decorator-less workers/crons service is not allowlisted. Delete dead leftovers, or add a SystemSweeps allowlist entry if BullMQ still invokes it.',
+        'Decorator-less workers/crons service is not registered as a platform schedule handler. Delete dead leftovers or register the handler.',
     });
   }
 
-  for (const entry of sweepServiceAllowlist) {
+  for (const entry of handlerAllowlist) {
     const absolutePath = path.join(rootDir, entry.file);
 
     try {
@@ -523,14 +474,14 @@ function detectOrphanCronServices(
     } catch {
       violations.push({
         entry,
-        kind: 'stale-sweep-allowlist',
+        kind: 'stale-handler-allowlist',
         message:
-          'System sweep allowlist entry no longer matches a workers/crons service file. Remove or update this entry.',
+          'Platform schedule handler entry no longer matches a workers/crons service file. Remove or update this entry.',
       });
     }
   }
 
-  return orphanCronServices;
+  return platformScheduleHandlerServices;
 }
 
 export function runCheckPlatformCronBoundary(
@@ -542,8 +493,11 @@ export function runCheckPlatformCronBoundary(
   const platformAllowlist = options.platformAllowlist ?? [];
   const pendingMigrations =
     options.pendingMigrations ?? PENDING_TENANT_CRON_MIGRATIONS;
-  const sweepServiceAllowlist = options.sweepServiceAllowlist ?? [];
-  const workersCronServiceGlobs = options.workersCronServiceGlobs ?? [];
+  const handlerAllowlist =
+    options.handlerAllowlist ?? PLATFORM_SCHEDULE_HANDLER_ALLOWLIST;
+  const workersCronServiceGlobs = options.workersCronServiceGlobs ?? [
+    'apps/server/workers/src/crons/**/*.service.ts',
+  ];
 
   const indexedEntries = new Map<string, IndexedEntry>();
   const violations: CronBoundaryViolation[] = [];
@@ -642,17 +596,17 @@ export function runCheckPlatformCronBoundary(
     }
   }
 
-  const orphanCronServices = detectOrphanCronServices(
+  const platformScheduleHandlerServices = detectPlatformScheduleHandlerServices(
     rootDir,
     workersCronServiceGlobs,
     ignoreGlobs,
-    sweepServiceAllowlist,
+    handlerAllowlist,
     violations,
   );
 
   return {
     detectedCrons,
-    orphanCronServices,
+    platformScheduleHandlerServices,
     pendingMigrationCrons,
     platformCrons,
     violations,
@@ -687,7 +641,7 @@ if (isMainModule()) {
       if (
         violation.kind === 'stale-entry' ||
         violation.kind === 'orphan-cron-service' ||
-        violation.kind === 'stale-sweep-allowlist'
+        violation.kind === 'stale-handler-allowlist'
       ) {
         console.error(
           `- ${violation.entry.file}#${violation.entry.methodName}: ${violation.message}`,

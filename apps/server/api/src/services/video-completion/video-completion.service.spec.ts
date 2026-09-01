@@ -175,6 +175,31 @@ describe('VideoCompletionService', () => {
         expect.any(Function),
       );
     });
+
+    it.each([
+      null,
+      {},
+      {
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        status: 'pending',
+        timestamp: new Date().toISOString(),
+      },
+      {
+        ingredientId: mockIngredientId,
+        status: Status.COMPLETED,
+        timestamp: new Date().toISOString(),
+      },
+    ])('ignores an invalid completion payload: %j', async (payload) => {
+      const handleVideoCompletion = vi.spyOn(service, 'handleVideoCompletion');
+      await subscriberService.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+
+      await subscribeCallback(payload);
+
+      expect(handleVideoCompletion).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleVideoCompletion', () => {
