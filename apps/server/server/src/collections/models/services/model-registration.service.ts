@@ -1,3 +1,4 @@
+import { ModelLifecycle } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -24,9 +25,7 @@ export class ModelRegistrationService {
     modelKey: string,
     organizationId: string,
   ): Promise<ModelDocument> {
-    const model = await this.modelsService.findOne({
-      key: modelKey,
-    });
+    const model = await this.findVisibleModel(modelKey, organizationId);
 
     if (!model) {
       throw new BadRequestException(`Unknown model: ${modelKey}`);
@@ -62,7 +61,52 @@ export class ModelRegistrationService {
       throw new ForbiddenException('Model not enabled for this organization');
     }
 
+    if (model.lifecycle === ModelLifecycle.RETIRED) {
+      return this.resolveRetiredSuccessor(model);
+    }
+
+    if (!model.isActive) {
+      throw new ForbiddenException('Model is not available for execution');
+    }
+
     return model;
+  }
+
+  private async resolveRetiredSuccessor(
+    model: ModelDocument,
+  ): Promise<ModelDocument> {
+    const seen = new Set<string>();
+    let current: ModelDocument | null = model;
+
+    while (current?.lifecycle === ModelLifecycle.RETIRED) {
+      if (!current.key || seen.has(current.key) || !current.succeededBy) {
+        throw new ForbiddenException('Retired model has no safe successor');
+      }
+      seen.add(current.key);
+      current = await this.modelsService.findOne({
+        key: current.succeededBy,
+        organizationId: current.organizationId ?? null,
+      });
+    }
+
+    if (!current?.isActive || current.isDeleted) {
+      throw new ForbiddenException('Retired model has no callable successor');
+    }
+    return current;
+  }
+
+  private async findVisibleModel(
+    key: string,
+    organizationId: string,
+  ): Promise<ModelDocument | null> {
+    const privateModel = await this.modelsService.findOne({
+      key,
+      organizationId,
+    });
+    if (privateModel) {
+      return privateModel;
+    }
+    return this.modelsService.findOne({ key, organizationId: null });
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {

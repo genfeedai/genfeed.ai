@@ -1,5 +1,3 @@
-import { buildLlmGenerationTelemetryProperties } from '@server/services/integrations/llm/llm-generation-telemetry';
-import { LlmVendorCostLedgerService } from '@server/services/integrations/llm/llm-vendor-cost-ledger.service';
 import {
   computeLlmCompletionCostUsd,
   computeLlmPromptCostUsd,
@@ -14,6 +12,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
 import { Injectable } from '@nestjs/common';
+import { buildLlmGenerationTelemetryProperties } from '@server/services/integrations/llm/llm-generation-telemetry';
+import { LlmVendorCostLedgerService } from '@server/services/integrations/llm/llm-vendor-cost-ledger.service';
 
 const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 const POSTHOG_CAPTURE_TIMEOUT_MS = 800;
@@ -35,7 +35,8 @@ export class LlmCompletionTelemetryService {
       model: event.model,
       promptTokens: event.promptTokens,
     };
-    const vendorCostMicros = computeLlmVendorCostMicros(costInput);
+    const vendorCostMicros =
+      event.vendorCostMicros ?? computeLlmVendorCostMicros(costInput);
     const costs = {
       inputCostUsd: computeLlmPromptCostUsd(costInput),
       outputCostUsd: computeLlmCompletionCostUsd(costInput),

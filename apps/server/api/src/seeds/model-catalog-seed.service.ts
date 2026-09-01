@@ -78,7 +78,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     return {
       category: entry.category,
       description: entry.description,
-      isLegacy: entry.isLegacy ?? false,
       label: entry.label,
       provider: entry.provider,
       ...(entry.aspectRatios ? { aspectRatios: [...entry.aspectRatios] } : {}),
@@ -209,6 +208,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDefault: entry.isDefault ?? false,
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
+      isFree: entry.isFree ?? false,
+      isLegacy: entry.isLegacy ?? false,
+      lifecycle: entry.lifecycle,
       isPublic: entry.isPublic ?? true,
       endpoint: entry.endpoint ?? entry.key,
       key: entry.key,
@@ -232,6 +234,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       // declares free is the exception — there 0 is the curated price, so
       // holding a stale non-zero cost would bill a round the provider gave away.
       ...(entry.cost > 0 || entry.isFree ? { cost: entry.cost } : {}),
+      ...(entry.isFree ? { isFree: true } : {}),
       // Unit pricing + provider USD must not lag the catalog — bill time prefers
       // providerCostUsd × live applyMargin.
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),
@@ -265,6 +268,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           await this.demoteOtherCategoryDefaults(entry);
           updateData.isActive = true;
           updateData.isDiscovered = false;
+          updateData.lifecycle = entry.lifecycle;
           updateData.isPublic = true;
         }
         updateData.isDefault = targetIsDefault;

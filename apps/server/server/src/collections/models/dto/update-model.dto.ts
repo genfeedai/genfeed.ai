@@ -1,16 +1,15 @@
-import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 /**
  * Registry review transitions reachable via `PATCH /models/:id`. Setting
  * `reviewStatus` routes the update to the matching registry-review service
- * method (approve/reject/legacy) instead of a plain field write. Other stored
+ * method (approve/reject) instead of a plain field write. Other stored
  * values (`pending`, `discovered`) are owned by sync jobs, not the API.
  */
 export const MODEL_REVIEW_STATUS_TRANSITIONS = [
   'approved',
-  'legacy',
   'rejected',
 ] as const;
 
@@ -30,7 +29,7 @@ export class UpdateModelDto extends PartialType(CreateModelDto) {
   @IsOptional()
   @ApiProperty({
     description:
-      'Registry review transition. Routes the update to approve/reject/legacy.',
+      'Registry review transition. Routes the update to approve/reject.',
     enum: MODEL_REVIEW_STATUS_TRANSITIONS,
     required: false,
   })
@@ -43,12 +42,4 @@ export class UpdateModelDto extends PartialType(CreateModelDto) {
     required: false,
   })
   readonly reason?: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Replacement model key or id when marking a model legacy',
-    required: false,
-  })
-  readonly succeededBy?: string;
 }

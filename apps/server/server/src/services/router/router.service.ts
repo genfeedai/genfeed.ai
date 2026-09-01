@@ -1,8 +1,11 @@
+import { DEFAULT_CONTEXT_EMBEDDING_MODEL } from '@genfeedai/constants';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { type ModelDocument } from '@server/collections/models/schemas/model.schema';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { isModelOnAllowlist } from '@server/collections/models/utils/enabled-model.util';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   ModelRecommendation,
@@ -11,50 +14,8 @@ import type {
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@server/services/router/interfaces/router.interfaces';
-import { isCloudDeployment } from '@genfeedai/config';
-import {
-  DEFAULT_CONTEXT_EMBEDDING_MODEL,
-  getFallbackAgentChatModelKey,
-  getFallbackImageModelKey,
-  getFallbackVideoModelKey,
-  type LowestCostModelDefaultsInput,
-  MODEL_KEYS,
-} from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, Injectable } from '@nestjs/common';
 
-/**
- * Last-resort keys for a registry that holds nothing usable in a category.
- *
- * This is a safety net for a broken or unseeded install, not a second
- * catalogue: nothing reads it until `resolveModelKey` has failed to find an
- * active, non-legacy registry row, and reaching it is logged at error level so
- * the install gets fixed rather than silently running on constants (#2422).
- *
- * Image / video keys follow the deployment matrix: cloud production keeps
- * Nano Banana and Seedance 2.5; every other context uses the lowest-cost keys.
- */
-function resolveFallbackModelKeys(): Record<ModelCategory, string> {
-  const input: LowestCostModelDefaultsInput = {
-    isCloud: isCloudDeployment(),
-    nodeEnv: process.env.NODE_ENV,
-  };
-
-  return {
-    [ModelCategory.EMBEDDING]: DEFAULT_CONTEXT_EMBEDDING_MODEL,
-    [ModelCategory.IMAGE]: getFallbackImageModelKey(input),
-    [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-    [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-    [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
-    [ModelCategory.TEXT]: getFallbackAgentChatModelKey(input),
-    [ModelCategory.VIDEO]: getFallbackVideoModelKey(input),
-    [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-    [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-    [ModelCategory.VOICE]: 'elevenlabs',
-  };
-}
-
+/** Registry-backed model selection and recommendation policy. */
 @Injectable()
 export class RouterService {
   /**
@@ -133,10 +94,9 @@ export class RouterService {
   /**
    * The registry rows this router is allowed to pick from, for one category.
    *
-   * A row is usable when it is active, not soft-deleted, and not legacy —
-   * retired keys keep their row so historical generations still resolve, but
-   * must never be routed to again. Discovery drafts are excluded by the same
-   * `isActive` gate that keeps them out of the public catalog.
+   * Auto-routing only considers active, reviewed Recommended rows with known
+   * non-zero pricing. Available and Legacy rows remain valid explicit choices;
+   * Retired rows only resolve through a declared successor.
    *
    * Org-private rows (customer trainings, BYO models) are only eligible for
    * their owner. `selectModel` then further restricts to the org allowlist
@@ -150,13 +110,74 @@ export class RouterService {
   ): Promise<ModelDocument[]> {
     const models = await this.modelsService.findAllActive({
       category,
-      isLegacy: false,
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      ...(organizationId
+        ? {
+            OR: [{ organizationId: null }, { organizationId }],
+          }
+        : { organizationId: null }),
     });
 
     return models.filter(
       (model) =>
-        !model.organizationId || model.organizationId === organizationId,
+        (!model.organizationId || model.organizationId === organizationId) &&
+        model.isFree !== true &&
+        this.readNumericCost(model) !== null &&
+        (!model.isDiscovered || model.reviewStatus === 'approved'),
     );
+  }
+
+  private async resolveExplicitCandidate(
+    candidates: Array<string | null | undefined> | undefined,
+    category: ModelCategory,
+    organizationId?: string,
+    recommendedModels: ModelDocument[] = [],
+  ): Promise<string | undefined> {
+    for (const candidate of candidates ?? []) {
+      const key = this.readString(candidate);
+      if (!key) continue;
+
+      const seen = new Set<string>();
+      let current =
+        recommendedModels.find((model) => model.key === key) ??
+        (await this.findVisibleModel(key, organizationId));
+      while (
+        current?.lifecycle === ModelLifecycle.RETIRED &&
+        current.succeededBy &&
+        !seen.has(String(current.key))
+      ) {
+        seen.add(String(current.key));
+        current = await this.modelsService.findOne({
+          key: current.succeededBy,
+          organizationId: current.organizationId ?? null,
+        });
+      }
+
+      if (
+        current?.isActive &&
+        current.category === category &&
+        current.lifecycle !== ModelLifecycle.RETIRED
+      ) {
+        return String(current.key);
+      }
+    }
+    return undefined;
+  }
+
+  private async findVisibleModel(
+    key: string,
+    organizationId?: string,
+  ): Promise<ModelDocument | null> {
+    if (organizationId) {
+      const privateModel = await this.modelsService.findOne({
+        key,
+        organizationId,
+      });
+      if (privateModel) {
+        return privateModel;
+      }
+    }
+    return this.modelsService.findOne({ key, organizationId: null });
   }
 
   /**
@@ -226,28 +247,12 @@ export class RouterService {
    * First candidate key the registry actually carries as a usable row.
    * A stale brand or organization default simply falls through.
    */
-  private findUsableCandidate(
-    candidates: Array<string | null | undefined> | undefined,
-    models: ModelDocument[],
-  ): string | undefined {
-    for (const candidate of candidates ?? []) {
-      const key = this.readString(candidate);
-      if (key && models.some((model) => model.key === key)) {
-        return key;
-      }
-    }
-
-    return undefined;
-  }
-
   /**
    * The single policy for turning a category into a model key (#2422 Phase C).
    *
    * Precedence: caller candidates (explicit > brand > organization), then the
-   * registry's `isDefault` row, then the highest-ranked usable row, then the
-   * last-resort constant. Every step reads the registry — the constant is only
-   * reached when the registry has nothing usable, and that is an error-level
-   * event, not a routine fallback.
+   * registry's Recommended `isDefault` row, then the highest-ranked
+   * Recommended row. Missing registry state fails closed.
    */
   public async resolveModelKey(
     request: ModelResolutionRequest,
@@ -257,7 +262,12 @@ export class RouterService {
       request.organizationId,
     );
 
-    const candidate = this.findUsableCandidate(request.candidates, models);
+    const candidate = await this.resolveExplicitCandidate(
+      request.candidates,
+      request.category,
+      request.organizationId,
+      models,
+    );
     if (candidate) {
       return { key: candidate, source: 'candidate' };
     }
@@ -274,15 +284,9 @@ export class RouterService {
       return { key: String(highestRanked.key), source: 'registry-best' };
     }
 
-    const fallback =
-      resolveFallbackModelKeys()[request.category] ?? DEFAULT_TEXT_MODEL;
-
-    this.logger.error(`${RouterService.name} resolveModelKey empty registry`, {
-      category: request.category,
-      fallback,
-    });
-
-    return { key: fallback, source: 'fallback-constant' };
+    throw new NotFoundException(
+      `No Recommended models available for category ${request.category}`,
+    );
   }
 
   /**
@@ -679,40 +683,9 @@ export class RouterService {
           organizationId: options.organizationId,
         });
 
-        // Image/video Auto must not fall back to a catalog default when the
-        // org allowlist is empty (#3227). Conversation TEXT still needs a
-        // chat model — use the catalog default (the free tier locally).
-        if (options.organizationId && options.category !== ModelCategory.TEXT) {
-          throw new ForbiddenException('No models enabled for this workspace');
-        }
-
-        const defaultKey = await this.getDefaultModel(options.category);
-        const defaultModel = await this.modelsService.findOne({
-          key: defaultKey,
-        });
-
-        if (!defaultModel) {
-          throw new NotFoundException(
-            `No models available for category ${options.category}`,
-          );
-        }
-
-        return {
-          alternatives: [],
-          analysis,
-          modelDetails: {
-            category: this.normalizeModelCategory(
-              defaultModel.category,
-              options.category,
-            ),
-            cost: defaultModel.cost,
-            id: String(defaultModel.id),
-            key: this.requireString(defaultModel.key, 'key'),
-            provider: this.requireString(defaultModel.provider, 'provider'),
-          },
-          reason: 'Default model (no other models available)',
-          selectedModel: defaultKey,
-        };
+        throw new ForbiddenException(
+          'No Recommended models enabled for this workspace',
+        );
       }
 
       // Select the best model using scoring
@@ -831,19 +804,21 @@ export class RouterService {
     category: ModelCategory,
     organizationId?: string,
   ): Promise<string> {
-    const resolution = await this.resolveModelKey({ category, organizationId });
-
-    if (
-      category === ModelCategory.EMBEDDING &&
-      resolution.key !== DEFAULT_CONTEXT_EMBEDDING_MODEL
-    ) {
-      this.logger.warn(
-        `Ignoring embedding default ${resolution.key}; context vectors require ${DEFAULT_CONTEXT_EMBEDDING_MODEL}`,
-      );
-
+    if (category === ModelCategory.EMBEDDING) {
+      const recommended = await this.getUsableModels(category, organizationId);
+      const configured = recommended.find((model) => model.isDefault);
+      if (
+        configured?.key &&
+        configured.key !== DEFAULT_CONTEXT_EMBEDDING_MODEL
+      ) {
+        this.logger.warn(
+          `Ignoring embedding default ${configured.key}; context vectors require ${DEFAULT_CONTEXT_EMBEDDING_MODEL}`,
+        );
+      }
       return DEFAULT_CONTEXT_EMBEDDING_MODEL;
     }
 
+    const resolution = await this.resolveModelKey({ category, organizationId });
     return resolution.key;
   }
 }

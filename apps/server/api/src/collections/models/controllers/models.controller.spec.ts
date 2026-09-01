@@ -2,7 +2,7 @@ import { ModelsController } from '@api/collections/models/controllers/models.con
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -150,10 +150,10 @@ describe('ModelsController', () => {
             getProviderContracts: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
-            markRegistryModelLegacy: vi.fn(),
             patch: vi.fn(),
             rejectRegistryModel: vi.fn(),
             remove: vi.fn(),
+            transitionLifecycle: vi.fn(),
           },
         },
         {
@@ -735,47 +735,29 @@ describe('ModelsController', () => {
       });
     });
 
-    it('should mark a registry model as legacy', async () => {
+    it('routes lifecycle changes through the operator transition boundary', async () => {
       const id = testId('model');
-      const legacyModel = {
-        id,
-        isActive: false,
-        isLegacy: true,
-        key: 'google/imagen-3',
-      };
-      modelsService.markRegistryModelLegacy.mockResolvedValue(legacyModel);
-      modelsService.findOne.mockResolvedValue({
+      const availableModel = {
+        category: ModelCategory.IMAGE,
         id,
         isDefault: false,
-      });
+        lifecycle: ModelLifecycle.AVAILABLE,
+      };
+      modelsService.transitionLifecycle.mockResolvedValue(availableModel);
 
-      await controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
-        reviewStatus: 'legacy',
-        succeededBy: 'google/imagen-4',
-      });
-
-      expect(modelsService.markRegistryModelLegacy).toHaveBeenCalledWith(id, {
-        reviewedBy: mockSuperAdminUser.id,
-        succeededBy: 'google/imagen-4',
-      });
-    });
-
-    it('should not disable the only default model through review actions', async () => {
-      const id = testId('model');
-      modelsService.findOne.mockResolvedValue({
+      const result = await controller.patch(
+        mockSuperAdminRequest,
+        mockSuperAdminUser,
         id,
-        category: 'image',
-        isDefault: true,
-      });
-      modelsService.count.mockResolvedValue(0);
+        { lifecycle: ModelLifecycle.AVAILABLE },
+      );
 
-      await expect(
-        controller.patch(mockSuperAdminRequest, mockSuperAdminUser, id, {
-          reviewStatus: 'legacy',
-        }),
-      ).rejects.toThrow(HttpException);
-
-      expect(modelsService.markRegistryModelLegacy).not.toHaveBeenCalled();
+      expect(modelsService.transitionLifecycle).toHaveBeenCalledWith(
+        id,
+        ModelLifecycle.AVAILABLE,
+        undefined,
+      );
+      expect(result).toEqual({ data: availableModel });
     });
 
     it('should forbid registry review actions for non-superadmins', async () => {
