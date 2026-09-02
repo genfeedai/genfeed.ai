@@ -623,10 +623,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/publishing',
       '/:orgSlug/~/publishing/overview',
-      '/:orgSlug/~/publishing/pending',
-      '/:orgSlug/~/publishing/processing',
-      '/:orgSlug/~/publishing/published',
-      '/:orgSlug/~/publishing/scheduled',
+      '/:orgSlug/~/publishing/posts',
     ],
     {
       fallback: '/:orgSlug/~/publishing/overview',
@@ -851,12 +848,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publishing/posts',
       '/:orgSlug/:brandSlug/publishing/posts/:id',
       '/:orgSlug/:brandSlug/publishing/calendar',
-      '/:orgSlug/:brandSlug/publishing/failed',
-      '/:orgSlug/:brandSlug/publishing/pending',
-      '/:orgSlug/:brandSlug/publishing/processing',
-      '/:orgSlug/:brandSlug/publishing/published',
+      '/:orgSlug/:brandSlug/publishing/content',
       '/:orgSlug/:brandSlug/publishing/review',
-      '/:orgSlug/:brandSlug/publishing/scheduled',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/publishing/overview',

@@ -294,10 +294,6 @@ export const APP_ROUTES = {
   },
   PUBLISHING: {
     CALENDAR: '/publishing/calendar',
-    /** Posts whose latest publication attempt failed. */
-    FAILED: '/publishing/failed',
-    /** Posts queued to enter the publishing pipeline. */
-    PENDING: '/publishing/pending',
     /**
      * @deprecated Agent Programs live at APP_ROUTES.AUTOMATION.CAMPAIGNS.
      * Legacy `/publishing/campaigns` permanently redirects there.
@@ -306,6 +302,11 @@ export const APP_ROUTES = {
     CAMPAIGNS: '/automation/campaigns',
     /** @deprecated Use APP_ROUTES.AUTOMATION.CAMPAIGNS_NEW. */
     CAMPAIGNS_NEW: '/automation/campaigns/new',
+    /**
+     * Content library: articles, newsletters, and other non-post content
+     * types. Post lifecycle lives at POSTS; this is the type-aware library.
+     */
+    CONTENT: '/publishing/content',
     /**
      * @deprecated Canonical path is APP_ROUTES.MESSAGES.OUTREACH.
      * Legacy `/publishing/outreach-campaigns` permanently redirects there.
@@ -320,15 +321,15 @@ export const APP_ROUTES = {
      */
     OVERVIEW: '/publishing/overview',
     /**
-     * Canonical content library + type-aware editor.
+     * Canonical Posts list + type-aware editor. Every post lifecycle state
+     * (draft, scheduled, pending, processing, published, failed) is a query
+     * param filter on this single route — see
+     * `createPublishingPostsFilterRoute` — never a dedicated path.
      * - List: `/publishing/posts`
      * - Editor: `/publishing/posts/:id` (social post today; article/newsletter
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publishing/posts',
-    /** Posts currently being sent to destination platforms. */
-    PROCESSING: '/publishing/processing',
-    PUBLISHED: '/publishing/published',
     /**
      * Remix is a contextual **action** (Discovery/Library button), not a module
      * page. This path is the deep-link target for that action only — never a
@@ -337,8 +338,6 @@ export const APP_ROUTES = {
     REMIX: '/publishing/remix',
     REVIEW: '/publishing/review',
     ROOT: '/publishing',
-    /** Pipeline shortcut: drafts + scheduled + in-progress (not live). */
-    SCHEDULED: '/publishing/scheduled',
   },
   SETTINGS: {
     AGENT_DEFAULTS: '/settings/agent-defaults',

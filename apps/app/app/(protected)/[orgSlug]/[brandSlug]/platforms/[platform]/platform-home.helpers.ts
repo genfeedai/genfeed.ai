@@ -1,6 +1,7 @@
 import {
   APP_ROUTES,
   createPlatformHomeRoute,
+  createPublishingPostsFilterRoute,
   withPlatformQuery,
 } from '@genfeedai/constants';
 import {
@@ -88,7 +89,10 @@ export function buildPlatformHomeDestinations(
     live: getPlatformLiveHref(platform),
     messages: APP_ROUTES.MESSAGES.ROOT,
     posts: withPlatformQuery(APP_ROUTES.PUBLISHING.POSTS, platform),
-    queue: withPlatformQuery(APP_ROUTES.PUBLISHING.SCHEDULED, platform),
+    queue: withPlatformQuery(
+      createPublishingPostsFilterRoute({ publicationState: 'not-posted' }),
+      platform,
+    ),
     replies: getPlatformRepliesHref(platform),
     settingsSocial: APP_ROUTES.SETTINGS.SOCIAL,
   };

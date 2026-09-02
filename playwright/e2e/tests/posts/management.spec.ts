@@ -228,6 +228,8 @@ test.describe('Posts — Management', () => {
     await postsPage.gotoScheduled();
 
     await postsPage.assertOnScheduledTab();
-    await expect(authenticatedPage).toHaveURL(/publishing\/scheduled/);
+    await expect(authenticatedPage).toHaveURL(
+      /publishing\/posts\?publicationState=not-posted/,
+    );
   });
 });

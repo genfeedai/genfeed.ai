@@ -1,7 +1,11 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  ITEMS_PER_PAGE,
+  PUBLISHING_POSTS_QUERY_KEYS,
+} from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -234,18 +238,20 @@ export default function ReleasePostsList({
     (nextView: PublishingPostsView) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
-      params.delete('status');
+      params.delete(PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE);
+      params.delete(PUBLISHING_POSTS_QUERY_KEYS.STATUS);
+
+      if (nextView === 'posted' || nextView === 'not-posted') {
+        params.set(PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE, nextView);
+      } else {
+        params.set(PUBLISHING_POSTS_QUERY_KEYS.STATUS, nextView);
+      }
+
       const queryString = params.toString();
-      const destination =
-        nextView === 'failed'
-          ? APP_ROUTES.PUBLISHING.FAILED
-          : nextView === 'posted'
-            ? APP_ROUTES.PUBLISHING.PUBLISHED
-            : APP_ROUTES.PUBLISHING.SCHEDULED;
-      router.replace(
-        href(queryString ? `${destination}?${queryString}` : destination),
-        { scroll: false },
-      );
+      const destination = queryString
+        ? `${APP_ROUTES.PUBLISHING.POSTS}?${queryString}`
+        : APP_ROUTES.PUBLISHING.POSTS;
+      router.replace(href(destination), { scroll: false });
     },
     [href, router, searchParamsString],
   );

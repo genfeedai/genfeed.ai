@@ -1,4 +1,3 @@
-import { loadPostsPageData } from '@app-server/posts-page-data.server';
 import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
 import {
   prefetchServerQuery,
@@ -8,9 +7,6 @@ import { loadReleasePostsPageData } from '@app-server/release-posts-page-data.se
 import { PageScope, PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import {
-  buildPostsListQueryKey,
-  getDefaultPostsSort,
-  type PostsPublicationState,
   parsePostsPublicationState,
   parsePostsStatus,
 } from '@pages/posts/list/posts-list-query';
@@ -20,7 +16,6 @@ import {
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from '@pages/posts/list/release-posts-list-query';
-import PublishingPostsList from './publishing-posts-list';
 
 export type PostsListSearchParams = Promise<{
   contentType?: string | string[];
@@ -32,19 +27,17 @@ export type PostsListSearchParams = Promise<{
   status?: string;
 }>;
 
+/**
+ * The single Posts list. Every lifecycle state is a query-param filter
+ * (`publicationState` / `status`, see `createPublishingPostsFilterRoute`);
+ * no caller forces a lifecycle.
+ */
 export async function renderPostsListPage({
   searchParams,
   scope = PageScope.PUBLISHING,
-  publicationStateOverride,
-  statusOverride,
-  showAllPublicationStates = false,
 }: {
   searchParams: PostsListSearchParams;
   scope?: PageScope;
-  publicationStateOverride?: PostsPublicationState;
-  statusOverride?: PostStatus;
-  /** True for the canonical `/publishing/posts` library (no lifecycle filter). */
-  showAllPublicationStates?: boolean;
 }) {
   const [
     {
@@ -58,21 +51,10 @@ export async function renderPostsListPage({
     },
     bootstrap,
   ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
-  // Pipeline shortcuts (Drafts / Published / Failed) pass a focused override.
-  // The Posts library shows every lifecycle state and filters in the table.
-  const queryStatus = parsePostsStatus(status);
-  const normalizedStatus = statusOverride ?? queryStatus;
+  const normalizedStatus = parsePostsStatus(status);
   const requestedPublicationState = parsePostsPublicationState(
     publicationStateParam,
   );
-  const publicationState = normalizedStatus
-    ? undefined
-    : (publicationStateOverride ??
-      (showAllPublicationStates
-        ? requestedPublicationState
-        : scope === PageScope.PUBLISHING
-          ? 'not-posted'
-          : undefined));
   const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
   const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
@@ -81,115 +63,65 @@ export async function renderPostsListPage({
   const brandId = bootstrap?.brandId ?? null;
   const organizationId = bootstrap?.organizationId ?? null;
 
-  if (scope !== PageScope.SUPERADMIN) {
-    const canonicalPublicationState = showAllPublicationStates
-      ? requestedPublicationState
-      : (publicationStateOverride ??
-        (normalizedStatus === PostStatus.PUBLIC
-          ? 'posted'
-          : scope === PageScope.PUBLISHING && !normalizedStatus
-            ? 'not-posted'
-            : undefined));
-    const executionStates =
-      normalizedStatus === PostStatus.FAILED
-        ? [TargetExecutionState.FAILED]
-        : normalizedStatus === PostStatus.SCHEDULED &&
-            !canonicalPublicationState
-          ? [TargetExecutionState.SCHEDULED]
-          : normalizedStatus === PostStatus.DRAFT && !canonicalPublicationState
-            ? [TargetExecutionState.DRAFT]
+  const canonicalPublicationState =
+    requestedPublicationState ??
+    (normalizedStatus === PostStatus.PUBLIC ? 'posted' : undefined);
+  const executionStates =
+    normalizedStatus === PostStatus.FAILED
+      ? [TargetExecutionState.FAILED]
+      : normalizedStatus === PostStatus.SCHEDULED && !canonicalPublicationState
+        ? [TargetExecutionState.SCHEDULED]
+        : normalizedStatus === PostStatus.DRAFT && !canonicalPublicationState
+          ? [TargetExecutionState.DRAFT]
+          : normalizedStatus === PostStatus.PENDING ||
+              normalizedStatus === PostStatus.PROCESSING
+            ? [TargetExecutionState.PUBLISHING]
             : undefined;
-    const canonicalSort = normalizeReleasePostsSort(sort);
-    const contentTypes = normalizeReleasePostContentTypes(contentType);
-    // Start the query without awaiting it so the Publishing shell paints while
-    // TanStack Query streams the pending result into the client boundary.
-    prefetchServerQuery({
-      queryFn: async () => {
-        const pageData = await loadReleasePostsPageData({
-          contentTypes,
-          currentPage,
-          executionStates,
-          platform: platformFilter,
-          publicationState: canonicalPublicationState,
-          scope,
-          search,
-          sort: canonicalSort,
-        });
-        return {
-          pagination: pageData.pagination,
-          releases: pageData.releases,
-        };
-      },
-      queryKey: buildReleasePostsListQueryKey({
-        brandId,
+  const canonicalSort = normalizeReleasePostsSort(sort);
+  const contentTypes = normalizeReleasePostContentTypes(contentType);
+  // Start the query without awaiting it so the Publishing shell paints while
+  // TanStack Query streams the pending result into the client boundary.
+  prefetchServerQuery({
+    queryFn: async () => {
+      const pageData = await loadReleasePostsPageData({
         contentTypes,
         currentPage,
         executionStates,
-        organizationId,
         platform: platformFilter,
         publicationState: canonicalPublicationState,
         scope,
-        search: search ?? '',
-        sort: canonicalSort,
-      }),
-    });
-
-    return (
-      <ServerQueryHydrationBoundary>
-        <ReleasePostsList
-          contentTypes={contentTypes}
-          executionStates={executionStates}
-          platform={normalizedPlatform}
-          publicationState={canonicalPublicationState}
-          scope={scope}
-          search={search ?? ''}
-          sort={canonicalSort}
-        />
-      </ServerQueryHydrationBoundary>
-    );
-  }
-
-  const filterSort = sort || getDefaultPostsSort(normalizedStatus);
-
-  prefetchServerQuery({
-    queryFn: async () => {
-      const pageData = await loadPostsPageData({
-        currentPage,
-        platformFilter,
-        publicationState,
-        scope,
         search,
-        sort,
-        status: normalizedStatus,
+        sort: canonicalSort,
       });
       return {
         pagination: pageData.pagination,
-        posts: pageData.posts,
+        releases: pageData.releases,
       };
     },
-    queryKey: buildPostsListQueryKey({
-      adminBrand: '',
-      adminOrg: '',
+    queryKey: buildReleasePostsListQueryKey({
       brandId,
+      contentTypes,
       currentPage,
-      filterSearch: search || '',
-      filterSort,
-      filterStatus: normalizedStatus || '',
+      executionStates,
       organizationId,
-      platformFilter,
-      publicationState,
+      platform: platformFilter,
+      publicationState: canonicalPublicationState,
       scope,
-      status: normalizedStatus,
+      search: search ?? '',
+      sort: canonicalSort,
     }),
   });
 
   return (
     <ServerQueryHydrationBoundary>
-      <PublishingPostsList
+      <ReleasePostsList
+        contentTypes={contentTypes}
+        executionStates={executionStates}
         platform={normalizedPlatform}
-        publicationState={publicationState ?? null}
+        publicationState={canonicalPublicationState}
         scope={scope}
-        status={normalizedStatus}
+        search={search ?? ''}
+        sort={canonicalSort}
       />
     </ServerQueryHydrationBoundary>
   );

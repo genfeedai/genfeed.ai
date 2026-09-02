@@ -27,7 +27,11 @@ export default async function PublishingOverviewRoute({
       resolvedSearchParams.status,
     );
     const { orgSlug, brandSlug } = await params;
-    const preservedFilters = new URLSearchParams();
+    // `statusPath` may already carry a lifecycle filter query string (e.g.
+    // `?publicationState=not-posted`) — merge through URLSearchParams instead
+    // of naive concatenation so we never emit a second `?`.
+    const [basePath, existingQuery] = statusPath.split('?');
+    const preservedFilters = new URLSearchParams(existingQuery);
     for (const key of ['platform', 'search', 'sort', 'page'] as const) {
       const value = resolvedSearchParams[key];
       if (value) {
@@ -39,7 +43,7 @@ export default async function PublishingOverviewRoute({
       createBrandAppRoute(
         orgSlug,
         brandSlug,
-        queryString ? `${statusPath}?${queryString}` : statusPath,
+        queryString ? `${basePath}?${queryString}` : basePath,
       ),
     );
   }

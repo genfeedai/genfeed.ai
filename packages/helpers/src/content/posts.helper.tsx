@@ -1,4 +1,7 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import {
   Platform,
   PostStatus,
@@ -147,30 +150,28 @@ export function getPublishingPostsStatusPath(
   const normalizedStatus = normalizePublishingPostsStatus(status);
 
   if (normalizedStatus === PostStatus.PUBLIC) {
-    return APP_ROUTES.PUBLISHING.PUBLISHED;
+    return createPublishingPostsFilterRoute({ publicationState: 'posted' });
   }
 
-  if (normalizedStatus === PostStatus.FAILED) {
-    return APP_ROUTES.PUBLISHING.FAILED;
-  }
-
-  if (normalizedStatus === PostStatus.PENDING) {
-    return APP_ROUTES.PUBLISHING.PENDING;
-  }
-
-  if (normalizedStatus === PostStatus.PROCESSING) {
-    return APP_ROUTES.PUBLISHING.PROCESSING;
-  }
-
-  // Draft + scheduled share the broader not-posted pipeline list.
+  // Draft + scheduled share the broader not-posted filter.
   if (
     normalizedStatus === PostStatus.SCHEDULED ||
     normalizedStatus === PostStatus.DRAFT
   ) {
-    return APP_ROUTES.PUBLISHING.SCHEDULED;
+    return createPublishingPostsFilterRoute({
+      publicationState: 'not-posted',
+    });
   }
 
-  // No status → canonical Posts library (all lifecycle states).
+  if (
+    normalizedStatus === PostStatus.FAILED ||
+    normalizedStatus === PostStatus.PENDING ||
+    normalizedStatus === PostStatus.PROCESSING
+  ) {
+    return createPublishingPostsFilterRoute({ status: normalizedStatus });
+  }
+
+  // No recognized status → canonical Posts library (all lifecycle states).
   return APP_ROUTES.PUBLISHING.POSTS;
 }
 
@@ -180,45 +181,6 @@ export function getPublishingPostsStatusPath(
  */
 export function getPublishingPostHref(postId: string): string {
   return `${APP_ROUTES.PUBLISHING.POSTS}/${postId}`;
-}
-
-export function getPublishingPostsStatusFromPathname(
-  pathname?: string | null,
-): PublishingPostsStatus | null {
-  const segments = (pathname ?? '').split('?')[0].split('/').filter(Boolean);
-  const publishingIndex = segments.lastIndexOf('publishing');
-
-  if (publishingIndex === -1) {
-    return null;
-  }
-
-  const statusSegment = segments[publishingIndex + 1];
-  if (statusSegment === 'scheduled') {
-    return PostStatus.SCHEDULED;
-  }
-
-  if (statusSegment === 'published') {
-    return PostStatus.PUBLIC;
-  }
-
-  if (statusSegment === 'failed') {
-    return PostStatus.FAILED;
-  }
-
-  if (statusSegment === 'pending') {
-    return PostStatus.PENDING;
-  }
-
-  if (statusSegment === 'processing') {
-    return PostStatus.PROCESSING;
-  }
-
-  // `/publishing/posts` is the unfiltered library — no status forced.
-  if (statusSegment === 'posts' || statusSegment === 'post') {
-    return null;
-  }
-
-  return null;
 }
 
 export function normalizePublishingPostsStatus(
@@ -244,7 +206,6 @@ export function getPublishingPostsHref({
   platform,
   status,
 }: PublishingPostsHrefOptions = {}): string {
-  const params = new URLSearchParams();
   const hasStatus =
     status != null &&
     String(Array.isArray(status) ? status[0] : status).length > 0;
@@ -254,12 +215,18 @@ export function getPublishingPostsHref({
     ? getPublishingPostsStatusPath(status)
     : APP_ROUTES.PUBLISHING.POSTS;
 
-  if (normalizedPlatform !== 'all') {
-    params.set('platform', normalizedPlatform);
+  if (normalizedPlatform === 'all') {
+    return path;
   }
 
-  const queryString = params.toString();
-  return queryString ? `${path}?${queryString}` : path;
+  // `path` may already carry a lifecycle filter query string (e.g.
+  // `?publicationState=not-posted`) — merge through URLSearchParams instead
+  // of naive concatenation so we never emit a second `?`.
+  const [basePath, existingQuery] = path.split('?');
+  const params = new URLSearchParams(existingQuery);
+  params.set('platform', normalizedPlatform);
+
+  return `${basePath}?${params.toString()}`;
 }
 
 export function getPostStatusOptions(
