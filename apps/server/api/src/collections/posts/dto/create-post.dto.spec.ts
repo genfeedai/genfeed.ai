@@ -23,6 +23,7 @@ describe('CreatePostDto', () => {
 
     it('accepts publish attribution and experiment metadata', async () => {
       const dto = Object.assign(new CreatePostDto(), {
+        campaignId: validEntityId,
         contentRunId: validEntityId,
         creativeVersion: 'creative-v2',
         credentialId: validEntityId,

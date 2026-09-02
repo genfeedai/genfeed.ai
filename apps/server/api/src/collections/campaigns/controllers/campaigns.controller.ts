@@ -5,7 +5,10 @@ import {
 } from '@api/collections/campaigns/dto/campaign-action.dto';
 import { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
+import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
 import { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
+import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
+import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -15,7 +18,10 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { CampaignSerializer } from '@genfeedai/serializers';
+import {
+  CampaignLifecycleSerializer,
+  CampaignSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
@@ -35,7 +41,11 @@ import type { Request } from 'express';
 @ApiTags('Campaigns')
 @Controller('campaigns')
 export class CampaignsController {
-  constructor(private readonly service: CampaignsService) {}
+  constructor(
+    private readonly generationService: CampaignGenerationService,
+    private readonly lifecycleService: CampaignLifecycleService,
+    private readonly service: CampaignsService,
+  ) {}
 
   @Get()
   async list(
@@ -111,6 +121,68 @@ export class CampaignsController {
     return serializeSingle(request, CampaignSerializer, data);
   }
 
+  @Post(':id/start')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async start(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.lifecycleService.start(
+      user.organizationId,
+      this.resolveUserId(user),
+      id,
+    );
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
+  }
+
+  @Post(':id/pause')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async pause(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.lifecycleService.pause(
+      user.organizationId,
+      this.resolveUserId(user),
+      id,
+    );
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
+  }
+
+  @Post(':id/complete')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async complete(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const data = await this.lifecycleService.complete(
+      user.organizationId,
+      this.resolveUserId(user),
+      id,
+    );
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
+  }
+
+  @Post(':id/generate')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async generate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: GenerateCampaignContentDto,
+  ) {
+    const data = await this.generationService.generate(
+      user.organizationId,
+      this.resolveUserId(user),
+      id,
+      dto,
+    );
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
+  }
+
   @Post(':id/posts')
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async assignPosts(
@@ -120,7 +192,7 @@ export class CampaignsController {
     @Body() dto: CampaignPostsDto,
   ) {
     const data = await this.service.assignPosts(user.organizationId, id, dto);
-    return serializeSingle(request, CampaignSerializer, data);
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
   }
 
   @Delete(':id/posts')
@@ -132,7 +204,7 @@ export class CampaignsController {
     @Body() dto: CampaignPostsDto,
   ) {
     const data = await this.service.unassignPosts(user.organizationId, id, dto);
-    return serializeSingle(request, CampaignSerializer, data);
+    return serializeSingle(request, CampaignLifecycleSerializer, data);
   }
 
   @Delete(':id')

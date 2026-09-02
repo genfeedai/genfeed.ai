@@ -51,6 +51,7 @@ export class ContentGatewayService {
       const createdPosts =
         await this.reviewablePostsService.createFromSkillExecution({
           brandId: signal.brandId,
+          campaignId: this.readCampaignId(signal.payload),
           drafts: [execution.draft],
           executionId: execution.executionId,
           organizationId: signal.organizationId,
@@ -95,6 +96,7 @@ export class ContentGatewayService {
 
     const posts = await this.reviewablePostsService.createFromSkillExecution({
       brandId,
+      campaignId: this.readCampaignId(params),
       drafts: [execution.draft],
       executionId: execution.executionId,
       organizationId,
@@ -106,6 +108,15 @@ export class ContentGatewayService {
       executions: [execution.executionId],
       posts,
     };
+  }
+
+  private readCampaignId(
+    payload: Record<string, unknown> | undefined,
+  ): string | undefined {
+    const campaignId = payload?.campaignId;
+    return typeof campaignId === 'string' && campaignId.trim()
+      ? campaignId
+      : undefined;
   }
 
   private async assertBrand(

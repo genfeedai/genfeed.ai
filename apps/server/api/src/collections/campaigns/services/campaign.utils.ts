@@ -1,5 +1,14 @@
-import type { ContentCampaignStatus } from '@genfeedai/enums';
-import type { ICampaign } from '@genfeedai/interfaces';
+import {
+  ContentCampaignItemKind,
+  type ContentCampaignItemOutcomeStatus,
+  ContentCampaignLifecycleAction,
+  ContentCampaignStatus,
+  type TargetExecutionState,
+} from '@genfeedai/enums';
+import type {
+  ICampaign,
+  ICampaignLifecycleItemOutcome,
+} from '@genfeedai/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
 
 /**
@@ -22,5 +31,66 @@ export function toCampaign(row: Campaign): ICampaign {
     status: row.status as ContentCampaignStatus,
     updatedAt: row.updatedAt.toISOString(),
     userId: row.userId,
+  };
+}
+
+const LIFECYCLE_ALLOWED_FROM: Readonly<
+  Record<ContentCampaignLifecycleAction, ReadonlySet<ContentCampaignStatus>>
+> = {
+  [ContentCampaignLifecycleAction.ASSIGN]: new Set(
+    Object.values(ContentCampaignStatus),
+  ),
+  [ContentCampaignLifecycleAction.COMPLETE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.COMPLETED,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.GENERATE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.PAUSE]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.START]: new Set([
+    ContentCampaignStatus.ACTIVE,
+    ContentCampaignStatus.DRAFT,
+    ContentCampaignStatus.PAUSED,
+    ContentCampaignStatus.SCHEDULED,
+  ]),
+  [ContentCampaignLifecycleAction.UNASSIGN]: new Set(
+    Object.values(ContentCampaignStatus),
+  ),
+};
+
+export function canApplyContentCampaignLifecycle(
+  status: ContentCampaignStatus,
+  action: ContentCampaignLifecycleAction,
+): boolean {
+  return LIFECYCLE_ALLOWED_FROM[action].has(status);
+}
+
+export function campaignItemOutcome(input: {
+  executionState?: TargetExecutionState;
+  id: string;
+  kind?: ContentCampaignItemKind;
+  reason?: string;
+  retryable?: boolean;
+  status: ContentCampaignItemOutcomeStatus;
+}): ICampaignLifecycleItemOutcome {
+  return {
+    ...(input.executionState ? { executionState: input.executionState } : {}),
+    id: input.id,
+    kind: input.kind ?? ContentCampaignItemKind.POST,
+    ...(input.reason ? { reason: input.reason } : {}),
+    retryable: input.retryable ?? false,
+    status: input.status,
   };
 }

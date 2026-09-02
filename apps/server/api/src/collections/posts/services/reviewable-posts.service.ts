@@ -21,6 +21,7 @@ const LABEL_LENGTH = 80;
 
 export interface ReviewablePostInput extends GeneratedContentInput {
   brandId: string;
+  campaignId?: string;
   generatedBy: string;
   idempotencyKey?: string;
   organizationId: string;
@@ -57,9 +58,11 @@ export class ReviewablePostsService {
     }
 
     if (!post) {
+      const campaignId = this.readCampaignId(input);
       const platform = this.resolvePlatform(input.platforms);
       post = await this.postsService.create({
         brandId: input.brandId,
+        ...(campaignId ? { campaignId } : {}),
         category: this.resolveCategory(input.type, input.mediaUrls),
         description: input.content,
         ingredients: [],
@@ -119,6 +122,7 @@ export class ReviewablePostsService {
 
   createFromSkillExecution(input: {
     brandId: string;
+    campaignId?: string;
     drafts: GeneratedContentInput[];
     executionId: string;
     organizationId: string;
@@ -130,6 +134,7 @@ export class ReviewablePostsService {
         this.create({
           ...draft,
           brandId: input.brandId,
+          campaignId: input.campaignId,
           generatedBy: input.skillSlug,
           idempotencyKey: `skill-execution:${input.executionId}:${input.skillSlug}:${index}`,
           organizationId: input.organizationId,
@@ -139,6 +144,16 @@ export class ReviewablePostsService {
         }),
       ),
     );
+  }
+
+  private readCampaignId(input: ReviewablePostInput): string | undefined {
+    if (input.campaignId?.trim()) {
+      return input.campaignId;
+    }
+    const metadataCampaignId = input.metadata?.campaignId;
+    return typeof metadataCampaignId === 'string' && metadataCampaignId.trim()
+      ? metadataCampaignId
+      : undefined;
   }
 
   private async resolveOwnedUser(

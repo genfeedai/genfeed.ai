@@ -36,6 +36,7 @@ export class PostEntity extends BaseEntity {
   declare readonly organizationId: string;
   declare readonly userId: string;
   declare readonly groupId?: string | null;
+  declare readonly campaignId?: string | null;
   declare readonly children?: string[];
   declare readonly agentContextSource?: string;
   declare readonly agentContextVersion?: number;

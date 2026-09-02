@@ -2,15 +2,26 @@ import type { CampaignPostsDto } from '@api/collections/campaigns/dto/campaign-a
 import type { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import type { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import type { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
-import { toCampaign } from '@api/collections/campaigns/services/campaign.utils';
+import {
+  campaignItemOutcome,
+  toCampaign,
+} from '@api/collections/campaigns/services/campaign.utils';
 import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { type AggregatePaginateResult, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentCampaignStatus } from '@genfeedai/enums';
-import type { ICampaign } from '@genfeedai/interfaces';
+import {
+  ContentCampaignItemOutcomeStatus,
+  ContentCampaignLifecycleAction,
+  ContentCampaignStatus,
+} from '@genfeedai/enums';
+import type {
+  ICampaign,
+  ICampaignLifecycleItemOutcome,
+  ICampaignLifecycleResult,
+} from '@genfeedai/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -167,45 +178,129 @@ export class CampaignsService {
     organizationId: string,
     id: string,
     dto: CampaignPostsDto,
-  ): Promise<ICampaign> {
-    const campaign = await this.requireCampaign(organizationId, id);
-    await this.assertPostsInScope(
+  ): Promise<ICampaignLifecycleResult> {
+    return this.mutateMembership(
       organizationId,
-      campaign.brandId,
+      id,
       dto.postIds,
+      ContentCampaignLifecycleAction.ASSIGN,
     );
-
-    await this.prisma.post.updateMany({
-      data: { campaignId: campaign.id },
-      where: scopedWhere(organizationId, {
-        brandId: campaign.brandId,
-        id: { in: [...new Set(dto.postIds)] },
-      }),
-    });
-    return toCampaign(campaign);
   }
 
   async unassignPosts(
     organizationId: string,
     id: string,
     dto: CampaignPostsDto,
-  ): Promise<ICampaign> {
-    const campaign = await this.requireCampaign(organizationId, id);
-    await this.assertPostsInScope(
+  ): Promise<ICampaignLifecycleResult> {
+    return this.mutateMembership(
       organizationId,
-      campaign.brandId,
+      id,
       dto.postIds,
+      ContentCampaignLifecycleAction.UNASSIGN,
     );
+  }
 
-    await this.prisma.post.updateMany({
-      data: { campaignId: null },
+  private async mutateMembership(
+    organizationId: string,
+    id: string,
+    postIds: string[],
+    action: ContentCampaignLifecycleAction,
+  ): Promise<ICampaignLifecycleResult> {
+    const campaign = await this.requireCampaign(organizationId, id);
+    const uniqueIds = [...new Set(postIds)];
+    const rows = await this.prisma.post.findMany({
+      select: { groupId: true, id: true },
       where: scopedWhere(organizationId, {
         brandId: campaign.brandId,
-        campaignId: campaign.id,
-        id: { in: [...new Set(dto.postIds)] },
+        id: { in: uniqueIds },
       }),
     });
-    return toCampaign(campaign);
+    const found = new Map(rows.map((row) => [row.id, row]));
+    const items: ICampaignLifecycleItemOutcome[] = uniqueIds.map((postId) => {
+      if (found.has(postId)) {
+        return campaignItemOutcome({
+          id: postId,
+          status: ContentCampaignItemOutcomeStatus.SUCCEEDED,
+        });
+      }
+      return campaignItemOutcome({
+        id: postId,
+        reason: "Post is unavailable in this campaign's brand",
+        retryable: true,
+        status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
+      });
+    });
+    const ownedIds = uniqueIds.filter((postId) => found.has(postId));
+    if (ownedIds.length > 0) {
+      const isAssign = action === ContentCampaignLifecycleAction.ASSIGN;
+      await this.prisma.post.updateMany({
+        data: { campaignId: isAssign ? campaign.id : null },
+        where: scopedWhere(organizationId, {
+          brandId: campaign.brandId,
+          ...(isAssign ? {} : { campaignId: campaign.id }),
+          id: { in: ownedIds },
+        }),
+      });
+      await this.syncPostGroupMembership(
+        organizationId,
+        campaign.id,
+        rows
+          .filter(
+            (row): row is { groupId: string; id: string } =>
+              ownedIds.includes(row.id) && Boolean(row.groupId),
+          )
+          .map((row) => row.groupId),
+        isAssign,
+      );
+    }
+
+    return {
+      action,
+      campaign: toCampaign(campaign),
+      id: campaign.id,
+      items,
+    };
+  }
+
+  private async syncPostGroupMembership(
+    organizationId: string,
+    campaignId: string,
+    groupIds: string[],
+    isAssign: boolean,
+  ): Promise<void> {
+    const uniqueGroupIds = [...new Set(groupIds)];
+    if (uniqueGroupIds.length === 0) {
+      return;
+    }
+    if (isAssign) {
+      await this.prisma.postGroup.updateMany({
+        data: { campaignId },
+        where: scopedWhere(organizationId, { id: { in: uniqueGroupIds } }),
+      });
+      return;
+    }
+    const remaining = await this.prisma.post.findMany({
+      select: { groupId: true },
+      where: scopedWhere(organizationId, {
+        campaignId,
+        groupId: { in: uniqueGroupIds },
+      }),
+    });
+    const stillMember = new Set(
+      remaining
+        .map((row) => row.groupId)
+        .filter((groupId): groupId is string => Boolean(groupId)),
+    );
+    const clearIds = uniqueGroupIds.filter(
+      (groupId) => !stillMember.has(groupId),
+    );
+    if (clearIds.length === 0) {
+      return;
+    }
+    await this.prisma.postGroup.updateMany({
+      data: { campaignId: null },
+      where: scopedWhere(organizationId, { id: { in: clearIds } }),
+    });
   }
 
   private async setStatus(
@@ -244,25 +339,6 @@ export class CampaignsService {
     });
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
-    }
-  }
-
-  private async assertPostsInScope(
-    organizationId: string,
-    brandId: string,
-    postIds: string[],
-  ): Promise<void> {
-    const uniqueIds = [...new Set(postIds)];
-    const rows = await this.prisma.post.findMany({
-      select: { id: true },
-      where: scopedWhere(organizationId, { brandId, id: { in: uniqueIds } }),
-    });
-    const found = new Set(rows.map((row) => row.id));
-    const missing = uniqueIds.find((postId) => !found.has(postId));
-    if (missing) {
-      throw new BadRequestException(
-        `Post '${missing}' is unavailable in this campaign's brand`,
-      );
     }
   }
 }

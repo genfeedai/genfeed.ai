@@ -5,6 +5,7 @@ import { postExecutionStateReadFilter } from '@api-types/contracts';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
+import { campaignDispatchAllowedFilter } from '@workers/services/campaign-dispatch.filter';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 
 export type ScheduledPostFilter = {
@@ -40,6 +41,7 @@ export class ScheduledPostDiscoveryService {
             TargetExecutionState.SCHEDULED,
             TargetExecutionState.PUBLISHING,
           ]),
+          campaignDispatchAllowedFilter(),
         ],
         OR: [
           { scheduledDate: { lte: now } },
@@ -66,6 +68,7 @@ export class ScheduledPostDiscoveryService {
           TargetExecutionState.SCHEDULED,
           TargetExecutionState.PUBLISHING,
         ]),
+        AND: [campaignDispatchAllowedFilter()],
       },
       1,
     );

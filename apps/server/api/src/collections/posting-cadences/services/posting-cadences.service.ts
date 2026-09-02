@@ -294,6 +294,7 @@ export class PostingCadencesService {
     identityKey: string,
     brief?: string,
     apiKeyContext?: ApiKeyPublishingContext,
+    campaignId?: string,
   ): Promise<ICalendarSlotFillResult> {
     return this.fillSlot(
       organizationId,
@@ -302,6 +303,7 @@ export class PostingCadencesService {
       brief,
       false,
       apiKeyContext,
+      campaignId,
     );
   }
 
@@ -313,6 +315,7 @@ export class PostingCadencesService {
     brief?: string,
     apiKeyContext?: ApiKeyPublishingContext,
     signal?: AbortSignal,
+    campaignId?: string,
   ): Promise<ICalendarSlotBulkGenerateResult> {
     const uniqueKeys: string[] = [];
     const seen = new Set<string>();
@@ -353,6 +356,7 @@ export class PostingCadencesService {
           identityKey,
           brief,
           apiKeyContext,
+          campaignId,
         );
         completed.push({
           ...result.slot,
@@ -391,6 +395,7 @@ export class PostingCadencesService {
     userId: string,
     identityKey: string,
     apiKeyContext?: ApiKeyPublishingContext,
+    campaignId?: string,
   ): Promise<ICalendarSlotFillResult> {
     return this.fillSlot(
       organizationId,
@@ -399,6 +404,7 @@ export class PostingCadencesService {
       undefined,
       true,
       apiKeyContext,
+      campaignId,
     );
   }
 
@@ -579,6 +585,7 @@ export class PostingCadencesService {
     brief: string | undefined,
     isWrite: boolean,
     apiKeyContext?: ApiKeyPublishingContext,
+    campaignId?: string,
   ): Promise<ICalendarSlotFillResult> {
     const existing = await this.findReservation(organizationId, identityKey);
     if (existing?.state === CalendarSlotState.SKIPPED) {
@@ -690,6 +697,7 @@ export class PostingCadencesService {
         isWrite,
         landing,
         apiKeyContext,
+        campaignId,
       );
     } catch (error) {
       await this.reservationDelegate().updateMany({
@@ -881,6 +889,7 @@ export class PostingCadencesService {
     isWrite: boolean,
     landing: ReleaseStatus,
     apiKeyContext?: ApiKeyPublishingContext,
+    campaignId?: string,
   ): Promise<ICalendarSlotFillResult> {
     const credential = await this.prisma.credential.findFirst({
       where: scopedWhere(organizationId, { id: slot.credentialId }),
@@ -892,6 +901,18 @@ export class PostingCadencesService {
     if (!platform) {
       throw new BadRequestException('The credential platform is unsupported.');
     }
+    if (campaignId) {
+      const campaign = await this.prisma.campaign.findFirst({
+        select: { id: true },
+        where: scopedWhere(organizationId, {
+          brandId: slot.brandId,
+          id: campaignId,
+        }),
+      });
+      if (!campaign) {
+        throw new NotFoundException('Campaign', campaignId);
+      }
+    }
 
     const release = await this.postGroupsService.create(
       organizationId,
@@ -899,6 +920,7 @@ export class PostingCadencesService {
       {
         baseContent: resolvedBrief,
         brandId: slot.brandId,
+        ...(campaignId ? { campaignId } : {}),
         idempotencyKey: identityKey,
         scheduledDate: slot.instant,
         status: landing,

@@ -112,6 +112,7 @@ export class PostingCadencesController {
       dto.identityKey,
       dto.brief,
       user,
+      dto.campaignId,
     );
     return serializeSingle(request, CalendarSlotSerializer, {
       ...data.slot,
@@ -138,6 +139,7 @@ export class PostingCadencesController {
         dto.brief,
         user,
         abort.signal,
+        dto.campaignId,
       );
       return serializeSingle(request, CalendarSlotBulkGenerateSerializer, data);
     } finally {
@@ -157,6 +159,7 @@ export class PostingCadencesController {
       user.id,
       dto.identityKey,
       user,
+      dto.campaignId,
     );
     return serializeSingle(request, CalendarSlotSerializer, {
       ...data.slot,
