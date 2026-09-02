@@ -24,7 +24,7 @@ export async function collectUpcomingInvoiceLines(input: {
     return upcomingInvoice;
   }
   const lines: Stripe.InvoiceLineItem[] = [...upcomingInvoice.lines.data];
-  let hasMore = upcomingInvoice.lines.has_more;
+  let hasMore: boolean = upcomingInvoice.lines.has_more;
   let pagesFetched = 0;
 
   while (hasMore && pagesFetched < MAX_UPCOMING_INVOICE_LINE_PAGES) {
