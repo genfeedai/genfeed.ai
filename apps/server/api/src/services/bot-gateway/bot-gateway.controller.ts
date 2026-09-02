@@ -91,7 +91,6 @@ export class BotGatewayController {
       const response = await this.botGatewayService.handleInteraction(
         CredentialPlatform.DISCORD,
         body,
-        request,
       );
 
       switch (response.type) {
@@ -168,7 +167,6 @@ export class BotGatewayController {
     const response = await this.botGatewayService.handleInteraction(
       CredentialPlatform.TELEGRAM,
       body,
-      request,
     );
 
     const chatId = this.telegramAdapter.extractChatId(body);
@@ -248,7 +246,6 @@ export class BotGatewayController {
       const response = await this.botGatewayService.handleInteraction(
         CredentialPlatform.SLACK,
         body,
-        request,
       );
 
       switch (response.type) {

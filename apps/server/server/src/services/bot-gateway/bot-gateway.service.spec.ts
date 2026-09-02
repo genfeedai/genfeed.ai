@@ -19,7 +19,6 @@ import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegr
 import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
 import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
 import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
-import type { Request } from 'express';
 
 type MockAdapter = {
   [K in keyof IBotPlatformAdapter]: ReturnType<typeof vi.fn>;
@@ -47,8 +46,6 @@ interface MockGenerationService {
   removeCallbackContext: ReturnType<typeof vi.fn>;
   triggerGeneration: ReturnType<typeof vi.fn>;
 }
-
-const request = {} as Request;
 
 describe('BotGatewayService', () => {
   let service: BotGatewayService;
@@ -161,7 +158,6 @@ describe('BotGatewayService', () => {
         service.handleInteraction(
           'whatsapp' as unknown as CredentialPlatform,
           {},
-          request,
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -172,7 +168,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('error');
@@ -191,7 +186,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('error');
@@ -211,7 +205,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('text');
@@ -232,7 +225,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('text');
@@ -268,7 +260,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('text');
@@ -302,7 +293,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('deferred');
@@ -316,7 +306,6 @@ describe('BotGatewayService', () => {
           interactionToken: 'tok-1',
           platform: CredentialPlatform.DISCORD,
         }),
-        request,
       );
     });
 
@@ -343,7 +332,6 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
-        request,
       );
 
       expect(result.type).toBe('error');

@@ -18,7 +18,6 @@ import {
   BOT_MEDIA_GENERATION_DISPATCHER,
   type BotMediaGenerationDispatcher,
 } from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
-import type { Request } from 'express';
 import type { Mocked } from 'vitest';
 
 describe('BotGenerationService', () => {
@@ -35,7 +34,6 @@ describe('BotGenerationService', () => {
     interactionToken: 'token-1',
     platform: CredentialPlatform.DISCORD,
   };
-  const request = {} as Request;
 
   let service: BotGenerationService;
   let creditsUtilsService: Mocked<
@@ -121,14 +119,12 @@ describe('BotGenerationService', () => {
         command,
         'a cinematic launch scene',
         callbackContext,
-        request,
       );
 
       expect(dispatcher.generate).toHaveBeenCalledWith(
         expect.objectContaining({
           command,
           prompt: 'a cinematic launch scene',
-          request,
           user,
         }),
       );
@@ -145,7 +141,6 @@ describe('BotGenerationService', () => {
       BotCommandType.PROMPT_IMAGE,
       'a launch scene',
       callbackContext,
-      request,
     );
 
     expect(publisher.setex).toHaveBeenCalledWith(
@@ -194,7 +189,6 @@ describe('BotGenerationService', () => {
         BotCommandType.PROMPT_IMAGE,
         'a launch scene',
         callbackContext,
-        request,
       ),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });

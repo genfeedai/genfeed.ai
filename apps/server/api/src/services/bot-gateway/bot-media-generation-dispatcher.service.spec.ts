@@ -6,10 +6,8 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('BotMediaGenerationDispatcherService', () => {
-  const request = {} as Request;
   const user = {
     brandId: 'brand-1',
     credentialId: 'credential-1',
@@ -56,7 +54,6 @@ describe('BotMediaGenerationDispatcherService', () => {
         command: BotCommandType.PROMPT_IMAGE,
         onPlaceholderCreated,
         prompt: 'a product launch',
-        request,
         user,
       }),
     ).resolves.toEqual({ ingredientId: 'image-1' });
@@ -90,7 +87,6 @@ describe('BotMediaGenerationDispatcherService', () => {
         command: BotCommandType.PROMPT_VIDEO,
         onPlaceholderCreated,
         prompt: 'a product launch',
-        request,
         user,
       }),
     ).resolves.toEqual({ ingredientId: 'video-1' });
@@ -115,7 +111,6 @@ describe('BotMediaGenerationDispatcherService', () => {
         command: BotCommandType.PROMPT_IMAGE,
         onPlaceholderCreated,
         prompt: 'a product launch',
-        request,
         user,
       }),
     ).rejects.toBeInstanceOf(InternalServerErrorException);
@@ -127,7 +122,6 @@ describe('BotMediaGenerationDispatcherService', () => {
         command: BotCommandType.STATUS,
         onPlaceholderCreated,
         prompt: 'status',
-        request,
         user,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
