@@ -136,29 +136,51 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       versionPinId: this.requiredString(request.versionPinId, 'versionPinId'),
     });
 
-    if (
-      result.success &&
-      result.executionState === TargetExecutionState.PUBLISHED &&
-      !result.isProviderDraft
-    ) {
-      await this.activitiesService.create(
-        new ActivityEntity({
-          brandId: readPostString(post, ['brandId']) ?? undefined,
-          entityId: post.id,
-          entityModel: ActivityEntityModel.POST,
-          key: ActivityKey.POST_PUBLISHED,
-          organizationId: readPostString(post, ['organizationId']) ?? undefined,
-          source: ActivitySource.POST,
-          userId: readPostString(post, ['userId']) ?? undefined,
-          value: `Published to ${result.platform}: ${result.url}`,
-        }),
-      );
-      await this.repeatScheduler.scheduleNextRepeat(
-        post,
-        'ScheduledPostWorkflowService.finalize',
-      );
-    }
+    await this.finalizePublishedPost(
+      post,
+      result,
+      'ScheduledPostWorkflowService.finalize',
+    );
     return result;
+  }
+
+  /**
+   * Runs the side effects owed to a post that has reached a terminal,
+   * publicly-visible PUBLISHED state: the "published" activity that drives
+   * the streak feed, and scheduling the next recurrence.
+   *
+   * Safe to call from both the synchronous publish path (`finalize()` above)
+   * and asynchronous confirmation paths, such as the TikTok status cron
+   * transitioning a post out of PUBLISHING once TikTok reports it live.
+   * Idempotency is the caller's responsibility: callers must only invoke
+   * this once per post, guarded on a state transition that itself only
+   * succeeds once (see `SchedulerPublishStateService`'s prior-state guard).
+   */
+  async finalizePublishedPost(
+    post: PostEntity,
+    result: PublishResult,
+    source: string,
+  ): Promise<void> {
+    if (
+      !result.success ||
+      result.executionState !== TargetExecutionState.PUBLISHED ||
+      result.isProviderDraft
+    ) {
+      return;
+    }
+    await this.activitiesService.create(
+      new ActivityEntity({
+        brandId: readPostString(post, ['brandId']) ?? undefined,
+        entityId: post.id,
+        entityModel: ActivityEntityModel.POST,
+        key: ActivityKey.POST_PUBLISHED,
+        organizationId: readPostString(post, ['organizationId']) ?? undefined,
+        source: ActivitySource.POST,
+        userId: readPostString(post, ['userId']) ?? undefined,
+        value: `Published to ${result.platform}: ${result.url}`,
+      }),
+    );
+    await this.repeatScheduler.scheduleNextRepeat(post, source);
   }
 
   private async fail(

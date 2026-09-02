@@ -7,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
@@ -14,6 +15,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 @Module({
   imports: [
     forwardRef(() => CredentialsModule),
+    forwardRef(() => CronPostsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WorkflowsModule),
