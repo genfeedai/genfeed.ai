@@ -76,16 +76,15 @@ import {
 } from '@/lib/workspace-shell/workspace-composer-action.util';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import {
-  closeInspectorKind,
-  openInspectorKind,
-  persistInspectorTabLayout,
-  readPersistedInspectorTabLayout,
+  expandInspectorPaneKind,
+  isWorkspaceInspectorAssetKind,
+  persistInspectorPaneLayout,
+  readPersistedInspectorPaneLayout,
   resolveAvailableInspectorKinds,
-  resolveInspectorTabLayout,
-  toggleInspectorKind,
+  resolveInspectorPaneLayout,
   type WorkspaceInspectorAssetKind,
-  type WorkspaceInspectorTabLayout,
-} from '@/lib/workspace-shell/workspace-inspector-tabs.util';
+  type WorkspaceInspectorPaneLayout,
+} from '@/lib/workspace-shell/workspace-inspector-panes.util';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   removeWorkspaceShellOverlayParams,
@@ -125,10 +124,6 @@ import {
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
-import {
-  isInspectorComposerOwner,
-  type WorkspaceInspectorTab,
-} from './workspace-inspector-kind.util';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -304,96 +299,70 @@ function UniversalWorkspaceShellContent({
   const isAgentRoute =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ROOT}/`);
-  const hasConversationInspectorSlot = !isAgentRoute;
-  const [inspectorTabIntent, setInspectorTabIntent] =
-    useState<WorkspaceInspectorTabLayout | null>(null);
-  const [hasLoadedInspectorTabs, setHasLoadedInspectorTabs] = useState(false);
+  const [inspectorPaneIntent, setInspectorPaneIntent] =
+    useState<WorkspaceInspectorPaneLayout | null>(null);
+  const [hasLoadedInspectorPanes, setHasLoadedInspectorPanes] = useState(false);
   const availableInspectorKinds = useMemo(
-    () =>
-      resolveAvailableInspectorKinds({
-        hasConversationSlot: hasConversationInspectorSlot,
-      }),
-    [hasConversationInspectorSlot],
+    () => resolveAvailableInspectorKinds(),
+    [],
   );
 
   useEffect(() => {
-    setInspectorTabIntent(readPersistedInspectorTabLayout());
-    setHasLoadedInspectorTabs(true);
+    setInspectorPaneIntent(readPersistedInspectorPaneLayout());
+    setHasLoadedInspectorPanes(true);
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedInspectorTabs) {
+    if (!hasLoadedInspectorPanes) {
       return;
     }
 
-    if (!inspectorTabIntent) {
+    if (!inspectorPaneIntent) {
       return;
     }
 
-    persistInspectorTabLayout(inspectorTabIntent);
-  }, [hasLoadedInspectorTabs, inspectorTabIntent]);
-  const isInspectorComposerOwnerState = isInspectorComposerOwner(
-    hasConversationInspectorSlot,
-    state === 'overlay',
-  );
-  const inspectorTabLayout = resolveInspectorTabLayout({
+    persistInspectorPaneLayout(inspectorPaneIntent);
+  }, [hasLoadedInspectorPanes, inspectorPaneIntent]);
+  const inspectorPaneLayout = resolveInspectorPaneLayout({
     available: availableInspectorKinds,
-    hasConversationSlot: hasConversationInspectorSlot,
-    intent: inspectorTabIntent,
-    isComposerOwner: isInspectorComposerOwnerState,
+    intent: inspectorPaneIntent,
   });
-  const applyInspectorKind = useCallback(
-    (kind: WorkspaceInspectorAssetKind, mode: 'close' | 'open' | 'toggle') => {
-      setInspectorTabIntent((intent) => {
-        const current = resolveInspectorTabLayout({
+  const expandInspectorPane = useCallback(
+    (kind: WorkspaceInspectorAssetKind) => {
+      setInspectorPaneIntent((intent) => {
+        const current = resolveInspectorPaneLayout({
           available: availableInspectorKinds,
-          hasConversationSlot: hasConversationInspectorSlot,
           intent,
-          isComposerOwner: isInspectorComposerOwnerState,
         });
 
-        if (mode === 'close') {
-          return closeInspectorKind(
-            current,
-            kind,
-            isInspectorComposerOwnerState,
-          );
-        }
-
-        if (mode === 'toggle') {
-          return toggleInspectorKind(
-            current,
-            kind,
-            availableInspectorKinds,
-            isInspectorComposerOwnerState,
-          );
-        }
-
-        return openInspectorKind(current, kind, availableInspectorKinds);
+        return expandInspectorPaneKind(current, kind, availableInspectorKinds);
       });
     },
-    [
-      availableInspectorKinds,
-      hasConversationInspectorSlot,
-      isInspectorComposerOwnerState,
-    ],
+    [availableInspectorKinds],
+  );
+  const handleExpandedInspectorKindsChange = useCallback(
+    (expandedKinds: readonly string[]) => {
+      setInspectorPaneIntent({
+        expandedKinds: expandedKinds.filter(isWorkspaceInspectorAssetKind),
+      });
+    },
+    [],
   );
 
   useEffect(() => {
     const openContextTab = () => {
-      applyInspectorKind('context', 'open');
+      expandInspectorPane('context');
     };
     const openConversationTab = () => {
-      applyInspectorKind('conversation', 'open');
       if (window.matchMedia('(max-width: 1279px)').matches) {
         setIsMobileInspectorOpen(true);
       }
     };
     const openFilesTab = () => {
-      applyInspectorKind('files', 'open');
+      expandInspectorPane('files');
     };
     const openBrowserTab = () => {
-      applyInspectorKind('browser', 'open');
+      expandInspectorPane('browser');
     };
     window.addEventListener(OPEN_CONTEXT_TAB_EVENT, openContextTab);
     window.addEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversationTab);
@@ -408,7 +377,7 @@ function UniversalWorkspaceShellContent({
       window.removeEventListener(OPEN_FILES_TAB_EVENT, openFilesTab);
       window.removeEventListener(OPEN_BROWSER_TAB_EVENT, openBrowserTab);
     };
-  }, [applyInspectorKind, setIsMobileInspectorOpen]);
+  }, [expandInspectorPane, setIsMobileInspectorOpen]);
   const isUnthreadedConversation =
     normalizedPathname === APP_ROUTES.AGENT.ROOT ||
     normalizedPathname === APP_ROUTES.AGENT.NEW;
@@ -1006,19 +975,11 @@ function UniversalWorkspaceShellContent({
 
   const inspectorSharedProps = {
     actions: {
-      onCloseInspectorKind: (kind: WorkspaceInspectorTab) => {
-        applyInspectorKind(kind, 'close');
-      },
+      onExpandedKindsChange: handleExpandedInspectorKindsChange,
       onOpenOverlay: handleOpenOverlay,
       onOpenWorkflowPicker: handleOpenWorkflowPicker,
       onReturnToConversation: handleReturnToConversation,
-      onSelectInspectorTab: (tab: WorkspaceInspectorTab) => {
-        applyInspectorKind(tab, 'open');
-      },
       onSetComposerPortalTarget: setComposerPortalTarget,
-      onToggleInspectorKind: (kind: WorkspaceInspectorTab) => {
-        applyInspectorKind(kind, 'toggle');
-      },
       pendingTransitionRef,
     },
     adapters: {
@@ -1029,13 +990,10 @@ function UniversalWorkspaceShellContent({
       workspaceSurfaceAdapter: resolvedWorkspaceSurfaceAdapter,
     },
     chrome: {
-      availableInspectorKinds,
+      expandedKinds: inspectorPaneLayout.expandedKinds,
       hasAgentInspectorPanel,
       inspectorBreadcrumbLabel,
       inspectorScope: conversationScope.inspectorScope,
-      inspectorTab: inspectorTabLayout.activeKind,
-      inspectorTabLayout,
-      isComposerOwner: isInspectorComposerOwnerState,
     },
     route: {
       activeThreadContextVersion: activeThread?.contextVersion,

@@ -297,12 +297,9 @@
     "openOverlayPreview": "Open overlay preview",
     "returnToConversation": "Return to conversation",
     "tabs": {
-      "add": "Add inspector panel",
       "browser": "Browser",
       "browserEmptyDescription": "Page and generation previews appear here when you open them.",
       "browserEmptyTitle": "Open a preview to get started",
-      "close": "Close {tab}",
-      "configure": "Inspector panels",
       "context": "Context",
       "conversation": "Conversation",
       "files": "Files",
