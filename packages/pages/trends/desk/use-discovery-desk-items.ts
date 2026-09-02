@@ -12,11 +12,6 @@ import {
   isBrandResourceReady,
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import {
-  toDeskItemFromSourcePost,
-  toDeskItemFromTrend,
-  toDeskItemFromViralVideo,
-} from '@pages/trends/desk/desk-items';
 import type { DiscoveryDeskItem } from '@props/trends/discovery-desk.props';
 import type {
   TrendContentResponse,
@@ -24,6 +19,11 @@ import type {
 } from '@props/trends/trends-page.props';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
+import {
+  toDeskItemFromSourcePost,
+  toDeskItemFromTrend,
+  toDeskItemFromViralVideo,
+} from './desk-items';
 
 const EMPTY_SUMMARY: TrendsSummary = {
   connectedPlatforms: [],

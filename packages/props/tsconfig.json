@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
+      "@api-types/*": ["../api-types/src/*"],
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/constants": ["../constants/src/index.ts"],

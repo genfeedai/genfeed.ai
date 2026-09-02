@@ -33,7 +33,7 @@ vi.mock('@genfeedai/services/social/social-sources.service', () => ({
   SocialSourcesService: { getInstance: vi.fn() },
 }));
 
-vi.mock('@pages/trends/desk/desk-items', () => ({
+vi.mock('./desk-items', () => ({
   toDeskItemFromSourcePost: (post: { id: string }) => ({
     key: `source_post:${post.id}`,
     kind: 'source_post',
