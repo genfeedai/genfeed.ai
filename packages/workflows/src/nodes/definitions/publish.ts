@@ -86,28 +86,3 @@ export const DEFAULT_PUBLISH_DATA: Partial<PublishNodeData> = {
   status: 'idle',
   type: 'publish',
 };
-
-/**
- * Publish node definition for registry
- */
-export const publishNodeDefinition = {
-  category: 'output' as const,
-  defaultData: DEFAULT_PUBLISH_DATA,
-  description:
-    'Publish content to Twitter, Instagram, TikTok, or LinkedIn with scheduling support',
-  icon: 'Share2',
-  inputs: [
-    { id: 'brand', label: 'Brand', required: true, type: 'brand' },
-    { id: 'media', label: 'Media', required: true, type: 'any' },
-    { id: 'caption', label: 'Caption', required: false, type: 'text' },
-    {
-      id: 'schedule',
-      label: 'Schedule',
-      required: false,
-      type: 'any',
-    },
-  ],
-  label: 'Publish',
-  outputs: [],
-  type: 'publish',
-};

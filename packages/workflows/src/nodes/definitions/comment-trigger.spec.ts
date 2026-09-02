@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  commentTriggerNodeDefinition,
-  DEFAULT_COMMENT_TRIGGER_DATA,
-} from './comment-trigger';
+import { DEFAULT_COMMENT_TRIGGER_DATA } from './comment-trigger';
 
 describe('commentTrigger node', () => {
   describe('DEFAULT_COMMENT_TRIGGER_DATA', () => {
@@ -16,25 +13,6 @@ describe('commentTrigger node', () => {
       expect(DEFAULT_COMMENT_TRIGGER_DATA.keywords).toEqual([]);
       expect(DEFAULT_COMMENT_TRIGGER_DATA.excludeKeywords).toEqual([]);
       expect(DEFAULT_COMMENT_TRIGGER_DATA.lastCommentId).toBeNull();
-    });
-  });
-
-  describe('commentTriggerNodeDefinition', () => {
-    it('defines comment trigger handles', () => {
-      expect(commentTriggerNodeDefinition.type).toBe('commentTrigger');
-      expect(commentTriggerNodeDefinition.category).toBe('trigger');
-      expect(commentTriggerNodeDefinition.inputs).toEqual([]);
-      expect(
-        commentTriggerNodeDefinition.outputs.map((output) => output.id),
-      ).toEqual([
-        'commentId',
-        'contentId',
-        'contentUrl',
-        'text',
-        'authorId',
-        'authorUsername',
-        'platform',
-      ]);
     });
   });
 });

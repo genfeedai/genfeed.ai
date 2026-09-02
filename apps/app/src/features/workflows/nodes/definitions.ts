@@ -1,4 +1,4 @@
-import { SAAS_NODE_DEFINITIONS } from '@genfeedai/workflows/nodes';
+import { NODE_DEFINITIONS } from '@genfeedai/workflows/nodes';
 
 export const extendedNodeDefinitions = {
   captionGen: {
@@ -85,4 +85,4 @@ export const extendedNodeDefinitions = {
   },
 } as const;
 
-export const saasNodeDefinitions = SAAS_NODE_DEFINITIONS;
+export const saasNodeDefinitions = NODE_DEFINITIONS;

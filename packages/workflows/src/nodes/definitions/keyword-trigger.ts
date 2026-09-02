@@ -46,22 +46,3 @@ export const DEFAULT_KEYWORD_TRIGGER_DATA: Partial<KeywordTriggerNodeData> = {
   status: 'idle',
   type: 'keywordTrigger',
 };
-
-export const keywordTriggerNodeDefinition = {
-  category: 'trigger' as const,
-  defaultData: DEFAULT_KEYWORD_TRIGGER_DATA,
-  description: 'Start workflow when keyword is detected in social posts',
-  icon: 'Search',
-  inputs: [],
-  label: 'Keyword Trigger',
-  outputs: [
-    { id: 'postId', label: 'Post ID', type: 'text' },
-    { id: 'postUrl', label: 'Post URL', type: 'text' },
-    { id: 'text', label: 'Post Text', type: 'text' },
-    { id: 'matchedKeyword', label: 'Matched Keyword', type: 'text' },
-    { id: 'authorId', label: 'Author ID', type: 'text' },
-    { id: 'authorUsername', label: 'Author Username', type: 'text' },
-    { id: 'platform', label: 'Platform', type: 'text' },
-  ],
-  type: 'keywordTrigger',
-};

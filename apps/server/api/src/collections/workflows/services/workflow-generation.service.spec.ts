@@ -4,32 +4,6 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-vi.mock('@api/collections/workflows/registry/node-registry-adapter', () => ({
-  UNIFIED_NODE_REGISTRY: {
-    disabled_node: {
-      category: 'legacy',
-      description: 'Old node',
-      inputs: {},
-      isEnabled: false,
-      outputs: {},
-    },
-    imageGen: {
-      category: 'generation',
-      description: 'Generate image',
-      inputs: { prompt: {} },
-      isEnabled: true,
-      outputs: { imageUrl: {} },
-    },
-    videoGen: {
-      category: 'generation',
-      description: 'Generate video from text',
-      inputs: { prompt: {} },
-      isEnabled: true,
-      outputs: { videoUrl: {} },
-    },
-  },
-}));
-
 vi.mock('@api/services/integrations/openrouter/dto/openrouter.dto', () => ({
   getDefaultModel: vi.fn(() => 'openai/gpt-5.6-terra'),
   OpenRouterModelTier: { STANDARD: 'standard' },

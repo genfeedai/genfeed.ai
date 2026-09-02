@@ -89,19 +89,23 @@ export function registerYoutubeLongFormWorkflowDefinitions(
       ],
       inputVariables: [
         {
+          description: 'Public YouTube video URL with spoken audio.',
           key: 'youtubeUrl',
           label: 'YouTube URL',
           required: true,
-          type: 'string',
+          type: 'url',
         },
         {
+          defaultValue: 'article',
+          description: 'Long-form output format to persist.',
           key: 'outputType',
-          label: 'Output type',
+          label: 'Output format',
           required: true,
-          type: 'string',
+          type: 'enum',
           validation: { options: [...YOUTUBE_LONG_FORM_OUTPUT_TYPES] },
         },
         {
+          defaultValue: 'account',
           key: 'persistence',
           label: 'Persistence',
           required: true,
@@ -109,6 +113,7 @@ export function registerYoutubeLongFormWorkflowDefinitions(
           validation: { options: ['account', 'preview'] },
         },
         {
+          defaultValue: 'ttl',
           key: 'retentionPolicy',
           label: 'Source retention policy',
           required: true,

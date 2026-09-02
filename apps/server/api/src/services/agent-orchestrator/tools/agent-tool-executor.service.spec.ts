@@ -407,9 +407,6 @@ describe('AgentToolExecutorService', () => {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
       findOne: vi.fn().mockResolvedValue(null),
     };
-    const youtubeLongFormWorkflowService = {
-      runAuthenticated: vi.fn(),
-    };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
     };
@@ -1037,7 +1034,7 @@ describe('AgentToolExecutorService', () => {
         workflowExecutorService as never,
         workflowSchedulerService as never,
         workflowExecutionsService as never,
-        youtubeLongFormWorkflowService as never,
+        { getWorkflow: vi.fn(), runWorkflow: vi.fn() } as never,
       ),
     );
     const mediaGenerationHandler = new AgentMediaGenerationToolHandler(

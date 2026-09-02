@@ -1,3 +1,7 @@
+import { ALL_ACTIONS } from '@genfeedai/actions';
+import { ENGINE_NATIVE_NODE_TYPES } from '../engine/utils/action-node';
+import { getNodeDefinition } from '../nodes/registry/merged-registry';
+
 export interface WorkflowGenerationNodeType {
   category?: string;
   description?: string;
@@ -35,64 +39,38 @@ export interface ParsedWorkflowGeneration {
   workflow: Record<string, unknown>;
 }
 
-export const DEFAULT_WORKFLOW_GENERATION_NODE_TYPES: WorkflowGenerationNodeType[] =
-  [
-    {
-      category: 'input',
-      description: 'Text prompt or source idea for content generation',
-      inputs: [],
-      outputs: ['prompt'],
-      type: 'workflowInput',
-    },
-    {
-      category: 'generation',
-      description: 'Generate an image from a text prompt',
-      inputs: ['prompt'],
-      outputs: ['imageUrl'],
+export function buildWorkflowGenerationNodeTypes(): WorkflowGenerationNodeType[] {
+  const engineNative: WorkflowGenerationNodeType[] = [];
+  for (const type of ENGINE_NATIVE_NODE_TYPES) {
+    const definition = getNodeDefinition(type);
+    if (!definition) {
+      continue;
+    }
+    engineNative.push({
+      category: definition.category,
+      description: definition.description,
+      inputs: definition.inputs.map((input) => input.id),
+      outputs: definition.outputs.map((output) => output.id),
+      type,
+    });
+  }
+
+  const actions = ALL_ACTIONS.filter(
+    (action) => action.visibility === 'workflow',
+  ).map((action) => {
+    const definition = getNodeDefinition(action.id);
+    return {
+      category: action.workflowCategory ?? definition?.category,
+      description: action.description,
+      inputs: (definition?.inputs ?? []).map((input) => input.id),
+      outputs: (definition?.outputs ?? []).map((output) => output.id),
       type: 'genfeedAction',
-      workflowActionId: 'imageGen',
-    },
-    {
-      category: 'generation',
-      description: 'Generate a video from a prompt or image',
-      inputs: ['prompt', 'imageUrl'],
-      outputs: ['videoUrl'],
-      type: 'genfeedAction',
-      workflowActionId: 'videoGen',
-    },
-    {
-      category: 'content',
-      description: 'Generate social post copy from a prompt',
-      inputs: ['prompt'],
-      outputs: ['content'],
-      type: 'genfeedAction',
-      workflowActionId: 'postGen',
-    },
-    {
-      category: 'publishing',
-      description: 'Prepare generated content for review or publishing',
-      inputs: ['content', 'imageUrl', 'videoUrl'],
-      outputs: ['post'],
-      type: 'genfeedAction',
-      workflowActionId: 'publish',
-    },
-    {
-      category: 'input',
-      description: 'Get recent posts, mentions, or search results from X',
-      inputs: ['brand', 'query', 'username'],
-      outputs: ['posts', 'summary', 'count'],
-      type: 'genfeedAction',
-      workflowActionId: 'socialRead',
-    },
-    {
-      category: 'output',
-      description: 'Send results privately by notification or email',
-      inputs: ['content', 'subject', 'html'],
-      outputs: ['delivered', 'destination'],
-      type: 'genfeedAction',
-      workflowActionId: 'reportDelivery',
-    },
-  ];
+      workflowActionId: action.id,
+    };
+  });
+
+  return [...engineNative, ...actions];
+}
 
 export function buildWorkflowGenerationMessages({
   availableNodeTypes,

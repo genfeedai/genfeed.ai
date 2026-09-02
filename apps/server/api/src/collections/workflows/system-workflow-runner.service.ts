@@ -207,6 +207,10 @@ export class SystemWorkflowRunnerService
     }
   }
 
+  getWorkflow(canonicalId: string): SystemWorkflowGraphDefinition | undefined {
+    return this.workflowDefinitions.get(canonicalId);
+  }
+
   registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
     if (this.workflowDefinitions.has(definition.canonicalId)) {
       throw new Error(

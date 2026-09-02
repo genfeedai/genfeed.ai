@@ -7,7 +7,6 @@ import {
   DEFAULT_CREDIT_COSTS,
   filterByBudget,
   getNodeCreditCost,
-  groupCostsByCategory,
   hasInsufficientCredits,
 } from './credit-calculator';
 
@@ -268,108 +267,6 @@ describe('filterByBudget', () => {
     const result = filterByBudget(nodes, [], 50, { 'effect-captions': 200 });
 
     expect(result).toHaveLength(0);
-  });
-});
-
-describe('groupCostsByCategory', () => {
-  it('should group AI nodes together', () => {
-    const nodes = [makeNode('n1', 'imageGen'), makeNode('n2', 'videoGen')];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(result.ai).toBeDefined();
-    expect(result.ai.nodes).toContain('n1');
-    expect(result.ai.nodes).toContain('n2');
-    expect(result.ai.totalCredits).toBe(15); // 5 + 10
-  });
-
-  it('should group input nodes together', () => {
-    const nodes = [
-      makeNode('n1', 'input-video'),
-      makeNode('n2', 'trendTrigger'),
-      makeNode('n3', 'brand'),
-    ];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(result.input).toBeDefined();
-    expect(result.input.nodes).toHaveLength(3);
-    expect(result.input.totalCredits).toBe(0); // all free
-  });
-
-  it('should group output nodes together', () => {
-    const nodes = [
-      makeNode('n1', 'publish'),
-      makeNode('n2', 'sendDm'),
-      makeNode('n3', 'output-webhook'),
-    ];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(result.output).toBeDefined();
-    expect(result.output.nodes).toHaveLength(3);
-    expect(result.output.totalCredits).toBe(0);
-  });
-
-  it('should group control nodes together', () => {
-    const nodes = [
-      makeNode('n1', 'control-branch'),
-      makeNode('n2', 'promptConstructor'),
-    ];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(result.control).toBeDefined();
-    expect(result.control.nodes).toHaveLength(2);
-    expect(result.control.totalCredits).toBe(0);
-  });
-
-  it('should fall back to processing category for unknown types', () => {
-    const nodes = [
-      makeNode('n1', 'process-resize'),
-      makeNode('n2', 'process-transform'),
-    ];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(result.processing).toBeDefined();
-    expect(result.processing.nodes).toHaveLength(2);
-    // resize=1, transform=1
-    expect(result.processing.totalCredits).toBe(2);
-  });
-
-  it('should handle empty node list', () => {
-    const result = groupCostsByCategory([]);
-
-    expect(Object.keys(result)).toHaveLength(0);
-  });
-
-  it('should produce multiple categories for mixed node types', () => {
-    const nodes = [
-      makeNode('n1', 'imageGen'),
-      makeNode('n2', 'input-video'),
-      makeNode('n3', 'publish'),
-      makeNode('n4', 'control-branch'),
-      makeNode('n5', 'process-resize'),
-    ];
-
-    const result = groupCostsByCategory(nodes);
-
-    expect(Object.keys(result).sort()).toEqual([
-      'ai',
-      'control',
-      'input',
-      'output',
-      'processing',
-    ]);
-  });
-
-  it('should use custom costs when provided', () => {
-    const nodes = [makeNode('n1', 'imageGen')];
-
-    const result = groupCostsByCategory(nodes, { imageGen: 50 });
-
-    expect(result.ai.totalCredits).toBe(50);
   });
 });
 

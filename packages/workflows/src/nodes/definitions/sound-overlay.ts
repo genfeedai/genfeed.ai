@@ -41,17 +41,3 @@ export const DEFAULT_SOUND_OVERLAY_DATA: Partial<SoundOverlayNodeData> = {
   videoUrl: null,
   videoVolume: 0,
 };
-
-export const soundOverlayNodeDefinition = {
-  category: 'processing' as const,
-  defaultData: DEFAULT_SOUND_OVERLAY_DATA,
-  description: 'Add audio track to video via FFmpeg',
-  icon: 'Volume2',
-  inputs: [
-    { id: 'videoUrl', label: 'Video URL', required: true, type: 'text' },
-    { id: 'soundUrl', label: 'Sound URL', required: true, type: 'text' },
-  ],
-  label: 'Sound Overlay',
-  outputs: [{ id: 'videoUrl', label: 'Output Video', type: 'text' }],
-  type: 'soundOverlay',
-};

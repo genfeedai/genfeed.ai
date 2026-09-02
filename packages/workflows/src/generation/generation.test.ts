@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildWorkflowGenerationMessages,
-  DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
+  buildWorkflowGenerationNodeTypes,
   parseWorkflowGenerationResponse,
 } from '.';
 
@@ -31,13 +31,23 @@ describe('workflow generation shared helpers', () => {
     });
   });
 
-  it('includes socialRead and reportDelivery as action-backed generator vocabulary (#2664)', () => {
-    const actionIds = DEFAULT_WORKFLOW_GENERATION_NODE_TYPES.map(
-      (node) => node.workflowActionId,
-    );
+  it('includes catalog actions in the generator vocabulary without a static list', () => {
+    const nodeTypes = buildWorkflowGenerationNodeTypes();
+    const actionIds = nodeTypes.map((node) => node.workflowActionId);
     expect(actionIds).toEqual(
-      expect.arrayContaining(['socialRead', 'reportDelivery']),
+      expect.arrayContaining([
+        'socialRead',
+        'reportDelivery',
+        'talkingHeadScript',
+        'imageGen',
+      ]),
     );
+    expect(nodeTypes.some((node) => node.type === 'workflowInput')).toBe(true);
+    expect(
+      nodeTypes
+        .filter((node) => node.workflowActionId)
+        .every((node) => node.type === 'genfeedAction'),
+    ).toBe(true);
   });
 
   it('omits the platform constraint when no targets are provided', () => {

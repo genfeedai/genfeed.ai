@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_SOUND_OVERLAY_DATA,
-  soundOverlayNodeDefinition,
-} from './sound-overlay';
+import { DEFAULT_SOUND_OVERLAY_DATA } from './sound-overlay';
 
 describe('sound-overlay node', () => {
   describe('DEFAULT_SOUND_OVERLAY_DATA', () => {
@@ -37,43 +34,6 @@ describe('sound-overlay node', () => {
       expect(DEFAULT_SOUND_OVERLAY_DATA.outputVideoUrl).toBeNull();
       expect(DEFAULT_SOUND_OVERLAY_DATA.jobId).toBeNull();
       expect(DEFAULT_SOUND_OVERLAY_DATA.processingProgress).toBeNull();
-    });
-  });
-
-  describe('soundOverlayNodeDefinition', () => {
-    it('should have type soundOverlay', () => {
-      expect(soundOverlayNodeDefinition.type).toBe('soundOverlay');
-    });
-
-    it('should be in processing category', () => {
-      expect(soundOverlayNodeDefinition.category).toBe('processing');
-    });
-
-    it('should have label Sound Overlay', () => {
-      expect(soundOverlayNodeDefinition.label).toBe('Sound Overlay');
-    });
-
-    it('should require videoUrl and soundUrl inputs', () => {
-      expect(soundOverlayNodeDefinition.inputs).toHaveLength(2);
-      const videoInput = soundOverlayNodeDefinition.inputs.find(
-        (i) => i.id === 'videoUrl',
-      );
-      const soundInput = soundOverlayNodeDefinition.inputs.find(
-        (i) => i.id === 'soundUrl',
-      );
-      expect(videoInput?.required).toBe(true);
-      expect(soundInput?.required).toBe(true);
-    });
-
-    it('should output a single videoUrl', () => {
-      expect(soundOverlayNodeDefinition.outputs).toHaveLength(1);
-      expect(soundOverlayNodeDefinition.outputs[0].id).toBe('videoUrl');
-    });
-
-    it('should reference default data', () => {
-      expect(soundOverlayNodeDefinition.defaultData).toBe(
-        DEFAULT_SOUND_OVERLAY_DATA,
-      );
     });
   });
 });

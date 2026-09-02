@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PUBLISH_DATA, publishNodeDefinition } from './publish';
+import { DEFAULT_PUBLISH_DATA } from './publish';
 
 describe('publish node', () => {
   describe('DEFAULT_PUBLISH_DATA', () => {
@@ -38,65 +38,6 @@ describe('publish node', () => {
 
     it('should default caption to empty string', () => {
       expect(DEFAULT_PUBLISH_DATA.caption).toBe('');
-    });
-  });
-
-  describe('publishNodeDefinition', () => {
-    it('should have type publish', () => {
-      expect(publishNodeDefinition.type).toBe('publish');
-    });
-
-    it('should be in output category', () => {
-      expect(publishNodeDefinition.category).toBe('output');
-    });
-
-    it('should have label Publish', () => {
-      expect(publishNodeDefinition.label).toBe('Publish');
-    });
-
-    it('should have a description', () => {
-      expect(publishNodeDefinition.description).toBeTruthy();
-    });
-
-    it('should have an icon', () => {
-      expect(publishNodeDefinition.icon).toBe('Share2');
-    });
-
-    it('should require brand and media inputs', () => {
-      const brandInput = publishNodeDefinition.inputs.find(
-        (i) => i.id === 'brand',
-      );
-      const mediaInput = publishNodeDefinition.inputs.find(
-        (i) => i.id === 'media',
-      );
-      expect(brandInput).toBeDefined();
-      expect(brandInput?.required).toBe(true);
-      expect(mediaInput).toBeDefined();
-      expect(mediaInput?.required).toBe(true);
-    });
-
-    it('should have optional caption input', () => {
-      const captionInput = publishNodeDefinition.inputs.find(
-        (i) => i.id === 'caption',
-      );
-      expect(captionInput).toBeDefined();
-      expect(captionInput?.required).toBe(false);
-    });
-
-    it('should have optional schedule input', () => {
-      const scheduleInput = publishNodeDefinition.inputs.find(
-        (i) => i.id === 'schedule',
-      );
-      expect(scheduleInput).toBeDefined();
-      expect(scheduleInput?.required).toBe(false);
-    });
-
-    it('should have no outputs', () => {
-      expect(publishNodeDefinition.outputs).toEqual([]);
-    });
-
-    it('should reference default data', () => {
-      expect(publishNodeDefinition.defaultData).toBe(DEFAULT_PUBLISH_DATA);
     });
   });
 });

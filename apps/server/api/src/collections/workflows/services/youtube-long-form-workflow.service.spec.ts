@@ -79,6 +79,24 @@ describe('YoutubeLongFormWorkflowService', () => {
       resultNodeId: 'persist-output',
       version: 2,
     });
+    expect(conversion?.definition.inputVariables).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'youtubeUrl',
+          required: true,
+          type: 'url',
+        }),
+        expect.objectContaining({
+          defaultValue: 'article',
+          key: 'outputType',
+          required: true,
+        }),
+        expect.objectContaining({
+          defaultValue: 'account',
+          key: 'persistence',
+        }),
+      ]),
+    );
     expect(conversion?.definition.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

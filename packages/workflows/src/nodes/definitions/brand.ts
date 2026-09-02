@@ -86,23 +86,3 @@ export const DEFAULT_BRAND_DATA: Partial<BrandNodeData> = {
   status: 'idle',
   type: 'brand',
 };
-
-/**
- * Brand node definition for registry
- */
-export const brandNodeDefinition = {
-  category: 'input' as const,
-  defaultData: DEFAULT_BRAND_DATA,
-  description:
-    'Select a brand from your organization to inject brand context into the workflow',
-  icon: 'Store',
-  inputs: [],
-  label: 'Brand',
-  outputs: [
-    { id: 'brand', label: 'Brand Context', type: 'brand' },
-    { id: 'voice', label: 'Voice', type: 'text' },
-    { id: 'colors', label: 'Colors', type: 'object' },
-    { id: 'fonts', label: 'Fonts', type: 'object' },
-  ],
-  type: 'brand',
-};

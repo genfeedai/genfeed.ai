@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DEFAULT_TREND_SOUND_INSPIRATION_DATA,
-  trendSoundInspirationNodeDefinition,
-} from './trend-sound-inspiration';
+import { DEFAULT_TREND_SOUND_INSPIRATION_DATA } from './trend-sound-inspiration';
 
 describe('trend-sound-inspiration node', () => {
   describe('DEFAULT_TREND_SOUND_INSPIRATION_DATA', () => {
@@ -36,47 +33,6 @@ describe('trend-sound-inspiration node', () => {
       expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.authorName).toBeNull();
       expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.coverUrl).toBeNull();
       expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.growthRate).toBeNull();
-    });
-  });
-
-  describe('trendSoundInspirationNodeDefinition', () => {
-    it('should have type trendSoundInspiration', () => {
-      expect(trendSoundInspirationNodeDefinition.type).toBe(
-        'trendSoundInspiration',
-      );
-    });
-
-    it('should be in inspiration category', () => {
-      expect(trendSoundInspirationNodeDefinition.category).toBe('inspiration');
-    });
-
-    it('should have label Trend Sound Inspiration', () => {
-      expect(trendSoundInspirationNodeDefinition.label).toBe(
-        'Trend Sound Inspiration',
-      );
-    });
-
-    it('should have no inputs', () => {
-      expect(trendSoundInspirationNodeDefinition.inputs).toEqual([]);
-    });
-
-    it('should output soundId, soundName, soundUrl, duration, and usageCount', () => {
-      const outputIds = trendSoundInspirationNodeDefinition.outputs.map(
-        (o) => o.id,
-      );
-      expect(outputIds).toEqual([
-        'soundId',
-        'soundName',
-        'soundUrl',
-        'duration',
-        'usageCount',
-      ]);
-    });
-
-    it('should reference default data', () => {
-      expect(trendSoundInspirationNodeDefinition.defaultData).toBe(
-        DEFAULT_TREND_SOUND_INSPIRATION_DATA,
-      );
     });
   });
 });

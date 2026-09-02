@@ -1,4 +1,3 @@
-import { UNIFIED_NODE_REGISTRY as NODE_REGISTRY } from '@api/collections/workflows/registry/node-registry-adapter';
 import {
   type CoreWorkflowFormat,
   WorkflowFormatConverterService,
@@ -10,9 +9,9 @@ import {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   buildWorkflowGenerationMessages,
+  buildWorkflowGenerationNodeTypes,
   parseWorkflowGenerationResponse,
 } from '@genfeedai/workflows/generation';
-import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 interface GenerateWorkflowParams {
@@ -33,36 +32,7 @@ export class WorkflowGenerationService {
     tokensUsed: number;
     workflow: Record<string, unknown>;
   }> {
-    const availableNodeTypesByIdentity = new Map<
-      string,
-      {
-        category: string;
-        description: string;
-        inputs: string[];
-        outputs: string[];
-        type: string;
-        workflowActionId?: string;
-      }
-    >();
-    for (const [key, def] of Object.entries(NODE_REGISTRY)) {
-      if (def.isEnabled === false) {
-        continue;
-      }
-      const workflowActionId = getWorkflowActionIdForNodeType(key);
-      const identity = workflowActionId ? `action:${workflowActionId}` : key;
-      if (availableNodeTypesByIdentity.has(identity)) {
-        continue;
-      }
-      availableNodeTypesByIdentity.set(identity, {
-        category: def.category,
-        description: def.description,
-        inputs: Object.keys(def.inputs),
-        outputs: Object.keys(def.outputs),
-        type: workflowActionId ? 'genfeedAction' : key,
-        ...(workflowActionId ? { workflowActionId } : {}),
-      });
-    }
-    const availableNodeTypes = [...availableNodeTypesByIdentity.values()];
+    const availableNodeTypes = buildWorkflowGenerationNodeTypes();
 
     const model = getDefaultModel(OpenRouterModelTier.STANDARD);
     const response = await this.openRouterService.chatCompletion({

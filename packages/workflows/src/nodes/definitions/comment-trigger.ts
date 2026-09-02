@@ -30,22 +30,3 @@ export const DEFAULT_COMMENT_TRIGGER_DATA: Partial<CommentTriggerNodeData> = {
   status: 'idle',
   type: 'commentTrigger',
 };
-
-export const commentTriggerNodeDefinition = {
-  category: 'trigger' as const,
-  defaultData: DEFAULT_COMMENT_TRIGGER_DATA,
-  description: 'Start workflow when a social comment is detected',
-  icon: 'MessageCircle',
-  inputs: [],
-  label: 'Comment Trigger',
-  outputs: [
-    { id: 'commentId', label: 'Comment ID', type: 'text' },
-    { id: 'contentId', label: 'Content ID', type: 'text' },
-    { id: 'contentUrl', label: 'Content URL', type: 'text' },
-    { id: 'text', label: 'Comment Text', type: 'text' },
-    { id: 'authorId', label: 'Author ID', type: 'text' },
-    { id: 'authorUsername', label: 'Author Username', type: 'text' },
-    { id: 'platform', label: 'Platform', type: 'text' },
-  ],
-  type: 'commentTrigger',
-};

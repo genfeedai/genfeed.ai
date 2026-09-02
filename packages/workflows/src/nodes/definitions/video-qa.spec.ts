@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_VIDEO_QA_DATA, videoQaNodeDefinition } from './video-qa';
+import { DEFAULT_VIDEO_QA_DATA } from './video-qa';
 
 describe('video-qa node', () => {
   describe('DEFAULT_VIDEO_QA_DATA', () => {
@@ -37,38 +37,6 @@ describe('video-qa node', () => {
       expect(DEFAULT_VIDEO_QA_DATA.expectedHeight).toBeNull();
       expect(DEFAULT_VIDEO_QA_DATA.expectedFrameRate).toBeNull();
       expect(DEFAULT_VIDEO_QA_DATA.hasExpectedAudio).toBeNull();
-    });
-  });
-
-  describe('videoQaNodeDefinition', () => {
-    it('should have type videoQa', () => {
-      expect(videoQaNodeDefinition.type).toBe('videoQa');
-    });
-
-    it('should be in processing category', () => {
-      expect(videoQaNodeDefinition.category).toBe('processing');
-    });
-
-    it('should have label Video QA', () => {
-      expect(videoQaNodeDefinition.label).toBe('Video QA');
-    });
-
-    it('should require a video input', () => {
-      expect(videoQaNodeDefinition.inputs).toHaveLength(1);
-      const videoInput = videoQaNodeDefinition.inputs.find(
-        (entry) => entry.id === 'video',
-      );
-      expect(videoInput?.required).toBe(true);
-      expect(videoInput?.type).toBe('video');
-    });
-
-    it('should expose deterministic and advisory continuity outputs', () => {
-      const outputIds = videoQaNodeDefinition.outputs.map((entry) => entry.id);
-      expect(outputIds).toEqual(['passed', 'report', 'continuityQa', 'video']);
-    });
-
-    it('should reference default data', () => {
-      expect(videoQaNodeDefinition.defaultData).toBe(DEFAULT_VIDEO_QA_DATA);
     });
   });
 });

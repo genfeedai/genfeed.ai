@@ -40,31 +40,3 @@ export const DEFAULT_TREND_TRIGGER_DATA: Partial<TrendTriggerNodeData> = {
   status: 'idle',
   trendType: 'video',
 };
-
-export const trendTriggerNodeDefinition = {
-  category: 'trigger' as const,
-  defaultData: DEFAULT_TREND_TRIGGER_DATA,
-  description: 'Start workflow when new trend matches criteria',
-  icon: 'TrendingUp',
-  inputs: [
-    {
-      id: 'keywords',
-      label: 'Keywords',
-      multiple: true,
-      required: false,
-      type: 'text',
-    },
-    { id: 'platform', label: 'Platform', required: false, type: 'text' },
-  ],
-  label: 'Trend Trigger',
-  outputs: [
-    { id: 'trendId', label: 'Trend ID', type: 'text' },
-    { id: 'topic', label: 'Topic', type: 'text' },
-    { id: 'platform', label: 'Platform', type: 'text' },
-    { id: 'viralScore', label: 'Viral Score', type: 'number' },
-    { id: 'hashtags', label: 'Hashtags', type: 'text[]' },
-    { id: 'videoUrl', label: 'Video URL', type: 'text' },
-    { id: 'soundId', label: 'Sound ID', type: 'text' },
-  ],
-  type: 'trendTrigger',
-};
