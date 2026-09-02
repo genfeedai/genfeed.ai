@@ -27,7 +27,7 @@ export class TelegramWorkflowRunnerService {
     private readonly prisma: PrismaService,
     private readonly resolveAuthContext: (
       chatId: number,
-    ) => ChatAuthContext | null,
+    ) => ChatAuthContext | null | Promise<ChatAuthContext | null>,
   ) {}
 
   async execute(
@@ -41,7 +41,7 @@ export class TelegramWorkflowRunnerService {
       return;
     }
 
-    const authContext = this.resolveAuthContext(chatId);
+    const authContext = await this.resolveAuthContext(chatId);
     if (!authContext) {
       await ctx.reply(
         '🔐 Connect first with `/connect <api_key>` or configure default org/user context.',

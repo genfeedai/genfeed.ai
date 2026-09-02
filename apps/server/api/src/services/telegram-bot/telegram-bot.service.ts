@@ -65,7 +65,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       this.loggerService,
       this.systemWorkflowRunner,
       this.prisma,
-      (chatId) => this.authContexts.resolveAuthContext(chatId),
+      (chatId) => this.authContexts.resolveLiveAuthContext(chatId),
     );
     this.conversation = new TelegramConversationService(this.runner);
     this.messageHandler = new TelegramMessageHandlerService(
@@ -238,7 +238,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     const chatId = ctx.chat?.id;
     const { statusLine } = this.conversation.describeStatus(chatId);
     const connectedContext = chatId
-      ? this.authContexts.resolveAuthContext(chatId)
+      ? await this.authContexts.resolveLiveAuthContext(chatId)
       : null;
 
     await ctx.reply(

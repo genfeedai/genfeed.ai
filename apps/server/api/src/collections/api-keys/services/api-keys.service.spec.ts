@@ -391,4 +391,42 @@ describe('ApiKeysService', () => {
       expect(service.verifyApiKey).not.toHaveBeenCalled();
     });
   });
+
+  describe('findActiveById', () => {
+    it('returns null when the row is revoked or expired', async () => {
+      const service = Object.create(
+        ApiKeysService.prototype,
+      ) as ApiKeysService & {
+        delegate: { findMany: MockFn };
+      };
+      service.delegate = {
+        findMany: vi.fn().mockResolvedValue([]),
+      };
+
+      await expect(service.findActiveById('key-1')).resolves.toBeNull();
+      expect(service.delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 1,
+          where: expect.objectContaining({
+            id: 'key-1',
+            isRevoked: false,
+          }),
+        }),
+      );
+    });
+
+    it('returns the live row when it is still active', async () => {
+      const live = { id: 'key-1', isRevoked: false, scopes: ['videos:read'] };
+      const service = Object.create(
+        ApiKeysService.prototype,
+      ) as ApiKeysService & {
+        delegate: { findMany: MockFn };
+      };
+      service.delegate = {
+        findMany: vi.fn().mockResolvedValue([live]),
+      };
+
+      await expect(service.findActiveById('key-1')).resolves.toEqual(live);
+    });
+  });
 });

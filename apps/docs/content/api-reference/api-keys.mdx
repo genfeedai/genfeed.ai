@@ -141,6 +141,22 @@ The same key authenticates the hosted MCP server at `https://mcp.genfeed.ai/mcp`
 MCP OAuth tokens issued through a browser consent flow are bound to the MCP
 resource and are rejected on the REST API.
 
+## Key surfaces
+
+| Surface | Credential | Presentation | Effective authorization |
+| --- | --- | --- | --- |
+| Public REST | User `gf_` key | `Authorization: Bearer` or `ApiKey` | Explicit key scopes. Tenancy is the issuing user and org. Org-admin membership is not inherited. |
+| Hosted MCP `/mcp` | Same `gf_` key or MCP OAuth session | Bearer header only | MCP `user` unless the key has an explicit `admin` scope and the issuer is org admin or owner. |
+| `/auth/whoami` | Session or `gf_` key | Bearer | API keys never advertise owner/admin without `admin` scope. Scopes never default to `*`. |
+| Telegram `/connect` | User `gf_` key | Private-chat command, then cached `apiKeyId` | `findByKey` at connect. Each later command re-reads the row; a revoked or expired key drops the chat identity. |
+| Agent Auth.md registration | User `gf_` key minted after claim | Bearer after exchange | Same REST/MCP rules. Revoke goes through `findByKey` then `revoke`. |
+| Internal files, notifications, Slack, MCP server-to-server | `GENFEEDAI_API_KEY` env | Bearer | Service identity, not a tenant org-admin. |
+| Provider webhooks (HeyGen, Kling, OpusPro, Leonardo) | Vendor shared secret | `?token=` and/or `x-webhook-token` | Not a `gf_` key. Vendors that have no HMAC only hit the registered URL. HMAC webhooks (Stripe) stay header-only. |
+
+A revoked `gf_` key fails `findByKey` / `findActiveById` on every surface above. MCP does not cache successful `gf_` whoami lookups.
+
+Per-endpoint `@RequiredScopes` coverage is separate from this contract. Missing scope metadata on a collection does not restore implicit org-admin.
+
 ## Scopes
 
 Scopes are checked per endpoint. Requests missing a required scope return
