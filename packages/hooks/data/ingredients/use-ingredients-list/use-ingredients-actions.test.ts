@@ -219,6 +219,7 @@ describe('useIngredientsActions', () => {
   const mockNotificationsService = {
     error: vi.fn(),
     success: vi.fn(),
+    warning: vi.fn(),
   };
   const socketSubscriptionsRef = { current: [] as Array<() => void> };
   const mockOnConvertToVideo = vi.fn();
@@ -916,7 +917,7 @@ describe('useIngredientsActions', () => {
 
     expect(mockImagesPost).not.toHaveBeenCalled();
     expect(mockVideosPost).not.toHaveBeenCalled();
-    expect(mockNotificationsService.error).toHaveBeenCalledWith(
+    expect(mockNotificationsService.warning).toHaveBeenCalledWith(
       'No prompt available to reprompt this ingredient',
     );
     expect(mockFindAll).not.toHaveBeenCalledWith(true);

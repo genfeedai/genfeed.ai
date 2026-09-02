@@ -27,8 +27,8 @@ describe('publishing-list-page', () => {
   });
 
   it('maps pending and processing statuses onto the publishing execution state', () => {
-    expect(source).toContain(
-      'normalizedStatus === PostStatus.PENDING || normalizedStatus === PostStatus.PROCESSING',
+    expect(source).toMatch(
+      /normalizedStatus === PostStatus\.PENDING \|\|\s+normalizedStatus === PostStatus\.PROCESSING/,
     );
     expect(source).toContain('TargetExecutionState.PUBLISHING');
   });

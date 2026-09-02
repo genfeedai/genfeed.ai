@@ -3,8 +3,8 @@ import { ViewType } from '../src/view-type.enum';
 
 describe('view-type.enum', () => {
   describe('ViewType', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(ViewType)).toHaveLength(6);
+    it('should have 7 members', () => {
+      expect(Object.values(ViewType)).toHaveLength(7);
     });
 
     it('should have correct values', () => {
@@ -13,6 +13,7 @@ describe('view-type.enum', () => {
       expect(ViewType.CALENDAR).toBe('calendar');
       expect(ViewType.GRID).toBe('grid');
       expect(ViewType.MASONRY).toBe('masonry');
+      expect(ViewType.CANVAS).toBe('canvas');
       expect(ViewType.TABLE).toBe('table');
     });
   });

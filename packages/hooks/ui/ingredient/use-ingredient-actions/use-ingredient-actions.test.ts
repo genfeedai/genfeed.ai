@@ -977,7 +977,7 @@ describe('useIngredientActions', () => {
       expect(onReprompt).toHaveBeenCalledWith(mockVideoIngredient);
     });
 
-    it('informs when reprompt has no implementation', async () => {
+    it('is a no-op when no reprompt callback is provided', async () => {
       const notifyInfo = vi.fn();
       (
         NotificationsService.getInstance as ReturnType<typeof vi.fn>
@@ -991,9 +991,7 @@ describe('useIngredientActions', () => {
         await result.current.handlers.handleReprompt(mockVideoIngredient);
       });
 
-      expect(notifyInfo).toHaveBeenCalledWith(
-        'Reprompt feature requires custom implementation',
-      );
+      expect(notifyInfo).not.toHaveBeenCalled();
     });
 
     it('delegates see-details to the callback', async () => {
