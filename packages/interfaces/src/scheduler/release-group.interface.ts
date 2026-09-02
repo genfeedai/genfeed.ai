@@ -120,6 +120,8 @@ export interface IReleaseGroup extends IBaseEntity {
   organization?: IOrganization;
   brandId?: string | null;
   brand?: IBrand;
+  /** Publish content campaign this release belongs to, when planned in one. */
+  campaignId?: string | null;
   /** Derived from the complete set of active top-level channel targets. */
   status: ReleaseStatus;
   /** Release-level desired publish time (ISO 8601); targets may override. */

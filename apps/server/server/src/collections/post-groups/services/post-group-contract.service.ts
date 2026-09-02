@@ -249,6 +249,7 @@ export class PostGroupContractService {
       attachments: this.asReleaseAttachments(group.attachments, group.id),
       baseContent: group.baseContent,
       brandId: group.brandId,
+      campaignId: group.campaignId,
       createdAt: group.createdAt.toISOString(),
       firstTagColor: this.firstTagColorFromTargets(targets),
       id: group.id,

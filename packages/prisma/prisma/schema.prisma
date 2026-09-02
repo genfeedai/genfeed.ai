@@ -598,6 +598,7 @@ model User {
   credentials               Credential[]
   apiKeys                   ApiKey[]
   ingredients               Ingredient[]
+  campaigns                 Campaign[]
   posts                     Post[]
   postGroups                PostGroup[]
   postingCadences           PostingCadence[]
@@ -718,6 +719,7 @@ model Organization {
   credentials                   Credential[]
   orgIntegrations               OrgIntegration[]
   ingredients                   Ingredient[]
+  campaigns                     Campaign[]
   posts                         Post[]
   postGroups                    PostGroup[]
   postingCadences               PostingCadence[]
@@ -930,6 +932,7 @@ model Brand {
   lastUsedByMembers          Member[]                   @relation("member_last_used_brand")
   credentials                Credential[]
   ingredients                Ingredient[]               @relation("ingredient_brand")
+  campaigns                  Campaign[]
   posts                      Post[]
   postGroups                 PostGroup[]
   postingCadences            PostingCadence[]
@@ -2378,6 +2381,8 @@ model Post {
   externalShortcode              String?
   quoteTweetId                   String?
   groupId                        String?
+  campaignId                     String?
+  campaign                       Campaign?          @relation(fields: [campaignId], references: [id])
   url                            String?
   // Drifted enum collapsed to String (lowercase canonical value). See platform note.
   status                         String             @default("draft")
@@ -2494,6 +2499,7 @@ model Post {
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
   @@index([organizationId, brandId, listeningThemeId], map: "posts_org_brand_listening_theme_idx")
   @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
+  @@index([organizationId, campaignId, isDeleted, createdAt(sort: Desc)], map: "posts_org_campaign_created_idx")
   @@map("posts")
 }
 
@@ -2536,6 +2542,37 @@ model PublishApproval {
   @@map("publish_approvals")
 }
 
+/// Publish content campaign: one brief that many releases and channel targets
+/// are produced against. Distinct from the Messages outreach campaign and from
+/// an Automate program. Epic #4120, child #4138.
+model Campaign {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  name           String
+  objective      String?
+  brief          String?
+  startDate      DateTime?
+  endDate        DateTime?
+  // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/enums)
+  // is lowercase product language, matching PostStatus and WorkflowStatus.
+  status         String       @default("draft")
+  idempotencyKey String?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  posts          Post[]
+  postGroups     PostGroup[]
+
+  @@unique([organizationId, idempotencyKey], map: "campaigns_organizationId_idempotencyKey_key")
+  @@index([organizationId, isDeleted, brandId, status, createdAt(sort: Desc), id], map: "campaigns_org_brand_status_idx")
+  @@map("campaigns")
+}
+
 model PostGroup {
   id                 String              @id @default(cuid())
   organizationId     String
@@ -2544,6 +2581,8 @@ model PostGroup {
   owner              User                @relation(fields: [ownerId], references: [id])
   brandId            String?
   brand              Brand?              @relation(fields: [brandId], references: [id])
+  campaignId         String?
+  campaign           Campaign?           @relation(fields: [campaignId], references: [id])
   title              String
   baseContent        String
   media              Json                @default("[]")
@@ -2570,6 +2609,7 @@ model PostGroup {
   @@index([organizationId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_org_status_schedule_idx")
   @@index([brandId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_brand_status_schedule_idx")
   @@index([ownerId, isDeleted, createdAt(sort: Desc)], map: "post_groups_owner_created_idx")
+  @@index([organizationId, campaignId, isDeleted, scheduledAt(sort: Asc)], map: "post_groups_org_campaign_schedule_idx")
   @@map("post_groups")
 }
 

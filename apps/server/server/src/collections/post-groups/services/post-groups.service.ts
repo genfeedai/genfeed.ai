@@ -167,6 +167,7 @@ export class PostGroupsService {
   list(organizationId: string, query: PostGroupsQueryDto) {
     return this.persistenceService.listReleaseGroups({
       ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.campaignId ? { campaignId: query.campaignId } : {}),
       ...(query.contentType?.length ? { categories: query.contentType } : {}),
       ...(query.credentialId?.length
         ? { credentialIds: query.credentialId }
@@ -410,6 +411,9 @@ export class PostGroupsService {
             baseContent: input.baseContent,
           }),
           ...(input.brandId !== undefined && { brandId: input.brandId }),
+          ...(input.campaignId !== undefined && {
+            campaignId: input.campaignId,
+          }),
           ...(input.media !== undefined && {
             media: this.contractService.toJson(input.media),
           }),
@@ -426,6 +430,15 @@ export class PostGroupsService {
         },
         where: scopedWhere(organizationId, { id: existing.id }),
       })) as SchedulerPostGroup;
+
+      // Campaign membership belongs to the whole release, including targets
+      // that already published, so it is not gated on lifecycle state.
+      if (input.campaignId !== undefined) {
+        await tx.post.updateMany({
+          data: { campaignId: input.campaignId },
+          where: scopedWhere(organizationId, { groupId: existing.id }),
+        });
+      }
 
       const targetUpdate: PostLifecycleMutation = {};
       if (input.baseContent !== undefined) {

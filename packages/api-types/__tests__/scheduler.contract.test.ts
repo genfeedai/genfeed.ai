@@ -45,6 +45,18 @@ describe('createReleaseGroupSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  test('accepts a publish campaign id', () => {
+    const result = createReleaseGroupSchema.safeParse({
+      baseContent: 'Launch day is here.',
+      campaignId: 'cmp_spring',
+      targets: [validTarget],
+      timezone: 'Europe/Amsterdam',
+      title: 'Launch',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   test('accepts a posting set provenance id', () => {
     const result = createReleaseGroupSchema.safeParse({
       baseContent: 'Launch day is here.',

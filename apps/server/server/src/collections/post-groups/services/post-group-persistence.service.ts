@@ -63,6 +63,7 @@ const SCHEDULER_POST_GROUP_SELECT = {
   attachments: true,
   baseContent: true,
   brandId: true,
+  campaignId: true,
   createdAt: true,
   id: true,
   idempotencyKey: true,
@@ -99,6 +100,7 @@ const SCHEDULER_POST_TARGET_SELECT = {
   analyticsCollectionRequestedAt: true,
   analyticsCollectionState: true,
   brandId: true,
+  campaignId: true,
   category: true,
   createdAt: true,
   credentialId: true,
@@ -204,6 +206,7 @@ export class PostGroupPersistenceService {
         ),
         baseContent: params.input.baseContent,
         brandId,
+        campaignId: params.input.campaignId ?? null,
         idempotencyKey: params.input.idempotencyKey ?? null,
         media: this.contractService.toJson(params.input.media ?? []),
         organizationId: params.organizationId,
@@ -256,6 +259,7 @@ export class PostGroupPersistenceService {
 
       const created = (await tx.post.create({
         data: {
+          campaignId: context.group.campaignId,
           ...(params.provenance?.agentContextSource && {
             agentContextSource: params.provenance.agentContextSource,
           }),
@@ -373,6 +377,9 @@ export class PostGroupPersistenceService {
     query: ReleaseGroupListQuery,
   ): Promise<ReleaseGroupListResult> {
     const brandFilter = query.brandId ? { brandId: query.brandId } : {};
+    const campaignFilter = query.campaignId
+      ? { campaignId: query.campaignId }
+      : {};
     const window: ScheduleWindow | undefined =
       query.startDate && query.endDate
         ? { gte: query.startDate, lte: query.endDate }
@@ -394,6 +401,7 @@ export class PostGroupPersistenceService {
         select: SCHEDULER_POST_GROUP_SELECT,
         where: scopedWhere(query.organizationId, {
           ...brandFilter,
+          ...campaignFilter,
           ...(windowGroupIds ? { id: { in: windowGroupIds } } : {}),
         }),
       }) as Promise<SchedulerPostGroup[]>,
@@ -576,6 +584,7 @@ export class PostGroupPersistenceService {
       brandId: target.brandId,
       createdAt: target.createdAt,
       id: target.id,
+      campaignId: target.campaignId,
       idempotencyKey: null,
       isDeleted: target.isDeleted,
       media: [],
@@ -618,6 +627,10 @@ export class PostGroupPersistenceService {
     }
 
     if (query.statuses?.length && !query.statuses.includes(release.status)) {
+      return false;
+    }
+
+    if (query.campaignId && release.campaignId !== query.campaignId) {
       return false;
     }
 

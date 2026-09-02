@@ -5,6 +5,7 @@ export * from '@serializers/configs/content/batch-interpolation.config';
 export * from '@serializers/configs/content/bookmark.config';
 export * from '@serializers/configs/content/calendar-slot.config';
 export * from '@serializers/configs/content/calendar-slot-bulk-generate.config';
+export * from '@serializers/configs/content/campaign.config';
 export * from '@serializers/configs/content/channel-target.config';
 export * from '@serializers/configs/content/clip-project.config';
 export * from '@serializers/configs/content/clip-result.config';

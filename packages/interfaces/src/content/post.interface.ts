@@ -37,6 +37,7 @@ export interface IPost extends IBaseEntity {
   externalId?: string;
   externalShortcode?: string;
   groupId?: string;
+  campaignId?: string | null;
   url?: string;
   label?: string;
   description?: string;

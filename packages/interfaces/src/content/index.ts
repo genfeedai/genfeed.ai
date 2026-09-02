@@ -3,6 +3,7 @@ export * from './agent-mention.interface';
 export * from './article.interface';
 export * from './article-extended.interface';
 export * from './avatar-video-provider.interface';
+export * from './campaign.interface';
 export * from './character-sheet.interface';
 export * from './clip-draft-handoff.interface';
 export * from './clip-reference-frame.interface';

@@ -51,6 +51,7 @@ export const postAttributes = createEntityAttributes([
   'externalId',
   'externalShortcode',
   'groupId',
+  'campaignId',
   'originalPostId',
   'repurposeAdjustments',
   'url',
