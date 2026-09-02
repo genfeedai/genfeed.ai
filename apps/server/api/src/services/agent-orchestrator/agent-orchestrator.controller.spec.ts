@@ -97,9 +97,9 @@ describe('AgentOrchestratorController', () => {
       service.chat.mockResolvedValue({} as never);
       const body = {
         content: 'hello',
-        source: 'onboarding' as const,
+        source: 'onboarding',
         threadId: 'conv-1',
-      };
+      } as const;
 
       await controller.createTurn(body, user);
 

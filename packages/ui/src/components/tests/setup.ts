@@ -251,6 +251,11 @@ Object.defineProperty(window, 'scrollTo', {
 // Mock fetch
 global.fetch = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
