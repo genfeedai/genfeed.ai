@@ -1,4 +1,5 @@
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
+import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
@@ -95,11 +96,11 @@ describe('AgentOrchestratorController', () => {
         id: identity.organizationId,
       });
       service.chat.mockResolvedValue({} as never);
-      const body = {
+      const body: AgentChatBodyDto = {
         content: 'hello',
         source: 'onboarding',
         threadId: 'conv-1',
-      } as const;
+      };
 
       await controller.createTurn(body, user);
 
@@ -158,7 +159,11 @@ describe('AgentOrchestratorController', () => {
       service.chat.mockResolvedValue({} as never);
 
       await controller.createTurn(
-        { content: 'x', source: 'agent' as const, threadId: 'c2' },
+        {
+          content: 'x',
+          source: 'agent',
+          threadId: 'c2',
+        } as AgentChatBodyDto,
         user,
       );
 
@@ -181,7 +186,11 @@ describe('AgentOrchestratorController', () => {
       service.chat.mockResolvedValue({} as never);
 
       await controller.createTurn(
-        { content: 'test', source: 'agent' as const, threadId: 'conv-unique' },
+        {
+          content: 'test',
+          source: 'agent',
+          threadId: 'conv-unique',
+        } as AgentChatBodyDto,
         user,
       );
 
@@ -532,7 +541,7 @@ describe('AgentOrchestratorController', () => {
 
       await controller.createThreadTurn(
         'thread-route',
-        { content: 'test', source: 'agent' as const },
+        { content: 'test', source: 'agent' } as AgentChatBodyDto,
         user,
       );
 
@@ -554,9 +563,9 @@ describe('AgentOrchestratorController', () => {
           'thread-route',
           {
             content: 'test',
-            source: 'agent' as const,
+            source: 'agent',
             threadId: 'thread-body',
-          },
+          } as AgentChatBodyDto,
           user,
         ),
       ).rejects.toThrow('Request body threadId must match route threadId.');
@@ -583,9 +592,9 @@ describe('AgentOrchestratorController', () => {
       const result = await controller.createTurnStream(
         {
           content: 'stream',
-          source: 'agent' as const,
+          source: 'agent',
           threadId: 'thread-stream',
-        },
+        } as AgentChatBodyDto,
         user,
       );
 
@@ -615,7 +624,7 @@ describe('AgentOrchestratorController', () => {
 
       await controller.createThreadTurnStream(
         'thread-stream',
-        { content: 'stream', source: 'agent' as const },
+        { content: 'stream', source: 'agent' } as AgentChatBodyDto,
         user,
       );
 
