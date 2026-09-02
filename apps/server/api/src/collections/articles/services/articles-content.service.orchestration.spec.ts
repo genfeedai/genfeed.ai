@@ -195,7 +195,7 @@ describe('ArticlesContentService generation orchestration', () => {
     const source = readFileSync(
       join(
         dirname(fileURLToPath(import.meta.url)),
-        '../../../../../server/src/collections/articles/services/articles-content.service.ts',
+        './articles-content.service.ts',
       ),
       'utf8',
     );

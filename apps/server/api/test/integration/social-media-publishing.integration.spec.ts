@@ -1,24 +1,21 @@
 // Mock YouTube service to break circular dependency chain
 // YoutubeService <-> YoutubeAnalyticsService creates circular imports
-vi.mock(
-  '@api/services/integrations/youtube/services/youtube.service',
-  () => ({
-    YoutubeService: vi.fn().mockImplementation(() => ({
-      exchangeCodeForTokens: vi.fn(),
-      generateAuthUrl: vi.fn(),
-      getChannelDetails: vi.fn(),
-      getMediaAnalytics: vi.fn(),
-      getMediaAnalyticsBatch: vi.fn(),
-      getTrends: vi.fn(),
-      getVideoMetadata: vi.fn(),
-      getVideoStatus: vi.fn(),
-      parseDuration: vi.fn(),
-      postComment: vi.fn(),
-      refreshToken: vi.fn(),
-      uploadVideo: vi.fn(),
-    })),
-  }),
-);
+vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
+  YoutubeService: vi.fn().mockImplementation(() => ({
+    exchangeCodeForTokens: vi.fn(),
+    generateAuthUrl: vi.fn(),
+    getChannelDetails: vi.fn(),
+    getMediaAnalytics: vi.fn(),
+    getMediaAnalyticsBatch: vi.fn(),
+    getTrends: vi.fn(),
+    getVideoMetadata: vi.fn(),
+    getVideoStatus: vi.fn(),
+    parseDuration: vi.fn(),
+    postComment: vi.fn(),
+    refreshToken: vi.fn(),
+    uploadVideo: vi.fn(),
+  })),
+}));
 
 import process from 'node:process';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';

@@ -219,12 +219,7 @@ describe('ArticlesService create persistence', () => {
 
   it('generate persist source never assigns unknown Prisma Article fields', () => {
     const source = readFileSync(
-      fileURLToPath(
-        new URL(
-          '../../../../../server/src/collections/articles/services/articles-content.service.ts',
-          import.meta.url,
-        ),
-      ),
+      fileURLToPath(new URL('./articles-content.service.ts', import.meta.url)),
       'utf8',
     );
 
