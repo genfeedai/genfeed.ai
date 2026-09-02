@@ -82,49 +82,42 @@ Canonical fields:
 - `getRecentMessages(roomId, limit?)`
 - `copyMessages(sourceRoom, targetRoom, organizationId)`
 
-## AgentRun
+## WorkflowExecution
 
-**Prisma model:** `AgentRun`
-**Table:** `agent_runs`
+**Prisma model:** `WorkflowExecution`
+**Table:** `workflow_executions`
+
+The AgentRun model was deleted in the workflow-only execution hard cut. Agent turns persist a `WorkflowExecution` row (plus per-node `WorkflowExecutionNodeResult`s). There is no `agent_runs` table and no `AgentRunsService`.
 
 Canonical fields:
 
 ```typescript
 {
   id: string
-  mongoId?: string
-  organizationId: string
+  idempotencyKey?: string
+  workflowId: string
+  workflowVersionId: string
   userId: string
-  strategyId?: string
-  threadId?: string
-  parentRunId?: string
-  status: AgentRunStatus
-  type?: string
-  config: Json
+  organizationId: string
+  status: WorkflowExecutionStatus
   result?: Json
   error?: string
-  metadata: Json
-  label?: string
-  objective?: string
-  trigger?: string
-  creditsUsed: number
+  startedAt?: Date
+  completedAt?: Date
+  progress: number
   durationMs?: number
+  creditsUsed: number
+  failedNodeId?: string
+  trigger?: string
   isDeleted: boolean
   createdAt: Date
   updatedAt: Date
 }
 ```
 
-**Indexes:** organization/status/thread scoped Prisma indexes in `schema.prisma`.
+**Indexes:** `@@unique([organizationId, idempotencyKey])`, `@@index([organizationId, isDeleted, createdAt(sort: Desc)])`
 
-**Service:** `AgentRunsService`
-
-- `start(id, organizationId)` sets status to `RUNNING`
-- `getById(id, organizationId)`
-- `isCancelled(id, organizationId)`
-- `getActiveRuns(organizationId)` / `getByThread(threadId, organizationId)`
-- `getStats(organizationId)`
-- `getRunContent(runId, organizationId)`
+**Service:** `WorkflowExecutionsService` (`apps/server/api/src/collections/workflow-executions/`)
 
 ## AgentMemory
 

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ExecutableEdge, ExecutableNode } from '../../types';
 import { DEFAULT_RETRY_CONFIG } from '../../types';
+import {
+  PermanentExecutionError,
+  TransientExecutionError,
+} from '../execution-error';
 import { canExecuteNode, planPartialExecution } from '../partial-execution';
 import {
   analyzeForResume,
@@ -459,36 +463,24 @@ describe('mergeExecutionResults', () => {
 });
 
 describe('isRetryableError', () => {
-  it('should retry network errors', () => {
-    expect(isRetryableError(new Error('network timeout'))).toBe(true);
+  it('should retry typed transient errors', () => {
+    expect(
+      isRetryableError(new TransientExecutionError('provider timeout')),
+    ).toBe(true);
   });
 
-  it('should retry 429 rate limit errors', () => {
-    expect(isRetryableError(new Error('429 Too Many Requests'))).toBe(true);
+  it('should not retry typed permanent errors', () => {
+    expect(
+      isRetryableError(new PermanentExecutionError('validation failed')),
+    ).toBe(false);
   });
 
-  it('should retry 503 service unavailable', () => {
-    expect(isRetryableError(new Error('503 Service Unavailable'))).toBe(true);
+  it('should not retry unknown errors by default', () => {
+    expect(isRetryableError(new Error('something unexpected'))).toBe(false);
   });
 
-  it('should not retry validation errors', () => {
-    expect(isRetryableError(new Error('validation failed'))).toBe(false);
-  });
-
-  it('should not retry unauthorized errors', () => {
-    expect(isRetryableError(new Error('unauthorized'))).toBe(false);
-  });
-
-  it('should not retry not found errors', () => {
-    expect(isRetryableError(new Error('not found'))).toBe(false);
-  });
-
-  it('should retry non-Error values', () => {
-    expect(isRetryableError('string error')).toBe(true);
-  });
-
-  it('should retry unknown errors by default', () => {
-    expect(isRetryableError(new Error('something unexpected'))).toBe(true);
+  it('should not retry non-Error values', () => {
+    expect(isRetryableError('string error')).toBe(false);
   });
 });
 

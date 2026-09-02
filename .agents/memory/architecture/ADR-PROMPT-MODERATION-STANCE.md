@@ -132,7 +132,6 @@ Purged fields (null/empty, rows kept):
 - `AgentThread.systemPrompt`
 - `AgentMessage.content`
 - `AgentThreadEvent.data`
-- `AgentRun.objective`
 - `AgentThreadSnapshot.data`
 - `ThreadContextState.data`
 

@@ -71,7 +71,7 @@ banned kinds.
 
 | Area | Storage | Domain casing | Agent rule |
 | --- | --- | --- | --- |
-| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, BrandInterviewStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
+| **Status Prisma enums** (BatchStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, BrandInterviewStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. `AgentRunStatus` was dropped with the AgentRun model. |
 | **`PostStatus`, `TaskStatus`, and similar product statuses** | **String** column | **lowercase product language** | Keep as-is. Do **not** re-harmonize into SCREAMING or invent dual maps. |
 | **`WorkflowStatus`** | **String** column | product lowercase | Keep as-is. Orphan Prisma enum dropped in #2492 — do not reintroduce. |
 | **`ReviewDecision`** | Postgres enum with retained uppercase labels | product lowercase (`unset` / `approved` / `rejected` / `request_changes`) | Mandatory `PersistedReviewDecision` / `parseReviewDecision` boundary from #2644. JSON and API never expose uppercase labels. |
@@ -80,7 +80,7 @@ banned kinds.
 | **`AgentQualityTier`, `AgentGoalProfile`, `OutreachCampaignStatus`** | no column, no domain enum | n/a | Fully removed in `20260807160000_drop_orphan_enums`. Nothing in the repo referenced them. |
 | **`Platform` (domain)** | posts / UI / OAuth free text | **lowercase** (`instagram`, `devto`) | Product language. Posts store lowercase `String`. |
 | **`credentials.platform`** | Prisma **`CredentialPlatform`** enum | **SCREAMING** (`INSTAGRAM`, `DEVTO`) | **Mandatory mapper** — see below. |
-| Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`) | n/a | SCREAMING | Map before any Prisma write. |
+| Domain-only extras (Stripe-only subscription states) | n/a | SCREAMING | Map before any Prisma write. |
 
 ### Platform / CredentialPlatform — mandatory mapper
 
@@ -144,5 +144,5 @@ Still intentional exceptions (see matrix above):
 - **`ReviewDecision`** — intentional persistence split from #2644 + mandatory
   `PersistedReviewDecision` / `parseReviewDecision`; the product/API/JSON
   vocabulary is lowercase and includes explicit `unset`.
-- Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`, Stripe-only
-  subscription states) stay SCREAMING and must be mapped before a Prisma write.
+- Domain-only extras (Stripe-only subscription states) stay SCREAMING and must
+  be mapped before a Prisma write.

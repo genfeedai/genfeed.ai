@@ -85,7 +85,7 @@ while (round < 5):  // AGENT_MAX_TOOL_ROUNDS
 **Method:** `chatStream()`
 
 Different from sync:
-1. Creates `AgentRun` record upfront
+1. Creates a `WorkflowExecution` record upfront
 2. Returns immediately with `{ threadId, runId, startedAt }`
 3. Background task runs `runStreamLoop()` in exclusive thread lane
 4. Same tool loop as sync, but with Redis event publishing at each checkpoint
@@ -144,7 +144,7 @@ When the LLM calls a tool not in the agent type's allowed list:
 
 **File:** `apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts`
 
-25+ module imports (all via `forwardRef()`): AgentCampaigns, AgentContextAssembly, AgentMemories, AgentMessages, AgentMessageBus, AgentRuns, AgentSpawn, AgentStreamPublisher, AgentThreads, AgentThreading, Analytics, BatchGeneration, Brands, Campaigns, Auth, ContentIntelligence, ContentQuality, Credentials, Credits, Images, KnowledgeBases, LlmDispatcher, OrganizationSettings, Organizations, Posts, Settings, Tasks, Trends, Users, Voices, Workflows, WorkflowExecutions, Config, Logger, HttpModule
+25+ module imports (all via `forwardRef()`): AgentCampaigns, AgentContextAssembly, AgentMemories, AgentMessages, AgentMessageBus, AgentSpawn, AgentStreamPublisher, AgentThreads, AgentThreading, Analytics, BatchGeneration, Brands, Campaigns, Auth, ContentIntelligence, ContentQuality, Credentials, Credits, Images, KnowledgeBases, LlmDispatcher, OrganizationSettings, Organizations, Posts, Settings, Tasks, Trends, Users, Voices, Workflows, WorkflowExecutions, Config, Logger, HttpModule
 
 ## Key Constants
 

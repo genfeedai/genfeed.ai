@@ -26,7 +26,7 @@ const BOT_SKELETON_KEYS = [
 // `bots.status` is the Prisma `BotStatus` enum — SCREAMING_SNAKE on the wire.
 // Every member is mapped explicitly: STOPPED is a deliberate terminal state, so
 // leaving it to the `error` default painted a normally-stopped bot as broken.
-// `secondary` matches how AgentRunStatus.CANCELLED renders a deliberate stop.
+// `secondary` is the deliberate-stop treatment for a normally stopped bot.
 function getBotStatusVariant(
   status: string,
 ): 'success' | 'warning' | 'error' | 'secondary' {
