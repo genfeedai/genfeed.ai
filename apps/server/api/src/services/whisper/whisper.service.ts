@@ -79,7 +79,6 @@ export class WhisperService {
         userId: 'system',
       });
 
-      // Wait for job completion
       const result = (await this.fileQueueService.waitForJob(
         job.jobId,
         60000,
@@ -93,7 +92,6 @@ export class WhisperService {
         throw new Error('Video-to-audio conversion returned no URL');
       }
 
-      // Download the converted audio file
       const audioResponse = (await firstValueFrom(
         this.httpService.get(result.url, { responseType: 'arraybuffer' }),
       )) as HttpResponseWithData;

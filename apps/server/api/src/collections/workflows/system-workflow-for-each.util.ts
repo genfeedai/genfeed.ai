@@ -5,6 +5,8 @@ import type {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 
+export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
+
 const MAX_FOR_EACH_CONCURRENCY = 10;
 const MAX_FOR_EACH_ITEMS = 500;
 const MAX_FOR_EACH_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
@@ -240,11 +242,11 @@ export async function scheduleForEach(input: {
           workflowForEachIndex: index,
         },
         organizationId: childContext.organizationId,
-        source: `workflow.for-each:${input.request.provenance.executionId}:${input.parentNodeId}`,
+        source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${input.request.provenance.executionId}:${input.parentNodeId}`,
         trigger: WorkflowExecutionTrigger.SCHEDULED,
         userId: childContext.userId,
       },
-      `workflow.for-each-${identity}`,
+      `${WORKFLOW_FOR_EACH_ACTION_ID}-${identity}`,
       {
         delayMs:
           input.options.initialDelayMs + index * input.options.interItemDelayMs,

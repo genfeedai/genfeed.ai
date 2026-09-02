@@ -80,7 +80,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     const next = new Map<string, AgentChatRegistryRow>();
     for (const row of rows) {
       next.set(row.key, {
-        cost: typeof row.cost === 'number' ? row.cost : 0,
+        cost: row.cost,
         isActive: row.isActive,
         isDefault: row.isDefault,
         isDiscovered: row.isDiscovered,
@@ -88,8 +88,8 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         key: row.key,
         label: row.label,
         provider: row.provider,
-        succeededBy: row.succeededBy ?? null,
-        lifecycle: row.lifecycle as ModelLifecycle,
+        succeededBy: row.succeededBy,
+        lifecycle: row.lifecycle,
         reviewStatus: row.reviewStatus,
       });
     }

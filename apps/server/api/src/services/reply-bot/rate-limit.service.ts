@@ -56,7 +56,6 @@ export class RateLimitService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      // Get the bot config to check rate limits
       const record = await this.prisma.replyBotConfig.findFirst({
         where: scopedWhere(organizationId, { id: botConfigId }),
       });

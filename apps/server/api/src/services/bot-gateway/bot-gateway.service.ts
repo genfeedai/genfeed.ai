@@ -85,7 +85,6 @@ export class BotGatewayService {
       );
     }
 
-    // Parse the message
     const message = await adapter.parseMessage(body);
     if (!message) {
       this.loggerService.warn(`${url} could not parse message`);
@@ -101,7 +100,6 @@ export class BotGatewayService {
       platformUserId: message.platformUserId,
     });
 
-    // Route to appropriate handler
     switch (message.command) {
       case BotCommandType.PROMPT_IMAGE:
       case BotCommandType.PROMPT_VIDEO:

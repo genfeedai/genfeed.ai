@@ -23,6 +23,7 @@ import {
   type ForEachChildContext,
   parseForEachOptions,
   scheduleForEach,
+  WORKFLOW_FOR_EACH_ACTION_ID,
 } from '@api/collections/workflows/system-workflow-for-each.util';
 import {
   buildWorkflowVersionDefinition,
@@ -54,7 +55,7 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
+export { WORKFLOW_FOR_EACH_ACTION_ID };
 export const WORKFLOW_FOR_EACH_TENANT_ACTION_ID = 'workflow.for-each-tenant';
 export const WORKFLOW_RUN_CHILD_ACTION_ID = 'workflow.run-child';
 const MAX_NESTED_WORKFLOW_DEPTH = 8;

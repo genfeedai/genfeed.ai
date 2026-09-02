@@ -12,7 +12,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { TasksModule } from '@api/collections/tasks/tasks.module';
-import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
+import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -20,7 +20,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     AvatarVideoModule,
-    WebhooksModule,
+    WebhooksCoreModule,
     TasksModule,
     MetadataModule,
     IngredientsModule,
@@ -28,7 +28,7 @@ import { Module } from '@nestjs/common';
   imports: [
     LoggerModule,
     AvatarVideoModule,
-    WebhooksModule,
+    WebhooksCoreModule,
     TasksModule,
     MetadataModule,
     IngredientsModule,

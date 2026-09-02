@@ -38,6 +38,7 @@ import {
   type ReviewInboxItemSummary,
   type ReviewInboxSummary,
   resolveBatchItems,
+  toBatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
@@ -143,15 +144,17 @@ export class BatchGenerationReviewService {
   }
 
   async getBatch(batchId: string, orgId: string): Promise<IBatchSummary> {
-    const batch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const batch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     return this.summaryService.toBatchSummary(batch);
   }
@@ -186,7 +189,7 @@ export class BatchGenerationReviewService {
 
     return {
       items: await this.summaryService.toBatchSummaries(
-        batches as unknown as BatchWithConfig[],
+        batches.map(toBatchWithConfig),
       ),
       total,
     };
@@ -217,7 +220,7 @@ export class BatchGenerationReviewService {
       this.approveItemsInTransaction(transaction, {
         batchId,
         batchItems,
-        batchRecord: batchRecord as unknown as BatchWithConfig,
+        batchRecord: toBatchWithConfig(batchRecord),
         createdByUserId,
         itemIdSet,
         orgId,
@@ -370,7 +373,7 @@ export class BatchGenerationReviewService {
     if (!updated) {
       throw new NotFoundException('Batch', batchId);
     }
-    return updated as unknown as BatchWithConfig;
+    return toBatchWithConfig(updated);
   }
 
   private appendApprovedReviewEvent(
@@ -573,15 +576,17 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
-    const updatedBatch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const updatedBatch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     this.logger.log(`Rejected ${itemIds.length} items in batch ${batchId}`, {
       batchId,
@@ -680,15 +685,17 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
-    const updatedBatch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const updatedBatch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     this.logger.log(
       `Requested changes for ${itemIds.length} items in batch ${batchId}`,
@@ -750,15 +757,17 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
-    const updatedBatch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const updatedBatch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     this.logger.log(`Batch cancelled: ${batchId}`, { batchId });
 
@@ -798,15 +807,17 @@ export class BatchGenerationReviewService {
     if (batchUpdate.count !== 1) {
       throw new NotFoundException('Batch', batchId);
     }
-    const updatedBatch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const updatedBatch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     return this.summaryService.toBatchSummary(updatedBatch);
   }
@@ -872,15 +883,17 @@ export class BatchGenerationReviewService {
       throw new NotFoundException('Batch', batchId);
     }
 
-    const updatedBatch = (await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
-      batchId,
-    )) as unknown as BatchWithConfig;
+    const updatedBatch = toBatchWithConfig(
+      await findOrThrow(
+        this.prisma.batch,
+        {
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        },
+        'Batch',
+        batchId,
+      ),
+    );
 
     this.logger.log(
       assigneeId
