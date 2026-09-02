@@ -155,7 +155,7 @@ describe('curated action catalog', () => {
     // Deliberate boundaries — see `.agents/memory/curated_action_surface_boundaries.md`.
     for (const name of [
       'create_brand',
-      'get_campaign_analytics',
+      'get_outreach_sequence_analytics',
       'prepare_voice_clone',
       'rename_brand',
       'schedule_post',

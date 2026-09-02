@@ -15,10 +15,10 @@ const UI_ACTION_MAP: Partial<
   ai_action: 'ai_text_action_card',
   analyze_performance: 'analytics_snapshot_card',
   check_onboarding_status: 'onboarding_checklist_card',
-  complete_campaign: 'campaign_control_card',
+  complete_outreach_sequence: 'outreach_sequence_control_card',
   connect_social_account: 'oauth_connect_card',
   create_brand: 'brand_identity_confirmation_card',
-  create_campaign: 'campaign_create_card',
+  create_outreach_sequence: 'outreach_sequence_create_card',
   discover_engagements: 'engagement_opportunity_card',
   generate_as_identity: 'generation_action_card',
   generate_content_batch: 'batch_generation_card',
@@ -27,14 +27,14 @@ const UI_ACTION_MAP: Partial<
   generate_video: 'generation_action_card',
   generate_voice: 'voice_clone_card',
   get_analytics: 'analytics_snapshot_card',
-  get_campaign_analytics: 'analytics_snapshot_card',
+  get_outreach_sequence_analytics: 'analytics_snapshot_card',
   get_content_calendar: 'content_calendar_card',
   get_credits_balance: 'credits_balance_card',
   get_trends: 'trending_topics_card',
   initiate_oauth_connect: 'oauth_connect_card',
   list_review_queue: 'review_gate_card',
   open_studio_handoff: 'studio_handoff_card',
-  pause_campaign: 'campaign_control_card',
+  pause_outreach_sequence: 'outreach_sequence_control_card',
   prepare_clip_workflow_run: 'clip_workflow_run_card',
   prepare_generation: 'generation_action_card',
   prepare_workflow_trigger: 'workflow_trigger_card',
@@ -43,14 +43,16 @@ const UI_ACTION_MAP: Partial<
   rename_brand: 'brand_identity_confirmation_card',
   schedule_post: 'schedule_post_card',
   select_ingredient: 'ingredient_picker_card',
-  start_campaign: 'campaign_control_card',
+  start_outreach_sequence: 'outreach_sequence_control_card',
   suggest_ingredient_alternatives: 'ingredient_alternatives_card',
   suggest_next_steps: 'next_steps_card',
   upscale_image: 'image_transform_card',
 };
 
 function inferCategory(name: string): ToolCategory {
-  if (name.includes('campaign')) return 'campaign';
+  if (name.includes('outreach_sequence') || name.includes('campaign')) {
+    return 'campaign';
+  }
   if (
     name.includes('onboarding') ||
     name === 'create_brand' ||

@@ -16,6 +16,7 @@ import type { OutreachCampaign } from '@services/automation/outreach-campaigns.s
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { Check, Pause, Play, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 const platformIcons: Record<CampaignPlatform, React.ReactNode> = {
@@ -60,10 +61,11 @@ export default function OutreachCampaignsTable({
   onConfigure,
   onDelete,
 }: Props) {
+  const translate = useTranslations('pages.outreachCampaign');
   const columns = useMemo(
     () => [
       {
-        header: 'Campaign',
+        header: translate('columnSequence'),
         key: 'name',
         render: (campaign: OutreachCampaign) => (
           <div className="flex flex-col">
@@ -147,7 +149,7 @@ export default function OutreachCampaignsTable({
         ),
       },
     ],
-    [],
+    [translate],
   );
 
   const actions = useMemo(
@@ -214,7 +216,7 @@ export default function OutreachCampaignsTable({
         actions={actions}
         isLoading={isLoading}
         getRowKey={(campaign) => campaign.id}
-        emptyLabel="No campaigns created yet"
+        emptyLabel={translate('empty')}
       />
     </div>
   );

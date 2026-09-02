@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { CircleCheck, Megaphone, Pause, Play } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 interface CampaignCardProps {
@@ -30,12 +31,14 @@ const CAMPAIGN_STATUS_CONFIG: Record<
 export function CampaignCreateCard({
   action,
 }: CampaignCardProps): ReactElement {
+  const translate = useTranslations('agent.outreachSequence');
+
   return (
     <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
         <Megaphone className="size-5 text-orange-500" />
         <h3 className="font-semibold text-sm">
-          {action.title || 'New Campaign'}
+          {action.title || translate('newTitle')}
         </h3>
       </div>
       {action.description && (
@@ -63,6 +66,7 @@ export function CampaignCreateCard({
 export function CampaignControlCard({
   action,
 }: CampaignCardProps): ReactElement {
+  const translate = useTranslations('agent.outreachSequence');
   const status = action.status || 'active';
   const config =
     CAMPAIGN_STATUS_CONFIG[status] || CAMPAIGN_STATUS_CONFIG.active;
@@ -73,7 +77,7 @@ export function CampaignControlCard({
         <div className="flex items-center gap-2">
           <Megaphone className="size-5 text-orange-500" />
           <h3 className="font-semibold text-sm">
-            {action.title || 'Campaign'}
+            {action.title || translate('fallbackTitle')}
           </h3>
         </div>
         <span

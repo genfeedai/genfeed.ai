@@ -18,6 +18,7 @@ import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Plus, Rocket } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import OutreachCampaignsKPI from './OutreachCampaignsKPI';
@@ -25,6 +26,7 @@ import OutreachCampaignsTable from './OutreachCampaignsTable';
 
 export default function OutreachCampaignsList() {
   const router = useRouter();
+  const translate = useTranslations('common.outreachCampaign');
   const { brandId, isReady, organizationId, pageScope } = useCollectionScope();
   const isFetchReady = isCollectionFetchReady({
     brandId,
@@ -64,13 +66,20 @@ export default function OutreachCampaignsList() {
         logger.info('Loaded campaigns', { count: fetchedCampaigns.length });
       } catch (error) {
         logger.error('Failed to load campaigns', error);
-        notificationsService.error('Failed to load campaigns');
+        notificationsService.error(translate('notifications.loadFailed'));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [brandId, getService, isFetchReady, notificationsService, organizationId],
+    [
+      brandId,
+      getService,
+      isFetchReady,
+      notificationsService,
+      organizationId,
+      translate,
+    ],
   );
 
   useEffect(() => {
@@ -93,13 +102,15 @@ export default function OutreachCampaignsList() {
           ),
         );
 
-        notificationsService.success(`Campaign "${campaign.label}" started`);
+        notificationsService.success(
+          translate('notifications.started', { label: campaign.label }),
+        );
       } catch (error) {
         logger.error('Failed to start campaign', error);
-        notificationsService.error('Failed to start campaign');
+        notificationsService.error(translate('notifications.startFailed'));
       }
     },
-    [getService, notificationsService],
+    [getService, notificationsService, translate],
   );
 
   const handlePauseCampaign = useCallback(
@@ -116,13 +127,15 @@ export default function OutreachCampaignsList() {
           ),
         );
 
-        notificationsService.success(`Campaign "${campaign.label}" paused`);
+        notificationsService.success(
+          translate('notifications.paused', { label: campaign.label }),
+        );
       } catch (error) {
         logger.error('Failed to pause campaign', error);
-        notificationsService.error('Failed to pause campaign');
+        notificationsService.error(translate('notifications.pauseFailed'));
       }
     },
-    [getService, notificationsService],
+    [getService, notificationsService, translate],
   );
 
   const handleCompleteCampaign = useCallback(
@@ -139,13 +152,15 @@ export default function OutreachCampaignsList() {
           ),
         );
 
-        notificationsService.success(`Campaign "${campaign.label}" completed`);
+        notificationsService.success(
+          translate('notifications.completed', { label: campaign.label }),
+        );
       } catch (error) {
         logger.error('Failed to complete campaign', error);
-        notificationsService.error('Failed to complete campaign');
+        notificationsService.error(translate('notifications.completeFailed'));
       }
     },
-    [getService, notificationsService],
+    [getService, notificationsService, translate],
   );
 
   const handleCreateCampaign = useCallback(() => {
@@ -170,13 +185,15 @@ export default function OutreachCampaignsList() {
         await service.delete(campaign.id);
 
         setCampaigns((prev) => prev.filter((item) => item.id !== campaign.id));
-        notificationsService.success(`Campaign "${campaign.label}" deleted`);
+        notificationsService.success(
+          translate('notifications.deleted', { label: campaign.label }),
+        );
       } catch (error) {
         logger.error('Failed to delete campaign', error);
-        notificationsService.error('Failed to delete campaign');
+        notificationsService.error(translate('notifications.deleteFailed'));
       }
     },
-    [getService, notificationsService],
+    [getService, notificationsService, translate],
   );
 
   const activeCampaigns = useMemo(

@@ -79,7 +79,7 @@ export function buildCampaignConfirmationPrompt(params: {
   sourceActionId: string;
   transition: CampaignTransition;
 }): string {
-  return `Confirm campaign ${params.transition} for campaign ${params.campaignId}. Intent: ${params.sourceActionId}.`;
+  return `Confirm outreach sequence ${params.transition} for sequence ${params.campaignId}. Intent: ${params.sourceActionId}.`;
 }
 
 export function readCampaignConfirmationSourceActionId(
@@ -151,8 +151,9 @@ export function readPreparedCampaignTransition(
 }
 
 /**
- * Outreach campaign tools (`create_campaign`, `start_campaign`,
- * `pause_campaign`, `complete_campaign`, `get_campaign_analytics`).
+ * Outreach sequence tools (`create_outreach_sequence`,
+ * `start_outreach_sequence`, `pause_outreach_sequence`,
+ * `complete_outreach_sequence`, `get_outreach_sequence_analytics`).
  * Extracted from AgentToolExecutorService per #519.
  */
 @Injectable()
@@ -185,7 +186,7 @@ export class AgentCampaignToolHandler {
       credentialId,
       description: (params.description as string) || '',
       isActive: true,
-      label: String(params.label || 'Agent Campaign'),
+      label: String(params.label || 'Outreach sequence'),
       platform: platform as CampaignPlatform,
     };
 
@@ -209,13 +210,13 @@ export class AgentCampaignToolHandler {
           ctas: [
             {
               href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
-              label: 'Open campaign',
+              label: 'Open sequence',
             },
             {
               action: 'send_prompt',
               label: 'Prepare start',
               payload: {
-                prompt: `Prepare to start campaign ${campaignId}.`,
+                prompt: `Prepare to start outreach sequence ${campaignId}.`,
               },
             },
           ],
@@ -226,8 +227,8 @@ export class AgentCampaignToolHandler {
             status: campaign.status,
           },
           id: `campaign-created-${campaignId}`,
-          title: `Campaign created: ${campaign.label}`,
-          type: 'campaign_create_card',
+          title: `Outreach sequence created: ${campaign.label}`,
+          type: 'outreach_sequence_create_card',
         },
       ],
       success: true,
@@ -285,7 +286,7 @@ export class AgentCampaignToolHandler {
       preparedTransition.transition !== transition
     ) {
       throw new BadRequestException(
-        'Campaign confirmation does not match a persisted preparation.',
+        'Outreach sequence confirmation does not match a persisted preparation.',
       );
     }
 
@@ -304,7 +305,7 @@ export class AgentCampaignToolHandler {
       async () => {
         if (!preparedTransition.pendingConfirmation) {
           throw new BadRequestException(
-            'Campaign confirmation has already been consumed.',
+            'Outreach sequence confirmation has already been consumed.',
           );
         }
         const currentCampaign = await this.campaignsService.findOneById(
@@ -313,16 +314,16 @@ export class AgentCampaignToolHandler {
           ctx.brandId,
         );
         if (!currentCampaign) {
-          throw new NotFoundException('Campaign', campaignId);
+          throw new NotFoundException('Outreach sequence', campaignId);
         }
         if (currentCampaign.status !== preparedTransition.currentStatus) {
           throw new BadRequestException(
-            'Campaign state changed after confirmation was prepared.',
+            'Outreach sequence state changed after confirmation was prepared.',
           );
         }
         if (!isCampaignTransitionAllowed(transition, currentCampaign.status)) {
           throw new BadRequestException(
-            `Campaign cannot ${transition} from ${currentCampaign.status}.`,
+            `Outreach sequence cannot ${transition} from ${currentCampaign.status}.`,
           );
         }
 
@@ -352,7 +353,7 @@ export class AgentCampaignToolHandler {
               ctas: [
                 {
                   href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
-                  label: 'Open campaign',
+                  label: 'Open sequence',
                 },
               ],
               data: {
@@ -363,8 +364,10 @@ export class AgentCampaignToolHandler {
               },
               id: `${sourceActionId}-completed`,
               title:
-                transition === 'start' ? 'Campaign started' : 'Campaign paused',
-              type: 'campaign_control_card' as const,
+                transition === 'start'
+                  ? 'Outreach sequence started'
+                  : 'Outreach sequence paused',
+              type: 'outreach_sequence_control_card' as const,
             },
           ],
           riskLevel: 'medium' as const,
@@ -396,19 +399,19 @@ export class AgentCampaignToolHandler {
       ctx.brandId,
     );
     if (!campaign) {
-      throw new NotFoundException('Campaign', campaignId);
+      throw new NotFoundException('Outreach sequence', campaignId);
     }
 
     const sourceActionId = `campaign-transition-${randomUUID()}`;
     const currentStatus = readCampaignStatus(campaign.status);
     if (!currentStatus) {
       throw new InternalServerErrorException(
-        'Campaign has an unsupported lifecycle status.',
+        'Outreach sequence has an unsupported lifecycle status.',
       );
     }
     if (!isCampaignTransitionAllowed(transition, currentStatus)) {
       throw new BadRequestException(
-        `Campaign cannot ${transition} from ${currentStatus}.`,
+        `Outreach sequence cannot ${transition} from ${currentStatus}.`,
       );
     }
     const preparation: PreparedCampaignTransition = {
@@ -438,7 +441,7 @@ export class AgentCampaignToolHandler {
     );
     if (!persisted) {
       throw new InternalServerErrorException(
-        'Campaign confirmation preparation could not be persisted.',
+        'Outreach sequence confirmation preparation could not be persisted.',
       );
     }
 
@@ -455,7 +458,7 @@ export class AgentCampaignToolHandler {
             },
             {
               href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
-              label: 'Open campaign',
+              label: 'Open sequence',
             },
           ],
           data: preparation,
@@ -467,7 +470,7 @@ export class AgentCampaignToolHandler {
             transition === 'start'
               ? `Start ${preparation.label}?`
               : `Pause ${preparation.label}?`,
-          type: 'campaign_control_card',
+          type: 'outreach_sequence_control_card',
         },
       ],
       requiresConfirmation: true,
@@ -482,12 +485,12 @@ export class AgentCampaignToolHandler {
   } {
     if (!ctx.threadId) {
       throw new BadRequestException(
-        'Campaign transitions require a thread context.',
+        'Outreach sequence transitions require a thread context.',
       );
     }
     if (!this.cacheService) {
       throw new InternalServerErrorException(
-        'Campaign confirmation persistence is unavailable.',
+        'Outreach sequence confirmation persistence is unavailable.',
       );
     }
 
@@ -536,7 +539,7 @@ export class AgentCampaignToolHandler {
           ctas: [
             {
               href: `${APP_ROUTES.MESSAGES.OUTREACH}/${campaignId}`,
-              label: 'Open campaign',
+              label: 'Open sequence',
             },
           ],
           id: `campaign-analytics-${campaignId}-${Date.now()}`,
@@ -555,7 +558,7 @@ export class AgentCampaignToolHandler {
               },
             ],
           },
-          title: 'Campaign analytics snapshot',
+          title: 'Outreach sequence analytics',
           type: 'analytics_snapshot_card',
         },
       ],

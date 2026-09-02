@@ -168,10 +168,10 @@ export function UiActionRenderer({
     case 'image_transform_card':
       card = <ImageTransformCard action={action} />;
       break;
-    case 'campaign_create_card':
+    case 'outreach_sequence_create_card':
       card = <CampaignCreateCard action={action} />;
       break;
-    case 'campaign_control_card':
+    case 'outreach_sequence_control_card':
       card = <CampaignControlCard action={action} />;
       break;
     case 'review_gate_card':

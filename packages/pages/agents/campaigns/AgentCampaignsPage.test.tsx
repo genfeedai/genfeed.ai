@@ -139,7 +139,7 @@ describe('AgentCampaignsPage', () => {
     });
   });
 
-  it('renders the page header and new campaign link', () => {
+  it('renders the page header and new program link', () => {
     render(<AgentCampaignsPage />);
 
     expect(screen.getByText('Programs')).toBeInTheDocument();

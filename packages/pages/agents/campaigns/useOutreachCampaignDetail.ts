@@ -10,6 +10,7 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export function useOutreachCampaignDetail() {
@@ -17,6 +18,7 @@ export function useOutreachCampaignDetail() {
   const params = useParams();
   const campaignId = params.id as string;
   const { organizationId } = useBrand();
+  const translate = useTranslations('common.outreachCampaign');
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -56,13 +58,13 @@ export function useOutreachCampaignDetail() {
         });
       } catch (error) {
         logger.error('Failed to load campaign', error);
-        notificationsService.error('Failed to load campaign');
+        notificationsService.error(translate('notifications.loadFailed'));
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [organizationId, campaignId, getService, notificationsService],
+    [organizationId, campaignId, getService, notificationsService, translate],
   );
 
   useEffect(() => {
@@ -109,12 +111,12 @@ export function useOutreachCampaignDetail() {
       const service = await getService();
       const updated = await service.start(campaignId);
       setCampaign(updated);
-      notificationsService.success('Campaign started');
+      notificationsService.success(translate('notifications.startedPlain'));
     } catch (error) {
       logger.error('Failed to start campaign', error);
-      notificationsService.error('Failed to start campaign');
+      notificationsService.error(translate('notifications.startFailed'));
     }
-  }, [campaignId, getService, notificationsService]);
+  }, [campaignId, getService, notificationsService, translate]);
 
   const handlePauseCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -125,12 +127,12 @@ export function useOutreachCampaignDetail() {
       const service = await getService();
       const updated = await service.pause(campaignId);
       setCampaign(updated);
-      notificationsService.success('Campaign paused');
+      notificationsService.success(translate('notifications.pausedPlain'));
     } catch (error) {
       logger.error('Failed to pause campaign', error);
-      notificationsService.error('Failed to pause campaign');
+      notificationsService.error(translate('notifications.pauseFailed'));
     }
-  }, [campaignId, getService, notificationsService]);
+  }, [campaignId, getService, notificationsService, translate]);
 
   const handleCompleteCampaign = useCallback(async () => {
     if (!campaignId) {
@@ -141,12 +143,12 @@ export function useOutreachCampaignDetail() {
       const service = await getService();
       const updated = await service.complete(campaignId);
       setCampaign(updated);
-      notificationsService.success('Campaign completed');
+      notificationsService.success(translate('notifications.completedPlain'));
     } catch (error) {
       logger.error('Failed to complete campaign', error);
-      notificationsService.error('Failed to complete campaign');
+      notificationsService.error(translate('notifications.completeFailed'));
     }
-  }, [campaignId, getService, notificationsService]);
+  }, [campaignId, getService, notificationsService, translate]);
 
   const handleAddDmRecipients = useCallback(async () => {
     if (!urlInput.trim() || !campaignId) {

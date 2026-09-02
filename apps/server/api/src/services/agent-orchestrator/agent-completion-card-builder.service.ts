@@ -69,7 +69,7 @@ const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   AgentToolName.RESOLVE_HANDLE,
   AgentToolName.GET_ANALYTICS,
   AgentToolName.ANALYZE_PERFORMANCE,
-  AgentToolName.GET_CAMPAIGN_ANALYTICS,
+  AgentToolName.GET_OUTREACH_SEQUENCE_ANALYTICS,
   AgentToolName.GET_TRENDS,
 ]);
 

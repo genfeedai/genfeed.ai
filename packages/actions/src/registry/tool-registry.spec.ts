@@ -49,7 +49,7 @@ describe('tool registry', () => {
 
   it('infers the reviewed category for representative actions', () => {
     const expected: ReadonlyArray<readonly [string, ToolCategory]> = [
-      ['create_campaign', 'campaign'],
+      ['create_outreach_sequence', 'campaign'],
       ['create_brand', 'onboarding'],
       ['prepare_generation', 'ui'],
       ['get_analytics', 'analytics'],

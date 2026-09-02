@@ -100,7 +100,7 @@ export default function OutreachCampaignWizardStep2({
         </Label>
         <Textarea
           id="campaign-wizard-description"
-          placeholder="Brief description of the campaign goals"
+          placeholder={translate('descriptionPlaceholder')}
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
           rows={3}

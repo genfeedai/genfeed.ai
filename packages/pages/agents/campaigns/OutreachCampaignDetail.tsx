@@ -10,6 +10,7 @@ import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Check, Pause, Play, Rocket } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import OutreachCampaignAddTargets from './OutreachCampaignAddTargets';
 import OutreachCampaignDetailHeader from './OutreachCampaignDetailHeader';
@@ -26,6 +27,7 @@ const CAMPAIGN_KPI_PLACEHOLDERS = [
 ];
 
 export default function OutreachCampaignDetail() {
+  const translate = useTranslations('pages.outreachCampaign');
   const {
     campaign,
     handleAddDmRecipients,
@@ -47,14 +49,14 @@ export default function OutreachCampaignDetail() {
   if (!isLoading && !campaign) {
     return (
       <Container
-        label="Campaign Not Found"
-        description="The requested campaign could not be found"
+        label={translate('notFoundTitle')}
+        description={translate('notFoundDescription')}
         icon={Rocket}
       >
         <Button
           label={
             <>
-              <ArrowLeft /> Back to Campaigns
+              <ArrowLeft /> {translate('backToSequences')}
             </>
           }
           variant={ButtonVariant.SECONDARY}
@@ -125,8 +127,8 @@ export default function OutreachCampaignDetail() {
 
   return (
     <Container
-      label={campaign?.label ?? 'Campaign'}
-      description={campaign?.description || 'Campaign details and targets'}
+      label={campaign?.label ?? translate('fallbackTitle')}
+      description={campaign?.description || translate('fallbackDescription')}
       icon={Rocket}
       right={
         <>
