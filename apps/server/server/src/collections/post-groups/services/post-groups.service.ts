@@ -1,5 +1,4 @@
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import type { UpdateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   PostCategory,
@@ -11,11 +10,7 @@ import type {
   PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import {
-  type PostLifecycleMutation,
-  PostLifecycleService,
-  scopedWhere,
-} from '@genfeedai/server';
+import { PostLifecycleService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -23,15 +18,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
-import type {
-  SchedulerPostGroup,
-  SchedulerPostTarget,
-  SchedulerTx,
-} from '@server/collections/post-groups/services/post-group.types';
+import type { SchedulerPostGroup } from '@server/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
 import {
+  applyReleaseTargetUpdates,
+  GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
   schedulePostGroupTarget,
   updatePostGroupTarget,
@@ -46,21 +39,6 @@ import {
   type PublishingCapability,
 } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-
-const GROUP_ACTION_STATES = new Set<string>([
-  TargetExecutionState.DRAFT,
-  TargetExecutionState.SCHEDULED,
-  TargetExecutionState.PAUSED,
-  TargetExecutionState.FAILED,
-]);
-
-type ReleaseTargetUpdateContext = {
-  currentTargets: readonly SchedulerPostTarget[];
-  groupId: string;
-  input: UpdateReleaseGroupInput;
-  organizationId: string;
-  userId: string;
-};
 
 function publishingCapabilityForReleaseStatus(
   status: ReleaseStatus,
@@ -453,13 +431,17 @@ export class PostGroupsService {
         });
       }
 
-      await this.applyReleaseTargetUpdates(tx, {
-        currentTargets,
-        groupId: existing.id,
-        input,
-        organizationId,
-        userId,
-      });
+      await applyReleaseTargetUpdates(
+        tx,
+        {
+          currentTargets,
+          groupId: existing.id,
+          input,
+          organizationId,
+          userId,
+        },
+        this.targetOperationDependencies(),
+      );
 
       const targets = await this.persistenceService.getTargets(
         tx,
@@ -494,54 +476,6 @@ export class PostGroupsService {
       );
     }
     return release;
-  }
-
-  private async applyReleaseTargetUpdates(
-    tx: SchedulerTx,
-    context: ReleaseTargetUpdateContext,
-  ): Promise<void> {
-    const targetUpdate: PostLifecycleMutation = {};
-    if (context.input.baseContent !== undefined) {
-      targetUpdate.description = context.input.baseContent;
-    }
-    if (context.input.scheduledDate !== undefined) {
-      targetUpdate.scheduledDate = this.contractService.toDate(
-        context.input.scheduledDate,
-      );
-    }
-    if (context.input.timezone !== undefined) {
-      targetUpdate.timezone = context.input.timezone;
-    }
-    if (context.input.status !== undefined) {
-      const nextState = this.contractService.toTargetState(
-        context.input.status,
-      );
-      for (const target of context.currentTargets) {
-        if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
-          continue;
-        }
-        await this.postLifecycleService.transition(
-          {
-            actorId: context.userId,
-            groupId: context.groupId,
-            mutation: targetUpdate,
-            nextState,
-            organizationId: context.organizationId,
-            postId: target.id,
-            reason: 'Release lifecycle updated',
-          },
-          tx,
-        );
-      }
-    } else if (Object.keys(targetUpdate).length > 0) {
-      await tx.post.updateMany({
-        data: targetUpdate,
-        where: scopedWhere(context.organizationId, {
-          groupId: context.groupId,
-          targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-        }),
-      });
-    }
   }
 
   /**
