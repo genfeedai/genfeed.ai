@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@helpers/formatting/cn/cn.util', () => ({
@@ -37,10 +38,27 @@ import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentS
 
 const brand = { id: 'brand-1' } as never;
 
+function renderAgentSetupPanel(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 0,
+        retry: false,
+      },
+    },
+  });
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
 describe('AgentSetupPanel', () => {
   it('keeps connect platforms in a dropdown until opened', async () => {
     const user = userEvent.setup();
-    render(
+    renderAgentSetupPanel(
       <AgentSetupPanel
         brand={brand}
         connectedConnections={[]}
@@ -78,7 +96,7 @@ describe('AgentSetupPanel', () => {
   it('invokes onOAuthConnect when a platform is chosen from the dropdown', async () => {
     const user = userEvent.setup();
     const onOAuthConnect = vi.fn();
-    render(
+    renderAgentSetupPanel(
       <AgentSetupPanel
         brand={brand}
         connectedConnections={[]}
@@ -107,7 +125,7 @@ describe('AgentSetupPanel', () => {
       },
     ];
 
-    render(
+    renderAgentSetupPanel(
       <AgentSetupPanel
         brand={brand}
         connectedConnections={connectedConnections}
@@ -133,7 +151,7 @@ describe('AgentSetupPanel', () => {
   });
 
   it('hides the connect dropdown when no OAuth handler is provided', () => {
-    render(
+    renderAgentSetupPanel(
       <AgentSetupPanel
         brand={brand}
         connectedConnections={[]}

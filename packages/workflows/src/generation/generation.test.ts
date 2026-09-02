@@ -40,11 +40,26 @@ describe('workflow generation shared helpers', () => {
     );
   });
 
+  it('omits the platform constraint when no targets are provided', () => {
+    const [systemMessage] = buildWorkflowGenerationMessages({
+      availableNodeTypes: [],
+      description: 'Generate a generic workflow',
+    });
+
+    expect(systemMessage?.content).not.toContain(
+      'The workflow should target these platforms:',
+    );
+  });
+
   it('parses generated workflow JSON', () => {
     expect(
       parseWorkflowGenerationResponse(
         JSON.stringify({ edges: [], name: 'Workflow', nodes: [] }),
       ).workflow,
     ).toEqual({ edges: [], name: 'Workflow', nodes: [] });
+  });
+
+  it('parses an empty provider response as an empty workflow', () => {
+    expect(parseWorkflowGenerationResponse('').workflow).toEqual({});
   });
 });

@@ -95,9 +95,7 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 | `api/` | 3010 | | `discord/` | 3016 |
 | `notifications/` | 3111 local / 3011 deployed | | `slack/` | 3018 |
 | `files/` | 3012 | | `telegram/` | 3019 |
-| `workers/` | 3013 | | `images/` | 3020 |
-| `mcp/` | 3014 | | `videos/` | 3021 |
-| | | | `voices/` | 3022 |
+| `workers/` | 3013 | | `mcp/` | 3014 |
 
 ## Essential Reading
 

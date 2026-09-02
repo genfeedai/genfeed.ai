@@ -1,12 +1,7 @@
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import type {
-  ChannelTargetInput,
-  UpdateChannelTargetInput,
-} from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   PostCategory,
-  PublishApprovalStatus,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -27,14 +22,15 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
-import type {
-  ManualRetryResolution,
-  ResolveManualRetryParams,
-  SchedulerPostGroup,
-} from '@server/collections/post-groups/services/post-group.types';
+import type { SchedulerPostGroup } from '@server/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import {
+  type PostGroupTargetOperationDependencies,
+  schedulePostGroupTarget,
+  updatePostGroupTarget,
+} from '@server/collections/post-groups/services/post-group-target.operations';
 import type { ScheduledPostWorkflowSource } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
@@ -52,17 +48,6 @@ const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.PAUSED,
   TargetExecutionState.FAILED,
 ]);
-
-function changesPublishedTargetState(input: UpdateChannelTargetInput): boolean {
-  return (
-    input.executionState === TargetExecutionState.PUBLISHED ||
-    input.executionState === TargetExecutionState.PUBLISHING ||
-    input.externalProviderId !== undefined ||
-    input.externalShortcode !== undefined ||
-    input.publishedAt !== undefined ||
-    input.url !== undefined
-  );
-}
 
 function publishingCapabilityForReleaseStatus(
   status: ReleaseStatus,
@@ -274,169 +259,18 @@ export class PostGroupsService {
     provenance?: PostGroupCreateProvenance,
     workflowSource: ScheduledPostWorkflowSource = 'publish_now',
   ): Promise<IReleaseGroup> {
-    const isDueNow = scheduledDate.getTime() <= Date.now() + 5000;
-
-    const scheduled = await this.prisma.$transaction(async (tx) => {
-      const group = await this.persistenceService.getGroupOrThrow(
-        tx,
-        organizationId,
+    return schedulePostGroupTarget(
+      {
         groupId,
-      );
-      const target = await this.persistenceService.getTargetOrThrow(
-        tx,
         organizationId,
-        group.id,
+        provenance,
+        scheduledDate,
         targetId,
-      );
-
-      this.contractService.assertSchedulableTarget(group, target);
-
-      const platform = this.contractService.parseCredentialPlatform(
-        target.platform,
-      );
-      if (
-        workflowSource === 'tiktok_app' &&
-        (platform !== CredentialPlatform.TIKTOK ||
-          (target.category !== PostCategory.VIDEO &&
-            target.category !== PostCategory.REEL))
-      ) {
-        throw new BadRequestException(
-          'Publish via TikTok App is only available for TikTok videos.',
-        );
-      }
-      const targetInput: ChannelTargetInput = {
-        credentialId: target.credentialId,
-        platform,
-        scheduledDate: scheduledDate.toISOString(),
-        settings: this.contractService.asRecord(target.targetSettings),
-        timezone: target.timezone,
-        visibility: this.contractService.toPostVisibility(target.visibility),
-      };
-      const credentials = await this.persistenceService.resolveCredentials(
-        tx,
-        organizationId,
-        [targetInput],
-      );
-      await this.persistenceService.resolveBrandId(
-        tx,
-        organizationId,
-        group.brandId,
-        credentials,
-      );
-
-      const validation = validateChannelTargetSettings({
-        caption: group.baseContent,
-        credentialId: targetInput.credentialId,
-        media: this.contractService.toValidationMedia(
-          this.contractService.asMedia(group.media),
-        ),
-        platform: targetInput.platform,
-        publishMode: isDueNow ? 'publish_now' : 'scheduled',
-        settings: targetInput.settings ?? {},
-        visibility: targetInput.visibility,
-      });
-      if (!validation.valid) {
-        throw this.contractService.invalidTargetException(
-          targetInput,
-          validation,
-        );
-      }
-
-      const readinessByCredential =
-        await this.readinessService.resolveForCredentials(tx, organizationId, [
-          targetInput.credentialId,
-        ]);
-      const readiness = readinessByCredential.get(targetInput.credentialId);
-      this.readinessService.assertSchedulable(targetInput, readiness);
-
-      const isExactReplay =
-        target.targetExecutionState === TargetExecutionState.SCHEDULED &&
-        target.scheduledDate?.getTime() === scheduledDate.getTime() &&
-        this.contractService.matchesScheduleProvenance(target, provenance);
-      if (!isExactReplay) {
-        const transition = await this.postLifecycleService.transition(
-          {
-            actorId: userId,
-            groupId: group.id,
-            guard: {
-              expectedUpdatedAt: target.updatedAt,
-              priorExecutionStates: [
-                target.targetExecutionState as TargetExecutionState,
-              ],
-            },
-            mutation: {
-              ...(provenance?.agentContextSource && {
-                agentContextSource: provenance.agentContextSource,
-              }),
-              ...(provenance?.agentContextVersion !== undefined && {
-                agentContextVersion: provenance.agentContextVersion,
-              }),
-              ...(provenance?.workflowExecutionId && {
-                workflowExecutionId: provenance.workflowExecutionId,
-              }),
-              ...(provenance?.agentStrategyId && {
-                agentStrategyId: provenance.agentStrategyId,
-              }),
-              ...(provenance?.agentThreadId && {
-                agentThreadId: provenance.agentThreadId,
-              }),
-              scheduledDate,
-              targetReadiness: this.contractService.toReadinessJson(
-                readiness ?? validation.readiness,
-              ),
-              targetValidationIssues:
-                this.contractService.validationIssues(validation),
-              targetValidationState: validation.validationState,
-            },
-            nextState: TargetExecutionState.SCHEDULED,
-            organizationId,
-            postId: target.id,
-            reason: 'Channel target scheduled',
-          },
-          tx,
-        );
-        if (transition.kind === 'stale') {
-          throw new ConflictException(
-            'Channel target changed while scheduling. Refresh and retry.',
-          );
-        }
-      }
-
-      await this.publishApprovalsService.createForCurrentPost({
-        actorUserId: userId,
-        ...(provenance?.agentContextVersion !== undefined && {
-          contextVersion: provenance.agentContextVersion,
-        }),
-        mode: isDueNow ? 'immediate' : 'scheduled',
-        organizationId,
-        postId: target.id,
-        provenance: {
-          releaseId: group.id,
-          surface:
-            provenance?.source === 'post-desk'
-              ? 'post-desk-schedule'
-              : 'agent-schedule-post',
-        },
-        transaction: tx,
-      });
-
-      const release = await this.persistenceService.hydrateWithDerivedStatus(
-        tx,
-        organizationId,
-        group.id,
-      );
-      return { isDueNow, release };
-    });
-
-    if (scheduled.isDueNow) {
-      await this.enqueueReleaseTargets(
-        scheduled.release,
         userId,
-        [targetId],
         workflowSource,
-      );
-    }
-    return scheduled.release;
+      },
+      this.targetOperationDependencies(),
+    );
   }
 
   /**
@@ -769,224 +603,17 @@ export class PostGroupsService {
     body: unknown,
     apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<IReleaseGroup> {
-    const input = this.contractService.parseTargetInput(body);
-    assertApiKeyPublishingScope(
-      apiKeyContext ?? {},
-      changesPublishedTargetState(input) ? 'publish' : 'schedule',
-    );
-
-    const result = await this.prisma.$transaction(async (tx) => {
-      const group = await this.persistenceService.getGroupOrThrow(
-        tx,
-        organizationId,
+    return updatePostGroupTarget(
+      {
+        apiKeyContext,
+        body,
         groupId,
-      );
-      const existing = await this.persistenceService.getTargetOrThrow(
-        tx,
-        organizationId,
-        group.id,
-        targetId,
-      );
-
-      const validation = this.contractService.validateTargetUpdate(
-        existing,
-        input,
-      );
-
-      const { isManualRetry, manualRetryApproval } =
-        await this.resolveManualRetry({
-          existing,
-          groupId,
-          input,
-          organizationId,
-          targetId,
-          tx,
-          userId,
-        });
-
-      const targetMutation: PostLifecycleMutation = {
-        ...(isManualRetry && {
-          lastAttemptAt: null,
-          retryCount: 0,
-        }),
-        ...(input.externalProviderId !== undefined && {
-          externalId: input.externalProviderId,
-        }),
-        ...(input.externalShortcode !== undefined && {
-          externalShortcode: input.externalShortcode,
-        }),
-        ...(input.idempotencyKey !== undefined && {
-          targetIdempotencyKey: input.idempotencyKey,
-        }),
-        ...(input.lastAttemptAt !== undefined && {
-          lastAttemptAt: this.contractService.toDate(input.lastAttemptAt),
-        }),
-        ...(input.order !== undefined && { order: input.order }),
-        ...(input.publishedAt !== undefined && {
-          publishedAt: this.contractService.toDate(input.publishedAt),
-        }),
-        ...(input.readiness !== undefined && {
-          targetReadiness: input.readiness
-            ? this.contractService.toJson(input.readiness)
-            : Prisma.JsonNull,
-        }),
-        ...(input.retryCount !== undefined && {
-          retryCount: input.retryCount,
-        }),
-        ...(input.scheduledDate !== undefined && {
-          scheduledDate: this.contractService.toDate(input.scheduledDate),
-        }),
-        ...(input.settings !== undefined && {
-          targetSettings: this.contractService.toJson(input.settings),
-        }),
-        ...(input.visibility !== undefined && {
-          visibility: input.visibility,
-        }),
-        ...(input.timezone !== undefined && { timezone: input.timezone }),
-        ...(input.url !== undefined && { url: input.url }),
-        ...(input.validationIssues !== undefined && {
-          targetValidationIssues: input.validationIssues,
-        }),
-        ...(input.validationState !== undefined && {
-          targetValidationState: input.validationState,
-        }),
-        ...(validation && {
-          targetValidationIssues:
-            this.contractService.validationIssues(validation),
-          targetValidationState: validation.validationState,
-        }),
-      };
-      if (input.executionState !== undefined) {
-        await this.postLifecycleService.transition(
-          {
-            actorId: userId,
-            error: isManualRetry ? null : input.error,
-            groupId: group.id,
-            mutation: targetMutation,
-            nextState: input.executionState,
-            organizationId,
-            postId: existing.id,
-            reason: isManualRetry ? 'Manual retry requested' : undefined,
-          },
-          tx,
-        );
-      } else {
-        await tx.post.updateMany({
-          data: {
-            ...targetMutation,
-            ...(input.error !== undefined && {
-              targetError: input.error
-                ? this.contractService.toJson(input.error)
-                : Prisma.JsonNull,
-            }),
-          },
-          where: scopedWhere(organizationId, { id: existing.id }),
-        });
-      }
-
-      return {
-        manualRetryApproval,
-        release: await this.persistenceService.hydrateWithDerivedStatus(
-          tx,
-          organizationId,
-          group.id,
-        ),
-      };
-    });
-    if (
-      input.scheduledDate !== undefined ||
-      input.settings !== undefined ||
-      input.timezone !== undefined
-    ) {
-      await this.publishApprovalsService.invalidatePost(
         organizationId,
         targetId,
-        'Channel destination settings or protected schedule intent changed.',
         userId,
-      );
-    }
-    if (result.manualRetryApproval) {
-      const approval = result.manualRetryApproval;
-      await this.scheduledPostWorkflowQueue.enqueue({
-        approvalId: approval.id,
-        operationId: approval.operationId,
-        organizationId,
-        postId: targetId,
-        source: 'manual_retry',
-        userId,
-        versionPinId: approval.artifactVersionPinId,
-      });
-    }
-    return result.release;
-  }
-
-  private async resolveManualRetry(
-    params: ResolveManualRetryParams,
-  ): Promise<ManualRetryResolution> {
-    const isManualRetry =
-      params.existing.targetExecutionState === TargetExecutionState.FAILED &&
-      params.input.executionState === TargetExecutionState.SCHEDULED;
-    if (isManualRetry) {
-      const approval = await this.publishApprovalsService.createForCurrentPost({
-        actorUserId: params.userId,
-        mode: 'scheduled',
-        organizationId: params.organizationId,
-        postId: params.targetId,
-        provenance: {
-          releaseId: params.groupId,
-          surface: 'post-groups-manual-retry',
-        },
-        transaction: params.tx,
-      });
-      const provenance = {
-        ...approval.provenance,
-        manualRetryCommand: {
-          releaseId: params.groupId,
-          requestedByUserId: params.userId,
-          targetId: params.targetId,
-          version: 1,
-        },
-      };
-      await params.tx.publishApproval.update({
-        data: { provenance: this.contractService.toJson(provenance) },
-        where: { id: approval.id },
-      });
-      return {
-        isManualRetry,
-        manualRetryApproval: { ...approval, provenance },
-      };
-    }
-
-    const approvalId = params.existing.publishApprovalId;
-    const canReplay =
-      params.existing.targetExecutionState === TargetExecutionState.SCHEDULED &&
-      params.input.executionState === TargetExecutionState.SCHEDULED &&
-      approvalId;
-    if (!canReplay) {
-      return { isManualRetry };
-    }
-
-    const row = await params.tx.publishApproval.findFirst({
-      where: {
-        id: approvalId,
-        organizationId: params.organizationId,
-        postId: params.targetId,
       },
-    });
-    if (!row) {
-      return { isManualRetry };
-    }
-
-    const approval = this.publishApprovalsService.toPublicInterface(row);
-    const isDurableRetry =
-      (approval.status === PublishApprovalStatus.APPROVED ||
-        approval.status === PublishApprovalStatus.QUEUED ||
-        approval.status === PublishApprovalStatus.FAILED) &&
-      Boolean(approval.provenance.manualRetryCommand);
-
-    return isDurableRetry
-      ? { isManualRetry, manualRetryApproval: approval }
-      : { isManualRetry };
+      this.targetOperationDependencies(),
+    );
   }
 
   cancel(
@@ -1130,6 +757,20 @@ export class PostGroupsService {
     await this.approveReleaseTargets(release, userId, 'immediate');
     await this.enqueueReleaseTargets(release, userId);
     return release;
+  }
+
+  private targetOperationDependencies(): PostGroupTargetOperationDependencies {
+    return {
+      contractService: this.contractService,
+      enqueueReleaseTargets: (release, userId, targetIds, source) =>
+        this.enqueueReleaseTargets(release, userId, targetIds, source),
+      persistenceService: this.persistenceService,
+      postLifecycleService: this.postLifecycleService,
+      prisma: this.prisma,
+      publishApprovalsService: this.publishApprovalsService,
+      readinessService: this.readinessService,
+      scheduledPostWorkflowQueue: this.scheduledPostWorkflowQueue,
+    };
   }
 
   private async enqueueReleaseTargets(

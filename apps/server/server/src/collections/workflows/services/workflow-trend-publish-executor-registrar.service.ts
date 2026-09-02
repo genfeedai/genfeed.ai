@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -45,6 +46,7 @@ import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
+@Injectable()
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
 
@@ -52,14 +54,16 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
-    private readonly socialAdapterFactory?: SocialAdapterFactory,
-    private readonly trendsService?: TrendsService,
-    private readonly notificationsService?: NotificationsService,
-    private readonly cacheService?: CacheService,
-    private readonly prismaService?: PrismaService,
-    private readonly creditsUtilsService?: CreditsUtilsService,
-    private readonly postsService?: PostsService,
+    @Optional() private readonly socialAdapterFactory?: SocialAdapterFactory,
+    @Optional() private readonly trendsService?: TrendsService,
+    @Optional() private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly cacheService?: CacheService,
+    @Optional() private readonly prismaService?: PrismaService,
+    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
+    @Optional() private readonly postsService?: PostsService,
+    @Optional()
     private readonly postAccountFanoutService?: PostAccountFanoutService,
+    @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {}
 

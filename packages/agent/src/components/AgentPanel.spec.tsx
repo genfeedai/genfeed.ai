@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
@@ -164,6 +165,23 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
 
 import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 
+function renderAgentPanel(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        gcTime: 0,
+        retry: false,
+      },
+    },
+  });
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
 function createCreditsInfoApiService() {
   const getCreditsInfo = vi.fn().mockResolvedValue({
     balance: 42,
@@ -236,7 +254,7 @@ describe('AgentPanel', () => {
   });
 
   it('renders the terminal rail without the embedded chat composer toggle', () => {
-    render(
+    renderAgentPanel(
       <AgentPanel
         apiService={createCreditsInfoApiService() as never}
         onOAuthConnect={vi.fn()}
@@ -263,7 +281,9 @@ describe('AgentPanel', () => {
   });
 
   it('persists the terminal working directory locally', () => {
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     fireEvent.change(screen.getByLabelText('Terminal working directory'), {
       target: { value: '/home/testuser/projects/genfeed' },
@@ -278,7 +298,9 @@ describe('AgentPanel', () => {
   it('restores the persisted terminal working directory', () => {
     window.localStorage.setItem('genfeed:terminal:cwd', '/tmp/genfeed');
 
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     expect(screen.getByLabelText('Terminal working directory')).toHaveValue(
       '/tmp/genfeed',
@@ -286,7 +308,9 @@ describe('AgentPanel', () => {
   });
 
   it('shows the terminal runtime picker in local mode', async () => {
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Runtime')).toBeInTheDocument();
@@ -296,7 +320,9 @@ describe('AgentPanel', () => {
   });
 
   it('renders outputs as a second rail tab', () => {
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     expect(
       screen.getByRole('button', { name: 'Terminal' }),
@@ -308,7 +334,7 @@ describe('AgentPanel', () => {
   it('resolves a fresh auth token before connecting the terminal socket', async () => {
     const apiService = createCreditsInfoApiService();
 
-    render(<AgentPanel apiService={apiService as never} />);
+    renderAgentPanel(<AgentPanel apiService={apiService as never} />);
 
     await waitFor(() => {
       expect(resolveAuthTokenMock).toHaveBeenCalledWith(expect.any(Function), {
@@ -321,7 +347,9 @@ describe('AgentPanel', () => {
   it('waits for auth before connecting the terminal socket', async () => {
     const apiService = createCreditsInfoApiService();
 
-    render(<AgentPanel apiService={apiService as never} authReady={false} />);
+    renderAgentPanel(
+      <AgentPanel apiService={apiService as never} authReady={false} />,
+    );
 
     await waitFor(() => {
       expect(
@@ -337,7 +365,7 @@ describe('AgentPanel', () => {
   it('connects the terminal after auth becomes ready', async () => {
     const apiService = createCreditsInfoApiService();
 
-    const { rerender } = render(
+    const { rerender } = renderAgentPanel(
       <AgentPanel apiService={apiService as never} authReady={false} />,
     );
 
@@ -359,7 +387,9 @@ describe('AgentPanel', () => {
 
   it('opens the Claude CLI from the terminal session menu', async () => {
     socketMocks.connected = true;
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     fireEvent.pointerDown(screen.getByLabelText('Open terminal session menu'));
     fireEvent.click(await screen.findByText('Claude CLI'));
@@ -375,7 +405,7 @@ describe('AgentPanel', () => {
   it('does not request credits until the panel becomes active on non-agent routes', async () => {
     const apiService = createCreditsInfoApiService();
 
-    const { rerender } = render(
+    const { rerender } = renderAgentPanel(
       <AgentPanel apiService={apiService as never} isActive={false} />,
     );
 
@@ -391,7 +421,9 @@ describe('AgentPanel', () => {
   });
 
   it('opens the active thread in the full workspace', () => {
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
 
     screen.getByLabelText('Open full agent workspace').click();
 

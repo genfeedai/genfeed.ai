@@ -251,7 +251,7 @@ Refactor direction:
 
 ### G. Health Checks and Service Readiness
 
-Impact: deployment readiness and observability. Core services use shared health, while bot and GPU services use local controllers with similar response shapes and route conventions.
+Impact: deployment readiness and observability. Core services use shared health, while bot services use local controllers with similar response shapes and route conventions.
 
 Evidence:
 
@@ -266,9 +266,6 @@ Evidence:
   - `apps/server/discord/src/controllers/health.controller.ts:5`
   - `apps/server/slack/src/controllers/health.controller.ts:5`
   - `apps/server/telegram/src/controllers/health.controller.ts:5`
-  - `apps/server/images/src/controllers/health.controller.ts:6`
-  - `apps/server/videos/src/controllers/health.controller.ts:6`
-  - `apps/server/voices/src/controllers/health.controller.ts:9`
 
 Refactor direction:
 
@@ -439,7 +436,7 @@ These should not be deleted mechanically.
 
 4. Health:
    - Core services import `HealthModule`.
-   - Bot and GPU services each own local `HealthController` implementations and tests.
+   - Bot services each own local `HealthController` implementations and tests.
 
 5. UI guard enforcement:
    - Three raw-control scanners overlap.
@@ -529,7 +526,7 @@ Not recommended:
    - ROI: high for security consistency.
    - Blast radius: file operations and command argument validation.
 
-7. Extend shared health module for bot/GPU services.
+7. Extend shared health module for bot services.
    - ROI: medium-high. Improves deploy/observability consistency.
    - Blast radius: health endpoints and deployment probes.
 

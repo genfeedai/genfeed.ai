@@ -7,8 +7,8 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
-import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PersonaContentModule } from '@api/services/persona-content/persona-content.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -27,7 +27,7 @@ import { StepExecutorService } from '@server/services/content-orchestration/step
     BrandsModule,
     ElevenLabsModule,
     FalModule,
-    FleetModule,
+    ManagedInferenceRuntimeModule,
     HiggsFieldModule,
     ReplicateModule,
     PersonaContentModule,

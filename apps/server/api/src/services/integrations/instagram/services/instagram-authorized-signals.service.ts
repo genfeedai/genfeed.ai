@@ -1,4 +1,5 @@
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
 import {
   type InstagramAuthorizedSignalEvidence,
@@ -118,31 +119,6 @@ type PlatformEvidenceKey = Exclude<
   InstagramAuthorizedSignalEvidence['key'],
   'genfeed-publish-outcomes-observed'
 >;
-
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
 
 function isProfessionalAccountType(accountType: string | undefined): boolean {
   return accountType === 'BUSINESS' || accountType === 'MEDIA_CREATOR';
@@ -295,6 +271,38 @@ export class InstagramAuthorizedSignalsService {
       throw error;
     }
 
+    return await this.fetchAndPersistSnapshot({
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    });
+  }
+
+  private async fetchAndPersistSnapshot(params: {
+    accessToken: string;
+    cacheKey: string;
+    credential: CredentialDocument;
+    genfeedEvidence: InstagramAuthorizedSignalEvidence;
+    grantedScopes: string[];
+    organizationId: string;
+    previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined;
+    refreshAttemptedAt: string;
+  }): Promise<InstagramAuthorizedSignalsSnapshot> {
+    const {
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    } = params;
     const providerResult = await this.provider.fetch(
       accessToken,
       readString(credential.externalId),
@@ -314,7 +322,7 @@ export class InstagramAuthorizedSignalsService {
       );
       return await this.persistSnapshot(
         credential,
-        params.organizationId,
+        organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -369,7 +377,7 @@ export class InstagramAuthorizedSignalsService {
 
     return await this.persistSnapshot(
       credential,
-      params.organizationId,
+      organizationId,
       cacheKey,
       snapshot,
     );
@@ -747,7 +755,7 @@ export class InstagramAuthorizedSignalsService {
       }),
     });
     const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
+      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
       if (!outcome) {
         return [];
       }

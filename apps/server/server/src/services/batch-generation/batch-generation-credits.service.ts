@@ -179,80 +179,25 @@ export class BatchGenerationCreditsService {
         );
 
       if (config.credits?.reservationId) {
-        if (!this.creditsUtilsService) {
-          throw new InternalServerErrorException(
-            'Credit reservation settlement service unavailable',
-          );
-        }
-
-        if (settledCredits > 0) {
-          // A reservation may only settle up to its held amount. Batch pricing
-          // starts caption-only, so media attached during processing can make
-          // the final cost higher. Settle the hold itself, then collect the
-          // reviewed overage through the existing idempotent shortfall path.
-          const reservationSettlement =
-            additionalCredits > 0 ? alreadyCharged : settledCredits;
-          await this.creditsUtilsService.settleReservation({
-            actualAmount: reservationSettlement,
-            actorUserId: params.userId,
-            description: `Batch generation ${params.batchId} settlement`,
-            organizationId: params.organizationId,
-            reservationId: config.credits.reservationId,
-            source: ActivitySource.SCRIPT,
-          });
-        } else {
-          await this.creditsUtilsService.releaseReservation({
-            organizationId: params.organizationId,
-            reservationId: config.credits.reservationId,
-          });
-        }
-
-        const reservationSettledAt = new Date().toISOString();
-        const settlementSeq = (config.credits.settlementSeq ?? 0) + 1;
-        const reservationLedger: BatchCreditsLedger = {
-          ...config.credits,
-          chargedCredits: settledCredits,
-          refundedCredits:
-            (config.credits.refundedCredits ?? 0) + refundCredits,
-          reservationSettledAt,
-          settledAt: reservationSettledAt,
-          settlementSeq,
-        };
-        const reservationConfig: BatchConfig = {
-          ...config,
-          credits: reservationLedger,
-        };
-        const claimed = await this.prisma.batch.updateMany({
-          data: {
-            config: reservationConfig as Prisma.InputJsonValue,
-          },
-          where: scopedWhere(params.organizationId, {
-            id: params.batchId,
-            updatedAt: batch.updatedAt,
-          }),
-        });
-
-        if (claimed.count !== 1) {
-          continue;
-        }
-
-        if (additionalCredits > 0) {
-          await this.moveSettlementCredits({
-            additionalCredits,
-            batchId: params.batchId,
-            organizationId: params.organizationId,
-            refundCredits: 0,
-            settlementSeq,
-            userId: params.userId,
-          });
-        }
-
-        return {
+        const settlement = await this.settleReservedCredits({
           additionalCredits,
-          isAlreadySettled: false,
+          alreadyCharged,
+          batchId: params.batchId,
+          config,
+          credits: {
+            ...config.credits,
+            reservationId: config.credits.reservationId,
+          },
+          organizationId: params.organizationId,
           refundCredits,
           settledCredits,
-        };
+          updatedAt: batch.updatedAt,
+          userId: params.userId,
+        });
+        if (settlement) {
+          return settlement;
+        }
+        continue;
       }
 
       const settlementSeq = (config.credits?.settlementSeq ?? 0) + 1;
@@ -307,6 +252,105 @@ export class BatchGenerationCreditsService {
       { batchId: params.batchId },
     );
     return noop;
+  }
+
+  private async settleReservedCredits(params: {
+    additionalCredits: number;
+    alreadyCharged: number;
+    batchId: string;
+    config: BatchConfig;
+    credits: BatchCreditsLedger & { reservationId: string };
+    organizationId: string;
+    refundCredits: number;
+    settledCredits: number;
+    updatedAt: Date;
+    userId: string;
+  }): Promise<BatchCreditsSettlement | undefined> {
+    const {
+      additionalCredits,
+      alreadyCharged,
+      batchId,
+      config,
+      credits,
+      organizationId,
+      refundCredits,
+      settledCredits,
+      updatedAt,
+      userId,
+    } = params;
+    if (!this.creditsUtilsService) {
+      throw new InternalServerErrorException(
+        'Credit reservation settlement service unavailable',
+      );
+    }
+
+    if (settledCredits > 0) {
+      // A reservation may only settle up to its held amount. Batch pricing
+      // starts caption-only, so media attached during processing can make
+      // the final cost higher. Settle the hold itself, then collect the
+      // reviewed overage through the existing idempotent shortfall path.
+      const reservationSettlement =
+        additionalCredits > 0 ? alreadyCharged : settledCredits;
+      await this.creditsUtilsService.settleReservation({
+        actualAmount: reservationSettlement,
+        actorUserId: userId,
+        description: `Batch generation ${batchId} settlement`,
+        organizationId: organizationId,
+        reservationId: credits.reservationId,
+        source: ActivitySource.SCRIPT,
+      });
+    } else {
+      await this.creditsUtilsService.releaseReservation({
+        organizationId: organizationId,
+        reservationId: credits.reservationId,
+      });
+    }
+
+    const reservationSettledAt = new Date().toISOString();
+    const settlementSeq = (credits.settlementSeq ?? 0) + 1;
+    const reservationLedger: BatchCreditsLedger = {
+      ...credits,
+      chargedCredits: settledCredits,
+      refundedCredits: (credits.refundedCredits ?? 0) + refundCredits,
+      reservationSettledAt,
+      settledAt: reservationSettledAt,
+      settlementSeq,
+    };
+    const reservationConfig: BatchConfig = {
+      ...config,
+      credits: reservationLedger,
+    };
+    const claimed = await this.prisma.batch.updateMany({
+      data: {
+        config: reservationConfig as Prisma.InputJsonValue,
+      },
+      where: scopedWhere(organizationId, {
+        id: batchId,
+        updatedAt: updatedAt,
+      }),
+    });
+
+    if (claimed.count !== 1) {
+      return undefined;
+    }
+
+    if (additionalCredits > 0) {
+      await this.moveSettlementCredits({
+        additionalCredits,
+        batchId: batchId,
+        organizationId: organizationId,
+        refundCredits: 0,
+        settlementSeq,
+        userId: userId,
+      });
+    }
+
+    return {
+      additionalCredits,
+      isAlreadySettled: false,
+      refundCredits,
+      settledCredits,
+    };
   }
 
   /**

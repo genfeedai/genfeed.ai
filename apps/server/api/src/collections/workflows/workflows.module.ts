@@ -79,17 +79,26 @@ import { SystemWorkflowDefinitionRegistrarService } from '@server/collections/wo
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
+import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
+import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowEngineExecutorRegistryService } from '@server/collections/workflows/services/workflow-engine-executor-registry.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { YoutubeLongFormWorkflowService } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
@@ -197,6 +206,15 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     YoutubeSocialAdapter,
     SocialAdapterFactory,
     BatchWorkflowExecutionService,
+    WorkflowEngineExecutorHelperService,
+    WorkflowCoreExecutorRegistrarService,
+    WorkflowSocialExecutorRegistrarService,
+    WorkflowMediaProcessingExecutorRegistrarService,
+    WorkflowMediaGenerationExecutorRegistrarService,
+    WorkflowContentExecutorRegistrarService,
+    WorkflowAutomationExecutorRegistrarService,
+    WorkflowTrendPublishExecutorRegistrarService,
+    WorkflowEngineExecutorRegistryService,
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,

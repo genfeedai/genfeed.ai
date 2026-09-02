@@ -3,13 +3,9 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface';
 /**
  * MCP admin tools.
  *
- * The fleet/LoRA/GPU/training fleet-control tools were removed from the OSS
- * MCP surface in PR 5/6: they are `requiredRole: 'superadmin'` and the only
- * matching OSS API lives on the `['admin/fleet']` controller
- * behind `SuperAdminGuard` + `IpWhitelistGuard`, which an org-scoped `gf_` MCP
- * API key can never satisfy — so they 404/403 by construction on the public
- * MCP. Managed inference/fleet control is a private-console concern (kept out of
- * the public monorepo). They belong on the console MCP, not this one.
+ * LoRA, GPU runtime lifecycle, and managed-inference control are private-console
+ * concerns. Their API and MCP surfaces intentionally do not exist in the public
+ * monorepo.
  */
 export const MCP_ADMIN_TOOLS: SourceTool[] = [
   {

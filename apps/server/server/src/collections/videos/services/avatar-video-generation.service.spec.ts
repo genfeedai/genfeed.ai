@@ -1,8 +1,8 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ResolvedIdentityInputs {
@@ -54,7 +54,7 @@ describe('AvatarVideoGenerationService', () => {
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
     };
-    const fleetService = {
+    const managedInferenceRuntimeService = {
       generateVoice: vi.fn().mockResolvedValue({ jobId: 'voice-job-1' }),
       pollJob: vi
         .fn()
@@ -102,7 +102,7 @@ describe('AvatarVideoGenerationService', () => {
       creditsUtilsService as never,
       elevenlabsService as never,
       failedGenerationService as never,
-      fleetService as never,
+      managedInferenceRuntimeService as never,
       heygenService as never,
       ingredientsService as never,
       loggerService,
@@ -119,7 +119,7 @@ describe('AvatarVideoGenerationService', () => {
       creditsUtilsService,
       elevenlabsService,
       failedGenerationService,
-      fleetService,
+      managedInferenceRuntimeService,
       heygenService,
       ingredientsService,
       metadataService,
@@ -153,7 +153,7 @@ describe('AvatarVideoGenerationService', () => {
   it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {
     const {
       brandsService,
-      fleetService,
+      managedInferenceRuntimeService,
       heygenService,
       metadataService,
       service,
@@ -185,11 +185,13 @@ describe('AvatarVideoGenerationService', () => {
         order.push('provider-marked');
       }
     });
-    fleetService.generateVoice.mockImplementation(async () => {
-      order.push('fleet');
-      return { jobId: 'voice-job-1' };
-    });
-    fleetService.pollJob.mockImplementation(async () => {
+    managedInferenceRuntimeService.generateVoice.mockImplementation(
+      async () => {
+        order.push('fleet');
+        return { jobId: 'voice-job-1' };
+      },
+    );
+    managedInferenceRuntimeService.pollJob.mockImplementation(async () => {
       order.push('fleet-poll');
       return { audioUrl: 'https://cdn.example.com/fleet.mp3' };
     });
@@ -459,7 +461,7 @@ describe('AvatarVideoGenerationService', () => {
   it('admits an authorized sample-backed saved voice', async () => {
     const {
       brandsService,
-      fleetService,
+      managedInferenceRuntimeService,
       heygenService,
       service,
       voicesService,
@@ -487,7 +489,7 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     expect(result.status).toBe('processing');
-    expect(fleetService.generateVoice).toHaveBeenCalledWith({
+    expect(managedInferenceRuntimeService.generateVoice).toHaveBeenCalledWith({
       organizationId: context.organizationId,
       referenceAudio: 'https://cdn.example.com/reference.wav',
       text: 'Create the founder update',
@@ -501,7 +503,7 @@ describe('AvatarVideoGenerationService', () => {
       creditsUtilsService,
       elevenlabsService,
       failedGenerationService,
-      fleetService,
+      managedInferenceRuntimeService,
       heygenService,
       service,
       sharedService,
@@ -557,7 +559,7 @@ describe('AvatarVideoGenerationService', () => {
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
-    expect(fleetService.generateVoice).not.toHaveBeenCalled();
+    expect(managedInferenceRuntimeService.generateVoice).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
     expect(
       failedGenerationService.handleFailedVideoGeneration,
@@ -662,7 +664,7 @@ describe('AvatarVideoGenerationService', () => {
     const {
       brandsService,
       elevenlabsService,
-      fleetService,
+      managedInferenceRuntimeService,
       heygenService,
       orgSettingsService,
       service,
@@ -700,7 +702,7 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     expect(result.status).toBe('processing');
-    expect(fleetService.generateVoice).not.toHaveBeenCalled();
+    expect(managedInferenceRuntimeService.generateVoice).not.toHaveBeenCalled();
     expect(elevenlabsService.generateAndUploadAudio).toHaveBeenCalledWith(
       'org-elevenlabs-voice',
       'Create the founder update',

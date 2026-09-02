@@ -295,7 +295,7 @@ describe('S3StorageProvider', () => {
       const provider = new S3StorageProvider({ bucket: 'b' });
 
       await expect(provider.delete('a/../../etc/passwd')).rejects.toThrow(
-        /invalid path segment/,
+        /traversal or separator confusion/,
       );
       expect(mockSend).not.toHaveBeenCalled();
     });
@@ -425,7 +425,7 @@ describe('S3StorageProvider', () => {
       const provider = new S3StorageProvider({ bucket: 'b' });
 
       await expect(provider.list('../other-tenant/')).rejects.toThrow(
-        /invalid path segment/,
+        /traversal or separator confusion/,
       );
       expect(mockSend).not.toHaveBeenCalled();
     });

@@ -1,3 +1,20 @@
+import type {
+  FastlaneIdea,
+  IBrandKitApplyResult,
+  IBrandKitAssetImportRequest,
+  IBrandKitAssetImportResponse,
+  IBrandKitDraft,
+  IBrandKitResolvedAssets,
+  IBrandOsDraftHandoff,
+} from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import type { ApplyBrandKitDto } from '@server/collections/brands/dto/apply-brand-kit.dto';
 import type { CrawlBrandKitDto } from '@server/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@server/collections/brands/dto/create-brand.dto';
@@ -46,23 +63,6 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
-import type {
-  FastlaneIdea,
-  IBrandKitApplyResult,
-  IBrandKitAssetImportRequest,
-  IBrandKitAssetImportResponse,
-  IBrandKitDraft,
-  IBrandKitResolvedAssets,
-  IBrandOsDraftHandoff,
-} from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
 
 export type {
   BrandRelocationMovingResource,
@@ -622,45 +622,7 @@ export class BrandsService extends BaseService<
       updatedConfig[key] = value;
     }
 
-    // Validate the MERGED cron, not just the incoming patch: a timezone-only
-    // update must not carry a stale invalid cron into the scheduler, where it
-    // would silently fall back to the default cadence while the settings UI
-    // still displays the stored value.
-    if (hasScheduleUpdate) {
-      const mergedSchedule = isMergeableRecord(updatedConfig.schedule)
-        ? updatedConfig.schedule
-        : null;
-      const mergedCron =
-        typeof mergedSchedule?.cronExpression === 'string'
-          ? mergedSchedule.cronExpression.trim()
-          : '';
-      const mergedTimezone =
-        typeof mergedSchedule?.timezone === 'string'
-          ? mergedSchedule.timezone.trim()
-          : '';
-
-      // The timezone is half of the schedule. Validating the cron against a
-      // hardcoded 'UTC' accepts an unknown IANA zone here and then throws
-      // inside the scheduler — or, worse, silently reverts to the default
-      // cadence while the settings UI keeps showing the stored value. Reject
-      // the zone first so the error names the field the user actually got
-      // wrong, then parse the cron in that same zone.
-      if (mergedTimezone && !isSchedulableTimezone(mergedTimezone)) {
-        throw new BadRequestException(
-          `Invalid timezone "${mergedTimezone}". Use an IANA timezone name, for example "Europe/Berlin".`,
-        );
-      }
-
-      if (mergedCron) {
-        try {
-          computeNextRunAtOrThrow(mergedCron, mergedTimezone || 'UTC');
-        } catch {
-          throw new BadRequestException(
-            `Invalid cron expression "${mergedCron}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
-          );
-        }
-      }
-    }
+    this.validateMergedAgentSchedule(updatedConfig, hasScheduleUpdate);
 
     // Scope the WRITE, not just the lookup above, and compare the exact JSON
     // snapshot that was merged. The JSON predicate prevents concurrent config
@@ -720,6 +682,43 @@ export class BrandsService extends BaseService<
     }
 
     return updatedBrand;
+  }
+
+  private validateMergedAgentSchedule(
+    updatedConfig: Record<string, unknown>,
+    hasScheduleUpdate: boolean,
+  ): void {
+    if (!hasScheduleUpdate) {
+      return;
+    }
+
+    const mergedSchedule = isMergeableRecord(updatedConfig.schedule)
+      ? updatedConfig.schedule
+      : null;
+    const mergedCron =
+      typeof mergedSchedule?.cronExpression === 'string'
+        ? mergedSchedule.cronExpression.trim()
+        : '';
+    const mergedTimezone =
+      typeof mergedSchedule?.timezone === 'string'
+        ? mergedSchedule.timezone.trim()
+        : '';
+
+    if (mergedTimezone && !isSchedulableTimezone(mergedTimezone)) {
+      throw new BadRequestException(
+        `Invalid timezone "${mergedTimezone}". Use an IANA timezone name, for example "Europe/Berlin".`,
+      );
+    }
+
+    if (mergedCron) {
+      try {
+        computeNextRunAtOrThrow(mergedCron, mergedTimezone || 'UTC');
+      } catch {
+        throw new BadRequestException(
+          `Invalid cron expression "${mergedCron}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
+        );
+      }
+    }
   }
 
   async crawlWebsiteBrandKitDraft(

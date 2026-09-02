@@ -1,19 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type { IngredientMetadataDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
-import { TagsService } from '@server/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -24,10 +16,7 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   ActivityKey,
   ActivitySource,
@@ -55,7 +44,21 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import type {
+  IngredientDocument,
+  IngredientMetadataDocument,
+} from '@server/collections/ingredients/schemas/ingredient.schema';
+import { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
+import { TagsService } from '@server/collections/tags/services/tags.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 
 import sharp from 'sharp';
 
@@ -193,76 +196,14 @@ export class ImagesOperationsController {
       } as unknown as CreateTagDto);
     }
 
-    // Create ingredients for each frame
-    const frameResults: Array<{ id: string; url: string; index: number }> = [];
-
-    for (let i = 0; i < frames.length; i++) {
-      const frameBuffer = frames[i];
-
-      // Get frame dimensions from buffer metadata
-      const frameMetadata = await sharp(frameBuffer).metadata();
-      const frameWidth = frameMetadata.width || 0;
-      const frameHeight = frameMetadata.height || 0;
-
-      // Create ingredient and metadata for this frame, preserving source metadata
-      const { ingredientData } = await this.sharedService.createMediaDocuments(
-        user,
-        {
-          assistant:
-            typeof sourceMetadata?.assistant === 'string'
-              ? sourceMetadata.assistant
-              : undefined,
-          brandId: sourceImage.brandId,
-          category: IngredientCategory.IMAGE,
-          extension: sourceMetadata?.extension || MetadataExtension.JPEG,
-          externalId:
-            typeof sourceMetadata?.externalId === 'string'
-              ? sourceMetadata.externalId
-              : undefined,
-          externalProvider:
-            typeof sourceMetadata?.externalProvider === 'string'
-              ? sourceMetadata.externalProvider
-              : undefined,
-          generationSeed:
-            typeof sourceMetadata?.seed === 'number'
-              ? sourceMetadata.seed
-              : undefined,
-          label: `Frame ${i + 1}`,
-          model: sourceMetadata?.model,
-          organizationId: user.organizationId,
-          parentId: id,
-          promptId: sourceMetadata?.promptId ?? undefined,
-          status: IngredientStatus.GENERATED,
-          height: frameHeight,
-          style: sourceMetadata?.style ?? undefined,
-          tagIds: [splittedTag.id],
-          // Set frame-specific dimensions from actual buffer metadata
-          width: frameWidth,
-        },
-      );
-
-      // Upload frame to S3
-      await this.filesClientService.uploadToS3(
-        ingredientData.id.toString(),
-        'images',
-        {
-          contentType: 'image/jpeg',
-          data: frameBuffer,
-          type: FileInputType.BUFFER,
-        },
-      );
-
-      // Update status
-      await this.imagesService.patch(ingredientData.id, {
-        status: IngredientStatus.GENERATED,
-      });
-
-      frameResults.push({
-        id: ingredientData.id.toString(),
-        index: i,
-        url: `${this.configService.ingredientsEndpoint}/images/${ingredientData.id}`,
-      });
-    }
+    const frameResults = await this.createSplitFrames({
+      frames,
+      parentId: id,
+      sourceImage,
+      sourceMetadata,
+      tagId: splittedTag.id,
+      user,
+    });
 
     // Create activity for the split operation
     await this.activitiesService.create(
@@ -291,5 +232,71 @@ export class ImagesOperationsController {
         frames: frameResults,
       },
     };
+  }
+
+  private async createSplitFrames(params: {
+    frames: Buffer[];
+    parentId: string;
+    sourceImage: IngredientDocument;
+    sourceMetadata: IngredientMetadataDocument | null;
+    tagId: string;
+    user: User;
+  }): Promise<Array<{ id: string; index: number; url: string }>> {
+    const { frames, parentId, sourceImage, sourceMetadata, tagId, user } =
+      params;
+    const results: Array<{ id: string; index: number; url: string }> = [];
+    for (let index = 0; index < frames.length; index++) {
+      const frameBuffer = frames[index];
+      const frameMetadata = await sharp(frameBuffer).metadata();
+      const { ingredientData } = await this.sharedService.createMediaDocuments(
+        user,
+        {
+          assistant:
+            typeof sourceMetadata?.assistant === 'string'
+              ? sourceMetadata.assistant
+              : undefined,
+          brandId: sourceImage.brandId,
+          category: IngredientCategory.IMAGE,
+          extension: sourceMetadata?.extension || MetadataExtension.JPEG,
+          externalId:
+            typeof sourceMetadata?.externalId === 'string'
+              ? sourceMetadata.externalId
+              : undefined,
+          externalProvider:
+            typeof sourceMetadata?.externalProvider === 'string'
+              ? sourceMetadata.externalProvider
+              : undefined,
+          generationSeed:
+            typeof sourceMetadata?.seed === 'number'
+              ? sourceMetadata.seed
+              : undefined,
+          height: frameMetadata.height || 0,
+          label: `Frame ${index + 1}`,
+          model: sourceMetadata?.model,
+          organizationId: user.organizationId,
+          parentId,
+          promptId: sourceMetadata?.promptId ?? undefined,
+          status: IngredientStatus.GENERATED,
+          style: sourceMetadata?.style ?? undefined,
+          tagIds: [tagId],
+          width: frameMetadata.width || 0,
+        },
+      );
+      const ingredientId = ingredientData.id.toString();
+      await this.filesClientService.uploadToS3(ingredientId, 'images', {
+        contentType: 'image/jpeg',
+        data: frameBuffer,
+        type: FileInputType.BUFFER,
+      });
+      await this.imagesService.patch(ingredientData.id, {
+        status: IngredientStatus.GENERATED,
+      });
+      results.push({
+        id: ingredientId,
+        index,
+        url: `${this.configService.ingredientsEndpoint}/images/${ingredientId}`,
+      });
+    }
+    return results;
   }
 }

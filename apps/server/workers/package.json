@@ -34,7 +34,7 @@
     "build": "cd .. && nest build workers && nest build workers-default-queue-drain && nest build workers-fal-model-sync",
     "build:prod": "cd .. && nest build workers && nest build workers-default-queue-drain && nest build workers-fal-model-sync && cd workers && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/nest-fast-dev.ts workers",
+    "dev": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/run-portless-client.ts -- bun run ../../../scripts/dev/nest-fast-dev.ts workers",
     "dev:debug": "bun run dev",
     "dev:process": "bun run dev",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",

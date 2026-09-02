@@ -1,3 +1,11 @@
+import {
+  type BrandKitSourceBrand,
+  computeBrandKitReadiness,
+} from '@genfeedai/helpers';
+import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { BrandMemoryService } from '@server/collections/brand-memory/services/brand-memory.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
@@ -14,14 +22,6 @@ import type {
 import { CacheService } from '@server/services/cache/cache.service';
 import { PatternMatcherService } from '@server/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  type BrandKitSourceBrand,
-  computeBrandKitReadiness,
-} from '@genfeedai/helpers';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 import {
   BRAND_CONTEXT_CHARACTER_BUDGET,
   fitBrandContextToBudget,
@@ -48,6 +48,11 @@ const MAX_POST_SUMMARY_LENGTH = 200;
 const DEFAULT_PRIMARY_COLOR = '#000000';
 const DEFAULT_SECONDARY_COLOR = '#FFFFFF';
 const DEFAULT_BACKGROUND_COLOR = 'transparent';
+
+type BrandRecord = NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
+type EffectiveBrandAgentConfig = ReturnType<
+  typeof resolveEffectiveBrandAgentConfig
+>;
 
 @Injectable()
 export class AgentContextAssemblyService {
@@ -104,7 +109,6 @@ export class AgentContextAssemblyService {
     }
 
     const brandId = String(brand.id);
-    const layersUsed: string[] = ['brandIdentity'];
     // Logo/banner/references are Asset rows, not Brand columns — reading
     // `brand.logo` type-checks and is always undefined at runtime.
     const brandKitAssets = await this.cacheService.getOrSet(
@@ -126,123 +130,13 @@ export class AgentContextAssemblyService {
       organizationSettings,
       platform: params.platform,
     });
-    const resolvedVoice = effectiveBrandAgentConfig.voice ?? {};
-    const resolvedStrategy = effectiveBrandAgentConfig.strategy ?? {};
-    const resolvedPersona = effectiveBrandAgentConfig.persona;
-    const resolvedDefaultModel = effectiveBrandAgentConfig.defaultModel;
-    const primaryColor = this.readNonDefaultColor(
-      brand.primaryColor,
-      DEFAULT_PRIMARY_COLOR,
-    );
-    const secondaryColor = this.readNonDefaultColor(
-      brand.secondaryColor,
-      DEFAULT_SECONDARY_COLOR,
-    );
-    const backgroundColor = this.readNonDefaultColor(
-      brand.backgroundColor,
-      DEFAULT_BACKGROUND_COLOR,
-    );
-    const referenceImages = this.mergeReferenceImages(
-      brand.referenceImages,
+    const context = this.createBrandContext(
+      brand,
       brandKitAssets,
+      effectiveBrandAgentConfig,
+      layers.brandGuidance,
     );
-    const logoUrl = brandKitAssets.logo?.url;
-    const bannerUrl = brandKitAssets.banner?.url;
-    const promptGuidelines = this.readTextField(brand.text);
-
-    if (effectiveBrandAgentConfig.platformOverrideApplied) {
-      layersUsed.push('platformOverride');
-    }
-
-    const context: AssembledBrandContext = {
-      assembledAt: new Date(),
-      brandKitReadiness: computeBrandKitReadiness(
-        this.toBrandKitSourceBrand(brand, brandKitAssets),
-      ),
-      brandDescription: brand.description ?? undefined,
-      brandId,
-      brandName: brand.label || 'Unknown Brand',
-      defaultModel: resolvedDefaultModel ?? undefined,
-      layersUsed,
-      persona: resolvedPersona,
-      promptGuidelines,
-    };
-
-    // Visual identity (part of brandIdentity layer)
-    const hasVisualColor =
-      primaryColor !== undefined ||
-      secondaryColor !== undefined ||
-      backgroundColor !== undefined;
-    const hasVisualAsset = Boolean(logoUrl) || Boolean(bannerUrl);
-    const hasReferenceImages = referenceImages.length > 0;
-    const fontFamily = this.readTextField(brand.fontFamily);
-
-    if (hasVisualColor || fontFamily || hasVisualAsset || hasReferenceImages) {
-      context.visualIdentity = {};
-
-      if (primaryColor) {
-        context.visualIdentity.primaryColor = primaryColor;
-      }
-      if (secondaryColor) {
-        context.visualIdentity.secondaryColor = secondaryColor;
-      }
-      if (backgroundColor) {
-        context.visualIdentity.backgroundColor = backgroundColor;
-      }
-      if (fontFamily) {
-        context.visualIdentity.fontFamily = fontFamily;
-      }
-      if (logoUrl) {
-        context.visualIdentity.logoUrl = logoUrl;
-      }
-      if (bannerUrl) {
-        context.visualIdentity.bannerUrl = bannerUrl;
-      }
-      if (hasReferenceImages) {
-        context.visualIdentity.referenceImages = referenceImages;
-      }
-    }
-
-    // Layer 2 + 3: Canonical brand guidance from Brand.agentConfig
     const fetchPromises: Array<Promise<void>> = [];
-
-    if (layers.brandGuidance && Object.keys(resolvedVoice).length > 0) {
-      context.voice = {
-        approvedHooks: resolvedVoice.approvedHooks,
-        audience: resolvedVoice.audience?.join(', '),
-        bannedPhrases: resolvedVoice.bannedPhrases,
-        canonicalSource: resolvedVoice.canonicalSource,
-        doNotSoundLike: resolvedVoice.doNotSoundLike,
-        exemplarTexts: resolvedVoice.exemplarTexts,
-        hashtags: resolvedVoice.hashtags,
-        messagingPillars: resolvedVoice.messagingPillars,
-        sampleOutput: resolvedVoice.sampleOutput,
-        style: resolvedVoice.style,
-        taglines: resolvedVoice.taglines,
-        tone: resolvedVoice.tone,
-        values: resolvedVoice.values,
-        writingRules: resolvedVoice.writingRules,
-      };
-    }
-
-    if (layers.brandGuidance && Object.keys(resolvedStrategy).length > 0) {
-      context.strategy = {
-        contentTypes: resolvedStrategy.contentTypes,
-        frequency: resolvedStrategy.frequency,
-        goals: resolvedStrategy.goals,
-        platforms: resolvedStrategy.platforms,
-      };
-    }
-
-    if (
-      layers.brandGuidance &&
-      (Object.keys(resolvedVoice).length > 0 ||
-        Object.keys(resolvedStrategy).length > 0 ||
-        Boolean(resolvedPersona) ||
-        Boolean(resolvedDefaultModel))
-    ) {
-      layersUsed.push('brandGuidance');
-    }
 
     // Layer 4: Memory Insights (cached)
     if (layers.brandMemory) {
@@ -303,6 +197,134 @@ export class AgentContextAssemblyService {
     return context;
   }
 
+  private createBrandContext(
+    brand: BrandRecord,
+    brandKitAssets: IBrandKitResolvedAssets,
+    effectiveBrandAgentConfig: EffectiveBrandAgentConfig,
+    includeBrandGuidance: boolean,
+  ): AssembledBrandContext {
+    const layersUsed = ['brandIdentity'];
+    if (effectiveBrandAgentConfig.platformOverrideApplied) {
+      layersUsed.push('platformOverride');
+    }
+
+    const context: AssembledBrandContext = {
+      assembledAt: new Date(),
+      brandKitReadiness: computeBrandKitReadiness(
+        this.toBrandKitSourceBrand(brand, brandKitAssets),
+      ),
+      brandDescription: brand.description ?? undefined,
+      brandId: String(brand.id),
+      brandName: brand.label || 'Unknown Brand',
+      defaultModel: effectiveBrandAgentConfig.defaultModel ?? undefined,
+      layersUsed,
+      persona: effectiveBrandAgentConfig.persona,
+      promptGuidelines: this.readTextField(brand.text),
+    };
+
+    this.applyVisualIdentity(context, brand, brandKitAssets);
+    if (includeBrandGuidance) {
+      this.applyBrandGuidance(context, effectiveBrandAgentConfig);
+    }
+    return context;
+  }
+
+  private applyVisualIdentity(
+    context: AssembledBrandContext,
+    brand: BrandRecord,
+    brandKitAssets: IBrandKitResolvedAssets,
+  ): void {
+    const primaryColor = this.readNonDefaultColor(
+      brand.primaryColor,
+      DEFAULT_PRIMARY_COLOR,
+    );
+    const secondaryColor = this.readNonDefaultColor(
+      brand.secondaryColor,
+      DEFAULT_SECONDARY_COLOR,
+    );
+    const backgroundColor = this.readNonDefaultColor(
+      brand.backgroundColor,
+      DEFAULT_BACKGROUND_COLOR,
+    );
+    const referenceImages = this.mergeReferenceImages(
+      brand.referenceImages,
+      brandKitAssets,
+    );
+    const logoUrl = brandKitAssets.logo?.url;
+    const bannerUrl = brandKitAssets.banner?.url;
+    const fontFamily = this.readTextField(brand.fontFamily);
+    const hasVisualIdentity = Boolean(
+      primaryColor ||
+        secondaryColor ||
+        backgroundColor ||
+        fontFamily ||
+        logoUrl ||
+        bannerUrl ||
+        referenceImages.length,
+    );
+
+    if (!hasVisualIdentity) {
+      return;
+    }
+
+    context.visualIdentity = {};
+    if (primaryColor) context.visualIdentity.primaryColor = primaryColor;
+    if (secondaryColor) context.visualIdentity.secondaryColor = secondaryColor;
+    if (backgroundColor)
+      context.visualIdentity.backgroundColor = backgroundColor;
+    if (fontFamily) context.visualIdentity.fontFamily = fontFamily;
+    if (logoUrl) context.visualIdentity.logoUrl = logoUrl;
+    if (bannerUrl) context.visualIdentity.bannerUrl = bannerUrl;
+    if (referenceImages.length > 0) {
+      context.visualIdentity.referenceImages = referenceImages;
+    }
+  }
+
+  private applyBrandGuidance(
+    context: AssembledBrandContext,
+    effectiveBrandAgentConfig: EffectiveBrandAgentConfig,
+  ): void {
+    const resolvedVoice = effectiveBrandAgentConfig.voice ?? {};
+    const resolvedStrategy = effectiveBrandAgentConfig.strategy ?? {};
+
+    if (Object.keys(resolvedVoice).length > 0) {
+      context.voice = {
+        approvedHooks: resolvedVoice.approvedHooks,
+        audience: resolvedVoice.audience?.join(', '),
+        bannedPhrases: resolvedVoice.bannedPhrases,
+        canonicalSource: resolvedVoice.canonicalSource,
+        doNotSoundLike: resolvedVoice.doNotSoundLike,
+        exemplarTexts: resolvedVoice.exemplarTexts,
+        hashtags: resolvedVoice.hashtags,
+        messagingPillars: resolvedVoice.messagingPillars,
+        sampleOutput: resolvedVoice.sampleOutput,
+        style: resolvedVoice.style,
+        taglines: resolvedVoice.taglines,
+        tone: resolvedVoice.tone,
+        values: resolvedVoice.values,
+        writingRules: resolvedVoice.writingRules,
+      };
+    }
+
+    if (Object.keys(resolvedStrategy).length > 0) {
+      context.strategy = {
+        contentTypes: resolvedStrategy.contentTypes,
+        frequency: resolvedStrategy.frequency,
+        goals: resolvedStrategy.goals,
+        platforms: resolvedStrategy.platforms,
+      };
+    }
+
+    if (
+      Object.keys(resolvedVoice).length > 0 ||
+      Object.keys(resolvedStrategy).length > 0 ||
+      effectiveBrandAgentConfig.persona ||
+      effectiveBrandAgentConfig.defaultModel
+    ) {
+      context.layersUsed.push('brandGuidance');
+    }
+  }
+
   buildSystemPrompt(
     basePrompt: string,
     context: AssembledBrandContext,
@@ -338,138 +360,11 @@ export class AgentContextAssemblyService {
       sections.push(`\n## Brand Guidelines\n${context.promptGuidelines}`);
     }
 
-    // Visual identity
-    if (context.visualIdentity) {
-      const visParts: string[] = [];
-      if (context.visualIdentity.primaryColor) {
-        visParts.push(
-          `- Primary color: ${context.visualIdentity.primaryColor}`,
-        );
-      }
-      if (context.visualIdentity.secondaryColor) {
-        visParts.push(
-          `- Secondary color: ${context.visualIdentity.secondaryColor}`,
-        );
-      }
-      if (context.visualIdentity.backgroundColor) {
-        visParts.push(
-          `- Background color: ${context.visualIdentity.backgroundColor}`,
-        );
-      }
-      if (context.visualIdentity.fontFamily) {
-        visParts.push(`- Font: ${context.visualIdentity.fontFamily}`);
-      }
-      if (context.visualIdentity.logoUrl) {
-        visParts.push(`- Logo reference: ${context.visualIdentity.logoUrl}`);
-      }
-      if (context.visualIdentity.bannerUrl) {
-        visParts.push(
-          `- Banner reference: ${context.visualIdentity.bannerUrl}`,
-        );
-      }
-      if (context.visualIdentity.referenceImages?.length) {
-        const byCategory = new Map<string, string[]>();
-        for (const img of context.visualIdentity.referenceImages) {
-          const labels = byCategory.get(img.category) ?? [];
-          labels.push(img.label ? `${img.label} (${img.url})` : img.url);
-          byCategory.set(img.category, labels);
-        }
-        for (const [cat, labels] of byCategory) {
-          visParts.push(`- ${cat} references: ${labels.join(', ')}`);
-        }
-      }
-      if (visParts.length > 0) {
-        sections.push(`\n## Visual Identity\n${visParts.join('\n')}`);
-      }
-    }
-
-    // Canonical brand voice from Brand.agentConfig
-    const voiceParts: string[] = [];
-    if (context.voice?.canonicalSource) {
-      voiceParts.push(
-        `- Canonical voice source: ${context.voice.canonicalSource}`,
-      );
-    }
-    if (context.voice?.tone) {
-      voiceParts.push(`- Tone: ${context.voice.tone}`);
-    }
-    if (context.voice?.style) {
-      voiceParts.push(`- Style: ${context.voice.style}`);
-    }
-    if (context.voice?.audience) {
-      voiceParts.push(`- Target audience: ${context.voice.audience}`);
-    }
-    if (context.voice?.messagingPillars?.length) {
-      voiceParts.push(
-        `- Messaging pillars: ${context.voice.messagingPillars.join(', ')}`,
-      );
-    }
-    if (context.voice?.doNotSoundLike?.length) {
-      voiceParts.push(
-        `- Avoid sounding like: ${context.voice.doNotSoundLike.join(', ')}`,
-      );
-    }
-    if (context.voice?.values?.length) {
-      voiceParts.push(`- Brand values: ${context.voice.values.join(', ')}`);
-    }
-    if (context.voice?.taglines?.length) {
-      voiceParts.push(`- Taglines: ${context.voice.taglines.join(', ')}`);
-    }
-    if (context.voice?.hashtags?.length) {
-      voiceParts.push(`- Hashtags: ${context.voice.hashtags.join(' ')}`);
-    }
-    if (context.voice?.approvedHooks?.length) {
-      voiceParts.push(
-        `- Approved hook patterns: ${context.voice.approvedHooks.join(' | ')}`,
-      );
-    }
-    if (context.voice?.bannedPhrases?.length) {
-      voiceParts.push(
-        `- Banned phrases: ${context.voice.bannedPhrases.join(', ')}`,
-      );
-    }
-    if (context.voice?.writingRules?.length) {
-      voiceParts.push(
-        `- Writing rules: ${context.voice.writingRules.join(' | ')}`,
-      );
-    }
-    if (voiceParts.length > 0) {
-      sections.push(`\n## Brand Voice\n${voiceParts.join('\n')}`);
-    }
-    if (context.voice?.sampleOutput) {
-      sections.push(`\n## Voice Example\n${context.voice.sampleOutput}`);
-    }
-    if (context.voice?.exemplarTexts?.length) {
-      sections.push(
-        `\n## Reference Exemplars\n${context.voice.exemplarTexts
-          .map((example) => `- ${example}`)
-          .join('\n')}`,
-      );
-    }
-
-    // Strategy
-    if (context.strategy) {
-      const stratParts: string[] = [];
-      if (context.strategy.goals?.length) {
-        stratParts.push(`- Goals: ${context.strategy.goals.join(', ')}`);
-      }
-      if (context.strategy.contentTypes?.length) {
-        stratParts.push(
-          `- Content types: ${context.strategy.contentTypes.join(', ')}`,
-        );
-      }
-      if (context.strategy.platforms?.length) {
-        stratParts.push(
-          `- Platforms: ${context.strategy.platforms.join(', ')}`,
-        );
-      }
-      if (context.strategy.frequency) {
-        stratParts.push(`- Frequency: ${context.strategy.frequency}`);
-      }
-      if (stratParts.length > 0) {
-        sections.push(`\n## Content Strategy\n${stratParts.join('\n')}`);
-      }
-    }
+    const visualIdentitySection = this.buildVisualIdentityPrompt(context);
+    if (visualIdentitySection) sections.push(visualIdentitySection);
+    sections.push(...this.buildVoicePromptSections(context));
+    const strategySection = this.buildStrategyPrompt(context);
+    if (strategySection) sections.push(strategySection);
 
     // Custom instructions (persona)
     if (context.persona) {
@@ -531,6 +426,130 @@ export class AgentContextAssemblyService {
 
     const brandContextPrompt = fitBrandContextToBudget(sections, maxLength);
     return [basePrompt, brandContextPrompt].filter(Boolean).join('\n\n');
+  }
+
+  private buildVisualIdentityPrompt(
+    context: AssembledBrandContext,
+  ): string | null {
+    if (!context.visualIdentity) {
+      return null;
+    }
+
+    const visualIdentity = context.visualIdentity;
+    const parts: string[] = [];
+    if (visualIdentity.primaryColor) {
+      parts.push(`- Primary color: ${visualIdentity.primaryColor}`);
+    }
+    if (visualIdentity.secondaryColor) {
+      parts.push(`- Secondary color: ${visualIdentity.secondaryColor}`);
+    }
+    if (visualIdentity.backgroundColor) {
+      parts.push(`- Background color: ${visualIdentity.backgroundColor}`);
+    }
+    if (visualIdentity.fontFamily) {
+      parts.push(`- Font: ${visualIdentity.fontFamily}`);
+    }
+    if (visualIdentity.logoUrl) {
+      parts.push(`- Logo reference: ${visualIdentity.logoUrl}`);
+    }
+    if (visualIdentity.bannerUrl) {
+      parts.push(`- Banner reference: ${visualIdentity.bannerUrl}`);
+    }
+
+    const referencesByCategory = new Map<string, string[]>();
+    for (const image of visualIdentity.referenceImages ?? []) {
+      const labels = referencesByCategory.get(image.category) ?? [];
+      labels.push(image.label ? `${image.label} (${image.url})` : image.url);
+      referencesByCategory.set(image.category, labels);
+    }
+    for (const [category, labels] of referencesByCategory) {
+      parts.push(`- ${category} references: ${labels.join(', ')}`);
+    }
+
+    return parts.length > 0
+      ? `\n## Visual Identity\n${parts.join('\n')}`
+      : null;
+  }
+
+  private buildVoicePromptSections(context: AssembledBrandContext): string[] {
+    const voice = context.voice;
+    if (!voice) {
+      return [];
+    }
+
+    const parts: string[] = [];
+    if (voice.canonicalSource) {
+      parts.push(`- Canonical voice source: ${voice.canonicalSource}`);
+    }
+    if (voice.tone) parts.push(`- Tone: ${voice.tone}`);
+    if (voice.style) parts.push(`- Style: ${voice.style}`);
+    if (voice.audience) parts.push(`- Target audience: ${voice.audience}`);
+    if (voice.messagingPillars?.length) {
+      parts.push(`- Messaging pillars: ${voice.messagingPillars.join(', ')}`);
+    }
+    if (voice.doNotSoundLike?.length) {
+      parts.push(`- Avoid sounding like: ${voice.doNotSoundLike.join(', ')}`);
+    }
+    if (voice.values?.length) {
+      parts.push(`- Brand values: ${voice.values.join(', ')}`);
+    }
+    if (voice.taglines?.length) {
+      parts.push(`- Taglines: ${voice.taglines.join(', ')}`);
+    }
+    if (voice.hashtags?.length) {
+      parts.push(`- Hashtags: ${voice.hashtags.join(' ')}`);
+    }
+    if (voice.approvedHooks?.length) {
+      parts.push(
+        `- Approved hook patterns: ${voice.approvedHooks.join(' | ')}`,
+      );
+    }
+    if (voice.bannedPhrases?.length) {
+      parts.push(`- Banned phrases: ${voice.bannedPhrases.join(', ')}`);
+    }
+    if (voice.writingRules?.length) {
+      parts.push(`- Writing rules: ${voice.writingRules.join(' | ')}`);
+    }
+
+    const sections: string[] = [];
+    if (parts.length > 0) {
+      sections.push(`\n## Brand Voice\n${parts.join('\n')}`);
+    }
+    if (voice.sampleOutput) {
+      sections.push(`\n## Voice Example\n${voice.sampleOutput}`);
+    }
+    if (voice.exemplarTexts?.length) {
+      sections.push(
+        `\n## Reference Exemplars\n${voice.exemplarTexts
+          .map((example) => `- ${example}`)
+          .join('\n')}`,
+      );
+    }
+    return sections;
+  }
+
+  private buildStrategyPrompt(context: AssembledBrandContext): string | null {
+    const strategy = context.strategy;
+    if (!strategy) {
+      return null;
+    }
+
+    const parts: string[] = [];
+    if (strategy.goals?.length) {
+      parts.push(`- Goals: ${strategy.goals.join(', ')}`);
+    }
+    if (strategy.contentTypes?.length) {
+      parts.push(`- Content types: ${strategy.contentTypes.join(', ')}`);
+    }
+    if (strategy.platforms?.length) {
+      parts.push(`- Platforms: ${strategy.platforms.join(', ')}`);
+    }
+    if (strategy.frequency) {
+      parts.push(`- Frequency: ${strategy.frequency}`);
+    }
+    return parts.length > 0
+      ? `\n## Content Strategy\n${parts.join('\n')}`
+      : null;
   }
 
   private readTextField(value: unknown): string | undefined {

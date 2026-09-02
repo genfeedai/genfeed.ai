@@ -260,17 +260,17 @@ describe('findRouteCollisions', () => {
   it('allows the same path in two separate applications', () => {
     const collisions = findRouteCollisions(
       controllersFrom({
-        'apps/server/images/src/train.controller.ts': `import { Controller, Post } from '@nestjs/common';
+        'apps/server/alpha/src/train.controller.ts': `import { Controller, Post } from '@nestjs/common';
 
           @Controller()
-          export class ImagesTrainController {
+          export class AlphaTrainController {
             @Post('train')
             train() {}
           }`,
-        'apps/server/voices/src/train.controller.ts': `import { Controller, Post } from '@nestjs/common';
+        'apps/server/beta/src/train.controller.ts': `import { Controller, Post } from '@nestjs/common';
 
           @Controller()
-          export class VoicesTrainController {
+          export class BetaTrainController {
             @Post('train')
             train() {}
           }`,

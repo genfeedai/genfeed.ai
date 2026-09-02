@@ -1,25 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
+import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -35,8 +15,27 @@ import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 const MUSICGEN_VERSION =
@@ -50,6 +49,19 @@ const MUSIC_COMPLETION_POPULATE = [
   PopulatePatterns.brandMinimal,
 ];
 
+type MusicDispatchParams = {
+  brandId: string;
+  createMusicDto: CreateMusicDto;
+  ingredientId: string;
+  metadataId: string;
+  model: string;
+  outputs: number;
+  promptData: Awaited<ReturnType<PromptsService['create']>>;
+  request: Request;
+  url: string;
+  user: User;
+};
+
 /**
  * Owns the music-generation workflow formerly implemented by
  * `MusicsOperationsController.create` while the controller retains the stable
@@ -62,12 +74,11 @@ export class MusicGenerationService {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly creditsService: MusicGenerationCreditsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
-    private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly musicsService: MusicsService,
     private readonly promptsService: PromptsService,
@@ -198,229 +209,208 @@ export class MusicGenerationService {
       1,
       Math.min(Number(createMusicDto.outputs) || 1, 4),
     );
-    const pendingIngredientIds: string[] = [ingredientData.id.toString()];
-    const baseSeed =
-      typeof createMusicDto.seed === 'number' ? createMusicDto.seed : -1;
-
-    const runMusicGeneration = async (
-      metadataId: string,
-      ingredientId: string,
-      outputIndex: number,
-      seedValue: number,
-    ): Promise<string | null> => {
-      const websocketPath = WebSocketPaths.music(ingredientId.toString());
-
-      try {
-        const { input: promptParams } =
-          await this.promptBuilderService.buildPrompt(model, {
-            duration: createMusicDto.duration || 10,
-            modelCategory:
-              ((request as unknown as { selectedModel?: { category?: string } })
-                .selectedModel?.category as ModelCategory) ||
-              ModelCategory.MUSIC,
-            prompt: promptData.original,
-            seed: seedValue,
-          });
-
-        const generationId = await this.replicateService.runModel(
-          MUSICGEN_VERSION,
-          promptParams,
-        );
-
-        if (!generationId) {
-          await this.handleFailedGeneration(
-            user,
-            brandId,
-            ingredientId,
-            websocketPath,
-            'Generation failed to start',
-          );
-          return null;
-        }
-
-        await this.metadataService.patch(metadataId, {
-          externalId: generationId,
-        });
-
-        return generationId;
-      } catch (error: unknown) {
-        this.loggerService.error(
-          `${url} failed (output ${outputIndex + 1})`,
-          error,
-        );
-
-        await this.handleFailedGeneration(
-          user,
-          brandId,
-          ingredientId,
-          websocketPath,
-          (error as Error)?.message || 'Generation failed',
-        );
-        return null;
-      }
-    };
-
-    const primaryWebsocketUrl = WebSocketPaths.music(
-      ingredientData.id.toString(),
-    );
-
-    try {
-      const firstGenerationId = await runMusicGeneration(
-        metadataData.id.toString(),
-        ingredientData.id,
-        0,
-        baseSeed,
-      );
-
-      if (firstGenerationId) {
-        await this.settleCredits(user, model, outputs, firstGenerationId);
-
-        if (outputs > 1) {
-          for (let i = 1; i < outputs; i++) {
-            let additionalMetadataId: string | null = null;
-            let additionalIngredientId: string | null = null;
-            const promptId = promptData.id;
-
-            try {
-              const {
-                metadataData: additionalMetadata,
-                ingredientData: additionalIngredient,
-              } = await this.sharedService.createMediaDocuments(user, {
-                brandId,
-                category: IngredientCategory.MUSIC,
-                duration: createMusicDto.duration,
-                extension: MetadataExtension.MP3,
-                generationPrompt: createMusicDto.text,
-                generationSeed: createMusicDto.seed,
-                model,
-                organizationId: user.organizationId,
-                promptId,
-                scope: createMusicDto.scope,
-                status: IngredientStatus.PROCESSING,
-                tagIds: createMusicDto.tags,
-              });
-
-              additionalMetadataId = additionalMetadata.id.toString();
-              additionalIngredientId = additionalIngredient.id.toString();
-              pendingIngredientIds.push(additionalIngredient.id.toString());
-
-              await this.musicsService.patch(additionalIngredient.id, {
-                promptId,
-              });
-
-              const seedForOutput = baseSeed >= 0 ? baseSeed + i : -1;
-
-              await runMusicGeneration(
-                additionalMetadata.id,
-                additionalIngredient.id,
-                i,
-                seedForOutput,
-              );
-            } catch (error: unknown) {
-              this.loggerService.error(
-                `${url} failed while preparing output ${i + 1}`,
-                error,
-              );
-
-              if (additionalIngredientId) {
-                await this.handleFailedGeneration(
-                  user,
-                  brandId,
-                  additionalIngredientId,
-                  WebSocketPaths.music(additionalIngredientId),
-                  (error as Error)?.message || 'Generation failed',
-                );
-              }
-
-              if (additionalMetadataId) {
-                await this.metadataService.patch(additionalMetadataId, {
-                  externalId: undefined,
-                });
-              }
-            }
-          }
-        }
-      }
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      await this.handleFailedGeneration(
-        user,
-        brandId,
-        ingredientData.id,
-        primaryWebsocketUrl,
-        (error as Error)?.message || 'Generation failed',
-      );
-    }
-
-    if (createMusicDto.waitForCompletion === true) {
-      try {
-        const completedIngredients =
-          await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
-            pendingIngredientIds,
-            MUSIC_COMPLETION_TIMEOUT_MS,
-            MUSIC_COMPLETION_POLL_INTERVAL_MS,
-            MUSIC_COMPLETION_POPULATE,
-          );
-
-        return serializeSingle(
-          request,
-          MusicSerializer,
-          completedIngredients[0],
-        );
-      } catch (error: unknown) {
-        if (error instanceof PollTimeoutException) {
-          throw new HttpException(
-            {
-              detail: `Music generation did not complete within 3 minutes. Current status: ${ingredientData.status}`,
-              title: 'Generation timeout',
-            },
-            HttpStatus.GATEWAY_TIMEOUT,
-          );
-        }
-        throw error;
-      }
-    }
-
-    return serializeSingle(request, MusicSerializer, {
-      ...ingredientData,
+    const pendingIngredientIds = await this.dispatchOutputs({
+      brandId,
+      createMusicDto,
+      ingredientId: ingredientData.id.toString(),
+      metadataId: metadataData.id.toString(),
+      model,
+      outputs,
+      promptData,
+      request,
+      url,
+      user,
+    });
+    return this.serializeResult({
+      createMusicDto,
+      ingredientData,
       pendingIngredientIds,
+      request,
     });
   }
 
-  private async settleCredits(
-    user: User,
-    model: string,
-    outputs: number,
-    firstGenerationId: string,
-  ): Promise<void> {
-    const modelData = await this.modelsService.findOne({ key: model });
-    let creditsToDeduct = modelData?.cost || 0;
-
-    if (creditsToDeduct > 0 && outputs > 1) {
-      creditsToDeduct *= outputs;
-    }
-
-    if (creditsToDeduct <= 0) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      user.organizationId,
-      user.userId ?? user.id,
-      creditsToDeduct,
-      `Music generation - ${model}${
-        outputs > 1 ? ` (${outputs} outputs)` : ''
-      }`,
-      ActivitySource.MUSIC_GENERATION,
-    );
-    this.loggerService.log('Credits deducted after music generation', {
-      credits: creditsToDeduct,
-      generationId: firstGenerationId,
-      model,
-      organizationId: user.organizationId,
-      outputs,
-      userId: user.userId ?? user.id,
+  private async dispatchOutputs(
+    params: MusicDispatchParams,
+  ): Promise<string[]> {
+    const { ingredientId, metadataId, outputs } = params;
+    const pendingIds = [ingredientId];
+    const baseSeed =
+      typeof params.createMusicDto.seed === 'number'
+        ? params.createMusicDto.seed
+        : -1;
+    const firstGenerationId = await this.startGeneration({
+      ...params,
+      ingredientId,
+      metadataId,
+      outputIndex: 0,
+      seed: baseSeed,
     });
+    if (!firstGenerationId) {
+      return pendingIds;
+    }
+    await this.creditsService.settle(
+      params.user,
+      params.model,
+      outputs,
+      firstGenerationId,
+    );
+    for (let index = 1; index < outputs; index++) {
+      await this.prepareAdditionalOutput(params, pendingIds, baseSeed, index);
+    }
+    return pendingIds;
+  }
+
+  private async prepareAdditionalOutput(
+    params: MusicDispatchParams,
+    pendingIds: string[],
+    baseSeed: number,
+    outputIndex: number,
+  ): Promise<void> {
+    let metadataId: string | null = null;
+    let ingredientId: string | null = null;
+    try {
+      const created = await this.sharedService.createMediaDocuments(
+        params.user,
+        {
+          brandId: params.brandId,
+          category: IngredientCategory.MUSIC,
+          duration: params.createMusicDto.duration,
+          extension: MetadataExtension.MP3,
+          generationPrompt: params.createMusicDto.text,
+          generationSeed: params.createMusicDto.seed,
+          model: params.model,
+          organizationId: params.user.organizationId,
+          promptId: params.promptData.id,
+          scope: params.createMusicDto.scope,
+          status: IngredientStatus.PROCESSING,
+          tagIds: params.createMusicDto.tags,
+        },
+      );
+      metadataId = created.metadataData.id.toString();
+      ingredientId = created.ingredientData.id.toString();
+      pendingIds.push(ingredientId);
+      await this.musicsService.patch(created.ingredientData.id, {
+        promptId: params.promptData.id,
+      });
+      await this.startGeneration({
+        ...params,
+        ingredientId,
+        metadataId,
+        outputIndex,
+        seed: baseSeed >= 0 ? baseSeed + outputIndex : -1,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${params.url} failed while preparing output ${outputIndex + 1}`,
+        error,
+      );
+      if (ingredientId) {
+        await this.handleFailedGeneration(
+          params.user,
+          params.brandId,
+          ingredientId,
+          WebSocketPaths.music(ingredientId),
+          (error as Error)?.message || 'Generation failed',
+        );
+      }
+      if (metadataId) {
+        await this.metadataService.patch(metadataId, { externalId: undefined });
+      }
+    }
+  }
+
+  private async startGeneration(
+    params: MusicDispatchParams & {
+      ingredientId: string;
+      metadataId: string;
+      outputIndex: number;
+      seed: number;
+    },
+  ): Promise<string | null> {
+    try {
+      const { input } = await this.promptBuilderService.buildPrompt(
+        params.model,
+        {
+          duration: params.createMusicDto.duration || 10,
+          modelCategory:
+            ((
+              params.request as unknown as {
+                selectedModel?: { category?: string };
+              }
+            ).selectedModel?.category as ModelCategory) || ModelCategory.MUSIC,
+          prompt: params.promptData.original,
+          seed: params.seed,
+        },
+      );
+      const generationId = await this.replicateService.runModel(
+        MUSICGEN_VERSION,
+        input,
+      );
+      if (!generationId) {
+        await this.handleFailedGeneration(
+          params.user,
+          params.brandId,
+          params.ingredientId,
+          WebSocketPaths.music(params.ingredientId),
+          'Generation failed to start',
+        );
+        return null;
+      }
+      await this.metadataService.patch(params.metadataId, {
+        externalId: generationId,
+      });
+      return generationId;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${params.url} failed (output ${params.outputIndex + 1})`,
+        error,
+      );
+      await this.handleFailedGeneration(
+        params.user,
+        params.brandId,
+        params.ingredientId,
+        WebSocketPaths.music(params.ingredientId),
+        (error as Error)?.message || 'Generation failed',
+      );
+      return null;
+    }
+  }
+
+  private async serializeResult(params: {
+    createMusicDto: CreateMusicDto;
+    ingredientData: Awaited<
+      ReturnType<SharedService['createMediaDocuments']>
+    >['ingredientData'];
+    pendingIngredientIds: string[];
+    request: Request;
+  }): Promise<JsonApiSingleResponse> {
+    if (params.createMusicDto.waitForCompletion !== true) {
+      return serializeSingle(params.request, MusicSerializer, {
+        ...params.ingredientData,
+        pendingIngredientIds: params.pendingIngredientIds,
+      });
+    }
+    try {
+      const completed =
+        await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
+          params.pendingIngredientIds,
+          MUSIC_COMPLETION_TIMEOUT_MS,
+          MUSIC_COMPLETION_POLL_INTERVAL_MS,
+          MUSIC_COMPLETION_POPULATE,
+        );
+      return serializeSingle(params.request, MusicSerializer, completed[0]);
+    } catch (error: unknown) {
+      if (error instanceof PollTimeoutException) {
+        throw new HttpException(
+          {
+            detail: `Music generation did not complete within 3 minutes. Current status: ${params.ingredientData.status}`,
+            title: 'Generation timeout',
+          },
+          HttpStatus.GATEWAY_TIMEOUT,
+        );
+      }
+      throw error;
+    }
   }
 
   private handleFailedGeneration(
