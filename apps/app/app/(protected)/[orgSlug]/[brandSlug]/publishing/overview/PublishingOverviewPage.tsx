@@ -4,12 +4,7 @@ import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/constants';
-import {
-  BatchItemStatus,
-  ButtonSize,
-  ButtonVariant,
-  CardVariant,
-} from '@genfeedai/enums';
+import { BatchItemStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
@@ -19,23 +14,26 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { BatchesService } from '@services/batch/batches.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
+import { CredentialsService } from '@services/organization/credentials.service';
 import { useQuery } from '@tanstack/react-query';
-import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import OverviewLayout from '@ui/overview/OverviewLayout';
-import { Button } from '@ui/primitives/button';
 import {
-  ArrowRight,
   Calendar,
   ClipboardCheck,
   LayoutDashboard,
   List,
   Send,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
+import { buildBlockedTargetGroups } from './blocked-targets.util';
+import { buildCadenceGaps } from './cadence-gaps.util';
+import BlockedTargetsSection from './components/BlockedTargetsSection';
+import CadenceGapsSection from './components/CadenceGapsSection';
+import Next24hQueueSection from './components/Next24hQueueSection';
+import { buildNext24hQueue } from './next-24h-queue.util';
 
 const NOT_POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
   publicationState: 'not-posted',
@@ -43,6 +41,8 @@ const NOT_POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
 const POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
   publicationState: 'posted',
 });
+
+const QUEUE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 async function fetchPublicationTotal(
   getReleaseGroups: () => Promise<ReleaseGroupsService>,
@@ -69,6 +69,9 @@ export default function PublishingOverviewPage() {
   );
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
+  );
+  const getCredentialsService = useAuthedService((token: string) =>
+    CredentialsService.getInstance(token),
   );
 
   const { data: batches = [], isLoading: isBatchesLoading } = useQuery({
@@ -100,6 +103,84 @@ export default function PublishingOverviewPage() {
         'posted',
       ),
   });
+
+  const now = useMemo(() => new Date(), []);
+
+  const { data: upcomingReleases = [] } = useQuery({
+    enabled: isBrandReady,
+    queryKey: ['publish-overview-upcoming', brandId, now.toISOString()],
+    queryFn: async ({ signal }) => {
+      const service = await getReleaseGroupsService();
+      return service.findAll(
+        {
+          brandId: brandId as string,
+          endDate: new Date(now.getTime() + QUEUE_WINDOW_MS).toISOString(),
+          executionState: [TargetExecutionState.SCHEDULED],
+          sort: 'scheduledDate: 1',
+          startDate: now.toISOString(),
+        },
+        signal,
+      );
+    },
+  });
+
+  const { data: failedReleases = [] } = useQuery({
+    enabled: isBrandReady,
+    queryKey: ['publish-overview-failed', brandId],
+    queryFn: async ({ signal }) => {
+      const service = await getReleaseGroupsService();
+      return service.findAll(
+        {
+          brandId: brandId as string,
+          executionState: [TargetExecutionState.FAILED],
+        },
+        signal,
+      );
+    },
+  });
+
+  const { data: postedReleases = [] } = useQuery({
+    enabled: isBrandReady,
+    queryKey: ['publish-overview-posted-recent', brandId],
+    queryFn: async ({ signal }) => {
+      const service = await getReleaseGroupsService();
+      return service.findAll(
+        {
+          brandId: brandId as string,
+          limit: 100,
+          publicationState: 'posted',
+          sort: 'updatedAt: -1',
+        },
+        signal,
+      );
+    },
+  });
+
+  const { data: accountHealth = [] } = useQuery({
+    enabled: isBrandReady,
+    queryKey: ['publish-overview-account-health', brandId],
+    queryFn: async () => {
+      const service = await getCredentialsService();
+      return service.listBrandAccountHealth(brandId as string);
+    },
+  });
+
+  const next24hQueue = useMemo(
+    () => buildNext24hQueue(upcomingReleases, now),
+    [upcomingReleases, now],
+  );
+  const blockedTargetGroups = useMemo(
+    () => buildBlockedTargetGroups(failedReleases),
+    [failedReleases],
+  );
+  const cadenceGaps = useMemo(
+    () =>
+      buildCadenceGaps(
+        { accountHealth, postedReleases, upcomingReleases },
+        now,
+      ),
+    [accountHealth, postedReleases, upcomingReleases, now],
+  );
 
   const reviewPulse = useMemo(() => {
     const batchList = Array.isArray(batches) ? batches : [];
@@ -221,53 +302,9 @@ export default function PublishingOverviewPage() {
             isLoading={isMetricsLoading}
             items={kpiItems}
           />
-          <Card
-            bodyClassName="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-            variant={CardVariant.DEFAULT}
-          >
-            <div className="space-y-1">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                Pipeline
-              </p>
-              <p className="text-sm text-foreground/80">
-                {reviewPulse.activeBatches > 0
-                  ? `${reviewPulse.activeBatches} open batch${reviewPulse.activeBatches === 1 ? '' : 'es'}`
-                  : 'No open batches'}
-                {reviewPulse.pending > 0
-                  ? ` · ${reviewPulse.pending} still generating`
-                  : ''}
-                {reviewPulse.ready > 0
-                  ? ` · ${reviewPulse.ready} need a decision`
-                  : ''}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                asChild
-                className="gap-1.5"
-                size={ButtonSize.SM}
-                variant={ButtonVariant.DEFAULT}
-                withWrapper={false}
-              >
-                <Link href={href(APP_ROUTES.PUBLISHING.REVIEW)}>
-                  Review queue
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="gap-1.5"
-                size={ButtonSize.SM}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              >
-                <Link href={href(NOT_POSTED_POSTS_PATH)}>
-                  All drafts
-                  <ArrowRight className="size-3.5" />
-                </Link>
-              </Button>
-            </div>
-          </Card>
+          <Next24hQueueSection groups={next24hQueue} />
+          <BlockedTargetsSection groups={blockedTargetGroups} />
+          <CadenceGapsSection gaps={cadenceGaps} />
         </div>
       }
       icon={LayoutDashboard}
