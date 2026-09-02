@@ -1,12 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import {
-  type LibraryPlace,
-  LibraryShelf,
-  PageScope,
-  PostStatus,
-} from '@genfeedai/enums';
+import { type LibraryPlace, LibraryShelf, PageScope } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -284,51 +279,43 @@ describe('OrgRootAppPage', () => {
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
   });
 
-  it('renders org posts with published status for /publishing/published', async () => {
-    const searchParams = Promise.resolve({ page: '2' });
-    const element = await OrgRootAppPage({
-      params: Promise.resolve({
-        orgRootApp: 'publishing',
-        orgSlug: 'acme',
-        segments: ['published'],
-      }),
-      searchParams,
-    });
-
-    render(element);
-
-    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
-    expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
-    expect(renderPostsListPageMock).toHaveBeenCalledWith({
-      scope: PageScope.ORGANIZATION,
-      searchParams,
-      statusOverride: PostStatus.PUBLIC,
-    });
-  });
-
-  it.each([
-    ['pending', PostStatus.PENDING],
-    ['processing', PostStatus.PROCESSING],
-  ] as const)(
-    'renders org posts with %s status for /publishing/%s',
-    async (segment, status) => {
+  it.each([undefined, ['overview'], ['posts']] as const)(
+    'renders the canonical org posts list for /publishing segments %s',
+    async (segments) => {
       const searchParams = Promise.resolve({ page: '2' });
       const element = await OrgRootAppPage({
         params: Promise.resolve({
           orgRootApp: 'publishing',
           orgSlug: 'acme',
-          segments: [segment],
+          segments,
         }),
         searchParams,
       });
 
       render(element);
 
+      expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
+      expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
       expect(renderPostsListPageMock).toHaveBeenCalledWith({
         scope: PageScope.ORGANIZATION,
         searchParams,
-        statusOverride: status,
       });
+    },
+  );
+
+  it.each(['pending', 'processing', 'published', 'scheduled', 'failed'])(
+    'returns not found for the retired org /publishing/%s route',
+    async (segment) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(renderPostsListPageMock).not.toHaveBeenCalled();
     },
   );
 

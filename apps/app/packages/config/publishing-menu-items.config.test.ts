@@ -1,4 +1,4 @@
-import { LEGACY_APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import { PUBLISHING_MENU_ITEMS } from './publishing-menu-items.config';
 
@@ -7,44 +7,32 @@ describe('PUBLISHING_MENU_ITEMS', () => {
     expect(PUBLISHING_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('leads with Overview → Posts → Calendar, then Pipeline', () => {
+  it('is a flat Overview → Posts → Content → Review → Calendar bar', () => {
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Posts',
-      'Calendar',
+      'Content',
       'Review',
-      'Drafts',
-      'Published',
+      'Calendar',
     ]);
-    expect(PUBLISHING_MENU_ITEMS[0]?.href).toBe('/publishing/overview');
-    expect(PUBLISHING_MENU_ITEMS[1]?.href).toBe('/publishing/posts');
-    expect(PUBLISHING_MENU_ITEMS[2]?.href).toBe('/publishing/calendar');
+    expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).toEqual([
+      APP_ROUTES.PUBLISHING.OVERVIEW,
+      APP_ROUTES.PUBLISHING.POSTS,
+      APP_ROUTES.PUBLISHING.CONTENT,
+      APP_ROUTES.PUBLISHING.REVIEW,
+      APP_ROUTES.PUBLISHING.CALENDAR,
+    ]);
     expect(PUBLISHING_MENU_ITEMS.map((item) => item.href)).not.toContain(
       '/publishing',
     );
   });
 
-  it('groups pipeline status shortcuts under Pipeline', () => {
-    const pipeline = PUBLISHING_MENU_ITEMS.filter(
-      (item) => item.group === 'Pipeline',
-    );
-    expect(pipeline.map((item) => item.label)).toEqual([
-      'Review',
-      'Drafts',
-      'Published',
-    ]);
-    expect(pipeline[0]?.hasDividerAbove).toBeFalsy();
-    expect(pipeline[0]?.isCollapsible).toBe(true);
-    expect(pipeline.map((item) => item.href)).toEqual([
-      '/publishing/posts?status=draft',
-      '/publishing/posts?publicationState=not-posted',
-      '/publishing/posts?publicationState=posted',
-    ]);
-    expect(pipeline.map((item) => item.matchSearchParams)).toEqual([
-      { status: 'draft' },
-      { publicationState: 'not-posted', status: null },
-      { publicationState: 'posted', status: null },
-    ]);
+  it('has no groups, collapsible sections, or search-param shortcuts', () => {
+    for (const item of PUBLISHING_MENU_ITEMS) {
+      expect(item.group).toBe('');
+      expect(item.isCollapsible).toBeFalsy();
+      expect(item.matchSearchParams).toBeUndefined();
+    }
   });
 
   it('has no duplicate hrefs', () => {

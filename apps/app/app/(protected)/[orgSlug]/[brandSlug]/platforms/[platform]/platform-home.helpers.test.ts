@@ -1,4 +1,7 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
@@ -114,7 +117,7 @@ describe('platform-home helpers', () => {
 
     expect(destinations.settingsSocial).toBe(APP_ROUTES.SETTINGS.SOCIAL);
     expect(destinations.queue).toBe(
-      `${APP_ROUTES.PUBLISHING.SCHEDULED}?platform=instagram`,
+      `${createPublishingPostsFilterRoute({ publicationState: 'not-posted' })}&platform=instagram`,
     );
     expect(destinations.posts).toBe(
       `${APP_ROUTES.PUBLISHING.POSTS}?platform=instagram`,

@@ -1,24 +1,23 @@
-import {
-  APP_ROUTES,
-  createPublishingPostsFilterRoute,
-  PUBLISHING_POSTS_QUERY_KEYS,
-} from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   Calendar,
   ClipboardCheck,
+  Files,
   LayoutDashboard,
-  List,
   Rows3,
-  Send,
 } from 'lucide-react';
 
 /**
  * Publishing owns the content desk + go-live lifecycle.
  *
- * Top: Overview · Posts · Calendar
- * Pipeline: Review · Drafts · Published (status shortcuts into the desk)
+ * Flat bar: Overview · Posts · Content · Review · Calendar.
+ * Posts is the single social-post lifecycle list — every lifecycle state
+ * (draft, scheduled, pending, processing, published, failed) is a query-param
+ * filter on that one route (see `createPublishingPostsFilterRoute`), never a
+ * dedicated nav item. Content is the type-aware library (posts + articles +
+ * newsletters). Review is the approval queue, a distinct surface from the
+ * Posts draft filter.
  *
  * Agent Programs → Automation. Outreach / reply drip → Messages.
  * Marketer multi-platform content Campaigns → Publishing (P1).
@@ -45,48 +44,26 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
+    href: APP_ROUTES.PUBLISHING.CONTENT,
+    label: 'Content',
+    matchPaths: [APP_ROUTES.PUBLISHING.CONTENT],
+    outline: Files,
+    solid: Files,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.PUBLISHING.REVIEW,
+    label: 'Review',
+    matchPaths: [APP_ROUTES.PUBLISHING.REVIEW],
+    outline: ClipboardCheck,
+    solid: ClipboardCheck,
+  },
+  {
+    group: '',
     href: APP_ROUTES.PUBLISHING.CALENDAR,
     label: 'Calendar',
     matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
     outline: Calendar,
     solid: Calendar,
-  },
-  {
-    group: 'Pipeline',
-    href: createPublishingPostsFilterRoute({ status: PostStatus.DRAFT }),
-    isCollapsible: true,
-    label: 'Review',
-    matchPaths: [APP_ROUTES.PUBLISHING.POSTS],
-    matchSearchParams: {
-      [PUBLISHING_POSTS_QUERY_KEYS.STATUS]: PostStatus.DRAFT,
-    },
-    outline: ClipboardCheck,
-    solid: ClipboardCheck,
-  },
-  {
-    group: 'Pipeline',
-    href: createPublishingPostsFilterRoute({
-      publicationState: 'not-posted',
-    }),
-    label: 'Drafts',
-    matchPaths: [APP_ROUTES.PUBLISHING.POSTS],
-    matchSearchParams: {
-      [PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE]: 'not-posted',
-      [PUBLISHING_POSTS_QUERY_KEYS.STATUS]: null,
-    },
-    outline: List,
-    solid: List,
-  },
-  {
-    group: 'Pipeline',
-    href: createPublishingPostsFilterRoute({ publicationState: 'posted' }),
-    label: 'Published',
-    matchPaths: [APP_ROUTES.PUBLISHING.POSTS],
-    matchSearchParams: {
-      [PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE]: 'posted',
-      [PUBLISHING_POSTS_QUERY_KEYS.STATUS]: null,
-    },
-    outline: Send,
-    solid: Send,
   },
 ];

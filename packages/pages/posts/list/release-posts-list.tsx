@@ -1,11 +1,12 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
-  ButtonSize,
-  ButtonVariant,
-  formatEnumLabel,
+  APP_ROUTES,
+  ITEMS_PER_PAGE,
+  PUBLISHING_POSTS_QUERY_KEYS,
+} from '@genfeedai/constants';
+import {
   PageScope,
   type PostCategory,
   PostStatus,
@@ -14,19 +15,22 @@ import {
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import {
-  getPostsPlatformLabel,
   getPublishingPostHref,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import {
-  formatDateInTimezone,
-  getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
-import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
+import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
+import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
+import ReleaseRailSegments from '@pages/posts/rail/release-rail-segments';
+import {
+  applyRailSegment,
+  type ReleaseRailSegment,
+  railSegmentFromFilters,
+} from '@pages/posts/rail/release-rail-segments.helpers';
 import type { ContentProps } from '@props/layout/content.props';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
@@ -34,14 +38,7 @@ import { useQuery } from '@tanstack/react-query';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
-import { Badge } from '@ui/primitives/badge';
-import { buttonVariants } from '@ui/primitives/button.variants';
-import {
-  buildSourcePostVariationsHref,
-  isSourcePostVariationPlatform,
-} from '@utils/url/desktop-loop-url.util';
-import { ExternalLink, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { Kbd } from '@ui/primitives/kbd';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -63,6 +60,7 @@ type ReleaseListPagination = {
 
 export interface ReleasePostsListProps extends ContentProps {
   contentTypes?: PostCategory[];
+  credentialIds?: string[];
   executionStates?: TargetExecutionState[];
   initialPagination?: ReleaseListPagination;
   initialReleases?: IReleaseGroup[];
@@ -70,34 +68,6 @@ export interface ReleasePostsListProps extends ContentProps {
   publicationState?: ReleasePostsPublicationState;
   search: string;
   sort: ReleasePostsSort;
-}
-
-function statusVariant(
-  status: string,
-): 'destructive' | 'info' | 'secondary' | 'success' | 'warning' {
-  switch (status) {
-    case TargetState.PUBLISHED:
-      return 'success';
-    case TargetState.FAILED:
-      return 'destructive';
-    case TargetState.PUBLISHING:
-    case TargetState.SCHEDULED:
-      return 'info';
-    case TargetState.PAUSED:
-      return 'warning';
-    default:
-      return 'secondary';
-  }
-}
-
-function releaseInstant(release: IReleaseGroup): string | null {
-  const instants = [
-    release.scheduledAt,
-    ...(release.targets ?? []).map((target) => target.scheduledAt),
-  ]
-    .filter((value): value is string => Boolean(value))
-    .sort((left, right) => Date.parse(left) - Date.parse(right));
-  return instants[0] ?? null;
 }
 
 function viewMessageKey(
@@ -115,8 +85,27 @@ function viewMessageKey(
   return 'all';
 }
 
+function deriveRailSegment(
+  publicationState: ReleasePostsPublicationState | undefined,
+  executionStates: TargetExecutionState[] | undefined,
+): ReleaseRailSegment {
+  return railSegmentFromFilters({
+    publicationState,
+    status: executionStates?.includes(TargetState.FAILED)
+      ? PostStatus.FAILED
+      : executionStates?.includes(TargetState.SCHEDULED)
+        ? PostStatus.SCHEDULED
+        : executionStates?.includes(TargetState.PUBLISHING)
+          ? PostStatus.PROCESSING
+          : executionStates?.includes(TargetState.DRAFT)
+            ? PostStatus.DRAFT
+            : undefined,
+  });
+}
+
 export default function ReleasePostsList({
   contentTypes,
+  credentialIds,
   executionStates,
   initialPagination,
   initialReleases,
@@ -127,6 +116,7 @@ export default function ReleasePostsList({
   sort,
 }: ReleasePostsListProps): React.JSX.Element {
   const translate = useTranslations('pages.posts.list');
+  const translateRail = useTranslations('pages.posts.list.rail');
   const { brandId, isReady, organizationId } = useCollectionScope();
   const { href } = useOrgUrl();
   const pathname = usePathname();
@@ -148,6 +138,7 @@ export default function ReleasePostsList({
   const queryKey = buildReleasePostsListQueryKey({
     brandId,
     contentTypes,
+    credentialIds,
     currentPage,
     executionStates,
     organizationId,
@@ -192,6 +183,7 @@ export default function ReleasePostsList({
           ? { brandId }
           : {}),
         ...(contentTypes?.length ? { contentType: contentTypes } : {}),
+        ...(credentialIds?.length ? { credentialId: credentialIds } : {}),
         ...(executionStates?.length ? { executionState: executionStates } : {}),
         limit: ITEMS_PER_PAGE,
         page: currentPage,
@@ -218,6 +210,7 @@ export default function ReleasePostsList({
       ? PostStatus.FAILED
       : publicationState;
   const viewKey = viewMessageKey(publishingView);
+  const railSegment = deriveRailSegment(publicationState, executionStates);
   const replaceSearchParams = useCallback(
     (update: (params: URLSearchParams) => void) => {
       const params = new URLSearchParams(searchParamsString);
@@ -230,24 +223,35 @@ export default function ReleasePostsList({
     [pathname, router, searchParamsString],
   );
 
-  const handlePublicationStateChange = useCallback(
-    (nextView: PublishingPostsView) => {
+  const handleSegmentChange = useCallback(
+    (segment: ReleaseRailSegment) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
-      params.delete('status');
-      const queryString = params.toString();
-      const destination =
-        nextView === 'failed'
-          ? APP_ROUTES.PUBLISHING.FAILED
-          : nextView === 'posted'
-            ? APP_ROUTES.PUBLISHING.PUBLISHED
-            : APP_ROUTES.PUBLISHING.SCHEDULED;
-      router.replace(
-        href(queryString ? `${destination}?${queryString}` : destination),
-        { scroll: false },
-      );
+      const nextParams = applyRailSegment(params, segment);
+      const queryString = nextParams.toString();
+      const destination = queryString
+        ? `${APP_ROUTES.PUBLISHING.POSTS}?${queryString}`
+        : APP_ROUTES.PUBLISHING.POSTS;
+      router.replace(href(destination), { scroll: false });
     },
     [href, router, searchParamsString],
+  );
+
+  const handleAccountToggle = useCallback(
+    (credentialId: string) => {
+      replaceSearchParams((params) => {
+        const current = params.getAll(PUBLISHING_POSTS_QUERY_KEYS.ACCOUNT);
+        const next = current.includes(credentialId)
+          ? current.filter((value) => value !== credentialId)
+          : [...current, credentialId];
+        params.delete(PUBLISHING_POSTS_QUERY_KEYS.ACCOUNT);
+        for (const value of next) {
+          params.append(PUBLISHING_POSTS_QUERY_KEYS.ACCOUNT, value);
+        }
+        params.delete('page');
+      });
+    },
+    [replaceSearchParams],
   );
 
   useEffect(() => {
@@ -274,7 +278,6 @@ export default function ReleasePostsList({
   useEffect(() => {
     setFiltersNode(
       <PostsListToolbar
-        onPublishingViewChange={handlePublicationStateChange}
         onSearchChange={setToolbarSearchValue}
         onSortChange={(nextSort) =>
           replaceSearchParams((params) => {
@@ -286,16 +289,21 @@ export default function ReleasePostsList({
             params.delete('page');
           })
         }
-        publishingView={publishingView}
         searchValue={toolbarSearchValue}
         sortOptions={RELEASE_POSTS_SORT_OPTIONS}
         sortValue={sort}
+        viewNode={
+          <ReleaseRailSegments
+            onSegmentChange={handleSegmentChange}
+            segment={railSegment}
+          />
+        }
       />,
     );
     return () => setFiltersNode(null);
   }, [
-    handlePublicationStateChange,
-    publishingView,
+    handleSegmentChange,
+    railSegment,
     replaceSearchParams,
     setFiltersNode,
     sort,
@@ -336,6 +344,18 @@ export default function ReleasePostsList({
     }
   }, [error]);
 
+  const { activeIndex, registerItem, setActiveIndex } = useRailKeys({
+    itemCount: data.releases.length,
+    onOpen: (index) => {
+      const release = data.releases[index];
+      const targetId = release?.targets?.[0]?.id ?? release?.id;
+      if (targetId) {
+        router.push(href(getPublishingPostHref(targetId)));
+      }
+    },
+    onRefresh: () => void refetch(),
+  });
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -350,6 +370,14 @@ export default function ReleasePostsList({
         <p className="text-sm tabular-nums text-foreground/55">
           {translate('postCount', { count: data.pagination.total })}
         </p>
+      </div>
+
+      <div className="mb-3">
+        <ReleaseRailAccounts
+          brandId={brandId}
+          onToggle={handleAccountToggle}
+          selectedCredentialIds={credentialIds ?? []}
+        />
       </div>
 
       {error ? (
@@ -369,110 +397,38 @@ export default function ReleasePostsList({
           label={translate('empty.label')}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {data.releases.map((release) => {
-            const scheduledAt = releaseInstant(release);
-            return (
-              <article
-                className="bg-card p-4 shadow-border transition-colors hover:bg-accent hover:shadow-border-strong"
-                key={release.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
-                      {release.title || translate('untitled')}
-                    </h3>
-                    <p className="mt-2 line-clamp-3 text-sm text-foreground/60">
-                      {release.baseContent || translate('noCopy')}
-                    </p>
-                  </div>
-                  <Badge variant={statusVariant(release.status)}>
-                    {formatEnumLabel(release.status)}
-                  </Badge>
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  {(release.targets ?? []).map((target) => {
-                    const PlatformIcon =
-                      getPlatformIconComponent(target.platform) ?? ExternalLink;
-                    const targetHref = href(getPublishingPostHref(target.id));
-                    return (
-                      <div className="flex items-stretch gap-2" key={target.id}>
-                        <Link
-                          className={cn(
-                            buttonVariants({
-                              size: ButtonSize.SM,
-                              variant: ButtonVariant.SECONDARY,
-                            }),
-                            'flex h-auto min-w-0 flex-1 justify-between gap-3 px-3 py-2 text-left',
-                          )}
-                          href={targetHref}
-                        >
-                          <span className="flex min-w-0 items-center gap-2">
-                            <PlatformIcon className="size-4 shrink-0" />
-                            <span className="truncate">
-                              {getPostsPlatformLabel(target.platform)}
-                            </span>
-                          </span>
-                          <span className="flex shrink-0 items-center gap-1.5">
-                            {target.category ? (
-                              <Badge variant="outline">
-                                {formatEnumLabel(target.category)}
-                              </Badge>
-                            ) : null}
-                            <Badge
-                              variant={statusVariant(target.executionState)}
-                            >
-                              {formatEnumLabel(target.executionState)}
-                            </Badge>
-                          </span>
-                        </Link>
-                        {target.executionState === TargetState.PUBLISHED &&
-                        isSourcePostVariationPlatform(target.platform) ? (
-                          <Link
-                            aria-label={translate('generateVariationsAria', {
-                              platform: getPostsPlatformLabel(target.platform),
-                            })}
-                            className={buttonVariants({
-                              size: ButtonSize.ICON,
-                              variant: ButtonVariant.SECONDARY,
-                            })}
-                            href={href(
-                              buildSourcePostVariationsHref({
-                                platform: target.platform,
-                                postId: target.id,
-                              }),
-                            )}
-                          >
-                            <Sparkles className="size-4" />
-                          </Link>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-xs text-foreground/45">
-                  <span>
-                    {translate('channelCount', {
-                      count: (release.targets ?? []).length,
-                    })}
-                  </span>
-                  <span>
-                    {scheduledAt
-                      ? formatDateInTimezone(
-                          scheduledAt,
-                          browserTimezone,
-                          'short',
-                        )
-                      : translate('unscheduled')}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+        <div className="flex flex-col" role="listbox">
+          {data.releases.map((release, index) => (
+            <ReleaseRailRow
+              browserTimezone={browserTimezone}
+              index={index}
+              isActive={index === activeIndex}
+              key={release.id}
+              onActivate={() => setActiveIndex(index)}
+              registerRow={registerItem(index)}
+              release={release}
+            />
+          ))}
         </div>
       )}
+
+      {data.releases.length > 0 ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
+          <span className="flex items-center gap-1">
+            <Kbd>j</Kbd>
+            <Kbd>k</Kbd>
+            {translateRail('keys.next')}
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>Enter</Kbd>
+            {translateRail('keys.open')}
+          </span>
+          <span className="flex items-center gap-1">
+            <Kbd>r</Kbd>
+            {translateRail('keys.refresh')}
+          </span>
+        </div>
+      ) : null}
 
       {data.pagination.totalPages > 1 ? (
         <div className="mt-4">

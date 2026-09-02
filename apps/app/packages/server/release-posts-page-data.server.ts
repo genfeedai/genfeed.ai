@@ -35,6 +35,7 @@ export interface ReleasePostsPageData {
 
 export interface LoadReleasePostsPageDataOptions {
   contentTypes?: PostCategory[];
+  credentialIds?: string[];
   currentPage: number;
   executionStates?: TargetExecutionState[];
   platform?: CredentialPlatform;
@@ -47,6 +48,7 @@ export interface LoadReleasePostsPageDataOptions {
 export const loadReleasePostsPageData = cache(
   async ({
     contentTypes,
+    credentialIds,
     currentPage,
     executionStates,
     platform,
@@ -82,6 +84,7 @@ export const loadReleasePostsPageData = cache(
           ? { brandId: bootstrap.brandId }
           : {}),
         ...(contentTypes?.length ? { contentType: contentTypes } : {}),
+        ...(credentialIds?.length ? { credentialId: credentialIds } : {}),
         ...(executionStates?.length ? { executionState: executionStates } : {}),
         limit: ITEMS_PER_PAGE,
         page: currentPage,

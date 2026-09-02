@@ -1,12 +1,18 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
+import type { PostsListSearchParams } from '../publishing-list-page';
+import { renderPostsListPage } from '../publishing-list-page';
 
 export const generateMetadata = createPageMetadata('Posts');
 
 /**
- * Canonical Publishing content library — every outbound post across lifecycle
- * states. Pipeline nav items are filtered shortcuts into this desk.
+ * Canonical Publishing posts library — every outbound social post across
+ * lifecycle states. Pipeline nav shortcuts are filtered query-param links
+ * into this single desk; there is no dedicated route per lifecycle state.
  */
-export default function PublishingPostsPage() {
-  return <PublishingContentLibrary />;
+export default async function PublishingPostsPage({
+  searchParams,
+}: {
+  searchParams: PostsListSearchParams;
+}) {
+  return renderPostsListPage({ searchParams });
 }

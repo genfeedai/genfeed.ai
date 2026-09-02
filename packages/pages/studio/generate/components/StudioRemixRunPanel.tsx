@@ -1,7 +1,10 @@
 'use client';
 
 import type { BrandRemixRunView } from '@api-types/contracts';
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -286,7 +289,11 @@ export default function StudioRemixRunPanel({
             {hasApprovedOrganicDrafts ? (
               <Link
                 className="font-medium text-primary hover:text-primary/80"
-                href={activeHref(APP_ROUTES.PUBLISHING.SCHEDULED)}
+                href={activeHref(
+                  createPublishingPostsFilterRoute({
+                    publicationState: 'not-posted',
+                  }),
+                )}
               >
                 {translate('remixRun.review.openPublishingDrafts')}
               </Link>

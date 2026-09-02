@@ -7,6 +7,7 @@ import {
   createArtifactEditorRoute,
   createBrandAppRoute,
   ITEMS_PER_PAGE,
+  PUBLISHING_POSTS_QUERY_KEYS,
 } from '@genfeedai/constants';
 import {
   ModelCategory,
@@ -22,7 +23,6 @@ import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import {
   getPublishingPostHref,
-  getPublishingPostsStatusPath,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -881,19 +881,21 @@ export function usePostsList({
     (nextView: PublishingPostsView) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
-      params.delete('status');
-      const queryString = params.toString();
-      const basePath =
-        nextView === 'posted'
-          ? APP_ROUTES.PUBLISHING.PUBLISHED
-          : nextView === 'not-posted'
-            ? APP_ROUTES.PUBLISHING.SCHEDULED
-            : getPublishingPostsStatusPath(nextView);
+      params.delete(PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE);
+      params.delete(PUBLISHING_POSTS_QUERY_KEYS.STATUS);
 
-      router.replace(
-        href(queryString ? `${basePath}?${queryString}` : basePath),
-        { scroll: false },
-      );
+      if (nextView === 'posted' || nextView === 'not-posted') {
+        params.set(PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE, nextView);
+      } else {
+        params.set(PUBLISHING_POSTS_QUERY_KEYS.STATUS, nextView);
+      }
+
+      const queryString = params.toString();
+      const destination = queryString
+        ? `${APP_ROUTES.PUBLISHING.POSTS}?${queryString}`
+        : APP_ROUTES.PUBLISHING.POSTS;
+
+      router.replace(href(destination), { scroll: false });
     },
     [href, router, searchParamsString],
   );

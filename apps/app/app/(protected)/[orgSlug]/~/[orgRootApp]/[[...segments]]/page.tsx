@@ -1,10 +1,5 @@
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import {
-  LibraryPlace,
-  PageScope,
-  PostStatus,
-  parseLibraryShelf,
-} from '@genfeedai/enums';
+import { LibraryPlace, PageScope, parseLibraryShelf } from '@genfeedai/enums';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
@@ -95,28 +90,6 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
   );
 }
 
-function getOrgPostsStatusOverride(segments?: string[]) {
-  const segment = segments?.[0];
-
-  if (segment === 'published') {
-    return PostStatus.PUBLIC;
-  }
-
-  if (segment === 'scheduled') {
-    return PostStatus.SCHEDULED;
-  }
-
-  if (segment === 'pending') {
-    return PostStatus.PENDING;
-  }
-
-  if (segment === 'processing') {
-    return PostStatus.PROCESSING;
-  }
-
-  return undefined;
-}
-
 // Async because the detail surface is an async server component: it has to be
 // awaited here, not handed to the tree as an unresolved promise child.
 async function renderStudioEditSurface(section?: string) {
@@ -203,10 +176,15 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'publishing') {
+    const segment = segments?.[0];
+
+    if (segment && segment !== 'overview' && segment !== 'posts') {
+      notFound();
+    }
+
     const postsListPage = await renderPostsListPage({
       searchParams: searchParams ?? Promise.resolve({}),
       scope: PageScope.ORGANIZATION,
-      statusOverride: getOrgPostsStatusOverride(segments),
     });
 
     return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;

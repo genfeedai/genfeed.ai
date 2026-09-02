@@ -7,7 +7,10 @@
  * @module test-data.fixture
  */
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import { PostStatus } from '@genfeedai/enums';
 
 // ----------------------------------------------------------------------------
@@ -1004,10 +1007,14 @@ export const testRoutes = {
   overview: '/overview',
   posts: {
     detail: (id: string) => `/publishing/posts/${id}`,
-    drafts: `${APP_ROUTES.PUBLISHING.POSTS}?publicationState=not-posted`,
+    drafts: createPublishingPostsFilterRoute({
+      publicationState: 'not-posted',
+    }),
     engage: APP_ROUTES.ANALYTICS.POSTS,
-    published: '/publishing/published',
-    scheduled: '/publishing/scheduled',
+    published: createPublishingPostsFilterRoute({ publicationState: 'posted' }),
+    scheduled: createPublishingPostsFilterRoute({
+      publicationState: 'not-posted',
+    }),
   },
   settings: '/settings',
   studio: '/studio',

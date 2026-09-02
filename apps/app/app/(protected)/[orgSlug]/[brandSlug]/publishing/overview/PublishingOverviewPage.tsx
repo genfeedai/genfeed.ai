@@ -1,6 +1,9 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/constants';
 import {
   BatchItemStatus,
   ButtonSize,
@@ -33,6 +36,13 @@ import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
+
+const NOT_POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
+  publicationState: 'not-posted',
+});
+const POSTED_POSTS_PATH = createPublishingPostsFilterRoute({
+  publicationState: 'posted',
+});
 
 async function fetchPublicationTotal(
   getReleaseGroups: () => Promise<ReleaseGroupsService>,
@@ -171,7 +181,7 @@ export default function PublishingOverviewPage() {
         notPostedTotal > 0
           ? `${notPostedTotal} draft or scheduled post${notPostedTotal === 1 ? '' : 's'} in the pipeline.`
           : 'No drafts waiting — create a release when you are ready.',
-      href: href(APP_ROUTES.PUBLISHING.SCHEDULED),
+      href: href(NOT_POSTED_POSTS_PATH),
       icon: List,
       id: 'drafts',
       label: 'Not posted',
@@ -192,7 +202,7 @@ export default function PublishingOverviewPage() {
         publishedTotal > 0
           ? `${publishedTotal} live post${publishedTotal === 1 ? '' : 's'} across destinations.`
           : 'Nothing live yet — approved work will land here after publish.',
-      href: href(APP_ROUTES.PUBLISHING.PUBLISHED),
+      href: href(POSTED_POSTS_PATH),
       icon: Send,
       id: 'published',
       label: 'Published',
@@ -251,7 +261,7 @@ export default function PublishingOverviewPage() {
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
-                <Link href={href(APP_ROUTES.PUBLISHING.SCHEDULED)}>
+                <Link href={href(NOT_POSTED_POSTS_PATH)}>
                   All drafts
                   <ArrowRight className="size-3.5" />
                 </Link>

@@ -324,7 +324,10 @@ describe('StudioRemixRunPanel', () => {
 
     expect(
       screen.getByRole('link', { name: 'Open Publishing drafts' }),
-    ).toHaveAttribute('href', '/org-1/brand-1/publishing/scheduled');
+    ).toHaveAttribute(
+      'href',
+      '/org-1/brand-1/publishing/posts?publicationState=not-posted',
+    );
     expect(screen.getByRole('link', { name: 'Open Review' })).toBeVisible();
   });
 });

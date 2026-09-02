@@ -112,11 +112,11 @@ test.describe('App surfaces — empty data states', () => {
     await assertHealthy(authenticatedPage, route);
   });
 
-  test('empty scheduled posts filter renders its zero state', async ({
+  test('empty posted posts filter renders its zero state', async ({
     authenticatedPage,
   }) => {
     await mockEmptyCollection(authenticatedPage, '**/posts**');
-    const route = `${ORG_BRAND}/publishing/scheduled`;
+    const route = `${ORG_BRAND}/publishing/posts?publicationState=posted`;
     await authenticatedPage.goto(route, { waitUntil: 'domcontentloaded' });
     await settle(authenticatedPage);
     await assertHealthy(authenticatedPage, route);
