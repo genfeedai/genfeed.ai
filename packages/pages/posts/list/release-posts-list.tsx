@@ -24,6 +24,7 @@ import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-c
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
 import ReleaseBoard from '@pages/posts/board/release-board';
+import AccountGrid from '@pages/posts/grid/account-grid';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
@@ -49,7 +50,7 @@ import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Kbd } from '@ui/primitives/kbd';
-import { Kanban, Rows3 } from 'lucide-react';
+import { Kanban, LayoutGrid, Rows3 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -117,10 +118,12 @@ function deriveRailSegment(
 /** Wire format (`PublishingPostsViewMode`) to the `ViewToggle` UI enum. */
 const VIEW_MODE_TO_VIEW_TYPE: Record<PublishingPostsViewMode, ViewType> = {
   board: ViewType.KANBAN,
+  grid: ViewType.GRID,
   list: ViewType.LIST,
 };
 
 const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
+  [ViewType.GRID]: 'grid',
   [ViewType.KANBAN]: 'board',
   [ViewType.LIST]: 'list',
 };
@@ -487,6 +490,11 @@ export default function ReleasePostsList({
             label: translate('viewToggle.board'),
             type: ViewType.KANBAN,
           },
+          {
+            icon: <LayoutGrid className="size-3.5 shrink-0" />,
+            label: translate('viewToggle.grid'),
+            type: ViewType.GRID,
+          },
         ]}
       />,
     );
@@ -580,6 +588,16 @@ export default function ReleasePostsList({
           loadError={!!error}
           onRefetch={() => void refetch()}
           releases={data.releases}
+        />
+      ) : viewMode === 'grid' ? (
+        <AccountGrid
+          brandId={brandId}
+          browserTimezone={browserTimezone}
+          isLoading={isLoading}
+          onSelectRelease={selectRelease}
+          reconnectHref={href(APP_ROUTES.SETTINGS.SOCIAL)}
+          releases={data.releases}
+          selectedCredentialIds={credentialIds ?? []}
         />
       ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />

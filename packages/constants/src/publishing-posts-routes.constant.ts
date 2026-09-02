@@ -5,16 +5,12 @@ export const PUBLISHING_POSTS_QUERY_KEYS = {
   PUBLICATION_STATE: 'publicationState',
   RELEASE: 'release',
   STATUS: 'status',
-  /** List rows vs. status-column board. Grid is reserved but not selectable yet. */
+  /** List rows, status-column board, or per-account grid. */
   VIEW: 'view',
 } as const;
 
-/**
- * Selectable Posts view modes. `grid` is a reserved future mode — omitting it
- * here (rather than parsing it and mapping it back to `list`) is what keeps it
- * unselectable: no toggle option renders for a mode absent from this list.
- */
-export const PUBLISHING_POSTS_VIEW_MODES = ['list', 'board'] as const;
+/** Selectable Posts view modes. Unknown values fall back to list. */
+export const PUBLISHING_POSTS_VIEW_MODES = ['list', 'board', 'grid'] as const;
 
 export type PublishingPostsViewMode =
   (typeof PUBLISHING_POSTS_VIEW_MODES)[number];

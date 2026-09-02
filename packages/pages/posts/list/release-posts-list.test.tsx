@@ -250,13 +250,13 @@ describe('ReleasePostsList', () => {
     expect(source).toContain("nextMode === 'list'");
   });
 
-  it('persists the chosen view per brand and renders only list and board options', () => {
+  it('persists the chosen view per brand and offers list, board, and grid', () => {
     expect(source).toContain('usePublishingPostsViewPreference');
     expect(source).toContain('storeView(nextMode)');
     expect(source).toContain('getStoredView()');
     expect(source).toContain('ViewType.LIST');
     expect(source).toContain('ViewType.KANBAN');
-    expect(source).not.toContain('ViewType.GRID');
+    expect(source).toContain('ViewType.GRID');
   });
 
   it('renders the Kanban board only in board view mode, leaving list view untouched', () => {
@@ -267,5 +267,15 @@ describe('ReleasePostsList', () => {
     expect(source).toContain('<ReleaseBoard');
     expect(source).toContain('releases={data.releases}');
     expect(source).toContain("viewMode === 'list' && data.releases.length > 0");
+  });
+
+  it('renders the account grid only in grid view mode', () => {
+    expect(source).toContain(
+      "import AccountGrid from '@pages/posts/grid/account-grid'",
+    );
+    expect(source).toContain("viewMode === 'grid'");
+    expect(source).toContain('<AccountGrid');
+    expect(source).toContain('onSelectRelease={selectRelease}');
+    expect(source).toContain('selectedCredentialIds={credentialIds ?? []}');
   });
 });

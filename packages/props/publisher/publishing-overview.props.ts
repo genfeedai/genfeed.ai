@@ -46,3 +46,23 @@ export interface PublishingOverviewCadenceGap {
 export interface PublishingOverviewCadenceSectionProps {
   gaps: PublishingOverviewCadenceGap[];
 }
+
+/** One connected account's warmup and reconnect state on the Overview desk. */
+export interface PublishingOverviewHealthRow {
+  accountLabel: string;
+  connectedDays: number;
+  credentialId: string;
+  holdPublishing: boolean;
+  holdReason?: string;
+  needsReconnect: boolean;
+  platform: string;
+  publishedPosts: number;
+  recentFailures: number;
+  riskLevel: 'high' | 'low' | 'medium' | 'unknown';
+  score: number;
+  state: 'healthy' | 'not_started' | 'risky' | 'warming';
+}
+
+export interface PublishingOverviewHealthSectionProps {
+  rows: PublishingOverviewHealthRow[];
+}

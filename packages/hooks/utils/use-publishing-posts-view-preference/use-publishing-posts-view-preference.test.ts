@@ -38,9 +38,9 @@ describe('usePublishingPostsViewPreference', () => {
       usePublishingPostsViewPreference('brand-1'),
     );
 
-    result.current.storeView('board');
+    result.current.storeView('grid');
 
-    expect(result.current.getStoredView()).toBe('board');
+    expect(result.current.getStoredView()).toBe('grid');
   });
 
   it('scopes storage per brand', () => {
