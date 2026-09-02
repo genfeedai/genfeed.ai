@@ -24,6 +24,12 @@ import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
+import ReleaseDetailDrawer, {
+  RELEASE_RESCHEDULE_ACTION,
+  targetRescheduleAction,
+  targetRetryAction,
+} from '@pages/posts/release/release-detail-drawer';
+import { createReleaseMutationRunner } from '@pages/posts/release/release-mutation-runner';
 import CalendarRepublishDialog, {
   CALENDAR_MOVE_ACTION,
   CALENDAR_REPUBLISH_ACTION,
@@ -90,11 +96,6 @@ import EvergreenSeriesControls from './evergreen-series-controls';
 import ReleaseCalendarFilters, {
   EMPTY_RELEASE_CALENDAR_FILTERS,
 } from './release-calendar-filters';
-import ReleaseDetailDrawer, {
-  RELEASE_RESCHEDULE_ACTION,
-  targetRescheduleAction,
-  targetRetryAction,
-} from './release-detail-drawer';
 
 interface ArticleContentCalendarItem extends CalendarItem {
   article: IArticle;
@@ -123,12 +124,6 @@ type ContentCalendarItem =
   | DayAggregateContentCalendarItem
   | ReleaseContentCalendarItem
   | SlotContentCalendarItem;
-
-function mutationErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'The schedule change could not be saved.';
-}
 
 export default function ContentCalendarPage(): React.JSX.Element {
   const { brandId, credentials, selectedBrand } = useBrand();
@@ -415,38 +410,28 @@ export default function ContentCalendarPage(): React.JSX.Element {
    * Every schedule mutation shares one path: apply the server's response, or
    * undo whatever the UI already showed and surface the failure. `revert` is the
    * calendar's own undo for a drag; state mutations restore the prior list.
+   * The apply-or-revert path itself is shared with the rail list's drawer via
+   * `createReleaseMutationRunner` — only `onSuccess` differs here.
    */
-  const runMutation = useCallback(
-    async (
-      action: string,
-      mutation: (service: ReleaseGroupsService) => Promise<IReleaseGroup>,
-      onFailure?: () => void,
-    ): Promise<void> => {
-      setPendingAction(action);
-      setDrawerError(null);
-
-      try {
-        const service = await getReleaseGroupsService();
-        const updated = await mutation(service);
-        setReleases((current) => {
-          const exists = current.some((release) => release.id === updated.id);
-          if (exists) {
-            return current.map((release) =>
-              release.id === updated.id ? updated : release,
-            );
-          }
-          return [...current, updated];
-        });
-      } catch (error) {
-        onFailure?.();
-        const message = mutationErrorMessage(error);
-        logger.error('Failed to update release schedule', error);
-        setDrawerError(message);
-        notificationsService.error(message);
-      } finally {
-        setPendingAction(null);
-      }
-    },
+  const runMutation = useMemo(
+    () =>
+      createReleaseMutationRunner({
+        getReleaseGroupsService,
+        notificationsService,
+        onSuccess: (updated) => {
+          setReleases((current) => {
+            const exists = current.some((release) => release.id === updated.id);
+            if (exists) {
+              return current.map((release) =>
+                release.id === updated.id ? updated : release,
+              );
+            }
+            return [...current, updated];
+          });
+        },
+        setDrawerError,
+        setPendingAction,
+      }),
     [getReleaseGroupsService, notificationsService],
   );
 
@@ -1173,6 +1158,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         }
       />
       <ReleaseDetailDrawer
+        brandId={brandId}
         error={drawerError}
         onAddChannel={handleAddChannel}
         onClose={() => setSelectedReleaseId(null)}
