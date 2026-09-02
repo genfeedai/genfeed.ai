@@ -247,6 +247,21 @@ describe('AgentEndpointInvoker', () => {
     expect(membersService.findOne).not.toHaveBeenCalled();
   });
 
+  it('refuses to run a billable endpoint with no credits interceptor before reserving anything', async () => {
+    const endpoint = buildEndpoint({
+      hasCreditsInterceptor: false,
+      originalUrl: '/v1/images/upscale',
+    });
+
+    await expect(invoker.invoke(endpoint, invocation)).rejects.toThrow(
+      '/v1/images/upscale',
+    );
+
+    expect(creditsGuard.admit).not.toHaveBeenCalled();
+    expect(requestContextMiddleware.hydrate).not.toHaveBeenCalled();
+    expect(endpoint.handle).not.toHaveBeenCalled();
+  });
+
   it('skips the roles guard for an endpoint whose controller has none', async () => {
     await invoker.invoke(
       buildEndpoint({ hasRolesGuard: false, requiredRoles: undefined }),

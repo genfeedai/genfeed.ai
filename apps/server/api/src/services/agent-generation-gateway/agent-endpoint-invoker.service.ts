@@ -55,6 +55,8 @@ export class AgentEndpointInvoker {
     endpoint: AgentEndpoint<TDto, TResult>,
     invocation: AgentEndpointInvocation,
   ): Promise<TResult> {
+    this.assertCreditsSettlementIsWired(endpoint);
+
     const request = await this.buildRequest(endpoint, invocation);
     const user = request.user;
 
@@ -95,6 +97,28 @@ export class AgentEndpointInvoker {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Refuse to run an endpoint that would reserve credits it can never settle
+   * or release. `CreditsGuard.admit` only ever unwinds through
+   * `CreditsInterceptor.settle`/`.release`, both gated on
+   * `hasCreditsInterceptor` below — a descriptor with `creditsConfig` but no
+   * interceptor would hold a reservation for the full TTL with nothing to
+   * clear it. This is the in-process analog of the controller-side guard in
+   * `credits-settlement-coverage.spec.ts`; it must run before anything is
+   * reserved, so it is the first thing `invoke` does.
+   */
+  private assertCreditsSettlementIsWired<TDto, TResult>(
+    endpoint: AgentEndpoint<TDto, TResult>,
+  ): void {
+    if (endpoint.creditsConfig && !endpoint.hasCreditsInterceptor) {
+      throw new Error(
+        `Endpoint descriptor for ${endpoint.originalUrl} declares creditsConfig ` +
+          'without hasCreditsInterceptor — credits would be reserved but never ' +
+          'settled or released.',
+      );
     }
   }
 
