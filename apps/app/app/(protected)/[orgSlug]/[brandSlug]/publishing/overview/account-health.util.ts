@@ -1,4 +1,5 @@
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
+import { accountLabel } from '@pages/posts/grid/account-grid.helpers';
 import type { PublishingOverviewHealthRow } from '@props/publisher/publishing-overview.props';
 
 const RISK_RANK: Record<PublishingOverviewHealthRow['riskLevel'], number> = {
@@ -7,10 +8,6 @@ const RISK_RANK: Record<PublishingOverviewHealthRow['riskLevel'], number> = {
   low: 2,
   unknown: 3,
 };
-
-function accountLabel(summary: AccountHealthSummary): string {
-  return summary.handle || summary.label;
-}
 
 /**
  * Overview health rows are the account-health summaries already fetched for

@@ -842,7 +842,11 @@ export class SystemWorkflowRunnerService
         sourceWorkflowName: provenance.workflowLabel,
         workflowExecutionId: provenance.executionId,
       },
-      where: { id: { in: postIds }, organizationId: organizationId },
+      where: {
+        id: { in: postIds },
+        isDeleted: false,
+        organizationId: organizationId,
+      },
     });
   }
 

@@ -373,10 +373,13 @@ describe('ApiKeysService', () => {
       ) as ApiKeysService & {
         delegate: { findMany: MockFn; update: MockFn };
       };
-      service.delegate = {
-        findMany: vi.fn().mockResolvedValue([]),
-        update: vi.fn(),
-      };
+      Object.defineProperty(service, 'delegate', {
+        configurable: true,
+        value: {
+          findMany: vi.fn().mockResolvedValue([]),
+          update: vi.fn(),
+        },
+      });
       service.computeFingerprint = ApiKeysService.prototype.computeFingerprint;
       service.verifyApiKey = vi.fn();
 
@@ -399,9 +402,12 @@ describe('ApiKeysService', () => {
       ) as ApiKeysService & {
         delegate: { findMany: MockFn };
       };
-      service.delegate = {
-        findMany: vi.fn().mockResolvedValue([]),
-      };
+      Object.defineProperty(service, 'delegate', {
+        configurable: true,
+        value: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+      });
 
       await expect(service.findActiveById('key-1')).resolves.toBeNull();
       expect(service.delegate.findMany).toHaveBeenCalledWith(
@@ -422,9 +428,12 @@ describe('ApiKeysService', () => {
       ) as ApiKeysService & {
         delegate: { findMany: MockFn };
       };
-      service.delegate = {
-        findMany: vi.fn().mockResolvedValue([live]),
-      };
+      Object.defineProperty(service, 'delegate', {
+        configurable: true,
+        value: {
+          findMany: vi.fn().mockResolvedValue([live]),
+        },
+      });
 
       await expect(service.findActiveById('key-1')).resolves.toEqual(live);
     });

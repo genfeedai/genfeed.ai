@@ -1,6 +1,9 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ContentCampaignStatus } from '@genfeedai/enums';
-import type { ICampaign, IPaginatedResponse } from '@genfeedai/interfaces';
+import type { ContentCampaignStatus } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type {
+  ICampaign,
+  IPaginatedResponse,
+} from '@genfeedai/contracts/interfaces';
 import { CampaignSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
@@ -80,17 +83,32 @@ export class CampaignsService extends BaseService<
   }
 
   async archive(id: string): Promise<Campaign> {
-    return this.post(`${id}/archive`, {} as CreateCampaignInput);
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/archive`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/archive`, {})
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 
   async restore(id: string, status?: ContentCampaignStatus): Promise<Campaign> {
-    return this.post(`${id}/restore`, {
-      ...(status ? { status } : {}),
-    } as CreateCampaignInput);
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/restore`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/restore`, {
+          ...(status ? { status } : {}),
+        })
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 
   async assignPosts(id: string, postIds: string[]): Promise<Campaign> {
-    return this.post(`${id}/posts`, { postIds } as CreateCampaignInput);
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/posts`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/posts`, { postIds })
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 
   async unassignPosts(id: string, postIds: string[]): Promise<Campaign> {
