@@ -1,15 +1,14 @@
 import type { ISourcePost, ITrendVideo } from '@genfeedai/interfaces';
+import {
+  getSourcePostRemixAvailability,
+  getTrendRemixAvailability,
+} from '@pages/trends/shared/remix-availability';
 import type {
   DiscoveryDeskItem,
   DiscoveryDeskItemMetrics,
   DiscoveryDeskSource,
 } from '@props/trends/discovery-desk.props';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
-
-import {
-  getSourcePostRemixAvailability,
-  getTrendRemixAvailability,
-} from '../shared/remix-availability';
 
 /**
  * The Discovery Desk always renders inside `DiscoveryRemixProvider`
