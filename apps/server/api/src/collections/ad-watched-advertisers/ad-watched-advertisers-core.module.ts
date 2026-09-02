@@ -1,4 +1,4 @@
-import { AdWatchedAdvertisersService } from '@server/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { Module } from '@nestjs/common';
 
 /**

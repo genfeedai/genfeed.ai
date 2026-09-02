@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { FanvueController } from '@api/services/integrations/fanvue/controllers/fanvue.controller';
-import { FanvueService } from '@server/services/integrations/fanvue/services/fanvue.service';
+import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';

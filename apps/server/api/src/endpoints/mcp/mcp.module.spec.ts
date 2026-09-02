@@ -1,6 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';

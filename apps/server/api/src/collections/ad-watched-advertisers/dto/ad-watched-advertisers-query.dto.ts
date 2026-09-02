@@ -1,4 +1,4 @@
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { PAID_CREATIVE_PLATFORMS } from '@genfeedai/integrations/ads';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';

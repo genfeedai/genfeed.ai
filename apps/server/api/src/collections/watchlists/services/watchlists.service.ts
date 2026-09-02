@@ -1,15 +1,15 @@
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
 import type { WatchlistDocument } from '@api/collections/watchlists/schemas/watchlist.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

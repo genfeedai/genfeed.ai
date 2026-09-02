@@ -1,6 +1,6 @@
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 
 const metadata: ArgumentMetadata = {
   metatype: AgentChatBodyDto,

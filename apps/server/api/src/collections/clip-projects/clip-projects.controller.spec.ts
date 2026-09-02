@@ -1,34 +1,34 @@
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
+import {
+  type GenerateClipHighlightDto,
+  GenerateClipsDto,
+  SubmitHookClipDecisionDto,
+} from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@api/collections/clip-projects/services/clip-generation-dispatch.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import type { ClipHandoffWorkflowService } from '@api/collections/clip-projects/services/clip-handoff-workflow.service';
+import type {
+  ClipIdentityResolutionService,
+  ResolveClipIdentityParams,
+} from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import type { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type {
   AgentClipRunIdentity,
   AgentClipRunIdentityField,
 } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
-import {
-  type GenerateClipHighlightDto,
-  GenerateClipsDto,
-  SubmitHookClipDecisionDto,
-} from '@server/collections/clip-projects/dto/generate-clips.dto';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import type { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import type {
-  ClipIdentityResolutionService,
-  ResolveClipIdentityParams,
-} from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import type { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import type { Request } from 'express';

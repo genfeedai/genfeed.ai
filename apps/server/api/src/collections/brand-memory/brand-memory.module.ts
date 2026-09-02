@@ -1,5 +1,5 @@
 import { BrandMemoryController } from '@api/collections/brand-memory/controllers/brand-memory.controller';
-import { BrandMemoryService } from '@server/collections/brand-memory/services/brand-memory.service';
+import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { Module } from '@nestjs/common';
 
 @Module({

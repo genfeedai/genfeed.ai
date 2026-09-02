@@ -3,14 +3,14 @@ import type { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns
 import type { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import type { UpdateCampaignDto } from '@api/collections/campaigns/dto/update-campaign.dto';
 import { toCampaign } from '@api/collections/campaigns/services/campaign.utils';
+import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { type AggregatePaginateResult, scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentCampaignStatus } from '@genfeedai/enums';
 import type { ICampaign } from '@genfeedai/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
-import { type AggregatePaginateResult, scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { isPrismaUniqueConstraintError } from '@server/collections/shared/slug-allocation.util';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;

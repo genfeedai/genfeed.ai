@@ -1,8 +1,8 @@
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { UserCacheStrategy } from '@api/services/cache/strategies/user-cache.strategy';
 import { Test, TestingModule } from '@nestjs/testing';
 
-vi.mock('@server/services/cache/cache.service');
+vi.mock('@api/services/cache/cache.service');
 
 describe('UserCacheStrategy', () => {
   let strategy: UserCacheStrategy;

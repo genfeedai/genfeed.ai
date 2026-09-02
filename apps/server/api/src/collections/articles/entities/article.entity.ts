@@ -1,5 +1,5 @@
-import type { Article } from '@server/collections/articles/schemas/article.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import type { Article } from '@api/collections/articles/schemas/article.schema';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class ArticleEntity extends BaseEntity implements Article {
   id!: string;

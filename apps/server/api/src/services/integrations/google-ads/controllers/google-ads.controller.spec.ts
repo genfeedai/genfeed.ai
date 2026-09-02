@@ -1,13 +1,13 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
-import { GoogleAdsOAuthService } from '@server/services/integrations/google-ads/services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({

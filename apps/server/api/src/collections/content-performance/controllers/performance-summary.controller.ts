@@ -1,10 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PerformanceSummarySerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -15,7 +16,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import type { Request } from 'express';
 
 const MAX_SUMMARY_LIMIT = 50;

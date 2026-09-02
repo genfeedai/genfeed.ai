@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { TaskPlanningService } from '@server/collections/tasks/services/task-planning.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';

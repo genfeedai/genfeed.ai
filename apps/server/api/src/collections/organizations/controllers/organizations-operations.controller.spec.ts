@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsOperationsController } from '@api/collections/organizations/controllers/organizations-operations.controller';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { RequestMethod } from '@nestjs/common';

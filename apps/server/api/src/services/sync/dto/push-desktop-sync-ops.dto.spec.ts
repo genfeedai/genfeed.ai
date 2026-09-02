@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { PushDesktopSyncOpsDto } from '@api/services/sync/dto/push-desktop-sync-ops.dto';
 import type { IValidationErrorResponse } from '@genfeedai/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';

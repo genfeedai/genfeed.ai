@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {

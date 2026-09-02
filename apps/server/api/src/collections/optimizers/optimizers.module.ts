@@ -7,7 +7,7 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OptimizersController } from '@api/collections/optimizers/controllers/optimizers.controller';
-import { OptimizersService } from '@server/collections/optimizers/services/optimizers.service';
+import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';

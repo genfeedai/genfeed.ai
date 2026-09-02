@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import type { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import type { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('BrandsSetupController', () => {

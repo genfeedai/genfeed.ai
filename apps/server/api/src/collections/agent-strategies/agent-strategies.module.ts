@@ -6,14 +6,14 @@
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AgentStrategiesController } from '@api/collections/agent-strategies/controllers/agent-strategies.controller';
-import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
-import { AgentStrategyAutopilotService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import { AgentStrategyAutopilotExecutionService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
-import { AgentStrategyAutopilotPerformanceService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
-import { AgentStrategyAutopilotPlanningService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
-import { AgentStrategyOpportunitiesService } from '@server/collections/agent-strategies/services/agent-strategy-opportunities.service';
-import { AgentStrategyReportsService } from '@server/collections/agent-strategies/services/agent-strategy-reports.service';
-import { AgentStrategyWorkflowRunService } from '@server/collections/agent-strategies/services/agent-strategy-workflow-run.service';
+import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
+import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
+import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
+import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
+import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';

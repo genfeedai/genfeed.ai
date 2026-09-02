@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysQueryDto } from '@api/collections/api-keys/dto/api-keys-query.dto';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import { VerifyMcpConnectionDto } from '@api/collections/api-keys/dto/verify-mcp-connection.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import {
   serializeCollection,

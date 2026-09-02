@@ -1,10 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import type { Request } from 'express';
 
 describe('GenerateController', () => {

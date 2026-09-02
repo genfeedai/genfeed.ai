@@ -4,8 +4,8 @@
  * and model performance tracking.
  */
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { Module } from '@nestjs/common';
 

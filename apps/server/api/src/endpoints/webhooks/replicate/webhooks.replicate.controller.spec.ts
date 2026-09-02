@@ -1,17 +1,17 @@
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 
 vi.mock('replicate', () => ({

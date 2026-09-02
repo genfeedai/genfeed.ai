@@ -1,5 +1,5 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import type { IRequestContext } from '@server/common/interfaces/request-context.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import {

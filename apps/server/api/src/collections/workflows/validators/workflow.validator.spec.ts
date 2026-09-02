@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@server/collections/workflows/registry/node-registry-adapter', () => ({
+vi.mock('@api/collections/workflows/registry/node-registry-adapter', () => ({
   getNodeDefinition: vi.fn(),
   validateConnection: vi.fn(),
 }));
@@ -8,7 +8,7 @@ vi.mock('@server/collections/workflows/registry/node-registry-adapter', () => ({
 import {
   getNodeDefinition,
   validateConnection,
-} from '@server/collections/workflows/registry/node-registry-adapter';
+} from '@api/collections/workflows/registry/node-registry-adapter';
 
 import {
   type WorkflowEdge,

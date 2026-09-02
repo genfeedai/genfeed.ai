@@ -10,6 +10,8 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import type { WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import type {
   TelegramWorkflowName,
   WorkflowInput,
@@ -21,8 +23,6 @@ import {
   getActionDefinition,
 } from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput']);
 

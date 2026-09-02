@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   normalizePersonaHandle,
   PERSONA_HANDLE_PATTERN,

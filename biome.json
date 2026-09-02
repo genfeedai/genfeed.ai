@@ -106,19 +106,6 @@
       }
     },
     {
-      "includes": ["apps/server/server/**/*.ts"],
-      "linter": {
-        "rules": {
-          "style": {
-            "useImportType": "off"
-          },
-          "suspicious": {
-            "noExplicitAny": "error"
-          }
-        }
-      }
-    },
-    {
       "includes": ["apps/server/**", "packages/libs/**"],
       "javascript": {
         "parser": {

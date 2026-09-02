@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
 import {
   FIRST_ORDER_TARGETS,
   KNOWN_EXCLUDED_MODELS,
   SECOND_ORDER_TARGETS,
-} from '@server/collections/brands/constants/brand-org-cascade.constants';
+} from '@api/collections/brands/constants/brand-org-cascade.constants';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Staleness guard: the brand→org relocation cascade hardcodes which tables carry a

@@ -1,6 +1,24 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { CacheService } from '@api/services/cache/cache.service';
 import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
 import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import {
+  isInstagramProfessionalAccountError,
+  isInstagramRateLimitError,
+  isInstagramScopeError,
+  parseInstagramGrantedScopes,
+} from '@api/services/integrations/instagram/utils/instagram-error.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,
@@ -9,29 +27,11 @@ import {
   instagramAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/instagram-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-  SCOPED_CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import {
-  isInstagramProfessionalAccountError,
-  isInstagramRateLimitError,
-  isInstagramScopeError,
-  parseInstagramGrantedScopes,
-} from '@server/services/integrations/instagram/utils/instagram-error.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   InstagramAuthorizedSignalsProvider,
   type InstagramMediaFetch,

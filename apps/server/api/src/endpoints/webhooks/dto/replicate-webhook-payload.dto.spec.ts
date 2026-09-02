@@ -1,5 +1,5 @@
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const metadata: ArgumentMetadata = {

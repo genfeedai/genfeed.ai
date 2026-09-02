@@ -1,10 +1,10 @@
-import { CreateIngredientDto } from '@server/collections/ingredients/dto/create-ingredient.dto';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import {
   ModelsGuard,

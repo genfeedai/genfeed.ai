@@ -4,9 +4,9 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
-import { PersonaContentService } from '@server/services/persona-content/persona-content.service';
+import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
-import { PersonaPublisherService } from '@server/services/persona-content/persona-publisher.service';
+import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { Module } from '@nestjs/common';
 
 @Module({

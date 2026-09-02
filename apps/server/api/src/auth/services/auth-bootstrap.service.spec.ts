@@ -1,6 +1,6 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
+import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import type { AccessBootstrapCachePayload } from '@server/common/services/access-bootstrap-cache.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -39,11 +39,11 @@ vi.mock('@genfeedai/enums', () => ({
   },
 }));
 
-vi.mock('@server/collections/brands/services/brands.service', () => ({
+vi.mock('@api/collections/brands/services/brands.service', () => ({
   BrandsService: class BrandsService {},
 }));
 
-vi.mock('@server/collections/credits/services/credits.utils.service', () => ({
+vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class CreditsUtilsService {},
 }));
 
@@ -52,21 +52,21 @@ vi.mock('@api/collections/members/services/members.service', () => ({
 }));
 
 vi.mock(
-  '@server/collections/organization-settings/services/organization-settings.service',
+  '@api/collections/organization-settings/services/organization-settings.service',
   () => ({
     OrganizationSettingsService: class OrganizationSettingsService {},
   }),
 );
 
-vi.mock('@server/collections/streaks/services/streaks.service', () => ({
+vi.mock('@api/collections/streaks/services/streaks.service', () => ({
   StreaksService: class StreaksService {},
 }));
 
-vi.mock('@server/collections/users/services/users.service', () => ({
+vi.mock('@api/collections/users/services/users.service', () => ({
   UsersService: class UsersService {},
 }));
 
-vi.mock('@server/common/services/access-bootstrap-cache.service', () => ({
+vi.mock('@api/common/services/access-bootstrap-cache.service', () => ({
   AccessBootstrapCacheService: class AccessBootstrapCacheService {},
 }));
 
@@ -76,7 +76,7 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getSubscriptionTier: mockGetSubscriptionTier,
 }));
 
-vi.mock('@server/services/batch-generation/batch-generation.service', () => ({
+vi.mock('@api/services/batch-generation/batch-generation.service', () => ({
   BatchGenerationService: class BatchGenerationService {},
 }));
 

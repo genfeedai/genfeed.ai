@@ -1,4 +1,4 @@
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import {
   createTestOrganization,
   createTestUser,

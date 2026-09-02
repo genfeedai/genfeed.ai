@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GifsQueryDto } from '@api/collections/gifs/dto/gifs-query.dto';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
-import { VotesService } from '@server/collections/votes/services/votes.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { VotesService } from '@api/collections/votes/services/votes.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -19,15 +19,15 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { scopedWhere } from '@api/index';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

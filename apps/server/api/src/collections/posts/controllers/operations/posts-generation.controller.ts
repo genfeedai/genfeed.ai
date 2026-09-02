@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   createPostsGenerationHttpException,
   generationFailureMessage,
@@ -15,21 +15,21 @@ import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto'
 import { GenerateSourcePostVariationsDto } from '@api/collections/posts/dto/generate-source-post-variations.dto';
 import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
-import type { PostDocument } from '@server/collections/posts/post.schema';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
-import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -43,8 +43,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
-import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,

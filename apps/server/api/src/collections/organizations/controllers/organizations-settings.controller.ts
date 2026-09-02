@@ -7,20 +7,20 @@
  * - Configure integrations
  * - BYOK (Bring Your Own Key) management
  */
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { UpdateOrganizationSettingDto } from '@server/collections/organization-settings/dto/update-organization-setting.dto';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { TestOrganizationWebhookDto } from '@api/collections/organizations/dto/test-organization-webhook.dto';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ByokService } from '@server/services/byok/byok.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {

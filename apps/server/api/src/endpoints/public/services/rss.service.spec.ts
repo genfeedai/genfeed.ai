@@ -1,4 +1,4 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

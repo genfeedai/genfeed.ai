@@ -1,3 +1,19 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import {
+  baseModelKey,
+  isFalDestination,
+  isReplicateDestination,
+  isReplicateVersionId,
+  isTrainerKey,
+  isTrainingKey,
+} from '@api/collections/models/utils/model-key.util';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
@@ -7,6 +23,9 @@ import {
   type ReservationCreditsConfig,
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { ByokService } from '@api/services/byok/byok.service';
+import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -33,25 +52,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import {
-  baseModelKey,
-  isFalDestination,
-  isReplicateDestination,
-  isReplicateVersionId,
-  isTrainerKey,
-  isTrainingKey,
-} from '@server/collections/models/utils/model-key.util';
-import {
-  BusinessLogicException,
-  InsufficientCreditsException,
-} from '@server/exceptions/business-logic.exception';
-import { getMinimumTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 import type { Request } from 'express';
 
 // Type for authenticated request with user data

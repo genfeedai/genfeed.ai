@@ -3,7 +3,7 @@
  * Manages individual targets for marketing campaigns.
  * Tracks status, reply content, and processing metadata.
  */
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { Module } from '@nestjs/common';
 
 @Module({

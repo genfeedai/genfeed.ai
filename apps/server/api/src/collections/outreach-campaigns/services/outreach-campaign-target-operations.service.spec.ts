@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import type { OutreachCampaignDocument } from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
+import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignTargetOperationsService } from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
-import type { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import type { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type {
   CampaignDiscoveryService,
   DiscoveredTarget,
-} from '@server/services/campaign/campaign-discovery.service';
-import type { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
+} from '@api/services/campaign/campaign-discovery.service';
+import type { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,

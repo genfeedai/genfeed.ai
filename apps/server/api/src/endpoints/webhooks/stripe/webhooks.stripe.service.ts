@@ -4,8 +4,6 @@ import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/hand
 import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import type { StripeWebhookEvent } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 import type {
   StripeCharge,
   StripeCheckoutSession,
@@ -13,7 +11,9 @@ import type {
   StripeDispute,
   StripeInvoice,
   StripeSubscription,
-} from '@server/services/integrations/stripe/services/stripe.service';
+} from '@api/services/integrations/stripe/services/stripe.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Routes Stripe webhook events to per-concern handlers.

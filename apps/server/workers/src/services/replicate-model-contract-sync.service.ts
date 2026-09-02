@@ -1,12 +1,12 @@
-import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   classifyReplicateSchemaFamily,
   extractReplicateEndpointSchemas,
   type ReplicateEndpointSchemas,
-} from '@server/services/integrations/replicate/services/replicate-contract';
+} from '@api/services/integrations/replicate/services/replicate-contract';
+import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { Injectable } from '@nestjs/common';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
 import { hashProviderContract } from '@workers/services/provider-contract.util';
 

@@ -1,0 +1,118 @@
+import { TemplateMetadataEntity } from '@api/collections/template-metadata/entities/template-metadata.entity';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { Prisma } from '@genfeedai/prisma';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class TemplateMetadataService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Create metadata record with defaults
+   */
+  async create(
+    templateId: string,
+    data?: Partial<TemplateMetadataEntity>,
+  ): Promise<TemplateMetadataEntity> {
+    const result = await this.prisma.templateMetadata.create({
+      data: {
+        author: data?.author ?? null,
+        averageQuality: null,
+        compatiblePlatforms: data?.compatiblePlatforms ?? [],
+        data: {
+          difficulty: data?.difficulty ?? null,
+          estimatedTime: data?.estimatedTime ?? null,
+          goals: data?.goals ?? [],
+          requiredFeatures: data?.requiredFeatures ?? [],
+        },
+        isDeleted: false,
+        lastUsed: null,
+        license: data?.license ?? null,
+        successRate: null,
+        templateId,
+        usageCount: 0,
+        version: data?.version ?? null,
+      },
+    });
+
+    return result as unknown as TemplateMetadataEntity;
+  }
+
+  /**
+   * Update metadata
+   */
+  async update(
+    templateId: string,
+    updates: Partial<TemplateMetadataEntity>,
+  ): Promise<TemplateMetadataEntity> {
+    const existing = await findOrThrow(
+      this.prisma.templateMetadata,
+      { where: { isDeleted: false, templateId } },
+      'Template metadata',
+      templateId,
+    );
+
+    const result = await this.prisma.templateMetadata.update({
+      data: updates as Prisma.TemplateMetadataUpdateInput,
+      where: { id: existing.id },
+    });
+
+    return result as unknown as TemplateMetadataEntity;
+  }
+
+  /**
+   * Update metadata by template key (for prompt templates)
+   */
+  async updateByTemplateKey(
+    key: string,
+    updates: {
+      incrementUsage?: boolean;
+      successRate?: number;
+      averageQuality?: number;
+    },
+  ): Promise<void> {
+    // Find template by key first
+    const template = await this.prisma.template.findFirst({
+      where: { isDeleted: false, key, purpose: 'prompt' },
+    });
+
+    if (!template) {
+      return; // Template not found, skip update
+    }
+
+    const templateId = template.id;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (updates.incrementUsage) {
+      updateData.usageCount = { increment: 1 };
+      updateData.lastUsed = new Date();
+    }
+
+    if (updates.successRate !== undefined) {
+      updateData.successRate = updates.successRate;
+    }
+
+    if (updates.averageQuality !== undefined) {
+      updateData.averageQuality = updates.averageQuality;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.templateMetadata.updateMany({
+        data: updateData as Prisma.TemplateMetadataUpdateManyMutationInput,
+        where: { isDeleted: false, templateId },
+      });
+    }
+  }
+
+  /**
+   * Delete metadata (soft delete)
+   */
+  async delete(templateId: string): Promise<void> {
+    await this.prisma.templateMetadata.updateMany({
+      data: { isDeleted: true },
+      where: { isDeleted: false, templateId },
+    });
+  }
+}

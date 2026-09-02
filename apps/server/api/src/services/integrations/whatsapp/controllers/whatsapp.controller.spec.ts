@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { WhatsappController } from '@api/services/integrations/whatsapp/controllers/whatsapp.controller';
-import { WhatsappService } from '@server/services/integrations/whatsapp/services/whatsapp.service';
+import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

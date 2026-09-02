@@ -1,17 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -30,7 +31,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpStatus } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('ImageReframeService', () => {

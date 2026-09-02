@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandMemoryService } from '@server/collections/brand-memory/services/brand-memory.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { BrandMemorySerializer } from '@genfeedai/serializers';

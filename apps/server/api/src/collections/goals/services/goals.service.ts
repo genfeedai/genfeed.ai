@@ -1,8 +1,8 @@
 import { CreateGoalDto } from '@api/collections/goals/dto/create-goal.dto';
 import { UpdateGoalDto } from '@api/collections/goals/dto/update-goal.dto';
 import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

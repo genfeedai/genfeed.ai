@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { GetForecastDto } from '@server/collections/insights/dto/forecast.dto';
-import { PredictViralDto } from '@server/collections/insights/dto/predict-viral.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
+import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
 import { UpdateInsightDto } from '@api/collections/insights/dto/update-insight.dto';
-import { InsightsService } from '@server/collections/insights/services/insights.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import { InsightsService } from '@api/collections/insights/services/insights.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';

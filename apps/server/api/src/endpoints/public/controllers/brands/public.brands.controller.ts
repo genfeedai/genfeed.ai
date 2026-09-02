@@ -1,17 +1,17 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { LinksService } from '@server/collections/links/services/links.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { LinksService } from '@api/collections/links/services/links.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

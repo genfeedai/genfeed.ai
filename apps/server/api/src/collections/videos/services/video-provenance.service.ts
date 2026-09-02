@@ -1,8 +1,8 @@
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import {
   AssetScope,
   IngredientCategory,

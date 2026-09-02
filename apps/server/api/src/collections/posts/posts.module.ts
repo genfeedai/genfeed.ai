@@ -24,9 +24,11 @@ import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fan
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
+import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
@@ -41,8 +43,6 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { Module } from '@nestjs/common';
-import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
-import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 
 @Module({
   // PostsOperationsController must register before PostsController: its static

@@ -1,7 +1,7 @@
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
-import type { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import type { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { QuotaService } from '@server/services/quota/quota.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { QuotaService } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';

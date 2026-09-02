@@ -1,9 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { MCPController } from '@api/endpoints/mcp/mcp.controller';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import type { PaidCreativePlatformReadiness } from '@server/services/paid-creative-research/interfaces/paid-creative-research.interface';
-import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { PaidCreativePlatformReadiness } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
+import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
   AdsChannel,
   AdsResearchMetric,

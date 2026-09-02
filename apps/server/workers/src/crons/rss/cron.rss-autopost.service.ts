@@ -1,5 +1,5 @@
+import { RssSourceWorkflowService } from '@api/collections/rss-sources/services/rss-source-workflow.service';
 import { Injectable } from '@nestjs/common';
-import { RssSourceWorkflowService } from '@server/collections/rss-sources/services/rss-source-workflow.service';
 
 @Injectable()
 export class CronRssAutopostService {

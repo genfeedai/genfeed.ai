@@ -1,22 +1,22 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
-import { IngredientsQueryDto } from '@server/collections/ingredients/dto/ingredients-query.dto';
-import { UpdateIngredientDto } from '@server/collections/ingredients/dto/update-ingredient.dto';
-import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
+import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { resolveIngredientMediaUrl } from '@server/helpers/utils/ingredient-media-url/ingredient-media-url.util';
-import { LibraryShelfUtil } from '@server/helpers/utils/library-shelf/library-shelf.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
+import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -24,14 +24,14 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { scopedWhere } from '@api/index';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type {
   ILibrarySummary,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,

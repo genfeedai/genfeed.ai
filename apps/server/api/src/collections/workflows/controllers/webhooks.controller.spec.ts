@@ -1,5 +1,5 @@
 import { WebhooksController } from '@api/collections/workflows/controllers/webhooks.controller';
-import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

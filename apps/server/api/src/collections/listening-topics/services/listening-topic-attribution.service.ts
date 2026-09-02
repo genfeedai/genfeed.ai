@@ -1,12 +1,12 @@
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type {
   IListeningScope,
   IListeningTopicOutcome,
   ListeningOutcomeState,
 } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 type OutcomeAnalyticsRecord = {

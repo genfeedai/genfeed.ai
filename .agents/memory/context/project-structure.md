@@ -15,8 +15,8 @@ full inventory; this file records only what `ls` cannot tell you.
 
 - **`apps/server/clips/` is not a workspace** — no `package.json` on `origin/master`. Clip code
   currently lives under API/packages/files paths. Re-verify before treating it as a service.
-- **`apps/server/server/`** is the shared `@genfeedai/server` package, aliased `@server/*`.
-  The name "core" is retired — see `rules/server_not_core.md`.
+- **`apps/server/api/`** is the shared server tree (`@genfeedai/api`, alias `@api/*`).
+  #4348 folded `@genfeedai/server` back into api. The name "core" stays retired — see `rules/server_not_core.md`.
 - **`packages/workflows` is the only workflow package** (subpath exports `/contracts`, `/engine`,
   `/generation`, `/nodes`, `/ui`). `packages/core`, `workflow-engine`, `workflow-saas`, and
   `workflow-ui` are **deleted**; stale `dist/`/`node_modules/` residue may linger locally — delete it.

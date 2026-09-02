@@ -6,7 +6,7 @@
 // canonicalPrismaMock()'s fragments carry is inert.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
@@ -26,11 +26,11 @@ function isSqlFragment(value: unknown): value is SqlFragmentMock {
   );
 }
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

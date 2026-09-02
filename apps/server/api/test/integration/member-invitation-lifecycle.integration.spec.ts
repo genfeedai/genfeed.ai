@@ -5,8 +5,8 @@
  */
 
 import { InvitationService } from '@api/collections/members/services/invitation.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   createTestUser,

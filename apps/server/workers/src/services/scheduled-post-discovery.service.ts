@@ -1,10 +1,10 @@
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 
 export type ScheduledPostFilter = {

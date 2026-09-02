@@ -95,19 +95,19 @@ vi.mock('@genfeedai/helpers', async (importOriginal) => {
   };
 });
 
-vi.mock('@server/shared/utils/html-to-text/html-to-text.util', () => ({
+vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((val: string) => val),
 }));
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
+import { SERVER_TOKENS } from '@api/server.dependencies';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -676,7 +676,7 @@ describe('TwitterService (coverage)', () => {
   describe('sendCommentReplyDm (error path)', () => {
     it('propagates error when DM send fails', async () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
       mockV2SendDmInConversation.mockRejectedValue(new Error('DM failed'));
 
@@ -692,7 +692,7 @@ describe('TwitterService (coverage)', () => {
   describe('uploadMedia', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -795,7 +795,7 @@ describe('TwitterService (coverage)', () => {
   describe('postTweet', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1180,7 +1180,7 @@ describe('TwitterService (coverage)', () => {
   describe('repostTweet', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1248,7 +1248,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1312,7 +1312,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1408,7 +1408,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 

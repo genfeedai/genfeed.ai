@@ -1,12 +1,12 @@
+import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { SkillsService } from '@server/collections/skills/services/skills.service';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 function createStoredZip(entries: Array<{ name: string; content: string }>) {
   const localParts: Buffer[] = [];

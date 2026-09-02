@@ -1,4 +1,4 @@
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 
 interface ElementMetadata {

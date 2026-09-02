@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
@@ -21,7 +22,6 @@ import {
 } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

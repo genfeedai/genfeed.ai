@@ -1,12 +1,23 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
+import type { AdOptimizationConfigDocument } from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
+import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import type {
+  AdOptimizationRecommendationDocument,
+  RecommendationReviewStatus,
+  RecommendationStatus,
+  RecommendationType,
+} from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
+import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -22,17 +33,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
-import type { AdOptimizationConfigDocument } from '@server/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
-import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import type {
-  AdOptimizationRecommendationDocument,
-  RecommendationReviewStatus,
-  RecommendationStatus,
-  RecommendationType,
-} from '@server/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
-import { AdOptimizationRecommendationsService } from '@server/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @AutoSwagger()
 @Controller('services/meta-ads/optimization')

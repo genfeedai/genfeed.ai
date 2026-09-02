@@ -1,6 +1,6 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
 import { assertCanIncludeSystemWorkflows } from '@api/collections/workflows/utils/workflow-system-access.util';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
 describe('WorkflowCrudController RBAC', () => {

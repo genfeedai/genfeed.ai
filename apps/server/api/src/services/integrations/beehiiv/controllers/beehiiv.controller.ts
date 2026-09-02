@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -11,8 +11,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { CreateBeehiivSubscribersDto } from '@api/services/integrations/beehiiv/dto/create-beehiiv-subscribers.dto';
-import { BeehiivProviderError } from '@server/services/integrations/beehiiv/errors/beehiiv-provider.error';
-import { BeehiivService } from '@server/services/integrations/beehiiv/services/beehiiv.service';
+import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
+import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   BeehiivSubscriberOutcomeSerializer,

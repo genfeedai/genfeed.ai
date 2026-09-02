@@ -1,7 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

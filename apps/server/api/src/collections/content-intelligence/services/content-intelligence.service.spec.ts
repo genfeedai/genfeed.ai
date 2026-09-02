@@ -1,9 +1,9 @@
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 describe('ContentIntelligenceService Prisma boundary', () => {
   const create = vi.fn();

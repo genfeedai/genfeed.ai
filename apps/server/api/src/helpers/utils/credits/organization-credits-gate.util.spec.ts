@@ -1,5 +1,5 @@
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,15 +1,15 @@
 import process from 'node:process';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
   mockCacheService,

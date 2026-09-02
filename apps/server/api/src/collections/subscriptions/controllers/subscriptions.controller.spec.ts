@@ -1,16 +1,16 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import type { Request } from 'express';
 import { SubscriptionsController } from './subscriptions.controller';
 

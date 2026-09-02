@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLightingsController } from '@api/collections/elements/lightings/controllers/lightings.controller';
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';
 import { ElementsLightingsService } from '@api/collections/elements/lightings/services/lightings.service';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LightingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

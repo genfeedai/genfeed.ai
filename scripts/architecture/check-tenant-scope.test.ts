@@ -205,7 +205,7 @@ describe('check-tenant-scope', () => {
       `
         import {
           scopedWhere as tenantWhere,
-        } from '@genfeedai/server';
+        } from '@api/index';
 
         export async function safe(prisma: unknown): Promise<void> {
           const where = {
@@ -258,7 +258,7 @@ describe('check-tenant-scope', () => {
 
   it('surfaces dynamic where construction as an analyzer boundary', () => {
     writeFixture(
-      'apps/server/server/src/dynamic.service.ts',
+      'apps/server/api/src/dynamic.service.ts',
       `
         export async function dynamic(
           prisma: unknown,
@@ -280,7 +280,7 @@ describe('check-tenant-scope', () => {
 
   it('treats reassigned or mutated local where objects as unresolved', () => {
     writeFixture(
-      'apps/server/server/src/reassigned.service.ts',
+      'apps/server/api/src/reassigned.service.ts',
       `
         export async function reassigned(prisma: unknown): Promise<void> {
           let where = {
@@ -312,7 +312,7 @@ describe('check-tenant-scope', () => {
 
   it('requires canonical scope keys to follow unknown spreads', () => {
     writeFixture(
-      'apps/server/server/src/spread-order.service.ts',
+      'apps/server/api/src/spread-order.service.ts',
       `
         export async function spreadOrder(
           prisma: unknown,

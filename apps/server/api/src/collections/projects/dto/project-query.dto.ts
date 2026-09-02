@@ -1,5 +1,5 @@
 import { PROJECT_STATUSES } from '@api/collections/projects/schemas/project.schema';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

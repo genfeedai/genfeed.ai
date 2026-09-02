@@ -36,8 +36,56 @@ import { WorkflowCrudController } from '@api/collections/workflows/controllers/w
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
+import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
+import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
+import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
+import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
+import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
+import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
+import { PaidCreativeResearchWorkflowService } from '@api/collections/workflows/services/paid-creative-research-workflow.service';
+import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
+import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
+import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
+import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workflows/services/system-workflow-definition-registrar.service';
+import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
+import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
+import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
+import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
+import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
+import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
+import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { YoutubeLongFormWorkflowService } from '@api/collections/workflows/services/youtube-long-form-workflow.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  SYSTEM_WORKFLOW_CATALOG,
+  SYSTEM_WORKFLOW_RUNNER,
+  WORKFLOW_ENGINE_ADAPTER,
+  WORKFLOW_EXECUTOR,
+} from '@api/collections/workflows/workflows.tokens';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
@@ -61,54 +109,6 @@ import { HEYGEN_POLL_QUEUE } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
-import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
-import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
-import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
-import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
-import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
-import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
-import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
-import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
-import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
-import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
-import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
-import { SystemWorkflowDefinitionRegistrarService } from '@server/collections/workflows/services/system-workflow-definition-registrar.service';
-import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
-import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
-import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
-import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
-import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
-import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowEngineExecutorRegistryService } from '@server/collections/workflows/services/workflow-engine-executor-registry.service';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
-import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
-import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
-import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-processing-executor-registrar.service';
-import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
-import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
-import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
-import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
-import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
-import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
-import { YoutubeLongFormWorkflowService } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import {
-  SYSTEM_WORKFLOW_CATALOG,
-  SYSTEM_WORKFLOW_RUNNER,
-  WORKFLOW_ENGINE_ADAPTER,
-  WORKFLOW_EXECUTOR,
-} from '@server/collections/workflows/workflows.tokens';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes

@@ -1,5 +1,5 @@
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class SubscriptionEntity
   extends BaseEntity

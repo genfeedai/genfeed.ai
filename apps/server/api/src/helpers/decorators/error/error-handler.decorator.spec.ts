@@ -1,7 +1,7 @@
 import {
   HandleErrors,
   HandleErrorsSync,
-} from '@server/helpers/decorators/error-handler.decorator';
+} from '@api/helpers/decorators/error-handler.decorator';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('HandleErrors', () => {

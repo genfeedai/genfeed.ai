@@ -2,7 +2,7 @@ import {
   buildRssItemWorkflowDefinition,
   buildRssSourceWorkflowDefinition,
   buildRssSweepWorkflowDefinition,
-} from '@server/collections/rss-sources/services/rss-sweep-workflow-definition';
+} from '@api/collections/rss-sources/services/rss-sweep-workflow-definition';
 
 describe('RSS sweep workflows', () => {
   it('uses nested source and item fan-out', () => {

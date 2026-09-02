@@ -1,3 +1,5 @@
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
@@ -10,19 +12,17 @@ import type { BrandRemixRuntime } from '@api/collections/content-runs/services/b
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import type { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import type { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import type { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import type { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import type { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import type { ByokService } from '@server/services/byok/byok.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import type { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import type { ByokService } from '@api/services/byok/byok.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 export interface BrandRemixRunsCollaborators {
   adsResearchService: AdsResearchService;

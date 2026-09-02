@@ -4,13 +4,13 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   },
 }));
 
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { CacheService } from '@api/services/cache/cache.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalsSnapshot,

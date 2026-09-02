@@ -1,8 +1,8 @@
 import { randomBytes, randomInt } from 'node:crypto';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { hashToken, toBase64Url } from '@server/auth/shared/pkce.util';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ApiKeyCategory, PlatformRole } from '@genfeedai/enums';

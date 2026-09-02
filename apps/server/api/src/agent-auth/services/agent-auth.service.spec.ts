@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PlatformRole, SubscriptionTier } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 

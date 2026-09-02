@@ -1,6 +1,6 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { PerformanceSummaryController } from '@api/collections/content-performance/controllers/performance-summary.controller';
-import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';

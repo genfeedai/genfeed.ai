@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import type { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
+import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { CreativeSource } from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
-import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 
 export interface CreateBulkUploadInput {
   organizationId: string;

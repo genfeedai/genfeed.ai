@@ -10,6 +10,7 @@ import { BrandsController } from '@api/collections/brands/controllers/brands.con
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
+import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -29,9 +30,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { Module } from '@nestjs/common';
-import { BrandPersistenceService } from '@server/collections/brands/services/brand-persistence.service';
-import { MasterPromptGeneratorService } from '@server/services/knowledge-base/master-prompt-generator.service';
 
 @Module({
   controllers: [

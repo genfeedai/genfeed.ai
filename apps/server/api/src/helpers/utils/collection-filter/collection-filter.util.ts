@@ -1,4 +1,4 @@
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
 

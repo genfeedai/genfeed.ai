@@ -1,7 +1,7 @@
 import { MembersModule } from '@api/collections/members/members.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { TaskQueueClientService } from '@server/services/task-queue-client/task-queue-client.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { TaskQueueClientService } from '@api/services/task-queue-client/task-queue-client.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule, HttpService } from '@nestjs/axios';

@@ -1,3 +1,4 @@
+import { PostLifecycleService } from '@api/index';
 import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
 import {
   PostVisibility,
@@ -5,7 +6,6 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IChannelTargetError } from '@genfeedai/interfaces';
-import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 

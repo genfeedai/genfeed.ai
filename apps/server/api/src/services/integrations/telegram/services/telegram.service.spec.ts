@@ -6,7 +6,7 @@ vi.mock('@api/shared/utils/telegram-auth/telegram-auth.util', () => ({
   },
 }));
 
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   TelegramAuthData,
   TelegramService,

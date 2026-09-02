@@ -1,15 +1,30 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
 import { PostsBatchDto } from '@api/collections/posts/dto/posts-batch.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
+  API_KEY_POST_CREATION_SCOPES,
+  assertApiKeyPostStatusPublishingScope,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
   returnBadRequest,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { QuotaService } from '@api/services/quota/quota.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
@@ -36,21 +51,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import {
-  API_KEY_POST_CREATION_SCOPES,
-  assertApiKeyPostStatusPublishingScope,
-  assertApiKeyPublishingScope,
-} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import { QuotaService } from '@server/services/quota/quota.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @AutoSwagger()

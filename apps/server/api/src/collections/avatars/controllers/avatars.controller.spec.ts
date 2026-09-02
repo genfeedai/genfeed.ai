@@ -1,12 +1,12 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AvatarsController } from '@api/collections/avatars/controllers/avatars.controller';
 import type { AvatarsService } from '@api/collections/avatars/services/avatars.service';
+import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
-import type { HedraService } from '@server/services/integrations/hedra/services/hedra.service';
-import type { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
 import type { Request } from 'express';
 
 const userId = testId('user');

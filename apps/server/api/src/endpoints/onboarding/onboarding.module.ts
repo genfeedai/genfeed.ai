@@ -20,7 +20,7 @@ import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.mo
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { MasterPromptGeneratorService } from '@server/services/knowledge-base/master-prompt-generator.service';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import { Module } from '@nestjs/common';
 
 @Module({

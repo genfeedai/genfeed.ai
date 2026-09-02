@@ -1,0 +1,1537 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isCloudDeployment: vi.fn(() => false),
+  };
+});
+
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
+import { RouterService } from '@api/services/router/router.service';
+import { isCloudDeployment } from '@genfeedai/config';
+import {
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
+
+const defaultModelId = testId('model');
+
+describe('RouterService', () => {
+  let service: RouterService;
+  let modelsService: vi.Mocked<ModelsService>;
+  let loggerService: vi.Mocked<LoggerService>;
+  let orgSettingsService: {
+    ensureEnabledModelIds: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+  };
+
+  const createMockModel = (overrides: Record<string, unknown> = {}) =>
+    ({
+      id: defaultModelId,
+      capabilities: [],
+      category: ModelCategory.IMAGE,
+      cost: 50,
+      costTier: 'medium' as const,
+      isActive: true,
+      isDefault: false,
+      isDeleted: false,
+      isDiscovered: false,
+      isFree: false,
+      isHighlighted: false,
+      key: 'test-model',
+      label: 'Test Model',
+      lifecycle: ModelLifecycle.RECOMMENDED,
+      maxDimensions: { height: 2048, width: 2048 },
+      provider: 'test-provider',
+      qualityTier: 'standard' as const,
+      recommendedFor: [],
+      speedTier: 'medium' as const,
+      supportsFeatures: [],
+      organizationId: null,
+      ...overrides,
+    }) as unknown as ModelDocument;
+
+  beforeEach(async () => {
+    const mockModelsService = {
+      findAllActive: vi.fn(),
+      findOne: vi.fn(),
+    };
+
+    const mockLoggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+
+    const mockOrgSettingsService = {
+      ensureEnabledModelIds: vi.fn(async (setting: unknown) => setting),
+      findOne: vi.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        RouterService,
+        {
+          provide: ModelsService,
+          useValue: mockModelsService,
+        },
+        {
+          provide: LoggerService,
+          useValue: mockLoggerService,
+        },
+        {
+          provide: OrganizationSettingsService,
+          useValue: mockOrgSettingsService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<RouterService>(RouterService);
+    modelsService = module.get(ModelsService);
+    loggerService = module.get(LoggerService);
+    orgSettingsService = mockOrgSettingsService;
+  });
+
+  afterEach(() => {
+    vi.mocked(isCloudDeployment).mockReturnValue(false);
+    vi.unstubAllEnvs();
+    vi.clearAllMocks();
+  });
+
+  describe('service definition', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
+  describe('selectModel', () => {
+    describe('Image Generation', () => {
+      it('should select fast model for speed-prioritized requests', async () => {
+        const fastModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-fast',
+          speedTier: 'fast',
+        });
+
+        const slowModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-slow',
+          qualityTier: 'ultra',
+          speedTier: 'slow',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([fastModel, slowModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'speed',
+          prompt: 'A simple landscape',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/imagen-4-fast');
+        expect(result.reason).toContain('speed');
+      });
+
+      it('should select ultra quality model for quality-prioritized requests', async () => {
+        const ultraModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-ultra',
+          qualityTier: 'ultra',
+        });
+
+        const standardModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-standard',
+          qualityTier: 'standard',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          standardModel,
+          ultraModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A highly detailed professional portrait',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/imagen-4-ultra');
+        expect(result.reason).toContain('quality');
+      });
+
+      it('should select high quality model when ultra is not available', async () => {
+        const highModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-high',
+          qualityTier: 'high',
+        });
+
+        const standardModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4-standard',
+          qualityTier: 'standard',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          standardModel,
+          highModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A detailed portrait',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/imagen-4-high');
+      });
+
+      it('should select stylized model for anime/cartoon prompts', async () => {
+        const stylizedModel = createMockModel({
+          capabilities: ['stylized', 'creative'],
+          category: ModelCategory.IMAGE,
+          key: 'gpt-image-1',
+        });
+
+        const standardModel = createMockModel({
+          capabilities: ['photorealistic'],
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          standardModel,
+          stylizedModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'An anime style character with blue hair',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('gpt-image-1');
+        expect(result.alternatives).toBeDefined();
+      });
+
+      it('should select model matching photorealistic detected features', async () => {
+        const photoModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'google/imagen-4',
+          recommendedFor: ['photorealistic', 'portrait'],
+        });
+
+        const otherModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'other-model',
+          recommendedFor: ['cartoon'],
+        });
+
+        modelsService.findAllActive.mockResolvedValue([otherModel, photoModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A photorealistic portrait of a person in natural lighting',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/imagen-4');
+        expect(result.analysis.detectedFeatures).toContain('photorealistic');
+      });
+
+      it('should select model supporting large dimensions for large images', async () => {
+        const largeModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'large-dimension-model',
+          maxDimensions: { height: 4096, width: 4096 },
+        });
+
+        const smallModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'small-dimension-model',
+          maxDimensions: { height: 1024, width: 1024 },
+        });
+
+        modelsService.findAllActive.mockResolvedValue([smallModel, largeModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          dimensions: { height: 2500, width: 2500 },
+          prompt: 'A beautiful landscape',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('large-dimension-model');
+      });
+
+      it('should penalize models that cannot handle requested dimensions', async () => {
+        const largeModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'large-dimension-model',
+          maxDimensions: { height: 4096, width: 4096 },
+        });
+
+        const smallModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'small-dimension-model',
+          maxDimensions: { height: 512, width: 512 },
+          qualityTier: 'ultra',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([smallModel, largeModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          dimensions: { height: 2048, width: 2048 },
+          prompt: 'A beautiful landscape',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('large-dimension-model');
+      });
+
+      it('should handle cost-prioritized requests', async () => {
+        const cheapModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          costTier: 'low',
+          key: 'cheap-model',
+        });
+
+        const expensiveModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          costTier: 'high',
+          key: 'expensive-model',
+          qualityTier: 'ultra',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          expensiveModel,
+          cheapModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'cost',
+          prompt: 'A simple cartoon character',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('cheap-model');
+        expect(result.reason).toContain('cost');
+      });
+
+      it('picks the cheaper numeric cost when costTier is missing (Lowest Cost)', async () => {
+        // Mirrors production registry drift: nano-banana isDefault + highlighted,
+        // flux-schnell is ~13× cheaper, both with null costTier until re-seeded.
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.039,
+          costTier: undefined,
+          isDefault: true,
+          isHighlighted: true,
+          key: 'google/nano-banana',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.003,
+          costTier: undefined,
+          isDefault: false,
+          isHighlighted: true,
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'cost',
+          prompt: 'A simple brand logo mark',
+        });
+
+        expect(result.selectedModel).toBe('black-forest-labs/flux-schnell');
+      });
+
+      it('picks the cheapest enabled model after the latest-major allowlist seed', async () => {
+        // #3083 seeds empty allowlists with latest-major IDs (nano-banana),
+        // not the catalog cheapest (flux-schnell). Auto · Lowest Cost used
+        // to pick flux-schnell and then validateModelForOrg 403'd.
+        const nanoBananaId = testId('model', 11);
+        const fluxSchnellId = testId('model', 12);
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.039,
+          costTier: undefined,
+          id: nanoBananaId,
+          isDefault: true,
+          isHighlighted: true,
+          key: 'google/nano-banana',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.003,
+          costTier: undefined,
+          id: fluxSchnellId,
+          isDefault: false,
+          isHighlighted: true,
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [nanoBananaId],
+          id: testId('setting'),
+        });
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          organizationId: testId('org'),
+          prioritize: 'cost',
+          prompt: 'A simple brand logo mark',
+        });
+
+        expect(result.selectedModel).toBe('google/nano-banana');
+        expect(orgSettingsService.ensureEnabledModelIds).toHaveBeenCalled();
+      });
+
+      it('picks Auto from an allowlist that stores keys instead of ids', async () => {
+        const nanoBananaId = testId('model', 13);
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: nanoBananaId,
+          isDefault: true,
+          key: 'google/nano-banana',
+          qualityTier: 'ultra',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: testId('model', 14),
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: ['google/nano-banana'],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockImplementation(
+          (setting: { enabledModelIds: string[] }) => Promise.resolve(setting),
+        );
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          organizationId: testId('org'),
+          prioritize: 'quality',
+          prompt: 'A cinematic brand still',
+        });
+
+        expect(result.selectedModel).toBe('google/nano-banana');
+      });
+
+      it('does not fall back to a catalog default outside an empty org allowlist', async () => {
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          id: testId('model', 15),
+          isDefault: true,
+          key: 'google/nano-banana',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([nanoBanana]);
+        modelsService.findOne.mockResolvedValue(nanoBanana);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+
+        await expect(
+          service.selectModel({
+            category: ModelCategory.IMAGE,
+            organizationId: testId('org'),
+            prioritize: 'quality',
+            prompt: 'A cinematic brand still',
+          }),
+        ).rejects.toThrow(ForbiddenException);
+        await expect(
+          service.selectModel({
+            category: ModelCategory.IMAGE,
+            organizationId: testId('org'),
+            prioritize: 'quality',
+            prompt: 'A cinematic brand still',
+          }),
+        ).rejects.toThrow('No Recommended models enabled for this workspace');
+
+        expect(modelsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('does not fall back to the catalog default for conversation TEXT when the allowlist is empty', async () => {
+        const freeChat = createMockModel({
+          category: ModelCategory.TEXT,
+          id: testId('model', 16),
+          isDefault: true,
+          key: LOWEST_COST_AGENT_CHAT_MODEL_KEY,
+        });
+
+        modelsService.findAllActive.mockResolvedValue([freeChat]);
+        modelsService.findOne.mockResolvedValue(freeChat);
+        orgSettingsService.findOne.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+        orgSettingsService.ensureEnabledModelIds.mockResolvedValue({
+          enabledModelIds: [],
+          id: testId('setting'),
+        });
+
+        await expect(
+          service.selectModel({
+            category: ModelCategory.TEXT,
+            organizationId: testId('org'),
+            prioritize: 'cost',
+            prompt: 'Help me draft a caption',
+          }),
+        ).rejects.toThrow('No Recommended models enabled for this workspace');
+
+        expect(modelsService.findOne).not.toHaveBeenCalled();
+      });
+
+      it('should prefer default models slightly', async () => {
+        const defaultModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isDefault: true,
+          key: 'default-model',
+        });
+
+        const otherModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isDefault: false,
+          key: 'other-model',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          otherModel,
+          defaultModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A test image',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('default-model');
+      });
+
+      it('should prefer highlighted models slightly', async () => {
+        const highlightedModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isHighlighted: true,
+          key: 'highlighted-model',
+        });
+
+        const otherModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          isHighlighted: false,
+          key: 'other-model',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          otherModel,
+          highlightedModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A test image',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('highlighted-model');
+      });
+    });
+
+    describe('Video Generation', () => {
+      it('should select fast model for speed-prioritized video requests', async () => {
+        const fastModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'google/veo-3-fast',
+          speedTier: 'fast',
+        });
+
+        const slowModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'google/veo-3',
+          speedTier: 'slow',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([slowModel, fastModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.VIDEO,
+          prioritize: 'speed',
+          prompt: 'A quick video clip',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/veo-3-fast');
+      });
+
+      it('should select model with speech support when speech is required', async () => {
+        const speechModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'google/veo-3',
+          supportsFeatures: ['speech'],
+        });
+
+        const noSpeechModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'other-model',
+          supportsFeatures: [],
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          noSpeechModel,
+          speechModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.VIDEO,
+          prompt: 'A video with narration',
+          speech: 'Hello world',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/veo-3');
+        expect(result.reason).toContain('speech');
+      });
+
+      it('should disqualify models without required speech feature', async () => {
+        const speechModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'speech-model',
+          supportsFeatures: ['speech'],
+        });
+
+        const noSpeechModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'no-speech-model',
+          qualityTier: 'ultra',
+          supportsFeatures: [],
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          noSpeechModel,
+          speechModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.VIDEO,
+          prompt: 'A video with narration',
+          speech: 'Hello world',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('speech-model');
+      });
+
+      it('should select model with long-duration support for long videos', async () => {
+        const longDurationModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'google/veo-3',
+          supportsFeatures: ['long-duration'],
+        });
+
+        const shortDurationModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'short-model',
+          supportsFeatures: ['short-duration'],
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          shortDurationModel,
+          longDurationModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.VIDEO,
+          duration: 45,
+          prompt: 'A cinematic video',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('google/veo-3');
+      });
+
+      it('should select model with short-duration support for short clips', async () => {
+        const shortDurationModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'short-model',
+          supportsFeatures: ['short-duration'],
+        });
+
+        const longDurationModel = createMockModel({
+          category: ModelCategory.VIDEO,
+          key: 'long-model',
+          supportsFeatures: ['long-duration'],
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          longDurationModel,
+          shortDurationModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.VIDEO,
+          duration: 8,
+          prompt: 'A short video clip',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('short-model');
+      });
+    });
+
+    describe('Prompt Analysis', () => {
+      it('should detect quality indicators in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt:
+            'A high quality professional photorealistic portrait with intricate details',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.hasQualityIndicators).toBe(true);
+        expect(result.analysis.complexity).toBe('complex');
+      });
+
+      it('should detect speed indicators in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A quick simple sketch',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.hasSpeedIndicators).toBe(true);
+      });
+
+      it('should detect specific art styles in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'An oil painting of a sunset',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.hasSpecificStyle).toBe(true);
+      });
+
+      it('should categorize simple prompts as simple', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A cat',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.complexity).toBe('simple');
+      });
+
+      it('should categorize long complex prompts as complex', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt:
+            'A highly detailed cyberpunk cityscape at night with neon lights, flying cars, holographic advertisements, ' +
+            'rain-soaked streets reflecting the vibrant colors, towering skyscrapers with futuristic architecture, ' +
+            'and crowds of people with augmented reality devices',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.complexity).toBe('complex');
+      });
+
+      it('should detect cinematic feature in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A cinematic movie scene',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.detectedFeatures).toContain('cinematic');
+      });
+
+      it('should detect landscape feature in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A beautiful landscape with nature',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.detectedFeatures).toContain('landscape');
+      });
+
+      it('should detect portrait feature in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A portrait of a person face',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.detectedFeatures).toContain('portrait');
+      });
+
+      it('should detect artistic feature in prompt', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'An artistic creative abstract composition',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.detectedFeatures).toContain('artistic');
+      });
+
+      it('should prefer high quality model for complex prompts', async () => {
+        const highQualityModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'high-quality',
+          qualityTier: 'high',
+        });
+
+        const standardModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'standard',
+          qualityTier: 'standard',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          standardModel,
+          highQualityModel,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt:
+            'A very long and complex prompt that requires high quality output with many details and features',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.complexity).toBe('complex');
+      });
+
+      it('should prefer fast model for simple prompts', async () => {
+        const fastModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'fast-model',
+          speedTier: 'fast',
+        });
+
+        const slowModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'slow-model',
+          speedTier: 'slow',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([slowModel, fastModel]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A cat',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.analysis.complexity).toBe('simple');
+        expect(result.selectedModel).toBe('fast-model');
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should refuse Auto when no Recommended model exists', async () => {
+        modelsService.findAllActive.mockResolvedValue([]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A test image',
+        };
+
+        await expect(service.selectModel(options)).rejects.toThrow(
+          'No Recommended models enabled',
+        );
+      });
+
+      it('should throw NotFoundException when no models found and no fallback available', async () => {
+        modelsService.findAllActive.mockResolvedValue([]);
+        modelsService.findOne.mockResolvedValue(null);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A test image',
+        };
+
+        await expect(service.selectModel(options)).rejects.toThrow(
+          ForbiddenException,
+        );
+      });
+
+      it('should log errors appropriately', async () => {
+        const error = new Error('Database error');
+        modelsService.findAllActive.mockRejectedValue(error);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A test image',
+        };
+
+        await expect(service.selectModel(options)).rejects.toThrow(error);
+        expect(loggerService.error).toHaveBeenCalled();
+      });
+    });
+
+    describe('Alternatives', () => {
+      it('should provide alternative model recommendations', async () => {
+        const model1 = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'model-1',
+          speedTier: 'fast',
+        });
+
+        const model2 = createMockModel({
+          category: ModelCategory.IMAGE,
+          costTier: 'low',
+          key: 'model-2',
+        });
+
+        const model3 = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'model-3',
+          qualityTier: 'high',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([model1, model2, model3]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A landscape',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.alternatives).toBeDefined();
+        expect(result.alternatives.length).toBeLessThanOrEqual(2);
+        result.alternatives.forEach((alt) => {
+          expect(alt).toHaveProperty('model');
+          expect(alt).toHaveProperty('reason');
+          expect(alt).toHaveProperty('score');
+        });
+      });
+
+      it('should generate alternative reasons based on model attributes', async () => {
+        const selectedModel = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'selected-model',
+          qualityTier: 'ultra',
+        });
+
+        const fastAlternative = createMockModel({
+          category: ModelCategory.IMAGE,
+          key: 'fast-alt',
+          speedTier: 'fast',
+        });
+
+        const cheapAlternative = createMockModel({
+          category: ModelCategory.IMAGE,
+          costTier: 'low',
+          key: 'cheap-alt',
+        });
+
+        const stylizedAlternative = createMockModel({
+          capabilities: ['stylized'],
+          category: ModelCategory.IMAGE,
+          key: 'stylized-alt',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          selectedModel,
+          fastAlternative,
+          cheapAlternative,
+          stylizedAlternative,
+        ]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A test image',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.selectedModel).toBe('selected-model');
+        const alternativeReasons = result.alternatives.map((a) => a.reason);
+        expect(alternativeReasons.some((r) => r.length > 0)).toBe(true);
+      });
+    });
+
+    describe('Reason Generation', () => {
+      it('should generate reason for quality optimization', async () => {
+        const model = createMockModel({
+          category: ModelCategory.IMAGE,
+          qualityTier: 'ultra',
+        });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'quality',
+          prompt: 'A test',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.reason).toContain('quality');
+      });
+
+      it('should generate reason for speed optimization', async () => {
+        const model = createMockModel({
+          category: ModelCategory.IMAGE,
+          speedTier: 'fast',
+        });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'speed',
+          prompt: 'A test',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.reason).toContain('speed');
+      });
+
+      it('should generate reason for cost optimization', async () => {
+        const model = createMockModel({
+          category: ModelCategory.IMAGE,
+          costTier: 'low',
+        });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prioritize: 'cost',
+          prompt: 'A test',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.reason).toContain('cost');
+      });
+
+      it('should generate balanced reason when no specific optimization', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'test',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.reason).toBe('balanced performance and quality');
+      });
+
+      it('should include detected features in reason', async () => {
+        const model = createMockModel({ category: ModelCategory.IMAGE });
+        modelsService.findAllActive.mockResolvedValue([model]);
+
+        const options: ModelSelectionOptions = {
+          category: ModelCategory.IMAGE,
+          prompt: 'A photorealistic cinematic scene',
+        };
+
+        const result = await service.selectModel(options);
+
+        expect(result.reason).toContain('supports');
+      });
+    });
+  });
+
+  describe('getDefaultModel', () => {
+    it('should return the registry default when the category has one', async () => {
+      const defaultModel = createMockModel({
+        category: ModelCategory.IMAGE,
+        isDefault: true,
+        key: 'database-default',
+      });
+
+      modelsService.findAllActive.mockResolvedValue([defaultModel]);
+
+      const result = await service.getDefaultModel(ModelCategory.IMAGE);
+
+      expect(result).toBe('database-default');
+      expect(modelsService.findAllActive).toHaveBeenCalledWith({
+        category: ModelCategory.IMAGE,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+        organizationId: null,
+      });
+    });
+
+    it('should reject default resolution when no Recommended model exists', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      await expect(
+        service.getDefaultModel(ModelCategory.IMAGE),
+      ).rejects.toThrow('No Recommended models available');
+    });
+
+    it('should return the fixed BGE model for EMBEDDING category', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+    });
+
+    it('should ignore a legacy CLIP database default for embeddings', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          category: ModelCategory.EMBEDDING,
+          isDefault: true,
+          key: MODEL_KEYS.REPLICATE_OPENAI_CLIP,
+        }),
+      ]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring embedding default'),
+      );
+    });
+  });
+
+  describe('resolveModelKey', () => {
+    it('should honour the first candidate the registry carries', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'brand-default' }),
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: [undefined, 'brand-default', 'organization-default'],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({ key: 'brand-default', source: 'candidate' });
+    });
+
+    it('should skip a candidate the registry no longer carries', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['retired-model', null, ''],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'registry-default',
+        source: 'registry-default',
+      });
+    });
+
+    it('resolves a Retired alias through its same-owner successor', async () => {
+      const retired = createMockModel({
+        isActive: false,
+        key: 'retired-model',
+        lifecycle: ModelLifecycle.RETIRED,
+        succeededBy: 'available-successor',
+      });
+      const successor = createMockModel({
+        key: 'available-successor',
+        lifecycle: ModelLifecycle.AVAILABLE,
+      });
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+      modelsService.findOne
+        .mockResolvedValueOnce(retired)
+        .mockResolvedValueOnce(successor);
+
+      const result = await service.resolveModelKey({
+        candidates: ['retired-model'],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'available-successor',
+        source: 'candidate',
+      });
+      expect(modelsService.findOne).toHaveBeenNthCalledWith(2, {
+        key: 'available-successor',
+        organizationId: null,
+      });
+    });
+
+    it('should exclude legacy rows at the query level', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'active-model' }),
+      ]);
+
+      await service.resolveModelKey({ category: ModelCategory.VIDEO });
+
+      expect(modelsService.findAllActive).toHaveBeenCalledWith({
+        category: ModelCategory.VIDEO,
+        lifecycle: ModelLifecycle.RECOMMENDED,
+        organizationId: null,
+      });
+    });
+
+    it('should rank highlighted rows above the rest when no default exists', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'plain-ultra', qualityTier: 'ultra' }),
+        createMockModel({
+          isHighlighted: true,
+          key: 'highlighted-basic',
+          qualityTier: 'basic',
+        }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'highlighted-basic',
+        source: 'registry-best',
+      });
+    });
+
+    it('should prefer higher quality, then lower cost, then a stable key order', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          costTier: 'high',
+          key: 'high-cost-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'b-cheap-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'a-cheap-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'cheap-basic-quality',
+          qualityTier: 'basic',
+        }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'a-cheap-high-quality',
+        source: 'registry-best',
+      });
+    });
+
+    it('should hide another organization private row from selection', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          isHighlighted: true,
+          key: 'foreign-training',
+          organizationId: 'org-other',
+        }),
+        createMockModel({ key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({
+        key: 'platform-model',
+        source: 'registry-best',
+      });
+    });
+
+    it('should allow an organization to select its own private row', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          key: 'my-training',
+          organizationId: 'org-mine',
+        }),
+        createMockModel({ key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['my-training'],
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({ key: 'my-training', source: 'candidate' });
+    });
+
+    it('should reject a candidate owned by another organization', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          key: 'foreign-training',
+          organizationId: 'org-other',
+        }),
+        createMockModel({ isDefault: true, key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['foreign-training'],
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({
+        key: 'platform-model',
+        source: 'registry-default',
+      });
+    });
+
+    it('does not bypass lifecycle with a constant when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      await expect(
+        service.resolveModelKey({ category: ModelCategory.MUSIC }),
+      ).rejects.toThrow('No Recommended models available');
+    });
+  });
+
+  describe('Keyword Matching', () => {
+    it('should score models based on recommendedFor matching detected features', async () => {
+      const matchingModel = createMockModel({
+        category: ModelCategory.IMAGE,
+        key: 'matching-model',
+        recommendedFor: ['photorealistic', 'portrait'],
+      });
+
+      const nonMatchingModel = createMockModel({
+        category: ModelCategory.IMAGE,
+        key: 'non-matching-model',
+        recommendedFor: ['cartoon', 'anime'],
+      });
+
+      modelsService.findAllActive.mockResolvedValue([
+        nonMatchingModel,
+        matchingModel,
+      ]);
+
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE,
+        prompt: 'A photorealistic portrait',
+      };
+
+      const result = await service.selectModel(options);
+
+      expect(result.selectedModel).toBe('matching-model');
+    });
+
+    it('should score models based on recommendedFor matching prompt keywords', async () => {
+      const matchingModel = createMockModel({
+        category: ModelCategory.IMAGE,
+        key: 'matching-model',
+        recommendedFor: ['sunset', 'landscape'],
+      });
+
+      const nonMatchingModel = createMockModel({
+        category: ModelCategory.IMAGE,
+        key: 'non-matching-model',
+        recommendedFor: ['portrait'],
+      });
+
+      modelsService.findAllActive.mockResolvedValue([
+        nonMatchingModel,
+        matchingModel,
+      ]);
+
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE,
+        prompt: 'A beautiful sunset over the landscape',
+      };
+
+      const result = await service.selectModel(options);
+
+      expect(result.selectedModel).toBe('matching-model');
+    });
+  });
+
+  describe('Model Details', () => {
+    it('should include correct model details in recommendation', async () => {
+      const model = createMockModel({
+        id: defaultModelId,
+        category: ModelCategory.IMAGE,
+        cost: 100,
+        key: 'test-model-key',
+        provider: 'test-provider',
+      });
+
+      modelsService.findAllActive.mockResolvedValue([model]);
+
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE,
+        prompt: 'A test image',
+      };
+
+      const result = await service.selectModel(options);
+
+      expect(result.modelDetails).toEqual({
+        category: ModelCategory.IMAGE,
+        cost: 100,
+        id: defaultModelId,
+        key: 'test-model-key',
+        provider: 'test-provider',
+      });
+    });
+  });
+
+  describe('Artistic Capabilities', () => {
+    it('should prefer models with artistic capability for artistic prompts', async () => {
+      const artisticModel = createMockModel({
+        capabilities: ['artistic'],
+        category: ModelCategory.IMAGE,
+        key: 'artistic-model',
+      });
+
+      const normalModel = createMockModel({
+        capabilities: [],
+        category: ModelCategory.IMAGE,
+        key: 'normal-model',
+      });
+
+      modelsService.findAllActive.mockResolvedValue([
+        normalModel,
+        artisticModel,
+      ]);
+
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE,
+        prompt: 'An artistic watercolor painting',
+      };
+
+      const result = await service.selectModel(options);
+
+      expect(result.selectedModel).toBe('artistic-model');
+    });
+
+    it('should prefer models with creative capability for stylized prompts', async () => {
+      const creativeModel = createMockModel({
+        capabilities: ['creative'],
+        category: ModelCategory.IMAGE,
+        key: 'creative-model',
+      });
+
+      const normalModel = createMockModel({
+        capabilities: [],
+        category: ModelCategory.IMAGE,
+        key: 'normal-model',
+      });
+
+      modelsService.findAllActive.mockResolvedValue([
+        normalModel,
+        creativeModel,
+      ]);
+
+      const options: ModelSelectionOptions = {
+        category: ModelCategory.IMAGE,
+        prompt: 'A sketch illustration',
+      };
+
+      const result = await service.selectModel(options);
+
+      expect(result.selectedModel).toBe('creative-model');
+    });
+  });
+});

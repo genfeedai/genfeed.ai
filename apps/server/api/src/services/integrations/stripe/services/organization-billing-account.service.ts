@@ -1,16 +1,16 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { BILLING_ACCOUNT_METADATA } from '@server/services/integrations/stripe/services/billing-account-metadata.constant';
+import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/services/billing-account-metadata.constant';
 import {
   type StripeCustomer,
   StripeService,
-} from '@server/services/integrations/stripe/services/stripe.service';
+} from '@api/services/integrations/stripe/services/stripe.service';
 import {
   classifyStripeFailure,
   type StripeFailureCategory,
-} from '@server/services/integrations/stripe/services/stripe-error.util';
+} from '@api/services/integrations/stripe/services/stripe-error.util';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 
 export type BillingAccountResolutionCode =
   | 'billing_customer_conflict'

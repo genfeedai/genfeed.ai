@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
-import { UpdateBrandAgentConfigDto } from '@server/collections/brands/dto/update-brand-agent-config.dto';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { SkillsService } from '@server/collections/skills/services/skills.service';
+import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';

@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ImageFormat, UpscaleFactor } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {

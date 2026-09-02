@@ -1,11 +1,11 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyticsSyncController } from '@api/collections/content-performance/controllers/analytics-sync.controller';
+import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
+import { EmailDigestWorkflowService } from '@api/collections/content-performance/services/email-digest-workflow.service';
+import { AnalyticsSyncWorkflowService } from '@api/collections/workflows/services/analytics-sync-workflow.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test } from '@nestjs/testing';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestWorkflowService } from '@server/collections/content-performance/services/email-digest-workflow.service';
-import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { vi } from 'vitest';
 
 describe('AnalyticsSyncController', () => {

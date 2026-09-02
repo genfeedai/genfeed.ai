@@ -5,7 +5,7 @@ import {
   getSystemWorkflowDuplicateMetadata,
   getSystemWorkflowMetadata,
   isProtectedSystemWorkflowMetadata,
-} from '@server/collections/workflows/system-workflow.contract';
+} from '@api/collections/workflows/system-workflow.contract';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('system workflow contract', () => {

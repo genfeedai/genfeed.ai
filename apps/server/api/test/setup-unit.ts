@@ -17,7 +17,7 @@ import { vi } from 'vitest';
 // enum member; the real schema is BUSINESS/CREATOR/AGENCY).
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });

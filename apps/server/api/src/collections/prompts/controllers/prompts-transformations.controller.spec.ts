@@ -3,7 +3,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';

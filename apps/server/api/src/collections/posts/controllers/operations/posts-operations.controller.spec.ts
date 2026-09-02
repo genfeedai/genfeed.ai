@@ -15,36 +15,37 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-vi.mock('@server/collections/templates/services/templates.service', () => ({
+vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
-import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { QuotaService } from '@server/services/quota/quota.service';
-import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { QuotaService } from '@api/services/quota/quota.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import {
   ApiKeyScope,
   ContentIntelligencePlatform,
@@ -66,7 +67,6 @@ import {
   PATH_METADATA,
 } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('PostsOperationsController', () => {

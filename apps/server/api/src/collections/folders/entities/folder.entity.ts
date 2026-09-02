@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import { type Folder } from '@genfeedai/prisma';
 
 export class FolderEntity extends BaseEntity implements Folder {

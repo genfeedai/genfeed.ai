@@ -14,11 +14,11 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { INVALID_CAMPAIGN_STATUS_MESSAGE } from '@server/services/ads-gateway/ads-campaign-status.util';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import { INVALID_CAMPAIGN_STATUS_MESSAGE } from '@api/services/ads-gateway/ads-campaign-status.util';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { LoggerService } from '@libs/logger/logger.service';

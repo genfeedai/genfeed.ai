@@ -1,9 +1,9 @@
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import {
   ClipResultsService,
   type ProviderTerminalTransitionInput,
-} from '@server/collections/clip-results/clip-results.service';
+} from '@api/collections/clip-results/clip-results.service';
 import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

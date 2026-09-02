@@ -1,5 +1,5 @@
-import { ManagedInferenceRequestDto } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import type { ManagedInferenceAuthenticatedRequest } from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+import { ManagedInferenceRequestDto } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';

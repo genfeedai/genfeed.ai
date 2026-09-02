@@ -1,5 +1,5 @@
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import type {
   CostReportEntryType,

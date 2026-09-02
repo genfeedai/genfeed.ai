@@ -3,7 +3,7 @@ import { CreativePatternsModule } from '@api/collections/creative-patterns/creat
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
 import { PaidCreativeResearchModule } from '@api/services/paid-creative-research/paid-creative-research.module';
 import { Module } from '@nestjs/common';

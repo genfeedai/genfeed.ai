@@ -1,16 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
 import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
-import { UpdateActivityDto } from '@server/collections/activities/dto/update-activity.dto';
-import { type ActivityDocument } from '@server/collections/activities/schemas/activity.schema';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
+import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -18,7 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

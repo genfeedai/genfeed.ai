@@ -5,7 +5,7 @@ and popularity tracking.
  */
 
 import { VotesController } from '@api/collections/votes/controllers/votes.controller';
-import { VotesService } from '@server/collections/votes/services/votes.service';
+import { VotesService } from '@api/collections/votes/services/votes.service';
 import { Module } from '@nestjs/common';
 
 @Module({

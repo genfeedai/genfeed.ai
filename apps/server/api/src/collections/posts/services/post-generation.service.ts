@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -7,11 +11,21 @@ import {
   GenerateTweetsDto,
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
+import { type PostDocument } from '@api/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -31,20 +45,6 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
-import { type PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from

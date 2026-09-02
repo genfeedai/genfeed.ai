@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type {
   AgentMemoryContentType,
   AgentMemoryKind,
   AgentMemoryScope,
-} from '@server/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoriesService } from '@server/collections/agent-memories/services/agent-memories.service';
-import { AgentMemoryCaptureService } from '@server/collections/agent-memories/services/agent-memory-capture.service';
+} from '@api/collections/agent-memories/schemas/agent-memory.schema';
+import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

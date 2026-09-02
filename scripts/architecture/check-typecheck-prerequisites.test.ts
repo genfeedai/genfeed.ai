@@ -50,13 +50,13 @@ describe('typecheck prerequisite guard', () => {
   it('builds server declarations before its Turbo-managed typecheck', () => {
     const manifest = JSON.parse(
       readFileSync(
-        path.join(REPOSITORY_ROOT, 'apps/server/server/package.json'),
+        path.join(REPOSITORY_ROOT, 'apps/server/api/package.json'),
         'utf8',
       ),
     ) as { scripts: Record<string, string> };
     const turboConfig = JSON.parse(
       readFileSync(
-        path.join(REPOSITORY_ROOT, 'apps/server/server/turbo.json'),
+        path.join(REPOSITORY_ROOT, 'apps/server/api/turbo.json'),
         'utf8',
       ),
     ) as { tasks: { 'type-check': { dependsOn: string[] } } };

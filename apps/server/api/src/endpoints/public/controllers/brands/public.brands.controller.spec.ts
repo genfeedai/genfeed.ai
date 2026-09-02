@@ -3,12 +3,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { LinksService } from '@server/collections/links/services/links.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { LinksService } from '@api/collections/links/services/links.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AssetScope } from '@genfeedai/enums';

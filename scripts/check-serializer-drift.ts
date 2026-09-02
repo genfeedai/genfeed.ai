@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_ROOT_DIR = path.resolve(__dirname, '..');
-const DEFAULT_SCHEMA_ROOTS = ['apps/server/api/src', 'apps/server/server/src'];
+const DEFAULT_SCHEMA_ROOTS = ['apps/server/api/src', 'apps/server/api/src'];
 const PRISMA_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
 const SERIALIZER_ROOT = 'packages/serializers/src';
 

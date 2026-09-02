@@ -1,6 +1,6 @@
 import { SubscriptionCreditGrantModule } from '@api/common/subscriptions/subscription-credit-grant.module';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 

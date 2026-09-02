@@ -1,4 +1,4 @@
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { Injectable } from '@nestjs/common';

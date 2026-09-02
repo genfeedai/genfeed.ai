@@ -1,16 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { UpdateBrandDto } from '@server/collections/brands/dto/update-brand.dto';
-import { BrandDataMapper } from '@server/collections/brands/services/brand-data.mapper';
-import { BrandPersistenceService } from '@server/collections/brands/services/brand-persistence.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import type { BrandSetupDto } from '@server/endpoints/onboarding/dto/brand-setup.dto';
-import type { ReferenceImageDto } from '@server/endpoints/onboarding/dto/reference-images.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import type { BrandSetupResponse } from '@api/endpoints/onboarding/onboarding.interfaces';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
-import { MasterPromptGeneratorService } from '@server/services/knowledge-base/master-prompt-generator.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,

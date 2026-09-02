@@ -1,10 +1,10 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { GoogleAdsAdapter } from '@server/services/ads-gateway/adapters/google-ads.adapter';
-import { MetaAdsAdapter } from '@server/services/ads-gateway/adapters/meta-ads.adapter';
-import { TikTokAdsAdapter } from '@server/services/ads-gateway/adapters/tiktok-ads.adapter';
-import { XAdsAdapter } from '@server/services/ads-gateway/adapters/x-ads.adapter';
+import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
+import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
+import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
+import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';

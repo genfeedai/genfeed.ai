@@ -14,13 +14,13 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 import { UsersModule } from '@api/collections/users/users.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
-import { CacheModule } from '@server/services/cache/cache.module';
+import { CacheModule } from '@api/services/cache/cache.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';

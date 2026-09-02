@@ -4,7 +4,7 @@ import {
   getRequestDatabaseMetrics,
   isPrismaQueryMetricsEnabled,
   runWithRequestPerformance,
-} from '@server/helpers/performance/request-performance.context';
+} from '@api/helpers/performance/request-performance.context';
 import {
   normalizeApiRoute,
   recordApiPerformanceTelemetry,
@@ -12,7 +12,7 @@ import {
 import type {
   ApiPerformanceSeverity,
   PerformanceMetrics,
-} from '@server/shared/interfaces/performance/performance.interface';
+} from '@api/shared/interfaces/performance/performance.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

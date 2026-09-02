@@ -1,4 +1,4 @@
-import { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
+import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { plainToInstance } from 'class-transformer';
 
 describe('VideosQueryDto', () => {

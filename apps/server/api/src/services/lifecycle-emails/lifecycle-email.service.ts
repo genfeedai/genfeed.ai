@@ -1,8 +1,8 @@
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   LIFECYCLE_SCHEDULING_ACTION_IDS,
   LIFECYCLE_SCHEDULING_WORKFLOW_DEFINITIONS,

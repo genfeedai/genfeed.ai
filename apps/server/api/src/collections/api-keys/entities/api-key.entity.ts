@@ -1,5 +1,5 @@
 import type { ApiKey } from '@api/collections/api-keys/schemas/api-key.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class ApiKeyEntity extends BaseEntity implements ApiKey {
   id!: string;

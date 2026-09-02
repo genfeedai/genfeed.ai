@@ -1,4 +1,4 @@
-import { ValidationException } from '@server/exceptions/validation.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { QueryProcessor } from '@api/helpers/utils/query-processor/query-processor.util';
 
 describe('QueryProcessor', () => {

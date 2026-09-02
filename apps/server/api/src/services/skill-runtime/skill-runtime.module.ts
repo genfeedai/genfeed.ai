@@ -1,6 +1,6 @@
 import { SkillsModule } from '@api/collections/skills/skills.module';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { Module } from '@nestjs/common';
-import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
 
 @Module({
   exports: [SkillRuntimeService],

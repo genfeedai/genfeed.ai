@@ -1,20 +1,20 @@
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { CustomersService } from '@api/collections/customers/services/customers.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type {
+  StripeCustomer,
+  StripeService,
+  StripeSubscription,
+} from '@api/services/integrations/stripe/services/stripe.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type {
-  StripeCustomer,
-  StripeService,
-  StripeSubscription,
-} from '@server/services/integrations/stripe/services/stripe.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { SubscriptionsService } from './subscriptions.service';
 

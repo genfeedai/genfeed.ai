@@ -1,4 +1,4 @@
-import { resolveImageGenerationFidelityMode } from '@server/services/generation-brief/resolve-image-generation-fidelity-mode';
+import { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
 import { describe, expect, it } from 'vitest';
 
 describe('resolveImageGenerationFidelityMode', () => {

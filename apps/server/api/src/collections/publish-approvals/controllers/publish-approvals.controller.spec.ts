@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => data),
 }));
 
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
-import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope } from '@genfeedai/enums';
 import type { Request } from 'express';

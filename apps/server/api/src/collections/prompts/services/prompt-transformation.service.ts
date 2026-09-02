@@ -1,27 +1,28 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import type { PromptDocument } from '@server/collections/prompts/schemas/prompt.schema';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
+import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import {
   isCinematicPromptCategory,
   loadCinematicLexiconGuidance,
-} from '@server/endpoints/ai-actions/prompts/cinematic-enhancement';
-import { PromptParser } from '@server/helpers/utils/prompt-parser/prompt-parser.util';
+} from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
+import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import type { IPromptBrandContext } from '@server/shared/interfaces/prompt/prompt.interface';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import {
   ActivityKey,
   ActivitySource,
@@ -34,7 +35,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const LEGACY_CONTROLLER_NAME = 'PromptsOperationsController';

@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
-import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentScopeContextService } from '@api/index';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { AgentScopeContextService } from '@genfeedai/server';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 
-vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((e: unknown) => {
       throw e;

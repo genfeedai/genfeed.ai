@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { ChromaticWebhookPayloadDto } from '@api/endpoints/webhooks/dto/chromatic-webhook-payload.dto';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const metadata: ArgumentMetadata = {

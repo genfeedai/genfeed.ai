@@ -10,14 +10,14 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
-import type { CreateOrganizationDto } from '@server/collections/organizations/dto/create-organization.dto';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import type { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';

@@ -1,4 +1,5 @@
 import { isPlatformSuperAdmin } from '@api/auth/better-auth/better-auth-access.util';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -6,6 +7,7 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import type {
   AgentEndpoint,
   AgentEndpointCreditsAttribution,
@@ -13,11 +15,9 @@ import type {
   AgentEndpointPrincipal,
   AgentEndpointRequest,
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { ForbiddenException, Injectable, type Type } from '@nestjs/common';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Runs one endpoint descriptor the way Nest runs the matching HTTP route.

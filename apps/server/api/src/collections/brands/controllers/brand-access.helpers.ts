@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

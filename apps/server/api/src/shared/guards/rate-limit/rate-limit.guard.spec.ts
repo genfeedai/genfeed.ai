@@ -8,7 +8,7 @@ vi.mock('@nestjs/core', () => ({
   })),
 }));
 
-vi.mock('@server/services/cache/cache.service', () => ({
+vi.mock('@api/services/cache/cache.service', () => ({
   CacheService: vi.fn().mockImplementation(() => ({
     expire: vi.fn().mockResolvedValue(undefined),
     incr: vi.fn().mockResolvedValue(1),

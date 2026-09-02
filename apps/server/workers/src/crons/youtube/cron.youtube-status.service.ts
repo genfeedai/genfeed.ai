@@ -1,3 +1,13 @@
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { customLabels } from '@api/helpers/utils/pagination.util';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -8,16 +18,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import {
-  type SystemWorkflowProvenance,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   buildYoutubeStatusReconcileDefinition,
   buildYoutubeStatusSweepDefinition,

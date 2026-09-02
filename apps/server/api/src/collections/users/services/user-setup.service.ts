@@ -10,26 +10,26 @@
  * - Member record
  */
 
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
+import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { DEFAULT_THEME } from '@genfeedai/constants';
 import { MemberRole, OrganizationCategory } from '@genfeedai/enums';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { OrganizationSettingDocument } from '@server/collections/organization-settings/schemas/organization-setting.schema';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { SettingDocument } from '@server/collections/settings/schemas/setting.schema';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
 
 export interface UserSetupProfile {
   email?: string | null;

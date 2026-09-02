@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
-import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
+import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';

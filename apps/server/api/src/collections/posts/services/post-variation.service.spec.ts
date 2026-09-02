@@ -1,18 +1,18 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import type { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
 
 describe('PostVariationService', () => {

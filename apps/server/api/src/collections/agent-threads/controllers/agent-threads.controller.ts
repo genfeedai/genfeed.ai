@@ -1,21 +1,21 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
-import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

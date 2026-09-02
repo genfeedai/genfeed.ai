@@ -1,9 +1,9 @@
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type {
   LifecycleEmailSequence,
   LifecycleEmailStep,
 } from '@genfeedai/interfaces';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-definition';
 
 export type LifecycleSchedulingRequest =
   | { operation: 'checkout-completed'; checkoutSessionId: string }

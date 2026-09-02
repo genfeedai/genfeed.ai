@@ -1,4 +1,4 @@
-import { ValidationException } from '@server/exceptions/validation.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { testId } from '@helpers/testing/test-id.helper';
 

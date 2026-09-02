@@ -1,3 +1,4 @@
+import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
 import type { GenerationFidelityMode } from '@api-types/contracts/generation-brief.contract';
 import {
   FLUX_SCHNELL_IMAGE_COMPILER_ID,
@@ -8,7 +9,6 @@ import {
   FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
   FLUX_SCHNELL_MODEL_KEY,
 } from '@api-types/contracts/generation-capability-profile.contract';
-import { runImageGenerationBrief } from '@server/services/generation-brief/run-image-generation-brief';
 
 /**
  * Public synthetic brand kit for #3470. Not a private harness pack.

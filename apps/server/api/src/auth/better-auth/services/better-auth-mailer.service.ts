@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { isSafeBrowserAuthCallbackURL } from '@genfeedai/auth-client/callback';
 import {
   buildSystemEmailHtml,

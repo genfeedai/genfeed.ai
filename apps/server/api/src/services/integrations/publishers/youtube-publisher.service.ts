@@ -1,0 +1,164 @@
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
+import type {
+  MediaInfo,
+  PostValidationResult,
+  PublishContext,
+  PublishResult,
+  ThreadChild,
+} from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { CredentialPlatform } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class YouTubePublisherService extends BasePublisherService {
+  readonly platform = CredentialPlatform.YOUTUBE;
+  readonly supportsTextOnly = false;
+  readonly supportsImages = false;
+  readonly supportsVideos = true;
+  readonly supportsCarousel = false;
+  readonly supportsThreads = true; // Supports TEXT children as first comments
+
+  constructor(
+    protected readonly configService: ConfigService,
+    protected readonly logger: LoggerService,
+    private readonly youtubeService: YoutubeService,
+    private readonly postsService: PostsService,
+  ) {
+    super(configService, logger);
+  }
+
+  /**
+   * Override validation for YouTube-specific requirements
+   */
+  override validatePost(
+    context: PublishContext,
+    mediaInfo: MediaInfo,
+  ): PostValidationResult {
+    // YouTube only supports single video
+    if (mediaInfo.isImagePost) {
+      return {
+        error: 'YouTube does not support image posts',
+        valid: false,
+      };
+    }
+
+    if (mediaInfo.isCarousel) {
+      return {
+        error: 'YouTube does not support multiple videos',
+        valid: false,
+      };
+    }
+
+    // YouTube requires scheduled date
+    if (!context.post.scheduledDate) {
+      return {
+        error: 'YouTube requires a scheduled date',
+        valid: false,
+      };
+    }
+
+    // The catalog caption limit applies to the video description that
+    // `uploadVideo` sends (the title comes from `post.label` and has no
+    // catalog entry). This override skips super.validatePost, so the
+    // length backstop must run explicitly.
+    return this.validateCaptionLength(context);
+  }
+
+  /**
+   * Publish a video to YouTube
+   */
+  async publish(context: PublishContext): Promise<PublishResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const { post, credential, organizationId, brandId } = context;
+    const mediaInfo = this.extractMediaInfo(post);
+
+    // Log the attempt
+    this.logPublishAttempt(context, mediaInfo);
+
+    // Validate
+    const validation = this.validatePost(context, mediaInfo);
+    if (!validation.valid) {
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
+    }
+
+    try {
+      const externalId = await this.youtubeService.uploadVideo(
+        organizationId,
+        brandId,
+        mediaInfo.ingredientIds[0],
+        post,
+        context.settings,
+        credential.id,
+      );
+
+      if (!externalId) {
+        return this.createFailedResult(
+          this.platform,
+          'Failed to get external ID',
+        );
+      }
+
+      this.logger.log(`${url} YouTube video uploaded with ID: ${externalId}`);
+
+      const postUrl = this.buildPostUrl(externalId, credential);
+      return this.createSuccessResult(externalId, this.platform, postUrl);
+    } catch (error: unknown) {
+      this.logger.error(`${url} failed to publish`, {
+        error: (error as Error)?.message,
+        postId: context.postId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Build YouTube video URL
+   */
+  buildPostUrl(
+    externalId: string,
+    _credential: CredentialDocument,
+    _externalShortcode?: string,
+  ): string {
+    return `https://www.youtube.com/watch?v=${externalId}`;
+  }
+
+  /**
+   * Publish TEXT children as comments on the YouTube video
+   * For YouTube, "thread children" are posted as comments on the main video
+   */
+  async publishThreadChildren(
+    context: PublishContext,
+    children: ThreadChild[],
+    parentExternalId: string,
+  ): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const { organizationId, brandId } = context;
+    return this.publishTextChildrenAsComments({
+      children,
+      context,
+      logPrefix: url,
+      parentExternalId,
+      publishComment: (text) =>
+        this.youtubeService.postComment(
+          organizationId,
+          brandId,
+          parentExternalId,
+          text,
+          // Comments go out as the channel that uploaded the video.
+          context.credential.id,
+        ),
+      updateChild: (childId, update) =>
+        this.postsService.patch(childId, update),
+    });
+  }
+}

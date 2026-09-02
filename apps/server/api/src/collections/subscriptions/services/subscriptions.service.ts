@@ -1,8 +1,20 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { scopedWhere } from '@api/index';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   SubscriptionPlan,
   SubscriptionStatus,
@@ -16,7 +28,6 @@ import type {
   ISubscriptionsService,
 } from '@genfeedai/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -25,17 +36,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PopulateInput,
-} from '@server/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 type SubscriptionsFindAllResult =
   AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;

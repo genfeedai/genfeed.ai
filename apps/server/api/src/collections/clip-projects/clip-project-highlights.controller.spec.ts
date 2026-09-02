@@ -1,9 +1,9 @@
 import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import type { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';

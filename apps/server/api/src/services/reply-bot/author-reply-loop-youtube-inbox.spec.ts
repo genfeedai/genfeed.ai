@@ -1,4 +1,4 @@
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AuthorReplyLoopService.getInbox YouTube path', () => {

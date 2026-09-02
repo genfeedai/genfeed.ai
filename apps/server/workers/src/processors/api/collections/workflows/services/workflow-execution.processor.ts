@@ -1,19 +1,19 @@
-import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
-import { runWithActionOrigin } from '@genfeedai/server';
-import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
-} from '@server/collections/workflows/services/workflow-execution-queue.service';
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   DelayResumeJobData,
   WorkflowExecutorService,
-} from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { runWithActionOrigin } from '@api/index';
+import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 
 /**

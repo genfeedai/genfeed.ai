@@ -1,13 +1,17 @@
 import { randomBytes } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   buildCodeChallenge,
   hashToken,
   safeEqual,
   toBase64Url,
-} from '@server/auth/shared/pkce.util';
+} from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  resolveMcpResourceUrl,
+  resolveOAuthAppUrl,
+} from '@api/oauth/oauth-metadata.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -19,10 +23,6 @@ import {
 import type { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
 import type { OAuthAuthorizeRequestDto } from '../dto/authorize-request.dto';
 import type { OAuthTokenExchangeDto } from '../dto/token-exchange.dto';
-import {
-  resolveMcpResourceUrl,
-  resolveOAuthAppUrl,
-} from '@server/oauth/oauth-metadata.util';
 import { OAuthClientService } from './oauth-client.service';
 
 const MCP_OAUTH_CODE_TTL_MS = 60_000;

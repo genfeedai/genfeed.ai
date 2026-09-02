@@ -1,5 +1,5 @@
-import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';

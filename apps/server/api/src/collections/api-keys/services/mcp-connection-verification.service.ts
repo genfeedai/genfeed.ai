@@ -1,6 +1,6 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,

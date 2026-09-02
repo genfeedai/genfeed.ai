@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
 
 export class ModelEntity extends BaseEntity {

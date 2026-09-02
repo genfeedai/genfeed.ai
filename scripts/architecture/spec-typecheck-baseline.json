@@ -3131,7 +3131,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.tenant.spec.ts",
+      "file": "apps/server/api/src/collections/ad-performance/services/ad-performance.service.tenant.spec.ts",
       "fingerprint": "10fcdc03d42fed29fc7a",
       "message": "Type 'Record<string, unknown>' is not assignable to type '(JsonValue & Record<string, unknown>) | undefined'.",
       "workspace": "server"
@@ -3139,7 +3139,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.tenant.spec.ts",
+      "file": "apps/server/api/src/collections/ad-performance/services/ad-performance.service.tenant.spec.ts",
       "fingerprint": "7edd59468012498d6819",
       "message": "Type 'Record<string, unknown>' is not assignable to type '(JsonValue & Record<string, unknown>) | undefined'.",
       "workspace": "server"
@@ -3147,7 +3147,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
+      "file": "apps/server/api/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
       "fingerprint": "bed598cff4df26302dde",
       "message": "Type '\"observation\"' is not assignable to type '\"reference\" | \"preference\" | \"pattern\" | \"positive_example\" | \"negative_example\" | \"winner\" | \"instruction\" | undefined'.",
       "workspace": "server"
@@ -3155,7 +3155,7 @@
     {
       "code": 2322,
       "count": 2,
-      "file": "apps/server/server/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
+      "file": "apps/server/api/src/collections/agent-memories/services/agent-memory-capture.service.spec.ts",
       "fingerprint": "ef193206d69f5b4b3a50",
       "message": "Type '\"global\"' is not assignable to type '\"user\" | \"brand\" | \"campaign\" | undefined'.",
       "workspace": "server"
@@ -3163,7 +3163,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/brands/services/brand-generation.service.spec.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
       "fingerprint": "18c3878de9ba78a83c69",
       "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
       "workspace": "server"
@@ -3171,7 +3171,7 @@
     {
       "code": 2345,
       "count": 3,
-      "file": "apps/server/server/src/collections/brands/services/brand-generation.service.spec.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
       "fingerprint": "4e1822f14eb9aa8fde8f",
       "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
       "workspace": "server"
@@ -3179,7 +3179,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/brands/services/brand-generation.service.spec.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
       "fingerprint": "9943fd2e9c5f4cc50396",
       "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
       "workspace": "server"
@@ -3187,7 +3187,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
+      "file": "apps/server/api/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
       "fingerprint": "088547d8383ee5bfb772",
       "message": "Property 'inputPath' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 'inputPath' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "server"
@@ -3195,7 +3195,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
+      "file": "apps/server/api/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
       "fingerprint": "9bcc77b7f288142f0913",
       "message": "Property 'captionContent' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 'captionContent' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "server"
@@ -3203,7 +3203,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
+      "file": "apps/server/api/src/collections/clip-projects/services/raw-cut-clip.service.spec.ts",
       "fingerprint": "ce11b14c5f28a85c0bf2",
       "message": "Property 's3Key' does not exist on type 'IEditorRenderJobParams | IEditorFileProcessingParams | IFileProcessingParams'.   Property 's3Key' does not exist on type 'IEditorRenderJobParams'.",
       "workspace": "server"
@@ -3211,7 +3211,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.spec.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.spec.ts",
       "fingerprint": "8141c5dd88b78ba2fb92",
       "message": "Argument of type '{ chatId: string; text: string; }' is not assignable to parameter of type 'Omit<CreateDistributionDto, \"platform\">'.   Property 'contentType' is missing in type '{ chatId: string; text: string; }' but required in type 'Omit<CreateDistributionDto, \"platform\">'.",
       "workspace": "server"
@@ -3219,7 +3219,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
+      "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
       "fingerprint": "de7aad344f2f11c5009e",
       "message": "Argument of type 'string' is not assignable to parameter of type 'ConfigService'.",
       "workspace": "server"
@@ -3227,7 +3227,7 @@
     {
       "code": 18046,
       "count": 3,
-      "file": "apps/server/server/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
+      "file": "apps/server/api/src/collections/evaluations/services/evaluations-operations.service.spec.ts",
       "fingerprint": "d9d7f893b5c0a00a249a",
       "message": "'result' is of type 'unknown'.",
       "workspace": "server"
@@ -3235,7 +3235,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/collections/outreach-campaigns/services/outreach-campaigns.service.spec.ts",
+      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.spec.ts",
       "fingerprint": "f67ee98e1c63f21c760a",
       "message": "Object literal may only specify known properties, and 'brand' does not exist in type 'CreateOutreachCampaignDto'.",
       "workspace": "server"
@@ -3243,7 +3243,7 @@
     {
       "code": 2561,
       "count": 1,
-      "file": "apps/server/server/src/collections/outreach-campaigns/services/outreach-campaigns.service.spec.ts",
+      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.spec.ts",
       "fingerprint": "d400aeee442b44e56c4b",
       "message": "Object literal may only specify known properties, but 'credential' does not exist in type 'CreateOutreachCampaignDto'. Did you mean to write 'credentialId'?",
       "workspace": "server"
@@ -3251,7 +3251,7 @@
     {
       "code": 2345,
       "count": 6,
-      "file": "apps/server/server/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
       "fingerprint": "379c42c815b844550e2e",
       "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
       "workspace": "server"
@@ -3259,7 +3259,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
       "fingerprint": "466ec38f766a60e872b2",
       "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
       "workspace": "server"
@@ -3267,7 +3267,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
+      "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
       "fingerprint": "55fa5d6ee0996d1908ee",
       "message": "Argument of type '{ credential: { findMany: Mock<Procedure | Constructable>; }; }' is not assignable to parameter of type 'Pick<TransactionClient, \"credential\">'.   Types of property 'credential' are incompatible.     Type '{ findMany: Mock<Procedure | Constructable>; }' is missing the following properties from type 'CredentialDelegate<DefaultArgs, { omit: GlobalOmitConfig | undefined; }>': findUnique, findUniqueOrThrow, findFirst, findFirstOrThrow, and 13 more.",
       "workspace": "server"
@@ -3275,7 +3275,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/collections/posts/entities/post-analytics.entity.spec.ts",
+      "file": "apps/server/api/src/collections/posts/entities/post-analytics.entity.spec.ts",
       "fingerprint": "32948c2b90c34ef5b6d6",
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "server"
@@ -3283,7 +3283,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/collections/posts/services/posts.service.spec.ts",
+      "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
       "fingerprint": "9188b70a54cb7c0f66fb",
       "message": "Object literal may only specify known properties, and 'reviewBatchId' does not exist in type 'PostCreateInput'.",
       "workspace": "server"
@@ -3291,7 +3291,7 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "apps/server/server/src/collections/trends/services/modules/trend-content-ideas.service.spec.ts",
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-content-ideas.service.spec.ts",
       "fingerprint": "5d693273acce1e8982aa",
       "message": "Conversion of type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' to type 'typeof setTimeout' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property '__promisify__' is missing in type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' but required in type 'typeof setTimeout'.",
       "workspace": "server"
@@ -3299,7 +3299,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/collections/trends/services/trends.service.spec.ts",
+      "file": "apps/server/api/src/collections/trends/services/trends.service.spec.ts",
       "fingerprint": "9b5c041ed5ce90e1c864",
       "message": "Object literal may only specify known properties, and 'growthRate' does not exist in type 'Partial<{ brandId: string | null; id: string; platform: string | null; organizationId: string | null; createdAt: Date; data: JsonValue; isDeleted: boolean; updatedAt: Date; ... 4 more ...; requiresAuth: boolean | null; }>'.",
       "workspace": "server"
@@ -3307,7 +3307,7 @@
     {
       "code": 7006,
       "count": 1,
-      "file": "apps/server/server/src/collections/trends/services/trends.service.spec.ts",
+      "file": "apps/server/api/src/collections/trends/services/trends.service.spec.ts",
       "fingerprint": "f6ce8bb6f721da3ce18d",
       "message": "Parameter 'item' implicitly has an 'any' type.",
       "workspace": "server"
@@ -3315,7 +3315,7 @@
     {
       "code": 2339,
       "count": 2,
-      "file": "apps/server/server/src/collections/videos/services/avatar-video-generation.service.spec.ts",
+      "file": "apps/server/api/src/collections/videos/services/avatar-video-generation.service.spec.ts",
       "fingerprint": "2ff0730164baff01af49",
       "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
       "workspace": "server"
@@ -3323,7 +3323,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/collections/votes/entities/vote.entity.spec.ts",
+      "file": "apps/server/api/src/collections/votes/entities/vote.entity.spec.ts",
       "fingerprint": "00eaebe1c816c424ec9b",
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "server"
@@ -3331,7 +3331,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.spec.ts",
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.spec.ts",
       "fingerprint": "acdf50bda6b3651925d5",
       "message": "Type '\"scheduled\"' is not assignable to type 'WorkflowExecutionTrigger | undefined'.",
       "workspace": "server"
@@ -3339,7 +3339,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflows/entities/workflow.entity.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/entities/workflow.entity.spec.ts",
       "fingerprint": "f73ea5486352d016372d",
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "server"
@@ -3347,7 +3347,7 @@
     {
       "code": 2741,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/services/adapters/instagram-social.adapter.spec.ts",
       "fingerprint": "a726250118db4310c48b",
       "message": "Property 'warn' is missing in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; }' but required in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
       "workspace": "server"
@@ -3355,7 +3355,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflows/services/review-gate-notification.service.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/services/review-gate-notification.service.spec.ts",
       "fingerprint": "3114b1680f413fc68e2f",
       "message": "Expected 0 arguments, but got 1.",
       "workspace": "server"
@@ -3363,7 +3363,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflows/services/workflow-generation.service.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-generation.service.spec.ts",
       "fingerprint": "21a6b792aab4728176d4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3371,7 +3371,7 @@
     {
       "code": 2352,
       "count": 2,
-      "file": "apps/server/server/src/collections/workflows/services/workflows.service.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.spec.ts",
       "fingerprint": "2cf42b9ccef2695bbf09",
       "message": "Conversion of type 'CreateWorkflowDto' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Index signature for type 'string' is missing in type 'CreateWorkflowDto'.",
       "workspace": "server"
@@ -3379,7 +3379,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/collections/workflows/templates/workflow-templates.spec.ts",
+      "file": "apps/server/api/src/collections/workflows/templates/workflow-templates.spec.ts",
       "fingerprint": "02fc0cd715a8b7ca3190",
       "message": "'template.nodes' is possibly 'undefined'.",
       "workspace": "server"
@@ -3387,7 +3387,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/common/services/access-bootstrap-cache.service.spec.ts",
+      "file": "apps/server/api/src/common/services/access-bootstrap-cache.service.spec.ts",
       "fingerprint": "b765cf2c17238bb12499",
       "message": "Object literal may only specify known properties, and 'brandId' does not exist in type 'AccessBootstrapCachePayload'.",
       "workspace": "server"
@@ -3395,7 +3395,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/ai-actions/ai-actions.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.service.spec.ts",
       "fingerprint": "5f07177e34c78944fb53",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3403,7 +3403,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/ai-actions/ai-actions.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.service.spec.ts",
       "fingerprint": "719db45fcc7cc24a0fd0",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3411,7 +3411,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/ai-actions/ai-actions.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.service.spec.ts",
       "fingerprint": "9f78552616074dfdd512",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3419,7 +3419,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/ai-actions/ai-actions.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.service.spec.ts",
       "fingerprint": "c9dff1560be4a78001ab",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3427,7 +3427,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/endpoints/v1/managed-inference/managed-inference-client.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/v1/managed-inference/managed-inference-client.service.spec.ts",
       "fingerprint": "81223e35e790607bc092",
       "message": "Argument of type 'Observable<{ data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }>' is not assignable to parameter of type 'Observable<AxiosResponse<unknown, unknown, {}, any>>'.   Types of property 'operator' are incompatible.     Type 'Operator<any, { data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }> | undefined' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>> | undefined'.       Type 'Operator<any, { data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }>' is not assignable to type 'Operator<any, AxiosResponse<unknown, unknown, {}, any>>'.         Type '{ data: { creditsDebited: number; model: string; operation: ManagedInferenceOperation; output: { jobId: string; url: string; }; provider: ManagedInferenceProvider; }; }' is missing the following properties from type 'AxiosResponse<unknown, unknown, {}, any>': status, statusText, headers, config",
       "workspace": "server"
@@ -3435,7 +3435,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/services/activity-update.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/activity-update.service.spec.ts",
       "fingerprint": "5de4240d13c01ff867a2",
       "message": "Argument of type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'ActivitiesService'.   Type '{ findByActionValue: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; }' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 30 more.",
       "workspace": "server"
@@ -3443,7 +3443,7 @@
     {
       "code": 2304,
       "count": 5,
-      "file": "apps/server/server/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
       "fingerprint": "26c5e9fbf961f888dbde",
       "message": "Cannot find name 'IngredientEntity'.",
       "workspace": "server"
@@ -3451,7 +3451,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
       "fingerprint": "71e71373e6abace9cac5",
       "message": "Argument of type 'Record<string, Mock<Procedure | Constructable>>' is not assignable to parameter of type 'ActivitiesService'.   Type 'Record<string, Mock<Procedure | Constructable>>' is missing the following properties from type 'ActivitiesService': prisma, logger, streaksService, handleCreditsActivity, and 33 more.",
       "workspace": "server"
@@ -3459,7 +3459,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
       "fingerprint": "1b2862cdde1f2e82d8ba",
       "message": "Object literal may only specify known properties, and 'processVideo' does not exist in type '{ add: Mock<Procedure | Constructable>; getJobs: Mock<Procedure | Constructable>; }'.",
       "workspace": "server"
@@ -3467,7 +3467,7 @@
     {
       "code": 2353,
       "count": 2,
-      "file": "apps/server/server/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/auto-merge.service.spec.ts",
       "fingerprint": "f7eecfad8a5c1f77b079",
       "message": "Object literal may only specify known properties, and 'patch' does not exist in type '{ findAll: Mock<Procedure | Constructable>; create: Mock<Procedure | Constructable>; findOne: Mock<Procedure | Constructable>; }'.",
       "workspace": "server"
@@ -3475,7 +3475,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/services/metadata-lookup.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/services/metadata-lookup.service.spec.ts",
       "fingerprint": "633f2d989cac856a02f1",
       "message": "Argument of type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is not assignable to parameter of type 'MetadataService'.   Type '{ findOne: Mock<Procedure | Constructable>; patch: Mock<Procedure | Constructable>; }' is missing the following properties from type 'MetadataService': prisma, logger, constructorName, create, and 25 more.",
       "workspace": "server"
@@ -3483,7 +3483,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "2940d2e448137e5b3d6a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3491,7 +3491,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "439dd904cfc61443d399",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3499,7 +3499,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "4e5ac566883479d931cb",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3507,7 +3507,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "51555a40b3dd5494b7b7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3515,7 +3515,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "6cff2015033237a725e4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3523,7 +3523,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "8034e2e3382df1af1e0c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3531,7 +3531,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "85cf06fe2cb1b78116e6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3539,7 +3539,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "927e16ffbd48cf97882a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3547,7 +3547,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "9d7bef6055a78ae150a4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3555,7 +3555,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "b1f063c1964625ae833d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3563,7 +3563,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "b6d8cfaa2afa49182164",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3571,7 +3571,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "c345babf26f69e48d017",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3579,7 +3579,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "dbb3f077549df8f2b90b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3587,7 +3587,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.spec.ts",
+      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
       "fingerprint": "fc4ab7d06fafd4a22a9a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3595,7 +3595,7 @@
     {
       "code": 2339,
       "count": 2,
-      "file": "apps/server/server/src/helpers/decorators/log/log-method.decorator.spec.ts",
+      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
       "fingerprint": "d7f8ea18b305818583bd",
       "message": "Property 'verbose' does not exist on type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
       "workspace": "server"
@@ -3603,7 +3603,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/helpers/decorators/log/log-method.decorator.spec.ts",
+      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
       "fingerprint": "ea0f25cba6979f334ccc",
       "message": "Property 'verbose' does not exist on type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
       "workspace": "server"
@@ -3611,7 +3611,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/helpers/decorators/log/log-method.decorator.spec.ts",
+      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
       "fingerprint": "e938a48400fe3eca22e3",
       "message": "Object literal may only specify known properties, and 'verbose' does not exist in type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }'.",
       "workspace": "server"
@@ -3619,7 +3619,7 @@
     {
       "code": 2540,
       "count": 3,
-      "file": "apps/server/server/src/helpers/decorators/log/log-method.decorator.spec.ts",
+      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
       "fingerprint": "4c8b07e16096feba538a",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "server"
@@ -3627,7 +3627,7 @@
     {
       "code": 2540,
       "count": 3,
-      "file": "apps/server/server/src/helpers/decorators/log/log-method.decorator.spec.ts",
+      "file": "apps/server/api/src/helpers/decorators/log/log-method.decorator.spec.ts",
       "fingerprint": "50a10f94e35c6f36bef8",
       "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
       "workspace": "server"
@@ -3635,7 +3635,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/helpers/utils/entity-id/entity-id.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
       "fingerprint": "86b685b0c92b2907de50",
       "message": "Argument of type '{ organizationId: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'id' is missing in type '{ organizationId: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
       "workspace": "server"
@@ -3643,7 +3643,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/entity-id/entity-id.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
       "fingerprint": "ec8ad92adc7c8893d588",
       "message": "Argument of type '{ id: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'organizationId' is missing in type '{ id: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
       "workspace": "server"
@@ -3651,7 +3651,7 @@
     {
       "code": 18046,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/error-response/error-response.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/error-response/error-response.util.spec.ts",
       "fingerprint": "292d1c8114362a213761",
       "message": "'ex' is of type 'unknown'.",
       "workspace": "server"
@@ -3659,7 +3659,7 @@
     {
       "code": 18046,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/error-response/error-response.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/error-response/error-response.util.spec.ts",
       "fingerprint": "332b61233230d76e0792",
       "message": "'ex' is of type 'unknown'.",
       "workspace": "server"
@@ -3667,7 +3667,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/prompt-parser/prompt-parser.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/prompt-parser/prompt-parser.util.spec.ts",
       "fingerprint": "dffec752f44682bb59d7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3675,7 +3675,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "07908c91e31e96c3b2df",
       "message": "Type 'number' is not assignable to type 'string'.",
       "workspace": "server"
@@ -3683,7 +3683,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "2ff2f499e408a0d483f2",
       "message": "Argument of type 'null' is not assignable to parameter of type 'string'.",
       "workspace": "server"
@@ -3691,7 +3691,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "8f0d1143039c32f25764",
       "message": "Argument of type 'string' is not assignable to parameter of type 'number'.",
       "workspace": "server"
@@ -3699,7 +3699,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "9f7a3aabf6db69cce362",
       "message": "Argument of type 'null' is not assignable to parameter of type 'string'.",
       "workspace": "server"
@@ -3707,7 +3707,7 @@
     {
       "code": 2503,
       "count": 3,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "24209fbd08fb6242a739",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3715,7 +3715,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "2ab084b9bdf67b5a2871",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3723,7 +3723,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "c0415ae61112d72bbdb6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3731,7 +3731,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/helpers/utils/security/security.util.spec.ts",
+      "file": "apps/server/api/src/helpers/utils/security/security.util.spec.ts",
       "fingerprint": "c14c2266429f6187d460",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3739,7 +3739,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/queues/core/queue.service.spec.ts",
+      "file": "apps/server/api/src/queues/core/queue.service.spec.ts",
       "fingerprint": "63ffcdc0bd148e92b802",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3747,7 +3747,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/ads-gateway/adapters/meta-ads.adapter.spec.ts",
+      "file": "apps/server/api/src/services/ads-gateway/adapters/meta-ads.adapter.spec.ts",
       "fingerprint": "423335142b7018ccc824",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3755,7 +3755,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/ads-gateway/ads-gateway.service.spec.ts",
+      "file": "apps/server/api/src/services/ads-gateway/ads-gateway.service.spec.ts",
       "fingerprint": "498293c5f3bdf179fde4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3763,7 +3763,7 @@
     {
       "code": 2349,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-campaign/agent-message-bus.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "40d2c76ea9b816f5ea62",
       "message": "This expression is not callable.   Type 'never' has no call signatures.",
       "workspace": "server"
@@ -3771,7 +3771,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-campaign/agent-message-bus.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "75f8731c08b0c5dd43ad",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3779,7 +3779,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-campaign/agent-message-bus.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "9011b8b71fafa4e6c914",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3787,7 +3787,7 @@
     {
       "code": 7006,
       "count": 2,
-      "file": "apps/server/server/src/services/agent-campaign/agent-message-bus.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-campaign/agent-message-bus.service.spec.ts",
       "fingerprint": "3a9fdaf2326302aca19b",
       "message": "Parameter '_channel' implicitly has an 'any' type.",
       "workspace": "server"
@@ -3795,7 +3795,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-context-assembly/agent-context-assembly.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-context-assembly/agent-context-assembly.service.spec.ts",
       "fingerprint": "725d4fb63ad3d379e33c",
       "message": "Expected 9 arguments, but got 8.",
       "workspace": "server"
@@ -3803,7 +3803,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "1383a25275a07c281377",
       "message": "Type '\"analytics_card\"' is not assignable to type 'AgentUiActionType'.",
       "workspace": "server"
@@ -3811,7 +3811,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "47bb4b7c96af8fcffefc",
       "message": "Argument of type '{ data: { href: string; url: string; }; success: true; }' is not assignable to parameter of type 'AgentToolResult'.   Property 'creditsUsed' is missing in type '{ data: { href: string; url: string; }; success: true; }' but required in type 'AgentToolResult'.",
       "workspace": "server"
@@ -3819,7 +3819,7 @@
     {
       "code": 2353,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "e6f62c46cca283a0df89",
       "message": "Object literal may only specify known properties, and 'ctaHref' does not exist in type 'AgentUiActionCta'.",
       "workspace": "server"
@@ -3827,7 +3827,7 @@
     {
       "code": 2741,
       "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "8653249afdaea6cbb129",
       "message": "Property 'id' is missing in type '{ ctas: { href: string; label: string; }[]; title: string; type: \"oauth_connect_card\"; }' but required in type 'AgentUiAction'.",
       "workspace": "server"
@@ -3835,7 +3835,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "5ecb65a149970949664d",
       "message": "Property 'brandId' does not exist on type '{ organizationId: string; userId: string; }'.",
       "workspace": "server"
@@ -3843,7 +3843,7 @@
     {
       "code": 18046,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "217af3ddda2e1cce57a3",
       "message": "'result.data.inputs' is of type 'unknown'.",
       "workspace": "server"
@@ -3851,7 +3851,7 @@
     {
       "code": 18046,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "aff0eb8b0d7b83ebea5d",
       "message": "'result.data.workflows' is of type 'unknown'.",
       "workspace": "server"
@@ -3859,7 +3859,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "074a0d3ca850d1358430",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3867,7 +3867,7 @@
     {
       "code": 18048,
       "count": 3,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "125d64ce0b606d0d6925",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3875,7 +3875,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "18144280a2eb2137ca2b",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3883,7 +3883,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "5ff242cc84a5b56e3039",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3891,7 +3891,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "67ee5a2684e4631b54a7",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3899,7 +3899,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "9d14a919abfdfd2ddb13",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3907,7 +3907,7 @@
     {
       "code": 18048,
       "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "ba8fc74ef88ce88cd611",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3915,7 +3915,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "c2da37fb9137bfb9941c",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3923,7 +3923,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.spec.ts",
       "fingerprint": "e21cee97baf5e7922bb3",
       "message": "'result.data' is possibly 'undefined'.",
       "workspace": "server"
@@ -3931,7 +3931,7 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-spawn/agent-spawn.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-spawn/agent-spawn.service.spec.ts",
       "fingerprint": "ab6370219f1b2d23064e",
       "message": "Conversion of type 'AgentSpawnService' to type '{ orchestratorService?: unknown; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'orchestratorService' is private in type 'AgentSpawnService' but not in type '{ orchestratorService?: unknown; }'.",
       "workspace": "server"
@@ -3939,7 +3939,7 @@
     {
       "code": 2322,
       "count": 5,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "bf7ca759c4538d601d3f",
       "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"running\" | \"idle\" | \"waiting_input\"'.",
       "workspace": "server"
@@ -3947,7 +3947,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "f9befb4fda144526cb8f",
       "message": "Type '\"active\"' is not assignable to type '\"completed\" | \"failed\" | \"cancelled\" | \"running\" | \"idle\" | \"waiting_input\"'.",
       "workspace": "server"
@@ -3955,7 +3955,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "3fed55c00f659581a130",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3963,7 +3963,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.spec.ts",
       "fingerprint": "a144cf1cd8f2cb84df70",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3971,7 +3971,7 @@
     {
       "code": 2503,
       "count": 3,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
       "fingerprint": "07f653d5752832bf7774",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3979,7 +3979,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
       "fingerprint": "1297fbdc3d5d51d1f535",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3987,7 +3987,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.spec.ts",
       "fingerprint": "bf63b0ee705dcdb33a31",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -3995,7 +3995,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/api-key/api-key-helper.providers.spec.ts",
+      "file": "apps/server/api/src/services/api-key/api-key-helper.providers.spec.ts",
       "fingerprint": "7e663e269b7f0b30d6d9",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4003,7 +4003,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/api-key/api-key-helper.providers.spec.ts",
+      "file": "apps/server/api/src/services/api-key/api-key-helper.providers.spec.ts",
       "fingerprint": "f004a5e3066d60dd94cf",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4011,7 +4011,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/avatar-video/avatar-video.service.spec.ts",
+      "file": "apps/server/api/src/services/avatar-video/avatar-video.service.spec.ts",
       "fingerprint": "2194316f567cffa4888c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4019,7 +4019,7 @@
     {
       "code": 2503,
       "count": 6,
-      "file": "apps/server/server/src/services/avatar-video/avatar-video.service.spec.ts",
+      "file": "apps/server/api/src/services/avatar-video/avatar-video.service.spec.ts",
       "fingerprint": "73a048f626d093e5b86a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4027,7 +4027,7 @@
     {
       "code": 2741,
       "count": 2,
-      "file": "apps/server/server/src/services/avatar-video/providers/musetalk-avatar.provider.spec.ts",
+      "file": "apps/server/api/src/services/avatar-video/providers/musetalk-avatar.provider.spec.ts",
       "fingerprint": "381cbd6d249980b75d70",
       "message": "Property 'callbackId' is missing in type '{ avatarId: string; language: string; organizationId: string; script: string; userId: string; voiceId: string; }' but required in type 'AvatarVideoJobInput'.",
       "workspace": "server"
@@ -4035,7 +4035,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
       "fingerprint": "c2d66f9b93e4b0fc069c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4043,7 +4043,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
       "fingerprint": "d90027f4c9374e334c35",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4051,7 +4051,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/discord-bot.adapter.spec.ts",
       "fingerprint": "f66f912bb11480886d98",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4059,7 +4059,7 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
       "fingerprint": "4e73f2484386644543c2",
       "message": "Conversion of type 'string' to type 'BotResponseType' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.",
       "workspace": "server"
@@ -4067,7 +4067,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
       "fingerprint": "05be7b0e6581c2219e66",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4075,7 +4075,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
       "fingerprint": "bb2a7ea807b98eb5df9f",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4083,7 +4083,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/slack-bot.adapter.spec.ts",
       "fingerprint": "ef472fcfa315a28cffaa",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4091,7 +4091,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
       "fingerprint": "8e8eabb9f5cb04d896ab",
       "message": "Property 'DEFERRED' does not exist on type 'typeof BotResponseType'.",
       "workspace": "server"
@@ -4099,7 +4099,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
       "fingerprint": "da055684aa03e62413f3",
       "message": "Property 'DEFERRED' does not exist on type 'typeof BotResponseType'.",
       "workspace": "server"
@@ -4107,7 +4107,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
       "fingerprint": "3613adab40df9340d2ba",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4115,7 +4115,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
       "fingerprint": "6cac402ca437687d728e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4123,7 +4123,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/adapters/telegram-bot.adapter.spec.ts",
       "fingerprint": "bfa82b319eb5337bdba7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4131,7 +4131,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
       "fingerprint": "0b2021d3887a27c5febb",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4139,7 +4139,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
       "fingerprint": "2b600ca456e631c5a47a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4147,7 +4147,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
+      "file": "apps/server/api/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
       "fingerprint": "adac639f97e6d4d0a1a3",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4155,7 +4155,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "1bac632c8430722ae4cd",
       "message": "'result.valuePropositions' is possibly 'undefined'.",
       "workspace": "server"
@@ -4163,7 +4163,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "30e295f3159a02a5e3ed",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4171,7 +4171,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "50394cf9e9852ab5eaea",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4179,7 +4179,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "601931270479fc8909e7",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4187,7 +4187,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "71436c1f50bd01930818",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4195,7 +4195,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "71c16787e9ccd80c2941",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4203,7 +4203,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/brand-scraper/brand-scraper.service.spec.ts",
+      "file": "apps/server/api/src/services/brand-scraper/brand-scraper.service.spec.ts",
       "fingerprint": "71c89c0981388434819f",
       "message": "'result.socialLinks' is possibly 'undefined'.",
       "workspace": "server"
@@ -4211,7 +4211,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/services/byok/byok-provider-factory.service.spec.ts",
+      "file": "apps/server/api/src/services/byok/byok-provider-factory.service.spec.ts",
       "fingerprint": "b5a0b44dfd5a63c1ae43",
       "message": "Argument of type '(key: string) => \"\" | \"https://api.genfeed.ai\" | \"gf_live_managed\" | undefined' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
       "workspace": "server"
@@ -4219,7 +4219,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache-client.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache-client.service.spec.ts",
       "fingerprint": "683d4bdff093ef1011cf",
       "message": "Argument of type '(c: [string]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'c' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string]'.       Target requires 1 element(s) but source may have fewer.",
       "workspace": "server"
@@ -4227,7 +4227,7 @@
     {
       "code": 2769,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache-client.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache-client.service.spec.ts",
       "fingerprint": "38eb846e2d552443d53a",
       "message": "No overload matches this call.   Overload 1 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => value is any[], thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(call: [string, (...args: unknown[]) => void]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => value is any[]'.       Types of parameters 'call' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, (...args: unknown[]) => void]'.           Target requires 2 element(s) but source may have fewer.   Overload 2 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => unknown, thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(call: [string, (...args: unknown[]) => void]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => unknown'.       Types of parameters 'call' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, (...args: unknown[]) => void]'.           Target requires 2 element(s) but source may have fewer.",
       "workspace": "server"
@@ -4235,7 +4235,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "0085bbd7c06bd54c82ce",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4243,7 +4243,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "0d3bc581dcdf796c8b80",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4251,7 +4251,7 @@
     {
       "code": 2503,
       "count": 2,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "810d85f6655d5722172b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4259,7 +4259,7 @@
     {
       "code": 2503,
       "count": 2,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "b653acb83e78c49c0a9a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4267,7 +4267,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "d22f38e89ed5e1b49096",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4275,7 +4275,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/cache/cache.service.spec.ts",
+      "file": "apps/server/api/src/services/cache/cache.service.spec.ts",
       "fingerprint": "d28a505ab0a6f971f937",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4283,7 +4283,7 @@
     {
       "code": 2339,
       "count": 3,
-      "file": "apps/server/server/src/services/content-engine/content-execution.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-execution.service.spec.ts",
       "fingerprint": "6dd76fe40ed33259c6bd",
       "message": "Property 'id' does not exist on type '{ _id: string; pipelineSteps: never[]; plan: string; platforms: string[]; prompt: string; skillSlug: string; topic: string; type: ContentPlanItemType; }'.",
       "workspace": "server"
@@ -4291,7 +4291,7 @@
     {
       "code": 2339,
       "count": 3,
-      "file": "apps/server/server/src/services/content-engine/content-execution.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-execution.service.spec.ts",
       "fingerprint": "bc03c23cb10d00f40a77",
       "message": "Property 'id' does not exist on type '{ _id: string; pipelineSteps: never[]; plan: string; platforms: string[]; prompt: string; skillSlug: string; topic: string; type: ContentPlanItemType; }'.",
       "workspace": "server"
@@ -4299,7 +4299,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "054edb92adf832b3de1e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4307,7 +4307,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "134a150076dd1fccebda",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4315,7 +4315,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "24658721e0d8328e3b6c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4323,7 +4323,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "368673c0b68e3b85d67c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4331,7 +4331,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "3bfa6cdc67d5d1af98d2",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4339,7 +4339,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "4b8d7293875eade545eb",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4347,7 +4347,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "7e85c248a158aa78a373",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4355,7 +4355,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "86473a56e976ad533883",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4363,7 +4363,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "cbe32ab5799c1e00c8df",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4371,7 +4371,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/content-engine/content-planner.service.spec.ts",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
       "fingerprint": "fda8c2f8eff9e6745473",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4379,7 +4379,7 @@
     {
       "code": 2322,
       "count": 2,
-      "file": "apps/server/server/src/services/content-orchestration/content-orchestration.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "05b3311cd705474a0203",
       "message": "Type '\"fal\"' is not assignable to type 'ImageTaskModel | VideoTaskModel | MusicTaskModel'.",
       "workspace": "server"
@@ -4387,7 +4387,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/content-orchestration/content-orchestration.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "2659d50ff85f8b5355f1",
       "message": "Argument of type '{ brandId: string; organizationId: string; personaId: string; prompt: string; steps: { model: string; type: \"text-to-image\"; }[]; userId: string; }' is not assignable to parameter of type 'PipelineConfigV2'.   Types of property 'steps' are incompatible.     Type '{ model: string; type: \"text-to-image\"; }[]' is not assignable to type 'PipelineStep[]'.       Type '{ model: string; type: \"text-to-image\"; }' is not assignable to type 'PipelineStep'.         Type '{ model: string; type: \"text-to-image\"; }' is not assignable to type 'TextToImageStep'.           Types of property 'model' are incompatible.             Type 'string' is not assignable to type 'ImageTaskModel'.",
       "workspace": "server"
@@ -4395,7 +4395,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/services/content-orchestration/content-orchestration.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "da3c58e5c648ee7a82e8",
       "message": "Argument of type '(c: [{ name: string; }, unknown]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'c' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[{ name: string; }, unknown]'.       Target requires 2 element(s) but source may have fewer.",
       "workspace": "server"
@@ -4403,7 +4403,7 @@
     {
       "code": 2769,
       "count": 1,
-      "file": "apps/server/server/src/services/content-orchestration/content-orchestration.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "aed635d0d10ebb228133",
       "message": "No overload matches this call.   Overload 1 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => value is any[], thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(c: [{ name: string; }, unknown]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => value is any[]'.       Types of parameters 'c' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[{ name: string; }, unknown]'.           Target requires 2 element(s) but source may have fewer.   Overload 2 of 2, '(predicate: (value: any[], index: number, obj: any[][]) => unknown, thisArg?: any): any[] | undefined', gave the following error.     Argument of type '(c: [{ name: string; }, unknown]) => boolean' is not assignable to parameter of type '(value: any[], index: number, obj: any[][]) => unknown'.       Types of parameters 'c' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[{ name: string; }, unknown]'.           Target requires 2 element(s) but source may have fewer.",
       "workspace": "server"
@@ -4411,7 +4411,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/content-orchestration/content-orchestration.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/content-orchestration.service.spec.ts",
       "fingerprint": "e9e15415bfc074ba0afb",
       "message": "'stepCall' is possibly 'undefined'.",
       "workspace": "server"
@@ -4419,7 +4419,7 @@
     {
       "code": 2352,
       "count": 3,
-      "file": "apps/server/server/src/services/content-orchestration/step-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/content-orchestration/step-executor.service.spec.ts",
       "fingerprint": "6468cd758557e3d61e44",
       "message": "Conversion of type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' to type 'typeof setTimeout' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property '__promisify__' is missing in type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' but required in type 'typeof setTimeout'.",
       "workspace": "server"
@@ -4427,7 +4427,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/apify/services/apify.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/apify.service.spec.ts",
       "fingerprint": "26aaa49428e146d702b7",
       "message": "Argument of type '\"twitter\"' is not assignable to parameter of type 'Platform.YOUTUBE | Platform.INSTAGRAM | Platform.TIKTOK | Platform.TWITTER'.",
       "workspace": "server"
@@ -4435,7 +4435,7 @@
     {
       "code": 2345,
       "count": 3,
-      "file": "apps/server/server/src/services/integrations/apify/services/apify.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/apify.service.spec.ts",
       "fingerprint": "f7e20971bfa5866ed95c",
       "message": "Argument of type '\"instagram\"' is not assignable to parameter of type 'Platform.YOUTUBE | Platform.INSTAGRAM | Platform.TIKTOK | Platform.TWITTER'.",
       "workspace": "server"
@@ -4443,7 +4443,7 @@
     {
       "code": 2532,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/apify/services/modules/apify-instagram.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/modules/apify-instagram.service.spec.ts",
       "fingerprint": "ab9a143ab89b52a5a6ad",
       "message": "Object is possibly 'undefined'.",
       "workspace": "server"
@@ -4451,7 +4451,7 @@
     {
       "code": 2532,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/apify/services/modules/apify-instagram.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/modules/apify-instagram.service.spec.ts",
       "fingerprint": "d5fcad4de7bd8e9fc134",
       "message": "Object is possibly 'undefined'.",
       "workspace": "server"
@@ -4459,7 +4459,7 @@
     {
       "code": 2532,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/apify/services/modules/apify-twitter.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/modules/apify-twitter.service.spec.ts",
       "fingerprint": "e6a429ba91c9b60397d7",
       "message": "Object is possibly 'undefined'.",
       "workspace": "server"
@@ -4467,7 +4467,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/apify/services/modules/apify-youtube.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/apify/services/modules/apify-youtube.service.spec.ts",
       "fingerprint": "832a3530db75dd4ca862",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4475,7 +4475,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
       "fingerprint": "11cafcd8b3bd4f7d613d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4483,7 +4483,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
       "fingerprint": "440d8cf6372226375d2c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4491,7 +4491,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
       "fingerprint": "5c98047bc89844ddede2",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4499,7 +4499,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/fanvue/services/fanvue.service.spec.ts",
       "fingerprint": "bf400d0f7ec76a12d80b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4507,7 +4507,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/ghost/services/ghost.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/ghost/services/ghost.service.spec.ts",
       "fingerprint": "5115f483d41dc2c8e51d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4515,7 +4515,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/llm/llm-instance.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
       "fingerprint": "0d82ed92bbcc2df2df20",
       "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
       "workspace": "server"
@@ -4523,7 +4523,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/llm/llm-instance.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
       "fingerprint": "3f38f3270a82bf09bbd0",
       "message": "Property 'mockRejectedValue' does not exist on type 'never'.",
       "workspace": "server"
@@ -4531,7 +4531,7 @@
     {
       "code": 2339,
       "count": 3,
-      "file": "apps/server/server/src/services/integrations/llm/llm-instance.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",
       "fingerprint": "ad4d9a56dbf63777e8d6",
       "message": "Property 'mockResolvedValue' does not exist on type 'never'.",
       "workspace": "server"
@@ -4539,7 +4539,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/meta-ads/services/meta-ads.service.catalog.spec.ts",
+      "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.catalog.spec.ts",
       "fingerprint": "66578af4891126816096",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4547,7 +4547,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/meta-ads/services/meta-ads.service.catalog.spec.ts",
+      "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.catalog.spec.ts",
       "fingerprint": "b40e81b6cddc96359cf9",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4555,7 +4555,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/openai-llm/services/openai-llm.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/openai-llm/services/openai-llm.service.spec.ts",
       "fingerprint": "000ae8c71fdb53998fd9",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4563,7 +4563,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/openai-llm/services/openai-llm.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/openai-llm/services/openai-llm.service.spec.ts",
       "fingerprint": "f77fbfcbac0f7a772705",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4571,7 +4571,7 @@
     {
       "code": 2741,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/beehiiv-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/beehiiv-publisher.service.spec.ts",
       "fingerprint": "83b29d7a56b065743ffe",
       "message": "Property 'organization' is missing in type '{ settings: {}; brandId: string; credential: never; isDraft: false; organizationId: string; post: never; postId: string; }' but required in type 'PublishContext'.",
       "workspace": "server"
@@ -4579,7 +4579,7 @@
     {
       "code": 2783,
       "count": 2,
-      "file": "apps/server/server/src/services/integrations/publishers/beehiiv-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/beehiiv-publisher.service.spec.ts",
       "fingerprint": "ee40d248f1e3d8536b15",
       "message": "'settings' is specified more than once, so this usage will be overwritten.",
       "workspace": "server"
@@ -4587,7 +4587,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "134d564c35da3cd4cf0d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4595,7 +4595,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "13994f3634a9dcdeeafd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4603,7 +4603,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "2426184416ad6d5037e7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4611,7 +4611,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "81b1b3f0e6f051b5f6fd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4619,7 +4619,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "945c2e62161ec724f6d0",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4627,7 +4627,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "c4150ab625fdd3c93dea",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4635,7 +4635,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "c42844061abcecbf03da",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4643,7 +4643,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/facebook-publisher.service.spec.ts",
       "fingerprint": "d6984d3d9c586ccf5259",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4651,7 +4651,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "3158fef729950579aea3",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4659,7 +4659,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "6d525a261445c273c077",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4667,7 +4667,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "744818498d9725d2e981",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4675,7 +4675,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "957d1fdb06fbe8466f52",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4683,7 +4683,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "bf931022165feab3cec6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4691,7 +4691,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "cc130ae272bbf9434500",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4699,7 +4699,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "cd77453335ba5a6cdb6a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4707,7 +4707,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "e2dd323cbffbedf93669",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4715,7 +4715,7 @@
     {
       "code": 2304,
       "count": 2,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "1ee32cecd3de02150f7e",
       "message": "Cannot find name 'CredentialEntity'.",
       "workspace": "server"
@@ -4723,7 +4723,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "1bf5b9925a7e309bd73a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4731,7 +4731,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "6d1caa663df143e3d6e6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4739,7 +4739,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "6dbc7ce7b73af6d18ce7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4747,7 +4747,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "953a38242bf6157375f9",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4755,7 +4755,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "97fb5fc378d180e1a562",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4763,7 +4763,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "b8f833cb72aac59c297e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4771,7 +4771,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "f978424fa773adaec4e0",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4779,7 +4779,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
       "fingerprint": "ff72a8af5a49b10de1bc",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4787,7 +4787,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "0e6a5068e4f33eb1762e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4795,7 +4795,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "106423124f0b198161e0",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4803,7 +4803,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "4aee4d5eed6893149ea6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4811,7 +4811,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "c2190d26c2d167462cdd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4819,7 +4819,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "e0575563122f208fb757",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4827,7 +4827,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "e19531a73a5baf2d8973",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4835,7 +4835,7 @@
     {
       "code": 2304,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "e1ce15a4d68097be6ea3",
       "message": "Cannot find name 'CredentialEntity'.",
       "workspace": "server"
@@ -4843,7 +4843,7 @@
     {
       "code": 2304,
       "count": 3,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "f5a73e25f32006d962db",
       "message": "Cannot find name 'CredentialEntity'.",
       "workspace": "server"
@@ -4851,7 +4851,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "088b216e62068634c7b7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4859,7 +4859,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "1b4d34297295565e430e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4867,7 +4867,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "31dbbbbdc4d44c1d1583",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4875,7 +4875,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "41a572e471afd8084a6a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4883,7 +4883,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "67a7ed985bb4929a57dc",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4891,7 +4891,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "87bccf757a28ed782185",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4899,7 +4899,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "a210fad8cb9f5d00f0be",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4907,7 +4907,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "a53c7f1b8ade8f1a5f75",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4915,7 +4915,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/shopify-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/shopify-publisher.service.spec.ts",
       "fingerprint": "243568f459aa4fbfbd19",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4923,7 +4923,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/shopify-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/shopify-publisher.service.spec.ts",
       "fingerprint": "5abb0f0a76dda2f50273",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4931,7 +4931,7 @@
     {
       "code": 2345,
       "count": 3,
-      "file": "apps/server/server/src/services/integrations/publishers/snapchat-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/snapchat-publisher.service.spec.ts",
       "fingerprint": "8005867cbd99d8a064cc",
       "message": "Argument of type '{ hasIngredients: false; isCarousel: false; isImagePost: false; mediaUrls: never[]; }' is not assignable to parameter of type 'MediaInfo'.   Property 'ingredientIds' is missing in type '{ hasIngredients: false; isCarousel: false; isImagePost: false; mediaUrls: never[]; }' but required in type 'MediaInfo'.",
       "workspace": "server"
@@ -4939,7 +4939,7 @@
     {
       "code": 2304,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "e6bf91d5c082eb2ab049",
       "message": "Cannot find name 'CredentialEntity'.",
       "workspace": "server"
@@ -4947,7 +4947,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "19758c45bc4d0a3512b3",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4955,7 +4955,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "44b46388cd568720d233",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4963,7 +4963,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "614caa8b9a96b87ec232",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4971,7 +4971,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "683b59d43d7fab71330f",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4979,7 +4979,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "692989be8f6fa7fbee7e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4987,7 +4987,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/tiktok-publisher.service.spec.ts",
       "fingerprint": "744fa05d88831c5ef6d5",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -4995,7 +4995,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "04a643eb71e4a8483ec5",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5003,7 +5003,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "2b1315090ca40020a096",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5011,7 +5011,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "4f09a9b3ca7facdced0c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5019,7 +5019,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "6d9a695bc6f93422999a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5027,7 +5027,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "6faa5c0285f44f1faf2b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5035,7 +5035,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "79e2e8e7018f4e6d4948",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5043,7 +5043,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "98eac8eb45b856cd509e",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5051,7 +5051,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "a53fcc33add1a6a516dd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5059,7 +5059,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "e20de462c368f06f8cde",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5067,7 +5067,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "f5f72bed0c413e1efdb3",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5075,7 +5075,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "fdd7de45e16b19ed20a1",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5083,7 +5083,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/twitter-publisher.service.spec.ts",
       "fingerprint": "ff7a87c90320cdb44fea",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5091,7 +5091,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
       "fingerprint": "0cce9eaf5e715d808c89",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5099,7 +5099,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
       "fingerprint": "1c83e998a06b73a2cc35",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5107,7 +5107,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
       "fingerprint": "1fae4a93fc3e41ca54ad",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5115,7 +5115,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/whatsapp-publisher.service.spec.ts",
       "fingerprint": "e96c7deecb899fb78e73",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5123,7 +5123,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "5ee05cf0d1cc38c00836",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5131,7 +5131,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "7bc46ea663dbcd329164",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5139,7 +5139,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "88f002d5198d16230a51",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5147,7 +5147,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "8a2c5cde15dfbb6c564b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5155,7 +5155,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "c20263a0a79999ebe7a2",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5163,7 +5163,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "ddbed41252691a6393a4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5171,7 +5171,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "e267ec118584a56bf192",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5179,7 +5179,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/publishers/youtube-publisher.service.spec.ts",
       "fingerprint": "f837d612db4bbed35a16",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5187,7 +5187,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "0ab6f2e43e2b84ffe8d6",
       "message": "Type '{ get: Mock<(key?: string) => \"\" | \"gpu-t4\" | \"private\" | \"mock-api-key\" | \"replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db\" | \"https://webhook.test\">; }' is not assignable to type 'Partial<ConfigService> & { get: vi.Mock; }'.   Type '{ get: Mock<(key?: string) => \"\" | \"gpu-t4\" | \"private\" | \"mock-api-key\" | \"replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db\" | \"https://webhook.test\">; }' is not assignable to type 'Partial<ConfigService>'.     Types of property 'get' are incompatible.       Type 'Mock<(key?: string | undefined) => \"\" | \"gpu-t4\" | \"private\" | \"mock-api-key\" | \"replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db\" | \"https://webhook.test\">' is not assignable to type '(<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]) | undefined'.         Type 'Mock<(key?: string | undefined) => \"\" | \"gpu-t4\" | \"private\" | \"mock-api-key\" | \"replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db\" | \"https://webhook.test\">' is not assignable to type '<K extends keyof ApiEnvConfig>(key: K) => ApiEnvConfig[K]'.           Types of parameters 'key' and 'key' are incompatible.             Type 'K' is not assignable to type 'string | undefined'.               Type 'keyof ApiEnvConfig' is not assignable to type 'string | undefined'.                 Type 'number' is not assignable to type 'string'.",
       "workspace": "server"
@@ -5195,7 +5195,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "975d961754eb74e87781",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5203,7 +5203,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "a947a17a71567753822f",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5211,7 +5211,7 @@
     {
       "code": 2739,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "372324e049a561acafea",
       "message": "Type '{ create: Mock<Procedure>; }' is missing the following properties from type '{ get(model_owner: string, model_name: string, options?: { signal?: AbortSignal | undefined; } | undefined): Promise<Model>; list(options?: { signal?: AbortSignal | undefined; } | undefined): Promise<...>; create(model_owner: string, model_name: string, options: { ...; }): Promise<...>; versions: { ...; }; search(qu...': get, list, versions, search",
       "workspace": "server"
@@ -5219,7 +5219,7 @@
     {
       "code": 2739,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "399d18498b47df75e01e",
       "message": "Type '{ create: Mock<Procedure>; }' is missing the following properties from type '{ create(model_owner: string, model_name: string, version_id: string, options: { destination: `${string}/${string}`; input: object; webhook?: string | undefined; webhook_events_filter?: WebhookEventType[] | undefined; signal?: AbortSignal | undefined; }): Promise<...>; get(training_id: string, options?: { ...; } | u...': get, cancel, list",
       "workspace": "server"
@@ -5227,7 +5227,7 @@
     {
       "code": 2739,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
+      "file": "apps/server/api/src/services/integrations/replicate/services/replicate.service.prompt.spec.ts",
       "fingerprint": "82dc97bc7c2bd6360219",
       "message": "Type '{ create: Mock<Procedure>; }' is missing the following properties from type '{ create(model_owner: string, model_name: string, version_id: string, options: { destination: `${string}/${string}`; input: object; webhook?: string | undefined; webhook_events_filter?: WebhookEventType[] | undefined; signal?: AbortSignal | undefined; }): Promise<...>; get(training_id: string, options?: { ...; } | u...': get, cancel, list",
       "workspace": "server"
@@ -5235,7 +5235,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/shopify/services/shopify.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/shopify/services/shopify.service.spec.ts",
       "fingerprint": "a43cfbd5f01526cf5cc4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5243,7 +5243,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "18ec7c4f976b56bb081b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5251,7 +5251,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "441968ee9a9b661ec16b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5259,7 +5259,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "65da8661006dfaec70d8",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5267,7 +5267,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "68192601175fbf190568",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5275,7 +5275,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "c3dd1a316cafef0fbf09",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5283,7 +5283,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "d1e9d22f4a9995109045",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5291,7 +5291,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "e1958218c6fb6e062e2c",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5299,7 +5299,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/snapchat/services/snapchat.service.spec.ts",
       "fingerprint": "ec26650d25850e8f6de2",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5307,7 +5307,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/stripe/services/stripe.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
       "fingerprint": "ad0c93863e0b5f9e97ea",
       "message": "'callArg' is possibly 'undefined'.",
       "workspace": "server"
@@ -5315,7 +5315,7 @@
     {
       "code": 18048,
       "count": 5,
-      "file": "apps/server/server/src/services/integrations/stripe/services/stripe.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
       "fingerprint": "b59ff2165dc3b3d181c3",
       "message": "'callArg' is possibly 'undefined'.",
       "workspace": "server"
@@ -5323,7 +5323,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/whatsapp/services/whatsapp.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/whatsapp/services/whatsapp.service.spec.ts",
       "fingerprint": "1d793837742580234d42",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5331,7 +5331,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/whatsapp/services/whatsapp.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/whatsapp/services/whatsapp.service.spec.ts",
       "fingerprint": "bfeaba307937724b2b2d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5339,7 +5339,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
       "fingerprint": "03023df37507574b0ae4",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5347,7 +5347,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
       "fingerprint": "0dbe977f3e746355c35f",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5355,7 +5355,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
       "fingerprint": "2b0378e7244ea3c8a14d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5363,7 +5363,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/wordpress/services/wordpress.service.spec.ts",
       "fingerprint": "86f9223d42620bba1240",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5371,7 +5371,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "0b68b8400afbfd2482c8",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5379,7 +5379,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "1bf5d6c2952e7c4cf2a9",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5387,7 +5387,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "80ab8a6baf2604a154e7",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5395,7 +5395,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "b8c1bf6476d8fc7bbb56",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5403,7 +5403,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "eb184616c623c3d25494",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5411,7 +5411,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/integrations/xai/services/xai.service.spec.ts",
+      "file": "apps/server/api/src/services/integrations/xai/services/xai.service.spec.ts",
       "fingerprint": "eb7b60f260657516f866",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5419,7 +5419,7 @@
     {
       "code": 18048,
       "count": 2,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "17899f06fddf44ee2c72",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5427,7 +5427,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "2fd4a3dff8f3c9fea981",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5435,7 +5435,7 @@
     {
       "code": 18048,
       "count": 2,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "3a50a18ea9a00216ed4f",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5443,7 +5443,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "7e343448517011c71dff",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5451,7 +5451,7 @@
     {
       "code": 18048,
       "count": 1,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "e40b02a7ac23daf1a048",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5459,7 +5459,7 @@
     {
       "code": 18048,
       "count": 5,
-      "file": "apps/server/server/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
       "fingerprint": "f42f199f05c1db59a714",
       "message": "'result' is possibly 'undefined'.",
       "workspace": "server"
@@ -5467,7 +5467,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "2dab27afa45e3cede40e",
       "message": "Type '{ to: string; }' is not assignable to type 'INotificationPayloadTypes'.   Type '{ to: string; }' is missing the following properties from type 'IReviewGatePendingEmailPayload': workflowId, workflowLabel, executionId, nodeId",
       "workspace": "server"
@@ -5475,7 +5475,7 @@
     {
       "code": 2322,
       "count": 2,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "b40196e7355c139831dc",
       "message": "Type '{ message: string; }' is not assignable to type 'INotificationPayloadTypes'.   Property 'chatId' is missing in type '{ message: string; }' but required in type 'IReviewGatePendingSlackPayload'.",
       "workspace": "server"
@@ -5483,7 +5483,7 @@
     {
       "code": 2322,
       "count": 4,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "c57ac08631591ab2a4c6",
       "message": "Type '{}' is not assignable to type 'INotificationPayloadTypes'.",
       "workspace": "server"
@@ -5491,7 +5491,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "11221c1f12796ae7e2ce",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5499,7 +5499,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "16c17d80847c84f58589",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5507,7 +5507,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "1c63bd4141f438eef946",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5515,7 +5515,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "28f8f1d00dc3fa78255d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5523,7 +5523,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "859c24183d7b06674418",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5531,7 +5531,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "bc5e532b753c1a58264d",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5539,7 +5539,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "deda189b2b2bd703ae8a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5547,7 +5547,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "edfbe5eef09dfc007949",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5555,7 +5555,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "ef0648106e402e639b07",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5563,7 +5563,7 @@
     {
       "code": 2503,
       "count": 12,
-      "file": "apps/server/server/src/services/notifications/notifications.service.spec.ts",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
       "fingerprint": "f7b2b32174d37157ba5a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5571,7 +5571,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
+      "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "9f48e34a0268a22d584a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5579,7 +5579,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
+      "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
       "fingerprint": "ddc18a0e75844d6a3a96",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5587,7 +5587,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "31bf3893b5ebf7ee5224",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5595,7 +5595,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "395919688139b1709271",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5603,7 +5603,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "805d9e91c822dd35362b",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5611,7 +5611,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "88dd14e7f67f4ff8e281",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5619,7 +5619,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "e75aa974c392ba7bbb28",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5627,7 +5627,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate-prompt.builder.spec.ts",
       "fingerprint": "fd4915c6e76ec5b1dbf0",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5635,7 +5635,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate/base-replicate.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/base-replicate.builder.spec.ts",
       "fingerprint": "473f6e4ceb3b1bdc7825",
       "message": "Type '{ prompt: string; }' is not assignable to type 'ReplicateInput'.   Type '{ prompt: string; }' is missing the following properties from type 'TrainedModelInput': aspect_ratio, disable_safety_checker, num_outputs, output_format, and 2 more.",
       "workspace": "server"
@@ -5643,7 +5643,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate/replicate-media.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-media.builder.spec.ts",
       "fingerprint": "56eb24688c37f75d248d",
       "message": "Property 'AUDIO' does not exist on type 'typeof ModelCategory'.",
       "workspace": "server"
@@ -5651,7 +5651,7 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
       "fingerprint": "204c9595fa3dce031981",
       "message": "Property 'thinkingLevel' does not exist on type 'Partial<PromptBuilderParams> | undefined'.",
       "workspace": "server"
@@ -5659,7 +5659,7 @@
     {
       "code": 2554,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/builders/replicate/replicate-text.builder.spec.ts",
       "fingerprint": "e3dc2f0bd9d6b1b6befb",
       "message": "Expected 1 arguments, but got 0.",
       "workspace": "server"
@@ -5667,7 +5667,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/prompt-builder/prompt-builder.service.spec.ts",
+      "file": "apps/server/api/src/services/prompt-builder/prompt-builder.service.spec.ts",
       "fingerprint": "e70fc99e0ced40d150bb",
       "message": "Argument of type '(call: [string, string?]) => string' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => string'.   Types of parameters 'call' and 'value' are incompatible.     Type 'any[]' is not assignable to type '[string, (string | undefined)?]'.       Target requires 1 element(s) but source may have fewer.",
       "workspace": "server"
@@ -5675,7 +5675,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/reply-bot/bot-action-executor.service.spec.ts",
+      "file": "apps/server/api/src/services/reply-bot/bot-action-executor.service.spec.ts",
       "fingerprint": "515349a175ebf7f812e2",
       "message": "Argument of type '{ accessTokenSecret: string; }' is not assignable to parameter of type 'IReplyBotCredentialData'.   Property 'accessToken' is missing in type '{ accessTokenSecret: string; }' but required in type 'IReplyBotCredentialData'.",
       "workspace": "server"
@@ -5683,7 +5683,7 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "apps/server/server/src/services/reply-bot/reply-candidate-prefilter.service.spec.ts",
+      "file": "apps/server/api/src/services/reply-bot/reply-candidate-prefilter.service.spec.ts",
       "fingerprint": "3372fb1fddf1ff753500",
       "message": "Conversion of type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' to type 'ReplyBotConfigDocument' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ _id: string; filters: ReplyBotFilters; organization: string; type: ReplyBotType; }' is missing the following properties from type 'ReplyBotConfigDocument': brandId, id, organizationId, createdAt, and 3 more.",
       "workspace": "server"
@@ -5691,7 +5691,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/services/reply-bot/reply-generation.service.spec.ts",
+      "file": "apps/server/api/src/services/reply-bot/reply-generation.service.spec.ts",
       "fingerprint": "1a733280b7d6480ff92b",
       "message": "Argument of type '{ context: string; customInstructions: string; length: \"short\"; organizationId: string; tone: \"professional\"; tweetAuthor: string; tweetContent: string; userId: string; }' is not assignable to parameter of type 'ReplyGenerationOptions'.   Types of property 'tone' are incompatible.     Type '\"professional\"' is not assignable to type 'ReplyTone'.",
       "workspace": "server"
@@ -5699,7 +5699,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/services/reply-bot/reply-generation.service.spec.ts",
+      "file": "apps/server/api/src/services/reply-bot/reply-generation.service.spec.ts",
       "fingerprint": "4d128f14d740444ea70c",
       "message": "Argument of type '{ length: \"short\"; organizationId: string; tone: \"professional\"; tweetAuthor: string; tweetContent: string; userId: string; }' is not assignable to parameter of type 'ReplyGenerationOptions'.   Types of property 'tone' are incompatible.     Type '\"professional\"' is not assignable to type 'ReplyTone'.",
       "workspace": "server"
@@ -5707,7 +5707,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/router/router.service.spec.ts",
+      "file": "apps/server/api/src/services/router/router.service.spec.ts",
       "fingerprint": "52489b5fc852eef2e542",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5715,7 +5715,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/router/router.service.spec.ts",
+      "file": "apps/server/api/src/services/router/router.service.spec.ts",
       "fingerprint": "e12cf17cf13e2368d3ab",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5723,7 +5723,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/services/task-queue-client/task-queue-client.service.spec.ts",
+      "file": "apps/server/api/src/services/task-queue-client/task-queue-client.service.spec.ts",
       "fingerprint": "f2e2fa621ca9de8d69d6",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5731,7 +5731,7 @@
     {
       "code": 2345,
       "count": 4,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "266ceb4b88fa9ed8cf19",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5739,7 +5739,7 @@
     {
       "code": 2345,
       "count": 5,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "673b1aca260d9c709abe",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5747,7 +5747,7 @@
     {
       "code": 2345,
       "count": 11,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "97c7e05997b7cead33b6",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5755,7 +5755,7 @@
     {
       "code": 2345,
       "count": 2,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "b9e3be9b0bfb0ad670c2",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5763,7 +5763,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "d5cd3c91364c56fd613c",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5771,7 +5771,7 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "f16c9b7b2d5daf72f369",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5779,7 +5779,7 @@
     {
       "code": 2345,
       "count": 6,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "f92e184d6fb5e53539f8",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
       "workspace": "server"
@@ -5787,7 +5787,7 @@
     {
       "code": 2558,
       "count": 1,
-      "file": "apps/server/server/src/shared/services/base/base.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "0be1c8a12a1f4bcf7ecd",
       "message": "Expected 0-1 type arguments, but got 2.",
       "workspace": "server"
@@ -5795,7 +5795,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/shared/services/failed-generation/failed-generation.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/failed-generation/failed-generation.service.spec.ts",
       "fingerprint": "2b84b900407a58d388dd",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"
@@ -5803,7 +5803,7 @@
     {
       "code": 2503,
       "count": 1,
-      "file": "apps/server/server/src/shared/services/failed-generation/failed-generation.service.spec.ts",
+      "file": "apps/server/api/src/shared/services/failed-generation/failed-generation.service.spec.ts",
       "fingerprint": "c16d4ae12029538fbf5a",
       "message": "Cannot find namespace 'vi'.",
       "workspace": "server"

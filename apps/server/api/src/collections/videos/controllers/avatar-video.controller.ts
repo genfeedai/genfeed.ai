@@ -1,4 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -19,11 +24,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateAvatarVideoDto } from '@server/collections/videos/dto/create-avatar-video.dto';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()

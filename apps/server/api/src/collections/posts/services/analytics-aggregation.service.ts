@@ -19,15 +19,15 @@ import type {
   ViewsByDateRow,
 } from '@api/collections/posts/services/analytics-aggregation.types';
 import { PostAnalyticsProjection } from '@api/collections/posts/services/post-analytics.projection';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { DateRangeUtil } from '@server/helpers/utils/date-range/date-range.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import {
   Prisma,
   CredentialPlatform as PrismaCredentialPlatform,
 } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type {

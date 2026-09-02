@@ -2,11 +2,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, value) => ({ data: value })),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PublicYoutubeLongFormToolSerializer } from '@genfeedai/serializers';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
 

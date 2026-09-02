@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatchStreakDto } from '@api/collections/streaks/dto/patch-streak.dto';
 import { StreakCalendarQueryDto } from '@api/collections/streaks/dto/streak-calendar-query.dto';
-import { StreaksService } from '@server/collections/streaks/services/streaks.service';
+import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {

@@ -10,11 +10,11 @@ import type {
   AgentEndpointInvocation,
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource, MemberRole, PlatformRole } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { IsString } from 'class-validator';
 
 const ORGANIZATION_ID = testId('org');

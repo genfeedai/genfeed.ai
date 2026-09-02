@@ -39,17 +39,17 @@ process.env.PORT ??= '3010';
 // is constructed so values written by one path decrypt correctly via the other.
 process.env.TOKEN_ENCRYPTION_KEY ??= 'test-encryption-key-for-publish-flow-e2e';
 
-import type { CreateCredentialDto } from '@server/collections/credentials/dto/create-credential.dto';
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { GhostService } from '@server/services/integrations/ghost/services/ghost.service';
-import { GhostPublisherService } from '@server/services/integrations/publishers/ghost-publisher.service';
-import type { PublishContext } from '@server/services/integrations/publishers/interfaces/publisher.interface';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
+import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestOrganization,

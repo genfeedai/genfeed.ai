@@ -19,14 +19,14 @@ The generation story in the current repo spans a small set of stable entrypoints
 - [`apps/server/api/src/services/batch-generation/batch-generation.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.controller.ts)
   - exposes the stable batch entrypoints under `batches`
   - routes create/process/review operations into the service layer
-- [`apps/server/server/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/batch-generation/batch-generation.service.ts)
+- [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
 - `packages/actions/src/registry/source/index.ts`
   - defines the canonical agent-visible generation tools
 - `packages/actions/src/registry/tool-registry.ts`
   - assigns generation tool categories and UI action cards
-- [`apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
+- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
   - dispatches generation tools to the internal media APIs
 - [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
   - discovers models from verified Replicate owners into an inactive review queue
@@ -62,10 +62,10 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 | Layer              | Files                                                                                         | Responsibility                                                                           |
 | ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Tool metadata      | `packages/actions/src/registry/source/index.ts`, `packages/actions/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
-| Agent dispatch     | `apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
+| Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
 | Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
-| Skill execution    | `apps/server/server/src/services/skill-executor/*`                                            | Runs content skills such as `image-generation` through immutable canonical workflows     |
-| Provider access    | `apps/server/server/src/services/byok/*`                                                      | Resolves organization BYOK keys before hosted fallback                                   |
+| Skill execution    | `apps/server/api/src/services/skill-executor/*`                                            | Runs content skills such as `image-generation` through immutable canonical workflows     |
+| Provider access    | `apps/server/api/src/services/byok/*`                                                      | Resolves organization BYOK keys before hosted fallback                                   |
 | Provider adapters  | `apps/server/api/src/services/integrations/*`                                                | Call Replicate, fal.ai, Leonardo, ElevenLabs, OpenRouter, and related provider surfaces   |
 | Registry/discovery | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`                   | Creates reviewed Replicate catalog candidates without auto-activation                    |
 
@@ -86,8 +86,8 @@ flowchart LR
 
 Two specs carry the representative media verification path:
 
-- [`apps/server/server/src/services/skill-executor/skill-executor.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/skill-executor/skill-executor.service.spec.ts) covers workflow dispatch
-- [`apps/server/server/src/services/skill-executor/handlers/image-generation.handler.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/skill-executor/handlers/image-generation.handler.spec.ts) covers the representative image path
+- [`apps/server/api/src/services/skill-executor/skill-executor.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/skill-executor.service.spec.ts) covers workflow dispatch
+- [`apps/server/api/src/services/skill-executor/handlers/image-generation.handler.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/handlers/image-generation.handler.spec.ts) covers the representative image path
 
 Both use mocked provider services so they run in CI without live credentials, but they keep the production service wiring.
 
@@ -107,7 +107,7 @@ Both use mocked provider services so they run in CI without live credentials, bu
 Run them with:
 
 ```bash
-cd apps/server/server
+cd apps/server/api
 TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor
 ```
 

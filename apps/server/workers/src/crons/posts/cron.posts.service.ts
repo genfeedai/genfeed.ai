@@ -1,7 +1,7 @@
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 

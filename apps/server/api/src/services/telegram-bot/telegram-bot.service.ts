@@ -15,6 +15,8 @@
  */
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { TelegramAuthContextService } from '@api/services/telegram-bot/telegram-auth-context.service';
 import {
   TELEGRAM_BOT_CONSTANTS,
@@ -28,6 +30,7 @@ import {
   toTelegramSystemWorkflowDefinition,
 } from '@api/services/telegram-bot/telegram-workflow-loader';
 import { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -36,9 +39,6 @@ import {
   type OnModuleInit,
   Optional,
 } from '@nestjs/common';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Bot, type Context } from 'grammy';
 
 @Injectable()

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   AuthorReplyDraftDto,
   AuthorReplyInboxQueryDto,
@@ -5,13 +6,20 @@ import {
   EnsureAuthorResponderDto,
   SchedulePostWatchDto,
 } from '@api/collections/reply-bot-configs/dto/author-reply-loop.dto';
+import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
+import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
+import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
@@ -28,14 +36,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
-import { UpdateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
-import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 import type { Request } from 'express';
 
 @ApiTags('Reply Bot Configs')

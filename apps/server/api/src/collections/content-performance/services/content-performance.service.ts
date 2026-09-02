@@ -1,0 +1,514 @@
+import { CreateContentPerformanceDto } from '@api/collections/content-performance/dto/create-content-performance.dto';
+import { ImportCsvDto } from '@api/collections/content-performance/dto/import-csv.dto';
+import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
+import { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
+import { QueryContentPerformanceDto } from '@api/collections/content-performance/dto/query-content-performance.dto';
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+const CONTENT_PERFORMANCE_SCALAR_FIELDS = [
+  'brandId',
+  'comments',
+  'contentRunId',
+  'contentType',
+  'cycleNumber',
+  'engagementRate',
+  'externalPostId',
+  'generationId',
+  'isDeleted',
+  'likes',
+  'measuredAt',
+  'organizationId',
+  'performanceScore',
+  'platform',
+  'postId',
+  'revenue',
+  'saves',
+  'shares',
+  'source',
+  'userId',
+  'variantId',
+  'views',
+  'workflowExecutionId',
+] as const satisfies readonly (keyof ContentPerformanceDocument)[];
+
+const CONTENT_PERFORMANCE_DATA_FIELDS = [
+  'clicks',
+  'hookUsed',
+  'promptUsed',
+] as const satisfies readonly (keyof ContentPerformanceDocument)[];
+
+type ContentPerformanceDomainField =
+  (typeof CONTENT_PERFORMANCE_DATA_FIELDS)[number];
+
+type ContentPerformanceWriteInput = Omit<
+  Prisma.ContentPerformanceUncheckedCreateInput,
+  'data'
+> &
+  Partial<Pick<ContentPerformanceDocument, ContentPerformanceDomainField>>;
+
+@Injectable()
+export class ContentPerformanceService extends BaseService<
+  ContentPerformanceDocument,
+  Prisma.ContentPerformanceUncheckedCreateInput,
+  Prisma.ContentPerformanceUncheckedUpdateInput,
+  Prisma.ContentPerformanceWhereInput
+> {
+  constructor(
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
+  ) {
+    super(prisma, 'contentPerformance', logger);
+  }
+
+  protected override normalizeDocument(
+    document: unknown,
+  ): ContentPerformanceDocument {
+    const record = super.normalizeDocument(document) as unknown as Record<
+      string,
+      unknown
+    >;
+    const persistedData = this.readRecord(record.data);
+    const domainData = pickDefinedFields(
+      persistedData,
+      CONTENT_PERFORMANCE_DATA_FIELDS,
+    );
+
+    return { ...domainData, ...record } as ContentPerformanceDocument;
+  }
+
+  private toPersistenceData(
+    input: ContentPerformanceWriteInput,
+  ): Prisma.ContentPerformanceUncheckedCreateInput {
+    const domainData = pickDefinedFields(
+      input,
+      CONTENT_PERFORMANCE_DATA_FIELDS,
+    );
+
+    return {
+      ...pickDefinedFields(input, CONTENT_PERFORMANCE_SCALAR_FIELDS),
+      ...(Object.keys(domainData).length > 0
+        ? { data: domainData as Prisma.InputJsonObject }
+        : {}),
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private toCredentialPlatform(platform?: string): string | undefined {
+    // Canonical platform values are lowercase (Post.platform is now a String column
+    // storing the lowercase code-enum value); normalise so equality filters match.
+    return platform ? platform.toLowerCase() : undefined;
+  }
+
+  /**
+   * Create a content performance record
+   */
+  async createPerformance(
+    dto: CreateContentPerformanceDto,
+    organizationId: string,
+    userId: string,
+  ): Promise<ContentPerformanceDocument> {
+    const data = this.toPersistenceData({
+      brandId: dto.brandId,
+      clicks: dto.clicks,
+      comments: dto.comments,
+      contentType: dto.contentType,
+      cycleNumber: dto.cycleNumber,
+      engagementRate: dto.engagementRate ?? this.computeEngagementRate(dto),
+      externalPostId: dto.externalPostId,
+      generationId: dto.generationId,
+      hookUsed: dto.hookUsed,
+      likes: dto.likes,
+      measuredAt: new Date(dto.measuredAt),
+      organizationId,
+      performanceScore:
+        dto.performanceScore ?? this.computePerformanceScore(dto),
+      platform: dto.platform,
+      postId: dto.postId,
+      promptUsed: dto.promptUsed,
+      revenue: dto.revenue,
+      saves: dto.saves,
+      shares: dto.shares,
+      source: dto.source,
+      userId,
+      views: dto.views,
+      workflowExecutionId: dto.workflowExecutionId ?? undefined,
+    });
+
+    return this.create(data);
+  }
+
+  /**
+   * Bulk import from manual CSV/screenshot input
+   */
+  async bulkManualImport(
+    dto: ManualInputDto,
+    organizationId: string,
+    userId: string,
+  ): Promise<ContentPerformanceDocument[]> {
+    if (dto.brandId) {
+      const brand = await this.prisma.brand.findFirst({
+        where: scopedWhere(organizationId, { id: dto.brandId }),
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          'Brand not found or does not belong to this organization',
+        );
+      }
+    }
+
+    const records = dto.entries.map((entry) =>
+      this.toPersistenceData({
+        brandId: dto.brandId,
+        clicks: entry.clicks,
+        comments: entry.comments,
+        contentType: entry.contentType,
+        engagementRate: this.computeEngagementRate(entry),
+        externalPostId: entry.externalPostId,
+        generationId: entry.generationId,
+        likes: entry.likes,
+        measuredAt: new Date(entry.measuredAt),
+        organizationId,
+        performanceScore: this.computePerformanceScore(entry),
+        platform: entry.platform,
+        postId: entry.postId,
+        revenue: entry.revenue,
+        saves: entry.saves,
+        shares: entry.shares,
+        source: PerformanceSource.MANUAL,
+        userId,
+        views: entry.views,
+      }),
+    );
+
+    const created = await Promise.all(
+      records.map((r) => this.delegate.create({ data: r })),
+    );
+
+    return this.normalizeDocuments(created);
+  }
+
+  /**
+   * Import CSV-style bulk metrics, matching to existing posts by externalPostId + platform
+   */
+  async importCsv(
+    dto: ImportCsvDto,
+    organizationId: string,
+    userId: string,
+  ): Promise<{
+    imported: number;
+    matched: number;
+    errors: Array<{ index: number; message: string }>;
+  }> {
+    const errors: Array<{ index: number; message: string }> = [];
+    const records: ContentPerformanceWriteInput[] = [];
+    let matched = 0;
+
+    let validatedBrandId: string | undefined;
+    if (dto.brandId) {
+      const brand = await this.prisma.brand.findFirst({
+        where: scopedWhere(organizationId, { id: dto.brandId }),
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          'Brand not found or does not belong to this organization',
+        );
+      }
+      validatedBrandId = dto.brandId;
+    }
+
+    const postMatchConditions = dto.entries
+      .filter((e) => e.externalPostId && e.platform)
+      .map((e) => ({
+        externalId: e.externalPostId,
+        platform: this.toCredentialPlatform(e.platform),
+      }));
+
+    const matchedPosts =
+      postMatchConditions.length > 0
+        ? await this.prisma.post.findMany({
+            where: scopedWhere(organizationId, {
+              OR: postMatchConditions.map((c) => ({
+                externalId: c.externalId,
+                platform: c.platform,
+              })),
+            }),
+          })
+        : [];
+
+    const postLookup = new Map(
+      matchedPosts.map((p) => [`${p.externalId}::${p.platform}`, p]),
+    );
+
+    for (let i = 0; i < dto.entries.length; i++) {
+      const entry = dto.entries[i];
+
+      try {
+        const post =
+          postLookup.get(`${entry.externalPostId}::${entry.platform}`) ?? null;
+
+        if (post) {
+          matched++;
+        }
+
+        records.push(
+          this.toPersistenceData({
+            brandId: post?.brandId ?? validatedBrandId ?? undefined,
+            comments: entry.comments ?? 0,
+            contentType: mapPostCategoryToContentType(post?.category),
+            engagementRate: this.computeEngagementRate(entry),
+            externalPostId: entry.externalPostId,
+            generationId: post?.generationId ?? undefined,
+            isDeleted: false,
+            likes: entry.likes ?? 0,
+            measuredAt: new Date(entry.measuredAt),
+            organizationId,
+            performanceScore: this.computePerformanceScore(entry),
+            platform: entry.platform,
+            postId: post?.id ?? undefined,
+            revenue: entry.revenue ?? 0,
+            saves: entry.saves ?? 0,
+            shares: entry.shares ?? 0,
+            source: PerformanceSource.CSV,
+            userId,
+            views: entry.views ?? 0,
+          }),
+        );
+      } catch (err) {
+        errors.push({
+          index: i,
+          message: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    if (records.length > 0) {
+      await Promise.all(records.map((r) => this.delegate.create({ data: r })));
+    }
+
+    return { errors, imported: records.length, matched };
+  }
+
+  /**
+   * Import a single manual metric entry
+   */
+  async importManual(
+    dto: ImportManualDto,
+    organizationId: string,
+    userId: string,
+  ): Promise<ContentPerformanceDocument> {
+    let post: Record<string, unknown> | null = null;
+
+    if (dto.postId) {
+      post = await this.prisma.post.findFirst({
+        where: scopedWhere(organizationId, { id: dto.postId }),
+      });
+    } else if (dto.externalPostId) {
+      post = await this.prisma.post.findFirst({
+        where: scopedWhere(organizationId, {
+          externalId: dto.externalPostId,
+          platform: this.toCredentialPlatform(dto.platform),
+        }),
+      });
+    }
+
+    const data = this.toPersistenceData({
+      brandId: (post?.brandId as string) ?? undefined,
+      comments: dto.comments ?? 0,
+      contentType: mapPostCategoryToContentType(
+        post?.category as string | undefined,
+      ),
+      engagementRate: this.computeEngagementRate(dto),
+      externalPostId: dto.externalPostId,
+      generationId: (post?.generationId as string) ?? undefined,
+      isDeleted: false,
+      likes: dto.likes ?? 0,
+      measuredAt: new Date(),
+      organizationId,
+      performanceScore: this.computePerformanceScore(dto),
+      platform: dto.platform,
+      postId: (post?.id as string) ?? undefined,
+      revenue: dto.revenue ?? 0,
+      saves: dto.saves ?? 0,
+      shares: dto.shares ?? 0,
+      source: PerformanceSource.MANUAL,
+      userId,
+      views: dto.views ?? 0,
+    });
+
+    return this.create(data);
+  }
+
+  /**
+   * Query performance data with filters
+   */
+  async queryPerformance(
+    filters: QueryContentPerformanceDto,
+    organizationId: string,
+  ): Promise<ContentPerformanceDocument[]> {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
+
+    if (filters.brandId) {
+      where.brandId = filters.brandId;
+    }
+    if (filters.platform) {
+      where.platform = filters.platform;
+    }
+    if (filters.cycleNumber) {
+      where.cycleNumber = filters.cycleNumber;
+    }
+    if (filters.generationId) {
+      where.generationId = filters.generationId;
+    }
+    if (filters.startDate || filters.endDate) {
+      where.measuredAt = {};
+      if (filters.startDate) {
+        (where.measuredAt as Record<string, unknown>).gte = new Date(
+          filters.startDate,
+        );
+      }
+      if (filters.endDate) {
+        (where.measuredAt as Record<string, unknown>).lte = new Date(
+          filters.endDate,
+        );
+      }
+    }
+
+    const limit = filters.limit ? Math.min(filters.limit, 500) : 100;
+
+    const docs = await this.delegate.findMany({
+      where,
+      orderBy: { measuredAt: 'desc' },
+      take: limit,
+    });
+
+    return this.normalizeDocuments(docs);
+  }
+
+  /**
+   * Get top performers by performanceScore
+   */
+  async getTopPerformers(
+    organizationId: string,
+    brandId?: string,
+    limit = 10,
+  ): Promise<ContentPerformanceDocument[]> {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
+
+    if (brandId) {
+      where.brandId = brandId;
+    }
+
+    const docs = await this.delegate.findMany({
+      where,
+      orderBy: { performanceScore: 'desc' },
+      take: limit,
+    });
+
+    return this.normalizeDocuments(docs);
+  }
+
+  /**
+   * Aggregate performance by generationId for closed-loop analysis
+   */
+  async aggregateByGenerationId(
+    organizationId: string,
+    generationId: string,
+  ): Promise<Record<string, unknown>> {
+    const rows = this.normalizeDocuments(
+      await this.delegate.findMany({
+        where: scopedWhere(organizationId, { generationId }),
+      }),
+    );
+
+    if (rows.length === 0) return {};
+
+    const count = rows.length;
+    const sum = (key: keyof ContentPerformanceDocument) =>
+      rows.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
+
+    return {
+      avgEngagementRate: sum('engagementRate') / count,
+      avgPerformanceScore: sum('performanceScore') / count,
+      count,
+      generationId,
+      totalClicks: sum('clicks'),
+      totalComments: sum('comments'),
+      totalLikes: sum('likes'),
+      totalRevenue: sum('revenue'),
+      totalSaves: sum('saves'),
+      totalShares: sum('shares'),
+      totalViews: sum('views'),
+    };
+  }
+
+  /**
+   * Compute a simple performance score (0-100) from metrics
+   */
+  private computePerformanceScore(
+    metrics: Partial<{
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+      saves: number;
+      clicks: number;
+    }>,
+  ): number {
+    const {
+      views = 0,
+      likes = 0,
+      comments = 0,
+      shares = 0,
+      saves = 0,
+      clicks = 0,
+    } = metrics;
+    if (views === 0) {
+      return 0;
+    }
+
+    const engagementRate =
+      ((likes + comments + shares + saves + clicks) / views) * 100;
+    return Math.min(100, Math.round(engagementRate * 10));
+  }
+
+  /**
+   * Compute engagement rate
+   */
+  private computeEngagementRate(
+    metrics: Partial<{
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+      saves: number;
+    }>,
+  ): number {
+    const {
+      views = 0,
+      likes = 0,
+      comments = 0,
+      shares = 0,
+      saves = 0,
+    } = metrics;
+    if (views === 0) {
+      return 0;
+    }
+    return Number(
+      (((likes + comments + shares + saves) / views) * 100).toFixed(2),
+    );
+  }
+}

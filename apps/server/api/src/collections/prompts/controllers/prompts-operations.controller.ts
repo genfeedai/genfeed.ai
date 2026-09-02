@@ -3,23 +3,24 @@
  * Handles voice transcription and tweet reply generation.
  */
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTweetReplyDto } from '@api/collections/prompts/dto/create-tweet-reply.dto';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   ActivitySource,
   AssetScope,
@@ -44,7 +45,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 interface UploadedBinaryFile {
   buffer: Buffer;

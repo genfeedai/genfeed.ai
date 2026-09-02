@@ -1,4 +1,4 @@
-import { ValidationException } from '@server/exceptions/validation.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import type { BasePaginationQuery } from '@api/helpers/types/common/common.types';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 

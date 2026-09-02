@@ -1,5 +1,9 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheStrategies } from '@api/services/cache/cache-strategies';
+import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { AggregationCacheStrategy } from '@api/services/cache/strategies/aggregation-cache.strategy';
 import { BrandCacheStrategy } from '@api/services/cache/strategies/brand-cache.strategy';
 import { PublicationCacheStrategy } from '@api/services/cache/strategies/publication-cache.strategy';
@@ -7,23 +11,25 @@ import { UserCacheStrategy } from '@api/services/cache/strategies/user-cache.str
 import { VideoCacheStrategy } from '@api/services/cache/strategies/video-cache.strategy';
 import { VoteCacheStrategy } from '@api/services/cache/strategies/vote-cache.strategy';
 import { Global, Module } from '@nestjs/common';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { CacheModule as ServerCacheModule } from '@server/services/cache/cache.module';
 
 @Global()
 @Module({
   exports: [
-    ServerCacheModule,
+    CacheClientService,
     CacheInvalidationService,
+    CacheService,
     CacheStrategies,
+    CacheTagsService,
     RedisCacheInterceptor,
   ],
-  imports: [ServerCacheModule],
   providers: [
     AggregationCacheStrategy,
-    CacheInvalidationService,
     BrandCacheStrategy,
+    CacheClientService,
+    CacheInvalidationService,
+    CacheService,
     CacheStrategies,
+    CacheTagsService,
     PublicationCacheStrategy,
     RedisCacheInterceptor,
     UserCacheStrategy,

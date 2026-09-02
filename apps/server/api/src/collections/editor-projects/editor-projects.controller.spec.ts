@@ -1,9 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -21,7 +21,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _ser, data) => ({ data })),
 }));
 
-vi.mock('@server/helpers/decorators/log/log-method.decorator', () => ({
+vi.mock('@api/helpers/decorators/log/log-method.decorator', () => ({
   LogMethod:
     () => (_target: unknown, _key: string, descriptor: PropertyDescriptor) =>
       descriptor,
@@ -31,7 +31,7 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
 
-vi.mock('@server/helpers/utils/pagination.util', () => ({
+vi.mock('@api/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 

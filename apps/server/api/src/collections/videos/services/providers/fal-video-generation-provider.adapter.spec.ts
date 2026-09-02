@@ -1,7 +1,7 @@
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import type { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import type { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FalSchemaFamily } from '@server/services/integrations/fal/services/fal-contract';
 
 describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
   it('executes a reviewed image-to-video family through the contract adapter', async () => {

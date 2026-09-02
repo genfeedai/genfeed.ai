@@ -1,6 +1,6 @@
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 describe('AnalyticsAggregationService', () => {
   it('does not add soft-delete filters to PostAnalytics queries', async () => {

@@ -1,9 +1,9 @@
 import {
   TASK_PRIORITIES,
   TASK_STATUSES,
-} from '@server/collections/tasks/schemas/task.schema';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+} from '@api/collections/tasks/schemas/task.schema';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 

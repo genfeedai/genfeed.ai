@@ -854,7 +854,7 @@ export type RatchetDrift = {
 };
 
 /**
- * Exact-match ratchet, same contract as `workers-api-imports.baseline.ts`: a
+ * Exact-match ratchet: a
  * file over its baseline is a regression, and a file under it is a stale entry
  * that must be pruned in the PR that fixed it. Anything else lets the baseline
  * rot into a number nobody trusts.

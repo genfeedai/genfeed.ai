@@ -1,5 +1,5 @@
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
-import { BrandWebsiteParserService } from '@server/services/brand-scraper/brand-website-parser.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { Module } from '@nestjs/common';
 
 @Module({

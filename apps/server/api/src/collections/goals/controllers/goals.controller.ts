@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateGoalDto } from '@api/collections/goals/dto/create-goal.dto';
 import { GoalQueryDto } from '@api/collections/goals/dto/goal-query.dto';
 import { UpdateGoalDto } from '@api/collections/goals/dto/update-goal.dto';

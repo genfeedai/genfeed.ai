@@ -1,3 +1,4 @@
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -6,7 +7,6 @@ import { modelCatalogAttributes } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ModelsService } from '@server/collections/models/services/models.service';
 import type { Request as ExpressRequest } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

@@ -1,7 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { McpApprovalsController } from '@api/collections/mcp-approvals/controllers/mcp-approvals.controller';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

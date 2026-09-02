@@ -3,15 +3,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { OptimizersController } from '@api/collections/optimizers/controllers/optimizers.controller';
-import { AnalyzeContentDto } from '@server/collections/optimizers/dto/analyze.dto';
-import { SuggestHashtagsDto } from '@server/collections/optimizers/dto/hashtags.dto';
-import { OptimizeContentDto } from '@server/collections/optimizers/dto/optimize.dto';
-import { GenerateVariantsDto } from '@server/collections/optimizers/dto/variants.dto';
-import { OptimizersService } from '@server/collections/optimizers/services/optimizers.service';
+import { AnalyzeContentDto } from '@api/collections/optimizers/dto/analyze.dto';
+import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
+import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
+import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
+import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';

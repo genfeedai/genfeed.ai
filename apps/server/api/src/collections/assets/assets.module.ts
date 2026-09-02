@@ -8,7 +8,7 @@ import { AssetsController } from '@api/collections/assets/controllers/assets.con
 import { AssetsIngestionController } from '@api/collections/assets/controllers/operations/assets-ingestion.controller';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';

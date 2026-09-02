@@ -1,5 +1,5 @@
 import type { UserSubscriptionDocument } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionStatus } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type StripeConstructor from 'stripe';

@@ -1,4 +1,4 @@
-vi.mock('@server/services/cache/cache.module', () => ({
+vi.mock('@api/services/cache/cache.module', () => ({
   CacheModule: class CacheModule {},
 }));
 

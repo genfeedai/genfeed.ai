@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ByokService } from '@server/services/byok/byok.service';
-import { OpenAiOAuthService } from '@server/services/integrations/openai-llm/services/openai-oauth.service';
+import { ByokService } from '@api/services/byok/byok.service';
+import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import { ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

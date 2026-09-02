@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateDistributionDto } from '@server/collections/distributions/dto/create-distribution.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { QueryDistributionDto } from '@api/collections/distributions/dto/query-distribution.dto';
-import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
+import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { DistributionPlatform } from '@genfeedai/enums';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {

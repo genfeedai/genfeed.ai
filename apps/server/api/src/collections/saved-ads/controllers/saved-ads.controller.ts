@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   SaveAdDto,
   UnsaveSavedAdDto,
@@ -25,7 +26,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
 const MAX_PROVIDER_SAVE_BATCH_SIZE = 5;

@@ -1,3 +1,7 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { hasOrganizationBilling } from '@genfeedai/config';
 import {
   ActivityKey,
@@ -16,10 +20,6 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { customAlphabet } from 'nanoid';
 
 const generateReferralCode = customAlphabet(

@@ -1,5 +1,5 @@
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import type { StripeCustomer } from '@server/services/integrations/stripe/services/stripe.service';
+import type { StripeCustomer } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,

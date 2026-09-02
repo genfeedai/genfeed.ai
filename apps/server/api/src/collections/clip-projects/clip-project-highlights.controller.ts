@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
-import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

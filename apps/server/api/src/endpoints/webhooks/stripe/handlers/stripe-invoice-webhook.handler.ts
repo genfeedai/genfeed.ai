@@ -1,3 +1,5 @@
+import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import {
@@ -5,6 +7,7 @@ import {
   extractInvoiceSubscriptionMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivitySource,
   ByokBillingStatus,
@@ -17,9 +20,6 @@ import {
 } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
-import type { StripeInvoice } from '@server/services/integrations/stripe/services/stripe.service';
 
 type SubscriptionInvoiceBillingReason =
   | 'subscription_create'

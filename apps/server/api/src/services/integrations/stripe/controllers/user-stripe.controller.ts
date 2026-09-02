@@ -4,6 +4,10 @@
  * Users have their own Stripe customer IDs separate from organization billing.
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -12,6 +16,8 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import {
@@ -32,12 +38,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { classifyStripeFailure } from '@server/services/integrations/stripe/services/stripe-error.util';
 import type { Request } from 'express';
 
 interface CreateUserCheckoutDto {

@@ -1,6 +1,6 @@
 import { AgentPublishAuditsController } from '@api/collections/agent-publish-audits/controllers/agent-publish-audits.controller';
+import type { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { ForbiddenException } from '@nestjs/common';
-import type { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =

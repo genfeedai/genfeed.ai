@@ -1,6 +1,6 @@
+import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@server/collections/social-inbox/services/social-inbox-sync-workflow-definition';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const YOUTUBE_MAINTENANCE_ACTION_IDS = {
   DISCOVER_CREDENTIALS: 'youtube.comments.discover-credentials',

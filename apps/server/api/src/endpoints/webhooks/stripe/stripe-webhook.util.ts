@@ -1,4 +1,4 @@
-import type { StripeInvoice } from '@server/services/integrations/stripe/services/stripe.service';
+import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 
 export type StripeWebhookEvent = {
   data: { object: unknown };

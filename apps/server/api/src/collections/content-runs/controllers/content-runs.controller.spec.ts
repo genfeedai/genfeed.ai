@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
 import { CreateBrandRemixRunDto } from '@api/collections/content-runs/dto/brand-remix-run.dto';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
-import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
+import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

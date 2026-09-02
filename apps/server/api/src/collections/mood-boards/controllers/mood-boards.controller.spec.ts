@@ -1,7 +1,7 @@
 import { MoodBoardsController } from '@api/collections/mood-boards/controllers/mood-boards.controller';
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

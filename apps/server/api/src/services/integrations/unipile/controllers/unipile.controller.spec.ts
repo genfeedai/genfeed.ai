@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UnipileController } from '@api/services/integrations/unipile/controllers/unipile.controller';
 import { UnipileService } from '@api/services/integrations/unipile/services/unipile.service';
 import { BadRequestException } from '@nestjs/common';

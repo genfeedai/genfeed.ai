@@ -37,9 +37,9 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
   };
 });
 
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ModelsService } from '@server/collections/models/services/models.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';

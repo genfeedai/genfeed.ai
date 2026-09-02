@@ -1,4 +1,4 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 
 export interface OrganizationOwnedElement {

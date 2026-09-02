@@ -8,7 +8,8 @@ import {
   type ReconciledBrandRemixRun,
   type ResolvedBrandContext,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,
@@ -20,7 +21,6 @@ import {
   IngredientStatus,
   PersistedReviewDecision,
 } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()

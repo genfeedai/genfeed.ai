@@ -126,7 +126,7 @@ Impact: AI output consistency. Two queue processors use near-identical prompt, L
 
 Evidence:
 
-- `apps/server/server/src/collections/clip-projects/services/clip-highlight-detector.service.ts`
+- `apps/server/api/src/collections/clip-projects/services/clip-highlight-detector.service.ts`
   - `HIGHLIGHT_SYSTEM_PROMPT` at line 32.
   - `detectHighlights` call at line 135.
   - `detectHighlights` implementation at line 255.

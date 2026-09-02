@@ -1,5 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
+import {
+  AgentTurnAcceptanceService,
+  buildAgentTurnIdempotencyKey,
+} from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
   AgentThreadStatus,
@@ -9,19 +17,11 @@ import {
 } from '@genfeedai/enums';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import {
-  AgentTurnAcceptanceService,
-  buildAgentTurnIdempotencyKey,
-} from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
-import type { AgentChatContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Projection of the agent-turn workflow result JSON that a transfer mirrors.

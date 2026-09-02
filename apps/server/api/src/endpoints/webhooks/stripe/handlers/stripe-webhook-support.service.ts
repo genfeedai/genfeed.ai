@@ -1,9 +1,9 @@
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type {
@@ -11,9 +11,10 @@ import type {
   StripeRecurringInterval,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import { CacheService } from '@server/services/cache/cache.service';
-import type { StripeCheckoutSession } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/index';
+import { CacheService } from '@api/services/cache/cache.service';
+import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   type ActivitySource,
@@ -26,7 +27,6 @@ import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';

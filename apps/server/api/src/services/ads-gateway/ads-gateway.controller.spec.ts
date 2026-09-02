@@ -14,13 +14,13 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
-import { INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE } from '@server/services/ads-gateway/ads-insights-range.util';
+import { INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE } from '@api/services/ads-gateway/ads-insights-range.util';
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,

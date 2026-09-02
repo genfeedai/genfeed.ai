@@ -1,3 +1,20 @@
+import { hashToken } from '@api/auth/shared/pkce.util';
+import { CLIP_ANALYSIS_WORKFLOW_ID } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
+import { generateClipSrt } from '@api/collections/clip-projects/services/clip-srt.util';
+import {
+  PUBLIC_LONG_FORM_ORGANIZATION_ID,
+  PUBLIC_LONG_FORM_USER_ID,
+  YOUTUBE_LONG_FORM_ACTION_IDS,
+} from '@api/collections/workflows/services/youtube-long-form-workflow.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import {
+  PublicClipToolStoreService,
+  type StoredPublicYoutubeClipSession,
+} from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { JobState } from '@genfeedai/enums';
@@ -11,23 +28,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { hashToken } from '@server/auth/shared/pkce.util';
-import { CLIP_ANALYSIS_WORKFLOW_ID } from '@server/collections/clip-projects/services/clip-analysis-workflow-definition';
-import { generateClipSrt } from '@server/collections/clip-projects/services/clip-srt.util';
-import {
-  PUBLIC_LONG_FORM_ORGANIZATION_ID,
-  PUBLIC_LONG_FORM_USER_ID,
-  YOUTUBE_LONG_FORM_ACTION_IDS,
-} from '@server/collections/workflows/services/youtube-long-form-workflow.service';
-import {
-  type SystemWorkflowActionRequest,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import {
-  PublicClipToolStoreService,
-  type StoredPublicYoutubeClipSession,
-} from '@server/services/public-clip-tool/public-clip-tool-store.service';
 
 const MAX_FREE_RECOMMENDATIONS = 3;
 const MIN_IDEMPOTENCY_KEY_LENGTH = 8;

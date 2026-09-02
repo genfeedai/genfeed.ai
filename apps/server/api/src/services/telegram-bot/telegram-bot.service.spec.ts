@@ -1,9 +1,9 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TelegramBotService', () => {

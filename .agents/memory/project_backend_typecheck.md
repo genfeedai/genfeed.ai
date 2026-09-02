@@ -1,7 +1,7 @@
 # Backend type-check pattern (`apps/server/*`)
 
 last_verified: 2026-07-11
-Source: PR #1148, PR #1221 (#1145), and the `@genfeedai/server` extraction in PR #1584. Verified against committed `package.json` scripts and `tsconfig.typecheck.json` files.
+Source: PR #1148, PR #1221 (#1145), and the former `@genfeedai/server` extraction in PR #1584 (folded back into api by #4348). Verified against committed `package.json` scripts and `tsconfig.typecheck.json` files.
 
 ## Invariant
 
@@ -24,7 +24,7 @@ that is **never** the runtime config.
   superset, `exclude` specs.
 - Per app: `apps/server/<app>/tsconfig.typecheck.json` = `extends` base + `include: ["src/**/*"]`.
   Add `types: ["node","vitest/globals","multer"]` only where the graph reaches
-  `Express.Multer` (api; workers still has grandfathered `@api/*` imports). `@types/multer` is NOT hoisted to
+  `Express.Multer` (api and workers). `@types/multer` is NOT hoisted to
   root — only apps declaring it resolve `multer` in `types`.
 - Script: `"type-check": "tsc --noEmit -p tsconfig.typecheck.json"`.
 
@@ -39,17 +39,15 @@ that is **never** the runtime config.
 - Billing collections live inside `apps/server/api`, so api's own `type-check` task covers
   them; there is no separate billing workspace or `--filter` shim.
 
-## Worker API-import ratchet (2026-07-06)
+## Workers consume api as a library (2026-09-02)
 
-PR #1342 added `scripts/architecture/check-no-api-imports-in-workers.ts` and the root
-`check:architecture` gate. Existing worker `@api/*` imports are frozen in
-`scripts/architecture/workers-api-imports.baseline.ts`; new worker code should import from
-`@genfeedai/queue-contracts`, `@genfeedai/libs`, or the planned `@genfeedai/server`
-surface instead of adding more API deep imports.
+#4348 folded `@genfeedai/server` back into `apps/server/api`. Workers import `@api/*`
+with no import ratchet. The former `check-no-api-imports-in-workers` guard and
+`workers-api-imports.baseline.ts` were deleted with the seam they policed.
 
-## Status (2026-07-11)
+## Status (2026-09-02)
 
-Dedicated type-check configuration is present for all current backend service/server-tier workspaces:
-`api, discord, files, images, mcp, notifications, server, slack, telegram, videos, voices, workers`
-(12/12). `apps/server/clips/` is not currently a package workspace and has no
+Dedicated type-check configuration is present for all current backend service workspaces:
+`api, discord, files, mcp, notifications, slack, telegram, workers`.
+`apps/server/clips/` is not currently a package workspace and has no
 `tsconfig.typecheck.json`; re-verify before treating it as an active service.

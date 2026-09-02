@@ -4,13 +4,14 @@ import {
   type InvitationView,
 } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   replaceCharacterRuns,
   trimCharacter,
-} from '@server/shared/utils/string/linear-string.util';
+} from '@api/shared/utils/string/linear-string.util';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,
@@ -26,7 +27,6 @@ import {
   type WarmupAccount,
   WarmupAccountStatus,
 } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';

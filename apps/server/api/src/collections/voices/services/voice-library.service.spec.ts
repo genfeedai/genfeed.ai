@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { HttpStatus } from '@nestjs/common';

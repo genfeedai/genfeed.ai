@@ -4,10 +4,10 @@
 and analytics tracking.
  */
 import { ActivitiesController } from '@api/collections/activities/controllers/activities.controller';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { MembersModule } from '@api/collections/members/members.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
-import { SERVER_TOKENS } from '@genfeedai/server';
+import { SERVER_TOKENS } from '@api/index';
 import { Module } from '@nestjs/common';
 
 const SERVER_ACTIVITY_WRITER_PROVIDER = {

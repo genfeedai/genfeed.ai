@@ -1,20 +1,20 @@
+import {
+  getFalEndpointFromModelKey,
+  isFalDestination,
+} from '@api/collections/models/utils/model-key.util';
 import type {
   DispatchVideoGenerationParams,
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
-import type { ModelProvider } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
-import {
-  getFalEndpointFromModelKey,
-  isFalDestination,
-} from '@server/collections/models/utils/model-key.util';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import {
   adaptFalVideoRequest,
   type FalJsonSchema,
   type FalSchemaFamily,
-} from '@server/services/integrations/fal/services/fal-contract';
+} from '@api/services/integrations/fal/services/fal-contract';
+import type { ModelProvider } from '@genfeedai/enums';
+import { Injectable } from '@nestjs/common';
 
 const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';
 const MINIMAX_H3_MAX_TEXT_ENDPOINT = 'minimax/h3-max/text-to-video';

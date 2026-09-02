@@ -1,6 +1,7 @@
-import { ImagesService } from '@server/collections/images/services/images.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
@@ -14,7 +15,6 @@ import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,

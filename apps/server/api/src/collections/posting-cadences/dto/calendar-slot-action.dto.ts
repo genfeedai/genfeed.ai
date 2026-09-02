@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MAX_CADENCE_WINDOW_OCCURRENCES } from '@api-types/contracts/cadence-expansion.contract';
 import { PostCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';

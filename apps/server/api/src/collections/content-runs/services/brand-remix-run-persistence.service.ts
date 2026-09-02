@@ -9,8 +9,9 @@ import {
   PRISMA_SERIALIZATION_FAILURE,
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
@@ -18,7 +19,6 @@ import {
 } from '@api-types/contracts/brand-remix-run.contract';
 import { ContentRunStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()

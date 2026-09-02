@@ -1,21 +1,21 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
+import type { Article } from '@api/collections/articles/schemas/article.schema';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { RouterService } from '@api/services/router/router.service';
+import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { ArticleCategory, AssetScope } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { Article } from '@server/collections/articles/schemas/article.schema';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { RouterService } from '@server/services/router/router.service';
-import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 import type { Request } from 'express';
 
 describe('ArticlesTransformationsController', () => {

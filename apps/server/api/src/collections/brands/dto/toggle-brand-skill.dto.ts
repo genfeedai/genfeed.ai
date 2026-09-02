@@ -1,7 +1,7 @@
 import {
   MAX_CONFIGURED_SKILL_SLUGS,
   MAX_SKILL_SLUG_LENGTH,
-} from '@server/collections/skills/constants/skill-validation.constant';
+} from '@api/collections/skills/constants/skill-validation.constant';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,

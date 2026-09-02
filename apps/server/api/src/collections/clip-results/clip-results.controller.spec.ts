@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipResultsController } from '@api/collections/clip-results/clip-results.controller';
-import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';

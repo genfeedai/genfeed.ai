@@ -466,7 +466,7 @@
     },
     {
       "delegate": "activity",
-      "file": "apps/server/server/src/collections/activities/services/activities.service.ts",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "811a2462cfa958a2f371",
       "method": "findMany",
       "model": "Activity",
@@ -474,7 +474,7 @@
     },
     {
       "delegate": "activity",
-      "file": "apps/server/server/src/collections/activities/services/activities.service.ts",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "e692f76a413122d65bde",
       "method": "update",
       "model": "Activity",
@@ -482,7 +482,7 @@
     },
     {
       "delegate": "activity",
-      "file": "apps/server/server/src/collections/activities/services/activities.service.ts",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "1ed46fd7f8806197b218",
       "method": "update",
       "model": "Activity",
@@ -490,7 +490,7 @@
     },
     {
       "delegate": "activity",
-      "file": "apps/server/server/src/collections/activities/services/activities.service.ts",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "7c8d7f4ee1331089ea49",
       "method": "updateMany",
       "model": "Activity",
@@ -498,7 +498,7 @@
     },
     {
       "delegate": "adBulkUploadJob",
-      "file": "apps/server/server/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
+      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
       "fingerprint": "e72c7e5019423df99630",
       "method": "findUnique",
       "model": "AdBulkUploadJob",
@@ -506,7 +506,7 @@
     },
     {
       "delegate": "adBulkUploadJob",
-      "file": "apps/server/server/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
+      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
       "fingerprint": "b5a43656ff8deceee4ac",
       "method": "findUnique",
       "model": "AdBulkUploadJob",
@@ -514,7 +514,7 @@
     },
     {
       "delegate": "adBulkUploadJob",
-      "file": "apps/server/server/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
+      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
       "fingerprint": "7b7990f2ce702d2dee4d",
       "method": "update",
       "model": "AdBulkUploadJob",
@@ -522,7 +522,7 @@
     },
     {
       "delegate": "adBulkUploadJob",
-      "file": "apps/server/server/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
+      "file": "apps/server/api/src/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service.ts",
       "fingerprint": "dfc96a36817456cea1d5",
       "method": "update",
       "model": "AdBulkUploadJob",
@@ -530,7 +530,7 @@
     },
     {
       "delegate": "adPerformance",
-      "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
+      "file": "apps/server/api/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "eabf7261866e87b7a58e",
       "method": "findMany",
       "model": "AdPerformance",
@@ -538,7 +538,7 @@
     },
     {
       "delegate": "article",
-      "file": "apps/server/server/src/collections/articles/services/article-analytics.service.ts",
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "dfef9b7f9a9e2df5c6cc",
       "method": "findFirst",
       "model": "Article",
@@ -546,7 +546,7 @@
     },
     {
       "delegate": "articleAnalytics",
-      "file": "apps/server/server/src/collections/articles/services/article-analytics.service.ts",
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "52a4f337a3796a6fb780",
       "method": "upsert",
       "model": "ArticleAnalytics",
@@ -554,7 +554,7 @@
     },
     {
       "delegate": "articleAnalytics",
-      "file": "apps/server/server/src/collections/articles/services/article-analytics.service.ts",
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "617ab18bc947801e7dbf",
       "method": "upsert",
       "model": "ArticleAnalytics",
@@ -562,7 +562,7 @@
     },
     {
       "delegate": "articleAnalytics",
-      "file": "apps/server/server/src/collections/articles/services/article-analytics.service.ts",
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "718fee256507bd700354",
       "method": "upsert",
       "model": "ArticleAnalytics",
@@ -570,7 +570,7 @@
     },
     {
       "delegate": "articleAnalytics",
-      "file": "apps/server/server/src/collections/articles/services/article-analytics.service.ts",
+      "file": "apps/server/api/src/collections/articles/services/article-analytics.service.ts",
       "fingerprint": "96abd523e916ae5a2179",
       "method": "upsert",
       "model": "ArticleAnalytics",
@@ -578,7 +578,7 @@
     },
     {
       "delegate": "billingAccountOrganization",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "aa47e1fa72d70d3ee20c",
       "method": "count",
       "model": "BillingAccountOrganization",
@@ -586,7 +586,7 @@
     },
     {
       "delegate": "billingAccountOrganization",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "f05c91aeecf4edb519ff",
       "method": "findMany",
       "model": "BillingAccountOrganization",
@@ -594,7 +594,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "aae2a2ec401d9bc84e3b",
       "method": "findFirst",
       "model": "CreditBalance",
@@ -602,7 +602,7 @@
     },
     {
       "delegate": "creditTransaction",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "0f438d1f8618b4186a21",
       "method": "groupBy",
       "model": "CreditTransaction",
@@ -610,7 +610,7 @@
     },
     {
       "delegate": "subscription",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "114c51c8a18e884fc821",
       "method": "findFirst",
       "model": "Subscription",
@@ -618,7 +618,7 @@
     },
     {
       "delegate": "botActivity",
-      "file": "apps/server/server/src/collections/bot-activities/services/bot-activities.service.ts",
+      "file": "apps/server/api/src/collections/bot-activities/services/bot-activities.service.ts",
       "fingerprint": "d11056d3c07215d0881e",
       "method": "findFirst",
       "model": "BotActivity",
@@ -626,7 +626,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "90043048e6f626138af0",
       "method": "findFirst",
       "model": "Brand",
@@ -634,7 +634,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "96acc27b693fa676bf81",
       "method": "findFirst",
       "model": "Brand",
@@ -642,7 +642,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "46e23e4d53f24cd15e77",
       "method": "update",
       "model": "BrandInterview",
@@ -650,7 +650,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "8589f60e7fe0a0889509",
       "method": "update",
       "model": "BrandInterview",
@@ -658,7 +658,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "8fef1180d24f1bc8fc27",
       "method": "update",
       "model": "BrandInterview",
@@ -666,7 +666,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "f398f78255cc50d13875",
       "method": "update",
       "model": "BrandInterview",
@@ -674,7 +674,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "5a93e2cecaf6d815daf3",
       "method": "update",
       "model": "BrandInterview",
@@ -682,7 +682,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "ce7cd0bcaa15f2da1c16",
       "method": "update",
       "model": "BrandInterview",
@@ -690,7 +690,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "d4d95cc47ae130cf35a2",
       "method": "update",
       "model": "BrandInterview",
@@ -698,7 +698,7 @@
     },
     {
       "delegate": "brandInterview",
-      "file": "apps/server/server/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "f6f70e56f7b33215d488",
       "method": "update",
       "model": "BrandInterview",
@@ -706,7 +706,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "260495b727ff53add1e2",
       "method": "findFirst",
       "model": "Brand",
@@ -714,7 +714,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "1340617a86921c0880f3",
       "method": "findFirst",
       "model": "Brand",
@@ -722,7 +722,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "75dfc943b91e0018d535",
       "method": "findFirst",
       "model": "Brand",
@@ -730,7 +730,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "cb79a8f984acfaf405ac",
       "method": "findFirst",
       "model": "Brand",
@@ -738,7 +738,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "6b4db3b11f2868912b13",
       "method": "update",
       "model": "Brand",
@@ -746,7 +746,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "a2088b7b7f451f061dbd",
       "method": "update",
       "model": "Brand",
@@ -754,7 +754,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "642c56f7723f9d1f94b5",
       "method": "update",
       "model": "Brand",
@@ -762,7 +762,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "9659b1e4f6819ef8cf34",
       "method": "update",
       "model": "Brand",
@@ -770,7 +770,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "afe019c1a21243929c41",
       "method": "updateMany",
       "model": "Brand",
@@ -778,7 +778,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "e692b7fabfc017f50be2",
       "method": "updateMany",
       "model": "Brand",
@@ -786,7 +786,7 @@
     },
     {
       "delegate": "member",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "00ed19987d14c59a9bd2",
       "method": "count",
       "model": "Member",
@@ -794,7 +794,7 @@
     },
     {
       "delegate": "member",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "1f61ddd5128139de7bd0",
       "method": "findMany",
       "model": "Member",
@@ -802,7 +802,7 @@
     },
     {
       "delegate": "member",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "87bace6faa7bab5ffa00",
       "method": "updateMany",
       "model": "Member",
@@ -810,7 +810,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "ad12e94e2c4f60586040",
       "method": "updateMany",
       "model": "Workflow",
@@ -818,7 +818,7 @@
     },
     {
       "delegate": "workflowExecution",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
+      "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "bf56f197b468829bbcfc",
       "method": "updateMany",
       "model": "WorkflowExecution",
@@ -826,7 +826,7 @@
     },
     {
       "delegate": "contentPerformance",
-      "file": "apps/server/server/src/collections/content-performance/services/optimization-cycle.service.ts",
+      "file": "apps/server/api/src/collections/content-performance/services/optimization-cycle.service.ts",
       "fingerprint": "960c7d2987e86db8810c",
       "method": "findMany",
       "model": "ContentPerformance",
@@ -834,7 +834,7 @@
     },
     {
       "delegate": "contentRun",
-      "file": "apps/server/server/src/collections/content-runs/services/content-runs.service.ts",
+      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
       "fingerprint": "4db3827e5283d1ac298d",
       "method": "update",
       "model": "ContentRun",
@@ -842,7 +842,7 @@
     },
     {
       "delegate": "contentRun",
-      "file": "apps/server/server/src/collections/content-runs/services/content-runs.service.ts",
+      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
       "fingerprint": "951c83e9d823f894998c",
       "method": "update",
       "model": "ContentRun",
@@ -850,7 +850,7 @@
     },
     {
       "delegate": "contentRun",
-      "file": "apps/server/server/src/collections/content-runs/services/content-runs.service.ts",
+      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
       "fingerprint": "54f67ecdc07d6d7cf597",
       "method": "update",
       "model": "ContentRun",
@@ -858,7 +858,7 @@
     },
     {
       "delegate": "contentRun",
-      "file": "apps/server/server/src/collections/content-runs/services/content-runs.service.ts",
+      "file": "apps/server/api/src/collections/content-runs/services/content-runs.service.ts",
       "fingerprint": "aebae22f065939027722",
       "method": "update",
       "model": "ContentRun",
@@ -866,7 +866,7 @@
     },
     {
       "delegate": "contextBase",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "163e5f05d9db19e13d98",
       "method": "findMany",
       "model": "ContextBase",
@@ -874,7 +874,7 @@
     },
     {
       "delegate": "contextBase",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "d9023e7cd1ef83a26f7d",
       "method": "update",
       "model": "ContextBase",
@@ -882,7 +882,7 @@
     },
     {
       "delegate": "contextBase",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "fa7e4321456cab7d0ade",
       "method": "update",
       "model": "ContextBase",
@@ -890,7 +890,7 @@
     },
     {
       "delegate": "contextBase",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "448e2155d6268d8ce3f2",
       "method": "update",
       "model": "ContextBase",
@@ -898,7 +898,7 @@
     },
     {
       "delegate": "contextBase",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "f93bec524d0d0184660e",
       "method": "update",
       "model": "ContextBase",
@@ -906,7 +906,7 @@
     },
     {
       "delegate": "contextEntry",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "b440d8e4ba7ae747c98e",
       "method": "update",
       "model": "ContextEntry",
@@ -914,7 +914,7 @@
     },
     {
       "delegate": "contextEntry",
-      "file": "apps/server/server/src/collections/contexts/services/contexts.service.ts",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "6ba81f62e626ab573b1b",
       "method": "update",
       "model": "ContextEntry",
@@ -922,7 +922,7 @@
     },
     {
       "delegate": "credential",
-      "file": "apps/server/server/src/collections/credentials/services/account-health.service.ts",
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "8dbd51e46d974b645a12",
       "method": "update",
       "model": "Credential",
@@ -930,7 +930,7 @@
     },
     {
       "delegate": "credential",
-      "file": "apps/server/server/src/collections/credentials/services/account-health.service.ts",
+      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
       "fingerprint": "6719b71e83cb54b1acab",
       "method": "update",
       "model": "Credential",
@@ -938,7 +938,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "0ea5c2a3f401fceb0a19",
       "method": "findFirst",
       "model": "CreditBalance",
@@ -946,7 +946,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "148cc71cd54b651bf97f",
       "method": "findFirst",
       "model": "CreditBalance",
@@ -954,7 +954,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "ff4779633d86c341af0e",
       "method": "findFirst",
       "model": "CreditBalance",
@@ -962,7 +962,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "0abd1547bae15fd1d377",
       "method": "update",
       "model": "CreditBalance",
@@ -970,7 +970,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "ace263a1e930fb2c403c",
       "method": "update",
       "model": "CreditBalance",
@@ -978,7 +978,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "16cfc9b27e74195048cb",
       "method": "update",
       "model": "CreditBalance",
@@ -986,7 +986,7 @@
     },
     {
       "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/credits/services/credit-balance.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "37e03a1a2a1f1ed822ac",
       "method": "update",
       "model": "CreditBalance",
@@ -994,7 +994,7 @@
     },
     {
       "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
       "fingerprint": "bd75ab32d577c0e391f4",
       "method": "findMany",
       "model": "CreditReservation",
@@ -1002,7 +1002,7 @@
     },
     {
       "delegate": "creditTransaction",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
       "fingerprint": "2b5126a1b19958dca9d2",
       "method": "updateMany",
       "model": "CreditTransaction",
@@ -1010,7 +1010,7 @@
     },
     {
       "delegate": "dashboardLayout",
-      "file": "apps/server/server/src/collections/dashboard-layouts/services/dashboard-layouts.service.ts",
+      "file": "apps/server/api/src/collections/dashboard-layouts/services/dashboard-layouts.service.ts",
       "fingerprint": "40fb12cc2dcb21b948f1",
       "method": "upsert",
       "model": "DashboardLayout",
@@ -1018,7 +1018,7 @@
     },
     {
       "delegate": "dashboardLayout",
-      "file": "apps/server/server/src/collections/dashboard-layouts/services/dashboard-layouts.service.ts",
+      "file": "apps/server/api/src/collections/dashboard-layouts/services/dashboard-layouts.service.ts",
       "fingerprint": "9ca57744d514bca2c69f",
       "method": "upsert",
       "model": "DashboardLayout",
@@ -1026,7 +1026,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "0b329aefc8316df11d8c",
       "method": "findUnique",
       "model": "Distribution",
@@ -1034,7 +1034,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "cad6cef370be9b43d316",
       "method": "findUnique",
       "model": "Distribution",
@@ -1042,7 +1042,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "bec3011b7918134dec07",
       "method": "findUnique",
       "model": "Distribution",
@@ -1050,7 +1050,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "c9aa4fd248a7077f273d",
       "method": "findUnique",
       "model": "Distribution",
@@ -1058,7 +1058,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "62a1faed8932fabe7362",
       "method": "update",
       "model": "Distribution",
@@ -1066,7 +1066,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "7571eddfca6ddd189e21",
       "method": "update",
       "model": "Distribution",
@@ -1074,7 +1074,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "92d8b0f4856fd0e1b01d",
       "method": "update",
       "model": "Distribution",
@@ -1082,7 +1082,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "68047e24ed0fd5c10c3d",
       "method": "update",
       "model": "Distribution",
@@ -1090,7 +1090,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "be79e6020f3ef6488237",
       "method": "update",
       "model": "Distribution",
@@ -1098,7 +1098,7 @@
     },
     {
       "delegate": "distribution",
-      "file": "apps/server/server/src/collections/distributions/services/distributions.service.ts",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "caac21fba854d1261ee8",
       "method": "update",
       "model": "Distribution",
@@ -1106,7 +1106,7 @@
     },
     {
       "delegate": "evaluation",
-      "file": "apps/server/server/src/collections/evaluations/services/evaluations.service.ts",
+      "file": "apps/server/api/src/collections/evaluations/services/evaluations.service.ts",
       "fingerprint": "caba968ba3ccf3ac6b35",
       "method": "findMany",
       "model": "Evaluation",
@@ -1114,7 +1114,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "cf5b2c9e4ec7574d5cec",
       "method": "count",
       "model": "Ingredient",
@@ -1122,7 +1122,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "613cbb9957c992a4d42c",
       "method": "findMany",
       "model": "Ingredient",
@@ -1130,7 +1130,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "de75d82e2a05838bc253",
       "method": "findMany",
       "model": "Ingredient",
@@ -1138,7 +1138,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "57d14c2f1237c08c7916",
       "method": "findMany",
       "model": "Ingredient",
@@ -1146,7 +1146,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "966d2eeda39f643be8bd",
       "method": "findMany",
       "model": "Ingredient",
@@ -1154,7 +1154,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "6546a6055cf15b1fccad",
       "method": "update",
       "model": "Ingredient",
@@ -1162,7 +1162,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "e7627ba592221b42aac4",
       "method": "update",
       "model": "Ingredient",
@@ -1170,7 +1170,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "3498e7ca215d0c84dbd8",
       "method": "updateMany",
       "model": "Ingredient",
@@ -1178,7 +1178,7 @@
     },
     {
       "delegate": "ingredient",
-      "file": "apps/server/server/src/collections/ingredients/services/ingredients.service.ts",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "4c9ae0c6cbb70058dbbe",
       "method": "updateMany",
       "model": "Ingredient",
@@ -1186,7 +1186,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/model-registration.service.ts",
+      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "5e35e1d390be138e7061",
       "method": "findFirst",
       "model": "Model",
@@ -1194,7 +1194,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/model-registration.service.ts",
+      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "db6c49df105e5109e195",
       "method": "findFirst",
       "model": "Model",
@@ -1202,7 +1202,7 @@
     },
     {
       "delegate": "training",
-      "file": "apps/server/server/src/collections/models/services/model-registration.service.ts",
+      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "437ac7ad2b3fd57c3749",
       "method": "findMany",
       "model": "Training",
@@ -1210,7 +1210,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "05dc2309713630c72f6c",
       "method": "count",
       "model": "Model",
@@ -1218,7 +1218,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "1400647db8c0a9ab6563",
       "method": "count",
       "model": "Model",
@@ -1226,7 +1226,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "d5ae40b0f7226882911f",
       "method": "findFirst",
       "model": "Model",
@@ -1234,7 +1234,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "1fc25804fc1c550d4d99",
       "method": "findFirst",
       "model": "Model",
@@ -1242,7 +1242,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "f12aa234537e1aedb906",
       "method": "findFirst",
       "model": "Model",
@@ -1250,7 +1250,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "021a6c7ea2d16765e852",
       "method": "findMany",
       "model": "Model",
@@ -1258,7 +1258,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "39af605447b4acb24b35",
       "method": "findMany",
       "model": "Model",
@@ -1266,7 +1266,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "68e770a3338154464afa",
       "method": "findMany",
       "model": "Model",
@@ -1274,7 +1274,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "906c46a98d3c27058082",
       "method": "findMany",
       "model": "Model",
@@ -1282,7 +1282,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "9d7d48aa6008472d5c8b",
       "method": "findUnique",
       "model": "Model",
@@ -1290,7 +1290,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "f0987ffde1068a4eae63",
       "method": "findUnique",
       "model": "Model",
@@ -1298,7 +1298,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "6484557fc5db3c87bd24",
       "method": "update",
       "model": "Model",
@@ -1306,7 +1306,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "d0b651bf91d38df7fdaf",
       "method": "update",
       "model": "Model",
@@ -1314,7 +1314,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "32ed39dcf69b70116499",
       "method": "update",
       "model": "Model",
@@ -1322,7 +1322,7 @@
     },
     {
       "delegate": "model",
-      "file": "apps/server/server/src/collections/models/services/models.service.ts",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "79b3028444ab5104b70f",
       "method": "update",
       "model": "Model",
@@ -1330,7 +1330,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "ef85cb0db309b60ea8a9",
       "method": "findUnique",
       "model": "MonitoredAccount",
@@ -1338,7 +1338,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "face59e631ff69995d7d",
       "method": "findUnique",
       "model": "MonitoredAccount",
@@ -1346,7 +1346,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "17e95751780ca992d376",
       "method": "findUnique",
       "model": "MonitoredAccount",
@@ -1354,7 +1354,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "2eaaaaed092e528afd44",
       "method": "findUnique",
       "model": "MonitoredAccount",
@@ -1362,7 +1362,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "26f616301b33f01311aa",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1370,7 +1370,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "3b335e17b8e2bc0d2c23",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1378,7 +1378,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "694475a6c8f07edf4ae6",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1386,7 +1386,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "87ea8d9718b2067fff29",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1394,7 +1394,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "0ad28f27a1a96923eed2",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1402,7 +1402,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "2de961536b2ed82938fa",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1410,7 +1410,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "3caefcf95f4f7069a5b7",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1418,7 +1418,7 @@
     },
     {
       "delegate": "monitoredAccount",
-      "file": "apps/server/server/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
+      "file": "apps/server/api/src/collections/monitored-accounts/services/monitored-accounts.service.ts",
       "fingerprint": "cba85dd347a3c17f87af",
       "method": "update",
       "model": "MonitoredAccount",
@@ -1426,7 +1426,7 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/server/src/collections/posts/services/posts.service.ts",
+      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
       "fingerprint": "3bae12c81ebd177d355b",
       "method": "findFirst",
       "model": "Post",
@@ -1434,7 +1434,7 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/server/src/collections/posts/services/posts.service.ts",
+      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
       "fingerprint": "36866f58820425b86b41",
       "method": "findMany",
       "model": "Post",
@@ -1442,7 +1442,7 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/server/src/collections/posts/services/posts.service.ts",
+      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
       "fingerprint": "ec5d99c1e55b569d4a9c",
       "method": "findMany",
       "model": "Post",
@@ -1450,7 +1450,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "34b1eeb56be305a6c956",
       "method": "findFirst",
       "model": "ReplyBotConfig",
@@ -1458,7 +1458,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "4087a3f4ff0102b3fc05",
       "method": "findFirst",
       "model": "ReplyBotConfig",
@@ -1466,7 +1466,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "08cd40bdf03b55b3f20b",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1474,7 +1474,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "3b18f9b59f37e99f4e12",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1482,7 +1482,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "6a65fdd71a0204636bf6",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1490,7 +1490,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "78c94f5997f485d0dc46",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1498,7 +1498,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "95e5b2adbb15d385f61c",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1506,7 +1506,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "c53e48ebdba0831d76d5",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1514,7 +1514,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "510d64c1907ffac1f457",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1522,7 +1522,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "73c553393898ec42624a",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1530,7 +1530,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "9f8a902023b49d363a91",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1538,7 +1538,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "c3991cbcf8f9615b7ff0",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1546,7 +1546,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "de3a848ffe7ea9d56b2e",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1554,7 +1554,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
+      "file": "apps/server/api/src/collections/reply-bot-configs/services/reply-bot-configs.service.ts",
       "fingerprint": "fdb6368099f1e40ea432",
       "method": "update",
       "model": "ReplyBotConfig",
@@ -1562,7 +1562,7 @@
     },
     {
       "delegate": "skill",
-      "file": "apps/server/server/src/collections/skills/services/skills.service.ts",
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
       "fingerprint": "f6fa58799f65274ad5e9",
       "method": "findFirst",
       "model": "Skill",
@@ -1570,7 +1570,7 @@
     },
     {
       "delegate": "skill",
-      "file": "apps/server/server/src/collections/skills/services/skills.service.ts",
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
       "fingerprint": "17dcac34688b28111f67",
       "method": "findMany",
       "model": "Skill",
@@ -1578,7 +1578,7 @@
     },
     {
       "delegate": "skill",
-      "file": "apps/server/server/src/collections/skills/services/skills.service.ts",
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
       "fingerprint": "25b44b1baabfffe4e879",
       "method": "findMany",
       "model": "Skill",
@@ -1586,7 +1586,7 @@
     },
     {
       "delegate": "skill",
-      "file": "apps/server/server/src/collections/skills/services/skills.service.ts",
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
       "fingerprint": "6e577198fbd39a1c63f0",
       "method": "findMany",
       "model": "Skill",
@@ -1594,7 +1594,7 @@
     },
     {
       "delegate": "skill",
-      "file": "apps/server/server/src/collections/skills/services/skills.service.ts",
+      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
       "fingerprint": "8dfeb945060d53fc36eb",
       "method": "findMany",
       "model": "Skill",
@@ -1602,7 +1602,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "46e8f8e57a39eed39efe",
       "method": "update",
       "model": "SocialConversation",
@@ -1610,7 +1610,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "543998a7ba7c7f01e7fe",
       "method": "update",
       "model": "SocialConversation",
@@ -1618,7 +1618,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "7e6e7757c7f131af005e",
       "method": "update",
       "model": "SocialConversation",
@@ -1626,7 +1626,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "fb6339f3278463fa10c1",
       "method": "update",
       "model": "SocialConversation",
@@ -1634,7 +1634,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "0fc676c3327dade73013",
       "method": "update",
       "model": "SocialConversation",
@@ -1642,7 +1642,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "552ce48ba80c090dc24e",
       "method": "update",
       "model": "SocialConversation",
@@ -1650,7 +1650,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "fbd935191ab946932cab",
       "method": "update",
       "model": "SocialConversation",
@@ -1658,7 +1658,7 @@
     },
     {
       "delegate": "socialMessage",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "8fbe81e7e76186656780",
       "method": "update",
       "model": "SocialMessage",
@@ -1666,7 +1666,7 @@
     },
     {
       "delegate": "socialMessage",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "cac6b949923e83933867",
       "method": "update",
       "model": "SocialMessage",
@@ -1674,7 +1674,7 @@
     },
     {
       "delegate": "socialMessage",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "2424462056e327bab264",
       "method": "update",
       "model": "SocialMessage",
@@ -1682,7 +1682,7 @@
     },
     {
       "delegate": "socialMessage",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "600566402a9ff2f4ba8f",
       "method": "update",
       "model": "SocialMessage",
@@ -1690,7 +1690,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-query.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-query.service.ts",
       "fingerprint": "9b0bd198dba0939bf069",
       "method": "count",
       "model": "SocialConversation",
@@ -1698,7 +1698,7 @@
     },
     {
       "delegate": "socialConversation",
-      "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-query.service.ts",
+      "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-query.service.ts",
       "fingerprint": "9194cf6c8e3238aa169d",
       "method": "findMany",
       "model": "SocialConversation",
@@ -1706,7 +1706,7 @@
     },
     {
       "delegate": "sourcePost",
-      "file": "apps/server/server/src/collections/source-posts/services/source-posts.service.ts",
+      "file": "apps/server/api/src/collections/source-posts/services/source-posts.service.ts",
       "fingerprint": "afbefd4cf0c27215a04d",
       "method": "count",
       "model": "SourcePost",
@@ -1714,7 +1714,7 @@
     },
     {
       "delegate": "sourcePost",
-      "file": "apps/server/server/src/collections/source-posts/services/source-posts.service.ts",
+      "file": "apps/server/api/src/collections/source-posts/services/source-posts.service.ts",
       "fingerprint": "4c143c750664b1b8cda9",
       "method": "findMany",
       "model": "SourcePost",
@@ -1722,7 +1722,7 @@
     },
     {
       "delegate": "streak",
-      "file": "apps/server/server/src/collections/streaks/services/streaks.service.ts",
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
       "fingerprint": "88d597799049df4ffb10",
       "method": "findMany",
       "model": "Streak",
@@ -1730,7 +1730,7 @@
     },
     {
       "delegate": "streak",
-      "file": "apps/server/server/src/collections/streaks/services/streaks.service.ts",
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
       "fingerprint": "f9f1cbfb3faaa970b014",
       "method": "findMany",
       "model": "Streak",
@@ -1738,7 +1738,7 @@
     },
     {
       "delegate": "streak",
-      "file": "apps/server/server/src/collections/streaks/services/streaks.service.ts",
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
       "fingerprint": "f595f0f674e017b76834",
       "method": "update",
       "model": "Streak",
@@ -1746,7 +1746,7 @@
     },
     {
       "delegate": "streak",
-      "file": "apps/server/server/src/collections/streaks/services/streaks.service.ts",
+      "file": "apps/server/api/src/collections/streaks/services/streaks.service.ts",
       "fingerprint": "d2fb80590dc96a29e2e0",
       "method": "update",
       "model": "Streak",
@@ -1754,7 +1754,7 @@
     },
     {
       "delegate": "taskCounter",
-      "file": "apps/server/server/src/collections/task-counters/services/task-counters.service.ts",
+      "file": "apps/server/api/src/collections/task-counters/services/task-counters.service.ts",
       "fingerprint": "7c6c12aa0b45990abaff",
       "method": "upsert",
       "model": "TaskCounter",
@@ -1762,7 +1762,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/template-metadata/services/template-metadata.service.ts",
+      "file": "apps/server/api/src/collections/template-metadata/services/template-metadata.service.ts",
       "fingerprint": "514bf2ab0869782f99af",
       "method": "findFirst",
       "model": "Template",
@@ -1770,7 +1770,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "9661a7aa95d3ce88262d",
       "method": "findFirst",
       "model": "Template",
@@ -1778,7 +1778,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "26125380f44864ad7549",
       "method": "findMany",
       "model": "Template",
@@ -1786,7 +1786,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "08768e3d2ea707b30123",
       "method": "update",
       "model": "Template",
@@ -1794,7 +1794,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "b0511b004c35ba2da055",
       "method": "update",
       "model": "Template",
@@ -1802,7 +1802,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "c60b663998a6a06abb74",
       "method": "update",
       "model": "Template",
@@ -1810,7 +1810,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "12c03844416983b418d4",
       "method": "update",
       "model": "Template",
@@ -1818,7 +1818,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "5fcbfb58c31cb953df25",
       "method": "update",
       "model": "Template",
@@ -1826,7 +1826,7 @@
     },
     {
       "delegate": "template",
-      "file": "apps/server/server/src/collections/templates/services/templates.service.ts",
+      "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
       "fingerprint": "a8cca5f18092cfa8b4ff",
       "method": "update",
       "model": "Template",
@@ -1834,7 +1834,7 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/server/src/collections/trends/services/modules/trend-analysis.service.ts",
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-analysis.service.ts",
       "fingerprint": "ae3e1c471b14bf4000ef",
       "method": "updateMany",
       "model": "Trend",
@@ -1842,7 +1842,7 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/server/src/collections/trends/services/modules/trend-corpus-freshness.service.ts",
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-corpus-freshness.service.ts",
       "fingerprint": "f754bc45149d7d8ef39a",
       "method": "findMany",
       "model": "Trend",
@@ -1850,7 +1850,7 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/server/src/collections/trends/services/modules/trend-query.service.ts",
+      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
       "fingerprint": "256d07f14d436fe2af6d",
       "method": "findFirst",
       "model": "Trend",
@@ -1858,7 +1858,7 @@
     },
     {
       "delegate": "workflowExecution",
-      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "3a14bd3ab7c27526d9b4",
       "method": "findMany",
       "model": "WorkflowExecution",
@@ -1866,7 +1866,7 @@
     },
     {
       "delegate": "workflowExecution",
-      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "30cad6b5cfc187ebbf4a",
       "method": "upsert",
       "model": "WorkflowExecution",
@@ -1874,7 +1874,7 @@
     },
     {
       "delegate": "workflowExecution",
-      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
       "fingerprint": "e14e5d35b3e9c7fdd951",
       "method": "upsert",
       "model": "WorkflowExecution",
@@ -1882,7 +1882,7 @@
     },
     {
       "delegate": "agentStrategy",
-      "file": "apps/server/server/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "a59a92f1a4faff39078c",
       "method": "findFirst",
       "model": "AgentStrategy",
@@ -1890,7 +1890,7 @@
     },
     {
       "delegate": "agentStrategy",
-      "file": "apps/server/server/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "30138d216a5f65a22c69",
       "method": "findFirst",
       "model": "AgentStrategy",
@@ -1898,7 +1898,7 @@
     },
     {
       "delegate": "agentStrategy",
-      "file": "apps/server/server/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "a2e64832449cc4c871fb",
       "method": "update",
       "model": "AgentStrategy",
@@ -1906,7 +1906,7 @@
     },
     {
       "delegate": "agentStrategy",
-      "file": "apps/server/server/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "51b0e0e45ade1796674e",
       "method": "update",
       "model": "AgentStrategy",
@@ -1914,7 +1914,7 @@
     },
     {
       "delegate": "workflowArtifact",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
       "fingerprint": "3237fef238ab03956afd",
       "method": "findMany",
       "model": "WorkflowArtifact",
@@ -1922,7 +1922,7 @@
     },
     {
       "delegate": "workflowArtifact",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
       "fingerprint": "9b8a019583e2d2c9174a",
       "method": "upsert",
       "model": "WorkflowArtifact",
@@ -1930,7 +1930,7 @@
     },
     {
       "delegate": "workflowArtifact",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
       "fingerprint": "123fd5c99cacb55f2a46",
       "method": "upsert",
       "model": "WorkflowArtifact",
@@ -1938,7 +1938,7 @@
     },
     {
       "delegate": "workflowExecution",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
       "fingerprint": "5eceacde0d78d1e0c952",
       "method": "findMany",
       "model": "WorkflowExecution",
@@ -1946,7 +1946,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-execution-finalizer.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-execution-finalizer.service.ts",
       "fingerprint": "ac22c0b4a3fe8dd4146c",
       "method": "update",
       "model": "Workflow",
@@ -1954,7 +1954,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-execution-finalizer.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-execution-finalizer.service.ts",
       "fingerprint": "6ef5bdb9123bfcc14890",
       "method": "update",
       "model": "Workflow",
@@ -1962,7 +1962,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "0eabfa5981bc89185300",
       "method": "findFirst",
       "model": "Workflow",
@@ -1970,7 +1970,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "953ad33bc498cb2a9b30",
       "method": "findFirst",
       "model": "Workflow",
@@ -1978,7 +1978,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "c8a0d0538ef9af4e5878",
       "method": "findMany",
       "model": "Workflow",
@@ -1986,7 +1986,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "880a12150dc963b8043c",
       "method": "update",
       "model": "Workflow",
@@ -1994,7 +1994,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "07beeae80f669b7845ae",
       "method": "update",
       "model": "Workflow",
@@ -2002,7 +2002,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-trend-publish-executor-registrar.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflow-trend-publish-executor-registrar.service.ts",
       "fingerprint": "d15a4db82d1fdfda8449",
       "method": "findFirst",
       "model": "Workflow",
@@ -2010,7 +2010,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
       "fingerprint": "2e82cee153a4e24f7bfc",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2018,7 +2018,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
       "fingerprint": "d177b8b8f37fd8fd217d",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2026,7 +2026,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
       "fingerprint": "1df53edeeff2426f109a",
       "method": "updateMany",
       "model": "Workflow",
@@ -2034,7 +2034,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "file": "apps/server/api/src/collections/workflows/services/workflows.service.ts",
       "fingerprint": "358e21c730ac0db3e25e",
       "method": "updateMany",
       "model": "Workflow",
@@ -2042,7 +2042,7 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "c106b8d4a5c53db67668",
       "method": "updateMany",
       "model": "Post",
@@ -2050,7 +2050,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "eb3b784c13fd1889bbc2",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2058,7 +2058,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "70119af7de3d5a892ea7",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2066,7 +2066,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "7efd0a726476c4555986",
       "method": "update",
       "model": "Workflow",
@@ -2074,7 +2074,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "8fbe0f338394fe87fd32",
       "method": "update",
       "model": "Workflow",
@@ -2082,7 +2082,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "2fd43c3cd52a036fc2be",
       "method": "updateMany",
       "model": "Workflow",
@@ -2090,7 +2090,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "file": "apps/server/api/src/collections/workflows/system-workflow-runner.service.ts",
       "fingerprint": "581a7749b237829491cb",
       "method": "updateMany",
       "model": "Workflow",
@@ -2098,7 +2098,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/workflow-version-definition.ts",
+      "file": "apps/server/api/src/collections/workflows/workflow-version-definition.ts",
       "fingerprint": "1d8cd8da9bd905ea55e0",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2106,7 +2106,7 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/workflow-version-definition.ts",
+      "file": "apps/server/api/src/collections/workflows/workflow-version-definition.ts",
       "fingerprint": "add80bb001c1411321c6",
       "method": "findUniqueOrThrow",
       "model": "Workflow",
@@ -2114,7 +2114,7 @@
     },
     {
       "delegate": "brand",
-      "file": "apps/server/server/src/endpoints/analytics/analytics.service.ts",
+      "file": "apps/server/api/src/endpoints/analytics/analytics.service.ts",
       "fingerprint": "666f1e4391e46c3a93ca",
       "method": "count",
       "model": "Brand",
@@ -2122,7 +2122,7 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
+      "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
       "fingerprint": "e1561ebcab2ecc820c8d",
       "method": "updateMany",
       "model": "Post",
@@ -2130,7 +2130,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
       "fingerprint": "c3c17c40f551d3d72453",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2138,7 +2138,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-runtime-session.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-runtime-session.service.ts",
       "fingerprint": "8aacaf490e1e1cee9d78",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2146,7 +2146,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "37fa81aec17a299d9ed5",
       "method": "findUnique",
       "model": "AgentThreadSnapshot",
@@ -2154,7 +2154,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "fd5e066f472a9460a44c",
       "method": "findUnique",
       "model": "AgentThreadSnapshot",
@@ -2162,7 +2162,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "33a827703d1a047dbe24",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2170,7 +2170,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "6e8225203beaa9b54877",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2178,7 +2178,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "b767d25ec7ea304f2ac6",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2186,7 +2186,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "55b05d6aa53468e158f7",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2194,7 +2194,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "925dadfe7c9ac9208629",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2202,7 +2202,7 @@
     },
     {
       "delegate": "agentThreadSnapshot",
-      "file": "apps/server/server/src/services/agent-threading/services/agent-thread-engine.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/agent-thread-engine.service.ts",
       "fingerprint": "bf9824343af7729e611b",
       "method": "update",
       "model": "AgentThreadSnapshot",
@@ -2210,7 +2210,7 @@
     },
     {
       "delegate": "threadContextState",
-      "file": "apps/server/server/src/services/agent-threading/services/thread-context-compressor.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/thread-context-compressor.service.ts",
       "fingerprint": "4e95917b49dcd32e0578",
       "method": "findFirst",
       "model": "ThreadContextState",
@@ -2218,7 +2218,7 @@
     },
     {
       "delegate": "threadContextState",
-      "file": "apps/server/server/src/services/agent-threading/services/thread-context-compressor.service.ts",
+      "file": "apps/server/api/src/services/agent-threading/services/thread-context-compressor.service.ts",
       "fingerprint": "e59dcca6b9e637902bf6",
       "method": "findFirst",
       "model": "ThreadContextState",
@@ -2226,7 +2226,7 @@
     },
     {
       "delegate": "subscription",
-      "file": "apps/server/server/src/services/lifecycle-emails/lifecycle-email-delivery.service.ts",
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-delivery.service.ts",
       "fingerprint": "baf15da5381c0e33d8cb",
       "method": "findFirst",
       "model": "Subscription",
@@ -2234,7 +2234,7 @@
     },
     {
       "delegate": "replyBotConfig",
-      "file": "apps/server/server/src/services/reply-bot/rate-limit.service.ts",
+      "file": "apps/server/api/src/services/reply-bot/rate-limit.service.ts",
       "fingerprint": "8e0592f2f4c846b5a869",
       "method": "findFirst",
       "model": "ReplyBotConfig",

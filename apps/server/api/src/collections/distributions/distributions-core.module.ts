@@ -1,4 +1,4 @@
-import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
+import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { Module } from '@nestjs/common';
 
 /** Distribution persistence only. Channel senders stay on their own modules. */

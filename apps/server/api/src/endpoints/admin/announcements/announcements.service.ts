@@ -1,5 +1,7 @@
 import type { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   ANNOUNCEMENT_BROADCAST_ACTION_IDS,
   ANNOUNCEMENT_BROADCAST_WORKFLOW_ID,
@@ -21,8 +23,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { TwitterApi } from 'twitter-api-v2';
 
 type AnnouncementBroadcastRequest = {

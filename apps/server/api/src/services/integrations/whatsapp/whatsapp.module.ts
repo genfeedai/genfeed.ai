@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WhatsappController } from '@api/services/integrations/whatsapp/controllers/whatsapp.controller';
-import { WhatsappService } from '@server/services/integrations/whatsapp/services/whatsapp.service';
+import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';

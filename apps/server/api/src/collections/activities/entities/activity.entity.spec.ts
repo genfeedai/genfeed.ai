@@ -1,4 +1,4 @@
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { testId } from '@helpers/testing/test-id.helper';
 
 describe('ActivityEntity', () => {

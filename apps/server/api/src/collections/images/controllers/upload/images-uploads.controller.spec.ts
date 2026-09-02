@@ -26,11 +26,15 @@ vi.mock('node:fs', async (importOriginal) => {
 import { createReadStream, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
@@ -38,10 +42,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 import { of } from 'rxjs';
 

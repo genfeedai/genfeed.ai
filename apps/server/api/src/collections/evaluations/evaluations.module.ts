@@ -1,8 +1,8 @@
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationsController } from '@api/collections/evaluations/controllers/evaluations.controller';
-import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
-import { EvaluationsOperationsService } from '@server/collections/evaluations/services/evaluations-operations.service';
+import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
+import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';

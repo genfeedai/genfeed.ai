@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   AdsChannel,
   AdsResearchPlatform,
   SavedAdSource,
 } from '@genfeedai/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SaveAdDto {

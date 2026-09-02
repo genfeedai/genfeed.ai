@@ -3,14 +3,14 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
-import type { TikTokOwnedVideoSignal } from '@api-types/contracts/tiktok-authorized-signals.contract';
-import { HttpService } from '@nestjs/axios';
 import {
   getTikTokRetryAfterMs,
   isTikTokAuthorizationError,
   isTikTokRateLimitError,
   isTikTokScopeError,
-} from '@server/services/integrations/tiktok/utils/tiktok-error.util';
+} from '@api/services/integrations/tiktok/utils/tiktok-error.util';
+import type { TikTokOwnedVideoSignal } from '@api-types/contracts/tiktok-authorized-signals.contract';
+import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 const TIKTOK_SIGNAL_MAX_ATTEMPTS = 2;

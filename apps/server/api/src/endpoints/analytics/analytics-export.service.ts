@@ -4,13 +4,13 @@
  * integrations used only for export. Extracted from AnalyticsService (#753).
  */
 
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

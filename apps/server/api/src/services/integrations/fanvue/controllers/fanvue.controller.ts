@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
   ConnectCredentialDto,
   CreateCredentialVerifyDto,
-} from '@server/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+} from '@api/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -13,7 +13,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { FanvueService } from '@server/services/integrations/fanvue/services/fanvue.service';
+import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {

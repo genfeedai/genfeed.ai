@@ -1,13 +1,13 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import type { SourcePostVariationRequest } from '@api/collections/posts/services/source-post-variation.types';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BadRequestException, type ExecutionContext } from '@nestjs/common';
 
 describe('PostVariationSourceGuard', () => {

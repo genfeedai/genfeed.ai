@@ -1,16 +1,16 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import type {
+  CloudWorkflowEdge,
+  CloudWorkflowNode,
+} from '@api/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import type {
-  CloudWorkflowEdge,
-  CloudWorkflowNode,
-} from '@server/collections/workflows/services/workflow-format-converter.service';
-import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { firstValueFrom } from 'rxjs';
 
 import type {

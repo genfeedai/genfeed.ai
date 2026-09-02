@@ -2,9 +2,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
-import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { IngredientCategory } from '@genfeedai/enums';

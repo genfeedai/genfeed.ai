@@ -1,9 +1,9 @@
+import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { RouterPriority } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { CreateIngredientDto } from '@server/collections/ingredients/dto/create-ingredient.dto';
-import { CreateMetadataDto } from '@server/collections/metadata/dto/create-metadata.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,

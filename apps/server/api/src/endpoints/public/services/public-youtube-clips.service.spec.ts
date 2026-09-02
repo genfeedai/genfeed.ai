@@ -1,13 +1,13 @@
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
-import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
-} from '@server/services/public-clip-tool/public-clip-tool-store.service';
+} from '@api/services/public-clip-tool/public-clip-tool-store.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 
 const token = 'a'.repeat(43);
 const storedSession: StoredPublicYoutubeClipSession = {

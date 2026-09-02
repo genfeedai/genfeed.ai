@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -7,8 +7,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   INVALID_CAMPAIGN_STATUS_MESSAGE,
   isAcceptedCampaignStatus,
-} from '@server/services/ads-gateway/ads-campaign-status.util';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import {
   type AdsGatewayAdapterContextInput,
   AdsGatewayRequestContextService,

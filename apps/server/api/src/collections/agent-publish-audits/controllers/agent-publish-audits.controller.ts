@@ -1,3 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AgentPublishAuditsQueryDto } from '@api/collections/agent-publish-audits/dto/agent-publish-audits-query.dto';
+import type { AgentPublishAuditScope } from '@api/collections/agent-publish-audits/schemas/agent-publish-audit.schema';
+import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -12,11 +17,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AgentPublishAuditsQueryDto } from '@server/collections/agent-publish-audits/dto/agent-publish-audits-query.dto';
-import type { AgentPublishAuditScope } from '@server/collections/agent-publish-audits/schemas/agent-publish-audit.schema';
-import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()

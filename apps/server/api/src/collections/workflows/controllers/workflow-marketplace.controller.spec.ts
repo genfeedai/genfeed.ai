@@ -1,5 +1,5 @@
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

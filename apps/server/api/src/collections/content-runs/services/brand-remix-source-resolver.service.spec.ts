@@ -1,6 +1,6 @@
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
-import type { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandRemixSourceResolverService', () => {

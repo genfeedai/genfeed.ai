@@ -18,10 +18,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
 import type { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
-import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
+import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { ContentPatternType } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

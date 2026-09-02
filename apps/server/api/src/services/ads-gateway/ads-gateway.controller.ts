@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import {
   type AdsInsightsDateQuery,
   parseAdsInsightsQuery,
-} from '@server/services/ads-gateway/ads-insights-range.util';
+} from '@api/services/ads-gateway/ads-insights-range.util';
 import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
 import type { AdsInsightsParams } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

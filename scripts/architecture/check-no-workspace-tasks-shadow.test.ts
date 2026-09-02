@@ -29,7 +29,7 @@ describe('retired workspace-tasks shadow guard', () => {
   it('accepts the canonical tasks collection', () => {
     const rootDir = fixture({
       'apps/server/api/src/collections/tasks/tasks.module.ts':
-        "import { TasksService } from '@server/collections/tasks/services/tasks.service';",
+        "import { TasksService } from '@api/collections/tasks/services/tasks.service';",
     });
 
     expect(checkNoWorkspaceTasksShadow({ rootDir })).toEqual([]);

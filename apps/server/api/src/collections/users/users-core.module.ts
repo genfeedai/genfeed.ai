@@ -1,4 +1,4 @@
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { Module } from '@nestjs/common';
 
 /** User persistence only. Profile HTTP stays on UsersModule. */

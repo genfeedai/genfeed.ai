@@ -1,0 +1,53 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
+import { ActivityEntityModel } from '@genfeedai/enums';
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateIf,
+} from 'class-validator';
+
+export class CreateActivityDto extends OrganizationalCreateDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ nullable: true, required: false, type: String })
+  readonly brandId?: string | null;
+
+  @IsString()
+  @ApiProperty({ required: true })
+  readonly source!: string;
+
+  @IsString()
+  @ApiProperty({ required: true })
+  readonly key!: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly value?: string;
+
+  @IsEnum(ActivityEntityModel)
+  @IsOptional()
+  @ValidateIf((o) => o.entityId !== undefined)
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Entity model name',
+    enum: ActivityEntityModel,
+    enumName: 'ActivityEntityModel',
+    required: false,
+  })
+  readonly entityModel?: ActivityEntityModel;
+
+  @IsEntityId()
+  @IsOptional()
+  @ValidateIf((o) => o.entityModel !== undefined)
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Entity ID reference',
+    required: false,
+  })
+  readonly entityId?: string;
+}

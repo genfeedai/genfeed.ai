@@ -1,6 +1,6 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixDraft,
   BrandRemixDraftEdits,

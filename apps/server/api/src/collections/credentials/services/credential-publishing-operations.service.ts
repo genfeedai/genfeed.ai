@@ -1,7 +1,7 @@
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { QuotaService } from '@server/services/quota/quota.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { QuotaService } from '@api/services/quota/quota.service';
 import type { CredentialPlatform } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

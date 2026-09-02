@@ -1,5 +1,5 @@
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-definition';
 
 export const PATTERN_EXTRACTION_WORKFLOW_ID = 'patterns.extract-organization';
 export const PATTERN_EXTRACTION_ITEM_WORKFLOW_ID = 'patterns.persist-candidate';

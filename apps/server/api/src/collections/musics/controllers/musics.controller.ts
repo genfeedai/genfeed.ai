@@ -1,26 +1,26 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MusicQueryDto } from '@api/collections/musics/dto/music-query.dto';
-import { UpdateMusicDto } from '@server/collections/musics/dto/update-music.dto';
-import type { MusicDocument } from '@server/collections/musics/schemas/music.schema';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
+import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { AggregatePaginateResult } from '@api/shared/controllers/base-crud/base-crud.types';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

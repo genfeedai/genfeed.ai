@@ -19,7 +19,7 @@ import { readRepo, readSourceOf } from './launch-path-source.util';
 // Declarations may live in api or server after the shared-server extraction.
 const API_SRC = 'apps/server';
 const APP = 'apps/app';
-const SERVER_SRC = 'apps/server/server/src';
+const SERVER_SRC = 'apps/server/api/src';
 const WORKERS_SRC = 'apps/server/workers/src';
 
 describe('launch-path contracts (hermetic E2E tier)', () => {

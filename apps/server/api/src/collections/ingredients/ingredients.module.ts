@@ -7,8 +7,8 @@ Workflow execution, state management, and cross-content type operations.
 import { FoldersModule } from '@api/collections/folders/folders.module';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
-import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';

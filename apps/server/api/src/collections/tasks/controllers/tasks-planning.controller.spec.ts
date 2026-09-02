@@ -5,10 +5,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TasksPlanningController } from '@api/collections/tasks/controllers/tasks-planning.controller';
-import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema';
-import type { TaskPlanningService } from '@server/collections/tasks/services/task-planning.service';
+import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import type { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';

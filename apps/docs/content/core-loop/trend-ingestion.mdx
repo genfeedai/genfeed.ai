@@ -16,7 +16,7 @@ The current repo has a real Step 1 ingestion path, not a placeholder:
 - [`apps/server/api/src/collections/trends/trends.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/trends.module.ts)
   - owns the `Trend`, `TrendingVideo`, `TrendingHashtag`, `TrendingSound`, and reference schemas
   - wires `TrendFetchService`, `TrendFilteringService`, `TrendAnalysisService`, `TrendContentIdeasService`, `TrendVideoService`, `TrendReferenceCorpusService`, and `TrendsService`
-- [`apps/server/server/src/collections/trends/services/trends.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/collections/trends/services/trends.service.ts)
+- [`apps/server/api/src/collections/trends/services/trends.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/trends.service.ts)
   - provides the canonical cached/live-fetch read path
   - hydrates source previews
   - syncs trend references
@@ -144,8 +144,8 @@ flowchart LR
 
 The narrow Step 1 verification paths for v1 are in:
 
-- [`apps/server/server/src/collections/trends/services/trends.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/collections/trends/services/trends.service.spec.ts)
-- [`apps/server/server/src/collections/trends/services/modules/trend-fetch.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/collections/trends/services/modules/trend-fetch.service.spec.ts)
+- [`apps/server/api/src/collections/trends/services/trends.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/trends.service.spec.ts)
+- [`apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/collections/trends/services/modules/trend-fetch.service.spec.ts)
 
 The orchestrator smoke test proves the cache-miss path is wired:
 

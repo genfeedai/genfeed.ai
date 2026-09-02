@@ -1,5 +1,5 @@
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { XActivityWebhookService } from '@server/services/reply-bot/x-activity-webhook.service';
+import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -6,19 +6,19 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 const brandId = testId('brand');

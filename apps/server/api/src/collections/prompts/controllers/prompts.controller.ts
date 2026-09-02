@@ -1,11 +1,26 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
+import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
+import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { customLabels } from '@api/helpers/utils/pagination.util';
+import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -13,6 +28,13 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -41,28 +63,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { CreatePromptDto } from '@server/collections/prompts/dto/create-prompt.dto';
-import { UpdatePromptDto } from '@server/collections/prompts/dto/update-prompt.dto';
-import { type PromptDocument } from '@server/collections/prompts/schemas/prompt.schema';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { PromptParser } from '@server/helpers/utils/prompt-parser/prompt-parser.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import type { IPromptBrandContext } from '@server/shared/interfaces/prompt/prompt.interface';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Request } from 'express';
 
 type PromptWithIngredients = PromptDocument & {

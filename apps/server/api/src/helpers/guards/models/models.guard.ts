@@ -1,3 +1,10 @@
+import type { AuthenticatedRequest } from '@api/auth/interfaces/authenticated-user.interface';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import {
+  isFalDestination,
+  isReplicateDestination,
+  isReplicateVersionId,
+} from '@api/collections/models/utils/model-key.util';
 import { readRequestOrganizationId } from '@api/helpers/utils/request/read-request-organization-id.util';
 import type { ModelCategory } from '@genfeedai/enums';
 import {
@@ -7,13 +14,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { AuthenticatedRequest } from '@server/auth/interfaces/authenticated-user.interface';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import {
-  isFalDestination,
-  isReplicateDestination,
-  isReplicateVersionId,
-} from '@server/collections/models/utils/model-key.util';
 
 export interface ModelValidationOptions {
   category: ModelCategory;

@@ -1,5 +1,5 @@
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
+import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

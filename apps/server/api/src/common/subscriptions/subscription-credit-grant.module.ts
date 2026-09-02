@@ -4,7 +4,7 @@
  * webhook handlers can both import it without closing a dependency ring.
  */
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';

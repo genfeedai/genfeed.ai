@@ -4,9 +4,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SlackController } from '@api/services/integrations/slack/controllers/slack.controller';
 import type { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { HttpException } from '@nestjs/common';

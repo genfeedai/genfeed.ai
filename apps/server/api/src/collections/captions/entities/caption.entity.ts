@@ -1,6 +1,6 @@
+import { BaseEntity } from '@api/entities/base.entity';
 import { CaptionFormat, CaptionLanguage } from '@genfeedai/enums';
 import { type Caption } from '@genfeedai/prisma';
-import { BaseEntity } from '@server/entities/base.entity';
 
 export class CaptionEntity extends BaseEntity implements Caption {
   declare readonly id: string;

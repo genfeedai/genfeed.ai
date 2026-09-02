@@ -1,5 +1,5 @@
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
@@ -10,11 +10,11 @@ import {
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CacheService } from '@server/services/cache/cache.service';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {

@@ -1,5 +1,5 @@
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

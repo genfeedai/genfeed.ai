@@ -1,11 +1,11 @@
+import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
+import { compileRemainingVideoGenerationBrief } from '@api/services/generation-brief/compile-remaining-video-generation-brief';
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
+import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
+import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
+import { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';
 import { imageGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { compileRemainingImageGenerationBrief } from '@server/services/generation-brief/compile-remaining-image-generation-brief';
-import { compileRemainingVideoGenerationBrief } from '@server/services/generation-brief/compile-remaining-video-generation-brief';
-import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-image-generation-brief-families';
-import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-video-generation-brief-families';
-import { runImageGenerationBrief } from '@server/services/generation-brief/run-image-generation-brief';
-import { runVideoGenerationBrief } from '@server/services/generation-brief/run-video-generation-brief';
 import { describe, expect, it } from 'vitest';
 
 /**

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { RegisterOAuthClientDto } from '../dto/register-client.dto';
 

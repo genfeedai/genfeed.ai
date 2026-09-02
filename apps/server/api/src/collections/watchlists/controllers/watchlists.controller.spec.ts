@@ -1,6 +1,6 @@
 import { WatchlistsController } from '@api/collections/watchlists/controllers/watchlists.controller';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConflictException } from '@nestjs/common';
 

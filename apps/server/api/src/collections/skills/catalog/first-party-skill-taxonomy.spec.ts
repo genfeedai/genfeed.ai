@@ -1,7 +1,6 @@
+import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
 import { ContentSkillCategory } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-
-import { inferFirstPartySkillTaxonomy } from '@server/collections/skills/catalog/first-party-skill-taxonomy';
 
 describe('inferFirstPartySkillTaxonomy', () => {
   it('maps instagram-content-creator to instagram text creation', () => {

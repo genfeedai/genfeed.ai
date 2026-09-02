@@ -1,13 +1,13 @@
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import {
+  AgentArtifactReferenceService,
+  AgentScopeContextService,
+} from '@api/index';
 import {
   AGENT_SCOPE_SOURCES,
   type AgentScopeSource,
 } from '@genfeedai/interfaces';
-import {
-  AgentArtifactReferenceService,
-  AgentScopeContextService,
-} from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 
 const AGENT_SCOPE_SOURCE_SET: ReadonlySet<unknown> = new Set(

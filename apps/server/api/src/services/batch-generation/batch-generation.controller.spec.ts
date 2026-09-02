@@ -1,10 +1,10 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

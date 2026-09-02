@@ -1,5 +1,5 @@
 import { RestreamController } from '@api/services/integrations/restream/controllers/restream.controller';
-import { RestreamService } from '@server/services/integrations/restream/services/restream.service';
+import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 

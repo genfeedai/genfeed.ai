@@ -21,7 +21,7 @@ import process from 'node:process';
 import {
   type HarnessPackSeed,
   packSeedMatchesBrand,
-} from '@server/services/harness/harness-profile-seed.util';
+} from '@api/services/harness/harness-profile-seed.util';
 import { Logger } from '@nestjs/common';
 
 type SeedArgs = {

@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateProjectDto } from '@api/collections/projects/dto/create-project.dto';
 import { ProjectQueryDto } from '@api/collections/projects/dto/project-query.dto';
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';

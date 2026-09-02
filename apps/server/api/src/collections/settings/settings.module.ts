@@ -4,7 +4,7 @@
 and personalization options.
  */
 
-import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { Module } from '@nestjs/common';
 
 @Module({

@@ -1,5 +1,5 @@
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { XaiService } from '@server/services/integrations/xai/services/xai.service';
+import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { Module } from '@nestjs/common';
 

@@ -1,19 +1,19 @@
 import type { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import type { ListeningTopicDocument } from '@api/collections/listening-topics/schemas/listening-topic.schema';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { ListeningEvidenceType, SocialSourcePlatform } from '@genfeedai/enums';
 import type {
   IListeningScope,
   ListeningTopicCollectionState,
 } from '@genfeedai/interfaces';
 import { LISTENING_CONTRACT_VERSION } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
 const LISTENING_SOURCE_COLLECTION_CONCURRENCY = 3;
 const finalTopicInclude = {

@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersController } from '@api/collections/folders/controllers/folders.controller';
 import { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto';
 import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,7 +25,7 @@ vi.mock('@helpers/utils/response/response.util', () => ({
   setTopLinks: vi.fn((_req, opts) => opts),
 }));
 
-vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((error: unknown) => {
       throw error;

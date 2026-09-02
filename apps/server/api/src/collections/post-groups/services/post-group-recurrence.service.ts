@@ -1,7 +1,8 @@
-import type { SchedulerPostGroup } from '@server/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   previewRecurrenceOccurrences,
   type RecurrencePreviewInput,
@@ -14,7 +15,6 @@ import {
 } from '@api-types/contracts/scheduler.contract';
 import { ReleaseStatus } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,

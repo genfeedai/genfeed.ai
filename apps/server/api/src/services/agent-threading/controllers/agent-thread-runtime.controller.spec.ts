@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadRuntimeController } from '@api/services/agent-threading/controllers/agent-thread-runtime.controller';
+import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { UsersService } from '@server/collections/users/services/users.service';
-import type { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import type { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import { Effect } from 'effect';
 
-vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((error: unknown) => {
       throw error;

@@ -2,10 +2,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ApiKeyScope } from '@genfeedai/enums';
 import { PostSerializer } from '@genfeedai/serializers';

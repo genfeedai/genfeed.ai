@@ -1,5 +1,5 @@
+import { BaseEntity } from '@api/entities/base.entity';
 import { type Setting } from '@genfeedai/prisma';
-import { BaseEntity } from '@server/entities/base.entity';
 
 export class SettingEntity extends BaseEntity implements Setting {
   declare readonly id: string;

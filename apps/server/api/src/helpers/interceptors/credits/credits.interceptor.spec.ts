@@ -1,3 +1,4 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/enums';
@@ -6,7 +7,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { Observable, of, throwError } from 'rxjs';
 
 const organizationId = testId('org');

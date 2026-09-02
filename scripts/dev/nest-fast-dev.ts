@@ -83,11 +83,6 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
     if (!entry.isDirectory()) continue;
     const appSrc = path.join(SERVER_ROOT, entry.name, 'src');
     if (!fs.existsSync(appSrc)) continue;
-    if (entry.name === 'server') {
-      aliases['@genfeedai/server'] = appSrc;
-      aliases['@server'] = appSrc;
-      continue;
-    }
     aliases[`@${entry.name}`] = appSrc;
   }
 
@@ -116,7 +111,6 @@ function shouldBundleImport(id: string): boolean {
   if (id.startsWith('@genfeedai/')) return true;
   if (id.startsWith('@api')) return true;
   if (id.startsWith('@libs/')) return true;
-  if (id.startsWith('@server')) return true;
   if (id.startsWith('@helpers/')) return true;
   if (id.startsWith('@config/')) return true;
   if (id.startsWith('@serializers/')) return true;

@@ -3,7 +3,7 @@
  * Content metadata: custom fields, metadata schemas, bulk metadata updates,
 and metadata search capabilities.
  */
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { Module } from '@nestjs/common';
 
 @Module({

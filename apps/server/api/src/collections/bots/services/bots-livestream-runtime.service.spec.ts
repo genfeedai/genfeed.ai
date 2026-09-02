@@ -1,10 +1,9 @@
-import { BotPlatform } from '@genfeedai/enums';
-import { describe, expect, it } from 'vitest';
-
 import {
   BotsLivestreamRuntimeService,
   type LivestreamPlatformState,
-} from '@server/collections/bots/services/bots-livestream-runtime.service';
+} from '@api/collections/bots/services/bots-livestream-runtime.service';
+import { BotPlatform } from '@genfeedai/enums';
+import { describe, expect, it } from 'vitest';
 
 describe('BotsLivestreamRuntimeService', () => {
   const service = new BotsLivestreamRuntimeService();

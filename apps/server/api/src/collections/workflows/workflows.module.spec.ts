@@ -23,7 +23,7 @@ describe('WorkflowsModule optional executor imports', () => {
 
   it('#3407: registers OutreachCampaignDispatchWorkflowService as a provider so the scheduler executor is DI-constructible', () => {
     expect(source).toContain(
-      "from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service'",
+      "from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service'",
     );
     expect(source).toMatch(
       /providers:\s*\[[\s\S]*OutreachCampaignDispatchWorkflowService[\s\S]*\]/,

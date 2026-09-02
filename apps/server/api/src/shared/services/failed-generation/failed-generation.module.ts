@@ -1,6 +1,6 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { Module } from '@nestjs/common';
 
 @Module({

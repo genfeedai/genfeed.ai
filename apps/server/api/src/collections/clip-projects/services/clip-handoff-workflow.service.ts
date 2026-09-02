@@ -1,5 +1,19 @@
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import {
+  type ClipLibraryLinkResult,
+  ClipLibraryLinkService,
+} from '@api/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import {
+  type SystemWorkflowActionRequest,
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
@@ -9,20 +23,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import {
-  type ClipLibraryLinkResult,
-  ClipLibraryLinkService,
-} from '@server/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
-import {
-  type SystemWorkflowActionRequest,
-  type SystemWorkflowGraphDefinition,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { v4 as uuidv4 } from 'uuid';
 
 const CLIP_HANDOFF_ACTION_IDS = {

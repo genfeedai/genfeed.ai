@@ -1,7 +1,7 @@
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 
 const BaseModule = createServiceModule(OpenRouterService, {
   additionalImports: [HttpModule],

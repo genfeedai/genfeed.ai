@@ -1,5 +1,5 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleScope } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';

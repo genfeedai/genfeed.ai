@@ -17,7 +17,7 @@ vi.mock('@api/helpers/utils/sort/sort.util', () => ({
   handleQuerySort: vi.fn(() => ({ createdAt: -1 })),
 }));
 
-vi.mock('@server/helpers/utils/pagination.util', () => ({
+vi.mock('@api/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 
@@ -47,11 +47,11 @@ vi.mock('@api/helpers/utils/ingredient-filter/ingredient-filter.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import type { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { VotesService } from '@server/collections/votes/services/votes.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   serializeCollection,

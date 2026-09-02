@@ -1,4 +1,4 @@
-import { isStripeSignatureVerificationError } from '@server/services/integrations/stripe/services/stripe-error.util';
+import { isStripeSignatureVerificationError } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
 export const StripeWebhookErrorKind = {

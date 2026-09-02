@@ -10,6 +10,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
@@ -44,16 +45,24 @@ import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/repli
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
+import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
+import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
+import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
+import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
+import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { StripeWebhooksModule } from '@api/endpoints/webhooks/stripe/stripe-webhooks.module';
 import { VercelWebhookController } from '@api/endpoints/webhooks/vercel/webhooks.vercel.controller';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { XActivityWebhookController } from '@api/endpoints/webhooks/x-activity/webhooks.x-activity.controller';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
+import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ArgilModule } from '@api/services/integrations/argil/argil.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
@@ -62,15 +71,6 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { ActivityUpdateService } from '@server/endpoints/webhooks/services/activity-update.service';
-import { AutoMergeService } from '@server/endpoints/webhooks/services/auto-merge.service';
-import { MediaUploadService } from '@server/endpoints/webhooks/services/media-upload.service';
-import { MetadataLookupService } from '@server/endpoints/webhooks/services/metadata-lookup.service';
-import { PostProcessingOrchestratorService } from '@server/endpoints/webhooks/services/post-processing-orchestrator.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Module({
   controllers: [

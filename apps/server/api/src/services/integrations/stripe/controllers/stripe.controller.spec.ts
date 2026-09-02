@@ -23,13 +23,19 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -41,12 +47,6 @@ import {
   type INestApplication,
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
 

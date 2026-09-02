@@ -1,30 +1,31 @@
 import fs from 'node:fs';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { CaptionDocument } from '@server/collections/captions/schemas/caption.schema';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CreateVideoWithCaptionsDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
   AssetScope,
@@ -54,7 +55,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 /**

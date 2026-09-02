@@ -1,4 +1,4 @@
-import { isAsciiWordCharacter } from '@server/shared/utils/string/linear-string.util';
+import { isAsciiWordCharacter } from '@api/shared/utils/string/linear-string.util';
 import type { SortObject } from '@genfeedai/interfaces';
 
 function getDefaultSort(): SortObject {

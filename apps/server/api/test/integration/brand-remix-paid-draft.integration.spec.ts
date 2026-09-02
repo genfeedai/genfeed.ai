@@ -30,9 +30,9 @@ import {
 } from '@genfeedai/enums';
 import { CredentialPlatform, type Prisma } from '@genfeedai/prisma';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { XAdsAdapter } from '@server/services/ads-gateway/adapters/x-ads.adapter';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 const describeWithDatabase =
   process.env.SKIP_PRISMA_DB === 'true' ? describe.skip : describe;

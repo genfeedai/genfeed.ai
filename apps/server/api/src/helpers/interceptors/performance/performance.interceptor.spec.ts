@@ -2,7 +2,7 @@ import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
 } from '@api/helpers/interceptors/performance/performance.interceptor';
-import { recordPrismaQuery } from '@server/helpers/performance/request-performance.context';
+import { recordPrismaQuery } from '@api/helpers/performance/request-performance.context';
 import { normalizeApiRoute } from '@api/helpers/performance/sentry-performance-monitor';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

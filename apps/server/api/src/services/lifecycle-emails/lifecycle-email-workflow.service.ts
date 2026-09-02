@@ -1,15 +1,15 @@
-import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/workflows/system-workflow-runner.service';
 import {
   LifecycleEmailDeliveryService,
   type LifecycleEmailDeliveryState,
-} from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
+} from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
+import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const LIFECYCLE_EMAIL_ACTION_IDS = {
   CHECK: 'lifecycle-email.check-eligibility',

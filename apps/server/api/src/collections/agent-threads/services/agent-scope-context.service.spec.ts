@@ -1,4 +1,4 @@
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService } from '@api/index';
 import {
   ConflictException,
   ForbiddenException,

@@ -16,6 +16,7 @@ import {
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
+import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -35,7 +36,6 @@ import { ContentOptimizationModule } from '@api/services/content-optimization/co
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
 import { Module } from '@nestjs/common';
-import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
 
 @Module({
   controllers: [ContentRunsController],

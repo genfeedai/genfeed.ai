@@ -3,7 +3,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
-import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PersonaStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

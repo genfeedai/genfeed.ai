@@ -1,4 +1,4 @@
-import { WorkloadRedisClientService } from '@server/services/cache/workload-redis-client.service';
+import { WorkloadRedisClientService } from '@api/services/cache/workload-redis-client.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisWorkload } from '@libs/redis/redis-connection.utils';

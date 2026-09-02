@@ -1,6 +1,6 @@
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { categoryToPlural, IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

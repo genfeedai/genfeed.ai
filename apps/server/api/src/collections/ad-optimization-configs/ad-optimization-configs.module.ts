@@ -1,8 +1,8 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import { SERVER_TOKENS } from '@api/server.dependencies';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
-import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import { SERVER_TOKENS } from '@server/server.dependencies';
 
 @Module({
   exports: [AdOptimizationConfigsService],

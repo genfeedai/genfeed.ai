@@ -371,8 +371,8 @@ jobs:
               apps/server/*/*)
                 workspace="${file#apps/server/}"
                 workspace="${workspace%%/*}"
-                # A changed workspace without its own ratchet config (e.g. the
-                # shared apps/server/server package) feeds every program.
+                # A changed workspace without its own ratchet config feeds
+                # every program.
                 if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
                   affected["${workspace}"]=1
                 else

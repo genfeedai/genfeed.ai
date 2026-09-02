@@ -1,10 +1,10 @@
-import { RouterPriority } from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import { ApiProperty } from '@nestjs/swagger';
 import type {
   AgentChatAttachment,
   AgentPageContext,
-} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { RouterPriority } from '@genfeedai/enums';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,

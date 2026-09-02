@@ -1,3 +1,11 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  GenerateClipsDto,
+  SubmitHookClipDecisionDto,
+} from '@api/collections/clip-projects/dto/generate-clips.dto';
+import { ClipGenerationDispatchService } from '@api/collections/clip-projects/services/clip-generation-dispatch.service';
+import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,14 +26,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import {
-  GenerateClipsDto,
-  SubmitHookClipDecisionDto,
-} from '@server/collections/clip-projects/dto/generate-clips.dto';
-import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
-import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 
 @AutoSwagger()
 @ApiTags('clip-projects')

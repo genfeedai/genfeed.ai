@@ -1,24 +1,24 @@
 import {
-  CredentialPlatform,
-  fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import {
   type CredentialDocument,
   SERVER_TOKENS,
   type ServerCredentialStore,
-} from '@genfeedai/server';
+} from '@api/index';
+import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
+import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
-import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
-import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
-import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
-import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 
 interface TokenRefreshService {
   refreshToken(orgId: string, brandId: string): Promise<unknown>;

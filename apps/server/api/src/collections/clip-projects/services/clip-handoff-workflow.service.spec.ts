@@ -1,12 +1,12 @@
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
+import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
-import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/workflows/system-workflow-runner.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 import { ClipHandoffWorkflowService } from './clip-handoff-workflow.service';
 

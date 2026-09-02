@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { GenerateTrendIdeasDto } from '@server/collections/trends/dto/trend-ideas.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { GenerateTrendIdeasDto } from '@api/collections/trends/dto/trend-ideas.dto';
 import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-preferences.dto';
-import { TrendPreferencesService } from '@server/collections/trends/services/trend-preferences.service';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
+import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';

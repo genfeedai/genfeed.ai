@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SourcePostDraftActionDto } from '@api/collections/source-posts/dto/source-post-action.dto';
 import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-posts-query.dto';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

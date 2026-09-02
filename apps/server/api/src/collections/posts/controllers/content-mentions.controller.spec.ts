@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
 
 describe('ContentMentionsController', () => {

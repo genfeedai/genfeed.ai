@@ -1,15 +1,15 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { RouterPriority } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const scope = {

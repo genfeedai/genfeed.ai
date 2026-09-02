@@ -1,4 +1,4 @@
-import { IngredientsQueryDto } from '@server/collections/ingredients/dto/ingredients-query.dto';
+import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 

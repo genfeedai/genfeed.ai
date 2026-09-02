@@ -1,5 +1,5 @@
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BusinessAnalyticsService } from './business-analytics.service';

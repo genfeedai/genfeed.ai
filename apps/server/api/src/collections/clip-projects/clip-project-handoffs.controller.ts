@@ -1,8 +1,11 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   type ClipEditorHandoffResult,
   ClipHandoffWorkflowService,
   type ClipPublishHandoffResult,
 } from '@api/collections/clip-projects/services/clip-handoff-workflow.service';
+import type { ClipLibraryLinkResult } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -16,9 +19,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { ClipLibraryLinkResult } from '@server/collections/clip-projects/services/clip-library-link.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 
 @AutoSwagger()
 @ApiTags('clip-projects')

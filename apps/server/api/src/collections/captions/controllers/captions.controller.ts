@@ -1,23 +1,23 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CaptionsQueryDto } from '@api/collections/captions/dto/captions-query.dto';
-import { CreateCaptionDto } from '@server/collections/captions/dto/create-caption.dto';
-import { UpdateCaptionDto } from '@server/collections/captions/dto/update-caption.dto';
-import { type CaptionDocument } from '@server/collections/captions/schemas/caption.schema';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
+import { UpdateCaptionDto } from '@api/collections/captions/dto/update-caption.dto';
+import { type CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WhisperService } from '@server/services/whisper/whisper.service';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { WhisperService } from '@api/services/whisper/whisper.service';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EvaluationsController } from '@api/collections/evaluations/controllers/evaluations.controller';
-import { CompareEvaluationsDto } from '@server/collections/evaluations/dto/compare-evaluations.dto';
+import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-evaluations.dto';
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
-import { EvaluateExternalDto } from '@server/collections/evaluations/dto/evaluate-external.dto';
-import { EvaluationFiltersDto } from '@server/collections/evaluations/dto/evaluation-filters.dto';
-import { RecordEvaluationReviewDto } from '@server/collections/evaluations/dto/record-evaluation-review.dto';
-import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
+import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
+import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
+import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
+import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   EvaluationType,

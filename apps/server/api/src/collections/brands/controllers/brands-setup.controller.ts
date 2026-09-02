@@ -1,12 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
 import { WebsitePreviewDto } from '@api/collections/brands/dto/website-preview.dto';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { BrandSetupDto } from '@server/endpoints/onboarding/dto/brand-setup.dto';
-import { AddReferenceImagesDto } from '@server/endpoints/onboarding/dto/reference-images.dto';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
+import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

@@ -1,5 +1,5 @@
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const REVIEW_GATE_TIMEOUT_ACTION_IDS = {
   DISCOVER: 'review-gate.timeout.discover',

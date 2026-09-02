@@ -23,7 +23,7 @@ const source = {
     'apps/server/api/src/collections/post-groups/controllers/post-groups.controller.ts',
   ),
   restService: read(
-    'apps/server/server/src/collections/post-groups/services/post-groups.service.ts',
+    'apps/server/api/src/collections/post-groups/services/post-groups.service.ts',
   ),
 };
 

@@ -1,17 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
   AssetScope,
@@ -24,7 +25,6 @@ import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Param, Post, Req } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

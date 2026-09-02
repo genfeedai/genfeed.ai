@@ -6,22 +6,22 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 describe('IngredientsOperationsController', () => {

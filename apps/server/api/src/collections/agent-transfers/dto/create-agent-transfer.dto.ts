@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentTransferDeliveryMode } from '@genfeedai/enums';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';

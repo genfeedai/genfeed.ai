@@ -1,4 +1,4 @@
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OAuthClientService } from './oauth-client.service';
 
 function buildService() {

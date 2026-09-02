@@ -1,6 +1,6 @@
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DevController } from '@api/endpoints/dev/dev.controller';
-import type { NotificationsService } from '@server/services/notifications/notifications.service';
+import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';

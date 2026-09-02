@@ -1,4 +1,6 @@
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ANNOUNCEMENT_BROADCAST_ACTION_IDS } from '@api/endpoints/admin/announcements/announcement-broadcast-workflow-definition';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
@@ -10,8 +12,6 @@ import { RedisService } from '@libs/redis/redis.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 
 vi.mock('@libs/utils/encryption/encryption.util');
 

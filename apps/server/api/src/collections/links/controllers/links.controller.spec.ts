@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LinksController } from '@api/collections/links/controllers/links.controller';
 import type { LinksQueryDto } from '@api/collections/links/dto/links-query.dto';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';

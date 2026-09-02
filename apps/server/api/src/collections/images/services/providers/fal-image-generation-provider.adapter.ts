@@ -6,15 +6,15 @@ import type {
 import {
   getFalEndpointFromModelKey,
   isFalDestination,
-} from '@server/collections/models/utils/model-key.util';
-import type { ModelProvider } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
+} from '@api/collections/models/utils/model-key.util';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import {
   adaptFalImageRequest,
   type FalJsonSchema,
   type FalSchemaFamily,
-} from '@server/services/integrations/fal/services/fal-contract';
+} from '@api/services/integrations/fal/services/fal-contract';
+import type { ModelProvider } from '@genfeedai/enums';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class FalImageGenerationProviderAdapter

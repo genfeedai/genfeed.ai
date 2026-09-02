@@ -1,12 +1,12 @@
-import { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
+import { SERVER_TOKENS } from '@api/index';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { SERVER_TOKENS } from '@genfeedai/server';
 import { Module } from '@nestjs/common';
 
 const SERVER_CREDENTIAL_STORE_PROVIDER = {

@@ -1,10 +1,10 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import type { StripeSubscription } from '@server/services/integrations/stripe/services/stripe.service';
+import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
   SubscriptionPlan,

@@ -1,3 +1,4 @@
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import type {
   SkillsProRegistryCatalogDto,
   SkillsProRegistryEntryDto,
@@ -7,7 +8,6 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 
 export interface SkillRegistryEntry {
   slug: string;

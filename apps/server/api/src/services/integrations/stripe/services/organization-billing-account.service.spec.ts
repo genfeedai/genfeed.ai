@@ -1,12 +1,12 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 
 describe('OrganizationBillingAccountService', () => {
   let service: OrganizationBillingAccountService;

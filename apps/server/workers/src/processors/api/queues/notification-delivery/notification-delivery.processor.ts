@@ -1,4 +1,4 @@
-import { WorkflowNotificationDeliveryService } from '@server/services/notifications/workflow-notifications/workflow-notification-delivery.service';
+import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import {
   NOTIFICATION_DELIVERY_QUEUE,
   type NotificationDeliveryJobData,

@@ -1,4 +1,4 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentStrategiesController } from './agent-strategies.controller';
 
 describe('AgentStrategiesController', () => {

@@ -1,12 +1,12 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsController } from '@api/collections/assets/controllers/assets.controller';
-import type { UpdateAssetDto } from '@server/collections/assets/dto/update-asset.dto';
-import type { Asset } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
+import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
+import type { Asset } from '@api/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

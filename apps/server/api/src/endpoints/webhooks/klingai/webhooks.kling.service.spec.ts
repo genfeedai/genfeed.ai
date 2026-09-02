@@ -1,4 +1,4 @@
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';

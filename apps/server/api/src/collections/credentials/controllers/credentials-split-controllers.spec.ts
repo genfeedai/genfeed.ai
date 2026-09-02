@@ -5,7 +5,7 @@ import { CredentialsModule } from '@api/collections/credentials/credentials.modu
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,

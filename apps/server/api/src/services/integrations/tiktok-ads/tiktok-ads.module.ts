@@ -1,7 +1,7 @@
+import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { TikTokAdsService } from '@server/services/integrations/tiktok-ads/services/tiktok-ads.service';
 
 const BaseModule = createServiceModule(TikTokAdsService, {
   additionalImports: [HttpModule],

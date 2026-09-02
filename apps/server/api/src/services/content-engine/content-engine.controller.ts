@@ -1,8 +1,16 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
+import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
+import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
+import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import {
   ContentPlanItemSerializer,
@@ -20,14 +28,6 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
-import { GenerateContentPlanDto } from '@server/collections/content-plans/dto/generate-content-plan.dto';
-import { UpdateContentPlanDto } from '@server/collections/content-plans/dto/update-content-plan.dto';
-import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
-import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
 import type { Request } from 'express';
 
 @ApiTags('ContentEngine')

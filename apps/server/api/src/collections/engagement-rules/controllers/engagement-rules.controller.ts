@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateEngagementRuleDto } from '@api/collections/engagement-rules/dto/create-engagement-rule.dto';
 import { EngagementRulesQueryDto } from '@api/collections/engagement-rules/dto/engagement-rules-query.dto';
 import { UpdateEngagementRuleDto } from '@api/collections/engagement-rules/dto/update-engagement-rule.dto';
 import type { EngagementRuleScope } from '@api/collections/engagement-rules/schemas/engagement-rule.schema';
 import { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {

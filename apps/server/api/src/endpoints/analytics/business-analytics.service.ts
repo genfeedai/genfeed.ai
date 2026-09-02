@@ -1,6 +1,6 @@
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

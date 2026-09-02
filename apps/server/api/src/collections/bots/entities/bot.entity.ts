@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import { BotCategory, BotPlatform } from '@genfeedai/enums';
 import { type Bot } from '@genfeedai/prisma';
 

@@ -1,4 +1,4 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';

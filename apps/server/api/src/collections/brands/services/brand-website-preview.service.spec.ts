@@ -1,5 +1,5 @@
 import { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
-import type { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 

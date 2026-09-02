@@ -17,6 +17,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import type { AgentEndpoint } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
+import type { AgentGenerationResourceInput } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import type { MemberRole } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Type } from '@nestjs/common';
@@ -29,7 +30,6 @@ import {
 } from '@nestjs/common/constants';
 import { RouteParamtypes } from '@nestjs/common/internal';
 import { Reflector } from '@nestjs/core';
-import type { AgentGenerationResourceInput } from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 
 /**
  * Enforces the invariant stated on `AgentGenerationGatewayService` itself:

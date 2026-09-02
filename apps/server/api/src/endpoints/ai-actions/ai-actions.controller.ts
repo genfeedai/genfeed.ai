@@ -1,8 +1,8 @@
 import {
   AiActionResult,
   AiActionsService,
-} from '@server/endpoints/ai-actions/ai-actions.service';
-import { ExecuteAiActionDto } from '@server/endpoints/ai-actions/dto/ai-action.dto';
+} from '@api/endpoints/ai-actions/ai-actions.service';
+import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   Body,

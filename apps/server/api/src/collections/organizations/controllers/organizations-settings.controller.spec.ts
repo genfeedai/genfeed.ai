@@ -10,19 +10,19 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 vi.mock(
-  '@server/collections/organization-settings/dto/update-organization-setting.dto',
+  '@api/collections/organization-settings/dto/update-organization-setting.dto',
   () => ({
     UpdateOrganizationSettingDto: class UpdateOrganizationSettingDto {},
   }),
 );
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ByokService } from '@server/services/byok/byok.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
 import {
   type ISubscriptionOssReadModel,

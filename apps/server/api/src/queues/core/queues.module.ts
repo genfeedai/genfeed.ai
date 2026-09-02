@@ -7,13 +7,18 @@
  * enqueue jobs without consuming them.
  */
 
+import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SERVER_TOKENS } from '@api/index';
+import { QueueService } from '@api/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -24,11 +29,6 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { QueueService } from '@server/queues/core/queue.service';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
 @Module({
   exports: [

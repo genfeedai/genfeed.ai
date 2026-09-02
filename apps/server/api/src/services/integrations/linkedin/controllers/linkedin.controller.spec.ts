@@ -13,12 +13,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -112,7 +112,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brandId },
       );
 
@@ -133,7 +133,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brandId },
       );
 
@@ -153,7 +153,7 @@ describe('LinkedInController', () => {
       const error = await expectHttpStatus(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -182,7 +182,7 @@ describe('LinkedInController', () => {
       const error = await expectHttpStatus(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -208,7 +208,7 @@ describe('LinkedInController', () => {
       await expectHttpStatus(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
         HttpStatus.CONFLICT,
@@ -465,7 +465,7 @@ describe('LinkedInController', () => {
       await expect(
         controller.refreshAuthorizedSignals(
           mockRequest,
-          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           'missing-credential',
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
@@ -481,7 +481,7 @@ describe('LinkedInController', () => {
 
       const result = await controller.refreshAuthorizedSignals(
         mockRequest,
-        mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         'credential-1',
       );
 

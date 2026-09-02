@@ -1,9 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
@@ -16,7 +17,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('ImageResizeService', () => {
   const imageId = testId('image');

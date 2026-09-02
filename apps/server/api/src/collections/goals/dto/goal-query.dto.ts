@@ -4,7 +4,7 @@ import {
   type GoalLevel,
   type GoalStatus,
 } from '@api/collections/goals/schemas/goal.schema';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

@@ -19,7 +19,7 @@ vi.mock('@api/helpers/utils/sort/sort.util', () => ({
   ),
 }));
 
-vi.mock('@server/helpers/utils/pagination.util', () => ({
+vi.mock('@api/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 
@@ -47,10 +47,10 @@ vi.mock('@api/helpers/utils/collection-filter/collection-filter.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GifsController } from '@api/collections/gifs/controllers/gifs.controller';
 import { GifsService } from '@api/collections/gifs/services/gifs.service';
-import { VotesService } from '@server/collections/votes/services/votes.service';
+import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {

@@ -1,9 +1,9 @@
+import { ModelsService } from '@api/collections/models/services/models.service';
+import type { ServerModelRecord } from '@api/index';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';

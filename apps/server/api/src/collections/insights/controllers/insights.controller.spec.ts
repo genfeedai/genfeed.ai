@@ -3,13 +3,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InsightsController } from '@api/collections/insights/controllers/insights.controller';
-import { GetForecastDto } from '@server/collections/insights/dto/forecast.dto';
-import { PredictViralDto } from '@server/collections/insights/dto/predict-viral.dto';
-import { InsightsService } from '@server/collections/insights/services/insights.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
+import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
+import { InsightsService } from '@api/collections/insights/services/insights.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';

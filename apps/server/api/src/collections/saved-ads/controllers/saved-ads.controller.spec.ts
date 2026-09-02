@@ -1,7 +1,7 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SavedAdsController } from '@api/collections/saved-ads/controllers/saved-ads.controller';
 import type { SavedAdsService } from '@api/collections/saved-ads/services/saved-ads.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

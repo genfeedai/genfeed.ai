@@ -1,15 +1,15 @@
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import {
+  TRENDS_MAINTENANCE_ACTION_IDS,
+  TRENDS_MAINTENANCE_WORKFLOW_IDS,
+} from '@api/collections/trends/services/trends-maintenance-workflow-definition';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import {
-  TRENDS_MAINTENANCE_ACTION_IDS,
-  TRENDS_MAINTENANCE_WORKFLOW_IDS,
-} from '@server/collections/trends/services/trends-maintenance-workflow-definition';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 

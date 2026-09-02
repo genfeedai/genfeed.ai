@@ -3,18 +3,18 @@ import {
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
-import type {
-  InstagramMediaPerformanceSignal,
-  InstagramOwnedMediaSignal,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { HttpService } from '@nestjs/axios';
 import {
   getInstagramRetryAfterMs,
   isInstagramAuthorizationError,
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
-} from '@server/services/integrations/instagram/utils/instagram-error.util';
+} from '@api/services/integrations/instagram/utils/instagram-error.util';
+import type {
+  InstagramMediaPerformanceSignal,
+  InstagramOwnedMediaSignal,
+} from '@api-types/contracts/instagram-authorized-signals.contract';
+import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 const INSTAGRAM_SIGNAL_MAX_ATTEMPTS = 2;

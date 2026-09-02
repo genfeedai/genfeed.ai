@@ -1,19 +1,20 @@
-vi.mock('@server/collections/templates/services/templates.service', () => ({
+vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
-import type { PostDocument } from '@server/collections/posts/post.schema';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
   SystemPromptKey,
@@ -23,7 +24,6 @@ import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('PostGenerationService', () => {
   let service: PostGenerationService;

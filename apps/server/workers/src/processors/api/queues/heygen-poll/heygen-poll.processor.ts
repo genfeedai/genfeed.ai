@@ -14,6 +14,10 @@
  * completion via webhook and do not enqueue poll jobs.
  */
 
+import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import {
   HEYGEN_POLL_MAX_ATTEMPTS,
   HEYGEN_POLL_QUEUE,
@@ -21,10 +25,6 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
 import { Job } from 'bullmq';
 
 @Processor(HEYGEN_POLL_QUEUE, {

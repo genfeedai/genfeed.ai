@@ -1,6 +1,6 @@
 import { BillingAccountMigrationService } from '@api/collections/billing-accounts/services/billing-account-migration.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('BillingAccountMigrationService', () => {
   const prisma = {

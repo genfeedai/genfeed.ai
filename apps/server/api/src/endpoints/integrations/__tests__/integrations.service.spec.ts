@@ -1,8 +1,8 @@
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { RedisService } from '@libs/redis/redis.service';

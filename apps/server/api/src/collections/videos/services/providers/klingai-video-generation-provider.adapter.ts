@@ -3,9 +3,9 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { Injectable } from '@nestjs/common';
-import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 
 @Injectable()
 export class KlingAiVideoGenerationProviderAdapter

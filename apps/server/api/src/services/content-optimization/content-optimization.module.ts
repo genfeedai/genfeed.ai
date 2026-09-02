@@ -3,13 +3,13 @@ import { ContentPerformanceModule } from '@api/collections/content-performance/c
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
+import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
-import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
-import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
 
 @Module({
   controllers: [ContentOptimizationController],

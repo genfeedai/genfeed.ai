@@ -1,4 +1,4 @@
-import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 
 describe('IngredientEntity', () => {
   it('should be defined', () => {

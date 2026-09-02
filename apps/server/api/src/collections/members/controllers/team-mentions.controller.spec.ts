@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { TeamMentionsController } from '@api/collections/members/controllers/team-mentions.controller';
 
 describe('TeamMentionsController', () => {

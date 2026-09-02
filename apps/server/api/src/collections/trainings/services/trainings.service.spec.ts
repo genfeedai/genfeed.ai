@@ -1,20 +1,20 @@
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import type { ModelsService } from '@server/collections/models/services/models.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import type { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import type { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 const sourceImageId = testId('sourceimage');
 const trainingId = testId('training');

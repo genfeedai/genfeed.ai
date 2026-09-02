@@ -1,7 +1,7 @@
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 
 describe('PostsQueryDto', () => {
   it('should be defined', () => {

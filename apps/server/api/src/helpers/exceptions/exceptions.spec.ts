@@ -8,6 +8,14 @@
  */
 
 import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+  InvalidOperationException,
+  ResourceNotReadyException,
+} from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
+import {
   APIError,
   AuthenticationError,
   AuthorizationError,
@@ -18,20 +26,12 @@ import {
 import type { ExceptionMeta } from '@api/helpers/exceptions/base/base.exception';
 import { BaseException } from '@api/helpers/exceptions/base/base.exception';
 import {
-  BusinessLogicException,
-  InsufficientCreditsException,
-  InvalidOperationException,
-  ResourceNotReadyException,
-} from '@server/exceptions/business-logic.exception';
-import {
   AIServiceException,
   ExternalServiceException,
   PaymentServiceException,
   SocialMediaException,
   StorageServiceException,
-} from '@server/helpers/exceptions/external/external-service.exception';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ValidationException } from '@server/exceptions/validation.exception';
+} from '@api/helpers/exceptions/external/external-service.exception';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

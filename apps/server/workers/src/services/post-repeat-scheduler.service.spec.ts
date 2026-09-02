@@ -1,3 +1,6 @@
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { PublishApprovalsService } from '@api/index';
 import {
   CredentialPlatform,
   PostCategory,
@@ -5,11 +8,8 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 

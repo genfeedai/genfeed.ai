@@ -28,4 +28,4 @@ export function validateEntityId(value: unknown): boolean {
   return isEntityId(value);
 }
 
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';

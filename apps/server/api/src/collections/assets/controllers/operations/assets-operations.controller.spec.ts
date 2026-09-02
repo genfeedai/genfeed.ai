@@ -1,21 +1,21 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
 import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { ValidationException } from '@server/exceptions/validation.exception';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { AssetCategory, AssetParent, ModelCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('AssetsOperationsController', () => {

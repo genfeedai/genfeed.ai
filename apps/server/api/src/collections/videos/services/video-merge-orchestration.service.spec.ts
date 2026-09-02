@@ -1,4 +1,16 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CaptionsService } from '@api/collections/captions/services/captions.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { WhisperService } from '@api/services/whisper/whisper.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -19,18 +31,6 @@ import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { CaptionsService } from '@server/collections/captions/services/captions.service';
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import type { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import type { VideosService } from '@server/collections/videos/services/videos.service';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import type { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import type { WhisperService } from '@server/services/whisper/whisper.service';
-import type { SharedService } from '@server/shared/services/shared/shared.service';
 
 describe('VideoMergeOrchestrationService', () => {
   const firstVideoId = 'video-1';

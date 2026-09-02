@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
-import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
+import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type { AdsAdapterContext, AdsPlatform } from '@genfeedai/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

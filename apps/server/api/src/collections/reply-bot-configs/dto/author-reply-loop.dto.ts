@@ -1,5 +1,5 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
-import type { ReplyIntent } from '@server/services/reply-bot/reply-intent.util';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { ReplyIntent } from '@api/services/reply-bot/reply-intent.util';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

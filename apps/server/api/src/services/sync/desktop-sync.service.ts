@@ -1,3 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
@@ -7,11 +12,6 @@ import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   advanceCursorPosition,
   buildCursorWhere,

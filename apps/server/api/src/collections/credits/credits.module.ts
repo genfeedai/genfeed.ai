@@ -5,7 +5,12 @@ and enforce usage limits.
  */
 import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
+import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { CommonModule } from '@api/common/common.module';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
@@ -16,11 +21,6 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { usesMeteredCredits } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { VideoGenerationLineageService } from '@server/collections/credits/services/video-generation-lineage.service';
 
 @Module({
   controllers: [CreditsController],

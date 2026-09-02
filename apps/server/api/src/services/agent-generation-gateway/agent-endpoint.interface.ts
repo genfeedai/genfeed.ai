@@ -1,10 +1,10 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { ModelValidationOptions } from '@api/helpers/guards/models/models.guard';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import type { ActivitySource, MemberRole } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import type { Type } from '@nestjs/common';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 
 /**
  * The request object the invoker synthesizes for an in-process call. It carries

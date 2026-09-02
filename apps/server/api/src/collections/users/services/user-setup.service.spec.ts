@@ -1,16 +1,16 @@
+import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
 
 describe('UserSetupService', () => {
   let service: UserSetupService;

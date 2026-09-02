@@ -1,15 +1,15 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;

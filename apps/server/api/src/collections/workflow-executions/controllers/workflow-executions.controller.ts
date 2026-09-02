@@ -1,24 +1,24 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
   WorkflowExecutionQueryDto,
-} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+} from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { PrismaFindAllInput } from '@server/shared/services/base/base.service';
+import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {

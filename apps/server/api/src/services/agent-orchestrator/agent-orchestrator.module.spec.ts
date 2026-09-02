@@ -1,8 +1,8 @@
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
+import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { MODULE_METADATA } from '@nestjs/common/constants';
-import { AgentToolConfirmationService } from '@server/services/agent-orchestrator/tools/agent-tool-confirmation.service';
-import { CacheService } from '@server/services/cache/cache.service';
 
 type ConfirmationFactoryProvider = {
   inject: unknown[];

@@ -4,8 +4,8 @@
 branding settings, and feature flags.
  */
 
-import { AssetGateService } from '@server/collections/organization-settings/services/asset-gate.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CommonModule } from '@api/common/common.module';
 import { Module } from '@nestjs/common';
 

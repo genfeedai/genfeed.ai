@@ -1,3 +1,21 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -17,24 +35,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 @Injectable()
 export class VideoMergeOrchestrationService {

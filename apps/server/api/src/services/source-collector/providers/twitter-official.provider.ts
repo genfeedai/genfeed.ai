@@ -1,4 +1,4 @@
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,

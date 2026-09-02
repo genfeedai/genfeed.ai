@@ -3,14 +3,14 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import {
   assertRequiredSchemaInput,
   replicateModelIdToSlug,
-} from '@server/services/prompt-builder/utils/replicate-schema.util';
+} from '@api/services/prompt-builder/utils/replicate-schema.util';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ReplicateVideoGenerationProviderAdapter

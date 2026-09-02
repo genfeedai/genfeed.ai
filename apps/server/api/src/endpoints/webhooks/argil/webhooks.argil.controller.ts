@@ -1,6 +1,6 @@
 import { ArgilWebhookService } from '@api/endpoints/webhooks/argil/webhooks.argil.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ArgilWebhookTokenService } from '@server/services/integrations/argil/services/argil-webhook-token.service';
+import { ArgilWebhookTokenService } from '@api/services/integrations/argil/services/argil-webhook-token.service';
 import { Public } from '@libs/decorators/public.decorator';
 import type { ArgilWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import {

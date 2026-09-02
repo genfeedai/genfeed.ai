@@ -6,6 +6,8 @@
 
 ## Backend
 
+**One server tree** — Nest services live in `apps/server/api` (`@api/*`). Workers consume that tree as a library. `#4348` folded the `#1090` `@genfeedai/server` extraction back in; do not recreate it.
+
 **Serializer triplet** — `{name}.attributes.ts` + `{name}.config.ts` + `{name}.serializer.ts`.
 Attributes via `createEntityAttributes()` (adds timestamps + `isDeleted`); configs via
 `simpleConfig()` or spreading `STANDARD_ENTITY_RELS` / `CONTENT_ENTITY_RELS`; server serializers

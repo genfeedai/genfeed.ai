@@ -1,7 +1,7 @@
+import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Header, Query } from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
-import { LifecycleEmailDeliveryService } from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
 
 @Public()
 @Controller('lifecycle-emails')

@@ -1,34 +1,34 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
-import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { scopedWhere } from '@api/index';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import {
   requireRelationId,
   resolveEntityId,
-} from '@server/shared/utils/relation-id/relation-id.util';
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import * as archiver from 'archiver';
 
 type ZipArchiveConstructor = new (options: {

@@ -1,5 +1,5 @@
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { AGENT_TYPE_VALUES } from '@server/services/agent-orchestrator/constants/agent-type.constants';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { AGENT_TYPE_VALUES } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';

@@ -1,10 +1,10 @@
+import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { buildWorkflowArtifactCleanupSweepDefinition } from '@api/collections/workflows/services/workflow-artifact-workflow-definition';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
-import { buildWorkflowArtifactCleanupSweepDefinition } from '@server/collections/workflows/services/workflow-artifact-workflow-definition';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@server/collections/workflows/workflow-execution-retention.contract';
 
 const WORKFLOW_HOUSEKEEPING_PRINCIPAL_ID = 'genfeed-public-tools';
 

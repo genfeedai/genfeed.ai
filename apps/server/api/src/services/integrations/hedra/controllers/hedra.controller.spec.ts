@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HedraController } from '@api/services/integrations/hedra/controllers/hedra.controller';
-import { HedraService } from '@server/services/integrations/hedra/services/hedra.service';
+import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

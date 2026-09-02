@@ -1,5 +1,5 @@
 import type { Announcement } from '@api/collections/announcements/schemas/announcement.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class AnnouncementEntity extends BaseEntity implements Announcement {
   id!: string;

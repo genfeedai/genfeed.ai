@@ -1,8 +1,8 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
-import type { Article } from '@server/collections/articles/schemas/article.schema';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import type { Article } from '@api/collections/articles/schemas/article.schema';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';

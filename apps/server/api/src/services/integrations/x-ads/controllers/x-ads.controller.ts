@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
   ConnectCredentialDto,
   CreateCredentialVerifyDto,
-} from '@server/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+} from '@api/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
-import { XAdsOAuthService } from '@server/services/integrations/x-ads/services/x-ads-oauth.service';
+import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
+import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,

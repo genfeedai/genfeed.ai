@@ -4,7 +4,7 @@ import { PromptsOperationsController } from '@api/collections/prompts/controller
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

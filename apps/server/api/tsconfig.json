@@ -24,8 +24,6 @@
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
-      "@genfeedai/server": ["../server/src/index.ts"],
-      "@genfeedai/server/*": ["../server/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/utils": ["../../../packages/utils/index.ts"],
@@ -50,8 +48,7 @@
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
-      "@serializers/*": ["../../../packages/serializers/src/*"],
-      "@server/*": ["../server/src/*"]
+      "@serializers/*": ["../../../packages/serializers/src/*"]
     },
     "types": ["node", "vitest/globals", "multer"]
   },

@@ -2,8 +2,8 @@ import { FileQueueService } from '@api/services/file-queue/file-queue.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 

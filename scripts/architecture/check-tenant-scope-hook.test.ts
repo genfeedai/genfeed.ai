@@ -56,9 +56,9 @@ describe('check-tenant-scope PostToolUse hook', () => {
 
   it.each([
     'apps/server/api/src/example.service.spec.ts',
-    'apps/server/server/src/example.service.test.ts',
+    'apps/server/api/src/example.service.test.ts',
     'apps/server/api/src/fixtures/example.service.ts',
-    'apps/server/server/src/generated/example.service.ts',
+    'apps/server/api/src/generated/example.service.ts',
   ])('skips ignored in-surface file %s', (relativePath) => {
     const result = runHook(relativePath);
 
@@ -77,11 +77,11 @@ describe('check-tenant-scope PostToolUse hook', () => {
 
   it('turns a canonical guard failure into actionable PostToolUse feedback', () => {
     const result = runHook(
-      'apps/server/server/src/collections/posts/posts.service.ts',
+      'apps/server/api/src/collections/posts/posts.service.ts',
       {
         bunExitCode: '1',
         bunStderr:
-          'apps/server/server/src/posts.service.ts:9 [missing-is-deleted]\n',
+          'apps/server/api/src/posts.service.ts:9 [missing-is-deleted]\n',
         bunStdout: 'check:tenant-scope — new tenant-scope finding(s)\n',
       },
     );

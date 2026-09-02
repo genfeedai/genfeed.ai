@@ -1,4 +1,8 @@
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type {
+  ServerLinkedInTrend,
+  ServerLinkedInTrendResolver,
+} from '@api/services/integrations/linkedin/linkedin-trends.port';
 import {
   buildLinkedInLiveTrendTopics,
   buildLinkedInPublicReferenceTopics,
@@ -8,10 +12,6 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type {
-  ServerLinkedInTrend,
-  ServerLinkedInTrendResolver,
-} from '@server/services/integrations/linkedin/linkedin-trends.port';
 
 function toServerTrends(
   topics: readonly LinkedInTrendTopic[],

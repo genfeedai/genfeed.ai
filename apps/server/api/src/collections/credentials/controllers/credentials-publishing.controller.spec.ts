@@ -1,9 +1,9 @@
 import { CredentialsPublishingController } from '@api/collections/credentials/controllers/credentials-publishing.controller';
-import type { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
-import type { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import type { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import type { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import type { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import type { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
-import type { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import type { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { testId } from '@helpers/testing/test-id.helper';
 
 describe('CredentialsPublishingController', () => {

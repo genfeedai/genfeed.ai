@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

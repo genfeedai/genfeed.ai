@@ -1,10 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
+import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
 import type { Request } from 'express';
 
 describe('WorkflowBatchController', () => {

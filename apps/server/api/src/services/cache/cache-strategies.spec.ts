@@ -1,5 +1,5 @@
+import { CacheService } from '@api/services/cache/cache.service';
 import { CacheStrategies } from '@api/services/cache/cache-strategies';
-import { CacheService } from '@server/services/cache/cache.service';
 import { AggregationCacheStrategy } from '@api/services/cache/strategies/aggregation-cache.strategy';
 import { BrandCacheStrategy } from '@api/services/cache/strategies/brand-cache.strategy';
 import { PublicationCacheStrategy } from '@api/services/cache/strategies/publication-cache.strategy';

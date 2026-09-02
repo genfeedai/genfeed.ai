@@ -1,12 +1,12 @@
 import type { CreateStudioLookDto } from '@api/collections/studio-looks/dto/create-studio-look.dto';
 import type { UpdateStudioLookDto } from '@api/collections/studio-looks/dto/update-studio-look.dto';
 import type { StudioLookDocument } from '@api/collections/studio-looks/schemas/studio-look.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { StudioLookAssetType } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImportVoicesDto } from '@api/collections/voices/dto/import-voices.dto';
 import { UpdateVoiceCatalogDto } from '@api/collections/voices/dto/update-voice-catalog.dto';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import {
   parseVoiceCatalogProvider,
   parseVoiceCatalogProviders,
   toVoiceCatalogWireFormat,
-} from '@server/collections/voices/utils/voice-provider.util';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+} from '@api/collections/voices/utils/voice-provider.util';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
@@ -16,7 +16,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

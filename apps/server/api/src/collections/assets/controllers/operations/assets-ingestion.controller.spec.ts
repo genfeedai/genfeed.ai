@@ -2,9 +2,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssetsIngestionController } from '@api/collections/assets/controllers/operations/assets-ingestion.controller';
-import type { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
+import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';

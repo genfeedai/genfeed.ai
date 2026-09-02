@@ -1,4 +1,11 @@
 import * as crypto from 'node:crypto';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  assertSafeWebhookEndpoint,
+  createPinnedWebhookAgent,
+  type ValidatedWebhookEndpoint,
+  WebhookEndpointValidationError,
+} from '@api/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
@@ -9,13 +16,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import {
-  assertSafeWebhookEndpoint,
-  createPinnedWebhookAgent,
-  type ValidatedWebhookEndpoint,
-  WebhookEndpointValidationError,
-} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { Job, UnrecoverableError } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 

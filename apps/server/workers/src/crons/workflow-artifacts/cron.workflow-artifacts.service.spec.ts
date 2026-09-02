@@ -1,7 +1,7 @@
 import {
   buildWorkflowArtifactCleanupSweepDefinition,
   WORKFLOW_ARTIFACT_MAINTENANCE_WORKFLOW_IDS,
-} from '@server/collections/workflows/services/workflow-artifact-workflow-definition';
+} from '@api/collections/workflows/services/workflow-artifact-workflow-definition';
 
 describe('workflow artifact cleanup sweep', () => {
   it('fans expired execution scopes into the cleanup child workflow', () => {

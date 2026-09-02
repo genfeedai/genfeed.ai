@@ -1,7 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { AgentScopeContextService } from '@api/index';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
-import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -14,14 +22,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import type { Request } from 'express';
 
 @ApiTags('Agent Threads')

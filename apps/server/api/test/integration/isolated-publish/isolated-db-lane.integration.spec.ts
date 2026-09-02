@@ -4,7 +4,7 @@
  * Boots API + worker collaborators against the disposable Postgres URL and
  * refuses to start on a shared or production database.
  */
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { assertIsolatedDatabaseUrl } from '../../../scripts/assert-isolated-db-url';
 import {
   createIsolatedPublishHarness,

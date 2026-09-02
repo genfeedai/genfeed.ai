@@ -1,15 +1,15 @@
-import type { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { Test, TestingModule } from '@nestjs/testing';
-import { SERVER_TOKENS } from '@server/server.dependencies';
+import { SERVER_TOKENS } from '@api/server.dependencies';
 import type {
   CreateAdParams,
   CreateAdSetParams,
   CreateCampaignParams,
   MetaImageUploadResponse,
   MetaVideoUploadResponse,
-} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
+} from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
+import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
 describe('MetaAdsService - Write Operations', () => {
