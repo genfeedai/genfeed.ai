@@ -757,8 +757,12 @@ jobs:
           mkdir -p coverage-shard
           # Seconds cover the shard's full test+coverage wall clock: the
           # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
           echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
           shopt -s nullglob
           reports=(apps/app/.vitest-reports/blob-*.json)
@@ -843,8 +847,12 @@ jobs:
           mkdir -p coverage-shard
           # Seconds cover the shard's full test+coverage wall clock: the
           # instrumented run is the same run that gates, so there is no
-          # separate coverage-only timing left to take.
-          echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          # separate coverage-only timing left to take. A shard cancelled
+          # before "Mark test start" has no clock: it stages no latency and
+          # the report reads the missing file as null instead of the epoch.
+          if [ -n "${COVERAGE_STARTED:-}" ]; then
+            echo "$(( $(date +%s) - COVERAGE_STARTED ))" > coverage-shard/seconds
+          fi
           echo '${{ steps.tests.outcome }}' > coverage-shard/outcome
           shopt -s nullglob
           reports=(apps/server/api/.vitest-reports/blob-*.json)
