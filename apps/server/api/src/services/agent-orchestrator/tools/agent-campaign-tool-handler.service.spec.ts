@@ -100,6 +100,17 @@ describe('AgentCampaignToolHandler', () => {
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({ campaignId: 'campaign-1' });
+    expect(result.nextActions).toEqual([
+      expect.objectContaining({
+        title: 'Outreach sequence created: Launch',
+        type: 'outreach_sequence_create_card',
+      }),
+    ]);
+    expect(result.nextActions?.[0]?.ctas).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Open sequence' }),
+      ]),
+    );
   });
 
   it('ignores credential and requires credentialId', async () => {
@@ -172,7 +183,7 @@ describe('AgentCampaignToolHandler', () => {
           transition: 'start',
         }),
         requiresConfirmation: true,
-        type: 'campaign_control_card',
+        type: 'outreach_sequence_control_card',
       }),
     ]);
     expect(result.nextActions?.[0]?.ctas).toEqual(

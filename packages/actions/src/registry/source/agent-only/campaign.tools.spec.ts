@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools';
 
 const createCampaign = AGENT_CAMPAIGN_TOOLS.find(
-  (tool) => tool.name === 'create_campaign',
+  (tool) => tool.name === 'create_outreach_sequence',
 );
 
 describe('AGENT_CAMPAIGN_TOOLS', () => {
-  it('aligns create_campaign on credentialId and executable pairs', () => {
+  it('aligns create_outreach_sequence on credentialId and executable pairs', () => {
     expect(createCampaign?.parameters.required).toEqual([
       'label',
       'credentialId',

@@ -125,7 +125,7 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       {
         icon: createElement(Pause, { className: 'size-5 text-foreground/50' }),
         label: 'Pause',
-        prompt: 'Pause my current running campaigns',
+        prompt: 'Pause my current running programs',
       },
       {
         icon: createElement(Sparkles, {

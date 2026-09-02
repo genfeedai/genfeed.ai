@@ -15,6 +15,7 @@ import {
   XTwitterIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import { type ReactNode, useId } from 'react';
 
 const platformOptions = [
@@ -71,6 +72,8 @@ export default function OutreachCampaignWizardStep1({
   onPlatformChange,
   onTypeChange,
 }: Props) {
+  const translate = useTranslations('pages.outreachCampaign');
+
   return (
     <div className="space-y-6">
       <div>
@@ -91,7 +94,7 @@ export default function OutreachCampaignWizardStep1({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium">Campaign Type</p>
+        <p className="mb-2 text-sm font-medium">{translate('sequenceType')}</p>
         <div className="space-y-3">
           {typeOptions.map((option) => (
             <OutreachCapabilityOption

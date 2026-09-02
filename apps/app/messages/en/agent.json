@@ -22,6 +22,24 @@
   "characterMentions": {
     "empty": "No characters found"
   },
+  "outreachSequence": {
+    "analyticsTitle": "Outreach sequence analytics",
+    "createdTitle": "Outreach sequence created: {label}",
+    "defaultLabel": "Outreach sequence",
+    "fallbackTitle": "Outreach sequence",
+    "newTitle": "New outreach sequence",
+    "open": "Open sequence",
+    "pausedTitle": "Outreach sequence paused",
+    "prepareStart": "Prepare to start outreach sequence {campaignId}.",
+    "startedTitle": "Outreach sequence started"
+  },
+  "tools": {
+    "completeOutreachSequence": "Complete outreach sequence",
+    "createOutreachSequence": "Create outreach sequence",
+    "getOutreachSequenceAnalytics": "Outreach sequence analytics",
+    "pauseOutreachSequence": "Pause outreach sequence",
+    "startOutreachSequence": "Start outreach sequence"
+  },
   "composerToolbar": {
     "actions": "Workspace shortcuts",
     "actionsAria": "Open workspace shortcuts",

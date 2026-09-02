@@ -116,10 +116,10 @@ export class AgentToolConfirmationService {
   private readCampaignTransition(
     toolName: AgentToolName,
   ): CampaignTransition | null {
-    if (toolName === AgentToolName.START_CAMPAIGN) {
+    if (toolName === AgentToolName.START_OUTREACH_SEQUENCE) {
       return 'start';
     }
-    if (toolName === AgentToolName.PAUSE_CAMPAIGN) {
+    if (toolName === AgentToolName.PAUSE_OUTREACH_SEQUENCE) {
       return 'pause';
     }
     return null;

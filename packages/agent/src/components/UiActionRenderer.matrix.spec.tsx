@@ -3,6 +3,14 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/data/content/use-posting-sets/use-posting-sets', () => ({
   usePostingSets: () => ({
     createSet: vi.fn(),
@@ -67,10 +75,10 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
     },
   ],
   [
-    'campaign_create_card',
-    { ctas: [{ href: '/campaigns/new', label: 'Create' }] },
+    'outreach_sequence_create_card',
+    { ctas: [{ href: '/messages/outreach/new', label: 'Create' }] },
   ],
-  ['campaign_control_card', { status: 'paused' }],
+  ['outreach_sequence_control_card', { status: 'paused' }],
   ['review_gate_card', { items: [] }],
   ['ingredient_picker_card', { ingredients: [] }],
   ['schedule_post_card', {}],

@@ -24,6 +24,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useReplyCampaigns } from './use-reply-campaigns';
 
@@ -181,6 +182,7 @@ function ReplyCampaignsContent({
   onRefresh,
   onTransition,
 }: ReplyCampaignsPageProps) {
+  const translate = useTranslations('pages.replyDrip');
   const [draft, setDraft] = useState<ReplyCampaignDraft>(EMPTY_DRAFT);
 
   const platformOptions = useMemo(() => {
@@ -234,12 +236,10 @@ function ReplyCampaignsContent({
     <div className="space-y-6">
       <div>
         <h1 className="text-lg font-semibold text-foreground">
-          Reply campaigns
+          {translate('title')}
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-foreground/55">
-          Campaigns drip one reply at a time inside the pacing you set. Pause,
-          resume, or cancel at any point — a resumed campaign continues from the
-          recipient it stopped on.
+          {translate('description')}
         </p>
       </div>
 

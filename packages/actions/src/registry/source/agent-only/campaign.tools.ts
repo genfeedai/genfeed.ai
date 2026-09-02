@@ -4,31 +4,31 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a campaign from conversation inputs (label, credentialId, platform, type, and optional settings). Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
-    name: 'create_campaign',
+      'Create an outreach sequence from conversation inputs (label, credentialId, platform, type, and optional settings). Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
+    name: 'create_outreach_sequence',
     parameters: {
       properties: {
         campaignType: {
           description:
-            'Campaign type. Only verified X public-reply, X DM, and X Scheduled Blast types are executable.',
+            'Outreach sequence type. Only verified X public-reply, X DM, and X Scheduled Blast types are executable.',
           enum: ['manual', 'discovery', 'dm_outreach', 'scheduled'],
           type: 'string',
         },
         credentialId: {
-          description: 'Credential ID to run campaign',
+          description: 'Credential ID to run the outreach sequence',
           type: 'string',
         },
         description: {
-          description: 'Campaign description',
+          description: 'Outreach sequence description',
           type: 'string',
         },
         label: {
-          description: 'Campaign label',
+          description: 'Outreach sequence label',
           type: 'string',
         },
         platform: {
           description:
-            'Campaign platform. Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
+            'Outreach sequence platform. Only verified X public-reply, X DM, and X Scheduled Blast pairs are executable.',
           enum: ['twitter'],
           type: 'string',
         },
@@ -40,12 +40,12 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Start an existing campaign by ID.',
-    name: 'start_campaign',
+    description: 'Start an existing outreach sequence by ID.',
+    name: 'start_outreach_sequence',
     parameters: {
       properties: {
         campaignId: {
-          description: 'Campaign ID',
+          description: 'Outreach sequence ID',
           type: 'string',
         },
       },
@@ -56,12 +56,12 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Pause an existing campaign by ID.',
-    name: 'pause_campaign',
+    description: 'Pause an existing outreach sequence by ID.',
+    name: 'pause_outreach_sequence',
     parameters: {
       properties: {
         campaignId: {
-          description: 'Campaign ID',
+          description: 'Outreach sequence ID',
           type: 'string',
         },
       },
@@ -72,12 +72,12 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Mark an existing campaign as completed by ID.',
-    name: 'complete_campaign',
+    description: 'Mark an existing outreach sequence as completed by ID.',
+    name: 'complete_outreach_sequence',
     parameters: {
       properties: {
         campaignId: {
-          description: 'Campaign ID',
+          description: 'Outreach sequence ID',
           type: 'string',
         },
       },
@@ -88,12 +88,12 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Get analytics summary for a campaign ID.',
-    name: 'get_campaign_analytics',
+    description: 'Get analytics summary for an outreach sequence ID.',
+    name: 'get_outreach_sequence_analytics',
     parameters: {
       properties: {
         campaignId: {
-          description: 'Campaign ID',
+          description: 'Outreach sequence ID',
           type: 'string',
         },
       },

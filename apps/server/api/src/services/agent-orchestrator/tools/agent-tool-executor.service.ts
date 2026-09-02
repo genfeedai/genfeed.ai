@@ -504,19 +504,19 @@ export class AgentToolExecutorService implements OnModuleInit {
       case AgentToolName.BATCH_APPROVE_REJECT:
         return this.reviewHandler.batchApproveReject(params, ctx);
 
-      case AgentToolName.CREATE_CAMPAIGN:
+      case AgentToolName.CREATE_OUTREACH_SEQUENCE:
         return this.campaignHandler.createCampaign(params, ctx);
 
-      case AgentToolName.START_CAMPAIGN:
+      case AgentToolName.START_OUTREACH_SEQUENCE:
         return this.campaignHandler.startCampaign(params, ctx);
 
-      case AgentToolName.PAUSE_CAMPAIGN:
+      case AgentToolName.PAUSE_OUTREACH_SEQUENCE:
         return this.campaignHandler.pauseCampaign(params, ctx);
 
-      case AgentToolName.COMPLETE_CAMPAIGN:
+      case AgentToolName.COMPLETE_OUTREACH_SEQUENCE:
         return this.campaignHandler.completeCampaign(params, ctx);
 
-      case AgentToolName.GET_CAMPAIGN_ANALYTICS:
+      case AgentToolName.GET_OUTREACH_SEQUENCE_ANALYTICS:
         return this.campaignHandler.getCampaignAnalytics(params, ctx);
 
       case AgentToolName.CREATE_BRAND:

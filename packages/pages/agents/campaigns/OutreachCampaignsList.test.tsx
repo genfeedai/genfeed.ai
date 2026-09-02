@@ -1,5 +1,5 @@
 import OutreachCampaignsList from '@pages/agents/campaigns/OutreachCampaignsList';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -25,6 +25,14 @@ vi.mock('@tanstack/react-query', () => ({
     setQueryData: vi.fn(),
   })),
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -59,5 +67,13 @@ describe('OutreachCampaignsList', () => {
   it('should render without crashing', () => {
     const { container } = render(<OutreachCampaignsList />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('uses outreach sequence copy instead of Campaign', () => {
+    render(<OutreachCampaignsList />);
+
+    expect(screen.getByText('Outreach sequences')).toBeInTheDocument();
+    expect(screen.getByText('New sequence')).toBeInTheDocument();
+    expect(screen.queryByText(/campaign/i)).not.toBeInTheDocument();
   });
 });

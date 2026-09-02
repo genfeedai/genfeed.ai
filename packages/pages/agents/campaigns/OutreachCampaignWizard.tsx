@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowRight, Check, Rocket } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import OutreachCampaignWizardStep1 from './OutreachCampaignWizardStep1';
 import OutreachCampaignWizardStep2 from './OutreachCampaignWizardStep2';
@@ -22,6 +23,7 @@ const STEPS = [
 ];
 
 export default function OutreachCampaignWizard() {
+  const translate = useTranslations('pages.outreachCampaign');
   const {
     currentStep,
     filteredCredentials,
@@ -161,8 +163,8 @@ export default function OutreachCampaignWizard() {
 
   return (
     <Container
-      label="Create Campaign"
-      description="Set up a new marketing campaign"
+      label={translate('createTitle')}
+      description={translate('createDescription')}
       icon={Rocket}
     >
       <div className="mx-auto max-w-2xl space-y-8">
@@ -230,7 +232,7 @@ export default function OutreachCampaignWizard() {
             <Button
               label={
                 <>
-                  <Rocket /> Create Campaign
+                  <Rocket /> {translate('createAction')}
                 </>
               }
               variant={ButtonVariant.DEFAULT}

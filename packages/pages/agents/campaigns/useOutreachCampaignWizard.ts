@@ -16,6 +16,7 @@ import { OutreachCampaignsService } from '@services/automation/outreach-campaign
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 
 export interface CampaignFormData {
@@ -58,6 +59,7 @@ export interface CampaignFormData {
 export function useOutreachCampaignWizard() {
   const router = useRouter();
   const { organizationId, credentials } = useBrand();
+  const translate = useTranslations('common.outreachCampaign');
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -218,11 +220,11 @@ export function useOutreachCampaignWizard() {
 
       const created = await service.post(campaignData);
 
-      notificationsService.success('Campaign created successfully');
+      notificationsService.success(translate('notifications.created'));
       router.push(`${APP_ROUTES.MESSAGES.OUTREACH}/${created.id}`);
     } catch (error) {
       logger.error('Failed to create campaign', error);
-      notificationsService.error('Failed to create campaign');
+      notificationsService.error(translate('notifications.createFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -235,6 +237,7 @@ export function useOutreachCampaignWizard() {
     organizationId,
     pairEvaluation.ui.body,
     router,
+    translate,
   ]);
 
   const filteredCredentials = credentials.filter(

@@ -35,11 +35,11 @@ export enum AgentToolName {
   OPEN_STUDIO_HANDOFF = 'open_studio_handoff',
   GET_CONNECTION_STATUS = 'get_connection_status',
   INITIATE_OAUTH_CONNECT = 'initiate_oauth_connect',
-  CREATE_CAMPAIGN = 'create_campaign',
-  START_CAMPAIGN = 'start_campaign',
-  PAUSE_CAMPAIGN = 'pause_campaign',
-  COMPLETE_CAMPAIGN = 'complete_campaign',
-  GET_CAMPAIGN_ANALYTICS = 'get_campaign_analytics',
+  CREATE_OUTREACH_SEQUENCE = 'create_outreach_sequence',
+  START_OUTREACH_SEQUENCE = 'start_outreach_sequence',
+  PAUSE_OUTREACH_SEQUENCE = 'pause_outreach_sequence',
+  COMPLETE_OUTREACH_SEQUENCE = 'complete_outreach_sequence',
+  GET_OUTREACH_SEQUENCE_ANALYTICS = 'get_outreach_sequence_analytics',
   RESOLVE_HANDLE = 'resolve_handle',
   LIST_REVIEW_QUEUE = 'list_review_queue',
   BATCH_APPROVE_REJECT = 'batch_approve_reject',
@@ -98,7 +98,7 @@ export enum AgentToolName {
   SPAWN_CONTENT_AGENT = 'spawn_content_agent',
   // Ingredient picker tools
   SELECT_INGREDIENT = 'select_ingredient',
-  // Campaign coordination tools
+  // Outreach-sequence coordination tools
   REQUEST_ASSET = 'request_asset',
   // Brand context interview tools
   START_BRAND_INTERVIEW = 'start_brand_interview',

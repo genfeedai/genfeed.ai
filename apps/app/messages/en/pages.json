@@ -910,16 +910,34 @@
     }
   },
   "outreachCampaign": {
+    "allSequences": "All sequences",
+    "backToSequences": "Back to sequences",
+    "columnSequence": "Sequence",
+    "createAction": "Create outreach sequence",
+    "createDescription": "Set up a DM or growth sequence",
+    "createTitle": "Create outreach sequence",
     "deliveryTime": "Delivery time:",
     "description": "Description:",
+    "empty": "No outreach sequences yet",
+    "fallbackDescription": "Sequence details and targets",
+    "fallbackTitle": "Outreach sequence",
     "maxPerDay": "Max/Day:",
     "maxPerHour": "Max/Hour:",
     "name": "Name:",
+    "notFoundDescription": "The requested outreach sequence could not be found",
+    "notFoundTitle": "Outreach sequence not found",
     "platform": "Platform:",
-    "reviewTitle": "Review Your Campaign",
+    "reviewTitle": "Review your outreach sequence",
+    "sequenceType": "Sequence type",
+    "statisticsTitle": "Sequence statistics",
     "timezone": "Timezone:",
     "tone": "Tone:",
+    "totalSequences": "Total sequences",
     "type": "Type:"
+  },
+  "replyDrip": {
+    "description": "Reply drips send one reply at a time inside the pacing you set. Pause, resume, or cancel at any point — a resumed drip continues from the recipient it stopped on.",
+    "title": "Reply drip"
   },
   "workspaceOverview": {
     "clipContinuitySummary": "Clip {index}: character {character}, outfit {outfit}, product {product}",

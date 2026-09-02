@@ -10,6 +10,14 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@pages/agents/campaigns/useOutreachCampaignDetail', () => ({
   useOutreachCampaignDetail: vi.fn(),
 }));
@@ -122,11 +130,13 @@ describe('OutreachCampaignDetail', () => {
 
     render(<OutreachCampaignDetail />);
 
-    expect(screen.getByText('Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Outreach sequence')).toBeInTheDocument();
     expect(screen.getByText('Target Statistics')).toBeInTheDocument();
     expect(
       screen.getByTestId('outreach-campaign-body-skeleton'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Campaign Not Found')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Outreach sequence not found'),
+    ).not.toBeInTheDocument();
   });
 });

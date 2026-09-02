@@ -6,9 +6,8 @@ import {
 } from '../../utils/route-assertions';
 
 /**
- * Deep interaction coverage for the Automation campaign surfaces:
- * agent campaigns (list, create, detail) and outreach campaigns (list,
- * multi-step wizard, detail).
+ * Deep interaction coverage for Automate Programs and Messages outreach
+ * sequences (list, create, detail).
  *
  * All API + Better Auth traffic is mocked by the auth fixture; unknown local API
  * routes auto-return empty collections, so list and detail pages render
@@ -18,15 +17,15 @@ import {
 
 const BRAND_BASE = '/test-org/brand-1/automation';
 
-test.describe('Automation — Campaign Interactions', () => {
+test.describe('Automation — Program Interactions', () => {
   test.setTimeout(90_000);
 
-  test('agent campaigns list renders with a new-campaign affordance', async ({
+  test('agent programs list renders with a new-program affordance', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/campaigns`);
 
-    await tryClick(authenticatedPage, 'a:has-text("New Campaign")');
+    await tryClick(authenticatedPage, 'a:has-text("New Program")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);
@@ -54,7 +53,7 @@ test.describe('Automation — Campaign Interactions', () => {
       .fill('500')
       .catch(() => {});
 
-    await tryClick(authenticatedPage, 'button:has-text("Create Campaign")');
+    await tryClick(authenticatedPage, 'button:has-text("Create Program")');
 
     await expect(
       authenticatedPage.locator('#agent-campaign-label'),
@@ -90,7 +89,7 @@ test.describe('Automation — Campaign Interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('outreach campaigns list renders KPIs and new-campaign action', async ({
+  test('outreach sequences list renders KPIs and new-sequence action', async ({
     authenticatedPage,
   }) => {
     await assertRouteRenders(
@@ -98,7 +97,7 @@ test.describe('Automation — Campaign Interactions', () => {
       `${BRAND_BASE}/outreach-campaigns`,
     );
 
-    await tryClick(authenticatedPage, 'button:has-text("New Campaign")');
+    await tryClick(authenticatedPage, 'button:has-text("New sequence")');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

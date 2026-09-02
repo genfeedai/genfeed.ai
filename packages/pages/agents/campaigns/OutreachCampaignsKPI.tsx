@@ -2,6 +2,7 @@
 
 import type { OutreachCampaign } from '@services/automation/outreach-campaigns.service';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   campaigns: OutreachCampaign[];
@@ -16,14 +17,16 @@ export default function OutreachCampaignsKPI({
   totalReplies,
   successRate,
 }: Props) {
+  const translate = useTranslations('pages.outreachCampaign');
+
   return (
     <KPISection
-      title="Campaign Statistics"
+      title={translate('statisticsTitle')}
       gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
       items={[
         {
-          description: 'All campaigns',
-          label: 'Total Campaigns',
+          description: translate('allSequences'),
+          label: translate('totalSequences'),
           value: campaigns.length,
         },
         {
