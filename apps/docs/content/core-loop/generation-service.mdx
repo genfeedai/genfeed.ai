@@ -84,24 +84,31 @@ flowchart LR
 
 ## Representative V1 End-to-End Path
 
-The representative media verification path for v1 is in:
+Skill invocation routes through immutable workflow executions, so the representative
+verification path is split across the request boundary and the runner:
 
-- [`apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/stable-provider-path.spec.ts)
+- [`apps/server/api/src/services/content-gateway/content-gateway.controller.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-gateway/content-gateway.controller.spec.ts)
+- [`apps/server/server/src/collections/workflows/system-workflow-runner.service.spec.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/collections/workflows/system-workflow-runner.service.spec.ts)
 
-The test uses mocked provider services so it can run in CI without live credentials, but it keeps the production service wiring:
+Both use mocked provider services so they run in CI without live credentials, while keeping
+the production wiring:
 
-- `SkillExecutorService` loads and validates the `image-generation` skill
-- a Content Run is created, marked running, and completed
-- the representative image path routes through `ImageGenerationHandler`
-- organization BYOK resolution selects fal.ai for the active organization
-- the fal.ai provider call receives the resolved server-side key and normalized image parameters
-- the completed run records `source: byok`, output metadata, and a generated variant
+- the gateway controller routes an inbound signal and executes a manual skill request
+- organization scope is resolved from the authenticated user rather than the request body
+- the manual request is handed to the workflow runner as an immutable execution
+- the runner resolves the workflow, advances its nodes, and records execution state
+- generated output is serialized before it leaves the boundary
 
-Run it with:
+Run them with:
 
 ```bash
 cd apps/server/api
-TZ=UTC bunx vitest run --config vitest.config.ts src/services/skill-executor/stable-provider-path.spec.ts
+TZ=UTC bunx vitest run --config vitest.config.ts src/services/content-gateway/content-gateway.controller.spec.ts
+```
+
+```bash
+cd apps/server/server
+TZ=UTC bunx vitest run src/collections/workflows/system-workflow-runner.service.spec.ts
 ```
 
 This keeps the v1 proof end-to-end at the application boundary without making CI depend on external provider availability.

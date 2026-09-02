@@ -588,7 +588,7 @@ export const products: Product[] = [
       recommended: 'pro',
       why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
-    relatedProducts: ['publishing', 'workflows', 'intelligence'],
+    relatedProducts: ['publishing', 'workflows', 'hire-agents'],
     slug: 'studio',
     tagline: 'AI content creation workspace',
     targetAudience: [
