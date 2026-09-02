@@ -11,6 +11,17 @@ import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,
 } from '@helpers/formatting/timezone/timezone.helper';
+import {
+  badgeVariantForTone,
+  isReleaseReschedulable,
+  isTargetBlockedByReadiness,
+  isTargetReschedulable,
+  releaseStatusBadge,
+  releaseTargets,
+  targetHistory,
+  targetStateBadge,
+  validationBadge,
+} from '@pages/posts/shared/release-status.helpers';
 import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar.props';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -27,17 +38,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReleaseAnalyticsTable from './release-analytics-table';
 import ReleaseEngagementRules from './release-engagement-rules';
-import {
-  badgeVariantForTone,
-  isReleaseReschedulable,
-  isTargetBlockedByReadiness,
-  isTargetReschedulable,
-  releaseStatusBadge,
-  releaseTargets,
-  targetHistory,
-  targetStateBadge,
-  validationBadge,
-} from './release-status.helpers';
 
 /** Action identifier for the release-level reschedule control. */
 export const RELEASE_RESCHEDULE_ACTION = 'release:reschedule';

@@ -56,4 +56,32 @@ describe('ReleasePostsList', () => {
     expect(source).not.toContain('const POSTS_LOAD_ERROR');
     expect(source).not.toContain('function viewCopy');
   });
+
+  it('round trips the view mode through the URL, defaulting unknown values to list', () => {
+    expect(source).toContain('parsePublishingPostsViewMode');
+    expect(source).toContain(
+      'searchParams?.get(PUBLISHING_POSTS_QUERY_KEYS.VIEW)',
+    );
+    expect(source).toContain('PUBLISHING_POSTS_QUERY_KEYS.VIEW');
+    expect(source).toContain("nextMode === 'list'");
+  });
+
+  it('persists the chosen view per brand and renders only list and board options', () => {
+    expect(source).toContain('usePublishingPostsViewPreference');
+    expect(source).toContain('storeView(nextMode)');
+    expect(source).toContain('getStoredView()');
+    expect(source).toContain('ViewType.LIST');
+    expect(source).toContain('ViewType.KANBAN');
+    expect(source).not.toContain('ViewType.GRID');
+  });
+
+  it('renders the Kanban board only in board view mode, leaving list view untouched', () => {
+    expect(source).toContain(
+      "import ReleaseBoard from '@pages/posts/board/release-board'",
+    );
+    expect(source).toContain("viewMode === 'board'");
+    expect(source).toContain('<ReleaseBoard');
+    expect(source).toContain('releases={data.releases}');
+    expect(source).toContain("viewMode === 'list' && data.releases.length > 0");
+  });
 });
