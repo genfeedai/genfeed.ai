@@ -24,24 +24,6 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 172,
-    "file": "apps/server/api/src/collections/posts/controllers/operations/posts-operations.controller.ts",
-    "metric": "method-lines",
-    "symbol": "PostsOperationsController.addThreadReply"
-  },
-  {
-    "actual": 162,
-    "file": "apps/server/api/src/collections/posts/services/post-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostGenerationService.generateAccountContentAsync"
-  },
-  {
-    "actual": 152,
-    "file": "apps/server/api/src/collections/posts/services/post-variation.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostVariationService.generate"
-  },
-  {
     "actual": 266,
     "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
     "metric": "method-lines",
