@@ -5,6 +5,7 @@ import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messa
 import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
@@ -49,6 +50,10 @@ import { InstagramInspirationModule } from '@api/services/instagram-inspiration/
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
+import {
+  AgentArtifactReferenceService,
+  SERVER_TOKENS,
+} from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -110,6 +115,7 @@ import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestr
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { CacheService } from '@server/services/cache/cache.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
@@ -237,6 +243,21 @@ import { CacheService } from '@server/services/cache/cache.service';
     {
       provide: 'AGENT_BOTS_LIVESTREAM_SERVICE',
       useExisting: BotsLivestreamService,
+    },
+    // AgentTransfersService lives in the @api tier and its own module already
+    // imports AgentOrchestratorModule for AgentTurnAcceptanceService, so
+    // importing AgentTransfersModule here would form a cycle. It is a
+    // stateless service, so it is duplicate-provided in this branch of the
+    // module graph instead — the same pattern already used for
+    // AgentTurnAcceptanceService across agent-orchestrator.module.ts and
+    // workers-domain.module.ts.
+    AgentArtifactReferenceService,
+    AgentTransfersService,
+    { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
+    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+    {
+      provide: 'AGENT_TRANSFERS_SERVICE',
+      useExisting: AgentTransfersService,
     },
   ],
 })
