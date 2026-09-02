@@ -104,12 +104,12 @@ export default function TrendContentCard({
   finding,
   isSelected = false,
   item,
-  onSelect,
+  onSelectAction,
 }: {
   finding?: AuthorizedResearchFinding;
   isSelected?: boolean;
   item: TrendContentItem;
-  onSelect?: (finding: AuthorizedResearchFinding) => void;
+  onSelectAction?: (finding: AuthorizedResearchFinding) => void;
 }) {
   const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
@@ -353,11 +353,11 @@ export default function TrendContentCard({
               variant={ButtonVariant.SECONDARY}
             />
           ) : null}
-          {finding && onSelect ? (
+          {finding && onSelectAction ? (
             <Button
               aria-pressed={isSelected}
               label={isSelected ? 'Selected' : 'Use as context'}
-              onClick={() => onSelect(finding)}
+              onClick={() => onSelectAction(finding)}
               size={ButtonSize.SM}
               variant={
                 isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
