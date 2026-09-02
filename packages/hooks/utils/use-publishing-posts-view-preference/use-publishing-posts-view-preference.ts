@@ -22,7 +22,7 @@ export interface UsePublishingPostsViewPreferenceReturn {
 }
 
 /**
- * Remembers the last Posts view (list vs. board) per brand. The URL stays the
+ * Remembers the last Posts view (list, board, or grid) per brand. The URL stays the
  * source of truth for the active view — this only seeds a redirect when a
  * brand's Posts URL carries no explicit `view` param.
  */

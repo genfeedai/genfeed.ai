@@ -541,8 +541,22 @@
       },
       "viewToggle": {
         "board": "Board",
+        "grid": "Grid",
         "list": "List"
       }
+    },
+    "grid": {
+      "emptyDescription": "Connect an account in Settings to see per-account lanes.",
+      "emptyLabel": "No accounts to show",
+      "emptyLane": "Nothing on this account yet",
+      "expiredToken": "This account needs to be reconnected. Scheduled targets on it will fail.",
+      "failed": "Failed",
+      "gapLabel": "Empty slot",
+      "hold": "On hold",
+      "queued": "{count, plural, one {# queued} other {# queued}}",
+      "reconnect": "Reconnect",
+      "review": "Review",
+      "untitled": "Untitled release"
     }
   },
   "publishing": {
@@ -599,6 +613,24 @@
       "cadenceReconnectAction": "Reconnect",
       "cadenceScheduled": "Scheduled",
       "cadenceTitle": "Cadence",
+      "healthDescription": "Warmup state, risk, and reconnect for every connected account.",
+      "healthEmpty": "No connected accounts yet.",
+      "healthHold": "On hold",
+      "healthReconnect": "Needs reconnect",
+      "healthReconnectAction": "Reconnect",
+      "healthRisk": {
+        "high": "High risk",
+        "medium": "Medium risk"
+      },
+      "healthScore": "Score {score}",
+      "healthSignals": "{days}d connected · {posts} published · {failures} recent failures",
+      "healthState": {
+        "healthy": "Healthy",
+        "not_started": "Not started",
+        "risky": "Risky",
+        "warming": "Warming"
+      },
+      "healthTitle": "Account health",
       "queueBucketLater": "Later",
       "queueBucketNear": "Next 3 hours",
       "queueDescription": "Scheduled releases due within the next 24 hours.",

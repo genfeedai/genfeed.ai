@@ -28,8 +28,10 @@ import {
 import { useMemo } from 'react';
 
 import { isReadyToReview } from '../review/components/review-state';
+import { buildAccountHealthRows } from './account-health.util';
 import { buildBlockedTargetGroups } from './blocked-targets.util';
 import { buildCadenceGaps } from './cadence-gaps.util';
+import AccountHealthSection from './components/AccountHealthSection';
 import BlockedTargetsSection from './components/BlockedTargetsSection';
 import CadenceGapsSection from './components/CadenceGapsSection';
 import Next24hQueueSection from './components/Next24hQueueSection';
@@ -181,6 +183,10 @@ export default function PublishingOverviewPage() {
       ),
     [accountHealth, postedReleases, upcomingReleases, now],
   );
+  const accountHealthRows = useMemo(
+    () => buildAccountHealthRows(accountHealth),
+    [accountHealth],
+  );
 
   const reviewPulse = useMemo(() => {
     const batchList = Array.isArray(batches) ? batches : [];
@@ -304,6 +310,7 @@ export default function PublishingOverviewPage() {
           />
           <Next24hQueueSection groups={next24hQueue} />
           <BlockedTargetsSection groups={blockedTargetGroups} />
+          <AccountHealthSection rows={accountHealthRows} />
           <CadenceGapsSection gaps={cadenceGaps} />
         </div>
       }

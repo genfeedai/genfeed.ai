@@ -43,7 +43,7 @@ describe('publishing-posts-routes.constant', () => {
 });
 
 describe('parsePublishingPostsViewMode', () => {
-  it.each(['list', 'board'] as const)('accepts the %s view', (view) => {
+  it.each(['list', 'board', 'grid'] as const)('accepts the %s view', (view) => {
     expect(parsePublishingPostsViewMode(view)).toBe(view);
   });
 
@@ -53,8 +53,8 @@ describe('parsePublishingPostsViewMode', () => {
   });
 
   it('falls back to list for an unknown value', () => {
-    expect(parsePublishingPostsViewMode('grid')).toBe('list');
     expect(parsePublishingPostsViewMode('kanban')).toBe('list');
+    expect(parsePublishingPostsViewMode('canvas')).toBe('list');
     expect(parsePublishingPostsViewMode('')).toBe('list');
   });
 });

@@ -147,6 +147,12 @@ vi.mock('./components/CadenceGapsSection', () => ({
   ),
 }));
 
+vi.mock('./components/AccountHealthSection', () => ({
+  default: ({ rows }: { rows: unknown[] }) => (
+    <div data-testid="account-health">{rows.length}</div>
+  ),
+}));
+
 import PublishingOverviewPage from './PublishingOverviewPage';
 
 function expectMetric(label: string, value: number): void {
@@ -293,7 +299,7 @@ describe('PublishingOverviewPage', () => {
     }
   });
 
-  it('passes the derived next-24h queue, blocked groups, and cadence gaps to their sections', () => {
+  it('passes the derived next-24h queue, blocked groups, cadence gaps, and health rows to their sections', () => {
     mocks.queryResults['publish-overview-upcoming'] = {
       data: [
         {
@@ -336,7 +342,17 @@ describe('PublishingOverviewPage', () => {
           credentialId: 'credential-3',
           holdPublishing: false,
           label: 'Brand Instagram',
+          override: { isActive: false },
           platform: 'instagram',
+          riskLevel: 'low',
+          score: 90,
+          signals: {
+            connectedDays: 12,
+            profileSignals: 2,
+            publishedPosts: 4,
+            recentFailures: 0,
+          },
+          state: 'healthy',
         },
       ],
       isLoading: false,
@@ -347,5 +363,6 @@ describe('PublishingOverviewPage', () => {
     expect(screen.getByTestId('next-24h-queue')).toHaveTextContent('1');
     expect(screen.getByTestId('blocked-targets')).toHaveTextContent('1');
     expect(screen.getByTestId('cadence-gaps')).toHaveTextContent('1');
+    expect(screen.getByTestId('account-health')).toHaveTextContent('1');
   });
 });
