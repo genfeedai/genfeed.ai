@@ -33,9 +33,34 @@ export interface ParsedRssFeedItem {
   url: string;
 }
 
+function decodeCdataSections(value: string): string {
+  const prefix = '<![CDATA[';
+  const suffix = ']]>';
+  let result = '';
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    const start = value.indexOf(prefix, cursor);
+    if (start === -1) {
+      result += value.slice(cursor);
+      break;
+    }
+    result += value.slice(cursor, start);
+    const contentStart = start + prefix.length;
+    const end = value.indexOf(suffix, contentStart);
+    if (end === -1) {
+      result += value.slice(start);
+      break;
+    }
+    result += value.slice(contentStart, end);
+    cursor = end + suffix.length;
+  }
+
+  return result;
+}
+
 function decodeXmlEntities(value: string): string {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+  return decodeCdataSections(value)
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')

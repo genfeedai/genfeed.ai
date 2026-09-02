@@ -625,6 +625,21 @@ describe('StripeController', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('rejects a type-confused Origin header before billing work', async () => {
+      const arrayOriginRequest = {
+        headers: {
+          origin: ['https://evil.example', 'https://app.genfeed.ai'],
+        },
+      } as unknown as Request;
+
+      await expect(
+        controller.getBillingPortalUrl(mockUser, arrayOriginRequest, {}),
+      ).rejects.toThrow(HttpException);
+
+      expect(subscriptionsService.findByOrganizationId).not.toHaveBeenCalled();
+      expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+    });
+
     it('should throw NOT_FOUND when subscription not found', async () => {
       subscriptionsService.findByOrganizationId.mockResolvedValueOnce(null);
       await expect(

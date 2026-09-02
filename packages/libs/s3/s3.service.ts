@@ -80,7 +80,11 @@ export class S3Service {
       message: 'Downloading file from storage',
     });
 
-    await this.providerFor(bucket).download(safeKey, containedLocalPath);
+    await this.providerFor(bucket).download(
+      safeKey,
+      containedLocalPath,
+      localRoot,
+    );
 
     this.loggerService.log(caller, {
       bucket,

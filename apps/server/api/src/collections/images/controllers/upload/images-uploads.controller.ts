@@ -91,7 +91,10 @@ function unlinkImageUploadTemp(filePath: string | undefined): void {
       createBadRequest,
     );
     if (existsSync(containedPath)) {
-      unlinkSync(containedPath);
+      unlinkSync(
+        /* lgtm[js/path-injection] contained via resolveContainedPath */
+        containedPath,
+      );
     }
   } catch {
     // Temp cleanup must not mask the upload result.
@@ -129,6 +132,7 @@ export class ImagesUploadsController {
   }): Promise<void> {
     const source = params.file.path
       ? createReadStream(
+          /* lgtm[js/path-injection] contained via resolveContainedPath */
           resolveContainedPath(
             IMAGE_UPLOAD_TMP_ROOT,
             params.file.path,

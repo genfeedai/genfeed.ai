@@ -620,17 +620,33 @@ export class BrandScraperService {
    * Otherwise it's treated as a regular websiteUrl.
    */
   detectUrlType(url: string): BrandScrapeSources {
-    const normalized = this.normalizeUrl(url).toLowerCase();
+    const hostname = this.hostnameOf(url);
 
-    if (normalized.includes('linkedin.com')) {
+    if (hostname && this.hostnameMatches(hostname, 'linkedin.com')) {
       return { linkedinUrl: url };
     }
 
-    if (normalized.includes('x.com') || normalized.includes('twitter.com')) {
+    if (
+      hostname &&
+      (this.hostnameMatches(hostname, 'x.com') ||
+        this.hostnameMatches(hostname, 'twitter.com'))
+    ) {
       return { xProfileUrl: url };
     }
 
     return { websiteUrl: url };
+  }
+
+  private hostnameOf(url: string): string | undefined {
+    try {
+      return new URL(this.normalizeUrl(url)).hostname.toLowerCase();
+    } catch {
+      return undefined;
+    }
+  }
+
+  private hostnameMatches(hostname: string, domain: string): boolean {
+    return hostname === domain || hostname.endsWith(`.${domain}`);
   }
 
   /**

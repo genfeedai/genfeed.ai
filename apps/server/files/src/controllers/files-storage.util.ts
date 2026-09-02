@@ -77,7 +77,12 @@ export function resolveMultipartPath(
     `${sourcePath}${extension}`,
     createBadRequest,
   );
-  fs.renameSync(sourcePath, renamedPath);
+  fs.renameSync(
+    /* lgtm[js/path-injection] contained via resolveContainedPath */
+    sourcePath,
+    /* lgtm[js/path-injection] contained via resolveContainedPath */
+    renamedPath,
+  );
   return renamedPath;
 }
 
@@ -92,7 +97,10 @@ export function unlinkUploadedTemp(filePath: string | undefined): void {
       createBadRequest,
     );
     if (fs.existsSync(containedPath)) {
-      fs.unlinkSync(containedPath);
+      fs.unlinkSync(
+        /* lgtm[js/path-injection] contained via resolveContainedPath */
+        containedPath,
+      );
     }
   } catch {
     // Temp cleanup must not mask the upload result.

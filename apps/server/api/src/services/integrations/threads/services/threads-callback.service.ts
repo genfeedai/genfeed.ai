@@ -77,7 +77,7 @@ export class ThreadsCallbackService {
       });
     }
 
-    return `Threads data deletion completed at ${completedAt.toISOString()}. Confirmation code: ${receipt}`;
+    return `Threads data deletion completed at ${completedAt.toISOString()}.`;
   }
 
   private authenticate(signedRequest: unknown): string {

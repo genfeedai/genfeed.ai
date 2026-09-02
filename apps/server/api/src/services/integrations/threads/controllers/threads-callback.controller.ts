@@ -37,6 +37,7 @@ export class ThreadsCallbackController {
   @Get('data-deletion/status/:receipt')
   @Header('Cache-Control', 'private, no-store')
   @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('X-Content-Type-Options', 'nosniff')
   dataDeletionStatus(@Param('receipt') receipt: string): string {
     return this.threadsCallbackService.getDataDeletionStatus(receipt);
   }

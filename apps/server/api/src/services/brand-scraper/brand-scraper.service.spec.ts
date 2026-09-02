@@ -185,6 +185,29 @@ describe('BrandScraperService', () => {
         linkedinUrl: 'linkedin.com/company/foo',
       });
     });
+
+    it('routes www.linkedin.com to linkedinUrl', () => {
+      expect(
+        service.detectUrlType('https://www.linkedin.com/company/acme'),
+      ).toEqual({
+        linkedinUrl: 'https://www.linkedin.com/company/acme',
+      });
+    });
+
+    it('does not treat lookalike hostnames as LinkedIn or X', () => {
+      expect(service.detectUrlType('https://evil-linkedin.com')).toEqual({
+        websiteUrl: 'https://evil-linkedin.com',
+      });
+      expect(service.detectUrlType('https://linkedin.com.evil.com')).toEqual({
+        websiteUrl: 'https://linkedin.com.evil.com',
+      });
+      expect(service.detectUrlType('https://nottwitter.com/acme')).toEqual({
+        websiteUrl: 'https://nottwitter.com/acme',
+      });
+      expect(service.detectUrlType('https://x.com.evil.com/acme')).toEqual({
+        websiteUrl: 'https://x.com.evil.com/acme',
+      });
+    });
   });
 
   // =========================================================================

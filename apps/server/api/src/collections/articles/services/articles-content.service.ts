@@ -508,7 +508,7 @@ export class ArticlesContentService {
     const content = htmlParts.join('\n');
 
     // Calculate word count and estimated read time
-    const plainText = content.replace(/<[^>]+>/g, '');
+    const plainText = content.replace(/<[^>]*>/g, '').replace(/[<>]/g, '');
     const wordCount = plainText.split(/\s+/).filter(Boolean).length;
     const estimatedReadTime = Math.ceil(wordCount / 250);
 

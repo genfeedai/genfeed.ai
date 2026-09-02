@@ -46,6 +46,27 @@ describe('parseRssFeed', () => {
     });
   });
 
+  it('decodes CDATA without a backtracking regex', () => {
+    const items = parseRssFeed(`<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title><![CDATA[First <post>]]></title>
+      <link>https://example.com/cdata</link>
+      <guid>https://example.com/cdata</guid>
+      <description><![CDATA[Hello <em>world</em>]]></description>
+    </item>
+  </channel>
+</rss>`);
+
+    expect(items[0]).toMatchObject({
+      guid: 'https://example.com/cdata',
+      summary: 'Hello <em>world</em>',
+      title: 'First <post>',
+      url: 'https://example.com/cdata',
+    });
+  });
+
   it('parses Atom entries', () => {
     const items = parseRssFeed(atomXml);
     expect(items).toEqual([

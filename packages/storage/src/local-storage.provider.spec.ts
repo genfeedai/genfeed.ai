@@ -106,7 +106,15 @@ describe('LocalStorageProvider path containment', () => {
   describe('download', () => {
     it.each(ESCAPING_PATHS)('rejects %s', async (filePath) => {
       await expect(
-        provider.download(filePath, '/tmp/destination.txt'),
+        provider.download(filePath, '/tmp/destination.txt', '/tmp'),
+      ).rejects.toThrow(/must stay within/);
+
+      expect(mockCopyFile).not.toHaveBeenCalled();
+    });
+
+    it.each(ESCAPING_PATHS)('rejects destination %s', async (localPath) => {
+      await expect(
+        provider.download('nested/ok.txt', localPath, '/tmp'),
       ).rejects.toThrow(/must stay within/);
 
       expect(mockCopyFile).not.toHaveBeenCalled();
@@ -246,9 +254,9 @@ describe('LocalStorageProvider rooted at the desktop userData directory', () => 
       await expect(
         provider.upload(Buffer.from('payload'), filePath),
       ).rejects.toThrow(/must not traverse a symbolic link/);
-      await expect(provider.download(filePath, '/tmp/out.png')).rejects.toThrow(
-        /must not traverse a symbolic link/,
-      );
+      await expect(
+        provider.download(filePath, '/tmp/out.png', '/tmp'),
+      ).rejects.toThrow(/must not traverse a symbolic link/);
 
       expect(mockWriteFile).not.toHaveBeenCalled();
       expect(mockCopyFile).not.toHaveBeenCalled();

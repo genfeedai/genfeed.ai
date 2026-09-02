@@ -31,6 +31,15 @@ describe('JsonParserUtil', () => {
       expect(result).toEqual({ result: true });
     });
 
+    it('returns fallback on many unmatched opening braces without hanging', () => {
+      const fallback = { ok: false };
+      const result = JsonParserUtil.parseAIResponse(
+        `${'{'.repeat(4000)} still not json`,
+        fallback,
+      );
+      expect(result).toEqual(fallback);
+    });
+
     it('extracts JSON array from response text', () => {
       const input = 'Here are the items: [1, 2, 3]';
       const result = JsonParserUtil.parseAIResponse<number[]>(input);

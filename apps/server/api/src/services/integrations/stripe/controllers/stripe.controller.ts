@@ -45,6 +45,15 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+function readRequestOrigin(request: Request): string | undefined {
+  const origin = request.headers.origin;
+  if (typeof origin !== 'string') {
+    return undefined;
+  }
+  const trimmed = origin.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 @AutoSwagger()
 @Controller('services/stripe')
 @UseGuards(RolesGuard)
@@ -90,7 +99,7 @@ export class StripeController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { ...createCheckoutSessionDto });
 
-    const origin = request.headers.origin;
+    const origin = readRequestOrigin(request);
     if (!origin) {
       return returnBadRequest({
         message: 'Origin is required',
@@ -289,7 +298,7 @@ export class StripeController {
       });
     }
 
-    const origin = request.headers.origin;
+    const origin = readRequestOrigin(request);
     if (!origin) {
       return returnBadRequest({
         message: 'Origin is required',
@@ -397,8 +406,7 @@ export class StripeController {
       return returnNotFound('Organization', 'user');
     }
 
-    const origin = request.headers.origin;
-
+    const origin = readRequestOrigin(request);
     if (!origin) {
       return returnBadRequest({
         message: 'Origin is required',

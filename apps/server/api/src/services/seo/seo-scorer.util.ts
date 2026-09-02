@@ -16,6 +16,18 @@ import {
   splitSentences,
 } from './seo-text.util';
 
+const DANGEROUS_HREF_SCHEMES = ['javascript:', 'data:', 'vbscript:'] as const;
+
+function hasDangerousHrefScheme(href: string): boolean {
+  const lowered = href.trim().toLowerCase();
+  for (const scheme of DANGEROUS_HREF_SCHEMES) {
+    if (lowered.startsWith(scheme)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const GENERIC_ANCHORS = new Set([
   'click here',
   'here',
@@ -119,9 +131,9 @@ export function parseSeoHtml(html?: string | null): ParsedSeoHtml {
     const isAbsolute = /^https?:\/\//i.test(href);
     const isAnchorOnly = href.startsWith('#');
     // Named fragment links (#section) are valid HTML; only bare '#' and
-    // javascript: URIs are malformed.
+    // javascript:/data:/vbscript: URIs are malformed.
     const isWellFormed =
-      href.length > 0 && !href.startsWith('javascript:') && href !== '#';
+      href.length > 0 && !hasDangerousHrefScheme(href) && href !== '#';
     links.push({
       href,
       isExternal: isAbsolute,
