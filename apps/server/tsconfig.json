@@ -52,7 +52,6 @@
       "@fanvue/*": ["./fanvue/src/*"],
       "@files/*": ["./files/src/*"],
       "@helpers/*": ["../../packages/helpers/src/*"],
-      "@images/*": ["./images/src/*"],
       "@libs/*": ["../../packages/libs/*"],
       "@llm/*": ["./llm/src/*"],
       "@mcp/*": ["./mcp/src/*"],
@@ -62,8 +61,6 @@
       "@slack/*": ["./slack/src/*"],
       "@telegram/*": ["./telegram/src/*"],
       "@twitch/*": ["./twitch/src/*"],
-      "@videos/*": ["./videos/src/*"],
-      "@voices/*": ["./voices/src/*"],
       "@workers/*": ["./workers/src/*"]
     },
     "removeComments": true,

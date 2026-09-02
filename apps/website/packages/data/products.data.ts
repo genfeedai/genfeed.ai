@@ -532,7 +532,7 @@ export const products: Product[] = [
       {
         problem: 'Expensive subscriptions to multiple AI tools',
         solution:
-          'All AI models in one platform - save $500+/month on subscriptions',
+          'Available generation models in one platform instead of separate subscriptions',
       },
       {
         problem: 'Learning curve for each AI tool',
@@ -547,50 +547,48 @@ export const products: Product[] = [
     category: 'Content Creation',
     cta: 'Start Creating',
     description:
-      'Generate videos, images, and music with 7+ cutting-edge AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. The complete content creation workspace for AI-powered creators.',
+      'Generate video, images, voice, music, and written content from one workspace. Model availability updates directly from the product registry.',
     features: [
       {
         description:
-          'Create videos in 2 minutes with Google Veo 3, OpenAI Sora 2, and GPT-powered models.',
+          'Create short-form clips, campaign footage, and finished video from a brief or reference.',
         icon: '',
         title: 'AI Video Generation',
       },
       {
         description:
-          'Generate images with Google Imagen 4, DALL-E, and GPT Image models.',
+          'Generate campaign stills, product imagery, and design variations in every required ratio.',
         icon: '',
         title: 'AI Image Generation',
       },
       {
         description:
-          'AI voice cloning with ElevenLabs and music generation. Avatars and articles coming soon.',
+          'Create spoken tracks, voiceovers, music, and audio packages in the same production flow.',
         icon: '',
-        title: 'Voice & Music (Coming Soon)',
+        title: 'Voice & Music',
       },
       {
         description:
-          '7+ AI models available - choose the best one for each project.',
+          'Choose from the same current model registry used inside the app.',
         icon: '',
-        title: 'Multi-Model Support',
+        title: 'Live Model Catalog',
       },
     ],
     headline: 'Create AI Content in Minutes, Not Hours',
     icon: '',
     integrations: [
-      'Google Veo 3 (Video)',
-      'Google Imagen 4 (Images)',
-      'OpenAI Sora 2 (Video)',
-      'OpenAI DALL-E (Images)',
-      'OpenAI GPT (Images)',
-      'ElevenLabs (Voice - Coming Soon)',
-      'Replicate (Multiple Models)',
+      'Video models',
+      'Image models',
+      'Voice models',
+      'Music models',
+      'Language models',
     ],
     name: 'Studio',
     pricing: {
       recommended: 'pro',
       why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
-    relatedProducts: ['publishing', 'workflows', 'intelligence'],
+    relatedProducts: ['publishing', 'workflows'],
     slug: 'studio',
     tagline: 'AI content creation workspace',
     targetAudience: [
@@ -724,105 +722,6 @@ export const products: Product[] = [
         example:
           'Nightly cron → content workflow runs → outputs are rated → approved assets move to publishing automatically',
         title: 'Scheduled Autonomous Runs',
-      },
-    ],
-  },
-  {
-    benefits: [
-      {
-        problem: 'No clear visibility into content performance',
-        solution:
-          'Unified analytics dashboard showing engagement, views, and performance across all platforms',
-      },
-      {
-        problem: "Missing trending topics until they're oversaturated",
-        solution:
-          'Monitor trending topics across major platforms to create timely content',
-      },
-      {
-        problem: 'Unsure which content formats work best',
-        solution:
-          'Performance insights show which formats and topics resonate with your audience',
-      },
-      {
-        problem: 'Manually checking multiple platform analytics',
-        solution:
-          'One dashboard with aggregated metrics from all your social accounts',
-      },
-    ],
-    category: 'Analytics',
-    cta: 'Get Intelligence',
-    description:
-      'Track social media trends, analyze what performs best, and monitor your content performance across platforms. Make data-driven decisions about your content strategy.',
-    features: [
-      {
-        description:
-          'Discover trending topics across X, TikTok, Instagram, and YouTube.',
-        icon: '',
-        title: 'Trend Monitoring',
-      },
-      {
-        description:
-          'Track engagement metrics, views, and performance across all platforms.',
-        icon: '',
-        title: 'Performance Analytics',
-      },
-      {
-        description:
-          'Analyze which content formats and topics perform best for your audience.',
-        icon: '',
-        title: 'Content Insights',
-      },
-      {
-        description:
-          'Monitor accounts and topics relevant to your niche for inspiration.',
-        icon: '',
-        title: 'Watchlist',
-      },
-    ],
-    headline: 'Content Analytics & Performance Insights',
-    icon: '',
-    integrations: [
-      'X/Twitter Analytics',
-      'TikTok Analytics',
-      'Instagram Insights',
-      'YouTube Analytics',
-      'Google Analytics',
-    ],
-    name: 'Analytics',
-    pricing: {
-      recommended: 'scale',
-      why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
-    },
-    relatedProducts: ['studio', 'publishing', 'hire-agents'],
-    seoTitle: 'Analytics: Trends & Content Performance',
-    slug: 'intelligence',
-    tagline: 'Track trends, analyze performance, optimize content',
-    targetAudience: [
-      'Marketers tracking ROI',
-      'Content creators optimizing strategy',
-      'Agencies reporting to clients',
-      'Brands measuring campaign performance',
-      'Founders tracking growth metrics',
-    ],
-    useCases: [
-      {
-        description: 'Create content based on real-time social trends',
-        example:
-          'Intelligence alerts you to trending topic → Generate content → Post before competitors',
-        title: 'Trend-Based Content',
-      },
-      {
-        description: 'Double down on what works, cut what does not work',
-        example:
-          'Video format A gets 10x engagement → AI recommends creating more → Revenue increases 3x',
-        title: 'Performance Optimization',
-      },
-      {
-        description: 'Monitor engagement and optimize strategy',
-        example:
-          'Track performance trends → Identify top-performing content → Create similar content',
-        title: 'Performance Tracking',
       },
     ],
   },

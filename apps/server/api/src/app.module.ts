@@ -201,7 +201,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { RouterModule as ModelRouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
-import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
+import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
 import { DesktopSyncModule } from '@api/services/sync/desktop-sync.module';
 import { SyncModule } from '@api/services/sync/sync.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
@@ -225,7 +225,6 @@ import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -258,7 +257,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
       wildcard: true,
     }),
     SentryModule.forRoot(),
-    ScheduleModule.forRoot(),
     FeatureFlagModule,
     SystemModule,
     // Docs (OpenAPI, GPT Actions)
@@ -449,7 +447,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Content Gateway + Skill Execution
     ContentGatewayModule,
     CostReportingModule,
-    SkillExecutorModule,
+    SkillWorkflowModule,
 
     // Content Orchestration (AI influencer pipeline)
     ContentOrchestrationModule,

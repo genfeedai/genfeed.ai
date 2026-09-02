@@ -64,14 +64,11 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       @genfeedai/app \
       @genfeedai/discord \
       @genfeedai/files \
-      @genfeedai/images \
       @genfeedai/mcp \
       @genfeedai/notifications \
       @genfeedai/server \
       @genfeedai/slack \
       @genfeedai/telegram \
-      @genfeedai/videos \
-      @genfeedai/voices \
       @genfeedai/workers \
       --docker \
       --out-dir /pruned
@@ -85,14 +82,11 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       @genfeedai/app \
       @genfeedai/discord \
       @genfeedai/files \
-      @genfeedai/images \
       @genfeedai/mcp \
       @genfeedai/notifications \
       @genfeedai/server \
       @genfeedai/slack \
       @genfeedai/telegram \
-      @genfeedai/videos \
-      @genfeedai/voices \
       @genfeedai/workers \
       --production \
       --docker \

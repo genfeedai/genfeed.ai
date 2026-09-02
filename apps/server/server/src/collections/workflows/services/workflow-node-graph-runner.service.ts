@@ -16,15 +16,13 @@ import { WorkflowEngineAdapterService } from '@server/collections/workflows/serv
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
 import { MAX_EXECUTION_NODES } from '@server/collections/workflows/services/workflow-executor.constants';
-import type {
-  DelayResumeJobData,
-  TriggerEvent,
-} from '@server/collections/workflows/services/workflow-executor.types';
+import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 import {
   type WorkflowNodeClaimLease,
   WorkflowNodeClaimService,
 } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeGraphRuntimeService } from '@server/collections/workflows/services/workflow-node-graph-runtime.service';
 import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import {
@@ -32,7 +30,44 @@ import {
   completeNodeClaim,
 } from '@server/collections/workflows/utils/workflow-node-idempotency.util';
 
+type GraphRunOptions = {
+  baselineEstimatedDurationMs?: number;
+  nodeOutputCache?: Record<string, unknown>;
+  respectLocks?: boolean;
+  selectedNodeIds?: string[];
+  startedAt: Date;
+  workflowLabel: string;
+};
+
+type GraphExecutionState = {
+  completedNodes: Set<string>;
+  executionError?: string;
+  executionId: string;
+  executionOrder: string[];
+  executionStatus: 'completed' | 'failed';
+  nodeCache: Map<string, unknown>;
+  nodeResults: Map<string, NodeExecutionResult>;
+  options: GraphRunOptions;
+  ownedClaimKeys: Set<string>;
+  skippedNodes: Set<string>;
+  startedAt: Date;
+  totalCreditsUsed: number;
+  triggerEvent: TriggerEvent;
+  workflow: ExecutableWorkflow;
+};
+
+type GraphNodeStep =
+  | { kind: 'continue' }
+  | { kind: 'break' }
+  | { kind: 'return'; result: ExecutionRunResult };
+
+type ClaimedGraphNode = {
+  claim: ReturnType<typeof claimNodeOnce>;
+  durableLease?: WorkflowNodeClaimLease;
+};
+
 export class WorkflowNodeGraphRunnerService {
+  private readonly runtimeService: WorkflowNodeGraphRuntimeService;
   /**
    * Process-local claim map for nodes currently executing in this process.
    * Claims are released when the graph pass settles; durable node claims and
@@ -57,20 +92,20 @@ export class WorkflowNodeGraphRunnerService {
     private readonly executionsService?: WorkflowExecutionsService,
     private readonly nodeClaimService?: WorkflowNodeClaimService,
     private readonly nodeContinuationService?: WorkflowNodeContinuationService,
-  ) {}
+  ) {
+    this.runtimeService = new WorkflowNodeGraphRuntimeService(
+      this.engineAdapter,
+      this.graphService,
+      this.progressService,
+      this.executionsService,
+    );
+  }
 
   async executeNodeGraph(
     workflow: ExecutableWorkflow,
     triggerEvent: TriggerEvent,
     executionId: string,
-    options: {
-      baselineEstimatedDurationMs?: number;
-      nodeOutputCache?: Record<string, unknown>;
-      respectLocks?: boolean;
-      selectedNodeIds?: string[];
-      startedAt: Date;
-      workflowLabel: string;
-    },
+    options: GraphRunOptions,
   ): Promise<ExecutionRunResult> {
     const ownedClaimKeys = new Set<string>();
     try {
@@ -90,604 +125,696 @@ export class WorkflowNodeGraphRunnerService {
     workflow: ExecutableWorkflow,
     triggerEvent: TriggerEvent,
     executionId: string,
-    options: {
-      baselineEstimatedDurationMs?: number;
-      nodeOutputCache?: Record<string, unknown>;
-      respectLocks?: boolean;
-      selectedNodeIds?: string[];
-      startedAt: Date;
-      workflowLabel: string;
-    },
+    options: GraphRunOptions,
     ownedClaimKeys: Set<string>,
   ): Promise<ExecutionRunResult> {
-    let executionOrder = this.graphService.topologicalSort(
-      workflow.nodes,
-      workflow.edges,
-    );
-    const nodeCache = new Map<string, unknown>();
-    const nodeResults = new Map<string, NodeExecutionResult>();
-    const completedNodes = new Set<string>();
-    const skippedNodes = new Set<string>();
-    let totalCreditsUsed = 0;
-    const startedAt = options.startedAt;
+    const initialized = await this.initializeGraphExecution({
+      executionId,
+      options,
+      ownedClaimKeys,
+      triggerEvent,
+      workflow,
+    });
+    if (initialized.kind === 'return') {
+      return initialized.result;
+    }
+    const state = initialized.state;
+    for (const nodeId of state.executionOrder) {
+      const step = await this.executeGraphNode(state, nodeId);
+      if (step.kind === 'return') return step.result;
+      if (step.kind === 'break') break;
+    }
+    return this.finalizeGraphExecution(state);
+  }
 
+  private async initializeGraphExecution(input: {
+    executionId: string;
+    options: GraphRunOptions;
+    ownedClaimKeys: Set<string>;
+    triggerEvent: TriggerEvent;
+    workflow: ExecutableWorkflow;
+  }): Promise<
+    | { kind: 'ready'; state: GraphExecutionState }
+    | { kind: 'return'; result: ExecutionRunResult }
+  > {
+    const { executionId, options, ownedClaimKeys, triggerEvent, workflow } =
+      input;
+    const state: GraphExecutionState = {
+      completedNodes: new Set<string>(),
+      executionId,
+      executionOrder: this.graphService.topologicalSort(
+        workflow.nodes,
+        workflow.edges,
+      ),
+      executionStatus: 'completed',
+      nodeCache: new Map<string, unknown>(),
+      nodeResults: new Map<string, NodeExecutionResult>(),
+      options,
+      ownedClaimKeys,
+      skippedNodes: new Set<string>(),
+      startedAt: options.startedAt,
+      totalCreditsUsed: 0,
+      triggerEvent,
+      workflow,
+    };
     for (const [nodeId, output] of Object.entries(
       options.nodeOutputCache ?? {},
     )) {
-      completedNodes.add(nodeId);
-      nodeCache.set(nodeId, output);
-      nodeResults.set(nodeId, {
-        completedAt: startedAt,
+      state.completedNodes.add(nodeId);
+      state.nodeCache.set(nodeId, output);
+      state.nodeResults.set(nodeId, {
+        completedAt: state.startedAt,
         creditsUsed: 0,
         nodeId,
         output,
         retryCount: 0,
-        startedAt,
+        startedAt: state.startedAt,
         status: 'completed',
       });
     }
-
-    totalCreditsUsed += await this.hydrateCompletedNodesFromExecution(
-      executionId,
-      nodeCache,
-      nodeResults,
-      completedNodes,
-    );
-    for (const completedNodeId of completedNodes) {
-      this.graphService.pruneFailurePathAfterSuccess(
-        completedNodeId,
-        workflow.edges,
-        skippedNodes,
-        completedNodes,
+    state.totalCreditsUsed +=
+      await this.runtimeService.hydrateCompletedNodesFromExecution(
+        executionId,
+        state.nodeCache,
+        state.nodeResults,
+        state.completedNodes,
       );
-      const completedNode = workflow.nodes.find(
-        (node) => node.id === completedNodeId,
-      );
-      if (completedNode?.type === 'condition') {
-        this.graphService.pruneUnreachablePaths(
-          completedNodeId,
-          this.graphService.extractBranch(nodeCache.get(completedNodeId)),
-          workflow.edges,
-          skippedNodes,
-          completedNodes,
-        );
-      }
-    }
-    for (const [failedNodeId, failedResult] of nodeResults) {
-      if (failedResult.status !== 'failed') {
-        continue;
-      }
-      this.resolveFailedNode({
-        completedNodes,
-        edges: workflow.edges,
-        error: failedResult.error ?? `Node ${failedNodeId} failed`,
-        nodeCache,
-        nodeId: failedNodeId,
-        skippedNodes,
-      });
-    }
-
+    this.restorePersistedGraphBranches(state);
     await this.nodeProgressTracker.injectTriggerNode({
-      completedNodes,
+      completedNodes: state.completedNodes,
       executionId,
-      nodeCache,
-      nodeResults,
+      nodeCache: state.nodeCache,
+      nodeResults: state.nodeResults,
       options,
-      skippedNodes,
-      startedAt,
+      skippedNodes: state.skippedNodes,
+      startedAt: state.startedAt,
       triggerEvent,
       workflow,
     });
     if (options.respectLocks !== false) {
-      this.prepopulateLockedNodes(workflow, nodeCache, completedNodes);
+      this.prepopulateLockedNodes(
+        workflow,
+        state.nodeCache,
+        state.completedNodes,
+      );
     }
-
     if (options.selectedNodeIds && options.selectedNodeIds.length > 0) {
       const partialPlan = planPartialExecution(
         options.selectedNodeIds,
         workflow.nodes,
         workflow.edges,
-        nodeCache,
+        state.nodeCache,
       );
       if (!partialPlan.isValid) {
         return {
-          completedAt: new Date(),
-          error: partialPlan.errors.join('; '),
-          nodeResults,
-          runId: executionId,
-          startedAt,
-          status: 'failed',
-          totalCreditsUsed,
-          workflowId: workflow.id,
-        };
-      }
-      executionOrder = partialPlan.executionOrder;
-    }
-
-    let executionError: string | undefined;
-    let executionStatus: 'completed' | 'failed' = 'completed';
-
-    for (const nodeId of executionOrder) {
-      if (completedNodes.has(nodeId) || skippedNodes.has(nodeId)) {
-        continue;
-      }
-
-      const node = workflow.nodes.find((n) => n.id === nodeId);
-      if (!node) {
-        executionError = `Node ${nodeId} not found in workflow`;
-        executionStatus = 'failed';
-        break;
-      }
-
-      if (
-        !this.graphService.isNodeReachable(
-          nodeId,
-          workflow.edges,
-          completedNodes,
-          skippedNodes,
-        )
-      ) {
-        skippedNodes.add(nodeId);
-        continue;
-      }
-
-      if (
-        !this.graphService.areDependenciesSatisfied(
-          nodeId,
-          workflow.edges,
-          completedNodes,
-          nodeCache,
-          skippedNodes,
-        )
-      ) {
-        const deps = this.graphService.getNodeDependencies(
-          nodeId,
-          workflow.edges,
-        );
-        const allDepsResolved = deps.every(
-          (depId) => completedNodes.has(depId) || skippedNodes.has(depId),
-        );
-
-        if (!allDepsResolved) {
-          executionError = `Dependencies not satisfied for node ${nodeId}`;
-          executionStatus = 'failed';
-          break;
-        }
-      }
-
-      if (completedNodes.size + skippedNodes.size > MAX_EXECUTION_NODES) {
-        executionError = 'Maximum execution node limit reached';
-        executionStatus = 'failed';
-        break;
-      }
-
-      const inputs = this.graphService.gatherInputs(
-        node,
-        workflow.edges,
-        nodeCache,
-      );
-
-      if (node.type === 'reviewGate') {
-        const pausedResult = await this.reviewGateService.pauseForReviewGate({
-          completedNodes,
-          executionId,
-          inputs,
-          node,
-          nodeResults,
-          options,
-          skippedNodes,
-          startedAt,
-          totalCreditsUsed,
-          userId: triggerEvent.userId,
-          workflow,
-        });
-
-        if (pausedResult) {
-          return pausedResult;
-        }
-      }
-
-      // Per-node claim (#2359): durable unique row first, then process-local
-      // map. Duplicate insert / prior completion re-emits instead of re-running
-      // side effects (publish, DM, credit spend).
-      let durableLease: WorkflowNodeClaimLease | undefined;
-      if (this.nodeClaimService && workflow.organizationId) {
-        const actionId = getExecutableNodeOperationId(node);
-        const action = getActionDefinition(actionId);
-        const durable = await this.nodeClaimService.tryClaim({
-          executionId,
-          nodeId,
-          organizationId: workflow.organizationId,
-          // Provider-callback nodes have their own durable continuation lease
-          // and may legitimately remain running beyond the synchronous claim
-          // window. Their continuation recovery owns that path.
-          isStaleRunningReclaimEnabled:
-            action?.completionMode !== 'provider-callback',
-        });
-        if (durable.action === 'skip') {
-          if (durable.status === 'running') {
-            const ownsSuspension =
-              action?.completionMode === 'provider-callback' &&
-              this.nodeContinuationService &&
-              (await this.nodeContinuationService.ownsSuspendedNode({
-                actionId,
-                executionId,
-                nodeId,
-                organizationId: workflow.organizationId,
-                workflowVersionId: workflow.versionId,
-              }));
-            if (ownsSuspension) {
-              return {
-                nodeResults,
-                runId: executionId,
-                startedAt,
-                status: 'running',
-                totalCreditsUsed,
-                workflowId: workflow.id,
-              };
-            }
-            executionError = `Node ${nodeId} is already running (durable claim busy)`;
-            executionStatus = 'failed';
-            break;
-          }
-          const skippedResult: NodeExecutionResult = {
+          kind: 'return',
+          result: {
             completedAt: new Date(),
-            creditsUsed: 0,
-            error: durable.error,
-            nodeId,
-            output: durable.output,
-            retryCount: 0,
-            startedAt: new Date(),
-            status: durable.status === 'failed' ? 'failed' : 'completed',
-          };
-          nodeResults.set(nodeId, skippedResult);
-          if (skippedResult.status === 'completed') {
-            completedNodes.add(nodeId);
-            if (skippedResult.output !== undefined) {
-              nodeCache.set(nodeId, skippedResult.output);
-            }
-            this.graphService.pruneFailurePathAfterSuccess(
-              nodeId,
-              workflow.edges,
-              skippedNodes,
-              completedNodes,
-            );
-          } else {
-            this.resolveFailedNode({
-              completedNodes,
-              edges: workflow.edges,
-              error: skippedResult.error ?? `Node ${nodeId} failed`,
-              nodeCache,
-              nodeId,
-              skippedNodes,
-            });
-          }
-          continue;
-        }
-        durableLease = durable.lease;
-      }
-
-      const claim = claimNodeOnce(this.nodeClaims, executionId, nodeId);
-      if (claim.action === 'skip' && claim.record) {
-        const skippedResult: NodeExecutionResult = {
-          completedAt: new Date(),
-          creditsUsed: 0,
-          error: claim.record.error,
-          nodeId,
-          output: claim.record.output,
-          retryCount: 0,
-          startedAt: new Date(),
-          status: claim.record.status === 'failed' ? 'failed' : 'completed',
-        };
-        nodeResults.set(nodeId, skippedResult);
-        if (skippedResult.status === 'completed') {
-          completedNodes.add(nodeId);
-          if (skippedResult.output !== undefined) {
-            nodeCache.set(nodeId, skippedResult.output);
-          }
-          this.graphService.pruneFailurePathAfterSuccess(
-            nodeId,
-            workflow.edges,
-            skippedNodes,
-            completedNodes,
-          );
-        } else {
-          this.resolveFailedNode({
-            completedNodes,
-            edges: workflow.edges,
-            error: skippedResult.error ?? `Node ${nodeId} failed`,
-            nodeCache,
-            nodeId,
-            skippedNodes,
-          });
-        }
-        continue;
-      }
-      if (claim.action === 'busy') {
-        executionError = `Node ${nodeId} is already running (idempotency claim busy)`;
-        executionStatus = 'failed';
-        break;
-      }
-      ownedClaimKeys.add(claim.key);
-
-      await this.nodeProgressTracker.trackNodeStarted({
-        completedNodes,
-        executionId,
-        node,
-        options,
-        skippedNodes,
-        startedAt,
-        triggerEvent,
-        workflow,
-      });
-
-      try {
-        const executeNode = () =>
-          this.executeSingleNode(node, inputs, workflow, executionId);
-        let nodeResult =
-          this.nodeClaimService && durableLease
-            ? await this.nodeClaimService.runWithLeaseHeartbeat(
-                durableLease,
-                executeNode,
-              )
-            : await executeNode();
-
-        const actionId = getExecutableNodeOperationId(node);
-        const action = getActionDefinition(actionId);
-        let inlineContinuationId: string | undefined;
-        if (action?.completionMode === 'provider-callback') {
-          if (nodeResult.status !== 'running') {
-            throw new Error(
-              `Provider-callback action ${actionId} returned without suspending`,
-            );
-          }
-          if (!this.nodeContinuationService) {
-            throw new Error(
-              `Provider-callback action ${actionId} has no continuation service`,
-            );
-          }
-          const attached =
-            await this.nodeContinuationService.attachInitialOutput({
-              actionId,
-              creditsUsed: nodeResult.creditsUsed,
-              executionId,
-              initialOutput: nodeResult.output,
-              nodeId,
-              organizationId: workflow.organizationId,
-              workflowVersionId: workflow.versionId,
-            });
-          if (attached.kind === 'waiting') {
-            nodeResults.set(nodeId, nodeResult);
-            totalCreditsUsed += nodeResult.creditsUsed;
-            await this.progressService.trackNodeResult(
-              executionId,
-              nodeId,
-              actionId,
-              {
-                output: nodeResult.output as Record<string, unknown>,
-                startedAt: nodeResult.startedAt,
-                status: WorkflowExecutionStatus.RUNNING,
-              },
-            );
-            return {
-              nodeResults,
-              runId: executionId,
-              startedAt,
-              status: 'running',
-              totalCreditsUsed,
-              workflowId: workflow.id,
-            };
-          }
-
-          inlineContinuationId = attached.continuationId;
-          nodeResult = attached.succeeded
-            ? {
-                ...nodeResult,
-                completedAt: new Date(),
-                output: attached.finalOutput,
-                status: 'completed',
-              }
-            : {
-                ...nodeResult,
-                completedAt: new Date(),
-                error: attached.error ?? 'Provider generation failed',
-                output: attached.finalOutput,
-                status: 'failed',
-              };
-        } else if (nodeResult.status === 'running') {
-          throw new Error(
-            `Synchronous action ${actionId} returned a suspended node result`,
-          );
-        }
-
-        completeNodeClaim(this.nodeClaims, claim.key, {
-          error: nodeResult.error,
-          output: nodeResult.output,
-          status: nodeResult.status === 'failed' ? 'failed' : 'completed',
-        });
-        if (this.nodeClaimService && workflow.organizationId) {
-          await this.nodeClaimService.complete({
-            error: nodeResult.error,
-            executionId,
-            leaseOwnerId: durableLease?.leaseOwnerId,
-            nodeId,
-            organizationId: workflow.organizationId,
-            output: nodeResult.output,
-            status: nodeResult.status === 'failed' ? 'failed' : 'completed',
-          });
-        }
-        if (inlineContinuationId && this.nodeContinuationService) {
-          await this.nodeContinuationService.markSettlementFinished({
-            continuationId: inlineContinuationId,
-            organizationId: workflow.organizationId,
-            succeeded: nodeResult.status === 'completed',
-          });
-        }
-
-        nodeResults.set(nodeId, nodeResult);
-        totalCreditsUsed += nodeResult.creditsUsed;
-
-        if (nodeResult.status === 'completed') {
-          completedNodes.add(nodeId);
-
-          if (nodeResult.output !== undefined) {
-            nodeCache.set(nodeId, nodeResult.output);
-          }
-
-          this.graphService.pruneFailurePathAfterSuccess(
-            nodeId,
-            workflow.edges,
-            skippedNodes,
-            completedNodes,
-          );
-
-          if (node.type === 'condition') {
-            this.graphService.pruneUnreachablePaths(
-              nodeId,
-              this.graphService.extractBranch(nodeResult.output),
-              workflow.edges,
-              skippedNodes,
-              completedNodes,
-            );
-          }
-
-          if (node.type === 'delay') {
-            const paused = await this.handleDelayNode({
-              completedNodes,
-              executionId,
-              executionOrder,
-              node,
-              nodeCache,
-              nodeId,
-              nodeResult,
-              nodeResults,
-              options,
-              skippedNodes,
-              startedAt,
-              totalCreditsUsed,
-              triggerEvent,
-              workflow,
-            });
-            if (paused) {
-              return paused;
-            }
-          }
-
-          await this.nodeProgressTracker.trackNodeCompleted({
-            completedNodes,
-            executionId,
-            node,
-            nodeId,
-            nodeResult,
-            options,
-            skippedNodes,
-            startedAt,
-            triggerEvent,
-            workflow,
-          });
-        } else {
-          this.resolveFailedNode({
-            completedNodes,
-            edges: workflow.edges,
-            error: nodeResult.error ?? `Node ${nodeId} failed`,
-            nodeCache,
-            nodeId,
-            skippedNodes,
-          });
-          await this.nodeProgressTracker.trackNodeFailed({
-            completedNodes,
-            errorMessage: nodeResult.error,
-            executionId,
-            node,
-            nodeId,
-            options,
-            skippedNodes,
-            startedAt,
-            triggerEvent,
-            workflow,
-          });
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-
-        completeNodeClaim(this.nodeClaims, claim.key, {
-          error: errorMessage,
-          status: 'failed',
-        });
-        if (this.nodeClaimService && workflow.organizationId) {
-          await this.nodeClaimService.complete({
-            error: errorMessage,
-            executionId,
-            leaseOwnerId: durableLease?.leaseOwnerId,
-            nodeId,
-            organizationId: workflow.organizationId,
+            error: partialPlan.errors.join('; '),
+            nodeResults: state.nodeResults,
+            runId: executionId,
+            startedAt: state.startedAt,
             status: 'failed',
-          });
-        }
+            totalCreditsUsed: state.totalCreditsUsed,
+            workflowId: workflow.id,
+          },
+        };
+      }
+      state.executionOrder = partialPlan.executionOrder;
+    }
+    return { kind: 'ready', state };
+  }
 
-        nodeResults.set(nodeId, {
-          completedAt: new Date(),
-          creditsUsed: 0,
-          error: errorMessage,
-          nodeId,
-          retryCount: 0,
-          startedAt: new Date(),
-          status: 'failed',
-        });
-
-        this.resolveFailedNode({
-          completedNodes,
-          edges: workflow.edges,
-          error: errorMessage,
-          nodeCache,
-          nodeId,
-          skippedNodes,
-        });
-
-        await this.nodeProgressTracker.trackNodeFailed({
-          completedNodes,
-          errorMessage,
-          executionId,
-          node,
-          nodeId,
-          options,
-          skippedNodes,
-          startedAt,
-          triggerEvent,
-          workflow,
-        });
+  private restorePersistedGraphBranches(state: GraphExecutionState): void {
+    for (const completedNodeId of state.completedNodes) {
+      this.graphService.pruneFailurePathAfterSuccess(
+        completedNodeId,
+        state.workflow.edges,
+        state.skippedNodes,
+        state.completedNodes,
+      );
+      const completedNode = state.workflow.nodes.find(
+        (node) => node.id === completedNodeId,
+      );
+      if (completedNode?.type === 'condition') {
+        this.graphService.pruneUnreachablePaths(
+          completedNodeId,
+          this.graphService.extractBranch(state.nodeCache.get(completedNodeId)),
+          state.workflow.edges,
+          state.skippedNodes,
+          state.completedNodes,
+        );
       }
     }
+    for (const [failedNodeId, failedResult] of state.nodeResults) {
+      if (failedResult.status !== 'failed') continue;
+      this.resolveFailedNode({
+        completedNodes: state.completedNodes,
+        edges: state.workflow.edges,
+        error: failedResult.error ?? `Node ${failedNodeId} failed`,
+        nodeCache: state.nodeCache,
+        nodeId: failedNodeId,
+        skippedNodes: state.skippedNodes,
+      });
+    }
+  }
 
-    const hasFailedNodes = Array.from(nodeResults.values()).some(
-      (r) => r.status === 'failed',
+  private async executeGraphNode(
+    state: GraphExecutionState,
+    nodeId: string,
+  ): Promise<GraphNodeStep> {
+    if (state.completedNodes.has(nodeId) || state.skippedNodes.has(nodeId)) {
+      return { kind: 'continue' };
+    }
+    const node = state.workflow.nodes.find(
+      (candidate) => candidate.id === nodeId,
     );
-
-    if (hasFailedNodes || executionStatus === 'failed') {
-      executionStatus = 'failed';
-      if (!executionError) {
-        const failedNodes = Array.from(nodeResults.entries())
-          .filter(([, result]) => result.status === 'failed')
-          .map(([id, result]) =>
-            result.error ? `${id}: ${result.error}` : id,
-          );
-        executionError = `Nodes failed: ${failedNodes.join(', ')}`;
-      }
+    if (!node) {
+      return this.failGraphPass(state, `Node ${nodeId} not found in workflow`);
     }
+    if (
+      !this.graphService.isNodeReachable(
+        nodeId,
+        state.workflow.edges,
+        state.completedNodes,
+        state.skippedNodes,
+      )
+    ) {
+      state.skippedNodes.add(nodeId);
+      return { kind: 'continue' };
+    }
+    if (!this.areNodeDependenciesReady(state, nodeId)) {
+      return this.failGraphPass(
+        state,
+        `Dependencies not satisfied for node ${nodeId}`,
+      );
+    }
+    if (
+      state.completedNodes.size + state.skippedNodes.size >
+      MAX_EXECUTION_NODES
+    ) {
+      return this.failGraphPass(state, 'Maximum execution node limit reached');
+    }
+    const inputs = this.graphService.gatherInputs(
+      node,
+      state.workflow.edges,
+      state.nodeCache,
+    );
+    if (node.type === 'reviewGate') {
+      const pausedResult = await this.reviewGateService.pauseForReviewGate({
+        completedNodes: state.completedNodes,
+        executionId: state.executionId,
+        inputs,
+        node,
+        nodeResults: state.nodeResults,
+        options: state.options,
+        skippedNodes: state.skippedNodes,
+        startedAt: state.startedAt,
+        totalCreditsUsed: state.totalCreditsUsed,
+        userId: state.triggerEvent.userId,
+        workflow: state.workflow,
+      });
+      if (pausedResult) return { kind: 'return', result: pausedResult };
+    }
+    const claimed = await this.claimGraphNode(state, node);
+    if ('kind' in claimed) return claimed;
+    await this.nodeProgressTracker.trackNodeStarted({
+      completedNodes: state.completedNodes,
+      executionId: state.executionId,
+      node,
+      options: state.options,
+      skippedNodes: state.skippedNodes,
+      startedAt: state.startedAt,
+      triggerEvent: state.triggerEvent,
+      workflow: state.workflow,
+    });
+    return this.runClaimedNode(state, node, inputs, claimed);
+  }
 
-    return {
+  private areNodeDependenciesReady(
+    state: GraphExecutionState,
+    nodeId: string,
+  ): boolean {
+    if (
+      this.graphService.areDependenciesSatisfied(
+        nodeId,
+        state.workflow.edges,
+        state.completedNodes,
+        state.nodeCache,
+        state.skippedNodes,
+      )
+    ) {
+      return true;
+    }
+    return this.graphService
+      .getNodeDependencies(nodeId, state.workflow.edges)
+      .every(
+        (dependencyId) =>
+          state.completedNodes.has(dependencyId) ||
+          state.skippedNodes.has(dependencyId),
+      );
+  }
+
+  private async claimGraphNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+  ): Promise<ClaimedGraphNode | GraphNodeStep> {
+    const durable = await this.claimDurableNode(state, node);
+    if ('kind' in durable) return durable;
+    const claim = claimNodeOnce(this.nodeClaims, state.executionId, node.id);
+    if (claim.action === 'skip' && claim.record) {
+      this.applyClaimedNodeResult(state, node.id, {
+        error: claim.record.error,
+        output: claim.record.output,
+        status: claim.record.status,
+      });
+      return { kind: 'continue' };
+    }
+    if (claim.action === 'busy') {
+      return this.failGraphPass(
+        state,
+        `Node ${node.id} is already running (idempotency claim busy)`,
+      );
+    }
+    state.ownedClaimKeys.add(claim.key);
+    return { claim, durableLease: durable.lease };
+  }
+
+  private async claimDurableNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+  ): Promise<{ lease?: WorkflowNodeClaimLease } | GraphNodeStep> {
+    if (!this.nodeClaimService || !state.workflow.organizationId) {
+      return {};
+    }
+    const actionId = getExecutableNodeOperationId(node);
+    const action = getActionDefinition(actionId);
+    const durable = await this.nodeClaimService.tryClaim({
+      executionId: state.executionId,
+      nodeId: node.id,
+      organizationId: state.workflow.organizationId,
+      isStaleRunningReclaimEnabled:
+        action?.completionMode !== 'provider-callback',
+    });
+    if (durable.action !== 'skip') {
+      return { lease: durable.lease };
+    }
+    if (durable.status === 'running') {
+      const ownsSuspension =
+        action?.completionMode === 'provider-callback' &&
+        this.nodeContinuationService &&
+        (await this.nodeContinuationService.ownsSuspendedNode({
+          actionId,
+          executionId: state.executionId,
+          nodeId: node.id,
+          organizationId: state.workflow.organizationId,
+          workflowVersionId: state.workflow.versionId,
+        }));
+      if (ownsSuspension) {
+        return { kind: 'return', result: this.buildRunningResult(state) };
+      }
+      return this.failGraphPass(
+        state,
+        `Node ${node.id} is already running (durable claim busy)`,
+      );
+    }
+    this.applyClaimedNodeResult(state, node.id, durable);
+    return { kind: 'continue' };
+  }
+
+  private applyClaimedNodeResult(
+    state: GraphExecutionState,
+    nodeId: string,
+    claimed: { error?: string; output?: unknown; status: string },
+  ): void {
+    const result: NodeExecutionResult = {
       completedAt: new Date(),
-      error: executionError,
-      nodeResults,
-      runId: executionId,
-      startedAt,
-      status: executionStatus,
-      totalCreditsUsed,
-      workflowId: workflow.id,
+      creditsUsed: 0,
+      error: claimed.error,
+      nodeId,
+      output: claimed.output,
+      retryCount: 0,
+      startedAt: new Date(),
+      status: claimed.status === 'failed' ? 'failed' : 'completed',
+    };
+    state.nodeResults.set(nodeId, result);
+    if (result.status === 'completed') {
+      state.completedNodes.add(nodeId);
+      if (result.output !== undefined) {
+        state.nodeCache.set(nodeId, result.output);
+      }
+      this.graphService.pruneFailurePathAfterSuccess(
+        nodeId,
+        state.workflow.edges,
+        state.skippedNodes,
+        state.completedNodes,
+      );
+      return;
+    }
+    this.resolveFailedNode({
+      completedNodes: state.completedNodes,
+      edges: state.workflow.edges,
+      error: result.error ?? `Node ${nodeId} failed`,
+      nodeCache: state.nodeCache,
+      nodeId,
+      skippedNodes: state.skippedNodes,
+    });
+  }
+
+  private async runClaimedNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    claimed: ClaimedGraphNode,
+  ): Promise<GraphNodeStep> {
+    try {
+      const executeNode = () =>
+        this.runtimeService.executeSingleNode(
+          node,
+          inputs,
+          state.workflow,
+          state.executionId,
+        );
+      const initialResult =
+        this.nodeClaimService && claimed.durableLease
+          ? await this.nodeClaimService.runWithLeaseHeartbeat(
+              claimed.durableLease,
+              executeNode,
+            )
+          : await executeNode();
+      const settled = await this.settleNodeContinuation(
+        state,
+        node,
+        initialResult,
+      );
+      if (settled.kind === 'return') return settled;
+      await this.completeGraphNodeClaims(
+        state,
+        node.id,
+        claimed,
+        settled.nodeResult,
+        settled.inlineContinuationId,
+      );
+      state.nodeResults.set(node.id, settled.nodeResult);
+      state.totalCreditsUsed += settled.nodeResult.creditsUsed;
+      return settled.nodeResult.status === 'completed'
+        ? this.applyCompletedNode(state, node, settled.nodeResult)
+        : this.applyFailedNode(state, node, settled.nodeResult);
+    } catch (error) {
+      await this.failClaimedNode(state, node, claimed, error);
+      return { kind: 'continue' };
+    }
+  }
+
+  private async settleNodeContinuation(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+    initialResult: NodeExecutionResult,
+  ): Promise<
+    | { kind: 'return'; result: ExecutionRunResult }
+    | {
+        kind: 'settled';
+        inlineContinuationId?: string;
+        nodeResult: NodeExecutionResult;
+      }
+  > {
+    const actionId = getExecutableNodeOperationId(node);
+    const action = getActionDefinition(actionId);
+    if (action?.completionMode !== 'provider-callback') {
+      if (initialResult.status === 'running') {
+        throw new Error(
+          `Synchronous action ${actionId} returned a suspended node result`,
+        );
+      }
+      return { kind: 'settled', nodeResult: initialResult };
+    }
+    if (initialResult.status !== 'running') {
+      throw new Error(
+        `Provider-callback action ${actionId} returned without suspending`,
+      );
+    }
+    if (!this.nodeContinuationService) {
+      throw new Error(
+        `Provider-callback action ${actionId} has no continuation service`,
+      );
+    }
+    const attached = await this.nodeContinuationService.attachInitialOutput({
+      actionId,
+      creditsUsed: initialResult.creditsUsed,
+      executionId: state.executionId,
+      initialOutput: initialResult.output,
+      nodeId: node.id,
+      organizationId: state.workflow.organizationId,
+      workflowVersionId: state.workflow.versionId,
+    });
+    if (attached.kind === 'waiting') {
+      state.nodeResults.set(node.id, initialResult);
+      state.totalCreditsUsed += initialResult.creditsUsed;
+      await this.progressService.trackNodeResult(
+        state.executionId,
+        node.id,
+        actionId,
+        {
+          output: initialResult.output as Record<string, unknown>,
+          startedAt: initialResult.startedAt,
+          status: WorkflowExecutionStatus.RUNNING,
+        },
+      );
+      return { kind: 'return', result: this.buildRunningResult(state) };
+    }
+    return {
+      inlineContinuationId: attached.continuationId,
+      kind: 'settled',
+      nodeResult: attached.succeeded
+        ? {
+            ...initialResult,
+            completedAt: new Date(),
+            output: attached.finalOutput,
+            status: 'completed',
+          }
+        : {
+            ...initialResult,
+            completedAt: new Date(),
+            error: attached.error ?? 'Provider generation failed',
+            output: attached.finalOutput,
+            status: 'failed',
+          },
     };
   }
 
+  private async completeGraphNodeClaims(
+    state: GraphExecutionState,
+    nodeId: string,
+    claimed: ClaimedGraphNode,
+    nodeResult: NodeExecutionResult,
+    inlineContinuationId?: string,
+  ): Promise<void> {
+    completeNodeClaim(this.nodeClaims, claimed.claim.key, {
+      error: nodeResult.error,
+      output: nodeResult.output,
+      status: nodeResult.status === 'failed' ? 'failed' : 'completed',
+    });
+    if (this.nodeClaimService && state.workflow.organizationId) {
+      await this.nodeClaimService.complete({
+        error: nodeResult.error,
+        executionId: state.executionId,
+        leaseOwnerId: claimed.durableLease?.leaseOwnerId,
+        nodeId,
+        organizationId: state.workflow.organizationId,
+        output: nodeResult.output,
+        status: nodeResult.status === 'failed' ? 'failed' : 'completed',
+      });
+    }
+    if (inlineContinuationId && this.nodeContinuationService) {
+      await this.nodeContinuationService.markSettlementFinished({
+        continuationId: inlineContinuationId,
+        organizationId: state.workflow.organizationId,
+        succeeded: nodeResult.status === 'completed',
+      });
+    }
+  }
+
+  private async applyCompletedNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+    nodeResult: NodeExecutionResult,
+  ): Promise<GraphNodeStep> {
+    state.completedNodes.add(node.id);
+    if (nodeResult.output !== undefined) {
+      state.nodeCache.set(node.id, nodeResult.output);
+    }
+    this.graphService.pruneFailurePathAfterSuccess(
+      node.id,
+      state.workflow.edges,
+      state.skippedNodes,
+      state.completedNodes,
+    );
+    if (node.type === 'condition') {
+      this.graphService.pruneUnreachablePaths(
+        node.id,
+        this.graphService.extractBranch(nodeResult.output),
+        state.workflow.edges,
+        state.skippedNodes,
+        state.completedNodes,
+      );
+    }
+    if (node.type === 'delay') {
+      const paused = await this.runtimeService.handleDelayNode({
+        completedNodes: state.completedNodes,
+        executionId: state.executionId,
+        executionOrder: state.executionOrder,
+        node,
+        nodeCache: state.nodeCache,
+        nodeId: node.id,
+        nodeResult,
+        nodeResults: state.nodeResults,
+        options: state.options,
+        skippedNodes: state.skippedNodes,
+        startedAt: state.startedAt,
+        totalCreditsUsed: state.totalCreditsUsed,
+        triggerEvent: state.triggerEvent,
+        workflow: state.workflow,
+      });
+      if (paused) return { kind: 'return', result: paused };
+    }
+    await this.nodeProgressTracker.trackNodeCompleted({
+      completedNodes: state.completedNodes,
+      executionId: state.executionId,
+      node,
+      nodeId: node.id,
+      nodeResult,
+      options: state.options,
+      skippedNodes: state.skippedNodes,
+      startedAt: state.startedAt,
+      triggerEvent: state.triggerEvent,
+      workflow: state.workflow,
+    });
+    return { kind: 'continue' };
+  }
+
+  private async applyFailedNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+    nodeResult: NodeExecutionResult,
+  ): Promise<GraphNodeStep> {
+    this.resolveFailedNode({
+      completedNodes: state.completedNodes,
+      edges: state.workflow.edges,
+      error: nodeResult.error ?? `Node ${node.id} failed`,
+      nodeCache: state.nodeCache,
+      nodeId: node.id,
+      skippedNodes: state.skippedNodes,
+    });
+    await this.nodeProgressTracker.trackNodeFailed({
+      completedNodes: state.completedNodes,
+      errorMessage: nodeResult.error,
+      executionId: state.executionId,
+      node,
+      nodeId: node.id,
+      options: state.options,
+      skippedNodes: state.skippedNodes,
+      startedAt: state.startedAt,
+      triggerEvent: state.triggerEvent,
+      workflow: state.workflow,
+    });
+    return { kind: 'continue' };
+  }
+
+  private async failClaimedNode(
+    state: GraphExecutionState,
+    node: ExecutableNode,
+    claimed: ClaimedGraphNode,
+    error: unknown,
+  ): Promise<void> {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    completeNodeClaim(this.nodeClaims, claimed.claim.key, {
+      error: errorMessage,
+      status: 'failed',
+    });
+    if (this.nodeClaimService && state.workflow.organizationId) {
+      await this.nodeClaimService.complete({
+        error: errorMessage,
+        executionId: state.executionId,
+        leaseOwnerId: claimed.durableLease?.leaseOwnerId,
+        nodeId: node.id,
+        organizationId: state.workflow.organizationId,
+        status: 'failed',
+      });
+    }
+    state.nodeResults.set(node.id, {
+      completedAt: new Date(),
+      creditsUsed: 0,
+      error: errorMessage,
+      nodeId: node.id,
+      retryCount: 0,
+      startedAt: new Date(),
+      status: 'failed',
+    });
+    this.resolveFailedNode({
+      completedNodes: state.completedNodes,
+      edges: state.workflow.edges,
+      error: errorMessage,
+      nodeCache: state.nodeCache,
+      nodeId: node.id,
+      skippedNodes: state.skippedNodes,
+    });
+    await this.nodeProgressTracker.trackNodeFailed({
+      completedNodes: state.completedNodes,
+      errorMessage,
+      executionId: state.executionId,
+      node,
+      nodeId: node.id,
+      options: state.options,
+      skippedNodes: state.skippedNodes,
+      startedAt: state.startedAt,
+      triggerEvent: state.triggerEvent,
+      workflow: state.workflow,
+    });
+  }
+
+  private failGraphPass(
+    state: GraphExecutionState,
+    message: string,
+  ): GraphNodeStep {
+    state.executionError = message;
+    state.executionStatus = 'failed';
+    return { kind: 'break' };
+  }
+
+  private buildRunningResult(state: GraphExecutionState): ExecutionRunResult {
+    return {
+      nodeResults: state.nodeResults,
+      runId: state.executionId,
+      startedAt: state.startedAt,
+      status: 'running',
+      totalCreditsUsed: state.totalCreditsUsed,
+      workflowId: state.workflow.id,
+    };
+  }
+
+  private finalizeGraphExecution(
+    state: GraphExecutionState,
+  ): ExecutionRunResult {
+    const failedNodes = [...state.nodeResults.entries()].filter(
+      ([, result]) => result.status === 'failed',
+    );
+    if (failedNodes.length > 0 || state.executionStatus === 'failed') {
+      state.executionStatus = 'failed';
+      state.executionError ??= `Nodes failed: ${failedNodes
+        .map(([id, result]) => (result.error ? `${id}: ${result.error}` : id))
+        .join(', ')}`;
+    }
+    return {
+      completedAt: new Date(),
+      error: state.executionError,
+      nodeResults: state.nodeResults,
+      runId: state.executionId,
+      startedAt: state.startedAt,
+      status: state.executionStatus,
+      totalCreditsUsed: state.totalCreditsUsed,
+      workflowId: state.workflow.id,
+    };
+  }
   private releaseOwnedClaims(ownedClaimKeys: Set<string>): void {
     for (const key of ownedClaimKeys) {
       this.nodeClaims.delete(key);
@@ -743,258 +870,5 @@ export class WorkflowNodeGraphRunnerService {
       input.skippedNodes,
       input.completedNodes,
     );
-  }
-
-  /**
-   * Re-load durable completed node outputs so a job retry of the same
-   * executionId skips side-effect nodes that already landed (#2359).
-   */
-  private async hydrateCompletedNodesFromExecution(
-    executionId: string,
-    nodeCache: Map<string, unknown>,
-    nodeResults: Map<string, NodeExecutionResult>,
-    completedNodes: Set<string>,
-  ): Promise<number> {
-    if (!this.executionsService) {
-      return 0;
-    }
-
-    try {
-      const execution = await this.executionsService.findOne({
-        id: executionId,
-      });
-      if (!execution) {
-        return 0;
-      }
-
-      const rawResult =
-        execution.result &&
-        typeof execution.result === 'object' &&
-        !Array.isArray(execution.result)
-          ? (execution.result as Record<string, unknown>)
-          : {};
-      const relationResults = Array.isArray(execution.nodeResults)
-        ? execution.nodeResults
-        : [];
-      const prior =
-        relationResults.length > 0
-          ? relationResults
-          : Array.isArray(rawResult.nodeResults)
-            ? rawResult.nodeResults
-            : [];
-      let hydratedCredits = 0;
-
-      for (const entry of prior) {
-        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-          continue;
-        }
-        const row = entry as Record<string, unknown>;
-        const nodeId = typeof row.nodeId === 'string' ? row.nodeId : null;
-        const status = String(row.status ?? '');
-        if (!nodeId) {
-          continue;
-        }
-        const isCompleted =
-          status === WorkflowExecutionStatus.COMPLETED ||
-          status === 'completed';
-        const isFailed =
-          status === WorkflowExecutionStatus.FAILED || status === 'failed';
-        if (!isCompleted && !isFailed) {
-          continue;
-        }
-
-        const output = row.output;
-        if (isCompleted) {
-          completedNodes.add(nodeId);
-        }
-        if (isCompleted && output !== undefined && !nodeCache.has(nodeId)) {
-          nodeCache.set(nodeId, output);
-        }
-        if (!nodeResults.has(nodeId)) {
-          const creditsUsed =
-            typeof row.creditsUsed === 'number' ? row.creditsUsed : 0;
-          hydratedCredits += creditsUsed;
-          nodeResults.set(nodeId, {
-            completedAt: new Date(),
-            creditsUsed,
-            nodeId,
-            output,
-            retryCount: 0,
-            startedAt: new Date(),
-            ...(typeof row.error === 'string' ? { error: row.error } : {}),
-            status: isFailed ? 'failed' : 'completed',
-          });
-        }
-      }
-      return hydratedCredits;
-    } catch {
-      // Hydration is best-effort — missing prior progress falls through to a
-      // normal run rather than blocking the workflow.
-      return 0;
-    }
-  }
-
-  private async handleDelayNode(input: {
-    workflow: ExecutableWorkflow;
-    triggerEvent: TriggerEvent;
-    executionId: string;
-    executionOrder: string[];
-    node: ExecutableNode;
-    nodeId: string;
-    nodeResult: NodeExecutionResult;
-    nodeCache: Map<string, unknown>;
-    nodeResults: Map<string, NodeExecutionResult>;
-    completedNodes: Set<string>;
-    skippedNodes: Set<string>;
-    startedAt: Date;
-    totalCreditsUsed: number;
-    options: {
-      baselineEstimatedDurationMs?: number;
-      workflowLabel: string;
-    };
-  }): Promise<
-    (ExecutionRunResult & { _delayJobData?: DelayResumeJobData }) | null
-  > {
-    const delayMeta = this.graphService.extractDelayMetadata(
-      input.nodeResult.output,
-    );
-    if (!delayMeta.requiresDelayedJob || delayMeta.delayMs <= 0) {
-      return null;
-    }
-
-    const currentIndex = input.executionOrder.indexOf(input.nodeId);
-    const remainingNodeIds = input.executionOrder
-      .slice(currentIndex + 1)
-      .filter(
-        (id) => !input.completedNodes.has(id) && !input.skippedNodes.has(id),
-      );
-
-    const cacheRecord: Record<string, unknown> = {};
-    for (const [key, value] of input.nodeCache) {
-      cacheRecord[key] = value;
-    }
-
-    const delayJobData: DelayResumeJobData = {
-      delayNodeId: input.nodeId,
-      executionId: input.executionId,
-      nodeOutputCache: cacheRecord,
-      organizationId: input.workflow.organizationId,
-      remainingNodeIds,
-      triggerEvent: input.triggerEvent,
-      userId: input.workflow.userId,
-      workflowId: input.workflow.id,
-    };
-
-    const delayedExecution = await this.progressService.trackNodeResult(
-      input.executionId,
-      input.nodeId,
-      input.node.type,
-      {
-        completedAt: new Date(),
-        output: {
-          delayMs: delayMeta.delayMs,
-          paused: true,
-          resumeAt: delayMeta.resumeAt,
-        },
-        status: WorkflowExecutionStatus.COMPLETED,
-      },
-    );
-
-    if (input.workflow.emitSharedEvents !== false) {
-      await this.progressService.emitEvent(input.workflow.id, 'delayed', {
-        delayMs: delayMeta.delayMs,
-        delayNodeId: input.nodeId,
-        executionId: input.executionId,
-        resumeAt: delayMeta.resumeAt,
-      });
-    }
-
-    await this.progressService.updateExecutionEta(
-      input.executionId,
-      input.workflow,
-      {
-        baselineEstimatedDurationMs: input.options.baselineEstimatedDurationMs,
-        completedNodeIds: input.completedNodes,
-        currentPhase: 'Waiting to resume',
-        progress: delayedExecution?.progress ?? 0,
-        skippedNodeIds: input.skippedNodes,
-        startedAt: input.startedAt,
-        userId: input.triggerEvent.userId,
-        workflowId: input.workflow.id,
-        workflowLabel: input.options.workflowLabel,
-      },
-    );
-
-    return {
-      completedAt: undefined,
-      error: undefined,
-      nodeResults: input.nodeResults,
-      runId: input.executionId,
-      startedAt: input.startedAt,
-      status: 'running',
-      totalCreditsUsed: input.totalCreditsUsed,
-      workflowId: input.workflow.id,
-      _delayJobData: delayJobData,
-    };
-  }
-
-  private async executeSingleNode(
-    node: ExecutableNode,
-    inputs: Map<string, unknown>,
-    workflow: ExecutableWorkflow,
-    executionId: string,
-  ): Promise<NodeExecutionResult> {
-    const startedAt = new Date();
-    const singleNodeWorkflow: ExecutableWorkflow = {
-      edges: [],
-      id: workflow.id,
-      lockedNodeIds: [],
-      nodes: [{ ...node, cachedOutput: undefined, isLocked: false }],
-      organizationId: workflow.organizationId,
-      userId: workflow.userId,
-      versionId: workflow.versionId,
-    };
-
-    const virtualEdges: ExecutableEdge[] = [];
-    for (const [key, value] of inputs) {
-      const virtualNodeId = `__input_${key}`;
-      singleNodeWorkflow.nodes.unshift({
-        cachedOutput: value,
-        config: { inputKey: key, inputType: 'json' },
-        id: virtualNodeId,
-        inputs: [],
-        isLocked: true,
-        label: `Input: ${key}`,
-        type: 'workflowInput',
-      });
-      singleNodeWorkflow.lockedNodeIds.push(virtualNodeId);
-      virtualEdges.push({
-        id: `${virtualNodeId}-${node.id}`,
-        source: virtualNodeId,
-        target: node.id,
-        targetHandle: key,
-      });
-    }
-    singleNodeWorkflow.edges = virtualEdges;
-
-    const result = await this.engineAdapter.executeWorkflow(
-      singleNodeWorkflow,
-      { executionId, maxRetries: 3 },
-    );
-    const nodeResult = result.nodeResults.get(node.id);
-
-    if (nodeResult) {
-      return nodeResult;
-    }
-
-    return {
-      completedAt: new Date(),
-      creditsUsed: result.totalCreditsUsed,
-      error: result.error,
-      nodeId: node.id,
-      retryCount: 0,
-      startedAt,
-      status: result.status === 'completed' ? 'completed' : 'failed',
-    };
   }
 }

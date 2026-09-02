@@ -23,6 +23,17 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import {
+  composeEtaMetadata,
+  readNodeResults,
+  readOptionalNumber,
+  readOptionalString,
+  readRecord,
+  toWorkflowExecutionProgressSnapshot,
+  type WorkflowExecutionProgressRow,
+  type WorkflowExecutionProgressSnapshot,
+  type WorkflowExecutionScalarRow,
+} from '@server/collections/workflow-executions/services/workflow-execution-runtime.util';
 import { isHiddenSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import { parseWorkflowExecutionRetention } from '@server/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
@@ -34,32 +45,6 @@ import {
   type PrismaFindAllInput,
 } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-
-function readRecord(raw: unknown): Record<string, unknown> {
-  return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
-    ? { ...(raw as Record<string, unknown>) }
-    : {};
-}
-
-function readNodeResults(raw: unknown): WorkflowNodeResult[] {
-  return Array.isArray(raw)
-    ? raw.filter(
-        (item): item is WorkflowNodeResult =>
-          item !== null && typeof item === 'object' && !Array.isArray(item),
-      )
-    : [];
-}
-
-type WorkflowExecutionProgressSnapshot = {
-  id: string;
-  metadata: Record<string, unknown>;
-  progress: number;
-};
-
-type WorkflowExecutionProgressRow = {
-  id: string;
-  progress: number | null;
-};
 
 type WorkflowExecutionRuntimeStateRow = {
   creditsUsed: number | null;
@@ -119,51 +104,10 @@ type WorkflowExecutionProgressUpdate = {
 
 const REVIEW_GATE_RESOLUTION_LEASE_MS = 5 * 60 * 1000;
 
-type WorkflowExecutionScalarRow = {
-  creditsUsed?: number | null;
-  durationMs?: number | null;
-  estimatedDurationMs?: number | null;
-  etaConfidence?: string | null;
-  etaCurrentPhase?: string | null;
-  etaUpdatedAt?: Date | null;
-  failedNodeId?: string | null;
-  nodeResults?: unknown;
-  progress?: number | null;
-  remainingDurationMs?: number | null;
-};
-
 const DEFAULT_EXECUTION_POPULATE: PopulateOption[] = [
   { path: 'nodeResults' },
   { path: 'workflow', select: ['description', 'label'] },
 ];
-
-function readOptionalNumber(value: unknown): number | undefined {
-  return typeof value === 'number' ? value : undefined;
-}
-
-function readOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function composeEtaMetadata(
-  row: WorkflowExecutionScalarRow,
-  existingEta: Record<string, unknown>,
-): Record<string, unknown> {
-  return {
-    ...existingEta,
-    ...(row.etaCurrentPhase ? { currentPhase: row.etaCurrentPhase } : {}),
-    ...(readOptionalNumber(row.estimatedDurationMs) !== undefined
-      ? { estimatedDurationMs: row.estimatedDurationMs }
-      : {}),
-    ...(row.etaConfidence ? { etaConfidence: row.etaConfidence } : {}),
-    ...(row.etaUpdatedAt
-      ? { lastEtaUpdateAt: row.etaUpdatedAt.toISOString() }
-      : {}),
-    ...(readOptionalNumber(row.remainingDurationMs) !== undefined
-      ? { remainingDurationMs: row.remainingDurationMs }
-      : {}),
-  };
-}
 
 export interface WorkflowExecutionRuntimeState {
   metadata?: Record<string, unknown>;
@@ -511,19 +455,12 @@ export class WorkflowExecutionsService extends BaseService<
     const durationMs = execution.startedAt
       ? completedAt.getTime() - execution.startedAt.getTime()
       : 0;
-    const estimatedDurationMs = readOptionalNumber(
+    this.logEtaComparison(
+      executionId,
+      execution.workflowId,
+      durationMs,
       execution.estimatedDurationMs,
     );
-
-    if (estimatedDurationMs !== undefined) {
-      this.logger?.log('Workflow execution eta comparison', {
-        durationDeltaMs: durationMs - estimatedDurationMs,
-        estimatedDurationMs,
-        executionId,
-        observedDurationMs: durationMs,
-        workflowId: execution.workflowId,
-      });
-    }
 
     const terminalTransition = await this.prisma.$transaction(
       async (transaction) => {
@@ -637,6 +574,26 @@ export class WorkflowExecutionsService extends BaseService<
     });
 
     return document;
+  }
+
+  private logEtaComparison(
+    executionId: string,
+    workflowId: string,
+    durationMs: number,
+    rawEstimate: unknown,
+  ): void {
+    const estimatedDurationMs = readOptionalNumber(rawEstimate);
+    if (estimatedDurationMs === undefined) {
+      return;
+    }
+
+    this.logger?.log('Workflow execution eta comparison', {
+      durationDeltaMs: durationMs - estimatedDurationMs,
+      estimatedDurationMs,
+      executionId,
+      observedDurationMs: durationMs,
+      workflowId,
+    });
   }
 
   @HandleErrors('cancel execution', 'workflow-executions')
@@ -800,15 +757,7 @@ export class WorkflowExecutionsService extends BaseService<
       RETURNING execution.id, execution.progress
     `;
 
-    if (!updatedExecution) {
-      return null;
-    }
-
-    return {
-      id: updatedExecution.id,
-      metadata: {},
-      progress: updatedExecution.progress ?? 0,
-    };
+    return toWorkflowExecutionProgressSnapshot(updatedExecution);
   }
 
   @HandleErrors('set failed node', 'workflow-executions')

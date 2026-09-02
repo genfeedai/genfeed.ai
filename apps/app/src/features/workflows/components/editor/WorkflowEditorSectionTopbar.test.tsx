@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { WorkflowLifecycle } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { WorkflowEditorSectionTopbar } from './WorkflowEditorSectionTopbar';
@@ -21,6 +22,8 @@ vi.mock('next-intl', () => ({
       archive: 'Archive',
       menu: 'Workflow actions',
       publish: 'Publish',
+      publishAlreadyPublished: 'This workflow is already published.',
+      publishArchived: 'Archived workflows cannot be published.',
       run: 'Run',
       running: 'Running…',
       schedule: 'Schedule',
@@ -98,7 +101,40 @@ describe('WorkflowEditorSectionTopbar', () => {
     expect(props.onArchive).toHaveBeenCalledTimes(1);
   });
 
-  it('hides draft-only actions and disables Run while a workflow is running', () => {
+  it('supports keyboard activation for Publish and the actions menu', async () => {
+    const user = userEvent.setup();
+    const props = renderTopbar();
+    const publish = screen.getByRole('button', { name: 'Publish' });
+    const menu = screen.getByRole('button', { name: 'Workflow actions' });
+
+    publish.focus();
+    await user.keyboard('{Enter}');
+    expect(props.onPublish).toHaveBeenCalledTimes(1);
+
+    menu.focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menuitem', { name: 'Archive' });
+    await user.keyboard('{Enter}');
+    expect(props.onArchive).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    [WorkflowLifecycle.PUBLISHED, 'This workflow is already published.'],
+    [WorkflowLifecycle.ARCHIVED, 'Archived workflows cannot be published.'],
+  ])(
+    'keeps Publish visible with an explanation for %s workflows',
+    (lifecycle, explanation) => {
+      const props = renderTopbar({ lifecycle });
+      const publish = screen.getByRole('button', { name: 'Publish' });
+
+      expect(publish).toBeDisabled();
+      expect(publish).toHaveAccessibleDescription(explanation);
+      fireEvent.click(publish);
+      expect(props.onPublish).not.toHaveBeenCalled();
+    },
+  );
+
+  it('disables Run while a workflow is running and omits unavailable scheduling', () => {
     renderTopbar({
       isRunning: true,
       lifecycle: WorkflowLifecycle.PUBLISHED,
@@ -106,9 +142,7 @@ describe('WorkflowEditorSectionTopbar', () => {
     });
 
     expect(screen.getByRole('button', { name: 'Running…' })).toBeDisabled();
-    expect(
-      screen.queryByRole('button', { name: 'Publish' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeDisabled();
     expect(
       screen.queryByRole('button', { name: 'Schedule' }),
     ).not.toBeInTheDocument();

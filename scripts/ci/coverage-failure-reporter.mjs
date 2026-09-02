@@ -1,7 +1,10 @@
 import {
+  collectScheduledRunFailures,
   recordScheduledWorkflowGreen,
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
+
+export { collectScheduledRunFailures };
 
 export const COVERAGE_FAILURE_LABEL = 'scheduled-coverage-failure';
 export const COVERAGE_WORKFLOW_IDENTITY = '.github/workflows/coverage.yml';
@@ -58,7 +61,6 @@ export async function resolveCoverageFailures({
     github,
     owner,
     repo,
-    trackerLabel: COVERAGE_FAILURE_LABEL,
     workflowIdentity: COVERAGE_WORKFLOW_IDENTITY,
     sha,
     runId,

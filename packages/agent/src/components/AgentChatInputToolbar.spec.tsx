@@ -237,6 +237,32 @@ describe('AgentChatInputToolbar', () => {
     });
   });
 
+  it('commits image mode when the operator selected an image model', async () => {
+    generationSetupState.setupByScope['agent:__new__:image'] = {
+      sources: { modelKey: 'user' },
+      values: {
+        aspectRatio: '1:1',
+        brandingMode: 'brand',
+        isPromptEnhanceEnabled: true,
+        modelKey: 'black-forest-labs/flux-schnell',
+        outputs: 1,
+        prioritize: 'balanced',
+        type: 'image',
+      },
+    };
+    const onGenerationModeChange = vi.fn();
+
+    render(
+      <AgentChatInputToolbar
+        {...buildDefaultProps({ onGenerationModeChange })}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(onGenerationModeChange).toHaveBeenLastCalledWith('image');
+    });
+  });
+
   it('scopes the locked type to the active thread', () => {
     agentChatState.activeThreadId = 'thread-42';
     render(<AgentChatInputToolbar {...buildDefaultProps()} />);

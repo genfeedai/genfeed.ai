@@ -1,5 +1,5 @@
-import type { PostDocument } from '@server/collections/posts/post.schema';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 
 export type ContentSignalType =
   | 'cron'
@@ -17,11 +17,11 @@ export interface ContentSignal {
 }
 
 export interface ContentGatewayResult {
+  executions: string[];
   posts: PostDocument[];
-  runs: string[];
 }
 
 export interface ContentGatewayResponse {
+  executions: string[];
   posts: JsonApiCollectionResponse;
-  runs: string[];
 }

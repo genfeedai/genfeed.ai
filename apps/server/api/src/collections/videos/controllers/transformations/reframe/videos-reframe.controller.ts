@@ -1,14 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -19,12 +9,6 @@ import {
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -55,7 +39,24 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -118,37 +119,11 @@ export class VideosReframeController {
 
     const parentMetadata = parent.metadata as unknown as MetadataEntity;
     const format = createVideoDto.format || 'landscape';
-    let targetWidth = createVideoDto.width;
-    let targetHeight = createVideoDto.height;
-
-    if (!targetWidth || !targetHeight) {
-      if (format === 'square') {
-        targetWidth = 1080;
-        targetHeight = 1080;
-      } else if (format === 'portrait') {
-        targetWidth = 1080;
-        targetHeight = 1920;
-      } else {
-        targetWidth = 1920;
-        targetHeight = 1080;
-      }
-    }
-
-    // Hard-cap dimensions to a predictable cost tier until dynamic pricing is added.
-    const maxLandscape = { height: 1080, width: 1920 };
-    const maxPortrait = { height: 1920, width: 1080 };
-    const maxSquare = { height: 1080, width: 1080 };
-
-    if (format === 'square') {
-      targetWidth = Math.min(targetWidth, maxSquare.width);
-      targetHeight = Math.min(targetHeight, maxSquare.height);
-    } else if (format === 'portrait') {
-      targetWidth = Math.min(targetWidth, maxPortrait.width);
-      targetHeight = Math.min(targetHeight, maxPortrait.height);
-    } else {
-      targetWidth = Math.min(targetWidth, maxLandscape.width);
-      targetHeight = Math.min(targetHeight, maxLandscape.height);
-    }
+    const { targetHeight, targetWidth } = this.resolveTargetDimensions(
+      format,
+      createVideoDto.width,
+      createVideoDto.height,
+    );
 
     const promptText =
       createVideoDto.text || `Reframe video to ${format} format`;
@@ -227,35 +202,76 @@ export class VideosReframeController {
     });
 
     url = 'ReplicateService reframeVideo';
-    try {
-      const parentId = String(parent?.id);
-      const parentVideoUrl = `${this.configService.ingredientsEndpoint}/videos/${parentId}`;
+    await this.dispatchReframe({
+      createVideoDto,
+      ingredientData,
+      metadataId: metadataData.id,
+      parentId: String(parent.id),
+      promptData,
+      request,
+      targetHeight,
+      targetWidth,
+      url,
+      user,
+      websocketUrl,
+    });
 
+    return serializeSingle(request, IngredientSerializer, ingredientData);
+  }
+
+  private resolveTargetDimensions(
+    format: string,
+    requestedWidth?: number,
+    requestedHeight?: number,
+  ): { targetHeight: number; targetWidth: number } {
+    const defaults =
+      format === 'square'
+        ? { height: 1080, width: 1080 }
+        : format === 'portrait'
+          ? { height: 1920, width: 1080 }
+          : { height: 1080, width: 1920 };
+    const requested =
+      requestedWidth && requestedHeight
+        ? { height: requestedHeight, width: requestedWidth }
+        : defaults;
+    return {
+      targetHeight: Math.min(requested.height, defaults.height),
+      targetWidth: Math.min(requested.width, defaults.width),
+    };
+  }
+
+  private async dispatchReframe(params: {
+    createVideoDto: CreateVideoDto;
+    ingredientData: IngredientDocument;
+    metadataId: string;
+    parentId: string;
+    promptData: Awaited<ReturnType<PromptsService['create']>>;
+    request: Request;
+    targetHeight: number;
+    targetWidth: number;
+    url: string;
+    user: User;
+    websocketUrl: string;
+  }): Promise<void> {
+    const {
+      createVideoDto,
+      ingredientData,
+      metadataId,
+      parentId,
+      promptData,
+      request,
+      targetHeight,
+      targetWidth,
+      url,
+      user,
+      websocketUrl,
+    } = params;
+    try {
       const { input: promptParams } =
         await this.promptBuilderService.buildPrompt(
           MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
           {
-            brand:
-              typeof ingredientData.brand === 'object' &&
-              ingredientData.brand !== null &&
-              !Array.isArray(ingredientData.brand) &&
-              typeof (ingredientData.brand as { label?: unknown }).label ===
-                'string'
-                ? {
-                    description:
-                      typeof (ingredientData.brand as { description?: unknown })
-                        .description === 'string'
-                        ? (
-                            ingredientData.brand as unknown as {
-                              description: string;
-                            }
-                          ).description
-                        : undefined,
-                    label: (
-                      ingredientData.brand as unknown as { label: string }
-                    ).label,
-                  }
-                : undefined,
+            brand: this.resolvePromptBrand(ingredientData.brand),
             camera: createVideoDto.camera,
             height: targetHeight,
             modelCategory:
@@ -264,50 +280,68 @@ export class VideosReframeController {
               ModelCategory.VIDEO_EDIT,
             mood: createVideoDto.mood,
             prompt: promptData.original,
-            references: [parentVideoUrl],
+            references: [
+              `${this.configService.ingredientsEndpoint}/videos/${parentId}`,
+            ],
             scene: createVideoDto.scene,
             style: createVideoDto.style,
             tags: createVideoDto.tags?.map((tag) => tag.toString()),
             width: targetWidth,
           },
         );
-
       const generationId = await this.replicateService.generateTextToVideo(
         MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         promptParams,
       );
-
       if (generationId) {
-        // Credits are deducted by CreditsInterceptor on successful response.
-
         await this.metadataService.patch(
-          metadataData.id,
+          metadataId,
           new MetadataEntity({
             externalId: generationId,
             promptId: promptData.id,
           }),
         );
-      } else {
-        await this.failedGenerationService.handleFailedVideoGeneration(
-          this.videosService,
-          ingredientData.id,
-          websocketUrl,
-          user.id,
-          getUserRoomName(user.id),
-        );
+        return;
       }
+      await this.markReframeFailed(ingredientData.id, websocketUrl, user);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-
-      await this.failedGenerationService.handleFailedVideoGeneration(
-        this.videosService,
-        ingredientData.id,
-        websocketUrl,
-        user.id,
-        getUserRoomName(user.id),
-      );
+      await this.markReframeFailed(ingredientData.id, websocketUrl, user);
     }
+  }
 
-    return serializeSingle(request, IngredientSerializer, ingredientData);
+  private resolvePromptBrand(
+    brand: unknown,
+  ): { description?: string; label: string } | undefined {
+    if (
+      typeof brand !== 'object' ||
+      brand === null ||
+      Array.isArray(brand) ||
+      typeof (brand as { label?: unknown }).label !== 'string'
+    ) {
+      return undefined;
+    }
+    const candidate = brand as { description?: unknown; label: string };
+    return {
+      description:
+        typeof candidate.description === 'string'
+          ? candidate.description
+          : undefined,
+      label: candidate.label,
+    };
+  }
+
+  private async markReframeFailed(
+    ingredientId: string,
+    websocketUrl: string,
+    user: User,
+  ): Promise<void> {
+    await this.failedGenerationService.handleFailedVideoGeneration(
+      this.videosService,
+      ingredientId,
+      websocketUrl,
+      user.id,
+      getUserRoomName(user.id),
+    );
   }
 }

@@ -1,20 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -33,7 +17,23 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
@@ -175,8 +175,50 @@ export class ImageReframeService {
     });
 
     url = 'ReplicateService reframeImage';
+    await this.dispatchReframe({
+      createImageDto,
+      ingredientData,
+      metadataId: metadataData.id,
+      parentId: String(parent.id),
+      promptData,
+      request,
+      targetHeight,
+      targetWidth,
+      url,
+      user,
+      websocketUrl,
+    });
+
+    return ingredientData;
+  }
+
+  private async dispatchReframe(params: {
+    createImageDto: CreateImageDto;
+    ingredientData: IngredientDocument;
+    metadataId: string;
+    parentId: string;
+    promptData: Awaited<ReturnType<PromptsService['create']>>;
+    request: Request;
+    targetHeight: number;
+    targetWidth: number;
+    url: string;
+    user: User;
+    websocketUrl: string;
+  }): Promise<void> {
+    const {
+      createImageDto,
+      ingredientData,
+      metadataId,
+      parentId,
+      promptData,
+      request,
+      targetHeight,
+      targetWidth,
+      url,
+      user,
+      websocketUrl,
+    } = params;
     try {
-      const parentId = String(parent?.id);
       const parentImageUrl: string = `${this.configService.ingredientsEndpoint}/images/${parentId}`;
       const promptResult = await this.promptBuilderService.buildPrompt(
         MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
@@ -215,7 +257,7 @@ export class ImageReframeService {
 
       if (generationId) {
         await this.metadataService.patch(
-          metadataData.id,
+          metadataId,
           new MetadataEntity({
             externalId: generationId,
             promptId: promptData.id,
@@ -243,7 +285,5 @@ export class ImageReframeService {
         errorMessage,
       );
     }
-
-    return ingredientData;
   }
 }

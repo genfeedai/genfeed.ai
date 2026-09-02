@@ -1,4 +1,5 @@
-import { ActivitySource, AgentMessageRole } from '@genfeedai/enums';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import { AgentMessageRole } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
@@ -14,6 +15,7 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { runReservedAgentLlmRound } from '@server/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentRoutingMetadata,
@@ -184,29 +186,46 @@ export class AgentOrchestratorPlanModeService {
       planCompressedCtx,
     );
 
-    const response = await this.llmDispatcher.chatCompletion(
-      await this.buildPlanningChatCompletionParams({
-        messages: history,
-        model: params.model,
-        prompt: params.request.content,
-        seedTitle: params.seedTitle,
-        source: params.request.source,
-      }),
-      params.context.organizationId,
-      {
-        brandId: params.context.scope?.brandId,
-        runId: params.context.executionId,
-        threadId: params.threadId,
-        userId: params.context.userId,
-      },
-    );
+    const chatParams = await this.buildPlanningChatCompletionParams({
+      messages: history,
+      model: params.model,
+      prompt: params.request.content,
+      seedTitle: params.seedTitle,
+      source: params.request.source,
+      threadId: params.threadId,
+    });
+    const reservedRound = await runReservedAgentLlmRound({
+      actorUserId: params.context.userId,
+      credits: this.creditsUtilsService,
+      estimatedCredits: (actualModel) =>
+        this.agentChatModelRegistry.getRoundCredits(actualModel),
+      idempotencyKey: `${params.context.executionId ?? params.threadId}:agent-plan-round:1`,
+      maximumCredits: await this.agentChatModelRegistry.getMaximumRoundCredits(
+        params.model,
+      ),
+      organizationId: params.context.organizationId,
+      requestedModel: params.model,
+      run: () =>
+        this.llmDispatcher.chatCompletion(
+          chatParams,
+          params.context.organizationId,
+          {
+            brandId: params.context.scope?.brandId,
+            runId: params.context.executionId,
+            threadId: params.threadId,
+            userId: params.context.userId,
+          },
+        ),
+      waived: params.turnCost === 0,
+    });
+    const response = reservedRound.response;
 
     const choice = response.choices[0];
     if (!choice) {
       throw new Error('No planning response from LLM');
     }
 
-    const envelope = this.extractPlanEnvelope(host, {
+    const envelope = this.extractPlanEnvelope({
       assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
       prompt: params.request.content,
       seedTitle: params.seedTitle,
@@ -220,14 +239,6 @@ export class AgentOrchestratorPlanModeService {
         ? { revisionNote: params.reviewMetadata.revisionNote }
         : {}),
     };
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      params.context.organizationId,
-      params.context.userId,
-      params.turnCost,
-      `Agent planning turn (${params.model})`,
-      ActivitySource.SCRIPT,
-    );
 
     await host.maybeUpdateThreadTitle({
       context: params.context,
@@ -255,11 +266,13 @@ export class AgentOrchestratorPlanModeService {
         prompt: params.request.content,
         source: params.request.source,
       }),
-      ...buildResolvedModelMetadata(params.model),
+      ...buildResolvedModelMetadata(params.model, [
+        response.model ?? params.model,
+      ]),
       proposedPlan: plan,
       reviewRequired: true,
       riskLevel: 'low' as const,
-      totalCreditsUsed: params.turnCost,
+      totalCreditsUsed: reservedRound.credits,
     };
     const content =
       envelope.summary ||
@@ -293,7 +306,7 @@ export class AgentOrchestratorPlanModeService {
 
     return {
       creditsRemaining,
-      creditsUsed: params.turnCost,
+      creditsUsed: reservedRound.credits,
       message: {
         content,
         metadata: assistantMetadata,
@@ -322,11 +335,13 @@ export class AgentOrchestratorPlanModeService {
     prompt: string;
     seedTitle?: string;
     source?: AgentChatRequest['source'];
+    threadId: string;
   }): Promise<{
     max_tokens: number;
     messages: OpenRouterMessage[];
     model: string;
     plugins?: OpenRouterPlugin[];
+    session_id?: string;
     temperature: number;
   }> {
     const routingPolicy = resolveAgentRoutingPolicy({
@@ -335,7 +350,19 @@ export class AgentOrchestratorPlanModeService {
       prompt: params.prompt,
       source: params.source,
     });
-    const plugins = resolveAgentRoutingPlugins(routingPolicy);
+    const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
+    const plugins =
+      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
+        ? [
+            ...routingPlugins,
+            {
+              allowed_models:
+                await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
+              cost_tier: 'medium' as const,
+              id: 'auto-router',
+            },
+          ]
+        : routingPlugins;
     const planInstruction = {
       content:
         'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
@@ -346,19 +373,19 @@ export class AgentOrchestratorPlanModeService {
       max_tokens: 2048,
       messages: [planInstruction, ...params.messages],
       model: params.model,
-      ...(plugins ? { plugins } : {}),
+      ...(plugins.length > 0 ? { plugins } : {}),
+      ...(params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
+        ? { session_id: params.threadId }
+        : {}),
       temperature: 0.3,
     };
   }
 
-  private extractPlanEnvelope(
-    host: AgentOrchestratorPlanModeHost,
-    params: {
-      assistantContent: string;
-      prompt: string;
-      seedTitle: string;
-    },
-  ): {
+  private extractPlanEnvelope(params: {
+    assistantContent: string;
+    prompt: string;
+    seedTitle: string;
+  }): {
     title: string | null;
     summary: string;
     plan: {

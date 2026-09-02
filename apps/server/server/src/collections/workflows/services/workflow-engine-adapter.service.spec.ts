@@ -2,10 +2,123 @@
 
 import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { testId } from '@helpers/testing/test-id.helper';
+import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
+import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
+import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowEngineExecutorRegistryService } from '@server/collections/workflows/services/workflow-engine-executor-registry.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
 import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+function createWorkflowEngineAdapterForTest(
+  ...dependencies: unknown[]
+): WorkflowEngineAdapterService {
+  const dependency = (index: number) => dependencies[index] as never;
+  const helper = new WorkflowEngineExecutorHelperService(
+    dependency(0),
+    dependency(13),
+    dependency(8),
+    dependency(7),
+    dependency(46),
+  );
+  const core = new WorkflowCoreExecutorRegistrarService(
+    helper,
+    dependency(1),
+    dependency(21),
+    dependency(22),
+    dependency(18),
+    dependency(35),
+  );
+  const social = new WorkflowSocialExecutorRegistrarService(
+    helper,
+    dependency(1),
+    dependency(2),
+    dependency(37),
+    dependency(38),
+    dependency(40),
+    dependency(11),
+    dependency(24),
+  );
+  const mediaProcessing = new WorkflowMediaProcessingExecutorRegistrarService(
+    helper,
+    dependency(0),
+    dependency(3),
+    dependency(4),
+    dependency(5),
+    dependency(6),
+    dependency(7),
+    dependency(8),
+    dependency(9),
+    dependency(13),
+    dependency(14),
+    dependency(15),
+    dependency(44),
+  );
+  const mediaGeneration = new WorkflowMediaGenerationExecutorRegistrarService(
+    helper,
+    dependency(1),
+    dependency(20),
+    dependency(16),
+    dependency(17),
+    dependency(19),
+    dependency(6),
+  );
+  const content = new WorkflowContentExecutorRegistrarService(
+    helper,
+    dependency(10),
+    dependency(11),
+    dependency(12),
+    dependency(18),
+    dependency(39),
+    dependency(43),
+  );
+  const automation = new WorkflowAutomationExecutorRegistrarService(
+    dependency(28),
+    dependency(29),
+    dependency(30),
+    dependency(31),
+    dependency(32),
+    dependency(33),
+    dependency(34),
+    dependency(41),
+    dependency(42),
+    dependency(45),
+  );
+  const trendPublish = new WorkflowTrendPublishExecutorRegistrarService(
+    helper,
+    dependency(0),
+    dependency(1),
+    dependency(2),
+    dependency(23),
+    dependency(24),
+    dependency(25),
+    dependency(26),
+    dependency(27),
+    dependency(10),
+    dependency(43),
+    dependency(36),
+  );
+  const registry = new WorkflowEngineExecutorRegistryService(
+    core,
+    social,
+    mediaProcessing,
+    mediaGeneration,
+    content,
+    automation,
+    trendPublish,
+  );
+  return new WorkflowEngineAdapterService(
+    dependency(1),
+    registry,
+    trendPublish,
+  );
+}
 
 describe('WorkflowEngineAdapterService', () => {
   const SOCIAL_ADAPTER_FACTORY_INDEX = 2;
@@ -96,7 +209,7 @@ describe('WorkflowEngineAdapterService', () => {
       warn: vi.fn(),
     };
 
-    service = new WorkflowEngineAdapterService(
+    service = createWorkflowEngineAdapterForTest(
       {
         cdnUrl: 'https://cdn.example.com',
       } as never,
@@ -112,7 +225,7 @@ describe('WorkflowEngineAdapterService', () => {
     args[0] = { cdnUrl: 'https://cdn.example.com' };
     args[1] = loggerService;
     args[SOCIAL_INBOX_SERVICE_INDEX] = socialInboxService;
-    return new WorkflowEngineAdapterService(...args);
+    return createWorkflowEngineAdapterForTest(...args);
   }
 
   describe('convertToExecutableWorkflow', () => {
@@ -434,7 +547,7 @@ describe('WorkflowEngineAdapterService', () => {
         getAdapter: vi.fn().mockReturnValue({ replyToPost }),
         getSupportedPlatforms: vi.fn().mockReturnValue(['instagram']),
       };
-      const socialAdapter = new WorkflowEngineAdapterService(...args);
+      const socialAdapter = createWorkflowEngineAdapterForTest(...args);
 
       const workflow = convertActionGraph(socialAdapter, {
         id: 'wf-social-reply-no-inbox',
@@ -806,7 +919,7 @@ describe('WorkflowEngineAdapterService', () => {
           .mockResolvedValue({ continuationId: 'continuation-1' }),
         markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
       };
-      const avatarService = new WorkflowEngineAdapterService(...adapterArgs);
+      const avatarService = createWorkflowEngineAdapterForTest(...adapterArgs);
 
       const workflow = convertActionGraph(avatarService, {
         id: 'wf-1',
@@ -896,7 +1009,7 @@ describe('WorkflowEngineAdapterService', () => {
         generateCaptions: vi.fn().mockResolvedValue('caption text'),
       };
 
-      const executionService = new WorkflowEngineAdapterService(
+      const executionService = createWorkflowEngineAdapterForTest(
         {
           cdnUrl: 'https://cdn.example.com',
         } as never,
@@ -1086,7 +1199,7 @@ describe('WorkflowEngineAdapterService', () => {
           .mockResolvedValue({ continuationId: 'continuation-1' }),
         markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
       };
-      const imageWorkflowService = new WorkflowEngineAdapterService(
+      const imageWorkflowService = createWorkflowEngineAdapterForTest(
         ...adapterArgs,
       );
 
@@ -1146,7 +1259,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('fails image generation workflows when brandId is missing', async () => {
-      const imageWorkflowService = new WorkflowEngineAdapterService(
+      const imageWorkflowService = createWorkflowEngineAdapterForTest(
         {
           cdnUrl: 'https://cdn.example.com',
         } as never,
@@ -1529,7 +1642,7 @@ describe('WorkflowEngineAdapterService', () => {
         }),
       };
 
-      const brandAssetService = new WorkflowEngineAdapterService(
+      const brandAssetService = createWorkflowEngineAdapterForTest(
         {
           cdnUrl: 'https://cdn.example.com',
         } as never,
@@ -1633,7 +1746,7 @@ describe('WorkflowEngineAdapterService', () => {
       args[1] = loggerService;
       args[CACHE_INDEX] = cacheService;
       args[CREDITS_INDEX] = creditsUtilsService;
-      return new WorkflowEngineAdapterService(...args);
+      return createWorkflowEngineAdapterForTest(...args);
     };
 
     const readySummaries = (sent = true) => [

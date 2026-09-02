@@ -42,6 +42,26 @@ describe('formatAgentError', () => {
 
     expect(formatted.title).toBe('AI provider not connected');
     expect(formatted.isConfigurationError).toBe(true);
+    expect(formatted.isRetryable).toBe(false);
+  });
+
+  it('marks only known transient failures as immediately retryable', () => {
+    expect(
+      formatAgentError({ source: 'acknowledgement', status: 504 }),
+    ).toMatchObject({ isRetryable: true });
+    expect(
+      formatAgentError('Request failed with status code 503'),
+    ).toMatchObject({ isRetryable: true });
+    expect(formatAgentError({ source: 'provider', status: 401 })).toMatchObject(
+      {
+        isRetryable: false,
+        title: 'Provider authentication failed',
+      },
+    );
+    expect(formatAgentError('Unknown terminal failure')).toMatchObject({
+      isRetryable: false,
+      title: 'Run failed',
+    });
   });
 
   it('does not map user not found to provider-connection guidance', () => {
@@ -77,6 +97,21 @@ describe('formatAgentError', () => {
     // 502 is treated as connection/gateway interruption (local proxy + provider).
     expect(formatAgentError('bad gateway from provider').title).toBe(
       'Connection interrupted',
+    );
+  });
+
+  it('maps a bare model-route 404 to the admin-switchable default recovery', () => {
+    const formatted = formatAgentError('Request failed with status code 404');
+
+    expect(formatted.title).toBe('Chat model unavailable');
+    expect(formatted.summary).toMatch(/provider endpoint.*privacy policy/i);
+    expect(formatted.recovery).toMatch(/Admin.*Models/i);
+    expect(formatted.isConfigurationError).toBe(true);
+  });
+
+  it('preserves model-route recovery for a structured provider 404', () => {
+    expect(formatAgentError({ source: 'provider', status: 404 }).title).toBe(
+      'Chat model unavailable',
     );
   });
 

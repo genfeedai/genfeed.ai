@@ -3,6 +3,7 @@ import {
   type ExecutionContext,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { Injectable, Optional } from '@nestjs/common';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
 import {
@@ -23,17 +24,28 @@ import { TrendNotificationWorkflowService } from '@server/collections/workflows/
 import { AD_AUTOMATION_ACTION_IDS } from '@server/collections/workflows/templates/ad-automation-workflows.template';
 import { ANALYTICS_SYNC_ACTION_IDS } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
 
+@Injectable()
 export class WorkflowAutomationExecutorRegistrarService {
   constructor(
+    @Optional()
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
+    @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
+    @Optional()
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
+    @Optional()
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
+    @Optional()
     private readonly replyPollingWorkflowService?: ReplyPollingWorkflowService,
+    @Optional()
     private readonly trendNotificationWorkflowService?: TrendNotificationWorkflowService,
+    @Optional()
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
+    @Optional()
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
+    @Optional()
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
+    @Optional()
     private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
   ) {}
 

@@ -1,7 +1,3 @@
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CacheService } from '@server/services/cache/cache.service';
 import {
   ActivityKey,
   categoryToPlural,
@@ -11,7 +7,10 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ConfigService } from '@workers/config/config.service';
 
@@ -81,7 +80,6 @@ export class CronIngredientsService {
    *
    * Uses distributed locking to prevent race conditions across multiple instances
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async checkStuckProcessingIngredients() {
     const context = `${this.constructorName} checkStuckProcessingIngredients`;
 
@@ -302,7 +300,6 @@ export class CronIngredientsService {
    *
    * Uses distributed locking to prevent race conditions across multiple instances
    */
-  @Cron(CronExpression.EVERY_6_HOURS)
   async refreshMissingMetadataDimensions() {
     const context = `${this.constructorName} refreshMissingMetadataDimensions`;
 

@@ -7,7 +7,7 @@ export class CronRssAutopostService {
 
   /**
    * Polls every enabled RSS source. Fired every 15 minutes by the
-   * system-sweeps BullMQ Job Scheduler. Per-source errors are isolated so
+   * platform BullMQ schedule. Per-source errors are isolated so
    * one broken feed cannot stall the rest of the sweep.
    */
   async pollEnabledSources(): Promise<void> {

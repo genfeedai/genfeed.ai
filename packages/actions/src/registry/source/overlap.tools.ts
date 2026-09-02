@@ -243,12 +243,22 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_image',
     parameters: {
       properties: {
+        aspectRatio: {
+          description: 'Aspect ratio of the generated image',
+          type: 'string',
+        },
         characterHandles: {
           description:
             'Optional brand character handles to resolve server-side into canonical reference images. Max 4. Unresolvable handles fail the whole call.',
           items: { type: 'string' },
           maxItems: 4,
           type: 'array',
+        },
+        outputs: {
+          description: 'Number of image variants to generate',
+          maximum: 8,
+          minimum: 1,
+          type: 'integer',
         },
         prompt: {
           description: 'Description of the image to generate',

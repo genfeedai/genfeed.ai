@@ -6,7 +6,7 @@ import { expect } from '@playwright/test';
 /**
  * Page Object Model for the Admin Dashboard
  *
- * Covers overview, users, templates, fleet, CRM, and analytics.
+ * Covers overview, users, templates, CRM, and analytics.
  *
  * @module admin.page
  */
@@ -31,11 +31,6 @@ export class AdminPage {
   // Templates
   readonly templateCards: Locator;
   readonly templateEmptyState: Locator;
-
-  // Fleet
-  readonly fleetGalleryGrid: Locator;
-  readonly fleetCharactersList: Locator;
-  readonly fleetPipelineContent: Locator;
 
   // CRM
   readonly crmLeadsTable: Locator;
@@ -89,19 +84,6 @@ export class AdminPage {
       '[data-testid="empty-state"], .empty-state',
     );
 
-    // Fleet
-    this.fleetGalleryGrid = page.locator(
-      '[data-testid="gallery-grid"], .gallery-grid, ' +
-        '.image-grid, [class*="grid"]',
-    );
-    this.fleetCharactersList = page.locator(
-      '[data-testid="characters-list"], .characters-list, ' +
-        'table, [role="table"]',
-    );
-    this.fleetPipelineContent = page.locator(
-      '[data-testid="pipeline"], .pipeline',
-    );
-
     // CRM
     this.crmLeadsTable = page.locator(
       'table, [data-testid="leads-table"], [role="table"]',
@@ -143,34 +125,6 @@ export class AdminPage {
 
   async gotoTemplates(): Promise<void> {
     await this.page.goto(APP_ROUTES.ADMIN.CONTENT.TEMPLATES, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoFleetGallery(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.FLEET.GALLERY, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoFleetCharacters(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.FLEET.CHARACTERS, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoFleetPipeline(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.FLEET.PIPELINE, {
-      waitUntil: 'domcontentloaded',
-    });
-    await this.waitForPageLoad();
-  }
-
-  async gotoFleetInfrastructure(): Promise<void> {
-    await this.page.goto(APP_ROUTES.ADMIN.FLEET.INFRASTRUCTURE, {
       waitUntil: 'domcontentloaded',
     });
     await this.waitForPageLoad();

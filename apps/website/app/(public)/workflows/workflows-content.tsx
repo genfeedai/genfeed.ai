@@ -3,12 +3,12 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   ArrowRight,
   Box,
@@ -21,12 +21,6 @@ import {
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
-
-const STATS = [
-  { label: '44+ Nodes' },
-  { label: '7 SaaS Integrations' },
-  { label: 'Deterministic Control' },
-];
 
 const BEFORE_AFTER = [
   {
@@ -145,30 +139,17 @@ const HERO_PROOF = (
 );
 
 const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Agents can trigger the run, but the logic stays explicit, inspectable, and schedulable."
-    eyebrow="Workflow Canvas"
-    footer={<span>{STATS.map((stat) => stat.label).join(' / ')}</span>}
-    items={[
-      {
-        label: 'Author',
-        value: 'Define each step, branch, gate, and retry path yourself.',
-      },
-      {
-        label: 'Inspect',
-        value: 'Every input, output, and handoff stays visible on the canvas.',
-      },
-      {
-        label: 'Trigger',
-        value: 'Manual starts, schedules, events, and agent-triggered runs.',
-      },
-      {
-        label: 'Operate',
-        value: 'Deterministic execution with human control over the loop.',
-      },
-    ]}
-    subtitle="Deterministic control for agentic systems"
-    title="Workflows that stay legible."
+  <ProductInterfacePreview
+    product={{
+      category: 'Automation',
+      features: FEATURES,
+      headline: 'Build, inspect, and run deterministic content systems.',
+      name: 'Workflows',
+      useCases: HOW_IT_WORKS.map((step) => ({
+        description: step.description,
+        title: step.label,
+      })),
+    }}
   />
 );
 

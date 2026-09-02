@@ -117,6 +117,12 @@ export class AgentTurnAcceptanceService {
           // revalidates the same scope instead of downgrading to a missing
           // version context.
           expectedContextVersion: contextVersion,
+          ...(request.generationMode
+            ? { generationMode: request.generationMode }
+            : {}),
+          ...(request.generationSettings
+            ? { generationSettings: request.generationSettings }
+            : {}),
           ...(request.model ? { model: request.model } : {}),
           ...(request.pageContext ? { pageContext: request.pageContext } : {}),
           ...(request.planModeEnabled !== undefined
@@ -154,6 +160,9 @@ export class AgentTurnAcceptanceService {
         agentScope: toAgentScopeMetadata(scope),
         ...(request.generationMode
           ? { generationMode: request.generationMode }
+          : {}),
+        ...(request.generationSettings
+          ? { generationSettings: request.generationSettings }
           : {}),
         ...(request.transferId
           ? {

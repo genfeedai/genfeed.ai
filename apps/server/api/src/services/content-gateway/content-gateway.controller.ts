@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import {
   ExecuteSkillDto,
   RouteSignalDto,
 } from '@api/services/content-gateway/dto/content-gateway.dto';
+import { PostSerializer } from '@genfeedai/serializers';
+import { Body, Controller, Post, Req } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import type {
   ContentGatewayResponse,
   ContentGatewayResult,
 } from '@server/services/content-gateway/interfaces/content-gateway.interfaces';
-import { PostSerializer } from '@genfeedai/serializers';
-import { Body, Controller, Post, Req } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @ApiTags('ContentGateway')
@@ -63,10 +63,10 @@ export class ContentGatewayController {
     result: ContentGatewayResult,
   ): ContentGatewayResponse {
     return {
+      executions: result.executions,
       posts: serializeCollection(request, PostSerializer, {
         docs: result.posts,
       }),
-      runs: result.runs,
     };
   }
 }

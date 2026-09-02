@@ -31,6 +31,7 @@ type AppSidebarSurface = {
 type Props = {
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
+  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   /**
    * Live rail width from AppLayout (resize + localStorage). Must be accepted
    * here — cloneElement injects it; hardcoding 280 leaves MenuShared stuck
@@ -76,6 +77,7 @@ type Props = {
 export default function AppProtectedLayoutSidebar({
   currentApp,
   isCollapsed,
+  onToggleCollapse,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
@@ -119,6 +121,7 @@ export default function AppProtectedLayoutSidebar({
   );
   const sidebarStateProps = {
     isCollapsed,
+    onToggleCollapse,
   };
 
   if (isFocusedOnboardingRoute) {

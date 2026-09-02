@@ -45,6 +45,7 @@ import {
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosService } from '@server/collections/videos/services/videos.service';
@@ -131,6 +132,41 @@ export class VideosUpscaleController {
     const targetFps = videoEditDto.targetFps ?? 30;
     const targetResolution = videoEditDto.targetResolution ?? '1080p';
     this.assertSupportedUpscaleOptions(model, targetResolution, targetFps);
+    return this.executeUpscale({
+      model,
+      request,
+      targetFps,
+      targetResolution,
+      url,
+      user,
+      video,
+      videoId,
+      videoUrl,
+    });
+  }
+
+  private async executeUpscale(params: {
+    model: string;
+    request: Request;
+    targetFps: number;
+    targetResolution: string;
+    url: string;
+    user: User;
+    video: IngredientDocument;
+    videoId: string;
+    videoUrl: string;
+  }): Promise<JsonApiSingleResponse> {
+    const {
+      model,
+      request,
+      targetFps,
+      targetResolution,
+      url,
+      user,
+      video,
+      videoId,
+      videoUrl,
+    } = params;
     let outputIngredientId: string | undefined;
     let failureHandled = false;
 
@@ -214,44 +250,16 @@ export class VideosUpscaleController {
         return serializeSingle(request, IngredientSerializer, ingredientData);
       }
 
-      const { input: promptParams } =
-        await this.promptBuilderService.buildPrompt(model, {
-          modelCategory:
-            ((request as unknown as { selectedModel?: { category?: string } })
-              .selectedModel?.category as ModelCategory) ||
-            ModelCategory.VIDEO_UPSCALE,
-          prompt: 'Video upscaling',
-          target_fps: targetFps,
-          target_resolution: targetResolution,
-          video: videoUrl,
-        });
-
-      const externalId = await this.replicateService.runModel(
+      failureHandled = await this.dispatchUpscale({
+        ingredientId,
+        metadataId: metadataData.id,
         model,
-        promptParams,
-      );
-
-      const websocketUrl = WebSocketPaths.video(ingredientId);
-
-      if (externalId) {
-        await this.metadataService.patch(
-          metadataData.id,
-          new MetadataEntity({
-            externalId: externalId,
-          }),
-        );
-
-        // Credits are deducted by CreditsInterceptor on successful response.
-      } else {
-        failureHandled = true;
-        await this.failedGenerationService.handleFailedVideoGeneration(
-          this.videosService,
-          ingredientId,
-          websocketUrl,
-          user.id,
-          getUserRoomName(user.id),
-        );
-      }
+        request,
+        targetFps,
+        targetResolution,
+        user,
+        videoUrl,
+      });
 
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
@@ -271,6 +279,60 @@ export class VideosUpscaleController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private async dispatchUpscale(params: {
+    ingredientId: string;
+    metadataId: string;
+    model: string;
+    request: Request;
+    targetFps: number;
+    targetResolution: string;
+    user: User;
+    videoUrl: string;
+  }): Promise<boolean> {
+    const {
+      ingredientId,
+      metadataId,
+      model,
+      request,
+      targetFps,
+      targetResolution,
+      user,
+      videoUrl,
+    } = params;
+    const { input: promptParams } = await this.promptBuilderService.buildPrompt(
+      model,
+      {
+        modelCategory:
+          ((request as unknown as { selectedModel?: { category?: string } })
+            .selectedModel?.category as ModelCategory) ||
+          ModelCategory.VIDEO_UPSCALE,
+        prompt: 'Video upscaling',
+        target_fps: targetFps,
+        target_resolution: targetResolution,
+        video: videoUrl,
+      },
+    );
+    const externalId = await this.replicateService.runModel(
+      model,
+      promptParams,
+    );
+    if (externalId) {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({ externalId }),
+      );
+      return false;
+    }
+    await this.failedGenerationService.handleFailedVideoGeneration(
+      this.videosService,
+      ingredientId,
+      WebSocketPaths.video(ingredientId),
+      user.id,
+      getUserRoomName(user.id),
+    );
+    return true;
   }
 
   private assertSupportedUpscaleOptions(

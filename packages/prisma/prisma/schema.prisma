@@ -3360,6 +3360,13 @@ model Training {
   @@map("trainings")
 }
 
+enum ModelLifecycle {
+  RECOMMENDED
+  AVAILABLE
+  LEGACY
+  RETIRED
+}
+
 model Model {
   id             String        @id @default(cuid())
   organizationId String?
@@ -3413,14 +3420,16 @@ model Model {
   isReferencesMandatory Boolean?
   usesOrientation       Boolean?
 
-  isActive      Boolean @default(true)
-  isDefault     Boolean @default(false)
-  isDeleted     Boolean @default(false)
-  isDiscovered  Boolean @default(false)
-  isHighlighted Boolean @default(false)
-  isLegacy      Boolean @default(false)
-  isPublic      Boolean @default(true)
-  isDeprecated  Boolean @default(false)
+  lifecycle     ModelLifecycle @default(AVAILABLE)
+  isActive      Boolean        @default(true)
+  isDefault     Boolean        @default(false)
+  isDeleted     Boolean        @default(false)
+  isDiscovered  Boolean        @default(false)
+  isHighlighted Boolean        @default(false)
+  isLegacy      Boolean        @default(false)
+  isPublic      Boolean        @default(true)
+  isDeprecated  Boolean        @default(false)
+  isFree        Boolean        @default(false)
 
   deprecatedAt    DateTime?
   discoveredAt    DateTime?
@@ -3453,6 +3462,7 @@ model Model {
 
   @@unique([provider, endpoint], map: "models_provider_endpoint_key")
   @@index([category, isActive, isDeleted])
+  @@index([lifecycle, category, isActive, isDeleted])
   @@index([provider, isActive, isDeleted])
   @@index([organizationId, isActive, isDeleted])
   @@map("models")

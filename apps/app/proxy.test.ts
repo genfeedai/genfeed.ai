@@ -339,20 +339,37 @@ describe('proxy', () => {
     );
   });
 
-  it('consumes a validated continuation from the fixed root callback', async () => {
+  it('falls back from an unauthorized brand continuation on the fixed root callback', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
       makeSignedInRequest('/', {
         search:
-          '?callbackUrl=%2Fdefault%2F%7E%2Fsettings%2Fcredits%3Ftab%3Dbilling',
+          '?callbackUrl=%2Facme%2Fforeign-brand%2Flibrary%2Fassets%3Ftab%3Ddrafts',
       }),
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/default/~/settings/credits?tab=billing',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('preserves an authorized scoped continuation on the fixed root callback', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        search:
+          '?callbackUrl=%2Facme%2Fmoonrise-studio%2Flibrary%2Fassets%3Ftab%3Ddrafts',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/library/assets?tab=drafts',
     );
   });
 
@@ -375,7 +392,7 @@ describe('proxy', () => {
     );
   });
 
-  it('honors org settings callbackUrl after session restore through /login', async () => {
+  it('falls back from a stale org callback after session restore through /login', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -387,7 +404,57 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/default/~/settings/credits',
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('preserves an authorized brand callback after session restore through /login', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1' },
+            brands: [
+              {
+                id: 'brand_1',
+                organization: { slug: 'acme' },
+                slug: 'moonrise-studio',
+              },
+              {
+                id: 'brand_2',
+                organization: { slug: 'acme' },
+                slug: 'second-brand',
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/login', {
+        search:
+          '?callbackUrl=%2Facme%2Fsecond-brand%2Flibrary%2Fassets%3Ftab%3Ddrafts',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/second-brand/library/assets?tab=drafts',
     );
   });
 

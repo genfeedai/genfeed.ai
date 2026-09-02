@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
+import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
@@ -33,25 +33,31 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('HomeHero', () => {
-  it('leads with the SaaS studio promise and CTA hierarchy', () => {
+  it('leads with generated output and preserves the CTA hierarchy', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /one brief\. every channel\./i,
+        name: /everything your brand can become\./i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/the ai content studio/i)).toBeInTheDocument();
+    expect(screen.getByText(/made with genfeed/i)).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /drafts the posts, makes the images and video, and publishes on your schedule/i,
-      ),
+      screen.getByText(/every format\. one recognisable brand\./i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
     ).toEqual(['Start creating', 'Use the Agent']);
+
+    const actions = screen.getByTestId('home-hero-actions');
+    const carousel = screen.getByTestId('home-hero-output-carousel');
+
+    expect(
+      actions.compareDocumentPosition(carousel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('states the mechanism instead of an adjective', () => {
@@ -65,7 +71,7 @@ describe('HomeHero', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('preloads exactly one output-wall image for the LCP', () => {
+  it('preloads exactly one carousel image for the LCP', () => {
     render(<HomeHero />);
 
     const preloaded = screen
@@ -75,7 +81,7 @@ describe('HomeHero', () => {
     expect(preloaded).toHaveLength(1);
     expect(preloaded[0]).toHaveAttribute(
       'data-src',
-      HOME_OUTPUT_WALL_ASSETS[0].src,
+      HOME_OUTPUT_CAROUSEL_ASSETS[0].src,
     );
   });
 
@@ -129,16 +135,16 @@ describe('HomeHero', () => {
     window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
-  it('renders a CDN-backed generated output wall instead of static wall art', () => {
+  it('renders a CDN-backed generated output carousel', () => {
     render(<HomeHero />);
 
-    expect(screen.getByTestId('home-hero-output-wall')).toBeInTheDocument();
+    expect(screen.getByTestId('home-hero-output-carousel')).toBeInTheDocument();
     expect(
-      screen.getByTestId('home-hero-content-wall-grid'),
-    ).toBeInTheDocument();
-    expect(screen.getAllByTestId('home-hero-output-wall-item')).toHaveLength(
-      HOME_OUTPUT_WALL_ASSETS.length,
-    );
+      screen.getAllByTestId('home-hero-output-carousel-item'),
+    ).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
+    expect(
+      screen.queryByTestId('home-hero-output-wall'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('home-hero-card-deck')).not.toBeInTheDocument();
 
     const imageSources = screen
@@ -146,7 +152,7 @@ describe('HomeHero', () => {
       .map((image) => image.getAttribute('data-src'));
 
     expect(imageSources).toEqual(
-      HOME_OUTPUT_WALL_ASSETS.map((asset) => asset.src),
+      HOME_OUTPUT_CAROUSEL_ASSETS.map((asset) => asset.src),
     );
     expect(
       imageSources.some((src) => src?.includes('generated-output-wall.png')),

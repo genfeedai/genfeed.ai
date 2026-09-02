@@ -476,6 +476,11 @@
         "title": "No agents yet"
       }
     },
+    "brandEmpty": {
+      "action": "Manage brands",
+      "description": "Choose a brand from the top bar to open this Automation page. Your current destination will stay selected when you switch brands.",
+      "title": "Select a brand to use Automation"
+    },
     "autopilot": {
       "agentType": "Agent Type",
       "autonomy": "Autonomy",
@@ -578,6 +583,8 @@
         "menu": "Workflow actions",
         "open": "Open",
         "publish": "Publish",
+        "publishAlreadyPublished": "This workflow is already published.",
+        "publishArchived": "Archived workflows cannot be published.",
         "retry": "Retry",
         "run": "Run",
         "running": "Running…",
@@ -735,6 +742,71 @@
     "sessionStatus": "Session status",
     "transcriptChunk": "Transcript Chunk",
     "transcriptIngestion": "Transcript Ingestion"
+  },
+  "messages": {
+    "actions": {
+      "approve": "Approve",
+      "automation": "Automation",
+      "dm": "DM",
+      "draftWithAgent": "Draft with Agent",
+      "reject": "Reject",
+      "reopen": "Reopen",
+      "reply": "Reply",
+      "resolve": "Resolve",
+      "saveDraft": "Save Draft"
+    },
+    "conversation": {
+      "needsReview": "Needs Review",
+      "needsReviewCompact": "Needs review",
+      "readOnly": "Read only",
+      "review": "Review"
+    },
+    "empty": {
+      "chooseBrandToConnect": "Choose a brand in the conversation filters before connecting an account.",
+      "noMessages": "No messages in this thread yet."
+    },
+    "pagination": {
+      "conversationCount": "{count, plural, one {# conversation} other {# conversations}}",
+      "conversationPage": "Page {page} of {pages}",
+      "messagePage": "Messages page {page} of {pages}"
+    },
+    "replyComposer": {
+      "description": "Review every draft before it is sent or published.",
+      "title": "Reply composer"
+    },
+    "sidebar": {
+      "allBrands": "All brands",
+      "brand": "Brand",
+      "chooseBrandToConnect": "Choose a brand in Filters before connecting an account.",
+      "filters": "Inbox filters",
+      "platform": "Platform",
+      "status": "Status",
+      "syncNow": "Sync now",
+      "title": "Conversations"
+    },
+    "title": "Messages"
+  },
+  "modelProviderContract": {
+    "empty": "No reviewed or pending provider contract is stored yet.",
+    "error": "Provider contract details could not be loaded.",
+    "familyLabel": "Family:",
+    "field": {
+      "default": "default {value}",
+      "maximum": "max {value}",
+      "minimum": "min {value}",
+      "required": "required",
+      "structuredValue": "structured value"
+    },
+    "inputSchema": "Input schema",
+    "lastSeenLabel": "Last seen:",
+    "loading": "Loading contract details…",
+    "noTopLevelFields": "No top-level fields.",
+    "outputSchema": "Output schema",
+    "pendingReview": "Pending review",
+    "pricingLabel": "Pricing:",
+    "reviewedRuntime": "Reviewed runtime",
+    "title": "Provider contract",
+    "versionLabel": "Version:"
   },
   "moodboard": {
     "close": "Close",

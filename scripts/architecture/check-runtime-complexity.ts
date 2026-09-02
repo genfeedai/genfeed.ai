@@ -12,6 +12,8 @@ import { globSync } from 'glob';
 import ts from 'typescript';
 
 const RUNTIME_GLOB = '{apps,ee,packages}/**/*.{cts,mts,ts,tsx}';
+const RATCHET_BASELINE_PATH =
+  'scripts/architecture/runtime-complexity.baseline.json';
 
 const THRESHOLDS = {
   constructorDependencies: 15,
@@ -58,6 +60,17 @@ export type RuntimeComplexityViolation = {
   metric: 'constructor-dependencies' | 'file-lines' | 'method-lines';
   symbol: string;
 };
+
+export type RuntimeComplexityBaselineEntry = Pick<
+  RuntimeComplexityViolation,
+  'actual' | 'file' | 'metric' | 'symbol'
+>;
+
+export type RuntimeComplexityRatchetViolation =
+  RuntimeComplexityBaselineEntry & {
+    baseline?: number;
+    type: 'growth' | 'new-violation' | 'stale-baseline';
+  };
 
 export type RuntimeMethodMetric = {
   line: number;
@@ -366,6 +379,91 @@ function filterComplexityRegressions(
   });
 }
 
+function baselineEntryKey(entry: RuntimeComplexityBaselineEntry): string {
+  return `${entry.file}\0${entry.metric}\0${entry.symbol}`;
+}
+
+function compareBaselineEntries(
+  left: RuntimeComplexityBaselineEntry,
+  right: RuntimeComplexityBaselineEntry,
+): number {
+  return (
+    left.file.localeCompare(right.file) ||
+    left.metric.localeCompare(right.metric) ||
+    left.symbol.localeCompare(right.symbol)
+  );
+}
+
+export function runtimeComplexityBaselineFromViolations(
+  violations: readonly RuntimeComplexityViolation[],
+): RuntimeComplexityBaselineEntry[] {
+  return violations
+    .map(({ actual, file, metric, symbol }) => ({
+      actual,
+      file,
+      metric,
+      symbol,
+    }))
+    .sort(compareBaselineEntries);
+}
+
+export function evaluateRuntimeComplexityRatchet(
+  baseline: readonly RuntimeComplexityBaselineEntry[],
+  current: readonly RuntimeComplexityViolation[],
+): RuntimeComplexityRatchetViolation[] {
+  const baselineByKey = new Map(
+    baseline.map((entry) => [baselineEntryKey(entry), entry]),
+  );
+  const currentKeys = new Set<string>();
+  const violations: RuntimeComplexityRatchetViolation[] = [];
+
+  for (const violation of current) {
+    const entry: RuntimeComplexityBaselineEntry = {
+      actual: violation.actual,
+      file: violation.file,
+      metric: violation.metric,
+      symbol: violation.symbol,
+    };
+    const key = baselineEntryKey(entry);
+    currentKeys.add(key);
+    const ceiling = baselineByKey.get(key);
+
+    if (!ceiling) {
+      violations.push({ ...entry, type: 'new-violation' });
+      continue;
+    }
+    if (entry.actual > ceiling.actual) {
+      violations.push({
+        ...entry,
+        baseline: ceiling.actual,
+        type: 'growth',
+      });
+      continue;
+    }
+    if (entry.actual < ceiling.actual) {
+      violations.push({
+        ...entry,
+        baseline: ceiling.actual,
+        type: 'stale-baseline',
+      });
+    }
+  }
+
+  for (const entry of baseline) {
+    if (currentKeys.has(baselineEntryKey(entry))) {
+      continue;
+    }
+    violations.push({
+      ...entry,
+      actual: 0,
+      baseline: entry.actual,
+      type: 'stale-baseline',
+    });
+  }
+
+  return violations;
+}
+
 export function runRuntimeComplexityCheck(
   options: RuntimeComplexityOptions,
 ): RuntimeComplexityResult {
@@ -497,6 +595,8 @@ type CliOptions = {
   json: boolean;
   mode: 'changed' | 'full' | null;
   output: string | null;
+  ratchet: boolean;
+  updateRatchet: boolean;
 };
 
 function parseCliOptions(argv: readonly string[]): CliOptions {
@@ -506,6 +606,8 @@ function parseCliOptions(argv: readonly string[]): CliOptions {
     json: false,
     mode: null,
     output: null,
+    ratchet: false,
+    updateRatchet: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -516,6 +618,15 @@ function parseCliOptions(argv: readonly string[]): CliOptions {
     }
     if (argument === '--json') {
       options.json = true;
+      continue;
+    }
+    if (argument === '--ratchet') {
+      options.ratchet = true;
+      continue;
+    }
+    if (argument === '--update-ratchet') {
+      options.ratchet = true;
+      options.updateRatchet = true;
       continue;
     }
     if (argument === '--full') {
@@ -548,6 +659,9 @@ function parseCliOptions(argv: readonly string[]): CliOptions {
   if (options.mode === 'changed' && !options.baseRef) {
     throw new Error('--base requires a git ref');
   }
+  if (options.ratchet && options.mode !== 'full') {
+    throw new Error('--ratchet and --update-ratchet require --full');
+  }
   return options;
 }
 
@@ -562,6 +676,55 @@ function reportHuman(result: RuntimeComplexityResult): void {
   for (const violation of result.violations) {
     console.error(
       `- ${violation.file}:${violation.line} [${violation.metric}] ${violation.message}`,
+    );
+  }
+}
+
+function readRatchetBaseline(
+  rootDir: string,
+): RuntimeComplexityBaselineEntry[] {
+  const raw = JSON.parse(
+    readFileSync(path.resolve(rootDir, RATCHET_BASELINE_PATH), 'utf8'),
+  ) as unknown;
+  if (!Array.isArray(raw)) {
+    throw new Error(`${RATCHET_BASELINE_PATH} must contain an array`);
+  }
+  return raw as RuntimeComplexityBaselineEntry[];
+}
+
+function writeRatchetBaseline(
+  rootDir: string,
+  baseline: readonly RuntimeComplexityBaselineEntry[],
+): void {
+  writeFileSync(
+    path.resolve(rootDir, RATCHET_BASELINE_PATH),
+    `${JSON.stringify(baseline, null, 2)}\n`,
+    'utf8',
+  );
+}
+
+function reportRatchet(
+  result: RuntimeComplexityResult,
+  violations: readonly RuntimeComplexityRatchetViolation[],
+): void {
+  console.log(
+    `Runtime complexity full-repository ratchet: ${result.scannedFileCount} classified file(s), ${result.violations.length} baselined threshold violation(s), ${violations.length} ratchet drift(s).`,
+  );
+  for (const violation of violations) {
+    if (violation.type === 'new-violation') {
+      console.error(
+        `- [NEW] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual}`,
+      );
+      continue;
+    }
+    if (violation.type === 'growth') {
+      console.error(
+        `- [GROWTH] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual} > baseline ${violation.baseline}`,
+      );
+      continue;
+    }
+    console.error(
+      `- [STALE] ${violation.file} ${violation.symbol} ${violation.metric}=${violation.actual} < baseline ${violation.baseline}; lower or remove the baseline entry`,
     );
   }
 }
@@ -607,18 +770,44 @@ function main(): void {
     mode: options.mode,
     rootDir,
   });
-  const serialized = `${JSON.stringify(result, null, 2)}\n`;
+  let ratchetViolations: RuntimeComplexityRatchetViolation[] = [];
+  if (options.ratchet) {
+    if (options.updateRatchet) {
+      const baseline = runtimeComplexityBaselineFromViolations(
+        result.violations,
+      );
+      writeRatchetBaseline(rootDir, baseline);
+      console.log(
+        `Updated ${RATCHET_BASELINE_PATH} with ${baseline.length} violation ceiling(s).`,
+      );
+    } else {
+      ratchetViolations = evaluateRuntimeComplexityRatchet(
+        readRatchetBaseline(rootDir),
+        result.violations,
+      );
+    }
+  }
+  const serialized = `${JSON.stringify(
+    options.ratchet ? { ...result, ratchetViolations } : result,
+    null,
+    2,
+  )}\n`;
 
   if (options.output) {
     writeFileSync(path.resolve(rootDir, options.output), serialized, 'utf8');
   }
   if (options.json) {
     process.stdout.write(serialized);
+  } else if (options.ratchet && !options.updateRatchet) {
+    reportRatchet(result, ratchetViolations);
   } else {
     reportHuman(result);
   }
 
-  if (result.violations.length > 0 && !options.allowViolations) {
+  const failingViolations = options.ratchet
+    ? ratchetViolations
+    : result.violations;
+  if (failingViolations.length > 0 && !options.allowViolations) {
     process.exit(1);
   }
 }

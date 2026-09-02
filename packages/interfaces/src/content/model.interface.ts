@@ -1,6 +1,7 @@
 import type {
   CostTier,
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   PricingType,
   QualityTier,
@@ -16,6 +17,7 @@ export interface IModel extends IBaseEntity {
   cost: number;
   isActive: boolean;
   isDefault: boolean;
+  lifecycle: ModelLifecycle;
   description?: string;
   isHighlighted?: boolean;
   trigger?: string;
@@ -70,6 +72,7 @@ export interface IModel extends IBaseEntity {
   trainingId?: string;
   isPublic?: boolean;
   isLegacy?: boolean;
+  isFree?: boolean;
   isDiscovered?: boolean;
   discoveredAt?: Date;
   lastSyncedAt?: Date;
@@ -78,4 +81,28 @@ export interface IModel extends IBaseEntity {
   reviewedAt?: Date;
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+}
+
+export interface IModelProviderContractSnapshot {
+  billingUnit?: string;
+  conditionalDimensions: Record<string, unknown>;
+  currency?: string;
+  discoveredAt: Date | string;
+  inputSchema: Record<string, unknown>;
+  lastSeenAt: Date | string;
+  mappingStatus: string;
+  outputSchema: Record<string, unknown>;
+  pricingType?: string;
+  reviewStatus: string;
+  schemaFamily?: string;
+  unitPrice?: string;
+  unsupportedReason?: string;
+  version: string;
+}
+
+export interface IModelProviderContracts {
+  endpoint: string;
+  pending: IModelProviderContractSnapshot | null;
+  provider: string;
+  reviewed: IModelProviderContractSnapshot | null;
 }

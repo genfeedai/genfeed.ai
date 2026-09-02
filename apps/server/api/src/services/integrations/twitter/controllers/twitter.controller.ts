@@ -35,6 +35,7 @@ import {
 } from '@server/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { isTwitterOAuthCodeError } from '@server/services/integrations/twitter/utils/twitter-api-error.util';
 import type { Request } from 'express';
 import { TwitterApi, type TwitterApiOAuth2Init } from 'twitter-api-v2';
 
@@ -253,6 +254,23 @@ export class TwitterController {
 
       return serializeSingle(request, CredentialSerializer, updatedCredential);
     } catch (error: unknown) {
+      if (isTwitterOAuthCodeError(error)) {
+        this.loggerService.warn(
+          `${url} rejected an expired, reused, or mismatched OAuth code`,
+        );
+        throw new HttpException(
+          {
+            detail:
+              'X authorization expired or was already used. Connect X again.',
+            title: 'OAuth Error',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (error instanceof HttpException && error.getStatus() < 500) {
+        this.loggerService.warn(`${url} rejected an invalid OAuth callback`);
+        throw error;
+      }
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }

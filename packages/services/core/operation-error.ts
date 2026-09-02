@@ -111,14 +111,32 @@ function readValidationErrors(
       continue;
     }
 
-    const field = sanitizeDiagnosticText(item.field);
+    const field =
+      sanitizeDiagnosticText(item.field) ??
+      sanitizeDiagnosticText(item.property);
+    if (!field) {
+      continue;
+    }
+
+    const messagesToAdd: string[] = [];
     const message = sanitizeDiagnosticText(item.message);
-    if (!field || !message) {
+    if (message) {
+      messagesToAdd.push(message);
+    }
+    if (isRecord(item.constraints)) {
+      for (const constraintMessage of Object.values(item.constraints)) {
+        const sanitized = sanitizeDiagnosticText(constraintMessage);
+        if (sanitized) {
+          messagesToAdd.push(sanitized);
+        }
+      }
+    }
+    if (messagesToAdd.length === 0) {
       continue;
     }
 
     const messages = acc[field] ?? [];
-    messages.push(message);
+    messages.push(...messagesToAdd);
     acc[field] = messages;
   }
 

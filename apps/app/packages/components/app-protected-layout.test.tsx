@@ -1099,7 +1099,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
-  it('keeps Messages module navigation while the page owns its mailbox list', () => {
+  it('gives Messages a module-owned navigation panel for its mailbox list', () => {
     mockPathname.value = '/org-123/brand-123/messages';
 
     render(
@@ -1108,7 +1108,7 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.queryByTestId('messages-nav-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('messages-nav-panel')).toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'messages',
@@ -1130,9 +1130,11 @@ describe('AppProtectedLayout', () => {
         sectionLabel: 'Messages',
       }),
     );
-    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty('renderBody');
-    expect(appSidebarSpy.mock.lastCall?.[0]).not.toHaveProperty(
-      'showPrimaryItems',
+    expect(appSidebarSpy.mock.lastCall?.[0]).toEqual(
+      expect.objectContaining({
+        renderBody: expect.any(Function),
+        showPrimaryItems: true,
+      }),
     );
     expect(
       screen.queryByRole('button', { name: 'New Task' }),
@@ -1264,11 +1266,14 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('forwards collapsed state into the dedicated Library sidebar', () => {
+  it('forwards collapse state and control into the dedicated Library sidebar', () => {
+    const onToggleCollapse = vi.fn();
+
     render(
       <AppProtectedLayoutSidebar
         currentApp="library"
         isCollapsed
+        onToggleCollapse={onToggleCollapse}
         isAdminRoute={false}
         isAnalyticsRoute={false}
         isArtifactsRoute={false}
@@ -1301,11 +1306,9 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'library',
         isCollapsed: true,
+        onToggleCollapse,
         sectionLabel: 'Library',
       }),
-    );
-    expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
-      'onToggleCollapse',
     );
   });
 

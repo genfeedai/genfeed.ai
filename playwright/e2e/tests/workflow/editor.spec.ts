@@ -1,4 +1,5 @@
 import {
+  buildExecutionJsonApiResource,
   mockActiveSubscription,
   mockNodeTypes,
   mockWorkflowCrud,
@@ -248,11 +249,10 @@ test.describe('Workflow Editor', () => {
       async (route) => {
         await route.fulfill({
           body: JSON.stringify({
-            data: {
-              attributes: buildReviewGateExecution(executionState),
-              id: 'exec-review-001',
-              type: 'workflow-executions',
-            },
+            data: buildExecutionJsonApiResource(
+              'exec-review-001',
+              buildReviewGateExecution(executionState),
+            ),
           }),
           contentType: 'application/json',
           status: 200,
@@ -327,11 +327,10 @@ test.describe('Workflow Editor', () => {
       async (route) => {
         await route.fulfill({
           body: JSON.stringify({
-            data: {
-              attributes: buildReviewGateExecution(executionState),
-              id: 'exec-review-001',
-              type: 'workflow-executions',
-            },
+            data: buildExecutionJsonApiResource(
+              'exec-review-001',
+              buildReviewGateExecution(executionState),
+            ),
           }),
           contentType: 'application/json',
           status: 200,

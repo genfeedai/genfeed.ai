@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import CredentialPostingTimesEditor from '@pages/brands/components/sidebar/CredentialPostingTimesEditor';
 import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
@@ -20,8 +21,7 @@ import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
 import {
   groupOAuthConnectPlatforms,
-  OAUTH_CONNECT_PLATFORMS,
-  type OAuthConnectPlatform,
+  type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
@@ -193,6 +193,7 @@ export default function BrandDetailSocialMediaCard({
   const translate = useTranslations('pages.brandSocialMedia');
   const isPageVariant = variant === 'page';
   const { getToken } = useAuthIdentity();
+  const oauthConnectPlatforms = useOAuthConnectPlatforms();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,
@@ -220,8 +221,8 @@ export default function BrandDetailSocialMediaCard({
   // brand runs as many accounts per platform as it wants, so filtering the
   // connected ones out would hide the way to add the second one.
   const allPlatformGroups = useMemo(
-    () => groupOAuthConnectPlatforms(OAUTH_CONNECT_PLATFORMS),
-    [],
+    () => groupOAuthConnectPlatforms(oauthConnectPlatforms),
+    [oauthConnectPlatforms],
   );
   const connectionHealth = useMemo(
     () =>
@@ -344,7 +345,11 @@ export default function BrandDetailSocialMediaCard({
     };
   }, [loadAccountHealth]);
 
-  const handleConnectPlatform = async (item: OAuthConnectPlatform) => {
+  const handleConnectPlatform = async (item: ResolvedOAuthConnectPlatform) => {
+    if (!item.isConnectAvailable) {
+      return;
+    }
+
     const platform = item.platform;
     try {
       setConnectingPlatform(platform);
@@ -439,7 +444,7 @@ export default function BrandDetailSocialMediaCard({
     }
   };
 
-  const renderConnectButton = (item: OAuthConnectPlatform) => {
+  const renderConnectButton = (item: ResolvedOAuthConnectPlatform) => {
     const connectKey = item.connectId ?? item.platform;
     const { Icon } = item;
 
@@ -450,7 +455,7 @@ export default function BrandDetailSocialMediaCard({
         size={ButtonSize.SM}
         onClick={() => handleConnectPlatform(item)}
         isLoading={connectingPlatform === item.platform}
-        isDisabled={connectingPlatform !== null}
+        isDisabled={!item.isConnectAvailable || connectingPlatform !== null}
       >
         <Icon className={`mr-1.5 size-3.5 ${item.iconClassName}`} />
         {item.label}
@@ -469,7 +474,7 @@ export default function BrandDetailSocialMediaCard({
     return map;
   }, [connectedConnections]);
 
-  const renderIntegrationCard = (item: OAuthConnectPlatform) => {
+  const renderIntegrationCard = (item: ResolvedOAuthConnectPlatform) => {
     const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
     const isConnected = platformConnections.length > 0;
     // The tile owns its brand mark: YouTube Ads and Google Ads share the
@@ -534,7 +539,9 @@ export default function BrandDetailSocialMediaCard({
                     size={ButtonSize.SM}
                     className="h-7 px-2 text-2xs"
                     onClick={() => handleConnectPlatform(item)}
-                    isDisabled={connectingPlatform !== null}
+                    isDisabled={
+                      !item.isConnectAvailable || connectingPlatform !== null
+                    }
                   >
                     {translate('reconnectAccount', {
                       account: getConnectionLabel(connection),
@@ -573,7 +580,7 @@ export default function BrandDetailSocialMediaCard({
             className="h-8 w-full text-xs"
             onClick={() => handleConnectPlatform(item)}
             isLoading={connectingPlatform === item.platform}
-            isDisabled={connectingPlatform !== null}
+            isDisabled={!item.isConnectAvailable || connectingPlatform !== null}
           >
             {isConnected
               ? translate('addAnotherAccount', { platform: item.label })
@@ -609,7 +616,7 @@ export default function BrandDetailSocialMediaCard({
             health={selectedHealth}
             onOverrideRequest={handleOverrideRequest}
             onReconnect={(platform) => {
-              const item = OAUTH_CONNECT_PLATFORMS.find(
+              const item = oauthConnectPlatforms.find(
                 (entry) => entry.platform === platform,
               );
               if (item) {
@@ -670,7 +677,7 @@ export default function BrandDetailSocialMediaCard({
   const socialDescription =
     connectedPlatformsCount > 0
       ? translate('channelAvailability', {
-          channelCount: OAUTH_CONNECT_PLATFORMS.length,
+          channelCount: oauthConnectPlatforms.length,
           connectedCount: connectedPlatformsCount,
         })
       : translate('connectAccountsDescription');

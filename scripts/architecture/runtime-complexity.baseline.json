@@ -1,0 +1,410 @@
+[
+  {
+    "actual": 190,
+    "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentTransfersService.create"
+  },
+  {
+    "actual": 175,
+    "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
+    "metric": "method-lines",
+    "symbol": "BillingAccountMigrationService.run"
+  },
+  {
+    "actual": 187,
+    "file": "apps/server/api/src/collections/clip-projects/services/public-youtube-clip-claim.service.ts",
+    "metric": "method-lines",
+    "symbol": "PublicYoutubeClipClaimService.claim"
+  },
+  {
+    "actual": 154,
+    "file": "apps/server/api/src/collections/listening-topics/services/listening-topic-analysis.service.ts",
+    "metric": "method-lines",
+    "symbol": "ListeningTopicAnalysisService.persistAnalysis"
+  },
+  {
+    "actual": 266,
+    "file": "apps/server/api/src/endpoints/onboarding/proactive-onboarding.service.ts",
+    "metric": "method-lines",
+    "symbol": "ProactiveOnboardingService.prepareBrand"
+  },
+  {
+    "actual": 198,
+    "file": "apps/server/api/src/endpoints/public/services/public-youtube-clips.service.ts",
+    "metric": "method-lines",
+    "symbol": "PublicYoutubeClipsService.onModuleInit"
+  },
+  {
+    "actual": 169,
+    "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
+    "metric": "method-lines",
+    "symbol": "HeygenWebhookService.handleCallback"
+  },
+  {
+    "actual": 172,
+    "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
+    "metric": "method-lines",
+    "symbol": "DesktopSyncService.pushAssets"
+  },
+  {
+    "actual": 1019,
+    "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
+  },
+  {
+    "actual": 365,
+    "file": "apps/server/mcp/src/services/tool-registry.service.ts",
+    "metric": "method-lines",
+    "symbol": "ToolRegistryService.handleLegacyTool"
+  },
+  {
+    "actual": 156,
+    "file": "apps/server/server/src/collections/agent-memories/services/agent-memories.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentMemoriesService.scoreFeedbackMemory"
+  },
+  {
+    "actual": 1387,
+    "file": "apps/server/server/src/collections/articles/services/articles.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/articles/services/articles.service.ts"
+  },
+  {
+    "actual": 238,
+    "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
+    "metric": "method-lines",
+    "symbol": "BillingAccountsService.linkOrganization"
+  },
+  {
+    "actual": 182,
+    "file": "apps/server/server/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
+    "metric": "method-lines",
+    "symbol": "ClipGenerationDispatchService.retryFailedClips"
+  },
+  {
+    "actual": 1059,
+    "file": "apps/server/server/src/collections/models/services/models.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/models/services/models.service.ts"
+  },
+  {
+    "actual": 1010,
+    "file": "apps/server/server/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts"
+  },
+  {
+    "actual": 1020,
+    "file": "apps/server/server/src/collections/posts/services/post-analytics.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/posts/services/post-analytics.service.ts"
+  },
+  {
+    "actual": 1231,
+    "file": "apps/server/server/src/collections/posts/services/posts.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/posts/services/posts.service.ts"
+  },
+  {
+    "actual": 170,
+    "file": "apps/server/server/src/collections/posts/services/posts.service.ts",
+    "metric": "method-lines",
+    "symbol": "PostsService.patch"
+  },
+  {
+    "actual": 1010,
+    "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts"
+  },
+  {
+    "actual": 1439,
+    "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-ingestion.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/collections/social-inbox/services/social-inbox-ingestion.service.ts"
+  },
+  {
+    "actual": 16,
+    "file": "apps/server/server/src/collections/videos/services/avatar-video-generation.service.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "AvatarVideoGenerationService.constructor"
+  },
+  {
+    "actual": 192,
+    "file": "apps/server/server/src/collections/videos/services/avatar-video-generation.service.ts",
+    "metric": "method-lines",
+    "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
+  },
+  {
+    "actual": 17,
+    "file": "apps/server/server/src/collections/videos/services/video-music-orchestration.service.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "VideoMusicOrchestrationService.constructor"
+  },
+  {
+    "actual": 198,
+    "file": "apps/server/server/src/collections/videos/services/video-music-orchestration.service.ts",
+    "metric": "method-lines",
+    "symbol": "VideoMusicOrchestrationService.mergeVideoWithMusic"
+  },
+  {
+    "actual": 1070,
+    "file": "apps/server/server/src/endpoints/ads-research/ads-research.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/endpoints/ads-research/ads-research.service.ts"
+  },
+  {
+    "actual": 218,
+    "file": "apps/server/server/src/endpoints/webhooks/services/auto-merge.service.ts",
+    "metric": "method-lines",
+    "symbol": "AutoMergeService.createAndQueueMerge"
+  },
+  {
+    "actual": 170,
+    "file": "apps/server/server/src/endpoints/webhooks/webhooks.service.ts",
+    "metric": "method-lines",
+    "symbol": "WebhooksService.finalizeWebhookMedia"
+  },
+  {
+    "actual": 191,
+    "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
+    "metric": "method-lines",
+    "symbol": "PublishApprovalsService.createForPost"
+  },
+  {
+    "actual": 1025,
+    "file": "apps/server/server/src/services/agent-campaign/content-engine.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/agent-campaign/content-engine.service.ts"
+  },
+  {
+    "actual": 191,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentCompletionCardBuilderService.buildCompletionSuggestedActions"
+  },
+  {
+    "actual": 219,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-batch.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
+  },
+  {
+    "actual": 246,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-context.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentOrchestratorContextService.resolveSystemPromptAndModel"
+  },
+  {
+    "actual": 160,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
+  },
+  {
+    "actual": 634,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
+  },
+  {
+    "actual": 398,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
+  },
+  {
+    "actual": 455,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentTurnRoundRunnerService.executeToolRound"
+  },
+  {
+    "actual": 18,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "AgentTurnWorkflowExecutionService.constructor"
+  },
+  {
+    "actual": 199,
+    "file": "apps/server/server/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentTurnWorkflowExecutionService.execute"
+  },
+  {
+    "actual": 208,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-analytics-tool-handler.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentAnalyticsToolHandler.getAnalytics"
+  },
+  {
+    "actual": 157,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-media-asset-generation.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentMediaAssetGenerationService.generateImage"
+  },
+  {
+    "actual": 1330,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"
+  },
+  {
+    "actual": 203,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-prepare-tool-handler.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
+  },
+  {
+    "actual": 1194,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
+  },
+  {
+    "actual": 166,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentPublishToolHandler.createPost"
+  },
+  {
+    "actual": 243,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentPublishToolHandler.publishConfirmedContent"
+  },
+  {
+    "actual": 28,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "AgentToolExecutorService.constructor"
+  },
+  {
+    "actual": 306,
+    "file": "apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
+    "metric": "method-lines",
+    "symbol": "AgentToolExecutorService.dispatch"
+  },
+  {
+    "actual": 253,
+    "file": "apps/server/server/src/services/byok-billing/byok-billing.service.ts",
+    "metric": "method-lines",
+    "symbol": "ByokBillingService.createByokInvoice"
+  },
+  {
+    "actual": 1280,
+    "file": "apps/server/server/src/services/content-optimization/content-optimization.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/content-optimization/content-optimization.service.ts"
+  },
+  {
+    "actual": 1049,
+    "file": "apps/server/server/src/services/integrations/meta-ads/services/meta-ads.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/integrations/meta-ads/services/meta-ads.service.ts"
+  },
+  {
+    "actual": 17,
+    "file": "apps/server/server/src/services/integrations/publishers/publisher-factory.service.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "PublisherFactoryService.constructor"
+  },
+  {
+    "actual": 1169,
+    "file": "apps/server/server/src/services/integrations/stripe/services/stripe.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/integrations/stripe/services/stripe.service.ts"
+  },
+  {
+    "actual": 200,
+    "file": "apps/server/server/src/services/integrations/stripe/services/stripe.service.ts",
+    "metric": "method-lines",
+    "symbol": "StripeService.createPaymentSession"
+  },
+  {
+    "actual": 1056,
+    "file": "apps/server/server/src/services/integrations/tiktok/services/tiktok.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/integrations/tiktok/services/tiktok.service.ts"
+  },
+  {
+    "actual": 152,
+    "file": "apps/server/server/src/services/integrations/youtube/services/modules/youtube-auth.service.ts",
+    "metric": "method-lines",
+    "symbol": "YoutubeAuthService.refreshToken"
+  },
+  {
+    "actual": 186,
+    "file": "apps/server/server/src/services/prompt-builder/prompt-builder.service.ts",
+    "metric": "method-lines",
+    "symbol": "PromptBuilderService.buildPrompt"
+  },
+  {
+    "actual": 1082,
+    "file": "apps/server/server/src/services/reply-bot/author-reply-loop.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/reply-bot/author-reply-loop.service.ts"
+  },
+  {
+    "actual": 174,
+    "file": "apps/server/server/src/services/reply-bot/author-reply-loop.service.ts",
+    "metric": "method-lines",
+    "symbol": "AuthorReplyLoopService.getInbox"
+  },
+  {
+    "actual": 1077,
+    "file": "apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.ts"
+  },
+  {
+    "actual": 1031,
+    "file": "apps/server/telegram/src/services/telegram-bot-manager.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/telegram/src/services/telegram-bot-manager.service.ts"
+  },
+  {
+    "actual": 170,
+    "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.ts",
+    "metric": "method-lines",
+    "symbol": "CronFalModelWatcherService.discoverNewModels"
+  },
+  {
+    "actual": 161,
+    "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
+    "metric": "method-lines",
+    "symbol": "CronIngredientsService.checkStuckProcessingIngredients"
+  },
+  {
+    "actual": 171,
+    "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.ts",
+    "metric": "method-lines",
+    "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
+  },
+  {
+    "actual": 233,
+    "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts",
+    "metric": "method-lines",
+    "symbol": "CronModelWatcherService.discoverNewModels"
+  },
+  {
+    "actual": 209,
+    "file": "apps/server/workers/src/crons/tiktok/cron.tiktok-status.service.ts",
+    "metric": "method-lines",
+    "symbol": "CronTiktokStatusService.checkPostStatus"
+  },
+  {
+    "actual": 27,
+    "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
+    "metric": "constructor-dependencies",
+    "symbol": "PlatformSchedulesProcessor.constructor"
+  },
+  {
+    "actual": 1123,
+    "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
+    "metric": "file-lines",
+    "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"
+  }
+]

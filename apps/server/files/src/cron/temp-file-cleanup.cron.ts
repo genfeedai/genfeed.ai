@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface CleanupResult {
   filesDeleted: number;
@@ -12,22 +11,22 @@ interface CleanupResult {
 
 @Injectable()
 export class TempFileCleanupCron {
+  private readonly cleanupIntervalMs = 5 * 60 * 1000;
+  private lastCleanupAt = 0;
   private readonly maxAge = 30 * 60 * 1000; // 30 minutes in milliseconds
   private readonly tmpDir = path.resolve('public', 'tmp', 'metadata');
 
   constructor(private readonly logger: LoggerService) {}
 
-  /**
-   * Cleanup old temporary files
-   * Runs daily at 2 AM
-   */
-  @Cron(
-    process.env.NODE_ENV === 'development'
-      ? CronExpression.EVERY_YEAR
-      : CronExpression.EVERY_DAY_AT_2AM,
-  )
+  /** Cleanup old local files opportunistically on metadata traffic. */
   cleanupTempFiles(): void {
-    this.logger.log('Starting scheduled temp file cleanup...');
+    const now = Date.now();
+    if (now - this.lastCleanupAt < this.cleanupIntervalMs) {
+      return;
+    }
+    this.lastCleanupAt = now;
+
+    this.logger.log('Starting local temp file cleanup...');
 
     try {
       const result = this.performCleanup({ verbose: true });

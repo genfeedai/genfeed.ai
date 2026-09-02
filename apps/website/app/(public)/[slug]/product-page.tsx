@@ -1,14 +1,13 @@
 import { getRelatedProducts, type Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
-import { getPlanLabel } from '@genfeedai/pricing';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
 
@@ -68,25 +67,7 @@ export default function ProductPage({ product }: { product: Product }) {
           }))}
         />
       }
-      heroVisual={
-        <EditorialPoster
-          eyebrow={product.tagline}
-          title={product.headline}
-          detail={product.description}
-          items={product.features.slice(0, 4).map((feature) => ({
-            label: feature.title,
-            value: feature.description,
-          }))}
-          footer={
-            <>
-              <span>{product.category}</span>
-              <span>
-                {getPlanLabel(product.pricing.recommended)} plan recommended
-              </span>
-            </>
-          }
-        />
-      }
+      heroVisual={<ProductInterfacePreview product={product} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <Heading size="2xl" className="text-center mb-12">

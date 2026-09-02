@@ -56,6 +56,7 @@ function parseRawProviderError(value: unknown): UnknownRecord | undefined {
 @Injectable()
 export class OpenRouterService {
   private readonly apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+  private readonly generationUrl = 'https://openrouter.ai/api/v1/generation';
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -87,6 +88,7 @@ export class OpenRouterService {
       provider: {
         ...params.provider,
         ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
+        ...(params.tools?.length ? { require_parameters: true } : {}),
       },
     };
   }
@@ -146,7 +148,7 @@ export class OpenRouterService {
         ),
       );
 
-      return response.data;
+      return await this.attachExactUsageCost(response.data, apiKey);
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,
@@ -300,6 +302,7 @@ export class OpenRouterService {
     let reasoningContent: string | null = null;
     let finishReason = 'stop';
     let streamId = '';
+    let actualModel = params.model;
     let usage: OpenRouterChatCompletionResponse['usage'] = {
       completion_tokens: 0,
       prompt_tokens: 0,
@@ -315,11 +318,17 @@ export class OpenRouterService {
       if (parsed.id) {
         streamId = parsed.id;
       }
+      if (parsed.model) {
+        actualModel = parsed.model;
+      }
       if (parsed.usage) {
         usage = {
           completion_tokens: parsed.usage.completion_tokens ?? 0,
           prompt_tokens: parsed.usage.prompt_tokens ?? 0,
           total_tokens: parsed.usage.total_tokens ?? 0,
+          ...(typeof parsed.usage.cost === 'number'
+            ? { cost: parsed.usage.cost, cost_source: 'usage' as const }
+            : {}),
         };
       }
 
@@ -379,48 +388,6 @@ export class OpenRouterService {
     const decoder = new TextDecoder();
     let buffer = '';
 
-    const drainEvent = async (rawEvent: string): Promise<void> => {
-      const lines = rawEvent
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith('data:'));
-
-      for (const line of lines) {
-        const payload = line.slice(5).trim();
-        if (!payload || payload === '[DONE]') {
-          continue;
-        }
-
-        const parsed: unknown = JSON.parse(payload);
-        const envelope = asRecord(parsed);
-        const streamError = asRecord(envelope?.error);
-        if (streamError) {
-          const status = asHttpStatus(streamError.code) ?? 502;
-          throw Object.assign(
-            new Error(
-              asNonEmptyString(streamError.message) ??
-                'OpenRouter stream failed',
-            ),
-            {
-              response: { data: envelope, status },
-              status,
-            },
-          );
-        }
-
-        const chunk = parsed as OpenRouterStreamChunk;
-        applyChunk(chunk);
-
-        const token = chunk.choices[0]?.delta?.content;
-        if (token) {
-          content += token;
-          if (onToken) {
-            await onToken(token);
-          }
-        }
-      }
-    };
-
     for await (const chunk of stream) {
       buffer +=
         typeof chunk === 'string'
@@ -432,7 +399,7 @@ export class OpenRouterService {
         const rawEvent = buffer.slice(0, boundaryIndex);
         buffer = buffer.slice(boundaryIndex + 2);
         boundaryIndex = buffer.indexOf('\n\n');
-        await drainEvent(rawEvent);
+        content += await this.drainStreamEvent(rawEvent, applyChunk, onToken);
       }
     }
 
@@ -441,7 +408,7 @@ export class OpenRouterService {
       buffer += flushed;
     }
     if (buffer.trim().length > 0) {
-      await drainEvent(buffer);
+      content += await this.drainStreamEvent(buffer, applyChunk, onToken);
     }
 
     const toolCalls: OpenRouterToolCallResponse[] = Array.from(
@@ -454,21 +421,118 @@ export class OpenRouterService {
         type: 'function' as const,
       }));
 
-    return {
-      choices: [
-        {
-          finish_reason: finishReason,
-          message: {
-            content: content || null,
-            reasoning_content: reasoningContent,
-            role: 'assistant',
-            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+    return await this.attachExactUsageCost(
+      {
+        choices: [
+          {
+            finish_reason: finishReason,
+            message: {
+              content: content || null,
+              reasoning_content: reasoningContent,
+              role: 'assistant',
+              tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+            },
           },
+        ],
+        id: streamId,
+        model: actualModel,
+        usage,
+      },
+      apiKey,
+    );
+  }
+
+  private async drainStreamEvent(
+    rawEvent: string,
+    applyChunk: (chunk: OpenRouterStreamChunk) => void,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<string> {
+    const lines = rawEvent
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('data:'));
+    let content = '';
+
+    for (const line of lines) {
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') {
+        continue;
+      }
+
+      const parsed: unknown = JSON.parse(payload);
+      const envelope = asRecord(parsed);
+      const streamError = asRecord(envelope?.error);
+      if (streamError) {
+        const status = asHttpStatus(streamError.code) ?? 502;
+        throw Object.assign(
+          new Error(
+            asNonEmptyString(streamError.message) ?? 'OpenRouter stream failed',
+          ),
+          {
+            response: { data: envelope, status },
+            status,
+          },
+        );
+      }
+
+      const chunk = parsed as OpenRouterStreamChunk;
+      applyChunk(chunk);
+
+      const token = chunk.choices[0]?.delta?.content;
+      if (token) {
+        content += token;
+        if (onToken) {
+          await onToken(token);
+        }
+      }
+    }
+
+    return content;
+  }
+
+  private async attachExactUsageCost(
+    response: OpenRouterChatCompletionResponse,
+    apiKey: string,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    if (typeof response.usage?.cost === 'number') {
+      return {
+        ...response,
+        usage: { ...response.usage, cost_source: 'usage' },
+      };
+    }
+    if (!response.id) {
+      return response;
+    }
+
+    try {
+      const metadata = await firstValueFrom(
+        this.httpService.get<{
+          data?: { is_byok?: boolean; model?: string; total_cost?: number };
+        }>(this.generationUrl, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          params: { id: response.id },
+        }),
+      );
+      const data = metadata.data.data;
+      if (typeof data?.total_cost !== 'number') {
+        return response;
+      }
+      return {
+        ...response,
+        model: data.model ?? response.model,
+        usage: {
+          ...response.usage,
+          cost: data.total_cost,
+          cost_source: 'generation',
+          is_byok: data.is_byok,
         },
-      ],
-      id: streamId,
-      model: params.model,
-      usage,
-    };
+      };
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName}.generationMetadata unavailable`,
+        { generationId: response.id, ...this.getSafeErrorDetails(error) },
+      );
+      return response;
+    }
   }
 }

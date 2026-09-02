@@ -22,8 +22,8 @@ FROM ranked_attributions AS ranked
 WHERE attribution."id" = ranked."id"
   AND ranked."rank" = 1;
 
-CREATE UNIQUE INDEX "subscription_attributions_org_stripe_subscription_key"
-  ON "subscription_attributions"("organizationId", "stripeSubscriptionId");
+-- Online indexes are created outside this transactional migration by the
+-- follow-up migration 20260830210100_fix_review_data_integrity_online_indexes.
 
 -- Workflow artifacts use the repository-wide isDeleted soft-delete contract.
 UPDATE "workflow_artifacts"
@@ -32,9 +32,3 @@ WHERE "deletedAt" IS NOT NULL OR "state" = 'DELETED';
 
 ALTER TABLE "workflow_artifacts"
   DROP COLUMN "deletedAt";
-
-CREATE INDEX "posts_org_credential_status_scheduled_idx"
-  ON "posts"("organizationId", "credentialId", "isDeleted", "status", "scheduledDate");
-
-CREATE INDEX "posts_org_credential_status_published_idx"
-  ON "posts"("organizationId", "credentialId", "isDeleted", "status", "publishedAt");

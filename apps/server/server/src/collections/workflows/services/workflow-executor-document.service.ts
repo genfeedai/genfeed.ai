@@ -18,6 +18,15 @@ import {
 import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
+export class RetiredWorkflowExecutionError extends Error {
+  constructor(workflowId: string, workflowVersionId: string) {
+    super(
+      `Workflow ${workflowId} is retired and cannot resume pinned version ${workflowVersionId}`,
+    );
+    this.name = 'RetiredWorkflowExecutionError';
+  }
+}
+
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -78,6 +87,11 @@ export class WorkflowExecutorDocumentService {
       version.organizationId === version.workflow.organizationId &&
       version.userId === version.workflow.userId;
     if (isTenantOwned) {
+      this.assertWorkflowIsExecutable(
+        version.workflow.isDeleted,
+        workflowId,
+        workflowVersionId,
+      );
       return this.normalizeWorkflowDocument({
         ...version.workflow,
         currentVersion: version,
@@ -93,6 +107,11 @@ export class WorkflowExecutorDocumentService {
     if (!isGlobalHiddenMirror) {
       return null;
     }
+    this.assertWorkflowIsExecutable(
+      version.workflow.isDeleted,
+      workflowId,
+      workflowVersionId,
+    );
 
     return this.normalizeWorkflowDocument({
       ...version.workflow,
@@ -115,6 +134,16 @@ export class WorkflowExecutorDocumentService {
     return typeof workflow.label === 'string' && workflow.label.length > 0
       ? workflow.label
       : 'Workflow';
+  }
+
+  private assertWorkflowIsExecutable(
+    isDeleted: boolean,
+    workflowId: string,
+    workflowVersionId: string,
+  ): void {
+    if (isDeleted) {
+      throw new RetiredWorkflowExecutionError(workflowId, workflowVersionId);
+    }
   }
 
   private resolveNodeType(visualNodeType: string): string {

@@ -17,7 +17,6 @@ import {
   type YoutubeAuthorizedSignalsSnapshot,
   type YoutubeOwnedUploadSignal,
   type YoutubeOwnedVideoAnalyticsSignal,
-  youtubeAuthorizedSignalStatusValues,
   youtubeAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/youtube-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
@@ -38,6 +37,29 @@ import { CacheService } from '@server/services/cache/cache.service';
 import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
+import {
+  hasYoutubeDataScope,
+  type PlatformEvidenceKey,
+  parseIsoDurationSeconds,
+  readIsoTimestamp,
+  readIsoToUnixSeconds,
+  readNonNegativeInteger,
+  readNonNegativeNumber,
+  readRecord,
+  readString,
+  YOUTUBE_READONLY_SCOPE,
+  YOUTUBE_UPLOAD_SCOPE,
+  YoutubeAuthorizedSignalsEvidenceMapper,
+  type YoutubeChannelNode,
+  YT_ANALYTICS_READONLY_SCOPE,
+} from './youtube-authorized-signals-evidence.mapper';
+
+export {
+  YOUTUBE_READONLY_SCOPE,
+  YOUTUBE_SCOPE,
+  YOUTUBE_UPLOAD_SCOPE,
+  YT_ANALYTICS_READONLY_SCOPE,
+} from './youtube-authorized-signals-evidence.mapper';
 
 const YOUTUBE_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const YOUTUBE_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
@@ -50,91 +72,6 @@ const YOUTUBE_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const YOUTUBE_VIDEO_LIMIT = 20;
 const YOUTUBE_DATA_API = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_ANALYTICS_API = 'https://youtubeanalytics.googleapis.com/v2';
-
-export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube';
-export const YOUTUBE_READONLY_SCOPE =
-  'https://www.googleapis.com/auth/youtube.readonly';
-export const YOUTUBE_UPLOAD_SCOPE =
-  'https://www.googleapis.com/auth/youtube.upload';
-export const YT_ANALYTICS_READONLY_SCOPE =
-  'https://www.googleapis.com/auth/yt-analytics.readonly';
-
-const CHANNEL_FIELDS = [
-  'customUrl',
-  'description',
-  'hiddenSubscriberCount',
-  'id',
-  'publishedAt',
-  'subscriberCount',
-  'thumbnailUrl',
-  'title',
-  'videoCount',
-  'viewCount',
-] as const;
-
-const UPLOAD_FIELDS = [
-  'commentCount',
-  'createTime',
-  'durationSeconds',
-  'id',
-  'likeCount',
-  'mediaType',
-  'publishedAt',
-  'title',
-  'viewCount',
-] as const;
-
-const PUBLISHING_FIELDS = [
-  'canPublish',
-  'channelId',
-  'isLinked',
-  'longUploadsStatus',
-  'privacyStatus',
-] as const;
-
-const ANALYTICS_FIELDS = [
-  'averageViewDurationSeconds',
-  'averageViewPercentage',
-  'id',
-  'impressions',
-  'impressionsClickThroughRate',
-  'views',
-] as const;
-
-const AGE_FIELDS = ['createdAt', 'createTime'] as const;
-
-type YoutubeSignalFieldStatus =
-  (typeof youtubeAuthorizedSignalStatusValues)[number];
-
-function toFieldAvailability(
-  entries: ReadonlyArray<readonly [string, YoutubeSignalFieldStatus]>,
-): Record<string, YoutubeSignalFieldStatus> {
-  return Object.fromEntries(entries);
-}
-
-interface YoutubeChannelNode {
-  brandingSettings?: { channel?: { title?: unknown }; image?: unknown };
-  contentDetails?: { relatedPlaylists?: { uploads?: unknown } };
-  id?: unknown;
-  snippet?: {
-    customUrl?: unknown;
-    description?: unknown;
-    publishedAt?: unknown;
-    thumbnails?: { high?: { url?: unknown }; default?: { url?: unknown } };
-    title?: unknown;
-  };
-  statistics?: {
-    hiddenSubscriberCount?: unknown;
-    subscriberCount?: unknown;
-    videoCount?: unknown;
-    viewCount?: unknown;
-  };
-  status?: {
-    isLinked?: unknown;
-    longUploadsStatus?: unknown;
-    privacyStatus?: unknown;
-  };
-}
 
 interface YoutubeChannelListResponse {
   items?: YoutubeChannelNode[];
@@ -183,10 +120,21 @@ export interface RefreshYoutubeAuthorizedSignalsParams {
   organizationId: string;
 }
 
-type PlatformEvidenceKey = Exclude<
-  YoutubeAuthorizedSignalEvidence['key'],
-  'genfeed-publish-outcomes-observed'
->;
+type YoutubeAuthorizedRefreshContext = {
+  accessToken: string;
+  cacheKey: string;
+  credential: CredentialDocument;
+  genfeedEvidence: YoutubeAuthorizedSignalEvidence;
+  grantedScopes: string[];
+  organizationId: string;
+  previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined;
+  refreshAttemptedAt: string;
+};
+
+type YoutubeChannelSelection = {
+  channel?: YoutubeChannelNode;
+  reason?: YoutubeAuthorizedSignalReason;
+};
 
 type GenfeedPublishOutcome =
   | 'scheduled'
@@ -196,95 +144,6 @@ type GenfeedPublishOutcome =
   | 'paused'
   | 'cancelled'
   | 'skipped';
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(candidate);
-    return ['http:', 'https:'].includes(url.protocol) ? candidate : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function readNonNegativeInteger(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
-    return value;
-  }
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function readNonNegativeNumber(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
-    return value;
-  }
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-  }
-  return undefined;
-}
-
-function readIsoTimestamp(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  const date = new Date(candidate);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
-function readIsoToUnixSeconds(value: unknown): number | undefined {
-  const iso = readIsoTimestamp(value);
-  if (!iso) {
-    return undefined;
-  }
-
-  const seconds = Math.floor(Date.parse(iso) / 1000);
-  return seconds > 0 ? seconds : undefined;
-}
-
-function parseIsoDurationSeconds(value: unknown): number | undefined {
-  const duration = readString(value);
-  if (!duration) {
-    return undefined;
-  }
-
-  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) {
-    return undefined;
-  }
-
-  const hours = Number.parseInt(match[1] || '0', 10);
-  const minutes = Number.parseInt(match[2] || '0', 10);
-  const seconds = Number.parseInt(match[3] || '0', 10);
-  return hours * 3600 + minutes * 60 + seconds;
-}
 
 function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
   const outcomes = new Set<string>([
@@ -302,40 +161,6 @@ function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
     : undefined;
 }
 
-function hasYoutubeDataScope(grantedScopes: string[]): boolean {
-  return (
-    grantedScopes.includes(YOUTUBE_SCOPE) ||
-    grantedScopes.includes(YOUTUBE_READONLY_SCOPE)
-  );
-}
-
-function hasYoutubePublishScope(grantedScopes: string[]): boolean {
-  return (
-    grantedScopes.includes(YOUTUBE_SCOPE) ||
-    grantedScopes.includes(YOUTUBE_UPLOAD_SCOPE)
-  );
-}
-
-function dataRequiredScopes(grantedScopes: string[]): string[] {
-  if (grantedScopes.includes(YOUTUBE_SCOPE)) {
-    return [YOUTUBE_SCOPE];
-  }
-  if (grantedScopes.includes(YOUTUBE_READONLY_SCOPE)) {
-    return [YOUTUBE_READONLY_SCOPE];
-  }
-  return [YOUTUBE_READONLY_SCOPE];
-}
-
-function publishRequiredScopes(grantedScopes: string[]): string[] {
-  if (grantedScopes.includes(YOUTUBE_SCOPE)) {
-    return [YOUTUBE_SCOPE];
-  }
-  if (grantedScopes.includes(YOUTUBE_UPLOAD_SCOPE)) {
-    return [YOUTUBE_UPLOAD_SCOPE];
-  }
-  return [YOUTUBE_UPLOAD_SCOPE];
-}
-
 function isoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
@@ -343,6 +168,8 @@ function isoDate(value: Date): string {
 @Injectable()
 export class YoutubeAuthorizedSignalsService {
   private readonly constructorName = this.constructor.name;
+  private readonly evidenceMapper =
+    new YoutubeAuthorizedSignalsEvidenceMapper();
 
   constructor(
     private readonly cacheService: CacheService,
@@ -429,6 +256,31 @@ export class YoutubeAuthorizedSignalsService {
       throw error;
     }
 
+    return await this.fetchAndPersistSnapshot({
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    });
+  }
+
+  private async fetchAndPersistSnapshot(
+    input: YoutubeAuthorizedRefreshContext,
+  ): Promise<YoutubeAuthorizedSignalsSnapshot> {
+    const {
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    } = input;
     const channelResult = hasYoutubeDataScope(grantedScopes)
       ? await this.settle(() => this.fetchChannels(accessToken))
       : { error: undefined, value: undefined };
@@ -439,7 +291,7 @@ export class YoutubeAuthorizedSignalsService {
     ) {
       return await this.persistSnapshot(
         credential,
-        params.organizationId,
+        organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -451,47 +303,33 @@ export class YoutubeAuthorizedSignalsService {
       );
     }
 
-    let selected: {
-      channel?: YoutubeChannelNode;
-      reason?: YoutubeAuthorizedSignalReason;
-    };
-    if (!hasYoutubeDataScope(grantedScopes)) {
-      selected = { reason: 'missing_scope' };
-    } else if (channelResult.error) {
-      selected = {};
-    } else {
-      selected = this.selectChannel(
-        channelResult.value?.channels ?? [],
-        credential.externalId,
-      );
-    }
-    if (
-      !selected.channel &&
-      isYoutubeChannelSelectionError(channelResult.error)
-    ) {
-      selected.reason = 'channel_selection_required';
-    }
-    const channelEvidence = this.buildChannelEvidence(
+    const selected = this.resolveChannelSelection(
+      grantedScopes,
+      channelResult,
+      credential.externalId,
+    );
+    const channelEvidence = this.evidenceMapper.buildChannelEvidence(
       grantedScopes,
       channelResult,
       selected,
       previousSnapshot,
       refreshAttemptedAt,
     );
-    const nativeAgeEvidence = this.buildNativeAccountAgeEvidence(
+    const nativeAgeEvidence = this.evidenceMapper.buildNativeAccountAgeEvidence(
       channelEvidence,
       grantedScopes,
       previousSnapshot,
       refreshAttemptedAt,
     );
-    const publishingEvidence = this.buildPublishingCapabilityEvidence(
-      grantedScopes,
-      selected.channel,
-      selected.reason,
-      channelResult.error,
-      previousSnapshot,
-      refreshAttemptedAt,
-    );
+    const publishingEvidence =
+      this.evidenceMapper.buildPublishingCapabilityEvidence(
+        grantedScopes,
+        selected.channel,
+        selected.reason,
+        channelResult.error,
+        previousSnapshot,
+        refreshAttemptedAt,
+      );
 
     const uploadsPlaylistId = readString(
       selected.channel?.contentDetails?.relatedPlaylists?.uploads,
@@ -510,14 +348,14 @@ export class YoutubeAuthorizedSignalsService {
           value: undefined,
         };
 
-    const ownedUploadsEvidence = this.buildOwnedUploadsEvidence(
+    const ownedUploadsEvidence = this.evidenceMapper.buildOwnedUploadsEvidence(
       grantedScopes,
       uploadsResult,
       selected.reason,
       previousSnapshot,
       refreshAttemptedAt,
     );
-    const firstUploadEvidence = this.buildFirstUploadEvidence(
+    const firstUploadEvidence = this.evidenceMapper.buildFirstUploadEvidence(
       ownedUploadsEvidence,
       refreshAttemptedAt,
     );
@@ -539,7 +377,7 @@ export class YoutubeAuthorizedSignalsService {
           )
         : { error: undefined, value: undefined };
 
-    const analyticsEvidence = this.buildAnalyticsEvidence(
+    const analyticsEvidence = this.evidenceMapper.buildAnalyticsEvidence(
       grantedScopes,
       analyticsResult,
       selected.reason,
@@ -568,10 +406,38 @@ export class YoutubeAuthorizedSignalsService {
 
     return await this.persistSnapshot(
       credential,
-      params.organizationId,
+      organizationId,
       cacheKey,
       snapshot,
     );
+  }
+
+  private resolveChannelSelection(
+    grantedScopes: string[],
+    channelResult: {
+      error?: unknown;
+      value?: { channels: YoutubeChannelNode[] };
+    },
+    externalId: string | null | undefined,
+  ): YoutubeChannelSelection {
+    let selected: YoutubeChannelSelection;
+    if (!hasYoutubeDataScope(grantedScopes)) {
+      selected = { reason: 'missing_scope' };
+    } else if (channelResult.error) {
+      selected = {};
+    } else {
+      selected = this.selectChannel(
+        channelResult.value?.channels ?? [],
+        externalId,
+      );
+    }
+    if (
+      !selected.channel &&
+      isYoutubeChannelSelectionError(channelResult.error)
+    ) {
+      selected.reason = 'channel_selection_required';
+    }
+    return selected;
   }
 
   private async resolveAccessToken(
@@ -882,415 +748,6 @@ export class YoutubeAuthorizedSignalsService {
     return isYoutubeAuthorizationError(error);
   }
 
-  private buildChannelEvidence(
-    grantedScopes: string[],
-    result: { error?: unknown; value?: { channels: YoutubeChannelNode[] } },
-    selected: {
-      channel?: YoutubeChannelNode;
-      reason?: YoutubeAuthorizedSignalReason;
-    },
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    const requiredScopes = dataRequiredScopes(grantedScopes);
-    if (!hasYoutubeDataScope(grantedScopes) || selected.reason) {
-      return this.buildUnavailableEvidence(
-        'channel-fields-platform-signal',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-        hasYoutubeDataScope(grantedScopes) ? selected.reason : 'missing_scope',
-      );
-    }
-
-    if (!selected.channel) {
-      return this.buildUnavailableEvidence(
-        'channel-fields-platform-signal',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const snippet = selected.channel.snippet;
-    const statistics = selected.channel.statistics;
-    const value = {
-      customUrl: readString(snippet?.customUrl),
-      description: readString(snippet?.description),
-      hiddenSubscriberCount: readBoolean(statistics?.hiddenSubscriberCount),
-      id: readString(selected.channel.id),
-      publishedAt: readIsoTimestamp(snippet?.publishedAt),
-      subscriberCount: readNonNegativeInteger(statistics?.subscriberCount),
-      thumbnailUrl:
-        readHttpUrl(snippet?.thumbnails?.high?.url) ??
-        readHttpUrl(snippet?.thumbnails?.default?.url),
-      title: readString(snippet?.title),
-      videoCount: readNonNegativeInteger(statistics?.videoCount),
-      viewCount: readNonNegativeInteger(statistics?.viewCount),
-    };
-    const fieldAvailability = toFieldAvailability(
-      CHANNEL_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'channel-fields-platform-signal',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: Object.values(value).every((item) => item === undefined)
-        ? 'unavailable'
-        : 'available',
-      value,
-    };
-  }
-
-  private buildNativeAccountAgeEvidence(
-    channelEvidence: YoutubeAuthorizedSignalEvidence,
-    grantedScopes: string[],
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    if (channelEvidence.key !== 'channel-fields-platform-signal') {
-      throw new Error('YouTube channel evidence is missing');
-    }
-
-    if (channelEvidence.status !== 'available' || !channelEvidence.value) {
-      return this.buildUnavailableEvidence(
-        'native-account-age',
-        dataRequiredScopes(grantedScopes),
-        grantedScopes,
-        undefined,
-        previousSnapshot,
-        observedAt,
-        channelEvidence.reason,
-      );
-    }
-
-    const createdAt = channelEvidence.value.publishedAt;
-    const createTime = readIsoToUnixSeconds(createdAt);
-    return {
-      fieldAvailability: toFieldAvailability(
-        AGE_FIELDS.map((field) => [
-          field,
-          (field === 'createdAt' ? createdAt : createTime) === undefined
-            ? 'unavailable'
-            : 'available',
-        ]),
-      ),
-      key: 'native-account-age',
-      observedAt: channelEvidence.observedAt ?? observedAt,
-      provenance: 'platform_verified',
-      scope: channelEvidence.scope,
-      staleAt: channelEvidence.staleAt,
-      status: createdAt ? 'available' : 'unavailable',
-      value: { createdAt, createTime },
-    };
-  }
-
-  private buildPublishingCapabilityEvidence(
-    grantedScopes: string[],
-    channel: YoutubeChannelNode | undefined,
-    selectionReason: YoutubeAuthorizedSignalReason | undefined,
-    error: unknown,
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    const requiredScopes = publishRequiredScopes(grantedScopes);
-    if (!hasYoutubePublishScope(grantedScopes) || selectionReason) {
-      return this.buildUnavailableEvidence(
-        'publishing-capability-snapshot',
-        requiredScopes,
-        grantedScopes,
-        error,
-        previousSnapshot,
-        observedAt,
-        selectionReason ??
-          (hasYoutubePublishScope(grantedScopes) ? undefined : 'missing_scope'),
-      );
-    }
-
-    if (!channel) {
-      return this.buildUnavailableEvidence(
-        'publishing-capability-snapshot',
-        requiredScopes,
-        grantedScopes,
-        error,
-        previousSnapshot,
-        observedAt,
-      );
-    }
-
-    const value = {
-      canPublish: true,
-      channelId: readString(channel.id),
-      isLinked: readBoolean(channel.status?.isLinked),
-      longUploadsStatus: readString(channel.status?.longUploadsStatus),
-      privacyStatus: readString(channel.status?.privacyStatus),
-    };
-    const fieldAvailability = toFieldAvailability(
-      PUBLISHING_FIELDS.map((field) => [
-        field,
-        value[field] === undefined ? 'unavailable' : 'available',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'publishing-capability-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: 'available',
-      value,
-    };
-  }
-
-  private buildOwnedUploadsEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        hasMore: boolean;
-        rawCount: number;
-        videos: YoutubeOwnedUploadSignal[];
-      };
-    },
-    selectionReason: YoutubeAuthorizedSignalReason | undefined,
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    const requiredScopes = dataRequiredScopes(grantedScopes);
-    if (!result.value || selectionReason) {
-      return this.buildUnavailableEvidence(
-        'owned-uploads-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-        selectionReason,
-      );
-    }
-
-    const malformedResponse =
-      result.value.rawCount > 0 && result.value.videos.length === 0;
-    const fieldAvailability = toFieldAvailability(
-      UPLOAD_FIELDS.map((field) => [
-        field,
-        result.value?.videos.length === 0 ||
-        result.value?.videos.every((item) => item[field] !== undefined)
-          ? 'available'
-          : 'unavailable',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'owned-uploads-snapshot',
-      observedAt,
-      provenance: 'platform_verified',
-      ...(malformedResponse ? { reason: 'empty_response' as const } : {}),
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: null,
-      status: malformedResponse
-        ? 'unavailable'
-        : result.value.videos.length === 0
-          ? 'empty'
-          : 'available',
-      value: {
-        hasMore: result.value.hasMore,
-        videos: result.value.videos,
-      },
-    };
-  }
-
-  private buildFirstUploadEvidence(
-    ownedUploads: YoutubeAuthorizedSignalEvidence,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    if (ownedUploads.key !== 'owned-uploads-snapshot') {
-      throw new Error('YouTube owned-uploads evidence is missing');
-    }
-
-    const videos = [...(ownedUploads.value?.videos ?? [])].sort(
-      (left, right) => {
-        return (
-          (left.createTime ?? Number.MAX_SAFE_INTEGER) -
-          (right.createTime ?? Number.MAX_SAFE_INTEGER)
-        );
-      },
-    );
-
-    return {
-      fieldAvailability: ownedUploads.fieldAvailability,
-      key: 'first-upload-platform-signal',
-      observedAt: ownedUploads.observedAt ?? observedAt,
-      provenance: 'platform_verified',
-      ...(ownedUploads.reason ? { reason: ownedUploads.reason } : {}),
-      scope: ownedUploads.scope,
-      staleAt: ownedUploads.staleAt,
-      status: ownedUploads.status,
-      value: videos.length > 0 ? { video: videos[0] } : {},
-    };
-  }
-
-  private buildAnalyticsEvidence(
-    grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: { videos: YoutubeOwnedVideoAnalyticsSignal[] };
-    },
-    selectionReason: YoutubeAuthorizedSignalReason | undefined,
-    ownedUploads: YoutubeAuthorizedSignalEvidence,
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-  ): YoutubeAuthorizedSignalEvidence {
-    const requiredScopes = [YT_ANALYTICS_READONLY_SCOPE];
-    if (
-      !grantedScopes.includes(YT_ANALYTICS_READONLY_SCOPE) ||
-      !result.value ||
-      selectionReason
-    ) {
-      return this.buildUnavailableEvidence(
-        'owned-video-analytics-snapshot',
-        requiredScopes,
-        grantedScopes,
-        result.error,
-        previousSnapshot,
-        observedAt,
-        selectionReason ??
-          (grantedScopes.includes(YT_ANALYTICS_READONLY_SCOPE)
-            ? undefined
-            : 'missing_scope'),
-      );
-    }
-
-    const videos = result.value.videos;
-    const fieldAvailability = toFieldAvailability(
-      ANALYTICS_FIELDS.map((field) => [
-        field,
-        videos.length === 0 || videos.every((item) => item[field] !== undefined)
-          ? 'available'
-          : 'unavailable',
-      ]),
-    );
-
-    return {
-      fieldAvailability,
-      key: 'owned-video-analytics-snapshot',
-      observedAt: ownedUploads.observedAt ?? observedAt,
-      provenance: 'platform_verified',
-      scope: this.buildScope(requiredScopes, grantedScopes),
-      staleAt: ownedUploads.staleAt,
-      status:
-        ownedUploads.status === 'empty'
-          ? 'empty'
-          : videos.length === 0
-            ? 'empty'
-            : 'available',
-      value: { videos },
-    };
-  }
-
-  private buildUnavailableEvidence(
-    key: PlatformEvidenceKey,
-    requiredScopes: string[],
-    grantedScopes: string[],
-    error: unknown,
-    previousSnapshot: YoutubeAuthorizedSignalsSnapshot | undefined,
-    observedAt: string,
-    forcedReason?: YoutubeAuthorizedSignalReason,
-  ): YoutubeAuthorizedSignalEvidence {
-    const scope = this.buildScope(requiredScopes, grantedScopes);
-    const reason: YoutubeAuthorizedSignalReason =
-      forcedReason ??
-      (isYoutubeChannelSelectionError(error)
-        ? 'channel_selection_required'
-        : scope.missing.length > 0 || isYoutubeScopeError(error)
-          ? 'missing_scope'
-          : isYoutubeRateLimitError(error)
-            ? 'rate_limited'
-            : 'provider_error');
-    const previous = previousSnapshot?.evidence.find(
-      (evidence) => evidence.key === key,
-    );
-
-    if (
-      previous &&
-      reason !== 'missing_scope' &&
-      reason !== 'channel_selection_required'
-    ) {
-      return {
-        ...previous,
-        reason,
-        scope,
-        staleAt: observedAt,
-        status: 'stale',
-      };
-    }
-
-    const fieldNames = this.fieldNamesForKey(key);
-    return {
-      fieldAvailability: toFieldAvailability(
-        fieldNames.map((field) => [
-          field,
-          reason === 'missing_scope' || reason === 'channel_selection_required'
-            ? 'permission_limited'
-            : 'unavailable',
-        ]),
-      ),
-      key,
-      observedAt,
-      provenance: 'platform_verified',
-      reason,
-      scope:
-        isYoutubeScopeError(error) && scope.missing.length === 0
-          ? { granted: [], missing: requiredScopes, required: requiredScopes }
-          : scope,
-      staleAt: null,
-      status:
-        reason === 'missing_scope' || reason === 'channel_selection_required'
-          ? 'permission_limited'
-          : reason === 'empty_response'
-            ? 'empty'
-            : 'unavailable',
-    } as YoutubeAuthorizedSignalEvidence;
-  }
-
-  private fieldNamesForKey(key: PlatformEvidenceKey): readonly string[] {
-    if (key === 'channel-fields-platform-signal') {
-      return CHANNEL_FIELDS;
-    }
-    if (key === 'publishing-capability-snapshot') {
-      return PUBLISHING_FIELDS;
-    }
-    if (key === 'owned-video-analytics-snapshot') {
-      return ANALYTICS_FIELDS;
-    }
-    if (key === 'native-account-age') {
-      return AGE_FIELDS;
-    }
-    return UPLOAD_FIELDS;
-  }
-
-  private buildScope(required: string[], grantedScopes: string[]) {
-    return {
-      granted: grantedScopes.filter((scope) => required.includes(scope)),
-      missing: required.filter((scope) => !grantedScopes.includes(scope)),
-      required,
-    };
-  }
-
   private async buildGenfeedEvidence(
     credential: CredentialDocument,
     organizationId: string,
@@ -1377,14 +834,17 @@ export class YoutubeAuthorizedSignalsService {
         return {
           ...previous,
           reason: 'authorization_revoked' as const,
-          scope: this.buildScope(this.requiredScopesForKey(key), grantedScopes),
+          scope: this.evidenceMapper.buildScope(
+            this.requiredScopesForKey(key),
+            grantedScopes,
+          ),
           staleAt: refreshAttemptedAt,
           status: 'revoked' as const,
         };
       }
 
       return {
-        ...this.buildUnavailableEvidence(
+        ...this.evidenceMapper.buildUnavailableEvidence(
           key,
           this.requiredScopesForKey(key),
           grantedScopes,

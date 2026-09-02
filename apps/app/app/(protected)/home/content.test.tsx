@@ -205,6 +205,7 @@ describe('OperationalHomeContent', () => {
   it('renders the canonical Connect Genfeed state when unconfigured', () => {
     render(<OperationalHomeContent />);
 
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
     ).toHaveClass('sr-only');
@@ -227,6 +228,22 @@ describe('OperationalHomeContent', () => {
       connectionState.compareDocumentPosition(operationalSections) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('renders missing-organization recovery inside the existing shell landmark', () => {
+    mocks.accessState = null;
+    mocks.brandState.brands = [];
+    mocks.brandState.organizationId = '';
+    mocks.brandState.selectedBrand = null;
+
+    render(<OperationalHomeContent />);
+
+    expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Operational home needs an organization',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('renders all operational control-plane sections when configured', async () => {

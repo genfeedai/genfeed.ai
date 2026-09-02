@@ -12,20 +12,14 @@ const HOW_STEPS: HowStep[] = [
     title: 'Brief',
   },
   {
-    description:
-      'Edit, regenerate, and hold brand voice before anything ships.',
+    description: 'Genfeed creates every format. You review and refine.',
     step: '02',
-    title: 'Review',
+    title: 'Create & review',
   },
   {
-    description: 'Schedule to every connected channel from one calendar.',
+    description: 'Schedule everywhere and learn what should come next.',
     step: '03',
-    title: 'Publish',
-  },
-  {
-    description: 'Reach, engagement, and hook rate in one view.',
-    step: '04',
-    title: 'Measure',
+    title: 'Publish & learn',
   },
 ];
 
@@ -43,13 +37,13 @@ export default function HomeHow(): React.ReactElement {
             Brief to published.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Four steps, one workspace.
+            Three steps, one workspace.
           </Text>
         </div>
 
         <ol
           aria-labelledby="home-workflow-heading"
-          className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-3"
         >
           {HOW_STEPS.map((item) => (
             <li

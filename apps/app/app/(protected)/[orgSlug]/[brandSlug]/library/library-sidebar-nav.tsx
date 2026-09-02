@@ -229,7 +229,7 @@ export default function LibrarySidebarNav() {
   return (
     <>
       <div className="flex h-full min-h-0 flex-col">
-        <div className="px-3 pt-2">
+        <div className="flex flex-col gap-px px-3 pt-2">
           <SidebarActionTrigger
             ariaLabel="Open new task modal"
             icon={<Plus className="size-4 flex-shrink-0" />}
@@ -270,16 +270,20 @@ export default function LibrarySidebarNav() {
             variant="navigation"
           />
 
-          <div className="mt-4 border-t border-foreground/8 pt-2">
+          <div className="mt-4">
             <ul className="flex flex-col gap-px">
-              {LIBRARY_TAIL_MENU_ITEMS.map(renderMenuItem)}
+              {LIBRARY_TAIL_MENU_ITEMS.filter(
+                (item) =>
+                  item.href !== APP_ROUTES.LIBRARY.MOODBOARD ||
+                  Boolean(brandId),
+              ).map(renderMenuItem)}
             </ul>
           </div>
         </div>
 
         {summary ? (
-          <div className="border-t border-foreground/8 px-4 py-3">
-            <div className="text-2xs font-medium uppercase tracking-[0.15em] text-foreground/30">
+          <div className="px-4 py-3">
+            <div className="text-2xs font-bold uppercase tracking-[0.15em] text-foreground/30">
               {translate('storageLabel')}
             </div>
             <div className="mt-0.5 text-sm font-medium tabular-nums text-foreground/72">

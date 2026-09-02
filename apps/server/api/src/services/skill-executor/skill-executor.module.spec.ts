@@ -1,7 +1,7 @@
-import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
+import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
 
-describe('SkillExecutorModule', () => {
+describe('SkillWorkflowModule', () => {
   it('should be defined', () => {
-    expect(SkillExecutorModule).toBeDefined();
+    expect(SkillWorkflowModule).toBeDefined();
   });
 });

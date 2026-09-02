@@ -1,30 +1,15 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
 import { PostsBatchDto } from '@api/collections/posts/dto/posts-batch.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
-  API_KEY_POST_CREATION_SCOPES,
-  assertApiKeyPostStatusPublishingScope,
-  assertApiKeyPublishingScope,
-} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import {
   returnBadRequest,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { QuotaService } from '@server/services/quota/quota.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
@@ -51,6 +36,21 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import {
+  API_KEY_POST_CREATION_SCOPES,
+  assertApiKeyPostStatusPublishingScope,
+  assertApiKeyPublishingScope,
+} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { QuotaService } from '@server/services/quota/quota.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -99,6 +99,76 @@ export class PostsOperationsController {
       default:
         return PostCategory.TEXT;
     }
+  }
+
+  private validateScheduledThreadReply(
+    dto: CreatePostDto,
+    platform: CredentialPlatform,
+    platformLabel: string,
+    executionState: TargetExecutionState,
+  ): void {
+    if (executionState !== TargetExecutionState.SCHEDULED) {
+      return;
+    }
+
+    const supportsTextOnly = new Set([
+      CredentialPlatform.THREADS,
+      CredentialPlatform.TWITTER,
+    ]).has(platform);
+    if (dto.category === PostCategory.TEXT && !supportsTextOnly) {
+      throw new HttpException(
+        {
+          detail: `${platformLabel} requires media when scheduling. Please add at least one image or video.`,
+          title: 'Text-only posts not supported',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (
+      !supportsTextOnly &&
+      (!dto.ingredients || dto.ingredients.length === 0)
+    ) {
+      throw new HttpException(
+        {
+          detail: `${platformLabel} requires at least one image or video when scheduling.`,
+          title: 'Media required when scheduling',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private async resolveThreadReplyIngredients(
+    ingredientIds: string[] | undefined,
+    organizationId: string,
+  ): Promise<{
+    firstIngredient: Awaited<ReturnType<IngredientsService['findOne']>>;
+    ingredientIds: string[];
+  }> {
+    let firstIngredient: Awaited<ReturnType<IngredientsService['findOne']>> =
+      null;
+    const resolvedIds: string[] = [];
+
+    for (const ingredientId of ingredientIds ?? []) {
+      const ingredient = await this.ingredientsService.findOne({
+        id: ingredientId,
+        organizationId,
+      });
+      if (!ingredient) {
+        throw new HttpException(
+          {
+            detail:
+              'Ingredient not found or does not belong to your organization',
+            title: `Ingredient ${ingredientId.toString()} not found`,
+          },
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      resolvedIds.push(ingredientId);
+      firstIngredient ??= ingredient;
+    }
+    return { firstIngredient, ingredientIds: resolvedIds };
   }
 
   @Patch('batch')
@@ -276,74 +346,17 @@ export class PostsOperationsController {
         );
       }
 
-      const textOnlyPlatforms = new Set([
-        CredentialPlatform.THREADS,
-        CredentialPlatform.TWITTER,
-      ]);
-      const isTextOnlyPlatform = textOnlyPlatforms.has(credentialPlatform);
-
-      // Validate TEXT category only allowed for text-capable platforms when scheduling
-      if (
-        requestedExecutionState === TargetExecutionState.SCHEDULED &&
-        createPostDto.category === PostCategory.TEXT &&
-        !isTextOnlyPlatform
-      ) {
-        throw new HttpException(
-          {
-            detail: `${credential.platform} requires media when scheduling. Please add at least one image or video.`,
-            title: 'Text-only posts not supported',
-          },
-          HttpStatus.BAD_REQUEST,
+      this.validateScheduledThreadReply(
+        createPostDto,
+        credentialPlatform,
+        credential.platform,
+        requestedExecutionState,
+      );
+      const { firstIngredient, ingredientIds } =
+        await this.resolveThreadReplyIngredients(
+          createPostDto.ingredients,
+          user.organizationId,
         );
-      }
-
-      // Validate ingredients required when scheduling for media-required platforms
-      if (
-        requestedExecutionState === TargetExecutionState.SCHEDULED &&
-        !isTextOnlyPlatform
-      ) {
-        if (
-          !createPostDto.ingredients ||
-          createPostDto.ingredients.length === 0
-        ) {
-          throw new HttpException(
-            {
-              detail: `${credential.platform} requires at least one image or video when scheduling.`,
-              title: 'Media required when scheduling',
-            },
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-      }
-
-      let firstIngredient = null;
-      const ingredientIds: string[] = [];
-
-      if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
-        for (const ingredientId of createPostDto.ingredients) {
-          const ingredient = await this.ingredientsService.findOne({
-            id: ingredientId,
-            organizationId: user.organizationId,
-          });
-
-          if (!ingredient) {
-            throw new HttpException(
-              {
-                detail:
-                  'Ingredient not found or does not belong to your organization',
-                title: `Ingredient ${ingredientId.toString()} not found`,
-              },
-              HttpStatus.NOT_FOUND,
-            );
-          }
-
-          ingredientIds.push(ingredientId);
-
-          if (!firstIngredient) {
-            firstIngredient = ingredient;
-          }
-        }
-      }
 
       await this.quotaService.verifyQuota(credential, user.organizationId);
 

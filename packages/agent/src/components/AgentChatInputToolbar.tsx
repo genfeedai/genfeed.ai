@@ -19,6 +19,7 @@ import {
   buildConversationComposerGenerationSettings,
   buildDefaultAgentGenerationSetupValues,
   getAgentGenerationSetupCapabilities,
+  hasExplicitAgentGenerationSetup,
   isAgentGenerationType,
 } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -156,7 +157,7 @@ function AgentChatInputToolbarInner({
   const reasons =
     useGenerationSetupStore((state) => state.reasonsByScope[scope]) ?? {};
   const setup = setupFromStore ?? { sources: {}, values: defaults };
-  const isTypeLocked = setup.sources.type === 'user';
+  const isTypeLocked = hasExplicitAgentGenerationSetup(setup);
   const capabilities =
     getAgentGenerationSetupCapabilities(activeGenerationType);
 

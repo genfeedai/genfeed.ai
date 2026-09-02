@@ -7,7 +7,11 @@
  */
 import type { ConversationComposerGenerationSettings } from '@genfeedai/agent/models/conversation-composer.model';
 import { RouterPriority } from '@genfeedai/enums';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import type {
+  GenerationSetup,
+  GenerationSetupFieldKey,
+  GenerationSetupValues,
+} from '@genfeedai/interfaces/studio/generation-setup.interface';
 import type {
   StudioGenerateCapabilities,
   StudioGenerateType,
@@ -74,6 +78,28 @@ export function getAgentGenerationSetupCapabilities(
   return AGENT_GENERATION_SETUP_CAPABILITIES[type];
 }
 
+const DIRECT_GENERATION_FIELDS: readonly GenerationSetupFieldKey[] = [
+  'type',
+  'modelKey',
+  'aspectRatio',
+  'duration',
+  'outputs',
+  'prioritize',
+  'resolution',
+];
+
+/** Any operator or pinned-preset choice commits the composer to direct media. */
+export function hasExplicitAgentGenerationSetup(
+  setup: GenerationSetup,
+): boolean {
+  if (setup.presetId) return true;
+
+  return DIRECT_GENERATION_FIELDS.some((field) => {
+    const source = setup.sources[field];
+    return source === 'user' || source === 'preset';
+  });
+}
+
 /**
  * Seeds a fresh, fully agent-owned setup for a scope that has never been
  * written. `modelKey` defaults to `''` (Auto — the server `RouterService`
@@ -109,5 +135,7 @@ export function buildConversationComposerGenerationSettings(
     duration: values.duration,
     model: values.modelKey || undefined,
     outputs: values.outputs,
+    prioritize: values.prioritize,
+    resolution: values.resolution,
   };
 }

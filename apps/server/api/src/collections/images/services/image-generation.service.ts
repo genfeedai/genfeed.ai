@@ -7,10 +7,9 @@ import type {
   ImageGenerationSavedIngredient,
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
-import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type {
@@ -20,7 +19,6 @@ import type {
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
-  IngredientStatus,
   MetadataExtension,
   ModelCategory,
   PromptCategory,
@@ -28,16 +26,13 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
 import { ImagesService } from '@server/collections/images/services/images.service';
 import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
@@ -67,7 +62,6 @@ const IMAGE_POPULATE = [
   PopulatePatterns.metadataFull,
   PopulatePatterns.brandMinimal,
 ];
-const PROVIDER_DISPATCH_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Owns the full image-generation workflow extracted out of
@@ -86,14 +80,11 @@ export class ImageGenerationService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly assetsService: AssetsService,
     private readonly brandsService: BrandsService,
-    private readonly creditsService: ImageGenerationCreditsService,
+    private readonly admissionService: ImageGenerationAdmissionService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly imageGenerationProviderDispatchService: ImageGenerationProviderDispatchService,
     private readonly imagesService: ImagesService,
-    private readonly ingredientsService: IngredientsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly loggerService: LoggerService,
     private readonly modelRegistrationService: ModelRegistrationService,
@@ -123,48 +114,19 @@ export class ImageGenerationService {
       promptOriginalText,
     } = await this.resolveAndValidate(user, createImageDto, request);
 
-    if (createImageDto.sourceActionId) {
-      const accepted = await this.imagesService.findOne(
-        {
-          category: IngredientCategory.IMAGE,
-          isDeleted: false,
-          organizationId: user.organizationId,
-          sourceActionId: createImageDto.sourceActionId,
-          status: {
-            in: [
-              IngredientStatus.PROCESSING,
-              IngredientStatus.GENERATED,
-              IngredientStatus.VALIDATED,
-            ],
-          },
-        },
-        IMAGE_POPULATE,
+    const accepted = await this.admissionService.findReusableIngredient(
+      createImageDto.sourceActionId,
+      user.organizationId,
+    );
+    if (accepted) {
+      await this.admissionService.ensureCredits(
+        createImageDto,
+        model,
+        user.organizationId,
+        request,
+        onCreditsPrepared,
       );
-      if (accepted) {
-        const isFreshUndispatchedPlaceholder =
-          accepted.status === IngredientStatus.PROCESSING &&
-          !accepted.metadata?.externalId &&
-          accepted.createdAt instanceof Date &&
-          Date.now() - accepted.createdAt.getTime() <
-            PROVIDER_DISPATCH_GRACE_MS;
-        const wasDispatched =
-          accepted.status !== IngredientStatus.PROCESSING ||
-          Boolean(accepted.metadata?.externalId) ||
-          isFreshUndispatchedPlaceholder;
-        if (wasDispatched) {
-          await this.creditsService.ensureDeferredCredits(
-            createImageDto,
-            model,
-            user.organizationId,
-            request,
-          );
-          await onCreditsPrepared?.();
-          return serializeSingle(request, IngredientSerializer, accepted);
-        }
-        await this.imagesService.patch(accepted.id, {
-          status: IngredientStatus.FAILED,
-        });
-      }
+      return serializeSingle(request, IngredientSerializer, accepted);
     }
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
@@ -191,14 +153,11 @@ export class ImageGenerationService {
       ? createImageDto.references.map((id) => id.toString())
       : [];
 
-    const referenceImageUrls: string[] = await buildReferenceImageUrls({
-      assetsService: this.assetsService,
-      configService: this.configService,
-      ingredientsService: this.ingredientsService,
-      loggerService: this.loggerService,
-      organizationId: user.organizationId,
-      referenceIds,
-    });
+    const referenceImageUrls =
+      await this.admissionService.resolveReferenceImageUrls(
+        user.organizationId,
+        referenceIds,
+      );
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
@@ -223,6 +182,7 @@ export class ImageGenerationService {
         generationSource: compiledBrief.generationSource,
         height,
         model,
+        modelInputSchema,
         promptBuilderBrand,
         promptOriginalText,
         user,
@@ -267,31 +227,39 @@ export class ImageGenerationService {
       abortSignal: createRequestAbortSignal(request),
     };
 
+    return this.dispatchAndFinish(
+      context,
+      onPlaceholderCreated,
+      onCreditsPrepared,
+    );
+  }
+
+  private async dispatchAndFinish(
+    context: ImageGenerationContext,
+    onPlaceholderCreated?: GenerationPlaceholderCreatedCallback,
+    onCreditsPrepared?: () => Promise<void>,
+  ): Promise<JsonApiSingleResponse> {
     try {
-      await onPlaceholderCreated?.(ingredientData.id.toString());
-      await this.creditsService.ensureDeferredCredits(
-        createImageDto,
-        model,
-        user.organizationId,
-        request,
+      await onPlaceholderCreated?.(context.ingredientData.id.toString());
+      await this.admissionService.ensureCredits(
+        context.createImageDto,
+        context.model,
+        context.user.organizationId,
+        context.request,
+        onCreditsPrepared,
       );
-      await onCreditsPrepared?.();
     } catch (error: unknown) {
       return this.imageGenerationProviderDispatchService.failPlaceholderBeforeDispatch(
         context,
         error,
       );
     }
-
-    // Create activity + websocket update for image generation start
     await this.imageGenerationProviderDispatchService.createPlaceholderActivity(
       context,
-      ingredientData.id,
+      context.ingredientData.id,
     );
-
     const plan =
       await this.imageGenerationProviderDispatchService.dispatch(context);
-
     return this.finishGeneration(context, plan);
   }
 
@@ -489,6 +457,7 @@ export class ImageGenerationService {
     generationSource: string;
     height: number;
     model: string;
+    modelInputSchema?: Record<string, unknown>;
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
     referenceIds: string[];
@@ -511,6 +480,7 @@ export class ImageGenerationService {
       generationSource,
       height,
       model,
+      modelInputSchema,
       promptBuilderBrand,
       promptOriginalText,
       user,
@@ -566,6 +536,7 @@ export class ImageGenerationService {
           isBrandingEnabled: createImageDto.isBrandingEnabled,
           lens: createImageDto.lens,
           lighting: createImageDto.lighting,
+          modelInputSchema,
           modelCategory: ModelCategory.IMAGE,
           mood: createImageDto.mood,
           outputs: createImageDto.outputs,

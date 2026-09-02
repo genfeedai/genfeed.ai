@@ -11,6 +11,7 @@ import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.mo
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
+import AssetHoverDetails from '@ui/ingredients/asset-hover-details';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
@@ -210,6 +211,63 @@ export default function StudioGenerateCard({
     );
   }
 
+  function renderHoverDetails(showLifecycleActions = false): ReactElement {
+    return (
+      <AssetHoverDetails
+        actions={
+          <>
+            <Button
+              ariaLabel={translate('selectGenerationAria', {
+                prompt: job.prompt || job.id,
+                type: label,
+              })}
+              className="h-auto px-0 text-xs text-foreground/75 hover:text-foreground"
+              icon={<Eye className="size-3.5" />}
+              label={translate('inspectPrompt')}
+              onClick={() => onSelect(job)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+            {showLifecycleActions && isFailed ? (
+              <Button
+                ariaLabel={translate('removeGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                icon={<Trash2 className="size-3.5" />}
+                label={translate('remove')}
+                onClick={() => assetActions.onRemoveGeneration(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+            {showLifecycleActions ? (
+              <Button
+                ariaLabel={translate('repromptGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                icon={<RotateCcw className="size-3.5" />}
+                label={translate('reprompt')}
+                onClick={() => onReprompt(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+          </>
+        }
+        label={job.prompt}
+        metadata={job.modelKey || 'Auto'}
+        typeLabel={label}
+      />
+    );
+  }
+
   if (mediaState === 'ready' && masonryIngredient) {
     const sharedProps = {
       isActionsEnabled: true,
@@ -264,7 +322,7 @@ export default function StudioGenerateCard({
           )}
         </div>
 
-        {renderDetails()}
+        {isListView ? renderDetails() : renderHoverDetails()}
       </article>
     );
   }
@@ -349,7 +407,7 @@ export default function StudioGenerateCard({
         ) : null}
       </div>
 
-      {renderDetails(true)}
+      {isListView ? renderDetails(true) : renderHoverDetails(true)}
     </article>
   );
 }

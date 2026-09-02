@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -15,6 +23,7 @@ import {
   parseLcov,
   parseUnifiedDiff,
   readBaseline,
+  readSurfacePath,
   resolveDiffInputs,
   worstResult,
 } from './changed-code-coverage.mjs';
@@ -235,6 +244,7 @@ test('normalized report inputs use resolved commit IDs, not commit-ish aliases',
     baseline: BASELINE,
   });
 
+  assert.equal(built.version, 2);
   assert.equal(built.normalized.baseSha, canonicalBase);
   assert.equal(built.normalized.headSha, canonicalHead);
 });
@@ -400,6 +410,34 @@ test('a failed surface rejects the measurement instead of publishing a pass', ()
   assert.equal(built.normalized.disposition, 'infrastructure-failed');
 });
 
+test('observation mode with nothing measured is unmeasured, not an observation', () => {
+  // #1849 counts each observation-only report toward `observation.requiredRuns`.
+  // A full-suite run skips both changed shards, so the diff has measurable
+  // files but no surface instrumented any of them. Publishing that as
+  // `observation-only` padded the evidence with empty reports: PRs #4265,
+  // #4295 and #4296 each counted with zero measured lines.
+  const skipped = report({
+    changedFiles: [['apps/app/a.ts', [1, 2]]],
+    surfaces: [
+      surface('app', 'skipped', null),
+      surface('api', 'skipped', null),
+    ],
+  });
+
+  assert.equal(skipped.normalized.totals.lines.measured, 0);
+  assert.equal(skipped.normalized.disposition, 'unmeasured');
+  assert.match(formatSummary(skipped), /not an observation/);
+
+  // A clean run whose changed graph pulled in no test file is the same
+  // absence of evidence, not a 0% observation.
+  const noTests = report({
+    changedFiles: [['apps/app/a.ts', [1, 2]]],
+    surfaces: [surface('app', 'success', null)],
+  });
+
+  assert.equal(noTests.normalized.disposition, 'unmeasured');
+});
+
 test('a diff with no measurable file is not-applicable', () => {
   const built = report({
     changedFiles: [
@@ -562,6 +600,7 @@ test('annotations collapse contiguous uncovered runs and stay bounded', () => {
     annotations[0],
     /^::notice file=apps\/app\/a\.ts,line=1,endLine=3::/,
   );
+  assert.match(annotations[0], /changed-code coverage, observation mode/);
   assert.match(annotations[1], /line=9,endLine=9::/);
   assert.equal(formatAnnotations(built, 1).length, 1);
 });
@@ -607,6 +646,7 @@ test('the committed baseline is a reviewable observation-phase record', () => {
   assert.equal(BASELINE.treatUnmeasuredAsUncovered, false);
   assert.ok(BASELINE.observation.requiredRuns >= 1);
   assert.ok(BASELINE.observation.latencyBudgetMinutesP95 <= 20);
+  assert.equal(BASELINE.observation.evidence.minimumReportVersion, 2);
   assert.ok(Array.isArray(BASELINE.ratchetHistory));
   assert.ok(BASELINE.ratchetHistory.length >= 1);
 });
@@ -702,6 +742,36 @@ test('shard lcov reports concatenate into one merged surface report', () => {
   );
 });
 
+test('a surface root LCOV is paired with child shard outcomes and latency', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'changed-coverage-surface-'));
+  try {
+    for (const [shard, seconds] of [
+      ['shard-1', '120'],
+      ['shard-2', '240'],
+    ]) {
+      const directory = path.join(root, shard);
+      mkdirSync(directory);
+      writeFileSync(path.join(directory, 'outcome'), 'success\n');
+      writeFileSync(path.join(directory, 'seconds'), `${seconds}\n`);
+    }
+    const lcov = 'SF:src/a.ts\nDA:1,1\nend_of_record\n';
+    writeFileSync(path.join(root, 'lcov.info'), lcov);
+
+    const shards = readSurfacePath(root);
+
+    assert.equal(shards.length, 2);
+    assert.equal(shards[0].lcov, lcov);
+    assert.equal(shards[1].lcov, null);
+    assert.deepEqual(aggregateSurfaceShards(shards), {
+      latencySeconds: 240,
+      lcov,
+      result: 'success',
+    });
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
 test('worst-of folds the job result together with the shard outcomes', () => {
   // Step-level continue-on-error leaves the job `success` when a step failed…
   assert.equal(worstResult('success', 'failure'), 'failure');
@@ -741,7 +811,27 @@ function ciJob(name) {
   return end === -1 ? rest : rest.slice(0, end);
 }
 
-test('coverage rides the changed-test shards, instrumented on pull requests only', () => {
+test('a shard cancelled before its clock started stages no latency', () => {
+  // The staging step runs under `if: always()`, so a shard cancelled during
+  // its build never reaches "Mark test start" and `COVERAGE_STARTED` is empty.
+  // Bash arithmetic then yields the raw epoch: PR #4265 published a
+  // 1,788,299,408-second surface latency against a 20-minute budget.
+  for (const name of ['test-app-changed', 'test-api-changed']) {
+    const job = ciJob(name);
+    assert.equal(
+      (job.match(/> coverage-shard\/seconds/g) ?? []).length,
+      1,
+      `${name} stages shard latency exactly once`,
+    );
+    assert.match(
+      job,
+      /if \[ -n "\$\{COVERAGE_STARTED:-\}" \]; then\n\s+echo "\$\(\( \$\(date \+%s\) - COVERAGE_STARTED \)\)" > coverage-shard\/seconds\n\s+fi/,
+      `${name} must stage latency only after the test clock started`,
+    );
+  }
+});
+
+test('coverage rides the changed-test shards as mergeable blobs on pull requests only', () => {
   // #1969: the standalone coverage matrix re-ran the same `--changed`
   // selection the test shards had just executed — ~31% of CI runner-minutes
   // for a duplicate signal. The fold runs each changed-test shard once,
@@ -762,11 +852,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
       /if \[ "\$WITH_COVERAGE" = "true" \]/,
       `${name} must branch on the env flag, not the raw event name`,
     );
-    assert.match(
-      job,
-      /--coverage\.reporter=lcovonly/,
-      `${name} must emit lcov for the observation report`,
-    );
+    assert.match(job, /--reporter=default --reporter=blob/);
     // One slow or red shard must not cancel its siblings and destroy their
     // lcov — and every shard's verdict still reaches the gate individually.
     assert.match(job, /fail-fast: false/, `${name} must not fail fast`);
@@ -781,7 +867,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
     assert.match(job, /(?<!\.)coverage-shard\/seconds/);
     assert.match(
       job,
-      new RegExp(`changed-code-coverage-lcov-${surface}-`),
+      new RegExp(`changed-code-coverage-blob-${surface}-`),
       `${name} must upload shards under the ${surface} artifact prefix`,
     );
     assert.match(job, /-shard-\$\{\{ matrix\.shard \}\}\n/);
@@ -806,7 +892,7 @@ test('coverage rides the changed-test shards, instrumented on pull requests only
   }
 });
 
-test('the report reads each surface as its own directory of shards', () => {
+test('the report merges blobs and reads each surface as its own shard directory', () => {
   const job = ciJob('coverage-changed-report');
 
   // The surface result now comes from the folded changed-test jobs — the
@@ -818,7 +904,7 @@ test('the report reads each surface as its own directory of shards', () => {
     assert.match(
       job,
       new RegExp(
-        `pattern: changed-code-coverage-lcov-${surface}-[^\\n]*-shard-\\*`,
+        `pattern: changed-code-coverage-blob-${surface}-[^\\n]*-shard-\\*`,
       ),
       `report must collect every ${surface} shard`,
     );
@@ -830,6 +916,21 @@ test('the report reads each surface as its own directory of shards', () => {
       `report must pass the ${surface} shard directory, not a single lcov`,
     );
   }
+
+  assert.match(job, /bunx vitest --merge-reports \.vitest-reports/);
+  assert.match(job, /--coverage\.reporter=lcovonly/);
+  assert.match(
+    job,
+    /merge_surface app apps\/app \.\/vitest\.config\.mts "\$APP_RESULT"/,
+  );
+  assert.match(
+    job,
+    /merge_surface api apps\/server\/api vitest\.config\.ts "\$API_RESULT"/,
+  );
+  assert.match(
+    job,
+    /PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}/,
+  );
 });
 
 test('the API surface suppresses whole-repo thresholds it can never meet', () => {

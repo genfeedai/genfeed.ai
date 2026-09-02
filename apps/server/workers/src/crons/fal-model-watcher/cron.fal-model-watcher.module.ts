@@ -9,6 +9,7 @@ import { ModelDiscoveryService } from '@workers/services/model-discovery.service
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 
 @Module({
+  exports: [CronFalModelWatcherService],
   imports: [forwardRef(() => ModelsModule), NotificationsModule, ConfigModule],
   providers: [
     CronFalModelWatcherService,

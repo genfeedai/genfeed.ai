@@ -315,7 +315,9 @@ test.describe('Login Success Flow', () => {
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(/overview/);
-    await expect(authenticatedPage.locator('main')).toBeVisible();
+    await expect(
+      authenticatedPage.getByTestId('app-main-content'),
+    ).toBeVisible();
     await expect(
       authenticatedPage.getByTestId('desktop-sidebar-rail'),
     ).toBeVisible();

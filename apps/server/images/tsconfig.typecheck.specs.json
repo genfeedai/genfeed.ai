@@ -1,6 +1,0 @@
-{
-  "compilerOptions": { "types": ["node", "vitest/globals"] },
-  "exclude": ["node_modules", "dist"],
-  "extends": "../tsconfig.typecheck.base.json",
-  "include": ["src/**/*"]
-}

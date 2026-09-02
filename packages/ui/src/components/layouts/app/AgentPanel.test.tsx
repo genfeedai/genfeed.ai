@@ -1,5 +1,6 @@
 import type { AgentApiService } from '@genfeedai/agent';
 import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -105,6 +106,18 @@ vi.mock('@genfeedai/agent/components/AgentCliTerminal', () => ({
   }),
 }));
 
+function renderAgentPanel(apiService: AgentApiService) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { gcTime: 0, retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AgentPanel apiService={apiService} />
+    </QueryClientProvider>,
+  );
+}
+
 describe('AgentPanel', () => {
   it('fetches credits on mount and renders the terminal', async () => {
     const apiService = {
@@ -115,7 +128,7 @@ describe('AgentPanel', () => {
       getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
-    render(<AgentPanel apiService={apiService} />);
+    renderAgentPanel(apiService);
 
     await waitFor(() => {
       expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
@@ -138,7 +151,7 @@ describe('AgentPanel', () => {
       getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
-    render(<AgentPanel apiService={apiService} />);
+    renderAgentPanel(apiService);
 
     await waitFor(() => {
       expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);

@@ -277,7 +277,6 @@ export function useAgentChatContainer({
 
   const isRunActive =
     activeRunStatus === 'running' || activeRunStatus === 'cancelling';
-  const shouldQueueFollowUps = isBusy;
   const canAutoDispatchFollowUps = !isBusy && !error;
 
   const activeThreadTitle = useMemo(() => {
@@ -499,7 +498,13 @@ export function useAgentChatContainer({
         setError('Archived threads are read-only.');
         return false;
       }
-      if (shouldQueueFollowUps) {
+      const liveState = useAgentChatStore.getState();
+      const shouldQueueFollowUp =
+        Boolean(activeUiActionRef.current) ||
+        liveState.isGenerating ||
+        (isStreaming && liveState.stream.isStreaming);
+
+      if (shouldQueueFollowUp) {
         const enqueued = followUpQueue.enqueue(content, {
           attachments,
           mentions,
@@ -531,9 +536,9 @@ export function useAgentChatContainer({
       followLatestTurn,
       followUpQueue,
       isReadOnly,
+      isStreaming,
       sendMessage,
       setError,
-      shouldQueueFollowUps,
     ],
   );
 

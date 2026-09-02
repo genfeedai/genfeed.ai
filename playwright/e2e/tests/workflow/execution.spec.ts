@@ -1,4 +1,5 @@
 import {
+  buildExecutionJsonApiResource,
   mockActiveSubscription,
   mockNodeTypes,
   mockWorkflowCrud,
@@ -115,8 +116,9 @@ test.describe('Workflow Execution', () => {
       async (route) => {
         await route.fulfill({
           body: JSON.stringify({
-            data: {
-              attributes: {
+            data: buildExecutionJsonApiResource(
+              execution.id,
+              {
                 completedAt: execution.completedAt,
                 id: execution.id,
                 logs: execution.logs,
@@ -125,9 +127,8 @@ test.describe('Workflow Execution', () => {
                 status: execution.status,
                 workflowId: execution.workflowId,
               },
-              id: execution.id,
-              type: 'executions',
-            },
+              'executions',
+            ),
           }),
           contentType: 'application/json',
           status: 200,

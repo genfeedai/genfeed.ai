@@ -170,6 +170,27 @@ describe('UploadService', () => {
       expect(mockStorage.upload).not.toHaveBeenCalled();
     });
 
+    it.each([
+      `${FILES_TMP_ROOT}/nested/../image.jpg`,
+      `${FILES_TMP_ROOT}/nested\\image.jpg`,
+      `${FILES_TMP_ROOT}/nested/%2e%2e/image.jpg`,
+      `${FILES_TMP_ROOT}/nested/%252e%252e/image.jpg`,
+    ])(
+      'rejects ambiguous file source %s before reading it',
+      async (filePath) => {
+        await expect(
+          service.uploadToS3('test-key', 'images', {
+            path: filePath,
+            type: 'file',
+          }),
+        ).rejects.toThrow(HttpException);
+
+        expect(fs.statSync).not.toHaveBeenCalled();
+        expect(mockStorage.upload).not.toHaveBeenCalled();
+        expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
+      },
+    );
+
     it('should upload JPEG file with image dimensions', async () => {
       const result = await service.uploadToS3('test-key', 'images', {
         path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
@@ -221,9 +242,15 @@ describe('UploadService', () => {
       },
     );
 
-    it('rejects an object key that escapes the ingredients prefix', async () => {
+    it.each([
+      '../../escaped',
+      '/absolute',
+      'nested\\escaped',
+      'nested/%2e%2e/escaped',
+      'nested/%252e%252e/escaped',
+    ])('rejects unsafe object key %s before storage', async (key) => {
       await expect(
-        service.uploadToS3('../../escaped', 'images', {
+        service.uploadToS3(key, 'images', {
           contentType: 'image/jpeg',
           data: Buffer.from('image'),
           type: 'buffer',
@@ -269,6 +296,7 @@ describe('UploadService', () => {
       expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/videos/test-key',
         videoPath,
+        FILES_TMP_ROOT,
         'video/mp4',
       );
       expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalledWith(
@@ -302,6 +330,7 @@ describe('UploadService', () => {
       expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/archives/test-key',
         zipPath,
+        FILES_TMP_ROOT,
         'application/zip',
       );
     });
@@ -316,6 +345,7 @@ describe('UploadService', () => {
       expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/files/test-key',
         unknownPath,
+        FILES_TMP_ROOT,
         'application/octet-stream',
       );
     });
@@ -428,8 +458,12 @@ describe('UploadService', () => {
       // Gif is uploaded as-is (re-encoding would flatten the animation).
       expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/images/test-key',
-        expect.stringContaining('test-key.gif'),
+        expect.stringContaining('.gif'),
+        FILES_TMP_ROOT,
         'image/gif',
+      );
+      expect(mockStorage.uploadFromFile.mock.calls[0]?.[1]).not.toContain(
+        'test-key',
       );
     });
 
@@ -453,6 +487,7 @@ describe('UploadService', () => {
       expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
         'ingredients/videos/test-key',
         expect.any(String),
+        FILES_TMP_ROOT,
         'video/webm',
       );
     });
@@ -477,7 +512,10 @@ describe('UploadService', () => {
       ).rejects.toThrow('ffprobe failed');
 
       expect(fs.unlinkSync).toHaveBeenCalledWith(
-        expect.stringContaining('test-key.mp4'),
+        expect.stringContaining('.mp4'),
+      );
+      expect((fs.unlinkSync as Mock).mock.calls[0]?.[0]).not.toContain(
+        'test-key',
       );
       expect(mockStorage.uploadFromFile).not.toHaveBeenCalled();
     });

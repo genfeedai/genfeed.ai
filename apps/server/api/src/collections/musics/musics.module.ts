@@ -13,7 +13,7 @@ import { MusicsController } from '@api/collections/musics/controllers/musics.con
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -27,6 +27,7 @@ import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { Module } from '@nestjs/common';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
 
 @Module({
   controllers: [
@@ -54,6 +55,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     MusicsService,
+    MusicGenerationCreditsService,
     MusicGenerationService,
     CreditsGuard,
     ModelsGuard,

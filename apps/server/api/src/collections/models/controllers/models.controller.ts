@@ -1,17 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
-import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
-import { type ModelDocument } from '@server/collections/models/schemas/model.schema';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
@@ -19,7 +11,9 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { ModelLifecycle } from '@genfeedai/enums';
 import type {
+  IModelProviderContracts,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -36,6 +30,14 @@ import {
   Req,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
+import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
+import { type ModelDocument } from '@server/collections/models/schemas/model.schema';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
@@ -163,7 +165,7 @@ export class ModelsController extends BaseCRUDController<
       case 'discovered':
         return { isDiscovered: true };
       case 'legacy':
-        return { isLegacy: true };
+        return { lifecycle: ModelLifecycle.LEGACY };
       case 'pending':
         return { isActive: false, isDiscovered: true, reviewStatus: 'pending' };
       case 'rejected':
@@ -198,6 +200,7 @@ export class ModelsController extends BaseCRUDController<
       category: model.category,
       isDefault: true,
       isDeleted: false,
+      organizationId: model.organizationId ?? null,
     });
 
     if (otherDefaults === 0) {
@@ -292,6 +295,20 @@ export class ModelsController extends BaseCRUDController<
     return [];
   }
 
+  @Get(':modelId/provider-contracts')
+  async getProviderContracts(
+    @Req() request: RequestWithContext,
+    @CurrentUser() user: User,
+    @Param('modelId') modelId: string,
+  ): Promise<IModelProviderContracts> {
+    this.assertCanManageRegistry(user, request as unknown as Request);
+    const contracts = await this.modelsService.getProviderContracts(modelId);
+    if (!contracts) {
+      ErrorResponse.notFound(this.entityName, modelId);
+    }
+    return contracts;
+  }
+
   /**
    * Override patch to enforce mutual exclusivity of isDefault within category.
    * - Only one model per category can be isDefault: true
@@ -304,7 +321,27 @@ export class ModelsController extends BaseCRUDController<
     @Param('modelId') modelId: string,
     @Body() updateDto: UpdateModelDto,
   ): Promise<JsonApiSingleResponse> {
-    // Registry review transitions (approve/reject/legacy) route through the
+    if (updateDto.lifecycle) {
+      this.assertCanManageRegistry(user, request as unknown as Request);
+      if (updateDto.lifecycle !== ModelLifecycle.RECOMMENDED) {
+        await this.assertCanDisableModel(modelId);
+      }
+      const data = await this.modelsService.transitionLifecycle(
+        modelId,
+        updateDto.lifecycle,
+        updateDto.succeededBy,
+      );
+      if (!data) {
+        ErrorResponse.notFound(this.entityName, modelId);
+      }
+      return serializeSingle(
+        request as unknown as Request,
+        ModelSerializer,
+        data,
+      );
+    }
+
+    // Registry review transitions (approve/reject) route through the
     // dedicated service methods, preserving the superadmin guard and the
     // last-default protection — rather than a plain field write.
     if (updateDto.reviewStatus) {
@@ -339,6 +376,15 @@ export class ModelsController extends BaseCRUDController<
 
     // If setting isDefault to true, clear other defaults in same category
     if (updateDto.isDefault === true) {
+      if (model.lifecycle !== ModelLifecycle.RECOMMENDED || !model.isActive) {
+        ErrorResponse.validationFailed([
+          {
+            code: 'DEFAULT_REQUIRES_RECOMMENDED',
+            field: 'isDefault',
+            message: 'Only an active Recommended model can be the default.',
+          },
+        ]);
+      }
       await this.modelsService.clearOtherDefaults(
         model.category,
         model.organizationId ?? null,
@@ -351,9 +397,9 @@ export class ModelsController extends BaseCRUDController<
   }
 
   /**
-   * Apply a registry review transition (approve/reject/legacy) driven by the
-   * `reviewStatus` field on a `PATCH /models/:id`. Superadmin-guarded; reject and
-   * legacy additionally protect the last default model in a category. Approve
+   * Apply a registry review transition (approve/reject) driven by the
+   * `reviewStatus` field on a `PATCH /models/:id`. Superadmin-guarded; reject
+   * additionally protects the last default model in a category. Approve
    * carries any remaining update fields through (e.g. `label`).
    */
   private async applyRegistryReview(
@@ -364,7 +410,12 @@ export class ModelsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     this.assertCanManageRegistry(user, request as unknown as Request);
 
-    const { reviewStatus, reason, succeededBy, ...updates } = updateDto;
+    const {
+      reviewStatus,
+      reason,
+      succeededBy: _succeededBy,
+      ...updates
+    } = updateDto;
     const reviewedBy = this.getReviewerId(user);
 
     let data: ModelDocument | null;
@@ -381,13 +432,6 @@ export class ModelsController extends BaseCRUDController<
         data = await this.modelsService.rejectRegistryModel(modelId, {
           reason,
           reviewedBy,
-        });
-        break;
-      case 'legacy':
-        await this.assertCanDisableModel(modelId);
-        data = await this.modelsService.markRegistryModelLegacy(modelId, {
-          reviewedBy,
-          succeededBy,
         });
         break;
       default:

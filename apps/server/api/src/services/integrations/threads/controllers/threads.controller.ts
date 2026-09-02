@@ -1,10 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import {
-  ConnectCredentialDto,
-  CreateCredentialVerifyDto,
-} from '@server/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -13,7 +6,6 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
@@ -33,6 +25,14 @@ import {
   Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import {
+  ConnectCredentialDto,
+  CreateCredentialVerifyDto,
+} from '@server/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
@@ -73,6 +73,22 @@ export class ThreadsController {
     private readonly loggerService: LoggerService,
   ) {
     this.apiVersion = this.configService.get('THREADS_API_VERSION') || 'v1.0';
+  }
+
+  /**
+   * Report whether the backend configuration guard will allow Threads OAuth.
+   */
+  @Get('connect-readiness')
+  getConnectReadiness(): { status: 'available' | 'unavailable' } {
+    try {
+      this.getOAuthConfig();
+      return { status: 'available' };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        return { status: 'unavailable' };
+      }
+      throw error;
+    }
   }
 
   /**
@@ -247,13 +263,10 @@ export class ThreadsController {
       }
 
       // Get account details to store username
-      const accountDetails = (await this.threadsService.getAccountDetails(
+      const externalProfile = await this.resolveExternalProfile(
         access_token,
-      )) as {
-        id?: string;
-        threads_profile_picture_url?: string;
-        username?: string;
-      };
+        userId,
+      );
 
       // Update the credential with the access token
       let credential = await this.credentialsService.patch(
@@ -272,12 +285,7 @@ export class ThreadsController {
       credential = await this.credentialsService.updateExternalProfile(
         credential.id,
         organizationId,
-        {
-          avatarUrl: accountDetails?.threads_profile_picture_url,
-          handle: accountDetails?.username,
-          id: userId || accountDetails?.id,
-          name: accountDetails?.username,
-        },
+        externalProfile,
       );
 
       return serializeSingle(request, CredentialSerializer, credential);
@@ -288,6 +296,30 @@ export class ThreadsController {
       }
       return returnInternalServerError('Failed to verify Threads OAuth');
     }
+  }
+
+  private async resolveExternalProfile(
+    accessToken: string,
+    oauthUserId: string | undefined,
+  ): Promise<{
+    avatarUrl?: string;
+    handle?: string;
+    id?: string;
+    name?: string;
+  }> {
+    const accountDetails = (await this.threadsService.getAccountDetails(
+      accessToken,
+    )) as {
+      id?: string;
+      threads_profile_picture_url?: string;
+      username?: string;
+    };
+    return {
+      avatarUrl: accountDetails.threads_profile_picture_url,
+      handle: accountDetails.username,
+      id: oauthUserId || accountDetails.id,
+      name: accountDetails.username,
+    };
   }
 
   @Get('trends')

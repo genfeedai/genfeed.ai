@@ -1,12 +1,4 @@
-import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { CacheService } from '@server/services/cache/cache.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 import {
   IngredientStatus,
   JobState,
@@ -24,15 +16,17 @@ import {
   RAW_CUT_JOB_PREFIX,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import {
-  ConflictException,
-  Injectable,
-  type OnModuleInit,
-} from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { CacheService } from '@server/services/cache/cache.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 
-type VideoCompletionEvent = {
+export type VideoCompletionEvent = {
   ingredientId: string;
   userId?: string;
   organizationId: string;
@@ -65,9 +59,8 @@ const RAW_CUT_RECONCILIATION_LOCK = 'raw-cut-clip-reconciliation';
 const RAW_CUT_RECONCILIATION_LOCK_TTL_SECONDS = 300;
 
 @Injectable()
-export class VideoCompletionService implements OnModuleInit {
+export class VideoCompletionService {
   constructor(
-    private readonly redisService: RedisService,
     private readonly editorProjectsService: EditorProjectsService,
     private readonly fileQueueService: FileQueueService,
     private readonly generationEventWebhookService: GenerationEventWebhookService,
@@ -79,26 +72,7 @@ export class VideoCompletionService implements OnModuleInit {
     private readonly logger: LoggerService,
   ) {}
 
-  async onModuleInit() {
-    await this.subscribeToVideoCompletion();
-  }
-
-  private async subscribeToVideoCompletion(): Promise<void> {
-    await this.redisService.subscribe(
-      'video-processing-complete',
-      async (data: unknown) => {
-        const event = data as VideoCompletionEvent;
-        this.logger.log(
-          `Received video completion event for ${event.ingredientId}`,
-        );
-
-        await this.handleVideoCompletion(event);
-      },
-    );
-    this.logger.log('Subscribed to video-processing-complete channel');
-  }
-
-  private async handleVideoCompletion(data: VideoCompletionEvent) {
+  async handleVideoCompletion(data: VideoCompletionEvent) {
     try {
       const { ingredientId, organizationId, status, result, error } = data;
 
@@ -183,7 +157,6 @@ export class VideoCompletionService implements OnModuleInit {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async reconcileEditorRenders(): Promise<void> {
     const projects = await this.editorProjectsService.findRenderingProjects();
 
@@ -274,7 +247,6 @@ export class VideoCompletionService implements OnModuleInit {
     }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
   async reconcileRawCutClips(): Promise<void> {
     await this.cacheService.withLock(
       RAW_CUT_RECONCILIATION_LOCK,

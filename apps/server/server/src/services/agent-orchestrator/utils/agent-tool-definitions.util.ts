@@ -1,4 +1,6 @@
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import { RouterPriority } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { getToolDefinitions } from '@server/services/agent-orchestrator/tools/agent-tool-registry';
@@ -171,13 +173,16 @@ export const BATCH_SCOPED_ALLOWED_TOOLS: AgentToolName[] = [
 ];
 
 export function buildAgentChatCompletionParams(params: {
+  autoAllowedModelKeys?: string[];
   defaultModelKey: string;
   messages: OpenRouterMessage[];
   model: string;
   prompt: string;
+  prioritize?: RouterPriority;
   seedTitle?: string;
   source?: AgentChatRequest['source'];
   tools: OpenRouterTool[];
+  sessionId?: string;
 }): {
   max_tokens: number;
   messages: OpenRouterMessage[];
@@ -193,7 +198,23 @@ export function buildAgentChatCompletionParams(params: {
     prompt: params.prompt,
     source: params.source,
   });
-  const plugins = resolveAgentRoutingPlugins(routingPolicy);
+  const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
+  const plugins =
+    params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
+      ? [
+          ...routingPlugins,
+          {
+            allowed_models: params.autoAllowedModelKeys ?? [],
+            cost_tier:
+              params.prioritize === RouterPriority.QUALITY
+                ? ('max' as const)
+                : params.prioritize === RouterPriority.COST
+                  ? ('low' as const)
+                  : ('medium' as const),
+            id: 'auto-router',
+          },
+        ]
+      : routingPlugins;
   const titleInstruction = params.seedTitle?.trim()
     ? [
         {
@@ -208,7 +229,11 @@ export function buildAgentChatCompletionParams(params: {
     max_tokens: 4096,
     messages: [...titleInstruction, ...params.messages],
     model: params.model,
-    ...(plugins ? { plugins } : {}),
+    ...(plugins.length > 0 ? { plugins } : {}),
+    ...(params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO &&
+    params.sessionId
+      ? { session_id: params.sessionId }
+      : {}),
     temperature: 0.7,
     tool_choice: 'auto',
     tools: resolveProviderToolDefinitions(params.model, params.tools),

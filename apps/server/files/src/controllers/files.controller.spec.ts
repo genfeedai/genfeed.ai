@@ -2,6 +2,7 @@ import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 import { Readable } from 'node:stream';
 import { ConfigService } from '@files/config/config.service';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FilesController } from '@files/controllers/files.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
@@ -210,6 +211,7 @@ describe('FilesController', () => {
   };
 
   const mockTempFileCleanupCron = {
+    cleanupTempFiles: vi.fn(),
     manualCleanup: vi.fn().mockResolvedValue({
       filesDeleted: 5,
       message: 'Cleanup completed',
@@ -1320,6 +1322,7 @@ describe('FilesController', () => {
       expect(ffmpegService.getVideoMetadata).toHaveBeenCalledWith(
         '/path/to/video.mp4',
       );
+      expect(mockTempFileCleanupCron.cleanupTempFiles).toHaveBeenCalledOnce();
       expect(result.duration).toBe(120);
       expect(result.width).toBe(1920);
       expect(result.height).toBe(1080);
@@ -1652,9 +1655,14 @@ describe('FilesController', () => {
       const file = {
         mimetype: 'video/mp4',
         originalname: 'clip.mp4',
-        path: '/tmp/genfeed-multipart/clip.mp4',
+        path: 'nested/clip.mp4',
         size: 2048,
       } as Express.Multer.File;
+      const containedPath = nodePath.join(
+        FILES_TMP_ROOT,
+        'multipart-uploads',
+        file.path,
+      );
 
       const result = await controller.uploadMultipart(file, {
         key: 'test-file.mp4',
@@ -1664,19 +1672,24 @@ describe('FilesController', () => {
       expect(uploadService.uploadToS3).toHaveBeenCalledWith(
         'test-file.mp4',
         'videos',
-        { path: file.path, type: 'file' },
+        { path: containedPath, type: 'file' },
       );
       expect(result.publicUrl).toBeDefined();
-      expect(fsMock.unlinkSync).toHaveBeenCalledWith(file.path);
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(containedPath);
     });
 
     it('renames an extensionless temp file from the declared content type', async () => {
       const file = {
         mimetype: 'application/octet-stream',
         originalname: 'upload',
-        path: '/tmp/genfeed-multipart/uuid',
+        path: 'nested/uuid',
         size: 2048,
       } as Express.Multer.File;
+      const containedPath = nodePath.join(
+        FILES_TMP_ROOT,
+        'multipart-uploads',
+        file.path,
+      );
 
       await controller.uploadMultipart(file, {
         contentType: 'image/jpeg',
@@ -1685,14 +1698,42 @@ describe('FilesController', () => {
       });
 
       expect(fsMock.renameSync).toHaveBeenCalledWith(
-        file.path,
-        `${file.path}.jpg`,
+        containedPath,
+        `${containedPath}.jpg`,
       );
       expect(uploadService.uploadToS3).toHaveBeenCalledWith('photo', 'images', {
-        path: `${file.path}.jpg`,
+        path: `${containedPath}.jpg`,
         type: 'file',
       });
     });
+
+    it.each([
+      '../outside.mp4',
+      'nested\\outside.mp4',
+      'nested/%2e%2e/outside.mp4',
+      'nested/%252e%252e/outside.mp4',
+    ])(
+      'rejects unsafe multipart temp path %s before storage',
+      async (filePath) => {
+        const file = {
+          mimetype: 'video/mp4',
+          originalname: 'clip.mp4',
+          path: filePath,
+          size: 2048,
+        } as Express.Multer.File;
+
+        await expect(
+          controller.uploadMultipart(file, {
+            key: 'test-file.mp4',
+            type: 'videos',
+          }),
+        ).rejects.toThrow(HttpException);
+
+        expect(uploadService.uploadToS3).not.toHaveBeenCalled();
+        expect(fsMock.existsSync).not.toHaveBeenCalled();
+        expect(fsMock.renameSync).not.toHaveBeenCalled();
+      },
+    );
 
     it('rejects a missing file before contacting storage', async () => {
       await expect(

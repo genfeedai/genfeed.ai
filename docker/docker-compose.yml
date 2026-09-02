@@ -66,31 +66,6 @@ services:
     depends_on: [redis]
     profiles: [bots]
 
-  # GPU services (opt-in: docker compose --profile gpu up)
-  images:
-    build: { context: .., dockerfile: docker/Dockerfile, target: images }
-    ports: ["${IMAGES_PORT:-3020}:${IMAGES_PORT:-3020}"]
-    env_file: .env
-    environment:
-      - PORT=${IMAGES_PORT:-3020}
-    profiles: [gpu]
-
-  videos:
-    build: { context: .., dockerfile: docker/Dockerfile, target: videos }
-    ports: ["${VIDEOS_PORT:-3021}:${VIDEOS_PORT:-3021}"]
-    env_file: .env
-    environment:
-      - PORT=${VIDEOS_PORT:-3021}
-    profiles: [gpu]
-
-  voices:
-    build: { context: .., dockerfile: docker/Dockerfile, target: voices }
-    ports: ["${VOICES_PORT:-3022}:${VOICES_PORT:-3022}"]
-    env_file: .env
-    environment:
-      - PORT=${VOICES_PORT:-3022}
-    profiles: [gpu]
-
   # Infrastructure
   postgres:
     image: pgvector/pgvector:pg17

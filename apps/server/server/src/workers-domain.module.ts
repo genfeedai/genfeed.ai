@@ -141,13 +141,13 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
 import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
@@ -201,7 +201,12 @@ import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.
 import { XActivitySubscriptionService } from '@server/services/reply-bot/x-activity-subscription.service';
 import { XActivityWebhookService } from '@server/services/reply-bot/x-activity-webhook.service';
 import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
+import { ContentGeoOptimizerHandler } from '@server/services/skill-executor/handlers/content-geo-optimizer.handler';
+import { ContentWritingHandler } from '@server/services/skill-executor/handlers/content-writing.handler';
+import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
+import { TrendDiscoveryHandler } from '@server/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@server/services/skill-executor/handlers/trend-remix.handler';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 import { TaskDecompositionService } from '@server/services/task-orchestration/task-decomposition.service';
 import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@server/services/task-orchestration/workspace-task-quality.service';
@@ -271,7 +276,9 @@ const WORKER_DOMAIN_SERVICES = [
   ClipLibraryLinkService,
   ClipProjectsService,
   ContentEngineService,
+  ContentGeoOptimizerHandler,
   ContentOrchestrationService,
+  ContentWritingHandler,
   StepExecutorService,
   ContentRotationService,
   ContextsService,
@@ -292,7 +299,7 @@ const WORKER_DOMAIN_SERVICES = [
   FalService,
   FanvuePublisherService,
   FilesClientService,
-  FleetService,
+  ManagedInferenceRuntimeService,
   GenerationEventWebhookService,
   GhostPublisherService,
   GoogleAdsService,
@@ -303,6 +310,7 @@ const WORKER_DOMAIN_SERVICES = [
   HookClipApprovalService,
   IngredientGenerationCancellationService,
   IngredientsService,
+  ImageGenerationHandler,
   InsightsService,
   InstagramPublisherService,
   InstagramService,
@@ -357,7 +365,7 @@ const WORKER_DOMAIN_SERVICES = [
   SharedService,
   ShopifyPublisherService,
   SignupPrefillService,
-  SkillExecutorService,
+  SkillWorkflowService,
   SnapchatPublisherService,
   SocialInboxService,
   SocialMonitorService,
@@ -376,6 +384,8 @@ const WORKER_DOMAIN_SERVICES = [
   TikTokPublisherService,
   TiktokService,
   TrendPreferencesService,
+  TrendDiscoveryHandler,
+  TrendRemixHandler,
   TrendReferenceCorpusService,
   TrendsService,
   TriggerEvaluatorService,

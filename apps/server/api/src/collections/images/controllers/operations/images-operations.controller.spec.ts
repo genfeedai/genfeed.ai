@@ -43,6 +43,7 @@ import { ImagesOperationsController } from '@api/collections/images/controllers/
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
@@ -240,6 +241,7 @@ describe('ImagesOperationsController', () => {
         // create() to it, so the DI graph must be able to construct it.
         FalImageGenerationProviderAdapter,
         GenfeedAiImageGenerationProviderAdapter,
+        ImageGenerationAdmissionService,
         ImageGenerationCreditsService,
         ImageGenerationProviderDispatchService,
         ImageGenerationProviderRegistryService,

@@ -24,10 +24,12 @@ describe('HomeFormats', () => {
     for (const title of [
       'Images & posts',
       'Reels & short video',
-      'Ad creatives',
-      'Avatar clips',
-      'Voiceovers',
+      'Podcasts & voice',
+      'Newsletters',
+      'Ads & creatives',
+      'AI influencers',
       'Articles & SEO',
+      'YouTube & thumbnails',
     ]) {
       expect(
         screen.getByRole('heading', { level: 3, name: title }),

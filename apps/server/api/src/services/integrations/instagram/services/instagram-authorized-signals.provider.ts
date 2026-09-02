@@ -77,11 +77,9 @@ export interface InstagramMediaFetch {
 }
 
 export interface InstagramProviderFetchResult {
-  mediaResult: SettledResult<InstagramMediaFetch>;
-  profileResult: SettledResult<InstagramUserResponse>;
+  mediaResult: AuthorizedSignalsSettledResult<InstagramMediaFetch>;
+  profileResult: AuthorizedSignalsSettledResult<InstagramUserResponse>;
 }
-
-export type SettledResult<T> = AuthorizedSignalsSettledResult<T>;
 
 export function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -381,7 +379,7 @@ export class InstagramAuthorizedSignalsProvider {
 
   private async settle<T>(
     promise: Promise<T> | undefined,
-  ): Promise<SettledResult<T>> {
+  ): Promise<AuthorizedSignalsSettledResult<T>> {
     return settleProviderRequest(promise);
   }
 }

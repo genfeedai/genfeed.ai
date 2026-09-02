@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import './coverage-failure-reporter.test.mjs';
+import './full-suite-evidence.test.mjs';
 import './nightly-e2e-failure-reporter.test.mjs';
 import './nightly-playwright-full-failure-reporter.test.mjs';
 import './playwright-full-nightly.test.mjs';
@@ -162,6 +163,7 @@ test('enforces executable contracts through the aggregate suite', () => {
     'check:bull-board-parity',
     'check:relation-alias-reads',
     'check:relation-alias-writes',
+    'check:runtime-complexity',
   ]) {
     assert.match(
       contracts,
@@ -378,6 +380,23 @@ test('reusable CI callers grant the merge-queue janitor permission ceiling', () 
       `${fileName} must let reusable ci.yml grant actions:write to its janitor job`,
     );
   }
+});
+
+test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
+  // e2e.yml reads jobs from its current run to report exact scheduled failures.
+  // GitHub validates this permission before starting any called job, so omitting
+  // it makes the entire Full Suite fail at startup with no job logs.
+  const caller = jobBlock(
+    readWorkflow('full-suite.yml'),
+    'e2e',
+    'full-suite.yml',
+  );
+
+  assert.match(
+    caller,
+    /^ {6}actions: read$/m,
+    'full-suite.yml must let reusable e2e.yml read its current run jobs',
+  );
 });
 
 // The curated action catalog decides whether a product action is exposed on
@@ -664,6 +683,33 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
   assert.match(
     workflow,
     /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
+  );
+});
+
+test('serializes reusable build verification without cancelling another caller', () => {
+  for (const fileName of ['build-verify.yml', 'build-verify-selfhosted.yml']) {
+    const workflow = readWorkflow(fileName);
+    assert.match(
+      topLevelConcurrencyBlock(workflow, fileName),
+      /^ {2}group: build-verify(?:-selfhosted)?-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}\n {2}cancel-in-progress: false$/m,
+      `${fileName} must queue shared-cache writers instead of cancelling a master or release caller`,
+    );
+  }
+});
+
+test('release waits for exact-SHA Full Suite evidence in the existing validation step', () => {
+  const workflow = readWorkflow('release.yml');
+  const validateRelease = jobBlock(workflow, 'validate-release', 'release.yml');
+
+  assert.match(validateRelease, /^ {4}timeout-minutes: 35$/m);
+  assert.match(
+    validateRelease,
+    /- name: Check for existing Full Suite evidence[\s\S]*?run: node scripts\/ci\/full-suite-evidence\.mjs/,
+  );
+  assert.doesNotMatch(
+    validateRelease,
+    /status=success&per_page=100/,
+    'release must observe queued and in-progress exact-SHA runs, not only completed successes',
   );
 });
 

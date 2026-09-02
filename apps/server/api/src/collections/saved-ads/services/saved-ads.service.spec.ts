@@ -404,6 +404,27 @@ describe('SavedAdsService', () => {
     expect(prisma.savedAd.update).not.toHaveBeenCalled();
   });
 
+  it('rejects a note mutation when its brand is soft-deleted', async () => {
+    (prisma.brand.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await expect(
+      service.updateNotes('org-1', [
+        { brandId: 'brand-1', id: 'saved-1', note: 'Nope' },
+      ]),
+    ).rejects.toThrow();
+
+    expect(prisma.brand.findMany).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: { in: ['brand-1'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.savedAd.findMany).not.toHaveBeenCalled();
+    expect(prisma.savedAd.update).not.toHaveBeenCalled();
+  });
+
   it('updates and returns a trimmed brand note in scope', async () => {
     (prisma.savedAd.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       { brandId: 'brand-1', id: 'saved-1' },
@@ -462,6 +483,25 @@ describe('SavedAdsService', () => {
       service.unsaveMany('org-1', [{ brandId: 'brand-1', id: 'saved-other' }]),
     ).rejects.toThrow();
 
+    expect(prisma.savedAd.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsave when its brand is soft-deleted', async () => {
+    (prisma.brand.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await expect(
+      service.unsaveMany('org-1', [{ brandId: 'brand-1', id: 'saved-1' }]),
+    ).rejects.toThrow();
+
+    expect(prisma.brand.findMany).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: { in: ['brand-1'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.savedAd.findMany).not.toHaveBeenCalled();
     expect(prisma.savedAd.updateMany).not.toHaveBeenCalled();
   });
 });

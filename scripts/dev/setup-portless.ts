@@ -3,6 +3,11 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { PORTLESS_PROXY_ENVIRONMENT } from './portless-env';
 
+const PORTLESS_CLI_PATH = path.resolve(
+  import.meta.dirname,
+  '../../node_modules/.bin/portless',
+);
+
 export const PORTLESS_SERVICE_INSTALL_ARGS = [
   'service',
   'install',
@@ -29,8 +34,43 @@ export function isPortlessServiceReady(statusOutput: string): boolean {
   );
 }
 
+export function shouldInstallPortlessService(
+  statusOutput: string | null,
+): boolean {
+  return !statusOutput || !isPortlessServiceReady(statusOutput);
+}
+
+export function buildPortlessCommand(
+  args: readonly string[],
+  nodeExecutable = 'node',
+  portlessCliPath = PORTLESS_CLI_PATH,
+): string[] {
+  return [nodeExecutable, portlessCliPath, ...args];
+}
+
+export async function waitForPortlessServiceReady(
+  readStatus: () => string | null,
+  sleep: (milliseconds: number) => Promise<void> = (milliseconds) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  attempts = 20,
+  delayMilliseconds = 500,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const status = readStatus();
+    if (status && isPortlessServiceReady(status)) {
+      return true;
+    }
+    if (attempt < attempts - 1) {
+      await sleep(delayMilliseconds);
+    }
+  }
+
+  return false;
+}
+
 function readServiceStatus(): string | null {
-  const result = spawnSync('portless', ['service', 'status'], {
+  const [executable, ...args] = buildPortlessCommand(['service', 'status']);
+  const result = spawnSync(executable, args, {
     encoding: 'utf8',
     env: process.env,
     stdio: ['ignore', 'pipe', 'inherit'],
@@ -46,18 +86,19 @@ function readServiceStatus(): string | null {
 function installService(): void {
   const stateDirectory =
     process.env.PORTLESS_STATE_DIR ?? path.join(homedir(), '.portless');
-  const result = spawnSync(
-    'portless',
-    [...PORTLESS_SERVICE_INSTALL_ARGS, '--state-dir', stateDirectory],
-    {
-      env: {
-        ...process.env,
-        ...PORTLESS_PROXY_ENVIRONMENT,
-        PORTLESS_STATE_DIR: stateDirectory,
-      },
-      stdio: 'inherit',
+  const [executable, ...args] = buildPortlessCommand([
+    ...PORTLESS_SERVICE_INSTALL_ARGS,
+    '--state-dir',
+    stateDirectory,
+  ]);
+  const result = spawnSync(executable, args, {
+    env: {
+      ...process.env,
+      ...PORTLESS_PROXY_ENVIRONMENT,
+      PORTLESS_STATE_DIR: stateDirectory,
     },
-  );
+    stdio: 'inherit',
+  });
 
   if (result.error) {
     throw result.error;
@@ -67,10 +108,11 @@ function installService(): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
+  const currentStatus = readServiceStatus();
+
   if (process.argv.includes('--check')) {
-    const currentStatus = readServiceStatus();
-    if (!currentStatus || !isPortlessServiceReady(currentStatus)) {
+    if (shouldInstallPortlessService(currentStatus)) {
       console.error(
         'Portless does not match the required local HTTPS contract. Run `bun run dev:setup`.',
       );
@@ -83,13 +125,19 @@ function main(): void {
     return;
   }
 
+  if (!shouldInstallPortlessService(currentStatus)) {
+    console.log(
+      'Portless is already ready: HTTPS on 443 with .localhost routes and no LAN exposure.',
+    );
+    return;
+  }
+
   console.log(
     'Applying the Portless HTTPS startup-service configuration. Administrator approval may be required.',
   );
   installService();
 
-  const installedStatus = readServiceStatus();
-  if (!installedStatus || !isPortlessServiceReady(installedStatus)) {
+  if (!(await waitForPortlessServiceReady(readServiceStatus))) {
     console.error(
       'Portless service installation completed without the required HTTPS configuration.',
     );
@@ -102,5 +150,8 @@ function main(): void {
 }
 
 if (import.meta.main) {
-  main();
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });
 }

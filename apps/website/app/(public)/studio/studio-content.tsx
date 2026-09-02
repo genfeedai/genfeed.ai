@@ -2,12 +2,14 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
+import type { PublicModelCatalogItem } from '@public/models/models-loader';
+import StudioInterfacePreview from '@public/studio/studio-interface-preview';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import PageLayout from '@web-components/PageLayout';
 import {
   ArrowRight,
@@ -21,16 +23,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-
-const AI_MODELS = [
-  'Google Veo 3',
-  'Imagen 4',
-  'Sora 2',
-  'DALL-E',
-  'GPT Image',
-  'ElevenLabs',
-  'Replicate',
-];
 
 const METRICS = [
   {
@@ -50,37 +42,24 @@ const METRICS = [
   },
 ];
 
-const SHOWCASE_IMAGES = [
-  {
-    alt: 'AI-generated abstract art',
-    src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&q=80&fit=crop',
-  },
-  {
-    alt: 'AI-generated portrait',
-    src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80&fit=crop',
-  },
-  {
-    alt: 'AI-generated cinematic scene',
-    src: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&q=80&fit=crop',
-  },
-];
+const SHOWCASE_OUTPUTS = HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 5);
 
 const FEATURES = [
   {
     description:
-      'Create videos in 2 minutes with Google Veo 3, OpenAI Sora 2, and more.',
+      'Create short-form clips, campaign footage, and finished video from a brief or reference.',
     icon: Video,
     title: 'Video Generation',
   },
   {
     description:
-      'Generate images with Google Imagen 4, DALL-E, and GPT Image models.',
+      'Generate campaign stills, product imagery, and design variations in every required ratio.',
     icon: ImageIcon,
     title: 'Image Generation',
   },
   {
     description:
-      'AI voice cloning with ElevenLabs and music generation for complete audio.',
+      'Create spoken tracks, voiceovers, music, and audio packages in the same production flow.',
     icon: Music,
     title: 'Voice & Music',
   },
@@ -109,8 +88,6 @@ const STEPS = [
   },
 ];
 
-const HIGHLIGHT_TAGS = ['Video', 'Images', 'Voice', 'Music'];
-
 const HERO_PROOF = (
   <HeroProofRail
     items={METRICS.map((metric) => ({
@@ -128,36 +105,22 @@ const HERO_PROOF = (
   />
 );
 
-const HERO_VISUAL = (
-  <EditorialPoster
-    detail="Video, image, voice, and music generation all live inside one production workspace."
-    eyebrow="Studio Canvas"
-    footer={<span>Models live inside one system</span>}
-    items={[
-      {
-        label: 'Models',
-        value: AI_MODELS.slice(0, 4).join(' / '),
-      },
-      {
-        label: 'Formats',
-        value: 'Videos, images, voice, music, and export packs.',
-      },
-      {
-        label: 'Workflow',
-        value: 'Prompt -> generate -> enhance -> publish.',
-      },
-      {
-        label: 'Outcome',
-        value: 'Create faster without juggling subscriptions or tabs.',
-      },
-    ]}
-    subtitle="Generation, refinement, and packaging"
-    title="One workspace, every format."
-  />
-);
+interface StudioContentProps {
+  models: PublicModelCatalogItem[] | null;
+}
 
-export default function StudioContent() {
+function titleCase(value: string): string {
+  return value
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+export default function StudioContent({ models }: StudioContentProps) {
   const containerRef = useMarketingEntrance();
+  const categories = [...new Set(models?.map((model) => model.category) ?? [])];
+  const heroVisual = <StudioInterfacePreview models={models} />;
 
   return (
     <div ref={containerRef}>
@@ -187,88 +150,126 @@ export default function StudioContent() {
           </>
         }
         heroProof={HERO_PROOF}
-        heroVisual={HERO_VISUAL}
+        heroVisual={heroVisual}
         compact
         title="Studio"
         description="Create AI content in minutes, not hours."
       >
-        {/* Highlight Card */}
-        <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)] p-8">
-            <div className="flex flex-row flex-col md:flex-row items-center gap-8">
-              <div className="flex-shrink-0">
-                <div className="flex size-20 items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-tint)]">
-                  <Sparkles className="size-10 text-surface" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-3">
-                <Heading as="h3" className="text-2xl font-bold text-surface">
-                  Every AI Model, One Workspace
-                </Heading>
-                <Text as="p" className="text-surface/70">
-                  Access video, image, voice, and music generation from a single
-                  interface. Switch between Google Veo 3, Imagen 4, Sora 2, and
-                  more without juggling subscriptions or tabs.
-                </Text>
-                <div className="flex flex-row items-center flex-wrap gap-2">
-                  {HIGHLIGHT_TAGS.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 text-xs border border-[var(--gen-accent-border)] text-surface/70"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+        <section className="gsap-section mx-auto max-w-6xl px-6 pb-28">
+          <div className="grid gap-12 border-y border-edge/10 py-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-24 lg:py-20">
+            <div>
+              <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+                Live model catalog
+              </Text>
+              <Heading
+                as="h2"
+                className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.045em] text-surface sm:text-5xl"
+              >
+                Choose the output. Then choose the model.
+              </Heading>
+            </div>
+            <div className="flex flex-col justify-between gap-10">
+              <Text className="max-w-xl text-base leading-7 text-surface/68">
+                The Studio reads model availability from the same registry as
+                the app. New options appear here without rewriting the page or
+                publishing stale claims.
+              </Text>
+              <div className="flex flex-col items-start gap-8">
+                {models && models.length > 0 ? (
+                  <div className="flex flex-wrap gap-x-6 gap-y-3">
+                    {categories.map((category) => (
+                      <Text
+                        className="text-xs font-bold uppercase tracking-[0.12em] text-surface/50"
+                        key={category}
+                      >
+                        {titleCase(category)}
+                      </Text>
+                    ))}
+                  </div>
+                ) : (
+                  <Text className="text-sm text-surface/50">
+                    {models
+                      ? 'No public models are currently listed'
+                      : 'Catalog connection unavailable'}
+                  </Text>
+                )}
+                <Link
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-surface underline underline-offset-4"
+                  href="/models"
+                >
+                  View the live catalog
+                  <ArrowRight className="size-4" />
+                </Link>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Creative Showcase */}
-        <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="grid grid-cols-3 gap-1.5">
-            {SHOWCASE_IMAGES.map((img) => (
-              <div
-                key={img.alt}
-                className="aspect-[9/16] relative overflow-hidden gen-contact-sheet"
+        <section className="mx-auto max-w-6xl px-6 pb-28">
+          <div className="mb-10 max-w-2xl">
+            <Text className="text-xs font-bold uppercase tracking-[0.16em] text-surface/55">
+              Made in Genfeed
+            </Text>
+            <Heading
+              as="h2"
+              className="mt-5 text-4xl font-semibold tracking-[-0.04em] text-surface sm:text-5xl"
+            >
+              Output before interface.
+            </Heading>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
+            {SHOWCASE_OUTPUTS.map((output, index) => (
+              <figure
+                key={output.alt}
+                className={`relative overflow-hidden rounded-lg bg-card ${
+                  index === 0
+                    ? 'col-span-2 aspect-[4/5] sm:col-span-4 sm:row-span-2 sm:aspect-auto'
+                    : 'col-span-1 aspect-[4/5] sm:col-span-2'
+                }`}
               >
                 <Image
-                  src={img.src}
-                  alt={img.alt}
+                  src={output.src}
+                  alt={output.alt}
                   fill
-                  sizes="(max-width: 768px) 33vw, 25vw"
+                  sizes={
+                    index === 0
+                      ? '(max-width: 640px) 100vw, 760px'
+                      : '(max-width: 640px) 50vw, 360px'
+                  }
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute inset-0 mix-blend-multiply bg-[var(--gen-accent-tint)]" />
-              </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <figcaption className="absolute inset-x-0 bottom-0 p-5">
+                  <Text className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">
+                    {output.format}
+                  </Text>
+                  <Heading as="h3" className="mt-2 text-xl text-white">
+                    {output.title}
+                  </Heading>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </section>
 
         {/* Features Grid */}
-        <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
-            Everything You Need to Create
+        <section className="gsap-section max-w-6xl mx-auto pb-28 px-6">
+          <Heading as="h2" className="text-3xl font-semibold mb-10">
+            Create across formats
           </Heading>
-          <div className="gsap-grid grid grid-cols-1 md:grid-cols-3 gap-1.5">
+          <div className="gsap-grid grid grid-cols-1 border-t border-edge/10 md:grid-cols-3">
             {FEATURES.map((feature) => {
               const Icon = feature.icon;
               return (
                 <div
                   key={feature.title}
-                  className="gsap-card gen-card-spotlight p-8 text-center"
+                  className="gsap-card border-b border-edge/10 py-8 md:border-r md:px-8 md:first:pl-0 md:last:border-r-0 md:last:pr-0"
                 >
-                  <div className="flex justify-center mb-4">
-                    <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
-                      <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
-                    </div>
-                  </div>
-                  <Heading as="h4" className="font-semibold mb-2 text-surface">
+                  <Icon className="size-5 text-[color:hsl(var(--gen-accent))]" />
+                  <Heading as="h3" className="mt-5 font-semibold text-surface">
                     {feature.title}
                   </Heading>
-                  <Text className="text-sm text-surface/65">
+                  <Text className="mt-3 text-sm leading-6 text-surface/65">
                     {feature.description}
                   </Text>
                 </div>
@@ -278,8 +279,8 @@ export default function StudioContent() {
         </section>
 
         {/* How It Works */}
-        <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <Heading as="h3" className="text-2xl font-bold text-center mb-12">
+        <section className="gsap-section max-w-4xl mx-auto pb-28 px-6">
+          <Heading as="h2" className="text-2xl font-bold text-center mb-12">
             How It Works
           </Heading>
           <div className="space-y-0">
@@ -315,12 +316,12 @@ export default function StudioContent() {
             <div className="flex justify-center mb-4">
               <Sparkles className="size-8 text-surface" />
             </div>
-            <Heading as="h3" className="text-2xl font-bold mb-2 text-surface">
+            <Heading as="h2" className="text-2xl font-bold mb-2 text-surface">
               Start Creating Today
             </Heading>
             <Text as="p" className="text-surface/70 mb-6 max-w-lg mx-auto">
-              Generate professional videos, images, and audio with the best AI
-              models. No editing skills required.
+              Generate video, images, audio, and written content from one
+              production workspace.
             </Text>
             <PricingStrip className="mb-6" />
             <div className="flex flex-row items-center flex-wrap gap-4 justify-center">

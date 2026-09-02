@@ -21,10 +21,14 @@ export function buildActionExecutionInput(
     ...config
   } = nodeConfig;
 
-  return {
+  const input = {
     ...readRecord(parameters),
     ...readRecord(payload),
     ...config,
     ...(inputs instanceof Map ? Object.fromEntries(inputs) : inputs),
   };
+
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
 }

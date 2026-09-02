@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
@@ -90,10 +91,7 @@ export class UploadService {
    * Extract video dimensions from a buffer by writing to temp file
    * Handles temp file creation and cleanup automatically
    */
-  private async getVideoDimensionsFromBuffer(
-    buffer: Buffer,
-    key: string,
-  ): Promise<{
+  private async getVideoDimensionsFromBuffer(buffer: Buffer): Promise<{
     width: number;
     height: number;
     duration: number;
@@ -101,7 +99,7 @@ export class UploadService {
   }> {
     const tmpPath = resolveContainedPath(
       FILES_TMP_ROOT,
-      `${key}.mp4`,
+      `${randomUUID()}.mp4`,
       createBadRequest,
     );
     const tmpDir = path.dirname(tmpPath);
@@ -209,12 +207,10 @@ export class UploadService {
         typeof rawContentType === 'string' ? rawContentType : undefined,
         remoteUrl,
       );
-      const extension =
-        this.getExtensionFromUrl(remoteUrl) ||
-        this.getExtensionFromContentType(contentType);
+      const extension = this.getExtensionFromContentType(contentType);
       const tmpPath = resolveContainedPath(
         FILES_TMP_ROOT,
-        path.join('downloads', `${key}${extension}`),
+        path.join('downloads', `${randomUUID()}${extension}`),
         createBadRequest,
       );
       const tmpDir = path.dirname(tmpPath);
@@ -285,7 +281,6 @@ export class UploadService {
   private async prepareBinaryUpload(
     body: Buffer,
     contentType: string,
-    key: string,
   ): Promise<PreparedUpload> {
     let width: number | undefined;
     let height: number | undefined;
@@ -293,7 +288,7 @@ export class UploadService {
     let hasAudio = false;
 
     if (contentType.startsWith('video/')) {
-      const metadata = await this.getVideoDimensionsFromBuffer(body, key);
+      const metadata = await this.getVideoDimensionsFromBuffer(body);
       ({ width, height, duration, hasAudio } = metadata);
       contentType = 'video/mp4';
     } else if (contentType.startsWith('image/')) {
@@ -317,10 +312,9 @@ export class UploadService {
         return this.prepareBinaryUpload(
           Buffer.from(source.data.replace(/^data:[^;]+;base64,/, ''), 'base64'),
           source.contentType,
-          key,
         );
       case 'buffer':
-        return this.prepareBinaryUpload(source.data, source.contentType, key);
+        return this.prepareBinaryUpload(source.data, source.contentType);
       default:
         throw new Error('Invalid upload source type');
     }
@@ -457,6 +451,7 @@ export class UploadService {
         storedPath = await this.storage.uploadFromFile(
           storagePath,
           processed.filePath,
+          FILES_TMP_ROOT,
           processed.contentType,
         );
       } else {

@@ -3,7 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
+import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import PageLayout from '@web-components/PageLayout';
+import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import {
   ArrowRight,
   Cpu,
@@ -26,11 +28,11 @@ const FEATURES = [
   },
   {
     description:
-      'Access the best AI models for video, image, voice, and text, automatically selected for each task.',
+      'Use the current image, video, voice, music, and language models published in the live product registry.',
     icon: Cpu,
     label: 'AI Engine',
     number: '02',
-    title: '50+ Models, One Prompt',
+    title: 'Live Models, One Prompt',
   },
   {
     description:
@@ -42,13 +44,30 @@ const FEATURES = [
   },
   {
     description:
-      'Professional-quality videos and images ready to publish. No editing, no post-production needed.',
+      'Create finished video, image, voice, and written assets, then refine and package them in the same workflow.',
     icon: MonitorPlay,
     label: 'Quality',
     number: '04',
-    title: '4K Output, Zero Post-Processing',
+    title: 'Finished Outputs, One Workflow',
   },
 ];
+
+const HERO_VISUAL = (
+  <ProductInterfacePreview
+    product={{
+      category: 'Control plane',
+      features: FEATURES,
+      headline: 'Create, organize, govern, and ship from one operating system.',
+      name: 'Genfeed',
+      useCases: FEATURES.slice(0, 3).map((feature) => ({
+        description: feature.description,
+        title: feature.label,
+      })),
+    }}
+  />
+);
+
+const SHOWCASE_OUTPUTS = HOME_OUTPUT_CAROUSEL_ASSETS.slice(0, 3);
 
 export default function FeaturesPage(): React.ReactElement {
   const containerRef = useMarketingEntrance();
@@ -59,6 +78,7 @@ export default function FeaturesPage(): React.ReactElement {
         badge="Platform Capabilities"
         badgeIcon={Layers}
         compact
+        heroVisual={HERO_VISUAL}
         title={<>What Genfeed Does For You</>}
         description="Every feature saves you time and eliminates busywork. Here is exactly what you get."
       >
@@ -93,70 +113,57 @@ export default function FeaturesPage(): React.ReactElement {
           </div>
         </section>
 
-        {/* Editorial Content Block */}
-        <section className="gsap-section py-32 bg-fill/[0.02]">
+        <section className="gsap-section bg-fill/[0.02] py-32">
           <div className="container mx-auto px-6">
-            <div className="flex flex-col lg:flex-row gap-20 items-center">
-              <div className="w-full lg:w-1/2">
-                <div className="relative aspect-[4/5] overflow-hidden glass-card group">
+            <div className="mb-14 max-w-3xl">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-surface/45">
+                Made in Genfeed
+              </p>
+              <h2 className="mt-5 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+                The output is the proof.
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-surface/60">
+                Campaign systems, short-form video, and finished creative made
+                inside the same product shown above.
+              </p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {SHOWCASE_OUTPUTS.map((output) => (
+                <figure
+                  className="relative aspect-[4/5] overflow-hidden rounded-xl bg-card"
+                  key={output.alt}
+                >
                   <Image
-                    src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1000&q=80&fit=crop"
-                    alt="Cinematic architecture showcasing speed and precision"
+                    alt={output.alt}
                     fill
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    src={output.src}
+                    className="object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent p-12 flex flex-col justify-end">
-                    <span className="text-2xs font-black uppercase tracking-widest text-surface/60 mb-2">
-                      Case Study 01
-                    </span>
-                    <h4 className="text-3xl font-semibold text-surface">
-                      The Architecture of Speed
-                    </h4>
-                  </div>
-                </div>
-              </div>
-              <div className="w-full lg:w-1/2 space-y-12">
-                <div>
-                  <h2 className="text-5xl font-semibold mb-8">
-                    Built for Speed and Quality.
-                  </h2>
-                  <p className="text-lg text-surface/65 leading-relaxed">
-                    Genfeed uses 50+ AI models optimized for content creation.
-                    Each model is selected automatically based on your prompt,
-                    so you get the best quality without choosing between
-                    providers or settings.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-px bg-edge/5">
-                  <div className="bg-background p-8">
-                    <span className="text-4xl font-semibold block mb-2">
-                      250%
-                    </span>
-                    <span className="text-2xs font-black uppercase tracking-widest text-surface/55">
-                      Efficiency Increase
-                    </span>
-                  </div>
-                  <div className="bg-background p-8">
-                    <span className="text-4xl font-semibold block mb-2">
-                      0.4s
-                    </span>
-                    <span className="text-2xs font-black uppercase tracking-widest text-surface/55">
-                      Average Latency
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-8">
-                  <Button
-                    asChild
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.PUBLIC}
-                    className="tracking-[0.3em]"
-                  >
-                    <Link href="/demo">See How It Works</Link>
-                  </Button>
-                </div>
-              </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <figcaption className="absolute inset-x-0 bottom-0 p-6">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
+                      {output.format}
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-white">
+                      {output.title}
+                    </p>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+            <div className="mt-12 flex flex-wrap items-center justify-between gap-6 border-t border-edge/10 pt-8">
+              <p className="max-w-xl text-sm leading-6 text-surface/55">
+                Model availability is read from the live registry. The website
+                does not maintain a model-name list in marketing copy.
+              </p>
+              <Button
+                asChild
+                variant={ButtonVariant.SECONDARY}
+                size={ButtonSize.PUBLIC}
+              >
+                <Link href="/models">View live models</Link>
+              </Button>
             </div>
           </div>
         </section>

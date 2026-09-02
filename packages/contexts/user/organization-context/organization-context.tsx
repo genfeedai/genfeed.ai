@@ -3,6 +3,7 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import {
+  getOrgSwitchHref,
   parseScopedAppPath,
   ROUTED_ORGANIZATION_STORAGE_KEY,
 } from '@genfeedai/constants';
@@ -16,7 +17,7 @@ import {
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQueryClient } from '@tanstack/react-query';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,
   use,
@@ -33,7 +34,6 @@ export type RoutedOrganizationStatus =
   | 'failed'
   | 'loading'
   | 'matched'
-  | 'stale'
   | 'switching'
   | 'unauthorized'
   | 'unscoped';
@@ -71,8 +71,16 @@ const INITIAL_STATE: RoutedOrganizationState = {
 const RoutedOrganizationContext =
   createContext<RoutedOrganizationContextValue | null>(null);
 
-function emitSanitizedMismatch(reason: string): void {
+type RoutedOrganizationMismatchReason =
+  | 'cross-tab-sync-failed'
+  | 'route-auth-mismatch'
+  | 'route-unauthorized'
+  | 'switch-failed';
+
+function emitSanitizedMismatch(reason: RoutedOrganizationMismatchReason): void {
   logger.warn('Routed organization context mismatch', {
+    reportToSentry:
+      reason === 'cross-tab-sync-failed' || reason === 'switch-failed',
     tags: {
       eventType: 'organization-context-mismatch',
       reason,
@@ -94,6 +102,7 @@ function broadcastOrganizationChange(): void {
 
 export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const pathname = usePathname() ?? '';
+  const { replace } = useRouter();
   const routeOrganizationSlug = parseScopedAppPath(pathname).orgSlug;
   const queryClient = useQueryClient();
   const { isLoaded, isSignedIn, sessionId, userId } = useAuthIdentity();
@@ -110,8 +119,10 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const [retryNonce, setRetryNonce] = useState(0);
   const generationRef = useRef(0);
   const reconciliationQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pathnameRef = useRef(pathname);
   const routeOrganizationSlugRef = useRef(routeOrganizationSlug);
   const stateRef = useRef(state);
+  pathnameRef.current = pathname;
   routeOrganizationSlugRef.current = routeOrganizationSlug;
   stateRef.current = state;
 
@@ -366,6 +377,52 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   );
 
   useEffect(() => {
+    const synchronizeActiveOrganization = async (
+      generation: number,
+    ): Promise<void> => {
+      try {
+        await invalidateTenantState();
+        const service = await getOrganizationsService({ forceRefresh: true });
+        const organizations =
+          (await service.getMyOrganizations()) as RoutedOrganizationSummary[];
+        const activeOrganization = organizations.find(
+          (organization) => organization.isActive,
+        );
+
+        if (!activeOrganization) {
+          throw new Error('Active organization context is unavailable');
+        }
+        if (generationRef.current !== generation) {
+          return;
+        }
+
+        const currentRouteOrganizationSlug = routeOrganizationSlugRef.current;
+        if (activeOrganization.slug === currentRouteOrganizationSlug) {
+          setRequestOrganizationId(activeOrganization.id);
+          setState({
+            confirmedOrganizationId: activeOrganization.id,
+            confirmedOrganizationSlug: activeOrganization.slug,
+            organizations,
+            status: 'matched',
+          });
+          return;
+        }
+
+        replace(getOrgSwitchHref(activeOrganization.slug, pathnameRef.current));
+      } catch {
+        if (generationRef.current === generation) {
+          setRequestOrganizationId(null);
+          emitSanitizedMismatch('cross-tab-sync-failed');
+          setState((current) => ({
+            ...current,
+            confirmedOrganizationId: null,
+            confirmedOrganizationSlug: null,
+            status: 'failed',
+          }));
+        }
+      }
+    };
+
     const handleStorage = (event: StorageEvent): void => {
       if (
         event.key !== ROUTED_ORGANIZATION_STORAGE_KEY ||
@@ -375,34 +432,28 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
         return;
       }
 
-      generationRef.current += 1;
+      const generation = generationRef.current + 1;
+      generationRef.current = generation;
       setRequestOrganizationId(null);
       setState((current) => ({
         ...current,
         confirmedOrganizationId: null,
         confirmedOrganizationSlug: null,
-        status: 'stale',
+        status: 'switching',
       }));
-      void invalidateTenantState();
-    };
-
-    const handleVisibility = (): void => {
-      if (
-        document.visibilityState === 'visible' &&
-        stateRef.current.status === 'stale'
-      ) {
-        retry();
-      }
+      const synchronizationTask = reconciliationQueueRef.current
+        .catch(() => undefined)
+        .then(() => synchronizeActiveOrganization(generation));
+      reconciliationQueueRef.current = synchronizationTask;
+      void synchronizationTask;
     };
 
     window.addEventListener('storage', handleStorage);
-    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('storage', handleStorage);
-      document.removeEventListener('visibilitychange', handleVisibility);
       setRequestOrganizationId(null);
     };
-  }, [invalidateTenantState, retry]);
+  }, [getOrganizationsService, invalidateTenantState, replace]);
 
   const isRouteConfirmed =
     bypassReconciliation ||

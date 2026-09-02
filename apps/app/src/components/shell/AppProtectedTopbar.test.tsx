@@ -506,12 +506,12 @@ describe('AppProtectedTopbar', () => {
     expect(onSidebarToggle).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the desktop sidebar control mounted while the sidebar is expanded', () => {
+  it('leaves the expanded sidebar control in the unified sidebar header', () => {
     render(<AppProtectedTopbar onSidebarToggle={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', { name: 'Collapse sidebar' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Collapse sidebar' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not mount a topbar account menu when the sidebar is collapsed', () => {

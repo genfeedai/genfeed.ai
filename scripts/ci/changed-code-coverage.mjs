@@ -453,10 +453,28 @@ export function readSurfacePath(lcovPath) {
     ];
   }
 
-  return readdirSync(lcovPath, { withFileTypes: true })
+  const shards = readdirSync(lcovPath, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .sort((left, right) => left.name.localeCompare(right.name))
     .map((entry) => readShardDirectory(path.join(lcovPath, entry.name)));
+
+  // Vitest coverage shards contain mergeable blob reports, not independently
+  // finalizable LCOV. The report job merges those blobs once and writes the
+  // canonical LCOV at the surface root while each child directory retains the
+  // shard's outcome and wall-clock evidence.
+  const mergedLcovPath = path.join(lcovPath, 'lcov.info');
+  const mergedLcov = existsSync(mergedLcovPath)
+    ? readFileSync(mergedLcovPath, 'utf8')
+    : null;
+
+  if (shards.length === 0) {
+    return mergedLcov
+      ? [{ outcome: 'success', seconds: null, lcov: mergedLcov }]
+      : [];
+  }
+
+  if (mergedLcov) shards[0].lcov = mergedLcov;
+  return shards;
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
@@ -535,7 +553,10 @@ export function buildReport({
   });
 
   return {
-    version: 1,
+    // Version 2 requires shard blobs to be merged before LCOV is consumed.
+    // Version 1 artifacts could contain a zero-byte lcov.info even when every
+    // test shard passed, so they are not valid ratchet evidence.
+    version: 2,
     normalized: {
       baseSha,
       headSha,
@@ -571,7 +592,14 @@ function resolveDisposition({
 }) {
   if (included.length === 0) return 'not-applicable';
   if (failedSurfaces.length > 0) return 'infrastructure-failed';
-  if (baseline.mode !== 'enforcement') return 'observation-only';
+  if (baseline.mode !== 'enforcement') {
+    // Observation evidence needs a measurement. A full-suite run skips both
+    // changed shards and a no-test diff instruments nothing; neither observes
+    // changed-code coverage, so neither counts toward `observation.requiredRuns`.
+    return measurement.totals.lines.measured === 0
+      ? 'unmeasured'
+      : 'observation-only';
+  }
   // Enforcement leaves the "nothing was instrumented" case to the ratchet:
   // with `treatUnmeasuredAsUncovered` on, an entirely unmeasured diff scores 0%
   // and is caught, rather than passing on an empty denominator.
@@ -612,6 +640,8 @@ const DISPOSITION_NOTE = {
     'No executable first-party lines changed under the reviewed exclusion policy.',
   'observation-only':
     'Observation mode: reported for review only. This job cannot fail the pull request.',
+  unmeasured:
+    'No changed line was instrumented: the changed-test shards were skipped or pulled in no test file. This run is not an observation.',
   reported: 'Changed-code coverage meets the adopted ratchet.',
   'below-ratchet': 'Changed-code coverage fell below the adopted ratchet.',
   'infrastructure-failed':
@@ -731,7 +761,7 @@ export function formatAnnotations(report, limit = MAX_ANNOTATIONS) {
       annotations.push(
         `::notice file=${file.file},line=${start},endLine=${end}::Changed ${
           start === end ? 'line is' : 'lines are'
-        } not covered by the affected test scope (changed-code coverage, observation mode)`,
+        } not covered by the affected test scope (changed-code coverage, ${report.normalized.mode} mode)`,
       );
     }
   }

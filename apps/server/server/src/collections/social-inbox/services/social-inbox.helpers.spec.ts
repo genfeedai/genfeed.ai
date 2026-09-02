@@ -1,11 +1,13 @@
+import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { BadRequestException } from '@nestjs/common';
+import type { SocialConversationDocument } from '@server/collections/social-inbox/schemas/social-inbox.schema';
 import {
   getAvailability,
   LINKEDIN_DM_UNAVAILABLE_REASON,
   normalizePlatform,
+  readAvailability,
   sanitizeBody,
 } from '@server/collections/social-inbox/services/social-inbox.helpers';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
-import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 describe('social inbox helpers', () => {
@@ -132,6 +134,37 @@ describe('getAvailability', () => {
       postReplyReason:
         'Direct message threads have no post or comment to reply on',
       sendDmReason: 'YouTube Data API does not support channel DMs',
+    });
+  });
+
+  it('keeps every TikTok conversation read-only', () => {
+    expect(
+      getAvailability({
+        conversationType: SocialConversationType.COMMENT,
+        externalParentId: 'tiktok-comment-1',
+        participantExternalId: 'tiktok-user-1',
+        platform: Platform.TIKTOK,
+      }),
+    ).toEqual({
+      canPostReply: false,
+      canSendDm: false,
+      postReplyReason: 'TikTok conversations are read-only in Genfeed',
+      sendDmReason: 'TikTok conversations are read-only in Genfeed',
+    });
+  });
+
+  it('ignores stale stored capability flags for TikTok', () => {
+    const conversation = {
+      availability: { canPostReply: true, canSendDm: true },
+      conversationType: SocialConversationType.COMMENT,
+      externalParentId: 'tiktok-comment-1',
+      participantExternalId: 'tiktok-user-1',
+      platform: Platform.TIKTOK,
+    } as unknown as SocialConversationDocument;
+
+    expect(readAvailability(conversation)).toMatchObject({
+      canPostReply: false,
+      canSendDm: false,
     });
   });
 });

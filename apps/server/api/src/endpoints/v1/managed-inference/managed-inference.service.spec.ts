@@ -4,9 +4,12 @@ vi.mock('@server/collections/credits/services/credits.utils.service', () => ({
 vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
   FalService: class FalService {},
 }));
-vi.mock('@server/services/integrations/fleet/fleet.service', () => ({
-  FleetService: class FleetService {},
-}));
+vi.mock(
+  '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service',
+  () => ({
+    ManagedInferenceRuntimeService: class ManagedInferenceRuntimeService {},
+  }),
+);
 vi.mock(
   '@server/services/integrations/leonardoai/services/leonardoai.service',
   () => ({
@@ -23,18 +26,18 @@ vi.mock('@libs/logger/logger.service', () => ({
   LoggerService: class LoggerService {},
 }));
 
+import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
+import { ActivitySource } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
 } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import type { ManagedInferenceAuthenticatedRequest } from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
-import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { ActivitySource } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
@@ -50,11 +53,11 @@ describe('ManagedInferenceService', () => {
     generateVideo: vi.fn(),
   } as unknown as FalService;
 
-  const fleetService = {
+  const managedInferenceRuntimeService = {
     generateManagedVideoForOrg: vi.fn(),
     hasDedicatedInstanceForOrg: vi.fn(),
     pollManagedJobForOrg: vi.fn(),
-  } as unknown as FleetService;
+  } as unknown as ManagedInferenceRuntimeService;
 
   const leonardoAIService = {
     generateImage: vi.fn(),
@@ -85,7 +88,7 @@ describe('ManagedInferenceService', () => {
     service = new ManagedInferenceService(
       creditsUtilsService,
       falService,
-      fleetService,
+      managedInferenceRuntimeService,
       leonardoAIService,
       replicateService,
       loggerService,
@@ -166,14 +169,20 @@ describe('ManagedInferenceService', () => {
   });
 
   it('runs genfeedai video inference only when enabled for the organization', async () => {
-    vi.mocked(fleetService.hasDedicatedInstanceForOrg).mockResolvedValue(true);
+    vi.mocked(
+      managedInferenceRuntimeService.hasDedicatedInstanceForOrg,
+    ).mockResolvedValue(true);
     vi.mocked(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).mockResolvedValue(true);
-    vi.mocked(fleetService.generateManagedVideoForOrg).mockResolvedValue({
+    vi.mocked(
+      managedInferenceRuntimeService.generateManagedVideoForOrg,
+    ).mockResolvedValue({
       jobId: 'job-1',
     });
-    vi.mocked(fleetService.pollManagedJobForOrg).mockResolvedValue({
+    vi.mocked(
+      managedInferenceRuntimeService.pollManagedJobForOrg,
+    ).mockResolvedValue({
       output: { video_url: 'https://video.test/genfeed.mp4' },
       status: 'completed',
     });
@@ -195,7 +204,9 @@ describe('ManagedInferenceService', () => {
       jobId: 'job-1',
       url: 'https://video.test/genfeed.mp4',
     });
-    expect(fleetService.generateManagedVideoForOrg).toHaveBeenCalledWith(
+    expect(
+      managedInferenceRuntimeService.generateManagedVideoForOrg,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         imageUrl: 'https://img.test/source.jpg',
         organizationId: 'org-1',
@@ -205,7 +216,9 @@ describe('ManagedInferenceService', () => {
   });
 
   it('rejects genfeedai video before debit when provider is not enabled', async () => {
-    vi.mocked(fleetService.hasDedicatedInstanceForOrg).mockResolvedValue(false);
+    vi.mocked(
+      managedInferenceRuntimeService.hasDedicatedInstanceForOrg,
+    ).mockResolvedValue(false);
 
     await expect(
       service.execute(

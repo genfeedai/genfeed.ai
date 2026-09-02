@@ -5,6 +5,7 @@ import { CacheModule } from '@server/services/cache/cache.module';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 
 @Module({
+  exports: [CronTrendsService],
   imports: [CacheModule, TrendsModule, WorkflowsModule],
   providers: [CronTrendsService],
 })

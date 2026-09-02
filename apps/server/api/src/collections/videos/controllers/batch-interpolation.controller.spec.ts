@@ -22,6 +22,21 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
+import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
+import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientFormat } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
+import { HttpException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { AssetsService } from '@server/collections/assets/services/assets.service';
@@ -31,27 +46,13 @@ import { IngredientsService } from '@server/collections/ingredients/services/ing
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
-import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { VideosService } from '@server/collections/videos/services/videos.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientFormat } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const mockBuildReferenceImageUrls = vi.mocked(buildReferenceImageUrls);
@@ -191,6 +192,7 @@ describe('BatchInterpolationController', () => {
       providers: [
         { provide: ActivitiesService, useValue: activitiesService },
         { provide: AssetsService, useValue: assetsService },
+        BatchInterpolationReferenceService,
         { provide: BrandsService, useValue: brandsService },
         {
           provide: ConfigService,

@@ -61,6 +61,14 @@ describe('AgentChatBodyDto', () => {
         content: 'Draft me a post',
         expectedContextVersion: 3,
         generationMode: 'video',
+        generationSettings: {
+          aspectRatio: '16:9',
+          duration: 5,
+          model: 'replicate/video-model',
+          outputs: 1,
+          prioritize: 'speed',
+          resolution: '1080p',
+        },
         model: 'claude-opus-4-8',
         pageContext: { route: '/library', url: 'https://app/library' },
         planModeEnabled: true,
@@ -148,6 +156,24 @@ describe('AgentChatBodyDto', () => {
     it('rejects a generation mode outside the allowed enum', async () => {
       await expect(
         pipe.transform({ content: 'hi', generationMode: 'audio' }, metadata),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects invalid nested generation settings', async () => {
+      await expect(
+        pipe.transform(
+          {
+            content: 'Generate a video',
+            generationMode: 'video',
+            generationSettings: {
+              aspectRatio: '',
+              duration: 0,
+              outputs: 9,
+              prioritize: 'cheapest',
+            },
+          },
+          metadata,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 

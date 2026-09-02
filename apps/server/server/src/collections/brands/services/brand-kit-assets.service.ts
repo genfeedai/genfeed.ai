@@ -1,19 +1,3 @@
-import {
-  ASSET_UPLOAD_TYPE_BY_ROLE,
-  BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
-  BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
-  PRISMA_ASSET_CATEGORY_BY_ROLE,
-} from '@server/collections/brands/constants/brand-kit-assets.constant';
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-  SCOPED_CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { FileInputType, ReferenceImageCategory } from '@genfeedai/enums';
 import type {
   BrandKitAssetRole,
@@ -29,7 +13,23 @@ import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
+import {
+  ASSET_UPLOAD_TYPE_BY_ROLE,
+  BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
+  BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
+  PRISMA_ASSET_CATEGORY_BY_ROLE,
+} from '@server/collections/brands/constants/brand-kit-assets.constant';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@server/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
 const BRAND_KIT_ALLOWED_MIME_TYPES = new Set([
@@ -398,77 +398,16 @@ export class BrandKitAssetsService {
       candidate.role === 'reference'
         ? (candidate.referenceCategory ?? ReferenceImageCategory.STYLE)
         : undefined;
-    const existing = await this.prisma.asset.findFirst({
-      where: {
-        category,
-        isDeleted: false,
-        origin: sourceUrl,
-        parentBrandId: brandId,
-        parentOrgId: organizationId,
-        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-      },
-    });
-
-    if (existing) {
-      const persistedReferenceCategory =
-        candidate.role === 'reference'
-          ? (candidate.referenceCategory ??
-            toReferenceImageCategory(existing.referenceCategory) ??
-            referenceCategory)
-          : undefined;
-      if (
-        candidate.role === 'reference' &&
-        existing.referenceCategory !== persistedReferenceCategory
-      ) {
-        await this.prisma.asset.updateMany({
-          data: { referenceCategory: persistedReferenceCategory },
-          where: {
-            id: existing.id,
-            isDeleted: false,
-            parentBrandId: brandId,
-            parentOrgId: organizationId,
-          },
-        });
-      }
-      return {
-        assetId: existing.id,
-        candidateId,
-        diagnostics: [
-          this.createBrandKitImportDiagnostic(
-            'brand_kit_asset_already_imported',
-            `${candidate.role} candidate was already imported.`,
-            'info',
-          ),
-        ],
-        referenceCategory: persistedReferenceCategory,
-        role: candidate.role,
-        status: 'skipped',
-        url: this.buildImportedAssetUrl(existing.id, candidate.role),
-      };
-    }
-
-    const hasExistingPrimary =
-      candidate.role !== 'reference'
-        ? await this.hasExistingBrandAsset(
-            brandId,
-            organizationId,
-            candidate.role,
-          )
-        : false;
-
-    if (hasExistingPrimary && !candidate.replaceExisting) {
-      return {
-        candidateId,
-        diagnostics: [
-          this.createBrandKitImportDiagnostic(
-            'brand_kit_asset_existing_preserved',
-            `Existing brand ${candidate.role} was preserved. Set replaceExisting to import this candidate.`,
-            'warning',
-          ),
-        ],
-        role: candidate.role,
-        status: 'skipped',
-      };
+    const conflict = await this.resolveBrandKitImportConflict(
+      candidate,
+      brandId,
+      organizationId,
+      sourceUrl,
+      category,
+      referenceCategory,
+    );
+    if (conflict) {
+      return conflict;
     }
 
     const asset = await this.prisma.asset.create({
@@ -567,6 +506,91 @@ export class BrandKitAssetsService {
         status: 'failed',
       };
     }
+  }
+
+  private async resolveBrandKitImportConflict(
+    candidate: IBrandKitAssetImportCandidate,
+    brandId: string,
+    organizationId: string,
+    sourceUrl: string,
+    category: Prisma.AssetCreateInput['category'],
+    referenceCategory: ReferenceImageCategory | undefined,
+  ): Promise<IBrandKitAssetImportResult | null> {
+    const candidateId = candidate.candidateId;
+    const existing = await this.prisma.asset.findFirst({
+      where: {
+        category,
+        isDeleted: false,
+        origin: sourceUrl,
+        parentBrandId: brandId,
+        parentOrgId: organizationId,
+        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+      },
+    });
+
+    if (existing) {
+      const persistedReferenceCategory =
+        candidate.role === 'reference'
+          ? (candidate.referenceCategory ??
+            toReferenceImageCategory(existing.referenceCategory) ??
+            referenceCategory)
+          : undefined;
+      if (
+        candidate.role === 'reference' &&
+        existing.referenceCategory !== persistedReferenceCategory
+      ) {
+        await this.prisma.asset.updateMany({
+          data: { referenceCategory: persistedReferenceCategory },
+          where: {
+            id: existing.id,
+            isDeleted: false,
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+          },
+        });
+      }
+      return {
+        assetId: existing.id,
+        candidateId,
+        diagnostics: [
+          this.createBrandKitImportDiagnostic(
+            'brand_kit_asset_already_imported',
+            `${candidate.role} candidate was already imported.`,
+            'info',
+          ),
+        ],
+        referenceCategory: persistedReferenceCategory,
+        role: candidate.role,
+        status: 'skipped',
+        url: this.buildImportedAssetUrl(existing.id, candidate.role),
+      };
+    }
+
+    const hasExistingPrimary =
+      candidate.role !== 'reference'
+        ? await this.hasExistingBrandAsset(
+            brandId,
+            organizationId,
+            candidate.role,
+          )
+        : false;
+
+    if (hasExistingPrimary && !candidate.replaceExisting) {
+      return {
+        candidateId,
+        diagnostics: [
+          this.createBrandKitImportDiagnostic(
+            'brand_kit_asset_existing_preserved',
+            `Existing brand ${candidate.role} was preserved. Set replaceExisting to import this candidate.`,
+            'warning',
+          ),
+        ],
+        role: candidate.role,
+        status: 'skipped',
+      };
+    }
+
+    return null;
   }
 
   private validateBrandKitAssetCandidate(

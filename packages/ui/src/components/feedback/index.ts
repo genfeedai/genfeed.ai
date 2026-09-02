@@ -1,3 +1,4 @@
+export { default as BrandLoader } from '@ui/feedback/brand-loader/BrandLoader';
 export {
   EmptyState,
   EmptyStateCard,

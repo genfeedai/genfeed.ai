@@ -87,6 +87,30 @@ describe('normalizeOperationError', () => {
     expect(normalized.message).toBe('Request timed out');
   });
 
+  it('keeps safe Nest validation details for actionable diagnostics', () => {
+    const normalized = normalizeOperationError('GET /posts', {
+      message: 'Validation failed',
+      response: {
+        data: {
+          errors: [
+            {
+              constraints: {
+                whitelistValidation: 'property folderId should not exist',
+              },
+              property: 'folderId',
+            },
+          ],
+        },
+        status: 400,
+      },
+    });
+
+    expect(normalized.validationErrors).toEqual({
+      folderId: ['property folderId should not exist'],
+    });
+    expect(normalized.status).toBe(400);
+  });
+
   it('does not throw when the original error is missing', () => {
     const normalized = normalizeOperationError('GET /ingredients', undefined);
 

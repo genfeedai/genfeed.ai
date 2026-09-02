@@ -13,8 +13,11 @@ on:
   workflow_call:
 
 concurrency:
+  # Every caller on a ref writes the same Docker build cache. Queue those
+  # writers: a release fallback must never cancel the master-push evidence it
+  # is meant to consume, and parallel writers can clobber the shared cache.
   group: build-verify-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # Least-privilege default token; jobs that need more request it explicitly.
 permissions:
@@ -108,14 +111,11 @@ jobs:
               test -f apps/server/dist/apps/telegram/main.js && echo "✅ Telegram bundle" || (echo "❌ Telegram bundle missing" && exit 1)
               test -f apps/server/dist/apps/discord/main.js && echo "✅ Discord bundle" || (echo "❌ Discord bundle missing" && exit 1)
               test -f apps/server/dist/apps/slack/main.js && echo "✅ Slack bundle" || (echo "❌ Slack bundle missing" && exit 1)
-              test -f apps/server/dist/apps/images/main.js && echo "✅ Images bundle" || (echo "❌ Images bundle missing" && exit 1)
-              test -f apps/server/dist/apps/voices/main.js && echo "✅ Voices bundle" || (echo "❌ Voices bundle missing" && exit 1)
-              test -f apps/server/dist/apps/videos/main.js && echo "✅ Videos bundle" || (echo "❌ Videos bundle missing" && exit 1)
               echo ""
-              echo "All 11 service bundles verified ✅"
+              echo "All 8 service bundles verified ✅"
 
               # Check bundle sizes (catch empty/broken bundles)
-              for svc in api workers files mcp notifications telegram discord slack images voices videos; do
+              for svc in api workers files mcp notifications telegram discord slack; do
                 SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js" 2>/dev/null || echo "0")
                 if [ "$SIZE" -lt 10000 ]; then
                   echo "❌ $svc bundle suspiciously small (${SIZE} bytes)"
