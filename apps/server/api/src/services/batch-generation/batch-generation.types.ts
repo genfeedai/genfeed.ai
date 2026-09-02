@@ -125,7 +125,7 @@ export type BatchItemTypedRow = {
   isDeleted?: boolean;
 };
 
-export type BatchWithConfig = Omit<Batch, 'config' | 'items'> & {
+export type BatchWithConfig = Batch & {
   batchItems?: BatchItemTypedRow[];
   config: BatchConfig;
   items: BatchItemFull[];
@@ -211,9 +211,10 @@ export function toBatchWithConfig(
 ): BatchWithConfig {
   return {
     ...batch,
+    batchItems: batch.batchItems ?? undefined,
     config: isBatchConfig(batch.config) ? batch.config : {},
     items: resolveBatchItems(batch),
-  };
+  } as unknown as BatchWithConfig;
 }
 
 export function resolveBatchItems(batch: {
