@@ -1,27 +1,19 @@
+import { CredentialPlatform, Platform } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
-import {
-  buildSingleDayBatchDto,
-  createBatchThenAddItem,
-} from '@server/services/agent-orchestrator/tools/create-batch-then-add-item';
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { CreateManualReviewBatchDto } from '@server/services/batch-generation/dto/create-manual-review-batch.dto';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@server/services/integrations/twitter/utils/twitter-api-error.util';
 import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
 } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
-import {
-  BatchItemStatus,
-  CredentialPlatform,
-  Platform,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 function readOptionalNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value)
@@ -47,7 +39,6 @@ export class AgentXActionsToolHandler {
     private readonly loggerService: LoggerService,
     @Optional() private readonly twitterService: TwitterService | undefined,
     private readonly credentialsService: CredentialsService,
-    private readonly internalApi: AgentToolInternalApiService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
     @Optional() private readonly moduleRef?: ModuleRef,
@@ -385,52 +376,57 @@ export class AgentXActionsToolHandler {
     const targetPostContent = readOptionalString(params.targetPostContent);
     const targetPostUrl = buildTwitterStatusUrl(targetPostId, targetAuthor);
 
-    const result = await createBatchThenAddItem(
-      {
-        batchGenerationService: this.batchGenerationService,
-        internalApi: this.internalApi,
-        logger: this.loggerService,
-      },
-      {
-        batchDto: buildSingleDayBatchDto(brandId, Platform.TWITTER),
-        ctx,
-        item: {
+    const dto: CreateManualReviewBatchDto = {
+      brandId,
+      items: [
+        {
           caption,
           engagementAction: action,
+          format: 'post',
           platform: Platform.TWITTER,
-          status: BatchItemStatus.PENDING,
           targetAuthor,
           targetPostContent,
           targetPostId,
           targetPostUrl,
           type: 'engagement',
         },
-      },
-    );
+      ],
+    };
 
-    if (!result.success) {
+    try {
+      const batch = await this.batchGenerationService.createManualReviewBatch(
+        dto,
+        ctx.userId,
+        ctx.organizationId,
+      );
+
+      return {
+        creditsUsed: 1,
+        data: {
+          action,
+          batchId: batch.id,
+          message:
+            action === 'quote'
+              ? 'Quote draft is ready for review. Nothing posts until you approve it.'
+              : 'Repost draft is ready for review. Nothing posts until you approve it.',
+          targetPostId,
+          targetPostUrl,
+        },
+        requiresConfirmation: true,
+        riskLevel: 'medium',
+        success: true,
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.loggerService.error(
+        `${this.constructorName} draftXEngagement failed`,
+        { action, error: message, targetPostId },
+      );
       return {
         creditsUsed: 0,
-        error: result.error,
+        error: message,
         success: false,
       };
     }
-
-    return {
-      creditsUsed: 1,
-      data: {
-        action,
-        batchId: result.batchId,
-        message:
-          action === 'quote'
-            ? 'Quote draft is ready for review. Nothing posts until you approve it.'
-            : 'Repost draft is ready for review. Nothing posts until you approve it.',
-        targetPostId,
-        targetPostUrl,
-      },
-      requiresConfirmation: true,
-      riskLevel: 'medium',
-      success: true,
-    };
   }
 }

@@ -1,9 +1,9 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   REVIEW_BATCH_ITEM_FORMATS,
   type ReviewBatchItemFormat,
 } from '@server/services/batch-generation/constants/review-batch-item-format.constant';
-import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -211,6 +211,57 @@ class ManualReviewBatchItemDto {
   @IsArray()
   @IsString({ each: true })
   gateReasons?: string[];
+
+  @ApiProperty({
+    description:
+      'Distinguishes an engagement-reply item from a generated content item',
+    enum: ['content', 'engagement'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['content', 'engagement'])
+  type?: 'content' | 'engagement';
+
+  @ApiProperty({
+    description: 'Quote/repost/reply distinction for an engagement item',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  engagementAction?: string;
+
+  @ApiProperty({
+    description:
+      'External (platform-native) ID of the post an engagement reply answers',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  targetPostId?: string;
+
+  @ApiProperty({
+    description: 'URL of the post an engagement reply answers',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  targetPostUrl?: string;
+
+  @ApiProperty({
+    description: 'Author of the post an engagement reply answers',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  targetAuthor?: string;
+
+  @ApiProperty({
+    description: 'Content of the post an engagement reply answers',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  targetPostContent?: string;
 }
 
 export class CreateManualReviewBatchDto {
