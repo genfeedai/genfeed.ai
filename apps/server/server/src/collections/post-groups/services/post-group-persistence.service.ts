@@ -1,10 +1,14 @@
+import type { ChannelTargetValidationResult } from '@api-types/contracts/channel-capabilities.contract';
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {
   ReleaseAttachmentKind,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  IPublishingProviderReadiness,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -31,6 +35,14 @@ type ReleaseProjectionRecord = {
 };
 
 type ScheduleWindow = { gte: Date; lte: Date };
+
+type CreatePostGroupTargetsContext = {
+  brandId: string;
+  credentials: ReadonlyMap<string, SchedulerCredential>;
+  group: SchedulerPostGroup;
+  readinessByCredential: ReadonlyMap<string, IPublishingProviderReadiness>;
+  validations: readonly ChannelTargetValidationResult[];
+};
 
 type SchedulerPostTargetRow = Omit<
   SchedulerPostTarget,
@@ -210,16 +222,32 @@ export class PostGroupPersistenceService {
       },
     })) as SchedulerPostGroup;
 
+    const targets = await this.createPostGroupTargets(tx, params, {
+      brandId,
+      credentials,
+      group,
+      readinessByCredential,
+      validations,
+    });
+
+    return this.contractService.toReleaseGroup(group, targets);
+  }
+
+  private async createPostGroupTargets(
+    tx: SchedulerTx,
+    params: CreatePostGroupParams,
+    context: CreatePostGroupTargetsContext,
+  ): Promise<SchedulerPostTarget[]> {
     const targets: SchedulerPostTarget[] = [];
     for (const [index, target] of params.input.targets.entries()) {
-      const credential = credentials.get(target.credentialId);
+      const credential = context.credentials.get(target.credentialId);
       if (!credential) {
         throw new BadRequestException(
           `Credential ${target.credentialId} is not available for this organization.`,
         );
       }
 
-      const validation = validations[index];
+      const validation = context.validations[index];
       if (!validation) {
         throw new BadRequestException(
           'Missing channel target validation result.',
@@ -243,13 +271,13 @@ export class PostGroupPersistenceService {
           ...(params.provenance?.agentThreadId && {
             agentThreadId: params.provenance.agentThreadId,
           }),
-          brandId,
+          brandId: context.brandId,
           credentialId: target.credentialId,
           description: this.contractService.readTargetCaption(
             target.caption,
             params.input.baseContent,
           ),
-          groupId: group.id,
+          groupId: context.group.id,
           ingredients: this.contractService.buildIngredientConnect(
             params.input.media,
           ),
@@ -265,7 +293,7 @@ export class PostGroupPersistenceService {
           }),
           scheduledDate:
             this.contractService.toDate(target.scheduledDate) ??
-            group.scheduledAt,
+            context.group.scheduledAt,
           targetAttachments: this.contractService.toJson(
             target.attachments ?? [],
           ),
@@ -273,7 +301,7 @@ export class PostGroupPersistenceService {
             params.status,
           ),
           targetReadiness: this.contractService.toReadinessJson(
-            readinessByCredential.get(target.credentialId) ??
+            context.readinessByCredential.get(target.credentialId) ??
               validation.readiness,
           ),
           targetSettings: this.contractService.toJson({
@@ -298,8 +326,8 @@ export class PostGroupPersistenceService {
       })) as SchedulerPostTarget;
 
       await this.createAttachmentPosts(tx, {
-        brandId,
-        group,
+        brandId: context.brandId,
+        group: context.group,
         input: params.input,
         parent: created,
         target,
@@ -309,7 +337,7 @@ export class PostGroupPersistenceService {
       targets.push(created);
     }
 
-    return this.contractService.toReleaseGroup(group, targets);
+    return targets;
   }
 
   async findByIdempotencyKey(

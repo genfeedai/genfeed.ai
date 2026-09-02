@@ -151,6 +151,18 @@ function buildJsonApiResource<T extends Record<string, unknown>>(
   };
 }
 
+export function buildExecutionJsonApiResource(
+  id: string,
+  attributes: Record<string, unknown>,
+  type = 'workflow-executions',
+) {
+  const resourceAttributes = { ...attributes };
+  delete resourceAttributes.id;
+  delete resourceAttributes.type;
+
+  return buildJsonApiResource(type, id, resourceAttributes);
+}
+
 function buildJsonApiCollection<T extends Record<string, unknown>>(
   type: string,
   resources: Array<{ id: string; attributes: T }>,
@@ -2131,13 +2143,15 @@ export async function mockWorkflowExecutions(
   await routeApiPattern(page, '/workflow-executions**', async (route) => {
     const method = route.request().method();
     if (method === 'GET') {
-      const resources = executions.map((execution) => ({
-        attributes: normalizeExecution(
-          execution,
-          workflowLabels.get(execution.workflowId),
+      const resources = executions.map((execution) =>
+        buildExecutionJsonApiResource(
+          execution.id,
+          normalizeExecution(
+            execution,
+            workflowLabels.get(execution.workflowId),
+          ),
         ),
-        id: execution.id,
-      }));
+      );
       await route.fulfill({
         body: JSON.stringify(
           buildJsonApiCollection('workflow-executions', resources),
@@ -2161,9 +2175,9 @@ export async function mockWorkflowExecutions(
         'Social Media Pipeline',
       );
       await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiDocument('workflow-executions', 'exec-new', execution),
-        ),
+        body: JSON.stringify({
+          data: buildExecutionJsonApiResource('exec-new', execution),
+        }),
         contentType: 'application/json',
         status: 201,
       });
@@ -2189,9 +2203,9 @@ export async function mockWorkflowExecutions(
     const normalized = normalizeExecution(execution, execution.workflowId);
 
     await route.fulfill({
-      body: JSON.stringify(
-        buildJsonApiDocument('workflow-executions', id, normalized),
-      ),
+      body: JSON.stringify({
+        data: buildExecutionJsonApiResource(id, normalized),
+      }),
       contentType: 'application/json',
       status: 200,
     });
@@ -2521,10 +2535,9 @@ export async function mockAutomationData(page: Page): Promise<void> {
       body: JSON.stringify(
         buildJsonApiCollection(
           'workflow-executions',
-          filteredExecutions.map((execution) => ({
-            attributes: execution,
-            id: execution.id,
-          })),
+          filteredExecutions.map((execution) =>
+            buildExecutionJsonApiResource(execution.id, execution),
+          ),
         ),
       ),
       contentType: 'application/json',
@@ -4379,107 +4392,6 @@ export async function mockAdminTemplates(page: Page, count = 8): Promise<void> {
 }
 
 /**
- * Mock for fleet gallery
- */
-export async function mockFleetGallery(page: Page, count = 12): Promise<void> {
-  const images = Array.from({ length: count }, (_, i) => ({
-    attributes: {
-      createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-      height: 1024,
-      id: `fleet-img-${i + 1}`,
-      prompt: `Fleet generated image ${i + 1}`,
-      status: 'completed',
-      thumbnailUrl: `https://cdn.genfeed.ai/mock/fleet/thumb-${i + 1}.jpg`,
-      url: `https://cdn.genfeed.ai/mock/fleet/${i + 1}.png`,
-      width: 1024,
-    },
-    id: `fleet-img-${i + 1}`,
-    type: 'images',
-  }));
-
-  const fulfillAssets = async (route: Route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: images,
-        meta: { page: 1, pageSize: count, totalCount: count },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  };
-
-  await page.route('**/api.genfeed.ai/v1/admin/fleet/assets**', fulfillAssets);
-  await page.route('**/api.genfeed.ai/admin/fleet/assets**', fulfillAssets);
-  await page.route(`${LOCAL_API}/admin/fleet/assets**`, fulfillAssets);
-}
-
-/**
- * Mock for fleet characters
- */
-export async function mockFleetCharacters(
-  page: Page,
-  count = 5,
-): Promise<void> {
-  const characters = Array.from({ length: count }, (_, i) => ({
-    attributes: {
-      createdAt: new Date(Date.now() - i * 86400000).toISOString(),
-      description: `Character ${i + 1} description`,
-      id: `char-${i + 1}`,
-      imageUrl: `https://cdn.genfeed.ai/mock/characters/${i + 1}.jpg`,
-      name: `Character ${i + 1}`,
-      slug: `character-${i + 1}`,
-      status: 'active',
-    },
-    id: `char-${i + 1}`,
-    type: 'characters',
-  }));
-
-  const fulfillCharacters = async (route: Route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: characters,
-        meta: {
-          page: 1,
-          pageSize: count,
-          totalCount: count,
-        },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  };
-
-  await page.route(
-    '**/api.genfeed.ai/v1/admin/fleet/characters**',
-    fulfillCharacters,
-  );
-  await page.route(
-    '**/api.genfeed.ai/admin/fleet/characters**',
-    fulfillCharacters,
-  );
-  await page.route(`${LOCAL_API}/admin/fleet/characters**`, fulfillCharacters);
-
-  await page.route('**/api.genfeed.ai/v1/characters**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: characters,
-          meta: {
-            page: 1,
-            pageSize: count,
-            totalCount: count,
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-    await route.continue();
-  });
-}
-
-/**
  * Mock for CRM leads
  */
 export async function mockCrmLeads(page: Page, count = 8): Promise<void> {
@@ -4670,137 +4582,6 @@ export async function mockCrmAnalytics(page: Page): Promise<void> {
   await page.route('**/api.genfeed.ai/admin/crm/analytics**', fulfillAnalytics);
   await page.route(`${LOCAL_API}/crm/analytics**`, fulfillAnalytics);
   await page.route(`${LOCAL_API}/admin/crm/analytics**`, fulfillAnalytics);
-}
-
-/**
- * Mock for fleet infrastructure
- */
-export async function mockFleetInfrastructure(page: Page): Promise<void> {
-  await page.route(
-    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/ec2/status**',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: [
-            {
-              attributes: {
-                id: 'i-training-1',
-                instanceId: 'i-training-1',
-                instanceType: 'g5.xlarge',
-                name: 'Training Node',
-                privateIpAddress: '10.0.0.12',
-                publicIpAddress: '34.0.0.12',
-                role: 'training',
-                state: 'running',
-              },
-              id: 'i-training-1',
-              type: 'ec2-instances',
-            },
-            {
-              attributes: {
-                id: 'i-images-1',
-                instanceId: 'i-images-1',
-                instanceType: 'g6.xlarge',
-                name: 'Images Node',
-                privateIpAddress: '10.0.0.18',
-                publicIpAddress: '34.0.0.18',
-                role: 'images',
-                state: 'stopped',
-              },
-              id: 'i-images-1',
-              type: 'ec2-instances',
-            },
-          ],
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
-
-  await page.route(
-    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/fleet/health**',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            attributes: {
-              cloudfront: {
-                distributionId: 'dist-1',
-                domainName: 'cdn.genfeed.ai',
-                status: 'Deployed',
-              },
-              fleet: [
-                {
-                  endpoint: 'https://images.genfeed.ai',
-                  lastCheckedAt: new Date().toISOString(),
-                  responseTimeMs: 184,
-                  role: 'images',
-                  status: 'online',
-                  uptimeSeconds: 7200,
-                },
-                {
-                  endpoint: 'https://training.genfeed.ai',
-                  lastCheckedAt: new Date().toISOString(),
-                  responseTimeMs: 412,
-                  role: 'training',
-                  status: 'online',
-                  uptimeSeconds: 14400,
-                },
-              ],
-              id: 'fleet-health-1',
-            },
-            id: 'fleet-health-1',
-            type: 'fleet-health',
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
-
-  await page.route(
-    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/ec2/action-all',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            attributes: {
-              results: [
-                { instanceId: 'i-training-1', success: true },
-                { instanceId: 'i-images-1', success: true },
-              ],
-            },
-            id: 'bulk-ec2-action',
-            type: 'bulk-ec2-action',
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
-
-  await page.route(
-    '**/api.genfeed.ai/v1/admin/fleet/infrastructure/cloudfront/invalidate',
-    async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          data: {
-            attributes: {
-              invalidationId: 'invalidate-1',
-              message: 'CloudFront invalidation started',
-            },
-            id: 'invalidate-1',
-            type: 'cloudfront-invalidation',
-          },
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    },
-  );
 }
 
 /**

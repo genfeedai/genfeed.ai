@@ -163,6 +163,7 @@ test('enforces executable contracts through the aggregate suite', () => {
     'check:bull-board-parity',
     'check:relation-alias-reads',
     'check:relation-alias-writes',
+    'check:runtime-complexity',
   ]) {
     assert.match(
       contracts,
@@ -379,6 +380,23 @@ test('reusable CI callers grant the merge-queue janitor permission ceiling', () 
       `${fileName} must let reusable ci.yml grant actions:write to its janitor job`,
     );
   }
+});
+
+test('the full suite grants its reusable E2E failure reporter permission ceiling', () => {
+  // e2e.yml reads jobs from its current run to report exact scheduled failures.
+  // GitHub validates this permission before starting any called job, so omitting
+  // it makes the entire Full Suite fail at startup with no job logs.
+  const caller = jobBlock(
+    readWorkflow('full-suite.yml'),
+    'e2e',
+    'full-suite.yml',
+  );
+
+  assert.match(
+    caller,
+    /^ {6}actions: read$/m,
+    'full-suite.yml must let reusable e2e.yml read its current run jobs',
+  );
 });
 
 // The curated action catalog decides whether a product action is exposed on

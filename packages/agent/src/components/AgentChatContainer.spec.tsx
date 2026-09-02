@@ -324,6 +324,7 @@ type StoreState = {
   setUiActionStatus: ReturnType<typeof vi.fn>;
   stream: {
     activeToolCalls: [];
+    isStreaming: boolean;
     pendingUiActions: Array<{
       generationType?: 'image' | 'video';
       id: string;
@@ -395,6 +396,7 @@ const storeState: StoreState = {
   setUiActionStatus: vi.fn(),
   stream: {
     activeToolCalls: [],
+    isStreaming: false,
     pendingUiActions: [],
     streamingContent: '',
     streamingReasoning: '',
@@ -523,6 +525,8 @@ describe('AgentChatContainer', () => {
       title: 'Prompt bar mode',
     };
     storeState.messages = [buildAssistantMessage()];
+    storeState.isGenerating = false;
+    storeState.stream.isStreaming = false;
     storeState.messagesCursor = null;
     storeState.runStartedAt = null;
     storeState.stream.pendingUiActions = [];
@@ -1214,6 +1218,36 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('queues a rapid second send after the first send marks the live transport busy', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.isGenerating = false;
+    sendNonStreaming.mockImplementationOnce(() => {
+      storeState.isGenerating = true;
+    });
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          { id: 'one', label: 'First', prompt: 'First turn' },
+          { id: 'two', label: 'Second', prompt: 'Second turn' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'First' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+
+    expect(sendNonStreaming).toHaveBeenCalledTimes(1);
+    expect(sendNonStreaming.mock.calls[0]?.[0]).toBe('First turn');
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'Second turn',
+    );
+  });
+
   it('does not offer retry on a completed historical turn while busy', () => {
     const apiService = createApiService();
 
@@ -1571,7 +1605,7 @@ describe('AgentChatContainer', () => {
     storeState.workEvents = [
       {
         createdAt: '2026-03-10T10:00:00.000Z',
-        detail: 'Provider unavailable',
+        detail: 'Request failed with status code 503',
         event: AgentWorkEventType.FAILED,
         id: 'failed-run-event',
         label: 'Generation failed',

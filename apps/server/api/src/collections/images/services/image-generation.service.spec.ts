@@ -1,5 +1,6 @@
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
@@ -273,16 +274,21 @@ const createService = () => {
       isByokBillingInGoodStanding: vi.fn().mockResolvedValue(true),
     } as never,
   );
+  const admissionService = new ImageGenerationAdmissionService(
+    assetsService as never,
+    configService as never,
+    creditsService,
+    imagesService as never,
+    ingredientsService as never,
+    loggerService,
+  );
 
   const service = new ImageGenerationService(
-    configService as never,
-    assetsService as never,
     brandsService as never,
-    creditsService,
+    admissionService,
     pollingService as never,
     providerDispatchService,
     imagesService as never,
-    ingredientsService as never,
     organizationSettingsService as never,
     loggerService,
     modelRegistrationService as never,

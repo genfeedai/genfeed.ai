@@ -1,12 +1,12 @@
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
   OpenRouterStreamTokenHandler,
   OpenRouterToolCallResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
 import type {
   ChatCompletionMessageParam,
@@ -418,15 +418,7 @@ export class OpenAiLlmService {
         }
       }
 
-      const toolCalls: OpenRouterToolCallResponse[] = Array.from(
-        toolCallsByIndex.entries(),
-      )
-        .sort(([a], [b]) => a - b)
-        .map(([, tc]) => ({
-          function: { arguments: tc.arguments, name: tc.name },
-          id: tc.id,
-          type: 'function' as const,
-        }));
+      const toolCalls = this.toToolCalls(toolCallsByIndex);
 
       return {
         choices: [
@@ -451,6 +443,24 @@ export class OpenAiLlmService {
       );
       throw error;
     }
+  }
+
+  private toToolCalls(
+    toolCallsByIndex: ReadonlyMap<
+      number,
+      { arguments: string; id: string; name: string }
+    >,
+  ): OpenRouterToolCallResponse[] {
+    return Array.from(toolCallsByIndex.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([, toolCall]) => ({
+        function: {
+          arguments: toolCall.arguments,
+          name: toolCall.name,
+        },
+        id: toolCall.id,
+        type: 'function' as const,
+      }));
   }
 
   private getSafeErrorDetails(error: unknown): Record<string, unknown> {

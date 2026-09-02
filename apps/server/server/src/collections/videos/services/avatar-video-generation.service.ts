@@ -1,4 +1,23 @@
 import { randomUUID } from 'node:crypto';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
+import {
+  ActivitySource,
+  ByokProvider,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+  VoiceProvider,
+  WebSocketEventStatus,
+  WebSocketEventType,
+} from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
@@ -19,32 +38,13 @@ import type {
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@server/services/byok/byok.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { DefaultVoiceRef } from '@server/shared/default-voice-ref/default-voice-ref.schema';
 import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/constants';
-import {
-  ActivitySource,
-  ByokProvider,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-  VoiceProvider,
-  WebSocketEventStatus,
-  WebSocketEventType,
-} from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 
 interface AvatarVideoGenerationContext {
   organizationId: string;
@@ -105,7 +105,7 @@ export class AvatarVideoGenerationService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
-    private readonly fleetService: FleetService,
+    private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly heygenService: HeyGenService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
@@ -668,13 +668,14 @@ export class AvatarVideoGenerationService {
       voiceDoc.provider === VoiceProvider.GENFEED_AI &&
       voiceDoc.sampleAudioUrl
     ) {
-      const fleetResult = await this.fleetService.generateVoice({
-        organizationId,
-        referenceAudio: voiceDoc.sampleAudioUrl,
-        text,
-      });
+      const runtimeResult =
+        await this.managedInferenceRuntimeService.generateVoice({
+          organizationId,
+          referenceAudio: voiceDoc.sampleAudioUrl,
+          text,
+        });
 
-      if (!fleetResult?.jobId) {
+      if (!runtimeResult?.jobId) {
         throw new HttpException(
           {
             detail: 'Failed to generate audio from saved cloned voice',
@@ -684,9 +685,9 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      const pollResult = await this.fleetService.pollJob(
+      const pollResult = await this.managedInferenceRuntimeService.pollJob(
         'voices',
-        fleetResult.jobId,
+        runtimeResult.jobId,
         organizationId,
       );
 

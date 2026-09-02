@@ -1,5 +1,11 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import {
+  isFinalAttempt,
+  isRawCutJob,
+  isYoutubeUrl,
+  type VideoCompletionResult,
+} from '@files/processors/video-processor.util';
 import { ClipReferenceFrameExtractionService } from '@files/services/clip-reference-frames/clip-reference-frame-extraction.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
@@ -16,7 +22,6 @@ import {
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
 import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
-import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import {
   FILE_JOB_TYPES as JOB_TYPES,
   FILE_QUEUE_NAMES as QUEUE_NAMES,
@@ -28,50 +33,6 @@ import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
-
-interface VideoCompletionResult {
-  jobId?: string;
-  jobType?: string;
-  ingredientId?: string;
-  outputPath?: string;
-  s3Key?: string;
-  url?: string;
-  duration?: number;
-  startTime?: number;
-  endTime?: number;
-}
-
-const YOUTUBE_HOSTS = new Set([
-  'm.youtube.com',
-  'music.youtube.com',
-  'www.youtube.com',
-  'youtu.be',
-  'youtube.com',
-]);
-
-function isYoutubeUrl(value: string | undefined): value is string {
-  if (!value) return false;
-
-  try {
-    const url = new URL(value);
-    return (
-      url.protocol === 'https:' &&
-      url.username.length === 0 &&
-      url.password.length === 0 &&
-      YOUTUBE_HOSTS.has(url.hostname.toLowerCase())
-    );
-  } catch {
-    return false;
-  }
-}
-
-function isFinalAttempt(job: Job<VideoJobData>): boolean {
-  return job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
-}
-
-function isRawCutJob(job: Job<VideoJobData>): boolean {
-  return String(job.id).startsWith(RAW_CUT_JOB_PREFIX);
-}
 
 @Processor(QUEUE_NAMES.VIDEO_PROCESSING, withLongJobWorkerOptions({}))
 export class VideoProcessor extends WorkerHost {

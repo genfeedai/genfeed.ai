@@ -43,7 +43,7 @@ import { NotificationsModule } from '@api/services/notifications/notifications.m
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
-import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
+import { SkillWorkflowModule } from '@api/services/skill-executor/skill-executor.module';
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
@@ -111,7 +111,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => NotificationsModule),
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SignupPrefillModule),
-    forwardRef(() => SkillExecutorModule),
+    forwardRef(() => SkillWorkflowModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
     forwardRef(() => TelegramDistributionModule),

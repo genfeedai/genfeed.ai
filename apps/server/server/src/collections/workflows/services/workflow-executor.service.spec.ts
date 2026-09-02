@@ -1,12 +1,14 @@
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
+  WorkflowStatus,
 } from '@genfeedai/enums';
 import {
   createExecutableActionNode,
   type ExecutableWorkflow,
   type NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { BadRequestException } from '@nestjs/common';
 import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,6 +39,7 @@ function pinnedVersion(input: {
   edges?: unknown[];
   id: string;
   inputVariables?: unknown[];
+  isDeleted?: boolean;
   label: string;
   nodes?: unknown[];
 }) {
@@ -50,6 +53,7 @@ function pinnedVersion(input: {
       config: {},
       description: null,
       id: input.id,
+      isDeleted: input.isDeleted ?? false,
       label: input.label,
       metadata: {},
       organizationId: 'org-1',
@@ -169,6 +173,26 @@ describe('WorkflowExecutorService', () => {
     ).rejects.toThrow(
       'Workflow workflow-1 version other-version is unavailable in organization org-1',
     );
+  });
+
+  it('rejects a new manual run against a retired pinned workflow', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({
+        id: 'workflow-1',
+        isDeleted: true,
+        label: 'Retired workflow',
+      }),
+    );
+
+    await expect(
+      service.executePinnedManualWorkflow(
+        'workflow-1',
+        WORKFLOW_VERSION_ID,
+        'user-1',
+        'org-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(executionsService.createExecution).not.toHaveBeenCalled();
   });
 
   it('resolves a completed child by its durable idempotency key', async () => {
@@ -388,6 +412,16 @@ describe('WorkflowExecutorService', () => {
       undefined,
       { creditsUsed: 3 },
     );
+    expect(prisma.workflow.update).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        executionCount: { increment: 1 },
+      }),
+      where: {
+        id: 'workflow-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(executionsService.setCreditsUsed).not.toHaveBeenCalled();
     expect(
       websocketService.publishBackgroundTaskUpdate,
@@ -405,6 +439,63 @@ describe('WorkflowExecutorService', () => {
     });
 
     expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(4);
+  });
+
+  it('tenant-scopes status updates when manual execution fails', async () => {
+    const executableWorkflow: ExecutableWorkflow = {
+      edges: [],
+      id: 'workflow-failure',
+      lockedNodeIds: [],
+      nodes: [
+        createExecutableActionNode({
+          actionId: 'publish',
+          id: 'publish-node',
+          label: 'Publish',
+        }),
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+      versionId: WORKFLOW_VERSION_ID,
+    };
+
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: {},
+      currentVersion: currentVersion({ nodes: [] }),
+      id: 'workflow-failure',
+      label: 'Failing workflow',
+      metadata: {},
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    prisma.workflow.update.mockResolvedValue({ id: 'workflow-failure' });
+    executionsService.findOne.mockResolvedValue(null);
+    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+      executableWorkflow,
+    );
+    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+    executionsService.createExecution.mockResolvedValue({
+      id: 'execution-failure',
+    });
+    executionsService.startExecution.mockRejectedValue(
+      new Error('Failed to start execution'),
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-failure',
+      metadata: {},
+    });
+    await expect(
+      service.executeManualWorkflow('workflow-failure', 'user-1', 'org-1'),
+    ).rejects.toThrow('Failed to start execution');
+
+    expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: WorkflowStatus.FAILED }),
+      where: {
+        id: 'workflow-failure',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('executes a 1-node text generation through the live Run path and records a node result', async () => {
@@ -691,6 +782,58 @@ describe('WorkflowExecutorService', () => {
     expect(executionsService.completeExecution).not.toHaveBeenCalled();
   });
 
+  it('terminalizes a delayed execution when its pinned workflow was retired', async () => {
+    const startedAt = new Date('2026-08-28T10:00:00.000Z');
+    executionsService.findOne.mockResolvedValue({
+      id: 'exec-1',
+      startedAt,
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+      workflowVersionId: WORKFLOW_VERSION_ID,
+    });
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({
+        id: 'workflow-1',
+        isDeleted: true,
+        label: 'Retired workflow',
+      }),
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'exec-1',
+      metadata: {},
+    });
+
+    const result = await service.resumeAfterDelay({
+      delayNodeId: 'delay-node',
+      executionId: 'exec-1',
+      nodeOutputCache: {},
+      organizationId: 'org-1',
+      remainingNodeIds: ['next-node'],
+      triggerEvent: {
+        data: {},
+        organizationId: 'org-1',
+        platform: 'manual',
+        type: 'manual',
+        userId: 'user-1',
+      },
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+    });
+
+    expect(result).toMatchObject({
+      error:
+        'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
+      executionId: 'exec-1',
+      startedAt,
+      status: WorkflowExecutionStatus.FAILED,
+    });
+    expect(executionsService.completeExecution).toHaveBeenCalledWith(
+      'exec-1',
+      'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
+    );
+    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+  });
+
   it('rejects stale agent scope before loading or executing a workflow', async () => {
     const scopeService = {
       assertConsequentialBoundary: vi
@@ -827,6 +970,46 @@ describe('WorkflowExecutorService', () => {
         organizationId: 'org-1',
       });
       expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('terminalizes an existing execution when its pinned workflow was retired', async () => {
+      const startedAt = new Date('2026-08-28T10:00:00.000Z');
+      executionsService.findOne.mockResolvedValue({
+        id: 'exec-1',
+        startedAt,
+        status: WorkflowExecutionStatus.RUNNING,
+        workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
+      });
+      prisma.workflowVersion.findFirst.mockResolvedValue(
+        pinnedVersion({
+          id: 'workflow-1',
+          isDeleted: true,
+          label: 'Retired workflow',
+        }),
+      );
+      executionsService.completeExecution.mockResolvedValue({
+        id: 'exec-1',
+        metadata: {},
+      });
+
+      const result = await service.continueExistingExecution(
+        'exec-1',
+        triggerEvent,
+      );
+
+      expect(result).toMatchObject({
+        error:
+          'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
+        executionId: 'exec-1',
+        startedAt,
+        status: WorkflowExecutionStatus.FAILED,
+      });
+      expect(executionsService.completeExecution).toHaveBeenCalledWith(
+        'exec-1',
+        'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
+      );
+      expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
     });
 
     it('no-ops when the prior execution already completed', async () => {

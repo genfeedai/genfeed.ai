@@ -1,12 +1,8 @@
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import {
-  calculateFleetComputeCredits,
-  FLEET_COMPUTE_CREDIT_RATES,
-} from '@api/services/integrations/fleet/fleet-compute-billing.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+  calculateManagedInferenceComputeCredits,
+  MANAGED_INFERENCE_COMPUTE_CREDIT_RATES,
+} from '@api/services/integrations/managed-inference-runtime/managed-inference-compute-billing.util';
 import {
   ActivitySource,
   IngredientCategory,
@@ -15,6 +11,10 @@ import {
   VoiceProvider,
 } from '@genfeedai/enums';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 export interface FleetVoiceCloneWebhookPayload {
   assetId?: string;
@@ -109,7 +109,7 @@ export class FleetWebhookService {
       );
     }
 
-    const chargedCredits = calculateFleetComputeCredits({
+    const chargedCredits = calculateManagedInferenceComputeCredits({
       jobKind: 'voice-clone',
       processTimeSeconds,
     });
@@ -164,7 +164,7 @@ export class FleetWebhookService {
 
     await this.patchVoice(voice, update);
     await this.publishVoiceStatus(voice, VoiceCloneStatus.READY, {
-      chargedCredits: calculateFleetComputeCredits({
+      chargedCredits: calculateManagedInferenceComputeCredits({
         jobKind: 'voice-clone',
         processTimeSeconds,
       }),
@@ -240,7 +240,8 @@ export class FleetWebhookService {
         jobKind: 'voice-clone',
         processTimeSeconds: params.processTimeSeconds,
         rateCreditsPerSecond:
-          FLEET_COMPUTE_CREDIT_RATES['voice-clone'].creditsPerSecond,
+          MANAGED_INFERENCE_COMPUTE_CREDIT_RATES['voice-clone']
+            .creditsPerSecond,
         voiceId: this.voiceId(voice),
       },
       organizationId: this.organizationId(voice),

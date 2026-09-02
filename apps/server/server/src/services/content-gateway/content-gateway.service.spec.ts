@@ -1,17 +1,17 @@
+import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@server/collections/skills/services/skills.service';
 import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
-import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 
 describe('ContentGatewayService', () => {
   let service: ContentGatewayService;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let skillsService: { getEnabledSkillSlugs: ReturnType<typeof vi.fn> };
-  let skillExecutorService: { executeSkill: ReturnType<typeof vi.fn> };
+  let skillWorkflowService: { execute: ReturnType<typeof vi.fn> };
   let reviewablePostsService: {
     createFromSkillExecution: ReturnType<typeof vi.fn>;
   };
@@ -22,7 +22,7 @@ describe('ContentGatewayService', () => {
         ContentGatewayService,
         {
           provide: BrandsService,
-          useValue: { findOne: vi.fn().mockResolvedValue({ _id: 'brand' }) },
+          useValue: { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) },
         },
         {
           provide: SkillsService,
@@ -33,12 +33,17 @@ describe('ContentGatewayService', () => {
           },
         },
         {
-          provide: SkillExecutorService,
+          provide: SkillWorkflowService,
           useValue: {
-            executeSkill: vi.fn().mockResolvedValue({
-              drafts: [{ content: 'hello', type: 'text' }],
-              runId: 'run-1',
-              skillSlug: 'content-writing',
+            execute: vi.fn().mockResolvedValue({
+              draft: {
+                content: 'hello',
+                metadata: {},
+                platforms: [],
+                skillSlug: 'content-writing',
+                type: 'text',
+              },
+              executionId: 'execution-1',
             }),
           },
         },
@@ -65,15 +70,13 @@ describe('ContentGatewayService', () => {
     service = module.get(ContentGatewayService);
     brandsService = module.get(BrandsService);
     skillsService = module.get(SkillsService);
-    skillExecutorService = module.get(SkillExecutorService);
+    skillWorkflowService = module.get(SkillWorkflowService);
     reviewablePostsService = module.get(ReviewablePostsService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  afterEach(() => vi.clearAllMocks());
 
-  it('routes a signal and returns posts/runs', async () => {
+  it('routes a signal and returns posts with workflow executions', async () => {
     const result = await service.routeSignal({
       brandId: testId('brand'),
       organizationId: testId('org'),
@@ -83,75 +86,57 @@ describe('ContentGatewayService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalled();
     expect(skillsService.getEnabledSkillSlugs).toHaveBeenCalled();
-    expect(skillExecutorService.executeSkill).toHaveBeenCalled();
-    expect(reviewablePostsService.createFromSkillExecution).toHaveBeenCalled();
-    expect(result.runs).toEqual(['run-1']);
+    expect(skillWorkflowService.execute).toHaveBeenCalled();
+    expect(
+      reviewablePostsService.createFromSkillExecution,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ executionId: 'execution-1' }),
+    );
+    expect(result.executions).toEqual(['execution-1']);
     expect(result.posts).toHaveLength(1);
   });
 
-  it('processes manual request for a specific skill', async () => {
+  it('processes a manual request through the canonical skill workflow', async () => {
+    const organizationId = testId('org');
+    const brandId = testId('brand');
     const result = await service.processManualRequest(
-      testId('org'),
-      testId('brand'),
+      organizationId,
+      brandId,
       'content-writing',
       { prompt: 'hello' },
+      'user-1',
     );
 
-    expect(skillExecutorService.executeSkill).toHaveBeenCalledWith(
-      expect.objectContaining({ signalType: 'manual' }),
+    expect(skillWorkflowService.execute).toHaveBeenCalledWith(
       'content-writing',
+      expect.objectContaining({ brandId, organizationId }),
       { prompt: 'hello' },
+      'user-1',
     );
-    expect(result.runs).toEqual(['run-1']);
+    expect(result.executions).toEqual(['execution-1']);
   });
 
-  it('throws NotFoundException when brand does not exist', async () => {
+  it('rejects a missing brand before workflow execution', async () => {
     brandsService.findOne.mockResolvedValue(null);
-
     await expect(
       service.processManualRequest(
         testId('org'),
         testId('brand', 2),
-        'some-skill',
+        'content-writing',
       ),
     ).rejects.toThrow();
+    expect(skillWorkflowService.execute).not.toHaveBeenCalled();
   });
 
-  it('runs multiple skills when multiple are enabled', async () => {
-    skillsService.getEnabledSkillSlugs.mockResolvedValue([
-      'content-writing',
-      'video-gen',
-    ]);
-    skillExecutorService.executeSkill
-      .mockResolvedValueOnce({ drafts: [{ content: 'a' }], runId: 'run-a' })
-      .mockResolvedValueOnce({ drafts: [{ content: 'b' }], runId: 'run-b' });
-    reviewablePostsService.createFromSkillExecution
-      .mockResolvedValueOnce([{ id: 'post-1' }])
-      .mockResolvedValueOnce([{ id: 'post-2' }]);
-
-    const result = await service.routeSignal({
-      brandId: testId('brand'),
-      organizationId: testId('org'),
-      payload: {},
-      type: 'cron',
-    });
-
-    expect(result.runs).toEqual(['run-a', 'run-b']);
-    expect(result.posts).toHaveLength(2);
-  });
-
-  it('returns empty runs/posts when no skills are enabled', async () => {
+  it('returns no executions when no skills are enabled', async () => {
     skillsService.getEnabledSkillSlugs.mockResolvedValue([]);
-
     const result = await service.routeSignal({
       brandId: testId('brand'),
       organizationId: testId('org'),
       payload: {},
       type: 'cron',
     });
-
-    expect(result.runs).toEqual([]);
-    expect(result.posts).toEqual([]);
-    expect(skillExecutorService.executeSkill).not.toHaveBeenCalled();
+    expect(result).toEqual({ executions: [], posts: [] });
+    expect(skillWorkflowService.execute).not.toHaveBeenCalled();
   });
 });

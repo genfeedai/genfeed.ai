@@ -1,22 +1,3 @@
-import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import {
-  type BatchItemFull,
-  type BatchWithConfig,
-  type ReviewInboxItemSummary,
-  type ReviewInboxSummary,
-  resolveBatchItems,
-} from '@server/services/batch-generation/batch-generation.types';
-import { BatchGenerationSummaryService } from '@server/services/batch-generation/batch-generation-summary.service';
-import {
-  batchItemRowsInclude,
-  writeBatchJsonAndItemRows,
-} from '@server/services/batch-generation/batch-item-rows';
-import { toPrismaBatchStatus } from '@server/services/batch-generation/batch-status-prisma.mapper';
-import { UpdateBatchDto } from '@server/services/batch-generation/dto/update-batch.dto';
-import { HarnessReviewFeedbackService } from '@server/services/harness/harness-review-feedback.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   BatchItemStatus,
   BatchStatus,
@@ -37,6 +18,37 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+
+type ApproveBatchItemsContext = {
+  batchId: string;
+  batchItems: BatchItemFull[];
+  batchRecord: BatchWithConfig;
+  createdByUserId: string;
+  itemIdSet: Set<string>;
+  orgId: string;
+  reviewedAt: string;
+  selectedPostIds: string[];
+};
+
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import {
+  type BatchItemFull,
+  type BatchWithConfig,
+  type ReviewInboxItemSummary,
+  type ReviewInboxSummary,
+  resolveBatchItems,
+} from '@server/services/batch-generation/batch-generation.types';
+import { BatchGenerationSummaryService } from '@server/services/batch-generation/batch-generation-summary.service';
+import {
+  batchItemRowsInclude,
+  writeBatchJsonAndItemRows,
+} from '@server/services/batch-generation/batch-item-rows';
+import { toPrismaBatchStatus } from '@server/services/batch-generation/batch-status-prisma.mapper';
+import { UpdateBatchDto } from '@server/services/batch-generation/dto/update-batch.dto';
+import { HarnessReviewFeedbackService } from '@server/services/harness/harness-review-feedback.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 
 @Injectable()
 export class BatchGenerationReviewService {
@@ -201,138 +213,18 @@ export class BatchGenerationReviewService {
 
     const batchItems = resolveBatchItems(batchRecord);
     const selectedPostIds = this.getSelectedPostIds(batchItems, itemIdSet);
-    const updatedBatch = await this.prisma.$transaction(async (transaction) => {
-      const versionPinIds = new Map<string, string>();
-      const publishApprovals = new Map<string, IPublishApproval>();
-
-      for (const postId of selectedPostIds) {
-        const item = batchItems.find(
-          (candidate) => candidate.postId === postId,
-        );
-        if (item?.scheduledDate) {
-          const approval =
-            await this.publishApprovalsService.createForCurrentPost({
-              actorUserId: createdByUserId,
-              mode: 'scheduled',
-              organizationId: orgId,
-              postId,
-              provenance: {
-                batchId,
-                reviewItemId: item.id,
-                surface: 'review-queue',
-              },
-              transaction,
-            });
-          publishApprovals.set(postId, approval);
-          versionPinIds.set(postId, approval.artifactVersionPinId);
-        } else {
-          const versionPin =
-            await this.agentArtifactReferenceService.createOrReuseVersionPin({
-              createdByUserId,
-              reference: {
-                ...(batchRecord.brandId
-                  ? { brandId: batchRecord.brandId }
-                  : {}),
-                kind: 'post',
-                organizationId: orgId,
-                recordId: postId,
-                serializer: 'post',
-              },
-              transaction,
-            });
-          versionPinIds.set(postId, versionPin.id);
-        }
-      }
-
-      const postIdsToSchedule: string[] = [];
-
-      for (const item of batchItems) {
-        if (
-          itemIdSet.has(item.id) &&
-          item.status === BatchItemStatus.COMPLETED
-        ) {
-          const versionPinId = item.postId
-            ? versionPinIds.get(item.postId)
-            : undefined;
-          item.reviewDecision = ReviewDecision.APPROVED;
-          item.publishApproval = item.postId
-            ? publishApprovals.get(item.postId)
-            : undefined;
-          item.reviewFeedback = undefined;
-          item.versionPinId = versionPinId;
-          item.reviewedAt = reviewedAt;
-          this.appendApprovedReviewEvent(
-            item,
-            reviewedAt,
-            createdByUserId,
-            versionPinId,
-          );
-          if (item.postId && item.scheduledDate) {
-            postIdsToSchedule.push(item.postId);
-          }
-        }
-      }
-
-      const postIdsToScheduleSet = new Set(postIdsToSchedule);
-      const approvalUpdates = await Promise.all(
-        selectedPostIds
-          .filter((postId) => !postIdsToScheduleSet.has(postId))
-          .map((postId) =>
-            transaction.post.updateMany({
-              data: {
-                reviewDecision: PersistedReviewDecision.APPROVED,
-                reviewVersionPinId: versionPinIds.get(postId),
-                reviewedAt: new Date(reviewedAt),
-              },
-              where: scopedWhere(orgId, { id: postId }),
-            }),
-          ),
-      );
-      if (approvalUpdates.some((result) => result.count !== 1)) {
-        throw new NotFoundException({
-          message: 'A canonical Post disappeared before approval completed.',
-        });
-      }
-
-      for (const postId of postIdsToSchedule) {
-        await this.postLifecycleService.transition(
-          {
-            actorId: createdByUserId,
-            mutation: {
-              reviewDecision: PersistedReviewDecision.APPROVED,
-              reviewVersionPinId: versionPinIds.get(postId),
-              reviewedAt: new Date(reviewedAt),
-            },
-            nextState: TargetExecutionState.SCHEDULED,
-            organizationId: orgId,
-            postId,
-            reason: 'Review item approved for scheduling',
-          },
-          transaction,
-        );
-      }
-
-      const batchUpdate = await writeBatchJsonAndItemRows(transaction, {
+    const updatedBatch = await this.prisma.$transaction((transaction) =>
+      this.approveItemsInTransaction(transaction, {
         batchId,
-        brandId: batchRecord.brandId,
-        items: batchItems,
-        organizationId: orgId,
-      });
-      if (batchUpdate.count !== 1) {
-        throw new NotFoundException({
-          message: `Batch ${batchId} disappeared before approval completed`,
-        });
-      }
-
-      const updated = await transaction.batch.findFirst({
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      });
-      if (!updated) {
-        throw new NotFoundException('Batch', batchId);
-      }
-      return updated as unknown as BatchWithConfig;
-    });
+        batchItems,
+        batchRecord: batchRecord as unknown as BatchWithConfig,
+        createdByUserId,
+        itemIdSet,
+        orgId,
+        reviewedAt,
+        selectedPostIds,
+      }),
+    );
 
     this.logger.log(`Approved ${itemIds.length} items in batch ${batchId}`, {
       batchId,
@@ -340,6 +232,145 @@ export class BatchGenerationReviewService {
     });
 
     return this.summaryService.toBatchSummary(updatedBatch);
+  }
+
+  private async approveItemsInTransaction(
+    transaction: Prisma.TransactionClient,
+    params: ApproveBatchItemsContext,
+  ): Promise<BatchWithConfig> {
+    const {
+      batchId,
+      batchItems,
+      batchRecord,
+      createdByUserId,
+      itemIdSet,
+      orgId,
+      reviewedAt,
+      selectedPostIds,
+    } = params;
+    const versionPinIds = new Map<string, string>();
+    const publishApprovals = new Map<string, IPublishApproval>();
+
+    for (const postId of selectedPostIds) {
+      const item = batchItems.find((candidate) => candidate.postId === postId);
+      if (item?.scheduledDate) {
+        const approval =
+          await this.publishApprovalsService.createForCurrentPost({
+            actorUserId: createdByUserId,
+            mode: 'scheduled',
+            organizationId: orgId,
+            postId,
+            provenance: {
+              batchId,
+              reviewItemId: item.id,
+              surface: 'review-queue',
+            },
+            transaction,
+          });
+        publishApprovals.set(postId, approval);
+        versionPinIds.set(postId, approval.artifactVersionPinId);
+      } else {
+        const versionPin =
+          await this.agentArtifactReferenceService.createOrReuseVersionPin({
+            createdByUserId,
+            reference: {
+              ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
+              kind: 'post',
+              organizationId: orgId,
+              recordId: postId,
+              serializer: 'post',
+            },
+            transaction,
+          });
+        versionPinIds.set(postId, versionPin.id);
+      }
+    }
+
+    const postIdsToSchedule: string[] = [];
+
+    for (const item of batchItems) {
+      if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
+        const versionPinId = item.postId
+          ? versionPinIds.get(item.postId)
+          : undefined;
+        item.reviewDecision = ReviewDecision.APPROVED;
+        item.publishApproval = item.postId
+          ? publishApprovals.get(item.postId)
+          : undefined;
+        item.reviewFeedback = undefined;
+        item.versionPinId = versionPinId;
+        item.reviewedAt = reviewedAt;
+        this.appendApprovedReviewEvent(
+          item,
+          reviewedAt,
+          createdByUserId,
+          versionPinId,
+        );
+        if (item.postId && item.scheduledDate) {
+          postIdsToSchedule.push(item.postId);
+        }
+      }
+    }
+
+    const postIdsToScheduleSet = new Set(postIdsToSchedule);
+    const approvalUpdates = await Promise.all(
+      selectedPostIds
+        .filter((postId) => !postIdsToScheduleSet.has(postId))
+        .map((postId) =>
+          transaction.post.updateMany({
+            data: {
+              reviewDecision: PersistedReviewDecision.APPROVED,
+              reviewVersionPinId: versionPinIds.get(postId),
+              reviewedAt: new Date(reviewedAt),
+            },
+            where: scopedWhere(orgId, { id: postId }),
+          }),
+        ),
+    );
+    if (approvalUpdates.some((result) => result.count !== 1)) {
+      throw new NotFoundException({
+        message: 'A canonical Post disappeared before approval completed.',
+      });
+    }
+
+    for (const postId of postIdsToSchedule) {
+      await this.postLifecycleService.transition(
+        {
+          actorId: createdByUserId,
+          mutation: {
+            reviewDecision: PersistedReviewDecision.APPROVED,
+            reviewVersionPinId: versionPinIds.get(postId),
+            reviewedAt: new Date(reviewedAt),
+          },
+          nextState: TargetExecutionState.SCHEDULED,
+          organizationId: orgId,
+          postId,
+          reason: 'Review item approved for scheduling',
+        },
+        transaction,
+      );
+    }
+
+    const batchUpdate = await writeBatchJsonAndItemRows(transaction, {
+      batchId,
+      brandId: batchRecord.brandId,
+      items: batchItems,
+      organizationId: orgId,
+    });
+    if (batchUpdate.count !== 1) {
+      throw new NotFoundException({
+        message: `Batch ${batchId} disappeared before approval completed`,
+      });
+    }
+
+    const updated = await transaction.batch.findFirst({
+      include: batchItemRowsInclude(orgId),
+      where: scopedWhere(orgId, { id: batchId }),
+    });
+    if (!updated) {
+      throw new NotFoundException('Batch', batchId);
+    }
+    return updated as unknown as BatchWithConfig;
   }
 
   private appendApprovedReviewEvent(

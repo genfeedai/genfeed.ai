@@ -81,12 +81,10 @@ export interface TikTokVideosFetch {
   videos: TikTokOwnedVideoSignal[];
 }
 
-export type SettledResult<T> = AuthorizedSignalsSettledResult<T>;
-
 export interface TikTokProviderFetchResult {
-  creatorInfoResult: SettledResult<Record<string, unknown>>;
-  userInfoResult: SettledResult<Record<string, unknown>>;
-  videosResult: SettledResult<TikTokVideosFetch>;
+  creatorInfoResult: AuthorizedSignalsSettledResult<Record<string, unknown>>;
+  userInfoResult: AuthorizedSignalsSettledResult<Record<string, unknown>>;
+  videosResult: AuthorizedSignalsSettledResult<TikTokVideosFetch>;
 }
 
 export function readRecord(value: unknown): Record<string, unknown> {
@@ -294,7 +292,7 @@ export class TiktokAuthorizedSignalsProvider {
 
   private async settle<T>(
     promise: Promise<T> | undefined,
-  ): Promise<SettledResult<T>> {
+  ): Promise<AuthorizedSignalsSettledResult<T>> {
     return settleProviderRequest(promise);
   }
 }

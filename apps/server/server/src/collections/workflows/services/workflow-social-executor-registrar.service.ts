@@ -1,11 +1,3 @@
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
-import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
-import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { buildTwitterStatusUrl } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { CredentialPlatform, Platform } from '@genfeedai/enums';
 import type { INotificationPayloadTypes } from '@genfeedai/interfaces';
 import {
@@ -25,19 +17,29 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
+import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
+import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { buildTwitterStatusUrl } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 
+@Injectable()
 export class WorkflowSocialExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
 
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly loggerService: LoggerService,
-    private readonly socialAdapterFactory?: SocialAdapterFactory,
-    private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
-    private readonly socialInboxService?: SocialInboxService,
-    private readonly twitterService?: TwitterService,
-    private readonly credentialsService?: CredentialsService,
-    private readonly notificationsService?: NotificationsService,
+    @Optional() private readonly socialAdapterFactory?: SocialAdapterFactory,
+    @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
+    @Optional() private readonly socialInboxService?: SocialInboxService,
+    @Optional() private readonly twitterService?: TwitterService,
+    @Optional() private readonly credentialsService?: CredentialsService,
+    @Optional() private readonly notificationsService?: NotificationsService,
   ) {}
 
   register(engine: WorkflowEngine): void {

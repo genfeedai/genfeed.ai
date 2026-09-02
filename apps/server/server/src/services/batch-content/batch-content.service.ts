@@ -12,8 +12,8 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   BATCH_CONTENT_ACTION_IDS,
-  buildBatchContentItemWorkflowDefinition,
-  buildBatchContentWorkflowDefinition,
+  buildBatchContentWorkflowDefinitions,
+  getBatchContentWorkflowId,
 } from '@server/services/batch-content/batch-content-workflow-definition';
 import type {
   BatchContentRequest,
@@ -21,7 +21,7 @@ import type {
   QueuedBatchContentResult,
 } from '@server/services/batch-content/interfaces/batch-content.interfaces';
 import type { GeneratedContent } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
+import { isExecutableSkillSlug } from '@server/services/skill-executor/skill-workflow-definition';
 
 type BatchContentItem = BatchContentRequest & { itemIndex: number };
 
@@ -36,7 +36,6 @@ export class BatchContentService implements OnModuleInit {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly skillExecutorService: SkillExecutorService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
@@ -48,17 +47,16 @@ export class BatchContentService implements OnModuleInit {
       async (request) => this.planBatchAction(request),
     );
     this.workflowRunner.registerAction(
-      BATCH_CONTENT_ACTION_IDS.GENERATE_ITEM,
-      (request) => this.generateItemAction(request),
+      BATCH_CONTENT_ACTION_IDS.PREPARE_ITEM,
+      (request) => this.prepareItemAction(request),
     );
     this.workflowRunner.registerAction(
       BATCH_CONTENT_ACTION_IDS.RANK,
       async (request) => this.rankDraftsAction(request),
     );
-    this.workflowRunner.registerWorkflow(
-      buildBatchContentItemWorkflowDefinition(),
-    );
-    this.workflowRunner.registerWorkflow(buildBatchContentWorkflowDefinition());
+    for (const definition of buildBatchContentWorkflowDefinitions()) {
+      this.workflowRunner.registerWorkflow(definition);
+    }
   }
 
   async queueBatch(
@@ -66,11 +64,14 @@ export class BatchContentService implements OnModuleInit {
     userId?: string,
   ): Promise<QueuedBatchContentResult> {
     await this.validateBrandOwnership(request.organizationId, request.brandId);
-    const definition = buildBatchContentWorkflowDefinition();
+    if (!isExecutableSkillSlug(request.skillSlug)) {
+      throw new NotFoundException(`Skill not found: ${request.skillSlug}`);
+    }
+    const canonicalId = getBatchContentWorkflowId(request.skillSlug);
     const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+        actionType: canonicalId,
+        canonicalId,
         inputValues: { request },
         organizationId: request.organizationId,
         source: 'BatchContentService.queueBatch',
@@ -120,21 +121,25 @@ export class BatchContentService implements OnModuleInit {
     };
   }
 
-  private async generateItemAction(
-    request: SystemWorkflowActionRequest,
-  ): Promise<GeneratedContent> {
+  private prepareItemAction(request: SystemWorkflowActionRequest): {
+    context: {
+      brandId: string;
+      brandVoice: string;
+      organizationId: string;
+      platforms: string[];
+    };
+    params: Record<string, unknown>;
+  } {
     const item = this.readBatchItem(request.input.item);
-    const execution = await this.skillExecutorService.execute(
-      item.skillSlug,
-      {
+    return {
+      context: {
         brandId: item.brandId,
         brandVoice: '',
         organizationId: item.organizationId,
         platforms: [],
       },
-      item.params ?? {},
-    );
-    return execution.draft;
+      params: item.params ?? {},
+    };
   }
 
   private rankDraftsAction(

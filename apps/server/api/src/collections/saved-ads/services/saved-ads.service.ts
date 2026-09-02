@@ -73,6 +73,10 @@ export class SavedAdsService {
 
   async updateNotes(organizationId: string, inputs: UpdateSavedAdNoteInput[]) {
     if (inputs.length === 0) return [];
+    await this.assertBrands(
+      organizationId,
+      inputs.map((input) => input.brandId),
+    );
     await this.assertSavedAdsExist(organizationId, inputs, false);
 
     return this.prisma.$transaction(
@@ -92,6 +96,10 @@ export class SavedAdsService {
 
   async unsaveMany(organizationId: string, inputs: UnsaveSavedAdInput[]) {
     if (inputs.length === 0) return [];
+    await this.assertBrands(
+      organizationId,
+      inputs.map((input) => input.brandId),
+    );
     await this.assertSavedAdsExist(organizationId, inputs, true);
     await this.prisma.savedAd.updateMany({
       data: { isDeleted: true },

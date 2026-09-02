@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
+import { buildAudioOverlayArgs } from '@files/services/ffmpeg/helpers/audio-overlay-args.helper';
 import {
   getPanExpression,
   getZoomExpression,
@@ -614,97 +615,16 @@ export class FFmpegEffectsService {
     const audioVolumeNormalized = safeAudioVolume / 100;
     const videoVolumeNormalized = safeVideoVolume / 100;
 
-    const args: string[] = ['-i', validatedVideoPath, '-i', validatedAudioPath];
-
-    if (mixMode === 'replace') {
-      // Replace video audio entirely with new audio
-      let audioFilter = `[1:a]volume=${audioVolumeNormalized}`;
-
-      // Apply fade effects
-      if (safeFadeIn > 0) {
-        audioFilter += `,afade=t=in:st=0:d=${safeFadeIn}`;
-      }
-      if (safeFadeOut > 0) {
-        audioFilter += `,afade=t=out:st=-${safeFadeOut}:d=${safeFadeOut}`;
-      }
-
-      audioFilter += '[aout]';
-
-      args.push(
-        '-filter_complex',
-        audioFilter,
-        '-map',
-        '0:v',
-        '-map',
-        '[aout]',
-        '-c:v',
-        'copy',
-        '-c:a',
-        'aac',
-        '-shortest',
-        '-y',
-        validatedOutputPath,
-      );
-    } else if (mixMode === 'mix') {
-      // Mix both audio tracks at specified volumes
-      let filterComplex = `[0:a]volume=${videoVolumeNormalized}[va];[1:a]volume=${audioVolumeNormalized}`;
-
-      if (safeFadeIn > 0) {
-        filterComplex += `,afade=t=in:st=0:d=${safeFadeIn}`;
-      }
-      if (safeFadeOut > 0) {
-        filterComplex += `,afade=t=out:st=-${safeFadeOut}:d=${safeFadeOut}`;
-      }
-
-      filterComplex +=
-        '[aa];[va][aa]amix=inputs=2:duration=first:dropout_transition=0[aout]';
-
-      args.push(
-        '-filter_complex',
-        filterComplex,
-        '-map',
-        '0:v',
-        '-map',
-        '[aout]',
-        '-c:v',
-        'copy',
-        '-c:a',
-        'aac',
-        '-shortest',
-        '-y',
-        validatedOutputPath,
-      );
-    } else if (mixMode === 'background') {
-      // Audio as background music (lower volume, ducking)
-      const bgVolume = audioVolumeNormalized * 0.3; // Background music at 30% of specified volume
-      let filterComplex = `[0:a]volume=${videoVolumeNormalized}[va];[1:a]volume=${bgVolume}`;
-
-      if (safeFadeIn > 0) {
-        filterComplex += `,afade=t=in:st=0:d=${safeFadeIn}`;
-      }
-      if (safeFadeOut > 0) {
-        filterComplex += `,afade=t=out:st=-${safeFadeOut}:d=${safeFadeOut}`;
-      }
-
-      filterComplex +=
-        '[bg];[va][bg]amix=inputs=2:duration=first:dropout_transition=0[aout]';
-
-      args.push(
-        '-filter_complex',
-        filterComplex,
-        '-map',
-        '0:v',
-        '-map',
-        '[aout]',
-        '-c:v',
-        'copy',
-        '-c:a',
-        'aac',
-        '-shortest',
-        '-y',
-        validatedOutputPath,
-      );
-    }
+    const args = buildAudioOverlayArgs({
+      audioPath: validatedAudioPath,
+      audioVolume: audioVolumeNormalized,
+      fadeIn: safeFadeIn,
+      fadeOut: safeFadeOut,
+      mixMode,
+      outputPath: validatedOutputPath,
+      videoPath: validatedVideoPath,
+      videoVolume: videoVolumeNormalized,
+    });
 
     this.loggerService.log(
       `Overlaying audio: mode=${mixMode}, audioVol=${safeAudioVolume}%, videoVol=${safeVideoVolume}%`,

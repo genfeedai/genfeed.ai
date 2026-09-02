@@ -106,21 +106,6 @@
       "sourceRoot": "files/src",
       "type": "application"
     },
-    "images": {
-      "compilerOptions": {
-        "builder": {
-          "options": {
-            "configPath": "images/webpack.config.cjs"
-          },
-          "type": "webpack"
-        },
-        "tsConfigPath": "images/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "images",
-      "sourceRoot": "images/src",
-      "type": "application"
-    },
     "mcp": {
       "compilerOptions": {
         "assets": [
@@ -187,36 +172,6 @@
       "entryFile": "main",
       "root": "telegram",
       "sourceRoot": "telegram/src",
-      "type": "application"
-    },
-    "videos": {
-      "compilerOptions": {
-        "builder": {
-          "options": {
-            "configPath": "videos/webpack.config.cjs"
-          },
-          "type": "webpack"
-        },
-        "tsConfigPath": "videos/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "videos",
-      "sourceRoot": "videos/src",
-      "type": "application"
-    },
-    "voices": {
-      "compilerOptions": {
-        "builder": {
-          "options": {
-            "configPath": "voices/webpack.config.cjs"
-          },
-          "type": "webpack"
-        },
-        "tsConfigPath": "voices/tsconfig.app.json"
-      },
-      "entryFile": "main",
-      "root": "voices",
-      "sourceRoot": "voices/src",
       "type": "application"
     },
     "workers": {

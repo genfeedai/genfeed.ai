@@ -1,3 +1,13 @@
+import { ActivitySource } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import {
   ManagedInferenceOperation,
@@ -9,19 +19,9 @@ import type {
   ManagedInferenceAuthenticatedRequest,
   ManagedInferenceResponse,
 } from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { ActivitySource } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
@@ -38,7 +38,7 @@ export class ManagedInferenceService {
   constructor(
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly falService: FalService,
-    private readonly fleetService: FleetService,
+    private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
     private readonly leonardoAIService: LeonardoAIService,
     private readonly replicateService: ReplicateService,
     private readonly loggerService: LoggerService,
@@ -177,18 +177,19 @@ export class ManagedInferenceService {
       );
     }
 
-    const job = await this.fleetService.generateManagedVideoForOrg({
-      fps: this.getNumber(input.fps),
-      height: this.getNumber(input.height),
-      imageUrl,
-      negativePrompt: this.getString(
-        input.negativePrompt ?? input.negative_prompt,
-      ),
-      organizationId,
-      prompt: input.prompt,
-      seed: this.getNumber(input.seed),
-      width: this.getNumber(input.width),
-    });
+    const job =
+      await this.managedInferenceRuntimeService.generateManagedVideoForOrg({
+        fps: this.getNumber(input.fps),
+        height: this.getNumber(input.height),
+        imageUrl,
+        negativePrompt: this.getString(
+          input.negativePrompt ?? input.negative_prompt,
+        ),
+        organizationId,
+        prompt: input.prompt,
+        seed: this.getNumber(input.seed),
+        width: this.getNumber(input.width),
+      });
 
     if (!job) {
       throw new BadRequestException(
@@ -211,12 +212,12 @@ export class ManagedInferenceService {
     organizationId: string,
     jobId: string,
   ): Promise<{ jobId: string; url: string }> {
-    // Poll the fleet job until it reaches a terminal state. Failure is raised
+    // Poll the runtime job until it reaches a terminal state. Failure is raised
     // from the predicate so it surfaces as a BadRequest rather than a timeout.
     try {
       const { value: status } = await this.pollUntilService.poll(
         () =>
-          this.fleetService.pollManagedJobForOrg(
+          this.managedInferenceRuntimeService.pollManagedJobForOrg(
             organizationId,
             'videos',
             jobId,
@@ -315,10 +316,11 @@ export class ManagedInferenceService {
       }
 
       if (dto.provider === ManagedInferenceProvider.GENFEEDAI) {
-        const enabled = await this.fleetService.hasDedicatedInstanceForOrg(
-          organizationId,
-          'videos',
-        );
+        const enabled =
+          await this.managedInferenceRuntimeService.hasDedicatedInstanceForOrg(
+            organizationId,
+            'videos',
+          );
 
         if (!enabled) {
           throw new ForbiddenException(

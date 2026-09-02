@@ -1,40 +1,38 @@
-import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { isExecutableBuiltInSkillIdentity } from '@server/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@server/collections/skills/services/skills.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { ContentGeoOptimizerHandler } from '@server/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@server/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@server/services/skill-executor/handlers/trend-discovery.handler';
 import { TrendRemixHandler } from '@server/services/skill-executor/handlers/trend-remix.handler';
 import type {
-  GatewayExecutionContext,
-  GatewayExecutionResult,
+  GeneratedContent,
   SkillExecutionContext,
   SkillExecutionResult,
   SkillHandler,
 } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
 import {
-  ByokProvider,
-  ContentRunSource,
-  ContentRunStatus,
-} from '@genfeedai/enums';
-import type {
-  ContentRunBrief,
-  ContentRunPublishContext,
-  ContentRunVariant,
-} from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+  buildSkillWorkflowDefinition,
+  EXECUTABLE_SKILL_SLUGS,
+  type ExecutableSkillSlug,
+  isExecutableSkillSlug,
+  SKILL_ACTION_IDS,
+  SKILL_WORKFLOW_IDS,
+} from '@server/services/skill-executor/skill-workflow-definition';
 
 @Injectable()
-export class SkillExecutorService {
-  private readonly handlers: Record<string, SkillHandler>;
+export class SkillWorkflowService implements OnModuleInit {
+  private readonly handlers: Record<ExecutableSkillSlug, SkillHandler>;
 
   constructor(
     private readonly skillsService: SkillsService,
-    private readonly contentRunsService: ContentRunsService,
-    private readonly byokProviderFactoryService: ByokProviderFactoryService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
     contentGeoOptimizerHandler: ContentGeoOptimizerHandler,
     contentWritingHandler: ContentWritingHandler,
     imageGenerationHandler: ImageGenerationHandler,
@@ -50,209 +48,74 @@ export class SkillExecutorService {
     };
   }
 
+  onModuleInit(): void {
+    for (const skillSlug of EXECUTABLE_SKILL_SLUGS) {
+      this.workflowRunner.registerAction(
+        SKILL_ACTION_IDS[skillSlug],
+        (request) => this.executeAction(skillSlug, request),
+      );
+      this.workflowRunner.registerWorkflow(
+        buildSkillWorkflowDefinition(skillSlug),
+      );
+    }
+  }
+
   async execute(
     skillSlug: string,
     context: SkillExecutionContext,
     params: Record<string, unknown> = {},
+    userId?: string,
   ): Promise<SkillExecutionResult> {
+    if (!isExecutableSkillSlug(skillSlug)) {
+      throw new NotFoundException(`Skill not found: ${skillSlug}`);
+    }
+
     const startedAt = Date.now();
-
-    const skill = await this.assertSkillExecutable(
-      context.organizationId,
-      context.brandId,
-      skillSlug,
-    );
-
-    const run = await this.contentRunsService.createRun({
-      brandId: context.brandId,
-      brief: this.buildRunBrief(params),
-      creditsUsed: 0,
-      input: params,
+    const execution = await this.workflowRunner.runWorkflow<GeneratedContent>({
+      actionType: SKILL_ACTION_IDS[skillSlug],
+      canonicalId: SKILL_WORKFLOW_IDS[skillSlug],
+      inputValues: { context, params },
       organizationId: context.organizationId,
-      publish: this.buildRunPublishContext(params),
-      skillSlug,
-      source: ContentRunSource.HOSTED,
-      status: ContentRunStatus.PENDING,
+      source: 'SkillWorkflowService.execute',
+      userId,
     });
 
-    await this.contentRunsService.patchRun(
-      context.organizationId,
-      String(run.id),
-      {
-        status: ContentRunStatus.RUNNING,
-      },
-    );
-
-    const handler = this.handlers[skillSlug];
-
-    if (!handler) {
-      await this.contentRunsService.patchRun(
-        context.organizationId,
-        String(run.id),
-        {
-          duration: Date.now() - startedAt,
-          error: `No handler registered for skill: ${skillSlug}`,
-          status: ContentRunStatus.FAILED,
-        },
-      );
-      throw new NotFoundException(
-        `No handler registered for skill: ${skillSlug}`,
-      );
-    }
-
-    let source: 'byok' | 'hosted' | 'managed' = 'hosted';
-
-    const requiredProviders = (skill.requiredProviders ?? []).filter(
-      (provider): provider is ByokProvider =>
-        Object.values(ByokProvider).includes(provider as ByokProvider),
-    );
-
-    if (requiredProviders.length > 0) {
-      const resolution = await this.byokProviderFactoryService.resolveProvider(
-        context.organizationId,
-        requiredProviders[0],
-      );
-      source = resolution.source;
-    }
-
-    try {
-      const draft = await handler.execute(context, params);
-      const duration = Date.now() - startedAt;
-
-      await this.contentRunsService.patchRun(
-        context.organizationId,
-        String(run.id),
-        {
-          duration,
-          output: draft as unknown as Record<string, unknown>,
-          variants: this.buildRunVariants(draft, String(run.id)),
-          source: this.toContentRunSource(source),
-          status: ContentRunStatus.COMPLETED,
-        },
-      );
-
-      return {
-        creditsUsed: 0,
-        draft,
-        duration,
-        runId: String(run.id),
-        source,
-      };
-    } catch (error: unknown) {
-      const duration = Date.now() - startedAt;
-
-      await this.contentRunsService.patchRun(
-        context.organizationId,
-        String(run.id),
-        {
-          duration,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Unknown skill execution error',
-          source: this.toContentRunSource(source),
-          status: ContentRunStatus.FAILED,
-        },
-      );
-
-      throw error;
-    }
+    return {
+      creditsUsed: 0,
+      draft: execution.result,
+      duration: Math.max(0, Date.now() - startedAt),
+      executionId: execution.provenance.executionId,
+    };
   }
 
-  async executeSkill(
-    context: GatewayExecutionContext,
-    skillSlug: string,
-    params?: Record<string, unknown>,
-  ): Promise<GatewayExecutionResult> {
+  private async executeAction(
+    skillSlug: ExecutableSkillSlug,
+    request: SystemWorkflowActionRequest,
+  ): Promise<GeneratedContent> {
+    const context = this.readContext(request.input.context);
+    if (context.organizationId !== request.context.organizationId) {
+      throw new Error('Skill workflow organization context mismatch');
+    }
     await this.assertSkillExecutable(
       context.organizationId,
       context.brandId,
       skillSlug,
     );
-
-    const executionContext: SkillExecutionContext = {
-      brandId: context.brandId,
-      brandVoice: '',
-      memory: undefined,
-      organizationId: context.organizationId,
-      platforms: [],
-    };
-
-    const run = await this.contentRunsService.createRun({
-      brandId: context.brandId,
-      brief: this.buildRunBrief(params ?? {}),
-      creditsUsed: 0,
-      input: params ?? {},
-      organizationId: context.organizationId,
-      publish: this.buildRunPublishContext(params ?? {}),
-      skillSlug,
-      source: ContentRunSource.HOSTED,
-      status: ContentRunStatus.PENDING,
-    });
-
-    const runId = String(run.id);
-
-    const handler = this.handlers[skillSlug];
-
-    if (!handler) {
-      await this.contentRunsService.patchRun(context.organizationId, runId, {
-        error: `No handler registered for skill: ${skillSlug}`,
-        status: ContentRunStatus.FAILED,
-      });
-      throw new NotFoundException(
-        `No handler registered for skill: ${skillSlug}`,
-      );
-    }
-
-    await this.contentRunsService.patchRun(context.organizationId, runId, {
-      status: ContentRunStatus.RUNNING,
-    });
-
-    try {
-      const draft = await handler.execute(executionContext, params ?? {});
-
-      await this.contentRunsService.patchRun(context.organizationId, runId, {
-        output: draft as unknown as Record<string, unknown>,
-        status: ContentRunStatus.COMPLETED,
-        variants: this.buildRunVariants(draft, runId),
-      });
-
-      return {
-        drafts: [
-          {
-            confidence: draft.confidence,
-            content: draft.content,
-            mediaUrls: draft.mediaUrls,
-            metadata: draft.metadata,
-            platforms: draft.platforms,
-            type: draft.type,
-          },
-        ],
-        runId,
-      };
-    } catch (error: unknown) {
-      await this.contentRunsService.patchRun(context.organizationId, runId, {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Unknown skill execution error',
-        status: ContentRunStatus.FAILED,
-      });
-
-      throw error;
-    }
+    return this.handlers[skillSlug].execute(
+      context,
+      this.readRecord(request.input.params, 'params'),
+    );
   }
 
   private async assertSkillExecutable(
     organizationId: string,
     brandId: string,
-    skillSlug: string,
-  ) {
+    skillSlug: ExecutableSkillSlug,
+  ): Promise<void> {
     const skill = await this.skillsService.getSkillById(
       organizationId,
       skillSlug,
     );
-
     if (
       !skill?.isEnabled ||
       skill.status === 'disabled' ||
@@ -260,201 +123,48 @@ export class SkillExecutorService {
     ) {
       throw new NotFoundException(`Skill not found: ${skillSlug}`);
     }
-
     await this.skillsService.assertBrandSkillEnabled(
       organizationId,
       brandId,
       skillSlug,
     );
-
-    return skill;
   }
 
-  private buildRunBrief(
-    params: Record<string, unknown>,
-  ): ContentRunBrief | undefined {
-    const brief: ContentRunBrief = {
-      angle: this.getString(params.angle),
-      audience: this.getString(params.audience),
-      callToAction: this.getString(params.callToAction),
-      channelFit: this.getString(params.channelFit),
-      confidence: this.getNumber(params.confidence),
-      evidence: this.getStringArray(params.evidence),
-      hypothesis: this.getString(params.hypothesis),
-      notes: this.getString(params.notes),
-      risk: this.getString(params.risk),
-      sourceId: this.getString(params.sourceId ?? params.sourceReferenceId),
-      sourceUrl: this.getString(params.sourceUrl),
-    };
-
-    return Object.values(brief).some((value) =>
-      Array.isArray(value) ? value.length > 0 : Boolean(value),
-    )
-      ? brief
-      : undefined;
-  }
-
-  private toContentRunSource(
-    source: 'byok' | 'hosted' | 'managed',
-  ): ContentRunSource {
-    if (source === 'byok') {
-      return ContentRunSource.BYOK;
-    }
-
-    if (source === 'managed') {
-      return ContentRunSource.MANAGED;
-    }
-
-    return ContentRunSource.HOSTED;
-  }
-
-  private buildRunPublishContext(
-    params: Record<string, unknown>,
-  ): ContentRunPublishContext | undefined {
-    const nestedPublish = this.getRecord(params.publish);
-    const scheduledFor = this.getDate(
-      params.scheduledFor ?? nestedPublish?.scheduledFor,
-    );
-    const publishedAt = this.getDate(
-      params.publishedAt ?? nestedPublish?.publishedAt,
-    );
-    const postIds = this.getStringArray(
-      params.postIds ?? nestedPublish?.postIds,
-    );
-    const metadata =
-      this.getRecord(params.publishMetadata) ??
-      this.getRecord(nestedPublish?.metadata);
-
-    const publish: ContentRunPublishContext = {
-      channel: this.getString(params.channel ?? nestedPublish?.channel),
-      experimentId: this.getString(
-        params.experimentId ?? nestedPublish?.experimentId,
+  private readContext(value: unknown): SkillExecutionContext {
+    const context = this.readRecord(value, 'context');
+    const platforms = Array.isArray(context.platforms)
+      ? context.platforms.filter(
+          (platform): platform is string => typeof platform === 'string',
+        )
+      : [];
+    return {
+      brandId: this.requiredString(context.brandId, 'context.brandId'),
+      brandVoice:
+        typeof context.brandVoice === 'string' ? context.brandVoice : '',
+      ...(this.isRecord(context.memory) ? { memory: context.memory } : {}),
+      organizationId: this.requiredString(
+        context.organizationId,
+        'context.organizationId',
       ),
-      metadata: metadata ?? {},
-      platform: this.getString(params.platform ?? nestedPublish?.platform),
-      postIds,
-      publishedAt,
-      scheduledFor,
-      variantId: this.getString(params.variantId ?? nestedPublish?.variantId),
+      platforms,
     };
-
-    return publish.channel ||
-      publish.experimentId ||
-      publish.platform ||
-      publish.variantId ||
-      publish.postIds?.length ||
-      publish.publishedAt ||
-      publish.scheduledFor ||
-      Object.keys(publish.metadata).length > 0
-      ? publish
-      : undefined;
   }
 
-  private buildRunVariants(
-    draft: SkillExecutionResult['draft'],
-    runId: string,
-  ): ContentRunVariant[] {
-    const remixPackVariants = this.getRecords(draft.metadata.remixPackVariants);
-    if (remixPackVariants.length > 0) {
-      const draftMetadata = { ...draft.metadata };
-      delete draftMetadata.remixPackVariants;
-
-      return remixPackVariants.map((variant, index) => ({
-        angle: this.getString(variant.angle),
-        assetIds: this.getStringArray(variant.assetIds),
-        content: this.getString(variant.content) ?? draft.content,
-        format: this.getString(variant.format),
-        hypothesis: this.getString(variant.hypothesis),
-        id: `${runId}-${draft.skillSlug}-${this.getString(variant.format) ?? index + 1}`,
-        metadata: {
-          ...draftMetadata,
-          ...(this.getRecord(variant.metadata) ?? {}),
-          remixPack: true,
-        },
-        platform: this.getString(variant.platform) ?? 'unspecified',
-        status: this.getString(variant.status) ?? 'generated',
-        type: this.getString(variant.type) ?? draft.type,
-      }));
+  private readRecord(value: unknown, field: string): Record<string, unknown> {
+    if (!this.isRecord(value)) {
+      throw new Error(`Skill workflow requires ${field}`);
     }
-
-    const platforms =
-      draft.platforms.length > 0 ? draft.platforms : ['unspecified'];
-    const assetIds = this.getStringArray(draft.metadata.assetIds);
-
-    return platforms.map((platform, index) => ({
-      assetIds,
-      content: draft.content,
-      id: `${runId}-${draft.skillSlug}-${index + 1}`,
-      metadata: draft.metadata,
-      platform,
-      status: 'generated',
-      type: draft.type,
-    }));
+    return value;
   }
 
-  private getString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : undefined;
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
-  private getStringArray(value: unknown): string[] | undefined {
-    if (Array.isArray(value)) {
-      const items = value
-        .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0);
-
-      return items.length > 0 ? items : undefined;
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Skill workflow requires ${field}`);
     }
-
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return [value.trim()];
-    }
-
-    return undefined;
-  }
-
-  private getRecord(value: unknown): Record<string, unknown> | undefined {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : undefined;
-  }
-
-  private getRecords(value: unknown): Record<string, unknown>[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.filter(
-      (item): item is Record<string, unknown> =>
-        item !== null && typeof item === 'object' && !Array.isArray(item),
-    );
-  }
-
-  private getNumber(value: unknown): number | undefined {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string' && value.trim().length > 0) {
-      const parsed = Number(value);
-      return Number.isFinite(parsed) ? parsed : undefined;
-    }
-
-    return undefined;
-  }
-
-  private getDate(value: unknown): Date | undefined {
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-      return value;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-    }
-
-    return undefined;
+    return value.trim();
   }
 }

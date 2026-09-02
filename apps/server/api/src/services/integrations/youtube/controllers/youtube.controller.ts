@@ -32,6 +32,14 @@ import { YoutubeService } from '@server/services/integrations/youtube/services/y
 import { YoutubeOAuth2Util } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
 import type { Request } from 'express';
 
+interface YoutubeOAuthTokens {
+  access_token?: string;
+  expiry_date?: number;
+  refresh_token?: string;
+  scope?: string;
+  token_type?: string;
+}
+
 @AutoSwagger()
 @Controller('services/youtube')
 export class YoutubeController {
@@ -145,13 +153,7 @@ export class YoutubeController {
       const tokenResponse =
         await this.youtubeService.exchangeCodeForTokens(code);
       const tokens = this.isPlainObject(tokenResponse)
-        ? ((tokenResponse.tokens ?? {}) as {
-            access_token?: string;
-            expiry_date?: number;
-            refresh_token?: string;
-            scope?: string;
-            token_type?: string;
-          })
+        ? ((tokenResponse.tokens ?? {}) as YoutubeOAuthTokens)
         : {};
 
       // Log token details for debugging
@@ -213,87 +215,12 @@ export class YoutubeController {
         );
       }
 
-      // Now verify the connection by getting channel details
-      // Create a per-request OAuth client with the fresh tokens
-      try {
-        const clientId = this.configService.get<string>(
-          'GOOGLE_OAUTH_CLIENT_ID',
-        );
-        const clientSecret = this.configService.get<string>(
-          'GOOGLE_OAUTH_CLIENT_SECRET',
-        );
-        const redirectUri = this.configService.get<string>(
-          'YOUTUBE_REDIRECT_URI',
-        );
-
-        if (
-          typeof clientId !== 'string' ||
-          typeof clientSecret !== 'string' ||
-          typeof redirectUri !== 'string'
-        ) {
-          throw new HttpException(
-            {
-              detail: 'YouTube OAuth credentials are not configured',
-              title: 'Configuration error',
-            },
-            HttpStatus.INTERNAL_SERVER_ERROR,
-          );
-        }
-
-        // Create a new OAuth2 client instance per request to avoid race conditions
-        // DO NOT use the shared youtubeOAuthAPI - it would cause credential mixing
-        const oauth2Client = YoutubeOAuth2Util.createClient(
-          clientId,
-          clientSecret,
-          redirectUri,
-        );
-
-        oauth2Client.setCredentials({
-          access_token: tokens.access_token,
-          expiry_date: tokens.expiry_date,
-          refresh_token: tokens.refresh_token,
-        });
-
-        // Pass the per-request auth client to avoid race conditions
-        const channelDetails = (await this.youtubeService.getChannelDetails(
-          organizationId,
-          brandId,
-          oauth2Client,
-        )) as {
-          customUrl?: string;
-          id?: string;
-          thumbnails?: {
-            default?: { url?: string | null };
-            high?: { url?: string | null };
-            medium?: { url?: string | null };
-          };
-          title?: string;
-        };
-        const externalHandle =
-          channelDetails.customUrl?.replace(/^@/, '') ?? channelDetails.title;
-        const avatarUrl =
-          channelDetails.thumbnails?.high?.url ??
-          channelDetails.thumbnails?.medium?.url ??
-          channelDetails.thumbnails?.default?.url;
-
-        credential = await this.credentialsService.updateExternalProfile(
-          credential.id,
-          organizationId,
-          {
-            avatarUrl,
-            handle: externalHandle,
-            id: channelDetails.id,
-            name: channelDetails.title,
-          },
-        );
-      } catch (verifyError: unknown) {
-        this.loggerService.error(
-          'Failed to verify YouTube connection',
-          verifyError,
-        );
-        // Don't fail the entire verify - credentials are saved, just mark as unverified
-        // The user can verify later or we'll retry on next use
-      }
+      credential = await this.updateChannelProfileAfterConnection({
+        brandId,
+        credential,
+        organizationId,
+        tokens,
+      });
 
       try {
         await this.youtubeAuthorizedSignalsService.refresh({
@@ -322,6 +249,81 @@ export class YoutubeController {
       this.loggerService.error(`${url} failed`, response?.data || error);
 
       throw error;
+    }
+  }
+
+  private async updateChannelProfileAfterConnection(params: {
+    brandId: string;
+    credential: Awaited<ReturnType<CredentialsService['patch']>>;
+    organizationId: string;
+    tokens: YoutubeOAuthTokens;
+  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
+    const { brandId, credential, organizationId, tokens } = params;
+    try {
+      const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
+      const clientSecret = this.configService.get<string>(
+        'GOOGLE_OAUTH_CLIENT_SECRET',
+      );
+      const redirectUri = this.configService.get<string>(
+        'YOUTUBE_REDIRECT_URI',
+      );
+      if (
+        typeof clientId !== 'string' ||
+        typeof clientSecret !== 'string' ||
+        typeof redirectUri !== 'string'
+      ) {
+        throw new HttpException(
+          {
+            detail: 'YouTube OAuth credentials are not configured',
+            title: 'Configuration error',
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      const oauth2Client = YoutubeOAuth2Util.createClient(
+        clientId,
+        clientSecret,
+        redirectUri,
+      );
+      oauth2Client.setCredentials({
+        access_token: tokens.access_token,
+        expiry_date: tokens.expiry_date,
+        refresh_token: tokens.refresh_token,
+      });
+      const channelDetails = (await this.youtubeService.getChannelDetails(
+        organizationId,
+        brandId,
+        oauth2Client,
+      )) as {
+        customUrl?: string;
+        id?: string;
+        thumbnails?: {
+          default?: { url?: string | null };
+          high?: { url?: string | null };
+          medium?: { url?: string | null };
+        };
+        title?: string;
+      };
+      return await this.credentialsService.updateExternalProfile(
+        credential.id,
+        organizationId,
+        {
+          avatarUrl:
+            channelDetails.thumbnails?.high?.url ??
+            channelDetails.thumbnails?.medium?.url ??
+            channelDetails.thumbnails?.default?.url,
+          handle:
+            channelDetails.customUrl?.replace(/^@/, '') ?? channelDetails.title,
+          id: channelDetails.id,
+          name: channelDetails.title,
+        },
+      );
+    } catch (verifyError: unknown) {
+      this.loggerService.error(
+        'Failed to verify YouTube connection',
+        verifyError,
+      );
+      return credential;
     }
   }
 

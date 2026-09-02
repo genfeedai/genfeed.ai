@@ -1,17 +1,20 @@
 import { ServicesService } from '@services/external/services.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockInstance, serializeServicePayload } = vi.hoisted(() => ({
-  mockInstance: {
-    post: vi.fn(),
-  },
-  serializeServicePayload: vi.fn((body: unknown) => ({
-    data: {
-      attributes: body,
-      type: 'service',
+const { baseServiceConstructor, mockInstance, serializeServicePayload } =
+  vi.hoisted(() => ({
+    baseServiceConstructor: vi.fn(),
+    mockInstance: {
+      get: vi.fn(),
+      post: vi.fn(),
     },
-  })),
-}));
+    serializeServicePayload: vi.fn((body: unknown) => ({
+      data: {
+        attributes: body,
+        type: 'service',
+      },
+    })),
+  }));
 
 vi.mock('@genfeedai/serializers', () => ({
   CredentialOAuthSerializer: {},
@@ -24,6 +27,10 @@ vi.mock('@genfeedai/serializers', () => ({
 vi.mock('@services/core/base.service', () => ({
   BaseService: class MockBaseService {
     public instance = mockInstance;
+
+    constructor(...args: unknown[]) {
+      baseServiceConstructor(...args);
+    }
 
     extractResource<T>(document: { data?: { attributes?: T } } | T): T {
       if (
@@ -42,6 +49,9 @@ vi.mock('@services/core/base.service', () => ({
 describe('ServicesService OAuth request contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockInstance.get.mockResolvedValue({
+      data: { status: 'available' },
+    });
     mockInstance.post.mockResolvedValue({
       data: {
         data: {
@@ -71,5 +81,21 @@ describe('ServicesService OAuth request contract', () => {
       code: 'oauth-code',
       state: 'oauth-state',
     });
+  });
+
+  it('reads Threads readiness beside the canonical connect route', async () => {
+    const service = new ServicesService('threads', 'token');
+
+    await expect(service.getConnectReadiness()).resolves.toEqual({
+      status: 'available',
+    });
+
+    expect(baseServiceConstructor).toHaveBeenCalledWith(
+      '/services/threads',
+      'token',
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(mockInstance.get).toHaveBeenCalledWith('connect-readiness');
   });
 });

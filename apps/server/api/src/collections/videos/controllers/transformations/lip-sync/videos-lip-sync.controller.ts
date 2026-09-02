@@ -1,23 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -45,6 +33,19 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { ByokService } from '@server/services/byok/byok.service';
+import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -90,105 +91,14 @@ export class VideosLipSyncController {
     let ingredientId: string | undefined;
 
     try {
-      // 1. Resolve parent (image) ingredient
-      const imageIngredient = await this.ingredientsService.findOne({
-        id: createLipSyncDto.parent,
-        organizationId: user.organizationId,
-      });
-
-      if (!imageIngredient) {
-        throw new HttpException(
-          {
-            detail: `Image ingredient with ID ${createLipSyncDto.parent} not found`,
-            title: 'Image not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Validate image category
-      if (String(imageIngredient.category) !== IngredientCategory.IMAGE) {
-        throw new HttpException(
-          {
-            detail: `Expected image ingredient, got ${imageIngredient.category}`,
-            title: 'Invalid ingredient type',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Validate image is in a usable state
-      if (
-        String(imageIngredient.status) !== IngredientStatus.GENERATED &&
-        String(imageIngredient.status) !== IngredientStatus.VALIDATED
-      ) {
-        throw new HttpException(
-          {
-            detail: 'Image must be in GENERATED or VALIDATED status',
-            title: 'Image not ready',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // 2. Resolve voice (audio) ingredient
-      const audioIngredient = await this.ingredientsService.findOne({
-        id: createLipSyncDto.voice,
-        organizationId: user.organizationId,
-      });
-
-      if (!audioIngredient) {
-        throw new HttpException(
-          {
-            detail: `Audio ingredient with ID ${createLipSyncDto.voice} not found`,
-            title: 'Audio not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Validate audio category (could be AUDIO or VIDEO with audio)
-      if (
-        String(audioIngredient.category) !== IngredientCategory.AUDIO &&
-        String(audioIngredient.category) !== IngredientCategory.VIDEO
-      ) {
-        throw new HttpException(
-          {
-            detail: `Expected audio or video ingredient, got ${audioIngredient.category}`,
-            title: 'Invalid ingredient type',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Validate audio is in a usable state
-      if (
-        String(audioIngredient.status) !== IngredientStatus.GENERATED &&
-        String(audioIngredient.status) !== IngredientStatus.VALIDATED
-      ) {
-        throw new HttpException(
-          {
-            detail: 'Audio must be in GENERATED or VALIDATED status',
-            title: 'Audio not ready',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // 3. Build CDN URLs
-      // Route Prisma SCREAMING_SNAKE categories through the canonical CDN path
-      // conversion.
-      const photoUrl = `${this.configService.ingredientsEndpoint}/images/${createLipSyncDto.parent}`;
-      const audioUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(audioIngredient.category)}/${createLipSyncDto.voice}`;
-
-      this.loggerService.log(`${url} resolved URLs`, {
-        audioCategory: audioIngredient.category,
-        audioUrl,
-        imageCategory: imageIngredient.category,
-        photoUrl,
-      });
-
-      // 4. Create video ingredient with metadata
+      const imageIngredient = await this.resolveImageIngredient(
+        createLipSyncDto.parent,
+        user.organizationId,
+      );
+      const audioIngredient = await this.resolveAudioIngredient(
+        createLipSyncDto.voice,
+        user.organizationId,
+      );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
           brandId: imageIngredient.brandId ?? user.brandId,
@@ -203,52 +113,16 @@ export class VideosLipSyncController {
         });
 
       ingredientId = String(ingredientData.id);
-
-      // 5. Call HeyGen Photo Avatar API
-      this.loggerService.log(`${url} calling HeyGen Photo Avatar API`, {
-        audioUrl,
+      await this.dispatchLipSyncGeneration(
+        user,
+        createLipSyncDto,
+        imageIngredient,
+        audioIngredient,
         ingredientId,
-        photoUrl,
-      });
-
-      const heygenByokKey = await this.byokService.resolveApiKey(
-        user.organizationId,
-        ByokProvider.HEYGEN,
-      );
-      const heygenVideoId = await this.heygenService.generatePhotoAvatarVideo(
-        ingredientId,
-        photoUrl,
-        audioUrl,
-        user.organizationId,
-        user.userId ?? user.id,
-        heygenByokKey?.apiKey,
-      );
-
-      // 6. Update metadata with external ID
-      await this.metadataService.patch(
         metadataData.id,
-        new MetadataEntity({
-          externalId: heygenVideoId,
-        }),
+        url,
       );
 
-      // 7. Publish initial WebSocket status
-      // Credits (1) are deducted by CreditsInterceptor on successful response —
-      // see the @Credits decorator above. No manual deduction here.
-      const websocketUrl = WebSocketPaths.video(ingredientId);
-      // @ts-expect-error TS2554
-      await this.websocketService.publishFileProcessing(
-        websocketUrl,
-        {
-          eventType: WebSocketEventType.VIDEO_GENERATED,
-          id: ingredientId,
-          status: WebSocketEventStatus.PROCESSING,
-        },
-        user.id,
-        getUserRoomName(user.id),
-      );
-
-      // 8. Return serialized ingredient for frontend subscription
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -280,5 +154,132 @@ export class VideosLipSyncController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  private async resolveImageIngredient(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<IngredientDocument> {
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+      organizationId,
+    });
+    if (!ingredient) {
+      throw new HttpException(
+        {
+          detail: `Image ingredient with ID ${ingredientId} not found`,
+          title: 'Image not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    if (String(ingredient.category) !== IngredientCategory.IMAGE) {
+      throw new HttpException(
+        {
+          detail: `Expected image ingredient, got ${ingredient.category}`,
+          title: 'Invalid ingredient type',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    this.assertIngredientReady(ingredient, 'Image');
+    return ingredient;
+  }
+
+  private async resolveAudioIngredient(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<IngredientDocument> {
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+      organizationId,
+    });
+    if (!ingredient) {
+      throw new HttpException(
+        {
+          detail: `Audio ingredient with ID ${ingredientId} not found`,
+          title: 'Audio not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    if (
+      String(ingredient.category) !== IngredientCategory.AUDIO &&
+      String(ingredient.category) !== IngredientCategory.VIDEO
+    ) {
+      throw new HttpException(
+        {
+          detail: `Expected audio or video ingredient, got ${ingredient.category}`,
+          title: 'Invalid ingredient type',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    this.assertIngredientReady(ingredient, 'Audio');
+    return ingredient;
+  }
+
+  private assertIngredientReady(
+    ingredient: IngredientDocument,
+    label: 'Audio' | 'Image',
+  ): void {
+    if (
+      String(ingredient.status) !== IngredientStatus.GENERATED &&
+      String(ingredient.status) !== IngredientStatus.VALIDATED
+    ) {
+      throw new HttpException(
+        {
+          detail: `${label} must be in GENERATED or VALIDATED status`,
+          title: `${label} not ready`,
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  private async dispatchLipSyncGeneration(
+    user: User,
+    dto: CreateLipSyncDto,
+    imageIngredient: IngredientDocument,
+    audioIngredient: IngredientDocument,
+    ingredientId: string,
+    metadataId: string,
+    url: string,
+  ): Promise<void> {
+    const photoUrl = `${this.configService.ingredientsEndpoint}/images/${dto.parent}`;
+    const audioUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(audioIngredient.category)}/${dto.voice}`;
+    this.loggerService.log(`${url} resolved URLs`, {
+      audioCategory: audioIngredient.category,
+      audioUrl,
+      imageCategory: imageIngredient.category,
+      photoUrl,
+    });
+    const heygenByokKey = await this.byokService.resolveApiKey(
+      user.organizationId,
+      ByokProvider.HEYGEN,
+    );
+    const heygenVideoId = await this.heygenService.generatePhotoAvatarVideo(
+      ingredientId,
+      photoUrl,
+      audioUrl,
+      user.organizationId,
+      user.userId ?? user.id,
+      heygenByokKey?.apiKey,
+    );
+    await this.metadataService.patch(
+      metadataId,
+      new MetadataEntity({ externalId: heygenVideoId }),
+    );
+    // @ts-expect-error TS2554
+    await this.websocketService.publishFileProcessing(
+      WebSocketPaths.video(ingredientId),
+      {
+        eventType: WebSocketEventType.VIDEO_GENERATED,
+        id: ingredientId,
+        status: WebSocketEventStatus.PROCESSING,
+      },
+      user.id,
+      getUserRoomName(user.id),
+    );
   }
 }

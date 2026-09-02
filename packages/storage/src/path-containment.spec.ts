@@ -37,6 +37,19 @@ describe('path containment', () => {
     ).toThrow(ContainmentError);
   });
 
+  it.each([
+    'nested/../file.txt',
+    'nested\\file.txt',
+    'C:/Windows/System32/config',
+    'nested/%2e%2e/file.txt',
+    'nested/%252e%252e/file.txt',
+    'nested%2ffile.txt',
+  ])('rejects ambiguous filesystem syntax %s', (candidate) => {
+    expect(() =>
+      resolveContainedPath('/srv/genfeed/files', candidate, createError),
+    ).toThrow(ContainmentError);
+  });
+
   it('rejects a missing containment root', () => {
     expect(() =>
       resolveContainedPath('', 'nested/file.txt', createError),
@@ -194,6 +207,9 @@ describe('object-key containment', () => {
     'nested\\escaped.png',
     'nested//empty.png',
     './same.png',
+    'nested/%2e%2e/escaped.png',
+    'nested/%252e%252e/escaped.png',
+    'nested%2fescaped.png',
   ])('rejects object-key escape %s', (candidate) => {
     expect(() =>
       resolveContainedObjectKey('ingredients/images', candidate, createError),
@@ -202,6 +218,11 @@ describe('object-key containment', () => {
 
   it('validates a legitimate nested key without imposing a prefix', () => {
     const key = 'transcripts/job-1/audio.mp3';
+    expect(assertSafeObjectKey(key, createError)).toBe(key);
+  });
+
+  it('preserves harmless percent-encoded bytes in a legitimate nested key', () => {
+    const key = 'transcripts/job-1/audio%2Emp3';
     expect(assertSafeObjectKey(key, createError)).toBe(key);
   });
 
@@ -215,16 +236,19 @@ describe('object-key containment', () => {
     );
   });
 
-  it('rejects a leading slash, backslash, or NUL in an object key', () => {
+  it('rejects a leading slash in an object key', () => {
     expect(() => assertSafeObjectKey('/absolute.png', createError)).toThrow(
       /relative POSIX object key/,
     );
+  });
+
+  it('rejects backslash or NUL separator confusion in an object key', () => {
     expect(() =>
       assertSafeObjectKey('nested\\escaped.png', createError),
-    ).toThrow(/relative POSIX object key/);
+    ).toThrow(/traversal or separator confusion/);
     expect(() =>
       assertSafeObjectKey(`nested${'\0'}file.png`, createError),
-    ).toThrow(/relative POSIX object key/);
+    ).toThrow(/traversal or separator confusion/);
   });
 
   it('rejects a trailing slash on a concrete object key', () => {
@@ -239,7 +263,13 @@ describe('object-key containment', () => {
     );
   });
 
-  it.each(['.', '..', 'nested//empty.png', './same.png'])(
+  it('rejects a traversal object-key segment', () => {
+    expect(() => assertSafeObjectKey('..', createError)).toThrow(
+      /traversal or separator confusion/,
+    );
+  });
+
+  it.each(['.', 'nested//empty.png', './same.png'])(
     'rejects object-key segment %s',
     (candidate) => {
       expect(() => assertSafeObjectKey(candidate, createError)).toThrow(

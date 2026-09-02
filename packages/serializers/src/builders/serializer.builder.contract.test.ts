@@ -174,4 +174,33 @@ describe('server serializer wire contract (#1096)', () => {
     });
     expect(source.platform).toBe('YOUTUBE');
   });
+
+  it('isolates caller-owned records from mutations inside transforms', () => {
+    const source = {
+      id: 'credential-1',
+      note: 'caller-owned',
+      platform: 'YOUTUBE',
+    };
+    let transformInput: Record<string, unknown> | undefined;
+    const { CredentialSerializer } = buildSerializer('server', {
+      attributeTransforms: {
+        platform: (record) => {
+          transformInput = record;
+          record.note = 'mutated by transform';
+          return String(record.platform).toLowerCase();
+        },
+      },
+      attributes: ['note', 'platform'],
+      type: 'credential',
+    });
+
+    CredentialSerializer.serialize(source);
+
+    expect(transformInput).not.toBe(source);
+    expect(source).toEqual({
+      id: 'credential-1',
+      note: 'caller-owned',
+      platform: 'YOUTUBE',
+    });
+  });
 });

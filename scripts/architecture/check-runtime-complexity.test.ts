@@ -5,7 +5,10 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   discoverChangedRuntimeFiles,
+  evaluateRuntimeComplexityRatchet,
+  type RuntimeComplexityViolation,
   runRuntimeComplexityCheck,
+  runtimeComplexityBaselineFromViolations,
 } from './check-runtime-complexity';
 
 describe('check-runtime-complexity', () => {
@@ -337,6 +340,86 @@ describe('check-runtime-complexity', () => {
     );
   });
 
+  it('rejects new and growing full-repository violations', () => {
+    const baseline = [
+      {
+        actual: 10,
+        file: 'apps/server/api/src/demo/demo.service.ts',
+        metric: 'file-lines' as const,
+        symbol: 'apps/server/api/src/demo/demo.service.ts',
+      },
+    ];
+
+    expect(
+      evaluateRuntimeComplexityRatchet(baseline, [
+        violation({ actual: 11 }),
+        violation({
+          actual: 6,
+          file: 'apps/server/api/src/new/new.service.ts',
+        }),
+      ]),
+    ).toEqual([
+      expect.objectContaining({
+        actual: 11,
+        baseline: 10,
+        type: 'growth',
+      }),
+      expect.objectContaining({
+        actual: 6,
+        file: 'apps/server/api/src/new/new.service.ts',
+        type: 'new-violation',
+      }),
+    ]);
+  });
+
+  it('requires the baseline to shrink when debt improves or disappears', () => {
+    const baseline = [
+      {
+        actual: 10,
+        file: 'apps/server/api/src/demo/demo.service.ts',
+        metric: 'file-lines' as const,
+        symbol: 'apps/server/api/src/demo/demo.service.ts',
+      },
+      {
+        actual: 7,
+        file: 'apps/server/api/src/gone/gone.service.ts',
+        metric: 'file-lines' as const,
+        symbol: 'apps/server/api/src/gone/gone.service.ts',
+      },
+    ];
+
+    expect(
+      evaluateRuntimeComplexityRatchet(baseline, [violation({ actual: 8 })]),
+    ).toEqual([
+      expect.objectContaining({
+        actual: 8,
+        baseline: 10,
+        type: 'stale-baseline',
+      }),
+      expect.objectContaining({
+        actual: 0,
+        baseline: 7,
+        file: 'apps/server/api/src/gone/gone.service.ts',
+        type: 'stale-baseline',
+      }),
+    ]);
+  });
+
+  it('passes an unchanged full-repository violation baseline', () => {
+    const current = [violation({ actual: 10 })];
+    const baseline = runtimeComplexityBaselineFromViolations(current);
+
+    expect(evaluateRuntimeComplexityRatchet(baseline, current)).toEqual([]);
+    expect(baseline).toEqual([
+      {
+        actual: 10,
+        file: 'apps/server/api/src/demo/demo.service.ts',
+        metric: 'file-lines',
+        symbol: 'apps/server/api/src/demo/demo.service.ts',
+      },
+    ]);
+  });
+
   function writeFixture(relativePath: string, contents: string): string {
     const absolutePath = path.join(rootDir, relativePath);
     mkdirSync(path.dirname(absolutePath), { recursive: true });
@@ -365,6 +448,25 @@ describe('check-runtime-complexity', () => {
     }
   }
 });
+
+function violation(
+  overrides: Partial<{
+    actual: number;
+    file: string;
+  }> = {},
+): RuntimeComplexityViolation {
+  const file = overrides.file ?? 'apps/server/api/src/demo/demo.service.ts';
+  return {
+    actual: overrides.actual ?? 10,
+    file,
+    kind: 'runtime' as const,
+    limit: 5,
+    line: 1,
+    message: 'runtime exceeds limit',
+    metric: 'file-lines' as const,
+    symbol: file,
+  };
+}
 
 function classWithPadding(name: string, lines: number): string {
   const content = [`export class ${name} {`, '}'];

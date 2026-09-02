@@ -1,3 +1,11 @@
+import { BatchItemStatus } from '@genfeedai/enums';
+import type {
+  IBatchReviewEvent,
+  IBatchReviewEventReviewer,
+  IBatchSummary,
+} from '@genfeedai/interfaces';
+import { serializeBatchItemAssignee } from '@genfeedai/serializers';
+import { Injectable } from '@nestjs/common';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 import {
   type BatchConfig,
@@ -7,14 +15,6 @@ import {
 } from '@server/services/batch-generation/batch-generation.types';
 import { fromPrismaBatchStatus } from '@server/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BatchItemStatus } from '@genfeedai/enums';
-import type {
-  IBatchReviewEvent,
-  IBatchReviewEventReviewer,
-  IBatchSummary,
-} from '@genfeedai/interfaces';
-import { serializeBatchItemAssignee } from '@genfeedai/serializers';
-import { Injectable } from '@nestjs/common';
 
 type PostAnalyticsSummary = {
   analyticsRows: number;
@@ -65,62 +65,8 @@ export class BatchGenerationSummaryService {
     const batchItemsById = new Map(
       batches.map((batch) => [batch.id, resolveBatchItems(batch)]),
     );
-    const postIds = this.collectPostIds(batchItemsById);
-    const organizationIds = this.collectOrganizationIds(batches);
-    const reviewerIds = this.collectReviewerIds(batchItemsById);
-    const assigneeIds = this.collectAssigneeIds(batchItemsById);
-
-    const linkedPosts =
-      postIds.length > 0
-        ? await this.prisma.post.findMany({
-            select: {
-              externalId: true,
-              generationId: true,
-              id: true,
-              lastAttemptAt: true,
-              promptUsed: true,
-              publishedAt: true,
-              retryCount: true,
-              reviewDecision: true,
-              reviewedAt: true,
-              reviewFeedback: true,
-              reviewVersionPinId: true,
-              publishApproval: true,
-              status: true,
-              url: true,
-            },
-            where: {
-              id: { in: postIds },
-              isDeleted: false,
-              organizationId: { in: organizationIds },
-            },
-          })
-        : [];
-
-    const linkedAnalytics =
-      postIds.length > 0
-        ? await this.prisma.postAnalytics.findMany({
-            select: {
-              engagementRate: true,
-              postId: true,
-              totalComments: true,
-              totalLikes: true,
-              totalSaves: true,
-              totalShares: true,
-              totalViews: true,
-            },
-            where: {
-              organizationId: { in: organizationIds },
-              postId: { in: postIds },
-            },
-          })
-        : [];
-    const analyticsMap = this.buildAnalyticsMap(linkedAnalytics);
-    const linkedPostMap = new Map(linkedPosts.map((post) => [post.id, post]));
-    const memberIdentityMap = await this.loadMemberIdentityMap(
-      organizationIds,
-      [...new Set([...reviewerIds, ...assigneeIds])],
-    );
+    const { analyticsMap, linkedPostMap, memberIdentityMap } =
+      await this.loadSummaryRelations(batches, batchItemsById);
 
     return batches.map((batch) => {
       const batchConfig = (batch.config ?? {}) as BatchConfig;
@@ -223,6 +169,69 @@ export class BatchGenerationSummaryService {
         totalCount: batchConfig.totalCount ?? batchItems.length,
       };
     });
+  }
+
+  private async loadSummaryRelations(
+    batches: BatchWithConfig[],
+    batchItemsById: Map<string, BatchItemFull[]>,
+  ) {
+    const postIds = this.collectPostIds(batchItemsById);
+    const organizationIds = this.collectOrganizationIds(batches);
+    const reviewerIds = this.collectReviewerIds(batchItemsById);
+    const assigneeIds = this.collectAssigneeIds(batchItemsById);
+
+    const linkedPosts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({
+            select: {
+              externalId: true,
+              generationId: true,
+              id: true,
+              lastAttemptAt: true,
+              promptUsed: true,
+              publishedAt: true,
+              retryCount: true,
+              reviewDecision: true,
+              reviewedAt: true,
+              reviewFeedback: true,
+              reviewVersionPinId: true,
+              publishApproval: true,
+              status: true,
+              url: true,
+            },
+            where: {
+              id: { in: postIds },
+              isDeleted: false,
+              organizationId: { in: organizationIds },
+            },
+          })
+        : [];
+
+    const linkedAnalytics =
+      postIds.length > 0
+        ? await this.prisma.postAnalytics.findMany({
+            select: {
+              engagementRate: true,
+              postId: true,
+              totalComments: true,
+              totalLikes: true,
+              totalSaves: true,
+              totalShares: true,
+              totalViews: true,
+            },
+            where: {
+              organizationId: { in: organizationIds },
+              postId: { in: postIds },
+            },
+          })
+        : [];
+    const analyticsMap = this.buildAnalyticsMap(linkedAnalytics);
+    const linkedPostMap = new Map(linkedPosts.map((post) => [post.id, post]));
+    const memberIdentityMap = await this.loadMemberIdentityMap(
+      organizationIds,
+      [...new Set([...reviewerIds, ...assigneeIds])],
+    );
+    return { analyticsMap, linkedPostMap, memberIdentityMap };
   }
 
   private collectOrganizationIds(batches: BatchWithConfig[]): string[] {

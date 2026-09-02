@@ -114,7 +114,7 @@ export default function OperationalHomeContent() {
 
   if (!orgSlug) {
     return (
-      <main className="flex min-h-[60vh] w-full items-center justify-center">
+      <div className="flex min-h-[60vh] w-full items-center justify-center">
         <Alert className="w-full max-w-3xl">
           <AlertTitle aria-level={1} role="heading">
             Operational home needs an organization
@@ -129,7 +129,7 @@ export default function OperationalHomeContent() {
             </Button>
           </AlertDescription>
         </Alert>
-      </main>
+      </div>
     );
   }
 
@@ -141,7 +141,7 @@ export default function OperationalHomeContent() {
 
   // Shell Container owns equal page insets — do not re-apply px/py here.
   return (
-    <main className="flex w-full flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <h1 className="sr-only">Operational home</h1>
 
       {connection.status === 'configured' ? (
@@ -211,6 +211,6 @@ export default function OperationalHomeContent() {
       ) : null}
 
       <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
-    </main>
+    </div>
   );
 }

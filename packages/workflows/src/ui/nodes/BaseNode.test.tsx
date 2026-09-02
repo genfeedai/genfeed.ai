@@ -1,18 +1,59 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BaseNode } from './BaseNode';
 
 // Mock ReactFlow
+const mockUpdateNodeInternals = vi.fn();
+
 vi.mock('@xyflow/react', () => ({
-  Handle: ({ id, type }: { id: string; type: string }) => (
-    <div data-testid={`handle-${type}-${id}`} />
+  Handle: ({
+    className,
+    id,
+    isConnectableEnd,
+    style,
+    type,
+  }: {
+    className?: string;
+    id: string;
+    isConnectableEnd?: boolean;
+    style?: React.CSSProperties;
+    type: string;
+  }) => (
+    <div
+      className={className}
+      data-connectable-end={String(isConnectableEnd)}
+      data-testid={`handle-${type}-${id}`}
+      style={style}
+    />
   ),
-  NodeResizer: () => null,
+  NodeResizer: ({
+    isVisible,
+    minHeight,
+    minWidth,
+  }: {
+    isVisible: boolean;
+    minHeight: number;
+    minWidth: number;
+  }) => (
+    <div
+      data-min-height={minHeight}
+      data-min-width={minWidth}
+      data-testid="node-resizer"
+      data-visible={String(isVisible)}
+    />
+  ),
   Position: {
     Left: 'left',
     Right: 'right',
   },
-  useUpdateNodeInternals: () => vi.fn(),
+  useUpdateNodeInternals: () => mockUpdateNodeInternals,
 }));
 
 // Mock stores
@@ -20,16 +61,24 @@ const mockSelectNode = vi.fn();
 const mockToggleNodeLock = vi.fn();
 const mockIsNodeLocked = vi.fn().mockReturnValue(false);
 const mockUpdateNodeData = vi.fn();
+const mockExecuteNode = vi.fn();
+const mockStopExecution = vi.fn();
+const mockStopNodeExecution = vi.fn();
+const executionState = {
+  activeNodeExecutions: new Set<string>(),
+  executeNode: mockExecuteNode,
+  isRunning: false,
+  stopExecution: mockStopExecution,
+  stopNodeExecution: mockStopNodeExecution,
+};
+const uiState = {
+  highlightedNodeIds: [] as string[],
+  selectedNodeId: null as string | null,
+  selectNode: mockSelectNode,
+};
 
 vi.mock('../stores/uiStore', () => ({
-  useUIStore: (selector: (state: unknown) => unknown) => {
-    const state = {
-      highlightedNodeIds: [],
-      selectedNodeId: null,
-      selectNode: mockSelectNode,
-    };
-    return selector(state);
-  },
+  useUIStore: (selector: (state: unknown) => unknown) => selector(uiState),
 }));
 
 vi.mock('../stores/workflow', () => ({
@@ -44,14 +93,8 @@ vi.mock('../stores/workflow', () => ({
 }));
 
 vi.mock('../stores/execution', () => ({
-  useExecutionStore: (selector: (state: unknown) => unknown) => {
-    const state = {
-      activeNodeExecutions: new Set(),
-      executeNode: vi.fn(),
-      isRunning: false,
-    };
-    return selector(state);
-  },
+  useExecutionStore: (selector: (state: unknown) => unknown) =>
+    selector(executionState),
 }));
 
 // Mock child components
@@ -62,7 +105,19 @@ vi.mock('./NodeErrorBoundary', () => ({
 }));
 
 vi.mock('./PreviewTooltip', () => ({
-  PreviewTooltip: () => null,
+  PreviewTooltip: ({
+    anchorRect,
+    isVisible,
+  }: {
+    anchorRect: DOMRect | null;
+    isVisible: boolean;
+  }) => (
+    <div
+      data-has-anchor={String(Boolean(anchorRect))}
+      data-testid="preview-tooltip"
+      data-visible={String(isVisible)}
+    />
+  ),
 }));
 
 // Mock schema handles utility
@@ -156,6 +211,10 @@ describe('BaseNode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsNodeLocked.mockReturnValue(false);
+    executionState.activeNodeExecutions = new Set();
+    executionState.isRunning = false;
+    uiState.highlightedNodeIds = [];
+    uiState.selectedNodeId = null;
   });
 
   describe('rendering', () => {
@@ -228,6 +287,122 @@ describe('BaseNode', () => {
 
       expect(container.firstChild).toBeNull();
     });
+
+    it('supports a custom definition, title element, disabled input, and resized download dimensions', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{
+            color: '#123456',
+            label: 'Custom node',
+            status: 'idle',
+          }}
+          disabledInputs={['custom-input']}
+          height={320}
+          nodeDefinition={
+            {
+              category: 'custom',
+              icon: 'UnknownIcon',
+              inputs: [{ id: 'custom-input', type: 'unknown' }],
+              label: 'Definition label',
+              outputs: [{ id: 'custom-output', type: 'unknown' }],
+            } as never
+          }
+          titleElement={<strong>Custom title</strong>}
+          type="download"
+          width={260}
+        />,
+      );
+
+      expect(screen.getByText('Custom title')).toBeInTheDocument();
+      expect(screen.getByTestId('handle-target-custom-input')).toHaveAttribute(
+        'data-connectable-end',
+        'false',
+      );
+      expect(screen.getByTestId('handle-target-custom-input')).toHaveClass(
+        'opacity-30',
+      );
+      expect(screen.getByTestId('handle-target-custom-input')).toHaveStyle({
+        background: 'var(--handle-text)',
+      });
+      expect(screen.getByTestId('node-resizer')).toHaveAttribute(
+        'data-min-width',
+        '200',
+      );
+      expect(screen.getByText('Custom title').closest('.border-2')).toHaveStyle(
+        {
+          borderColor: '#123456',
+          height: '320px',
+          width: '260px',
+        },
+      );
+    });
+
+    it('generates schema handles for a selected model', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{
+            label: 'Schema node',
+            selectedModel: { inputSchema: { prompt: { type: 'string' } } },
+            status: 'idle',
+          }}
+          type="imageGen"
+        />,
+      );
+
+      expect(screen.getByTestId('handle-target-prompt')).toBeInTheDocument();
+    });
+
+    it('falls back through definition and type labels when node data has no label', () => {
+      const { rerender } = render(
+        <BaseNode
+          {...defaultProps}
+          data={{ status: 'idle' }}
+          nodeDefinition={
+            {
+              category: 'input',
+              icon: 'MessageSquare',
+              inputs: [],
+              label: 'Definition fallback',
+              outputs: [],
+            } as never
+          }
+        />,
+      );
+
+      expect(screen.getByText('Definition fallback')).toBeInTheDocument();
+
+      rerender(<BaseNode {...defaultProps} data={{ status: 'idle' }} />);
+      expect(screen.getByText('prompt')).toBeInTheDocument();
+    });
+
+    it('uses download minimums before a download node is manually resized', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          nodeDefinition={
+            {
+              category: 'output',
+              icon: 'Download',
+              inputs: [],
+              label: 'Download',
+              outputs: [],
+            } as never
+          }
+          type="download"
+        />,
+      );
+
+      expect(screen.getByTestId('node-resizer')).toHaveAttribute(
+        'data-min-height',
+        '280',
+      );
+      expect(screen.getByText('Test Node').closest('.relative')).toHaveClass(
+        'min-w-[200px]',
+        'min-h-[280px]',
+      );
+    });
   });
 
   describe('status indicators', () => {
@@ -294,6 +469,140 @@ describe('BaseNode', () => {
 
       expect(screen.getByText('Something went wrong')).toBeInTheDocument();
     });
+
+    it('hides the status indicator when requested', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ label: 'Test', status: 'complete' }}
+          hideStatusIndicator
+        />,
+      );
+
+      expect(document.querySelector('.text-chart-2')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('execution controls', () => {
+    it('retries a failed idle node', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ error: 'Transient failure', label: 'Test', status: 'error' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+      expect(mockUpdateNodeData).toHaveBeenCalledWith('node-1', {
+        error: undefined,
+        status: 'processing',
+      });
+      expect(mockExecuteNode).toHaveBeenCalledWith('node-1');
+    });
+
+    it('disables retry while the node is executing', () => {
+      executionState.activeNodeExecutions = new Set(['node-1']);
+
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ error: 'Transient failure', label: 'Test', status: 'error' }}
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockExecuteNode).not.toHaveBeenCalled();
+    });
+
+    it('stops the global execution', () => {
+      executionState.isRunning = true;
+
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ label: 'Test', status: 'processing' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByTitle('Stop execution'));
+      expect(mockStopExecution).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops only the independently executing node', () => {
+      executionState.activeNodeExecutions = new Set(['node-1']);
+
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ label: 'Test', status: 'processing' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByTitle('Stop node'));
+      expect(mockStopNodeExecution).toHaveBeenCalledWith('node-1');
+    });
+
+    it('resets a stale processing status when nothing is running', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ label: 'Test', status: 'processing' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByTitle('Reset node'));
+      expect(mockUpdateNodeData).toHaveBeenCalledWith('node-1', {
+        error: undefined,
+        status: 'idle',
+      });
+    });
+
+    it('copies the node error through the clipboard API', async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      });
+
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ error: 'Copy this error', label: 'Test', status: 'error' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByTitle('Copy error'));
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledWith('Copy this error');
+      });
+    });
+
+    it('falls back to a temporary textarea when the clipboard API is unavailable', async () => {
+      const execCommand = vi.fn().mockReturnValue(true);
+      Object.defineProperty(document, 'execCommand', {
+        configurable: true,
+        value: execCommand,
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: undefined,
+      });
+
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ error: 'Fallback copy', label: 'Test', status: 'error' }}
+        />,
+      );
+
+      fireEvent.click(screen.getByTitle('Copy error'));
+      await waitFor(() => {
+        expect(execCommand).toHaveBeenCalledWith('copy');
+      });
+      expect(document.querySelector('textarea')).not.toBeInTheDocument();
+    });
   });
 
   describe('selection', () => {
@@ -313,6 +622,32 @@ describe('BaseNode', () => {
 
       const node = screen.getByText('Test Node').closest('.ring-1');
       expect(node).toBeInTheDocument();
+    });
+
+    it('uses store selection and dims nodes outside the highlighted set', () => {
+      uiState.selectedNodeId = 'node-1';
+      uiState.highlightedNodeIds = ['another-node'];
+
+      const { rerender } = render(<BaseNode {...defaultProps} />);
+      expect(
+        screen.getByText('Test Node').closest('.ring-1'),
+      ).toBeInTheDocument();
+
+      uiState.selectedNodeId = null;
+      rerender(<BaseNode {...defaultProps} title="Test Node" />);
+      expect(
+        screen.getByText('Test Node').closest('.opacity-40'),
+      ).toBeInTheDocument();
+    });
+
+    it('keeps a node fully opaque when it belongs to the highlighted set', () => {
+      uiState.highlightedNodeIds = ['node-1'];
+
+      render(<BaseNode {...defaultProps} />);
+
+      expect(
+        screen.getByText('Test Node').closest('.opacity-40'),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -376,6 +711,140 @@ describe('BaseNode', () => {
       render(<BaseNode {...defaultProps} type="output" />);
 
       expect(screen.getByTestId('handle-target-media')).toBeInTheDocument();
+    });
+  });
+
+  describe('preview behavior', () => {
+    it('shows the preview after the hover delay and hides it on leave', () => {
+      vi.useFakeTimers();
+      try {
+        render(<BaseNode {...defaultProps} />);
+        const node = screen.getByText('Test Node').closest('.relative');
+        expect(node).not.toBeNull();
+
+        fireEvent.pointerEnter(node as Element);
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+
+        expect(screen.getByTestId('preview-tooltip')).toHaveAttribute(
+          'data-visible',
+          'true',
+        );
+        expect(screen.getByTestId('preview-tooltip')).toHaveAttribute(
+          'data-has-anchor',
+          'true',
+        );
+
+        fireEvent.pointerLeave(node as Element);
+        expect(screen.getByTestId('preview-tooltip')).toHaveAttribute(
+          'data-visible',
+          'false',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('clears a pending hover timer on leave and unmount', () => {
+      vi.useFakeTimers();
+      try {
+        const view = render(<BaseNode {...defaultProps} />);
+        const node = screen.getByText('Test Node').closest('.relative');
+        expect(node).not.toBeNull();
+
+        fireEvent.pointerLeave(node as Element);
+        fireEvent.pointerEnter(node as Element);
+        fireEvent.pointerLeave(node as Element);
+        expect(screen.getByTestId('preview-tooltip')).toHaveAttribute(
+          'data-visible',
+          'false',
+        );
+
+        fireEvent.pointerEnter(node as Element);
+        view.unmount();
+        act(() => {
+          vi.runAllTimers();
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  describe('memoization', () => {
+    const changedProps: Array<Partial<ComponentProps<typeof BaseNode>>> = [
+      { selected: true },
+      { id: 'node-2' },
+      { type: 'imageGen' },
+      { width: 260 },
+      { height: 300 },
+      { headerActions: <button type="button">Changed action</button> },
+      { title: 'Changed title' },
+      { titleElement: <strong>Changed title element</strong> },
+      { hideStatusIndicator: true },
+      {
+        nodeDefinition: {
+          category: 'input',
+          icon: 'MessageSquare',
+          inputs: [],
+          label: 'Custom definition',
+          outputs: [{ id: 'text', type: 'text' }],
+        } as never,
+      },
+      { disabledInputs: ['one'] },
+      {
+        data: { ...defaultProps.data, status: 'processing' },
+      },
+      { data: { ...defaultProps.data, progress: 50 } },
+      { data: { ...defaultProps.data, error: 'Changed error' } },
+      { data: { ...defaultProps.data, label: 'Changed label' } },
+      { data: { ...defaultProps.data, color: '#abcdef' } },
+      { children: <span>Changed child</span> },
+    ];
+
+    it.each(changedProps)(
+      're-renders when a meaningful prop changes',
+      (change) => {
+        const view = render(<BaseNode {...defaultProps} />);
+        mockIsNodeLocked.mockClear();
+
+        view.rerender(<BaseNode {...defaultProps} {...change} />);
+
+        expect(mockIsNodeLocked).toHaveBeenCalled();
+      },
+    );
+
+    it('skips a render when all meaningful props remain equal', () => {
+      const stableData = { ...defaultProps.data };
+      const view = render(<BaseNode {...defaultProps} data={stableData} />);
+      mockIsNodeLocked.mockClear();
+
+      view.rerender(<BaseNode {...defaultProps} data={stableData} />);
+
+      expect(mockIsNodeLocked).not.toHaveBeenCalled();
+    });
+
+    it('re-renders when a disabled input changes at the same array position', () => {
+      const view = render(
+        <BaseNode {...defaultProps} disabledInputs={['first']} />,
+      );
+      mockIsNodeLocked.mockClear();
+
+      view.rerender(<BaseNode {...defaultProps} disabledInputs={['second']} />);
+
+      expect(mockIsNodeLocked).toHaveBeenCalled();
+    });
+
+    it('skips a render for equivalent disabled input arrays', () => {
+      const view = render(
+        <BaseNode {...defaultProps} disabledInputs={['first']} />,
+      );
+      mockIsNodeLocked.mockClear();
+
+      view.rerender(<BaseNode {...defaultProps} disabledInputs={['first']} />);
+
+      expect(mockIsNodeLocked).not.toHaveBeenCalled();
     });
   });
 });

@@ -15,8 +15,9 @@
     "minimumInfrastructureSuccessRate": 0.95,
     "evidence": {
       "artifactNamePrefix": "changed-code-coverage",
+      "minimumReportVersion": 2,
       "retentionDays": 90,
-      "note": "Each eligible pull-request run uploads its normalized report as an Actions artifact. Aggregate those artifacts to derive the first ratchet; nothing is written back to the repository during observation."
+      "note": "Each eligible pull-request run uploads its normalized report as an Actions artifact. Only report version 2 or newer is valid evidence: version 1 copied zero-byte LCOV from Vitest shards instead of merging their blob reports. Aggregate twenty valid artifacts to derive the first ratchet; nothing is written back to the repository during observation."
     }
   },
   "promotion": {

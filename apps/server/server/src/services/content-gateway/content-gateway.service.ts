@@ -1,3 +1,5 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@server/collections/skills/services/skills.service';
@@ -6,16 +8,14 @@ import type {
   ContentGatewayResult,
   ContentSignal,
 } from '@server/services/content-gateway/interfaces/content-gateway.interfaces';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 
 @Injectable()
 export class ContentGatewayService {
   constructor(
     private readonly brandsService: BrandsService,
     private readonly skillsService: SkillsService,
-    private readonly skillExecutorService: SkillExecutorService,
+    private readonly skillWorkflowService: SkillWorkflowService,
     private readonly reviewablePostsService: ReviewablePostsService,
     private readonly logger: LoggerService,
   ) {}
@@ -30,28 +30,30 @@ export class ContentGatewayService {
       requestedSkillSlugs,
     );
 
-    const runs: string[] = [];
+    const executions: string[] = [];
     const posts: ContentGatewayResult['posts'] = [];
 
     for (const skillSlug of enabledSkillSlugs) {
-      const execution = await this.skillExecutorService.executeSkill(
+      const execution = await this.skillWorkflowService.execute(
+        skillSlug,
         {
           brandId: signal.brandId,
+          brandVoice: '',
           organizationId: signal.organizationId,
-          signalType: signal.type,
+          platforms: [],
         },
-        skillSlug,
         signal.payload,
+        signal.userId,
       );
 
-      runs.push(execution.runId);
+      executions.push(execution.executionId);
 
       const createdPosts =
         await this.reviewablePostsService.createFromSkillExecution({
           brandId: signal.brandId,
-          drafts: execution.drafts,
+          drafts: [execution.draft],
+          executionId: execution.executionId,
           organizationId: signal.organizationId,
-          runId: execution.runId,
           skillSlug,
           userId: signal.userId,
         });
@@ -63,11 +65,11 @@ export class ContentGatewayService {
       brandId: signal.brandId,
       posts: posts.length,
       organizationId: signal.organizationId,
-      runs: runs.length,
+      executions: executions.length,
       signalType: signal.type,
     });
 
-    return { posts, runs };
+    return { executions, posts };
   }
 
   async processManualRequest(
@@ -79,28 +81,30 @@ export class ContentGatewayService {
   ): Promise<ContentGatewayResult> {
     await this.assertBrand(organizationId, brandId);
 
-    const execution = await this.skillExecutorService.executeSkill(
+    const execution = await this.skillWorkflowService.execute(
+      skillSlug,
       {
         brandId,
+        brandVoice: '',
         organizationId,
-        signalType: 'manual',
+        platforms: [],
       },
-      skillSlug,
       params,
+      userId,
     );
 
     const posts = await this.reviewablePostsService.createFromSkillExecution({
       brandId,
-      drafts: execution.drafts,
+      drafts: [execution.draft],
+      executionId: execution.executionId,
       organizationId,
-      runId: execution.runId,
       skillSlug,
       userId,
     });
 
     return {
+      executions: [execution.executionId],
       posts,
-      runs: [execution.runId],
     };
   }
 

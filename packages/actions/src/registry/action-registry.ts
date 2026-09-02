@@ -1576,9 +1576,9 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Builds the bounded child inputs for one content batch.',
   ),
   internalAction(
-    'content.batch.item.generate',
-    'Generate Content Batch Item',
-    'Generates and persists one item in a content batch.',
+    'content.batch.item.prepare',
+    'Prepare Content Batch Item',
+    'Projects one batch item into the exact input of a fixed skill workflow.',
   ),
   internalAction(
     'content.batch.rank',

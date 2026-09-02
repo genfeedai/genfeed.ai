@@ -162,6 +162,7 @@ describe('useAgentThreadList', () => {
 
     act(() => {
       useAgentChatStore.getState().primeConversationCache('t-1', {
+        error: null,
         hasMoreMessages: false,
         latestProposedPlan: null,
         messages: [

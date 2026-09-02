@@ -1,9 +1,59 @@
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
+
+vi.mock(
+  '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms',
+  () => ({ useOAuthConnectPlatforms }),
+);
 
 describe('AgentOAuthConnectMenu', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useOAuthConnectPlatforms.mockReturnValue(
+      resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
+    );
+  });
+
+  it.each(['unknown', 'unavailable'] as const)(
+    'omits Threads and cannot issue a connect request when readiness is %s',
+    async (readiness) => {
+      const user = userEvent.setup();
+      const onOAuthConnect = vi.fn();
+      useOAuthConnectPlatforms.mockReturnValue(
+        resolveOAuthConnectPlatformCatalog({ threads: readiness }),
+      );
+      render(<AgentOAuthConnectMenu onOAuthConnect={onOAuthConnect} />);
+
+      await user.click(
+        screen.getByRole('button', { name: 'Connect a social channel' }),
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Threads' }),
+      ).not.toBeInTheDocument();
+      expect(onOAuthConnect).not.toHaveBeenCalled();
+    },
+  );
+
+  it('connects one available Threads action through its canonical service path', async () => {
+    const user = userEvent.setup();
+    const onOAuthConnect = vi.fn().mockResolvedValue(undefined);
+    render(<AgentOAuthConnectMenu onOAuthConnect={onOAuthConnect} />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Threads' }));
+
+    expect(onOAuthConnect).toHaveBeenCalledOnce();
+    expect(onOAuthConnect).toHaveBeenCalledWith('threads');
+  });
+
   it('invokes OAuth and closes after a successful async handoff', async () => {
     const user = userEvent.setup();
     const onOAuthConnect = vi.fn().mockResolvedValue(undefined);

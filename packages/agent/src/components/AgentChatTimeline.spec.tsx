@@ -199,6 +199,23 @@ describe('AgentChatTimeline failure card', () => {
     ).toBeNull();
   });
 
+  it('shows a terminal failure without offering an unsafe prompt retry', () => {
+    render(
+      <AgentChatTimeline
+        {...baseProps}
+        timeline={[
+          buildUserMessage('user-failed', 'Latest failed prompt'),
+          buildFailedWorkGroup('wg-fail', 'Provider authentication failed'),
+        ]}
+        onRetryLastFailedRun={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('Retry message')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
+
   it('does not offer prompt retry after a successful terminal run', () => {
     render(
       <AgentChatTimeline

@@ -248,6 +248,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
+      actions: read
       contents: read
       issues: write
     steps:
@@ -268,7 +269,6 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
-          SUMMARY_RESULT: ${{ needs.summarize.result }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -281,6 +281,7 @@ jobs:
             const { pathToFileURL } = require('node:url');
             const {
               buildPlaywrightFullExcerpt,
+              collectScheduledRunFailures,
               reportNightlyPlaywrightFullFailure,
             } = await import(
               pathToFileURL(
@@ -305,28 +306,64 @@ jobs:
                 `- Failed: ${summary.failedFileCount ?? 'n/a'}`,
               ].join('\n');
             }
-            const excerpt = buildPlaywrightFullExcerpt({
+            const fallbackExcerpt = buildPlaywrightFullExcerpt({
               result: process.env.FULL_TIER_RESULT,
               inventory,
             });
-            const summaryFailed = ['failure', 'cancelled'].includes(
-              process.env.SUMMARY_RESULT,
-            );
             const { owner, repo } = context.repo;
-            await reportNightlyPlaywrightFullFailure({
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner,
+                repo,
+                run_id: Number(process.env.RUN_ID),
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            const failedShards = jobs.filter(
+              (job) =>
+                /^Playwright Full \(Shard \d+\/8\)$/u.test(job.name) &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const summaryJobs = jobs.filter(
+              (job) =>
+                job.name === 'Write full-tier inventory' &&
+                ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            const jobsForTracking =
+              failedShards.length > 0
+                ? failedShards.map((job) => ({
+                    ...job,
+                    trackerJob: 'e2e-frontend-full',
+                    fallbackExcerpt,
+                  }))
+                : summaryJobs.map((job) => ({
+                    ...job,
+                    trackerJob: 'summarize',
+                    fallbackExcerpt:
+                      'Missing Playwright full-tier summary report or artifact.',
+                  }));
+            const failures = await collectScheduledRunFailures({
               github,
               owner,
               repo,
-              failedJob: summaryFailed ? 'summarize' : 'e2e-frontend-full',
-              excerpt: summaryFailed
-                ? 'Missing Playwright full-tier summary report or artifact.'
-                : excerpt,
-              sha: process.env.SOURCE_SHA,
-              runId: Number(process.env.RUN_ID),
-              runAttempt: Number(process.env.RUN_ATTEMPT),
-              runUrl: process.env.RUN_URL,
+              jobs: jobsForTracking,
               core,
             });
+            for (const failure of failures) {
+              await reportNightlyPlaywrightFullFailure({
+                github,
+                owner,
+                repo,
+                ...failure,
+                sha: process.env.SOURCE_SHA,
+                runId: Number(process.env.RUN_ID),
+                runAttempt: Number(process.env.RUN_ATTEMPT),
+                runUrl: process.env.RUN_URL,
+                core,
+              });
+            }
 
   nightly-recovery-report:
     name: Record nightly Playwright full-tier recovery

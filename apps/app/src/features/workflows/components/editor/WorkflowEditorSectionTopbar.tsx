@@ -51,6 +51,12 @@ export function WorkflowEditorSectionTopbar({
   const { href } = useOrgUrl();
   const canArchive = lifecycle !== 'archived';
   const canPublish = lifecycle === 'draft';
+  const publishUnavailableMessage =
+    lifecycle === 'published'
+      ? translate('publishAlreadyPublished')
+      : lifecycle === 'archived'
+        ? translate('publishArchived')
+        : null;
 
   return (
     <SectionTopbar
@@ -119,16 +125,29 @@ export function WorkflowEditorSectionTopbar({
             {isRunning ? translate('running') : translate('run')}
           </Button>
 
-          {canPublish ? (
-            <Button
-              className="shrink-0"
-              onClick={onPublish}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
+          <Button
+            aria-describedby={
+              publishUnavailableMessage
+                ? 'workflow-publish-unavailable-description'
+                : undefined
+            }
+            className="shrink-0"
+            disabled={!canPublish}
+            onClick={onPublish}
+            size={ButtonSize.SM}
+            tooltip={publishUnavailableMessage ?? undefined}
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          >
+            {translate('publish')}
+          </Button>
+          {publishUnavailableMessage ? (
+            <span
+              className="sr-only"
+              id="workflow-publish-unavailable-description"
             >
-              {translate('publish')}
-            </Button>
+              {publishUnavailableMessage}
+            </span>
           ) : null}
 
           {canArchive ? (

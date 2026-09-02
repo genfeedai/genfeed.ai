@@ -10,6 +10,7 @@ import {
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
+  readSnapshotRunError,
 } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
@@ -576,6 +577,7 @@ export function useAgentFullPage({
             });
             setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
             setWorkEvents(mapSnapshotWorkEvents(snapshot));
+            setError(readSnapshotRunError(snapshot));
           })
           .catch(reportLoadFailure);
       }

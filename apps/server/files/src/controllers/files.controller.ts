@@ -1,4 +1,10 @@
 import { ConfigService } from '@files/config/config.service';
+import type {
+  ProcessFileRequestBody,
+  ProcessImageRequestBody,
+  ProcessVideoRequestBody,
+  ProcessYoutubeRequestBody,
+} from '@files/controllers/files-job-request.interface';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
 import { VideoQueueService } from '@files/queues/video-queue.service';
@@ -7,18 +13,12 @@ import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.int
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import type {
   FileJobData,
-  FileProcessingParams,
   ImageJobData,
-  ImageProcessingParams,
   VideoJobData,
-  VideoProcessingParams,
-  YoutubeCredential,
 } from '@files/shared/interfaces/job.interface';
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
-  type FileJobPriority as JobPriority,
-  type FileJobType as JobType,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -33,66 +33,6 @@ import {
   Post,
 } from '@nestjs/common';
 import type { Job } from 'bullmq';
-
-interface ProcessVideoRequestBody {
-  id?: string;
-  ingredientId: string;
-  organizationId: string;
-  params: VideoProcessingParams;
-  priority?: JobPriority;
-  room?: string;
-  s3Bucket?: string;
-  type: JobType;
-  userId: string;
-  websocketUrl?: string;
-}
-
-interface ProcessImageRequestBody {
-  id?: string;
-  ingredientId: string;
-  organizationId: string;
-  params: ImageProcessingParams;
-  priority?: JobPriority;
-  room?: string;
-  s3Bucket?: string;
-  type: JobType;
-  userId: string;
-  websocketUrl?: string;
-}
-
-interface ProcessFileRequestBody {
-  delay?: number;
-  filePath?: string;
-  id?: string;
-  ingredientId: string;
-  organizationId: string;
-  params: FileProcessingParams;
-  priority?: JobPriority;
-  room?: string;
-  s3Bucket?: string;
-  type: JobType;
-  url?: string;
-  userId: string;
-  websocketUrl?: string;
-}
-
-interface ProcessYoutubeRequestBody {
-  brandId?: string;
-  credential: YoutubeCredential;
-  description: string;
-  id?: string;
-  ingredientId: string;
-  organizationId: string;
-  postId: string;
-  priority?: JobPriority;
-  room?: string;
-  scheduledDate?: string;
-  status?: 'public' | 'private' | 'scheduled' | 'unlisted';
-  tags?: string[];
-  title: string;
-  userId: string;
-  websocketUrl?: string;
-}
 
 @Controller('files')
 export class FilesController {

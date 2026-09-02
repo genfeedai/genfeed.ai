@@ -1,504 +1,100 @@
-import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { BUILT_IN_SKILL_CATALOG } from '@server/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@server/collections/skills/services/skills.service';
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ContentGeoOptimizerHandler } from '@server/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@server/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
 import { TrendDiscoveryHandler } from '@server/services/skill-executor/handlers/trend-discovery.handler';
 import { TrendRemixHandler } from '@server/services/skill-executor/handlers/trend-remix.handler';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
-import { ByokProvider, ContentRunStatus } from '@genfeedai/enums';
-import { Test, TestingModule } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { SkillWorkflowService } from '@server/services/skill-executor/skill-executor.service';
 
-describe('SkillExecutorService', () => {
-  const orgId = 'test-object-id';
-  const brandId = 'test-object-id';
-  const runId = 'test-object-id';
-
-  const baseContext = {
-    brandId,
-    brandVoice: 'Friendly and concise',
-    organizationId: orgId,
-    platforms: ['instagram'],
-  };
-
-  const mockSkillsService = {
+describe('SkillWorkflowService', () => {
+  const handler = { execute: vi.fn() };
+  const skills = {
     assertBrandSkillEnabled: vi.fn(),
     getSkillById: vi.fn(),
   };
-
-  const mockContentRunsService = {
-    createRun: vi.fn(),
-    patchRun: vi.fn(),
+  const runner = {
+    registerAction: vi.fn(),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
   };
-
-  const mockByokProviderFactoryService = {
-    resolveProvider: vi.fn(),
-  };
-
-  const mockHandler = {
-    execute: vi.fn(),
-  };
-
-  let service: SkillExecutorService;
-
-  function builtInSkill(slug: string) {
-    const identity = BUILT_IN_SKILL_CATALOG.find(
-      (entry) => entry.slug === slug,
-    );
-
-    if (!identity) {
-      throw new Error(`Missing built-in skill fixture: ${slug}`);
-    }
-
-    return {
-      ...identity,
-      isEnabled: true,
-      organizationId: null,
-      requiredProviders: [],
-      status: 'published',
-    };
-  }
+  let service: SkillWorkflowService;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('content-writing'),
+    const builtIn = BUILT_IN_SKILL_CATALOG.find(
+      (skill) => skill.slug === 'content-writing',
     );
-    mockContentRunsService.createRun.mockResolvedValue({ id: runId });
-    mockContentRunsService.patchRun.mockResolvedValue({});
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SkillExecutorService,
-        {
-          provide: SkillsService,
-          useValue: mockSkillsService,
-        },
-        {
-          provide: ContentRunsService,
-          useValue: mockContentRunsService,
-        },
-        {
-          provide: ByokProviderFactoryService,
-          useValue: mockByokProviderFactoryService,
-        },
-        { provide: ContentGeoOptimizerHandler, useValue: mockHandler },
-        { provide: ContentWritingHandler, useValue: mockHandler },
-        { provide: ImageGenerationHandler, useValue: mockHandler },
-        { provide: TrendDiscoveryHandler, useValue: mockHandler },
-        { provide: TrendRemixHandler, useValue: mockHandler },
-      ],
-    }).compile();
-
-    service = module.get(SkillExecutorService);
-  });
-
-  it('executes a registered skill and tracks content run', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('content-writing'),
-    );
-    mockHandler.execute.mockResolvedValue({
-      content: 'Generated content',
-      metadata: {},
-      platforms: ['instagram'],
-      skillSlug: 'content-writing',
-      type: 'text',
-    });
-
-    const result = await service.execute('content-writing', baseContext, {
-      audience: 'founders',
-      channelFit: 'X thread',
-      confidence: 0.72,
-      hypothesis: 'founder pain wins',
-      risk: 'Avoid hype claims',
-      sourceReferenceId: 'source-ref-1',
-      sourceUrl: 'https://x.com/builderx/status/1',
-      topic: 'AI strategy',
-    });
-
-    expect(result.draft.skillSlug).toBe('content-writing');
-    expect(result.source).toBe('hosted');
-    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brief: expect.objectContaining({
-          audience: 'founders',
-          channelFit: 'X thread',
-          confidence: 0.72,
-          hypothesis: 'founder pain wins',
-          risk: 'Avoid hype claims',
-          sourceId: 'source-ref-1',
-          sourceUrl: 'https://x.com/builderx/status/1',
-        }),
-        input: expect.objectContaining({
-          audience: 'founders',
-          hypothesis: 'founder pain wins',
-          topic: 'AI strategy',
-        }),
-      }),
-    );
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({ status: ContentRunStatus.RUNNING }),
-    );
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({
-        status: ContentRunStatus.COMPLETED,
-        variants: [
-          expect.objectContaining({
-            content: 'Generated content',
-            id: `${runId}-content-writing-1`,
-            platform: 'instagram',
-            status: 'generated',
-            type: 'text',
-          }),
-        ],
-      }),
-    );
-  });
-
-  it('throws when skill does not exist', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(null);
-
-    await expect(
-      service.execute('unknown-skill', baseContext),
-    ).rejects.toMatchObject({ status: 404 });
-  });
-
-  it('throws when skill is disabled', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: false,
-      slug: 'content-writing',
-    });
-
-    await expect(
-      service.execute('content-writing', baseContext),
-    ).rejects.toMatchObject({ status: 404 });
-  });
-
-  it('throws when skill status is disabled even if the legacy flag is enabled', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
+    if (!builtIn) throw new Error('Missing content-writing fixture');
+    skills.getSkillById.mockResolvedValue({
+      ...builtIn,
       isEnabled: true,
-      slug: 'content-writing',
-      status: 'disabled',
-    });
-
-    await expect(
-      service.execute('content-writing', baseContext),
-    ).rejects.toMatchObject({ status: 404 });
-
-    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
-  });
-
-  it('rejects an organization-owned collision with a built-in handler slug', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      id: 'skill-custom',
-      isEnabled: true,
-      organizationId: orgId,
-      slug: 'content-writing',
       status: 'published',
     });
-
-    await expect(
-      service.execute('content-writing', baseContext),
-    ).rejects.toMatchObject({ status: 404 });
-
-    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
-    expect(mockHandler.execute).not.toHaveBeenCalled();
-  });
-
-  it('marks run as failed when handler throws', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('content-writing'),
-    );
-    mockHandler.execute.mockRejectedValue(
-      new Error('content-writing requires a topic'),
-    );
-
-    await expect(
-      service.execute('content-writing', baseContext, {}),
-    ).rejects.toThrow('content-writing requires a topic');
-
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({
-        error: 'content-writing requires a topic',
-        status: ContentRunStatus.FAILED,
-      }),
-    );
-  });
-
-  it('resolves BYOK source when skill has required providers', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      ...builtInSkill('content-writing'),
-      requiredProviders: [ByokProvider.OPENAI],
-    });
-    mockByokProviderFactoryService.resolveProvider.mockResolvedValue({
-      apiKey: 'user-key',
-      source: 'byok',
-    });
-    mockHandler.execute.mockResolvedValue({
-      content: 'BYOK content',
-      metadata: {},
-      platforms: ['instagram'],
-      skillSlug: 'content-writing',
-      type: 'text',
-    });
-
-    const result = await service.execute('content-writing', baseContext, {
-      topic: 'test',
-    });
-
-    expect(result.source).toBe('byok');
-    expect(mockByokProviderFactoryService.resolveProvider).toHaveBeenCalledWith(
-      orgId,
-      ByokProvider.OPENAI,
-    );
-  });
-
-  it('rejects a non-catalog handler slug before creating a run', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      requiredProviders: [],
-      slug: 'video-editing',
-    });
-
-    await expect(
-      service.execute('video-editing', baseContext),
-    ).rejects.toMatchObject({ status: 404 });
-
-    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
-  });
-
-  it('records duration on both success and failure', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('content-writing'),
-    );
-    mockHandler.execute.mockResolvedValue({
-      content: 'done',
-      metadata: {},
-      platforms: ['instagram'],
-      skillSlug: 'content-writing',
-      type: 'text',
-    });
-
-    const result = await service.execute('content-writing', baseContext, {
-      topic: 'test',
-    });
-
-    expect(result.duration).toBeGreaterThanOrEqual(0);
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({ duration: expect.any(Number) }),
-    );
-  });
-
-  it('stores Remix Pack definitions as run variants', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('trend-remix'),
-    );
-    mockHandler.execute.mockResolvedValue({
-      content: 'Primary thread content',
-      metadata: {
-        remixPackVariants: [
-          {
-            angle: 'Operator pain point',
-            content: 'Primary thread content',
-            format: 'post-thread',
-            hypothesis: 'Pain-first threads convert',
-            platform: 'twitter',
-            type: 'text',
-          },
-          {
-            angle: 'Visual proof',
-            content: 'Image creative prompt',
-            format: 'social-image-creative',
-            hypothesis: 'A proof visual increases shares',
-            platform: 'twitter',
-            type: 'image',
-          },
-          {
-            angle: 'Video hook',
-            content: 'Short-form script',
-            format: 'short-form-video-script',
-            hypothesis: 'Fast hooks retain attention',
-            platform: 'twitter',
-            type: 'video-script',
-          },
-          {
-            angle: 'Long-form breakdown',
-            content: 'Newsletter outline',
-            format: 'article-newsletter-angle',
-            hypothesis: 'Deeper analysis captures high-intent users',
-            platform: 'newsletter',
-            type: 'article',
-          },
-          {
-            angle: 'Reply derivative',
-            content: 'Follow-up reply',
-            format: 'follow-up-reply',
-            hypothesis: 'Replies extend the loop',
-            platform: 'twitter',
-            type: 'reply',
-          },
-        ],
-        trendId: 'trend-1',
+    runner.runWorkflow.mockResolvedValue({
+      provenance: { executionId: 'execution-1' },
+      result: {
+        content: 'Generated content',
+        metadata: {},
+        platforms: ['instagram'],
+        skillSlug: 'content-writing',
+        type: 'text',
       },
-      platforms: ['twitter'],
-      skillSlug: 'trend-remix',
-      type: 'text',
     });
-
-    await service.execute('trend-remix', baseContext, {
-      trendId: 'trend-1',
-    });
-
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({
-        status: ContentRunStatus.COMPLETED,
-        variants: [
-          expect.objectContaining({
-            angle: 'Operator pain point',
-            format: 'post-thread',
-            hypothesis: 'Pain-first threads convert',
-            id: `${runId}-trend-remix-post-thread`,
-            metadata: expect.objectContaining({
-              remixPack: true,
-              trendId: 'trend-1',
-            }),
-            platform: 'twitter',
-            type: 'text',
-          }),
-          expect.objectContaining({ format: 'social-image-creative' }),
-          expect.objectContaining({ format: 'short-form-video-script' }),
-          expect.objectContaining({ format: 'article-newsletter-angle' }),
-          expect.objectContaining({ format: 'follow-up-reply' }),
-        ],
-      }),
-    );
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SkillWorkflowService,
+        { provide: SkillsService, useValue: skills },
+        { provide: SystemWorkflowRunnerService, useValue: runner },
+        { provide: ContentGeoOptimizerHandler, useValue: handler },
+        { provide: ContentWritingHandler, useValue: handler },
+        { provide: ImageGenerationHandler, useValue: handler },
+        { provide: TrendDiscoveryHandler, useValue: handler },
+        { provide: TrendRemixHandler, useValue: handler },
+      ],
+    }).compile();
+    service = module.get(SkillWorkflowService);
   });
 
-  it('captures publish context when scheduling metadata is present', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue(
-      builtInSkill('content-writing'),
-    );
-    mockHandler.execute.mockResolvedValue({
-      content: 'Scheduled content',
-      metadata: {},
-      platforms: ['instagram'],
-      skillSlug: 'content-writing',
-      type: 'text',
-    });
-
-    await service.execute('content-writing', baseContext, {
-      channel: 'organic-social',
-      experimentId: 'exp-123',
-      platform: 'instagram',
-      scheduledFor: '2026-04-14T09:00:00.000Z',
-      topic: 'Scheduling test',
-      variantId: 'variant-a',
-    });
-
-    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        publish: expect.objectContaining({
-          channel: 'organic-social',
-          experimentId: 'exp-123',
-          platform: 'instagram',
-          scheduledFor: new Date('2026-04-14T09:00:00.000Z'),
-          variantId: 'variant-a',
-        }),
-      }),
-    );
+  it('registers every exact skill action and immutable workflow', () => {
+    service.onModuleInit();
+    expect(runner.registerAction).toHaveBeenCalledTimes(5);
+    expect(runner.registerWorkflow).toHaveBeenCalledTimes(5);
   });
 
-  it('tracks variants for gateway execution runs', async () => {
-    mockHandler.execute.mockResolvedValue({
-      confidence: 0.91,
-      content: 'Gateway content',
-      metadata: { assetIds: ['asset-1'] },
-      platforms: ['linkedin'],
-      skillSlug: 'content-writing',
-      type: 'text',
-    });
-
-    const result = await service.executeSkill(
-      {
-        brandId,
-        organizationId: orgId,
-        signalType: 'manual',
-      },
+  it('runs the selected canonical workflow and returns its provenance', async () => {
+    const result = await service.execute(
       'content-writing',
       {
-        audience: 'operators',
-        topic: 'Gateway test',
+        brandId: 'brand-1',
+        brandVoice: 'Direct',
+        organizationId: 'org-1',
+        platforms: ['instagram'],
       },
+      { topic: 'launch' },
+      'user-1',
     );
-
-    expect(result.runId).toBe(runId);
-    expect(mockSkillsService.assertBrandSkillEnabled).toHaveBeenCalledWith(
-      orgId,
-      brandId,
-      'content-writing',
-    );
-    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        brief: expect.objectContaining({
-          audience: 'operators',
-        }),
+        canonicalId: 'skill.content-writing',
+        organizationId: 'org-1',
+        userId: 'user-1',
       }),
     );
-    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
-      orgId,
-      runId,
-      expect.objectContaining({
-        status: ContentRunStatus.COMPLETED,
-        variants: [
-          expect.objectContaining({
-            assetIds: ['asset-1'],
-            content: 'Gateway content',
-            id: `${runId}-content-writing-1`,
-            metadata: {
-              assetIds: ['asset-1'],
-            },
-            platform: 'linkedin',
-            status: 'generated',
-            type: 'text',
-          }),
-        ],
-      }),
-    );
+    expect(result).toMatchObject({ executionId: 'execution-1' });
   });
 
-  it('rejects a disabled skill before gateway execution creates a run', async () => {
-    mockSkillsService.getSkillById.mockResolvedValue({
-      isEnabled: true,
-      slug: 'content-writing',
-      status: 'disabled',
-    });
-
+  it('rejects a slug outside the reviewed action catalog', async () => {
     await expect(
-      service.executeSkill(
-        {
-          brandId,
-          organizationId: orgId,
-          signalType: 'manual',
-        },
-        'content-writing',
-      ),
+      service.execute('custom-skill', {
+        brandId: 'brand-1',
+        brandVoice: '',
+        organizationId: 'org-1',
+        platforms: [],
+      }),
     ).rejects.toMatchObject({ status: 404 });
-
-    expect(mockContentRunsService.createRun).not.toHaveBeenCalled();
-    expect(mockHandler.execute).not.toHaveBeenCalled();
+    expect(runner.runWorkflow).not.toHaveBeenCalled();
   });
 });

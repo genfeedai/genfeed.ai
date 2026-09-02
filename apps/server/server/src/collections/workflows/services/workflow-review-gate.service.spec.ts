@@ -1,5 +1,6 @@
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import { RetiredWorkflowExecutionError } from '@server/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -115,6 +116,28 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     // Losing the claim must short-circuit before any resolution writes.
     expect(executionsService.updateNodeResult).not.toHaveBeenCalled();
     expect(finalizer.finalizeExecution).not.toHaveBeenCalled();
+  });
+
+  it('returns a client error when the pinned workflow was retired', async () => {
+    documentService.findPinnedWorkflow.mockRejectedValue(
+      new RetiredWorkflowExecutionError(WORKFLOW_ID, 'workflow-version-1'),
+    );
+
+    await expect(
+      service.submitReviewGateApproval(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        'user-1',
+        ORGANIZATION_ID,
+        NODE_ID,
+        true,
+      ),
+    ).rejects.toMatchObject({
+      message:
+        'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
+      status: 400,
+    });
+    expect(executionsService.claimPendingReviewGate).not.toHaveBeenCalled();
   });
 
   it('returns null from the timeout sweep when a human wins the claim race', async () => {

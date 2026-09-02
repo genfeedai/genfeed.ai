@@ -1,6 +1,22 @@
+import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import { mapAuthorizedSignalsOutcome } from '@api/services/integrations/_shared/authorized-signals-outcome.util';
+import type { AuthorizedSignalsSettledResult } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import {
+  type InstagramAuthorizedSignalEvidence,
+  type InstagramAuthorizedSignalReason,
+  type InstagramAuthorizedSignalsSnapshot,
+  instagramAuthorizedSignalStatusValues,
+  instagramAuthorizedSignalsSnapshotSchema,
+} from '@api-types/contracts/instagram-authorized-signals.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -17,20 +33,6 @@ import {
 } from '@server/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
-  type InstagramAuthorizedSignalEvidence,
-  type InstagramAuthorizedSignalReason,
-  type InstagramAuthorizedSignalsSnapshot,
-  instagramAuthorizedSignalStatusValues,
-  instagramAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
-import {
   InstagramAuthorizedSignalsProvider,
   type InstagramMediaFetch,
   type InstagramUserResponse,
@@ -38,7 +40,6 @@ import {
   readNonNegativeInteger,
   readRecord,
   readString,
-  type SettledResult,
 } from './instagram-authorized-signals.provider';
 
 const INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
@@ -118,31 +119,6 @@ type PlatformEvidenceKey = Exclude<
   InstagramAuthorizedSignalEvidence['key'],
   'genfeed-publish-outcomes-observed'
 >;
-
-type GenfeedPublishOutcome =
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed'
-  | 'paused'
-  | 'cancelled'
-  | 'skipped';
-
-function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
-  const outcomes = new Set<string>([
-    TargetExecutionState.SCHEDULED,
-    TargetExecutionState.PUBLISHING,
-    TargetExecutionState.PUBLISHED,
-    TargetExecutionState.FAILED,
-    TargetExecutionState.PAUSED,
-    TargetExecutionState.CANCELLED,
-    TargetExecutionState.SKIPPED,
-  ]);
-
-  return typeof value === 'string' && outcomes.has(value)
-    ? (value as GenfeedPublishOutcome)
-    : undefined;
-}
 
 function isProfessionalAccountType(accountType: string | undefined): boolean {
   return accountType === 'BUSINESS' || accountType === 'MEDIA_CREATOR';
@@ -295,6 +271,38 @@ export class InstagramAuthorizedSignalsService {
       throw error;
     }
 
+    return await this.fetchAndPersistSnapshot({
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId: params.organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    });
+  }
+
+  private async fetchAndPersistSnapshot(params: {
+    accessToken: string;
+    cacheKey: string;
+    credential: CredentialDocument;
+    genfeedEvidence: InstagramAuthorizedSignalEvidence;
+    grantedScopes: string[];
+    organizationId: string;
+    previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined;
+    refreshAttemptedAt: string;
+  }): Promise<InstagramAuthorizedSignalsSnapshot> {
+    const {
+      accessToken,
+      cacheKey,
+      credential,
+      genfeedEvidence,
+      grantedScopes,
+      organizationId,
+      previousSnapshot,
+      refreshAttemptedAt,
+    } = params;
     const providerResult = await this.provider.fetch(
       accessToken,
       readString(credential.externalId),
@@ -314,7 +322,7 @@ export class InstagramAuthorizedSignalsService {
       );
       return await this.persistSnapshot(
         credential,
-        params.organizationId,
+        organizationId,
         cacheKey,
         this.buildRevokedSnapshot(
           credential.id,
@@ -369,7 +377,7 @@ export class InstagramAuthorizedSignalsService {
 
     return await this.persistSnapshot(
       credential,
-      params.organizationId,
+      organizationId,
       cacheKey,
       snapshot,
     );
@@ -377,7 +385,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildProfileEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramUserResponse>,
+    result: AuthorizedSignalsSettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -431,7 +439,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildOwnedMediaEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramMediaFetch>,
+    result: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -482,7 +490,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildPublishingCapabilityEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramUserResponse>,
+    result: AuthorizedSignalsSettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -546,7 +554,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildDerivedMediaEvidence(
     ownedMedia: InstagramAuthorizedSignalEvidence,
-    mediaResult: SettledResult<InstagramMediaFetch>,
+    mediaResult: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     grantedScopes: string[],
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
@@ -585,7 +593,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildMediaPerformanceEvidence(
     grantedScopes: string[],
-    result: SettledResult<InstagramMediaFetch>,
+    result: AuthorizedSignalsSettledResult<InstagramMediaFetch>,
     ownedMedia: InstagramAuthorizedSignalEvidence,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
@@ -747,7 +755,7 @@ export class InstagramAuthorizedSignalsService {
       }),
     });
     const attempts = rows.flatMap((row) => {
-      const outcome = mapOutcome(row.targetExecutionState);
+      const outcome = mapAuthorizedSignalsOutcome(row.targetExecutionState);
       if (!outcome) {
         return [];
       }

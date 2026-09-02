@@ -252,54 +252,17 @@ export class VideoGenerationPreparationService {
     if (compiledDispatch) {
       promptParams = compiledDispatch as unknown as Record<string, unknown>;
     } else {
-      const builtPrompt = await this.promptBuilderService.buildPrompt(
-        model,
-        {
-          audioUrl: createVideoDto.audioUrl,
-          blacklist: createVideoDto.blacklist,
-          brand: {
-            description: optionalBrandString(brand.description),
-            label: brandPromptLabel(brand.label),
-            primaryColor: optionalBrandString(brand.primaryColor),
-            secondaryColor: optionalBrandString(brand.secondaryColor),
-            text: optionalBrandString(brand.text),
-          },
-          branding: buildPromptBrandingFromBrand(brand),
-          brandingMode: createVideoDto.brandingMode,
-          camera: createVideoDto.camera,
-          cameraMovement: createVideoDto.cameraMovement,
-          duration: createVideoDto.duration,
-          endFrame: endFrameUrl,
-          fontFamily: createVideoDto.fontFamily,
-          height,
-          isAudioEnabled: createVideoDto.isAudioEnabled,
-          isBrandingEnabled: createVideoDto.isBrandingEnabled,
-          lens: createVideoDto.lens,
-          lighting: createVideoDto.lighting,
-          modelInputSchema: resolved.modelInputSchema,
-          modelCategory:
-            ((request as unknown as { selectedModel?: { category?: string } })
-              .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,
-          mood: createVideoDto.mood,
-          outputs: createVideoDto.outputs,
-          prompt: promptText,
-          promptTemplate: createVideoDto.promptTemplate,
-          references: referenceImageUrls,
-          resolution: createVideoDto.resolution,
-          scene: createVideoDto.scene,
-          seed: createVideoDto.seed,
-          sounds: createVideoDto.sounds,
-          speech: createVideoDto.speech,
-          style: createVideoDto.style,
-          tags: createVideoDto.tags?.map((tag) => tag.toString()),
-          useTemplate: createVideoDto.useTemplate,
-          width,
-        },
-        user.organizationId,
-      );
-      promptParams = builtPrompt.input;
-      templateUsed = builtPrompt.templateUsed;
-      templateVersion = builtPrompt.templateVersion;
+      const built = await this.buildPromptParams({
+        endFrameUrl,
+        height,
+        promptText,
+        referenceImageUrls,
+        resolved,
+        width,
+      });
+      promptParams = built.promptParams;
+      templateUsed = built.templateUsed;
+      templateVersion = built.templateVersion;
     }
     const promptInput = promptParams as PromptInput;
     const promptData = await this.promptsService.create(
@@ -378,6 +341,79 @@ export class VideoGenerationPreparationService {
       promptParams,
       referenceImageUrls,
       width,
+    };
+  }
+
+  private async buildPromptParams(params: {
+    endFrameUrl?: string;
+    height: number;
+    promptText: string;
+    referenceImageUrls: string[];
+    resolved: ResolvedVideoGenerationRequest;
+    width: number;
+  }): Promise<{
+    promptParams: Record<string, unknown>;
+    templateUsed?: string;
+    templateVersion?: number;
+  }> {
+    const {
+      endFrameUrl,
+      height,
+      promptText,
+      referenceImageUrls,
+      resolved,
+      width,
+    } = params;
+    const { brand, createVideoDto, model, request, user } = resolved;
+    const built = await this.promptBuilderService.buildPrompt(
+      model,
+      {
+        audioUrl: createVideoDto.audioUrl,
+        blacklist: createVideoDto.blacklist,
+        brand: {
+          description: optionalBrandString(brand.description),
+          label: brandPromptLabel(brand.label),
+          primaryColor: optionalBrandString(brand.primaryColor),
+          secondaryColor: optionalBrandString(brand.secondaryColor),
+          text: optionalBrandString(brand.text),
+        },
+        branding: buildPromptBrandingFromBrand(brand),
+        brandingMode: createVideoDto.brandingMode,
+        camera: createVideoDto.camera,
+        cameraMovement: createVideoDto.cameraMovement,
+        duration: createVideoDto.duration,
+        endFrame: endFrameUrl,
+        fontFamily: createVideoDto.fontFamily,
+        height,
+        isAudioEnabled: createVideoDto.isAudioEnabled,
+        isBrandingEnabled: createVideoDto.isBrandingEnabled,
+        lens: createVideoDto.lens,
+        lighting: createVideoDto.lighting,
+        modelInputSchema: resolved.modelInputSchema,
+        modelCategory:
+          ((request as unknown as { selectedModel?: { category?: string } })
+            .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,
+        mood: createVideoDto.mood,
+        outputs: createVideoDto.outputs,
+        prompt: promptText,
+        promptTemplate: createVideoDto.promptTemplate,
+        references: referenceImageUrls,
+        resolution: createVideoDto.resolution,
+        scene: createVideoDto.scene,
+        seed: createVideoDto.seed,
+        sounds: createVideoDto.sounds,
+        speech: createVideoDto.speech,
+        style: createVideoDto.style,
+        tags: createVideoDto.tags?.map((tag) => tag.toString()),
+        useTemplate: createVideoDto.useTemplate,
+        width,
+      },
+      user.organizationId,
+    );
+    return {
+      promptParams: built.input,
+      templateUsed: built.templateUsed,
+      templateVersion: built.templateVersion,
     };
   }
 
