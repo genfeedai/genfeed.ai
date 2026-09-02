@@ -55,9 +55,6 @@ export default function IngredientsLayoutToolbar({
           onFiltersChange={onFiltersChange}
         />
 
-        {/* Moodboard lives under Library → Moodboard in the nav — no
-            duplicate toolbar shortcut here. */}
-
         {/* One-off generation is Agent-first — the standalone Studio
             image/video/avatar/music prompt bars are retired. */}
         {scope !== PageScope.SUPERADMIN && config.showGenerateLink ? (

@@ -1,10 +1,10 @@
 'use client';
 
 import type { IFleetGenerationJob } from '@genfeedai/interfaces';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import Card from '@ui/card/Card';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Image from 'next/image';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type GeneratedImage = {
   id: string;

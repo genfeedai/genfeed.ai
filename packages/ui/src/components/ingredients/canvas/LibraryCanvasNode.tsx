@@ -1,5 +1,6 @@
 'use client';
 
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import {
   MOOD_BOARD_DEFAULT_ASPECT_RATIO,
@@ -7,24 +8,21 @@ import {
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
 import Image from 'next/image';
 import { memo, useState } from 'react';
-import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
-
-const DEFAULT_ASPECT_RATIO = MOOD_BOARD_DEFAULT_ASPECT_RATIO;
+import type { LibraryCanvasNodeProps } from './library-canvas.types';
 
 function resolveAspectRatio(width?: number, height?: number): number {
   if (typeof width === 'number' && typeof height === 'number' && height > 0) {
     return width / height;
   }
-  return DEFAULT_ASPECT_RATIO;
+  return MOOD_BOARD_DEFAULT_ASPECT_RATIO;
 }
 
 function PlayBadge(): React.JSX.Element {
   return (
     <div
-      data-testid="moodboard-play-badge"
+      data-testid="library-canvas-play-badge"
       className={
-        'absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white backdrop-blur-sm' // design-system-allow-content-color
+        'absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
       }
     >
       <svg
@@ -41,9 +39,9 @@ function PlayBadge(): React.JSX.Element {
   );
 }
 
-function MediaAssetNodeComponent({
+function LibraryCanvasNodeComponent({
   data,
-}: MediaAssetNodeProps): React.JSX.Element {
+}: LibraryCanvasNodeProps): React.JSX.Element {
   const { ingredient } = data;
   const isVideo = isVideoIngredient(ingredient);
 
@@ -52,7 +50,7 @@ function MediaAssetNodeComponent({
     ingredient.metadataHeight,
   );
 
-  // Videos show their poster on the board; playback happens in the lightbox.
+  // Videos show their poster on the canvas; playback happens in the lightbox.
   const src = isVideo
     ? ingredient.thumbnailUrl || ingredient.ingredientUrl
     : ingredient.ingredientUrl || ingredient.thumbnailUrl;
@@ -62,7 +60,7 @@ function MediaAssetNodeComponent({
   return (
     <div
       className="group relative cursor-pointer overflow-hidden rounded-xl border border-border bg-secondary shadow-sm transition-colors hover:border-border-strong gen-contact-sheet"
-      style={{ width: MOOD_BOARD_TILE_WIDTH, aspectRatio }}
+      style={{ aspectRatio, width: MOOD_BOARD_TILE_WIDTH }}
     >
       {showPreview && src ? (
         <Image
@@ -85,4 +83,4 @@ function MediaAssetNodeComponent({
   );
 }
 
-export const MediaAssetNode = memo(MediaAssetNodeComponent);
+export const LibraryCanvasNode = memo(LibraryCanvasNodeComponent);

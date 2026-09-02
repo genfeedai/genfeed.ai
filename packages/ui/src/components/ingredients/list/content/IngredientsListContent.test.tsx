@@ -32,6 +32,23 @@ vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
   default: () => <div data-testid="status-dropdown" />,
 }));
 
+// The canvas pulls React Flow in behind next/dynamic, whose loader never
+// resolves under jsdom. Stubbing the boundary keeps this test on the view
+// switch, which is what IngredientsListContent actually owns.
+vi.mock('next/dynamic', () => ({
+  default: () => {
+    function LibraryCanvasStub({
+      ingredients,
+    }: {
+      ingredients: IIngredient[];
+    }) {
+      return <div data-testid="library-canvas">{ingredients.length}</div>;
+    }
+
+    return LibraryCanvasStub;
+  },
+}));
+
 vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: ({
     items,
@@ -161,6 +178,19 @@ describe('IngredientsListContent', () => {
       screen.getByRole('img', { name: 'A red apple on a table' }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+  });
+
+  it('arranges the same filtered set on the canvas view', () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'canvas',
+    });
+
+    expect(screen.getByTestId('library-canvas')).toHaveTextContent('2');
+    expect(screen.queryByTestId('media-grid-item')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('renders avatar rows in the table view', () => {

@@ -3,26 +3,22 @@ import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-
-import { MediaAssetNode } from '@/features/moodboard/MediaAssetNode';
-import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
+import { LibraryCanvasNode } from './LibraryCanvasNode';
+import type { LibraryCanvasNodeProps } from './library-canvas.types';
 
 vi.mock('next/image', () => ({
   default: ({
     alt = '',
     ...props
-  }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // biome-ignore lint/performance/noImgElement: test stub for next/image
-    <img alt={alt} {...props} />
-  ),
+  }: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt={alt} {...props} />,
 }));
 
 function renderNode(ingredient: IIngredient) {
-  const props = { data: { ingredient } } as unknown as MediaAssetNodeProps;
-  return render(<MediaAssetNode {...props} />);
+  const props = { data: { ingredient } } as unknown as LibraryCanvasNodeProps;
+  return render(<LibraryCanvasNode {...props} />);
 }
 
-describe('MediaAssetNode', () => {
+describe('LibraryCanvasNode', () => {
   it('renders an image asset from its ingredientUrl without a play badge', () => {
     renderNode({
       id: 'img-1',
@@ -35,7 +31,7 @@ describe('MediaAssetNode', () => {
       'src',
       'https://cdn/img-1.png',
     );
-    expect(screen.queryByTestId('moodboard-play-badge')).toBeNull();
+    expect(screen.queryByTestId('library-canvas-play-badge')).toBeNull();
   });
 
   it('renders a video poster with a play badge', () => {
@@ -46,7 +42,7 @@ describe('MediaAssetNode', () => {
       thumbnailUrl: 'https://cdn/vid-1.jpg',
     } as IIngredient);
 
-    expect(screen.getByTestId('moodboard-play-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('library-canvas-play-badge')).toBeInTheDocument();
     // Video tiles show the poster (thumbnailUrl), not the raw media.
     expect(screen.getByAltText('asset')).toHaveAttribute(
       'src',

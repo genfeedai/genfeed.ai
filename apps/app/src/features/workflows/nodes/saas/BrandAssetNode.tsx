@@ -1,5 +1,6 @@
 'use client';
 
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import type {
   BrandAssetNodeData,
   BrandAssetType,
@@ -16,7 +17,6 @@ import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const ASSET_TYPE_OPTIONS: Array<{ value: BrandAssetType; label: string }> = [
   { label: 'Logo', value: 'logo' },

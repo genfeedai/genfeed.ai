@@ -112,7 +112,6 @@ export function useAppProtectedLayout(
     pathname === APP_ROUTES.AUTOMATION.RUNS;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
-  const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isAutomationRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATION);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   // Org shell only for leftover org destinations (Connect, etc.). Module
@@ -431,7 +430,6 @@ export function useAppProtectedLayout(
     isLibraryRoute,
     isMessagesRoute,
     isMessagesInboxRoute,
-    isMoodboardRoute,
     isOrgRoute,
     isPublishingRoute,
     suppressShellLowCreditsBanner,

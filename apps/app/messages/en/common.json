@@ -808,13 +808,10 @@
     "title": "Provider contract",
     "versionLabel": "Version:"
   },
-  "moodboard": {
-    "close": "Close",
-    "closeMoodboard": "Close moodboard",
-    "first": "First {count}",
+  "libraryCanvas": {
     "fit": "Fit",
     "fitBoard": "Fit board",
-    "loadingMore": "Loading… {count} so far"
+    "loading": "Loading… {count} so far"
   },
   "articleDetail": {
     "loadingTitle": "Loading article…"

@@ -22,7 +22,7 @@ vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: unknown) => mocks.useQuery(options),
 }));
 
-vi.mock('@/lib/images/can-optimize-image-source', () => ({
+vi.mock('@genfeedai/utils/media/image-optimization.util', () => ({
   canOptimizeImageSource: () => false,
 }));
 

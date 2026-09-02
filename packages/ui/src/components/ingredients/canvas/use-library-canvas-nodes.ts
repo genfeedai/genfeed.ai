@@ -7,28 +7,29 @@ import {
 import { applyNodeChanges, type NodeChange } from '@xyflow/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  MediaAssetFlowNode,
-  UseMoodBoardCanvasParams,
-  UseMoodBoardCanvasResult,
-} from '@/features/moodboard/moodboard.types';
+  LibraryCanvasFlowNode,
+  UseLibraryCanvasNodesParams,
+  UseLibraryCanvasNodesResult,
+} from './library-canvas.types';
 
 /** Matches the workflow canvas autosave cadence. */
-export const MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS = 2000;
+export const LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS = 2000;
 
 /**
- * Owns the React Flow node state for the mood board: hydrates nodes from live
- * assets merged with the saved layout, applies drag changes, and persists the
- * arrangement (debounced) whenever a drag completes. Mirrors the workflow
- * canvas's dirty-then-debounce autosave, minus the execution machinery.
+ * Owns the React Flow node state for the Library canvas view: hydrates nodes
+ * from the ingredients currently in view merged with the saved board layout,
+ * applies drag changes, and persists the arrangement (debounced) whenever a
+ * drag completes. Mirrors the workflow canvas's dirty-then-debounce autosave,
+ * minus the execution machinery.
  */
-export function useMoodBoardCanvas({
-  assets,
+export function useLibraryCanvasNodes({
+  ingredients,
   savedLayout,
   onPersist,
-}: UseMoodBoardCanvasParams): UseMoodBoardCanvasResult {
-  const [nodes, setNodes] = useState<MediaAssetFlowNode[]>([]);
+}: UseLibraryCanvasNodesParams): UseLibraryCanvasNodesResult {
+  const [nodes, setNodes] = useState<LibraryCanvasFlowNode[]>([]);
 
-  const nodesRef = useRef<MediaAssetFlowNode[]>([]);
+  const nodesRef = useRef<LibraryCanvasFlowNode[]>([]);
   nodesRef.current = nodes;
 
   const onPersistRef = useRef(onPersist);
@@ -39,14 +40,14 @@ export function useMoodBoardCanvas({
   );
 
   const knownIds = useMemo(
-    () => new Set(assets.map((asset) => asset.id)),
-    [assets],
+    () => new Set(ingredients.map((ingredient) => ingredient.id)),
+    [ingredients],
   );
 
   const hydratedLayoutRef = useRef<typeof savedLayout | undefined>(undefined);
 
   useEffect(() => {
-    const { seeds } = mergeMoodBoardLayout(assets, savedLayout);
+    const { seeds } = mergeMoodBoardLayout(ingredients, savedLayout);
     // The saved layout usually arrives after the first assets do, so those
     // tiles were seeded into grid slots. Applying the layout is the whole
     // point of it loading — preserving live positions here would pin the
@@ -55,24 +56,25 @@ export function useMoodBoardCanvas({
     hydratedLayoutRef.current = savedLayout;
 
     setNodes((current) => {
-      // Assets stream in page by page, so this re-derives mid-session. On an
-      // asset-only update a tile the user has dragged but not yet autosaved
-      // keeps its live position instead of snapping back to its grid slot.
+      // Assets stream in page by page, and filters re-derive the list mid
+      // session. On an asset-only update a tile the user has dragged but not
+      // yet autosaved keeps its live position instead of snapping back to its
+      // grid slot.
       const livePositions = hasNewLayout
         ? new Map<string, (typeof current)[number]['position']>()
         : new Map(current.map((node) => [node.id, node.position]));
 
       return seeds.map((seed) => ({
-        id: seed.assetId,
-        type: 'mediaAsset',
-        position: livePositions.get(seed.assetId) ?? seed.position,
         data: { ingredient: seed.ingredient },
+        id: seed.assetId,
+        position: livePositions.get(seed.assetId) ?? seed.position,
+        type: 'libraryAsset' as const,
       }));
     });
-  }, [assets, savedLayout]);
+  }, [ingredients, savedLayout]);
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<MediaAssetFlowNode>[]) => {
+    (changes: NodeChange<LibraryCanvasFlowNode>[]) => {
       setNodes((current) => applyNodeChanges(changes, current));
     },
     [],
@@ -84,7 +86,7 @@ export function useMoodBoardCanvas({
     }
     debounceRef.current = setTimeout(() => {
       onPersistRef.current(toMoodBoardLayout(nodesRef.current, knownIds));
-    }, MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS);
+    }, LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS);
   }, [knownIds]);
 
   useEffect(

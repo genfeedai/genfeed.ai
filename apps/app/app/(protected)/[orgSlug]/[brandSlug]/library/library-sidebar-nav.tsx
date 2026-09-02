@@ -49,8 +49,7 @@ import {
 
 /**
  * The folder axis is orthogonal to type and shelf, so every destination that
- * lists assets keeps `?folder=` when you pick a folder. Only Mood board sits
- * outside the asset table.
+ * lists assets keeps `?folder=` when you pick a folder.
  */
 const FOLDER_COMPATIBLE_ROUTES = new Set<string>([
   ...LIBRARY_ASSET_ROUTES,
@@ -271,11 +270,7 @@ export default function LibrarySidebarNav() {
 
           <div className="mt-4">
             <ul className="flex flex-col gap-px">
-              {LIBRARY_TAIL_MENU_ITEMS.filter(
-                (item) =>
-                  item.href !== APP_ROUTES.LIBRARY.MOODBOARD ||
-                  Boolean(brandId),
-              ).map(renderMenuItem)}
+              {LIBRARY_TAIL_MENU_ITEMS.map(renderMenuItem)}
             </ul>
           </div>
         </div>

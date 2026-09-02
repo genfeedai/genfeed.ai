@@ -239,7 +239,6 @@ export const APP_ROUTES = {
     IMAGES: '/library/images',
     /** @deprecated Use ASSETS. Retained for legacy deep-link redirects. */
     INGREDIENTS: '/library/ingredients',
-    MOODBOARD: '/library/moodboard',
     MUSIC: '/library/music',
     /** @deprecated Use ASSETS. The tile-grid Overview held no assets. */
     OVERVIEW: '/library/overview',

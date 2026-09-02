@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
@@ -25,9 +26,7 @@ import { Building2, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo } from 'react';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const ITEMS_PER_PAGE = 20;
 

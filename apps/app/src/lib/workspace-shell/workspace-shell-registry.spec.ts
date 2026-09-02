@@ -91,7 +91,6 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/library', 'Library', 'Overview'],
     ['/acme/moonrise/library/videos', 'Library', 'Assets'],
     ['/acme/moonrise/library/voices', 'Library', 'Assets'],
-    ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/clips/project-1', 'Studio', 'Project'],
     ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
@@ -185,7 +184,7 @@ describe('workspace shell trusted registry', () => {
 
   it.each([
     ['/:orgSlug/:brandSlug/publishing/calendar', 'canvas'],
-    ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
+    ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/skills', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/characters', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],

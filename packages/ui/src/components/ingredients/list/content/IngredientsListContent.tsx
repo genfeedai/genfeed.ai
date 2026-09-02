@@ -28,10 +28,21 @@ import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Eye, Film, ImageIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo } from 'react';
+
+// React Flow is heavier than the whole grid; only the canvas view pays for it.
+const LibraryCanvas = dynamic(
+  () => import('@ui/ingredients/canvas/LibraryCanvas'),
+  {
+    loading: () => <LazyLoadingFallback variant="minimal" />,
+    ssr: false,
+  },
+);
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const previewUrl = getIngredientPreviewUrl(ingredient);
@@ -271,6 +282,20 @@ export default function IngredientsListContent({
   );
 
   const content = useMemo(() => {
+    if (viewMode === 'canvas') {
+      // The canvas is a free-placement surface, so it needs a bounded box of
+      // its own — the Library page scrolls, and `h-full` inside a scrolling
+      // column collapses React Flow to zero height.
+      return (
+        <div className="h-[70vh] min-h-[32rem] overflow-hidden rounded-lg border border-border">
+          <LibraryCanvas
+            ingredients={filteredIngredients}
+            isLoading={isLoading}
+          />
+        </div>
+      );
+    }
+
     if (viewMode === 'list') {
       return (
         <AppTable

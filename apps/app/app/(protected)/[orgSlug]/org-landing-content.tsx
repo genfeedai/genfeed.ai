@@ -10,6 +10,7 @@ import {
   resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';
 import { Button } from '@ui/primitives/button';
@@ -18,9 +19,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   const cardHref = createBrandAppRoute(orgSlug, brand.slug, '/workspace');

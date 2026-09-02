@@ -262,7 +262,6 @@ Library:
 - `/:orgSlug/:brandSlug/library/starred`
 - `/:orgSlug/:brandSlug/library/trash`
 - `/:orgSlug/:brandSlug/library/shelf/:shelf`
-- `/:orgSlug/:brandSlug/library/moodboard`
 - `/:orgSlug/:brandSlug/library/videos`
 - `/:orgSlug/:brandSlug/library/images`
 - `/:orgSlug/:brandSlug/library/gifs`
@@ -272,8 +271,8 @@ Library:
 - `/:orgSlug/:brandSlug/library/captions`
 
 `/:orgSlug/:brandSlug/library/assets` is the canonical Library landing — one
-unified asset browser. Assets, Recent, Starred, Trash, `library/shelf/:shelf`,
-and Mood board are navigation destinations. The retired tile-grid Overview
+unified asset browser. Assets, Recent, Starred, Trash and `library/shelf/:shelf`
+are navigation destinations. The retired tile-grid Overview
 route (`/library/overview`) no longer resolves and redirects to Assets; it is
 not part of the executable route set. The remaining Library type routes
 (videos, images, gifs, avatars, voices, music, captions) are not separate
@@ -281,7 +280,9 @@ sidebar modules — they are shareable deep links that seed the same browser
 with its type chips pre-selected, and the operator can widen or clear the
 filter without leaving the page. A shelf is a saved query over generation
 state, not a location; folder selection is a URL-backed secondary sidebar
-filter layered on top of any of these destinations.
+filter layered on top of any of these destinations. `?view=grid|list|canvas`
+arranges that same filtered set three ways; the canvas replaced the retired
+`/library/moodboard` route, which no longer resolves.
 
 Publish:
 

@@ -6,7 +6,6 @@ import {
   CircleCheck,
   ClipboardCheck,
   Clock,
-  FolderOpen,
   Images,
   Inbox,
   LoaderCircle,
@@ -110,14 +109,6 @@ export const LIBRARY_SHELF_MENU_ITEMS: MenuItemConfig[] = [
  * generate into.
  */
 export const LIBRARY_TAIL_MENU_ITEMS: MenuItemConfig[] = [
-  {
-    group: 'Library',
-    href: APP_ROUTES.LIBRARY.MOODBOARD,
-    label: 'Mood board',
-    matchPaths: [APP_ROUTES.LIBRARY.MOODBOARD],
-    outline: FolderOpen,
-    solid: FolderOpen,
-  },
   {
     group: 'Library',
     href: APP_ROUTES.LIBRARY.TRASH,

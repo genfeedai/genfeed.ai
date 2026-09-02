@@ -833,7 +833,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/library/voices',
       '/:orgSlug/:brandSlug/library/music',
       '/:orgSlug/:brandSlug/library/captions',
-      '/:orgSlug/:brandSlug/library/moodboard',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/library',

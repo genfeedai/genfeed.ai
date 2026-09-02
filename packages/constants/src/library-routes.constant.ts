@@ -20,11 +20,11 @@ export const LIBRARY_QUERY_KEYS = {
   FOLDER: 'folder',
   SEARCH: 'search',
   SORT: 'sort',
-  /** Contact sheet vs. list rows. */
+  /** Contact sheet vs. list rows vs. free-placement canvas. */
   VIEW: 'view',
 } as const;
 
-export const LIBRARY_VIEW_MODES = ['grid', 'list'] as const;
+export const LIBRARY_VIEW_MODES = ['grid', 'list', 'canvas'] as const;
 
 export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
 

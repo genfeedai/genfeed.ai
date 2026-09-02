@@ -1,22 +1,21 @@
 import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
-  MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS,
-  useMoodBoardCanvas,
-} from '@/features/moodboard/use-mood-board-canvas';
+  LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS,
+  useLibraryCanvasNodes,
+} from './use-library-canvas-nodes';
 
 function asset(id: string): IIngredient {
   return { id, isDeleted: false } as IIngredient;
 }
 
-// Stable references: the hydration effect keys on assets/savedLayout identity,
-// so inline arrays would re-fire it every render (mirrors real useState/useMemo
-// inputs from the consumer).
+// Stable references: the hydration effect keys on ingredients/savedLayout
+// identity, so inline arrays would re-fire it every render (mirrors real
+// useState/useMemo inputs from the consumer).
 const EMPTY_LAYOUT: IMoodBoardLayoutItem[] = [];
 
-describe('useMoodBoardCanvas', () => {
+describe('useLibraryCanvasNodes', () => {
   // Only fake the timer functions the debounce uses; faking nextTick/Date as
   // well leaves the vitest worker unable to terminate cleanly.
   beforeEach(() =>
@@ -24,11 +23,11 @@ describe('useMoodBoardCanvas', () => {
   );
   afterEach(() => vi.useRealTimers());
 
-  it('hydrates one node per asset', () => {
-    const assets = [asset('a'), asset('b')];
+  it('hydrates one node per ingredient', () => {
+    const ingredients = [asset('a'), asset('b')];
     const { result } = renderHook(() =>
-      useMoodBoardCanvas({
-        assets,
+      useLibraryCanvasNodes({
+        ingredients,
         savedLayout: EMPTY_LAYOUT,
         onPersist: vi.fn(),
       }),
@@ -37,15 +36,19 @@ describe('useMoodBoardCanvas', () => {
     expect(result.current.nodes).toHaveLength(2);
     expect(result.current.nodes[0]).toMatchObject({
       id: 'a',
-      type: 'mediaAsset',
+      type: 'libraryAsset',
     });
   });
 
   it('persists the moved layout once after the debounce window', () => {
-    const assets = [asset('a')];
+    const ingredients = [asset('a')];
     const onPersist = vi.fn();
     const { result } = renderHook(() =>
-      useMoodBoardCanvas({ assets, savedLayout: EMPTY_LAYOUT, onPersist }),
+      useLibraryCanvasNodes({
+        ingredients,
+        savedLayout: EMPTY_LAYOUT,
+        onPersist,
+      }),
     );
 
     act(() => {
@@ -56,7 +59,7 @@ describe('useMoodBoardCanvas', () => {
     });
 
     act(() => {
-      vi.advanceTimersByTime(MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS - 1);
+      vi.advanceTimersByTime(LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS - 1);
     });
     expect(onPersist).not.toHaveBeenCalled();
 
@@ -69,11 +72,15 @@ describe('useMoodBoardCanvas', () => {
     ]);
   });
 
-  it('applies a saved layout that arrives after the assets', () => {
-    const assets = [asset('a')];
+  it('applies a saved layout that arrives after the ingredients', () => {
+    const ingredients = [asset('a')];
     const { rerender, result } = renderHook(
       ({ savedLayout }: { savedLayout: IMoodBoardLayoutItem[] }) =>
-        useMoodBoardCanvas({ assets, savedLayout, onPersist: vi.fn() }),
+        useLibraryCanvasNodes({
+          ingredients,
+          savedLayout,
+          onPersist: vi.fn(),
+        }),
       { initialProps: { savedLayout: EMPTY_LAYOUT } },
     );
 
@@ -86,12 +93,16 @@ describe('useMoodBoardCanvas', () => {
     expect(result.current.nodes[0].position).not.toEqual(seeded);
   });
 
-  it('keeps an undrafted drag when only the assets change', () => {
+  it('keeps an undrafted drag when only the ingredients change', () => {
     const savedLayout: IMoodBoardLayoutItem[] = [];
     const { rerender, result } = renderHook(
-      ({ assets }: { assets: IIngredient[] }) =>
-        useMoodBoardCanvas({ assets, savedLayout, onPersist: vi.fn() }),
-      { initialProps: { assets: [asset('a')] } },
+      ({ ingredients }: { ingredients: IIngredient[] }) =>
+        useLibraryCanvasNodes({
+          ingredients,
+          savedLayout,
+          onPersist: vi.fn(),
+        }),
+      { initialProps: { ingredients: [asset('a')] } },
     );
 
     act(() => {
@@ -100,24 +111,29 @@ describe('useMoodBoardCanvas', () => {
       ]);
     });
 
-    // A later asset page must not snap the dragged tile back.
-    rerender({ assets: [asset('a'), asset('b')] });
+    // A later asset page, or a widened filter, must not snap the dragged tile
+    // back into its grid slot.
+    rerender({ ingredients: [asset('a'), asset('b')] });
 
     expect(result.current.nodes[0].position).toEqual({ x: 50, y: 60 });
   });
 
   it('coalesces rapid drags into a single persist', () => {
-    const assets = [asset('a')];
+    const ingredients = [asset('a')];
     const onPersist = vi.fn();
     const { result } = renderHook(() =>
-      useMoodBoardCanvas({ assets, savedLayout: EMPTY_LAYOUT, onPersist }),
+      useLibraryCanvasNodes({
+        ingredients,
+        savedLayout: EMPTY_LAYOUT,
+        onPersist,
+      }),
     );
 
     act(() => {
       result.current.onNodeDragStop();
       vi.advanceTimersByTime(500);
       result.current.onNodeDragStop();
-      vi.advanceTimersByTime(MOOD_BOARD_AUTOSAVE_DEBOUNCE_MS);
+      vi.advanceTimersByTime(LIBRARY_CANVAS_AUTOSAVE_DEBOUNCE_MS);
     });
 
     expect(onPersist).toHaveBeenCalledTimes(1);

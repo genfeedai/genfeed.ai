@@ -909,7 +909,6 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/discovery/following', 'Discovery', 'Following'],
     ['/org-123/brand-123/library', 'Library', 'Overview'],
     ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
-    ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
     ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
     [

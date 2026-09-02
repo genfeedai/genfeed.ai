@@ -18,7 +18,6 @@ describe('LIBRARY_MENU_ITEMS', () => {
       '/library/shelf/approved',
       '/library/shelf/failed',
       '/library/shelf/archived',
-      '/library/moodboard',
       '/library/trash',
     ]);
   });

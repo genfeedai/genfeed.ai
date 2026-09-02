@@ -2,6 +2,7 @@
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import type { IFleetCharacter } from '@genfeedai/interfaces';
+import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
@@ -15,8 +16,6 @@ import { CircleUser } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect } from 'react';
-
-import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const LORA_STATUS_COLORS = {
   completed: 'bg-success/10 text-success',

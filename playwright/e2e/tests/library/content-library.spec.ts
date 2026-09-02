@@ -54,11 +54,13 @@ test.describe('Content Library', () => {
       ).toBeVisible();
     });
 
-    test('should show mood board section', async ({ authenticatedPage }) => {
-      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MOODBOARD));
+    test('should show the canvas view', async ({ authenticatedPage }) => {
+      await authenticatedPage.goto(
+        `${brandPath(APP_ROUTES.LIBRARY.ASSETS)}?view=canvas`,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/moodboard/);
+      await expect(authenticatedPage).toHaveURL(/view=canvas/);
       await expect(
         authenticatedPage.locator('main, [data-testid="main-content"]'),
       ).toBeVisible();
@@ -152,10 +154,12 @@ test.describe('Content Library', () => {
       await expect(mainContent).toBeVisible();
     });
 
-    test('should display items in mood board section', async ({
+    test('should display items on the canvas view', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.MOODBOARD));
+      await authenticatedPage.goto(
+        `${brandPath(APP_ROUTES.LIBRARY.ASSETS)}?view=canvas`,
+      );
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const mainContent = authenticatedPage.locator(
