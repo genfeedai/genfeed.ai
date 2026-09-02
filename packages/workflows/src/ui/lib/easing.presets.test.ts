@@ -5,7 +5,7 @@ import {
   EASING_PRESETS,
   evaluateBezier,
   getEasingDisplayName,
-} from './presets';
+} from './easing';
 
 describe('EASING_PRESETS', () => {
   it('should have linear preset', () => {
