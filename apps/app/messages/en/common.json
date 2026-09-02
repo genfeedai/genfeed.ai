@@ -811,7 +811,9 @@
   "libraryCanvas": {
     "fit": "Fit",
     "fitBoard": "Fit board",
-    "loading": "Loading… {count} so far"
+    "loading": "Loading… {count} so far",
+    "noPreview": "No preview",
+    "videoBadge": "Video"
   },
   "articleDetail": {
     "loadingTitle": "Loading article…"

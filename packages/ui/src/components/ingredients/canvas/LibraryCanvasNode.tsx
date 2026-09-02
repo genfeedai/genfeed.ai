@@ -7,6 +7,7 @@ import {
   MOOD_BOARD_TILE_WIDTH,
 } from '@genfeedai/utils/moodboard/mood-board-layout.util';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
 import type { LibraryCanvasNodeProps } from './library-canvas.types';
 
@@ -18,6 +19,9 @@ function resolveAspectRatio(width?: number, height?: number): number {
 }
 
 function PlayBadge(): React.JSX.Element {
+  const translate = useTranslations('common.libraryCanvas');
+  const videoLabel = translate('videoBadge');
+
   return (
     <div
       data-testid="library-canvas-play-badge"
@@ -30,9 +34,9 @@ function PlayBadge(): React.JSX.Element {
         className="h-4 w-4"
         fill="currentColor"
         role="img"
-        aria-label="Video"
+        aria-label={videoLabel}
       >
-        <title>Video</title>
+        <title>{videoLabel}</title>
         <path d="M8 5v14l11-7z" />
       </svg>
     </div>
@@ -42,6 +46,7 @@ function PlayBadge(): React.JSX.Element {
 function LibraryCanvasNodeComponent({
   data,
 }: LibraryCanvasNodeProps): React.JSX.Element {
+  const translate = useTranslations('common.libraryCanvas');
   const { ingredient } = data;
   const isVideo = isVideoIngredient(ingredient);
 
@@ -75,7 +80,7 @@ function LibraryCanvasNodeComponent({
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-xs text-foreground/40">
-          No preview
+          {translate('noPreview')}
         </div>
       )}
       {isVideo && <PlayBadge />}
