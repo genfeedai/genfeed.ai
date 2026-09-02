@@ -3,10 +3,13 @@ import {
   OAuthConnectCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const IMAGE_ID = testId('image');
 
 const action = {
   id: 'connect-twitter',
@@ -191,7 +194,7 @@ describe('ContentPreviewCard', () => {
         action={{
           ctas: [
             {
-              href: '/g/image/cmtd5pqsx0048rbxnstnzwnrx',
+              href: `/g/image/${IMAGE_ID}`,
               label: 'View in gallery',
             },
           ],
@@ -203,9 +206,6 @@ describe('ContentPreviewCard', () => {
 
     expect(
       screen.getByRole('link', { name: 'View in Library' }),
-    ).toHaveAttribute(
-      'href',
-      '/library/images?asset=cmtd5pqsx0048rbxnstnzwnrx',
-    );
+    ).toHaveAttribute('href', `/library/images?asset=${IMAGE_ID}`);
   });
 });

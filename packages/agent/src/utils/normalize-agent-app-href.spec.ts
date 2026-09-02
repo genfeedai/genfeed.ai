@@ -1,6 +1,9 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import { normalizeAgentAppHref } from './normalize-agent-app-href';
+
+const IMAGE_ID = testId('image');
 
 describe('normalizeAgentAppHref', () => {
   it('returns undefined for empty hrefs', () => {
@@ -34,8 +37,8 @@ describe('normalizeAgentAppHref', () => {
   });
 
   it('rewrites retired gallery asset paths to canonical Library deep links', () => {
-    expect(normalizeAgentAppHref('/g/image/cmtd5pqsx0048rbxnstnzwnrx')).toBe(
-      '/library/images?asset=cmtd5pqsx0048rbxnstnzwnrx',
+    expect(normalizeAgentAppHref(`/g/image/${IMAGE_ID}`)).toBe(
+      `/library/images?asset=${IMAGE_ID}`,
     );
     expect(normalizeAgentAppHref('/g/video/video-123#details')).toBe(
       '/library/videos?asset=video-123#details',
