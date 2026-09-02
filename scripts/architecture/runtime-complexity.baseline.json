@@ -330,7 +330,7 @@
     "symbol": "PublisherFactoryService.constructor"
   },
   {
-    "actual": 1169,
+    "actual": 1178,
     "file": "apps/server/server/src/services/integrations/stripe/services/stripe.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/server/src/services/integrations/stripe/services/stripe.service.ts"

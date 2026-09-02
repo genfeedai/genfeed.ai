@@ -22,6 +22,10 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@server/services/integrations/stripe/services/stripe-error.util';
+import {
+  collectUpcomingInvoiceLines,
+  type UpcomingInvoicePreview,
+} from '@server/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 import StripeConstructor from 'stripe';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -60,20 +64,7 @@ type StripeWebhookEvent = Awaited<
   ReturnType<StripeClient['webhooks']['constructEventAsync']>
 >;
 
-export type UpcomingInvoicePreview = Pick<
-  StripeInvoice,
-  'amount_due' | 'currency' | 'lines'
->;
-type StripeInvoiceLineItem = Awaited<
-  ReturnType<StripeClient['invoices']['listLineItems']>
->['data'][number];
-
-// `invoices.createPreview` has no `limit`/pagination param for `lines` (SDK
-// 22.6.0), so a preview invoice's first page is capped at Stripe's default
-// list size. Preview invoices carry a real id (`upcoming_in_...`) precisely
-// so `invoices.listLineItems` can page through the rest. Bound the number of
-// pages fetched so a pathological subscription can't loop forever.
-const MAX_UPCOMING_INVOICE_LINE_PAGES = 20;
+export type { UpcomingInvoicePreview } from '@server/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
   '2026-08-26.dahlia';
@@ -1158,51 +1149,19 @@ export class StripeService {
         },
       });
 
-      const lines: StripeInvoiceLineItem[] = [...upcomingInvoice.lines.data];
-      let hasMore = upcomingInvoice.lines.has_more;
-      let pagesFetched = 0;
-
-      while (hasMore && pagesFetched < MAX_UPCOMING_INVOICE_LINE_PAGES) {
-        const lastLine = lines.at(-1);
-        const nextPage = await this.stripe.invoices.listLineItems(
-          upcomingInvoice.id,
-          {
-            limit: 100,
-            ...(lastLine ? { starting_after: lastLine.id } : {}),
-          },
-        );
-        lines.push(...nextPage.data);
-        hasMore = nextPage.has_more;
-        pagesFetched += 1;
-      }
-
-      if (hasMore) {
-        this.loggerService.warn(
-          `${url} upcoming invoice preview has more proration lines than could be paginated`,
-          {
-            customerId,
-            linesFetched: lines.length,
-            pagesFetched,
-            subscriptionId,
-          },
-        );
-      }
-
-      const fullUpcomingInvoice: UpcomingInvoicePreview = {
-        ...upcomingInvoice,
-        lines: {
-          ...upcomingInvoice.lines,
-          data: lines,
-          has_more: hasMore,
-        },
-      };
+      const fullUpcomingInvoice = await collectUpcomingInvoiceLines({
+        context: { customerId, subscriptionId, url },
+        logger: this.loggerService,
+        stripe: this.stripe,
+        upcomingInvoice,
+      });
 
       this.loggerService.log(`${url} success`, {
         amountDue: fullUpcomingInvoice.amount_due,
         customerId,
         currency: fullUpcomingInvoice.currency,
         currentPriceId,
-        lineCount: lines.length,
+        lineCount: fullUpcomingInvoice.lines.data.length,
         newPriceId,
         quantity: targetQuantity,
         subscriptionId,
