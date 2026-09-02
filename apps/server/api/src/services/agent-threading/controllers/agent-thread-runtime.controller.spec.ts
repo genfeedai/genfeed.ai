@@ -130,7 +130,7 @@ describe('Threading AgentThreadRuntimeController', () => {
     expect(usersService.findOne).not.toHaveBeenCalled();
   });
 
-  it('forwards the Bearer token so generate media can call POST /v1/images', async () => {
+  it('passes confirm_generate_media through with the resolved principal', async () => {
     agentOrchestratorService.handleThreadUiAction.mockResolvedValue({
       creditsRemaining: 50,
       creditsUsed: 0,

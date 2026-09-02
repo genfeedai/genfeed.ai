@@ -160,7 +160,6 @@ describe('AgentOrchestratorController', () => {
       await controller.createTurn(
         { content: 'x', source: 'agent', threadId: 'c2' },
         user,
-        'Bearer t',
       );
 
       expect(usersService.findOne).not.toHaveBeenCalled();
@@ -184,7 +183,6 @@ describe('AgentOrchestratorController', () => {
       await controller.createTurn(
         { content: 'test', source: 'agent', threadId: 'conv-unique' },
         user,
-        'Bearer t',
       );
 
       expect(service.chat).toHaveBeenCalledWith(
@@ -261,7 +259,6 @@ describe('AgentOrchestratorController', () => {
           threadId: 'agent-thread-1',
         },
         user,
-        'Bearer token',
       );
 
       expect(
@@ -340,7 +337,6 @@ describe('AgentOrchestratorController', () => {
           threadId: 'agent-thread-1',
         },
         user,
-        'Bearer token',
       );
 
       expect(
@@ -397,7 +393,6 @@ describe('AgentOrchestratorController', () => {
           threadId: 'agent-thread-1',
         },
         user,
-        'Bearer token',
       );
 
       expect(service.chat).toHaveBeenCalledWith(
@@ -447,7 +442,6 @@ describe('AgentOrchestratorController', () => {
             threadId: 'agent-thread-1',
           },
           user,
-          'Bearer token',
         ),
       ).rejects.toThrow(
         'Analytics query references require the current authorized scope.',
@@ -481,7 +475,6 @@ describe('AgentOrchestratorController', () => {
             threadId: 'agent-thread-1',
           },
           user,
-          'Bearer token',
         ),
       ).rejects.toThrow(
         'Research references require the current authorized brand context.',
@@ -515,7 +508,6 @@ describe('AgentOrchestratorController', () => {
           threadId: 'conv-reference',
         },
         user,
-        'Bearer t',
       );
 
       expect(service.chat).toHaveBeenCalledWith(
@@ -542,7 +534,6 @@ describe('AgentOrchestratorController', () => {
         'thread-route',
         { content: 'test', source: 'agent' },
         user,
-        'Bearer t',
       );
 
       expect(service.chat).toHaveBeenCalledWith(
@@ -563,7 +554,6 @@ describe('AgentOrchestratorController', () => {
           'thread-route',
           { content: 'test', source: 'agent', threadId: 'thread-body' },
           user,
-          'Bearer t',
         ),
       ).rejects.toThrow('Request body threadId must match route threadId.');
       expect(service.chat).not.toHaveBeenCalled();
