@@ -357,7 +357,8 @@ describe('IngredientsListContent generation ledger columns', () => {
       .map((header) => header.textContent);
 
     // The first header is the selectable checkbox column, owned by AppTable
-    // itself — the ledger contract is the remaining seven.
+    // itself — the ledger contract is the remaining columns, ending in the
+    // unlabeled actions header.
     expect(headers.slice(1)).toEqual([
       '',
       'Asset',
@@ -366,6 +367,7 @@ describe('IngredientsListContent generation ledger columns', () => {
       'Size',
       'Created',
       'Status',
+      '',
     ]);
   });
 
