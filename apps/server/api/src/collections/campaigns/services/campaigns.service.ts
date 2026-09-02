@@ -87,10 +87,10 @@ export class CampaignsService {
       if (!dto.idempotencyKey || !isPrismaUniqueConstraintError(error)) {
         throw error;
       }
-      // `(organizationId, idempotencyKey)` is unique across soft-deleted rows
-      // too, so the replay winner is looked up without the tombstone filter.
       const winner = await this.prisma.campaign.findFirst({
-        where: { idempotencyKey: dto.idempotencyKey, organizationId },
+        where: scopedWhere(organizationId, {
+          idempotencyKey: dto.idempotencyKey,
+        }),
       });
       if (!winner) {
         throw error;

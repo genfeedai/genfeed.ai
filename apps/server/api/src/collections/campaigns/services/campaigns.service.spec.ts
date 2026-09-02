@@ -108,8 +108,8 @@ describe('CampaignsService', () => {
     expect(result.id).toBe(CAMPAIGN_ID);
     expect(asMock(prisma.campaign.findFirst).mock.calls[0][0].where).toEqual({
       idempotencyKey: 'replay-1',
+      isDeleted: false,
       organizationId: ORG_ID,
-      OR: [{ isDeleted: false }, { isDeleted: true }],
     });
   });
 
