@@ -1,4 +1,8 @@
-import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  PostVisibility,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { PostLifecycleService } from '@genfeedai/server';
 import type {
   SchedulerPostTarget,
@@ -198,6 +202,7 @@ function makeTarget(
     timezone: 'UTC',
     updatedAt: new Date('2026-07-08T22:25:13.000Z'),
     url: null,
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: null,
     ...overrides,
   };
