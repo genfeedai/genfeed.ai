@@ -503,46 +503,6 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
       },
     ],
   },
-  [APP_ROUTES.DISCOVERY.ADS_GOOGLE]: {
-    placeholder: 'Ask about Google and YouTube ads...',
-    suggestedActions: [
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Google winners',
-        prompt:
-          'Show me the best Google ads for this niche across Search, Display, and YouTube.',
-      },
-      {
-        icon: createElement(Rocket, { className: 'size-5 text-foreground/50' }),
-        label: 'Launch prep',
-        prompt:
-          'Prepare a paused Google campaign draft from the strongest ad on this page.',
-      },
-    ],
-  },
-  [APP_ROUTES.DISCOVERY.ADS_META]: {
-    placeholder: 'Ask about Meta ad winners...',
-    suggestedActions: [
-      {
-        icon: createElement(Sparkles, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Meta winners',
-        prompt:
-          'Show me the best-performing Meta ads for this niche and summarize the reusable angles.',
-      },
-      {
-        icon: createElement(SquarePen, {
-          className: 'size-5 text-foreground/50',
-        }),
-        label: 'Remix',
-        prompt:
-          'Pick one Meta ad here and draft a brand-specific remix ad pack.',
-      },
-    ],
-  },
   [APP_ROUTES.SETTINGS.ROOT]: {
     placeholder: 'Need help with settings?',
     suggestedActions: [
