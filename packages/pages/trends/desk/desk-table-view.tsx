@@ -408,7 +408,9 @@ function DeskTableRow({
           </Badge>
         </TableCell>
         <TableCell className="text-xs text-foreground/70">
-          {formatCompactNumber(item.velocity)}/h
+          {translateCard('velocityPerHour', {
+            value: formatCompactNumber(item.velocity),
+          })}
         </TableCell>
         <TableCell className="text-xs text-foreground/70">
           <span className="inline-flex items-center gap-1">
@@ -531,7 +533,7 @@ function DeskTableRow({
                 ) : null}
                 {onSelectFinding ? (
                   <DropdownMenuItem onSelect={() => onSelectFinding(item)}>
-                    Use as context
+                    {translateCard('actions.useAsContext')}
                   </DropdownMenuItem>
                 ) : null}
               </DropdownMenuContent>
@@ -595,21 +597,27 @@ export default function DeskTableView({
   onToggleSelect: (key: string) => void;
   selection: Set<string>;
 }) {
+  const translateDesk = useTranslations('common.trends.desk');
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead className="w-10">
-            <span className="sr-only">Select</span>
+            <span className="sr-only">
+              {translateDesk('tableHeaders.select')}
+            </span>
           </TableHead>
-          <TableHead>Author</TableHead>
-          <TableHead>Content</TableHead>
-          <TableHead>Source</TableHead>
-          <TableHead>Velocity</TableHead>
-          <TableHead>Virality</TableHead>
-          <TableHead>Engagement</TableHead>
-          <TableHead>Published</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>{translateDesk('tableHeaders.author')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.content')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.source')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.velocity')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.virality')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.engagement')}</TableHead>
+          <TableHead>{translateDesk('tableHeaders.published')}</TableHead>
+          <TableHead className="text-right">
+            {translateDesk('tableHeaders.actions')}
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

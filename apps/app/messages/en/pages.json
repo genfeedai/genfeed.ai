@@ -464,7 +464,11 @@
           "next": "Next / previous",
           "open": "Open",
           "previous": "Previous",
-          "refresh": "Refresh"
+          "refresh": "Refresh",
+          "enterKey": "Enter",
+          "jKey": "j",
+          "kKey": "k",
+          "rKey": "r"
         },
         "nextAt": "Next at {time}",
         "noMedia": "No media",

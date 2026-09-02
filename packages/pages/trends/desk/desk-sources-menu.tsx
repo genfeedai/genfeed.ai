@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { List, Plus, RefreshCw, Trash2, UsersRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 function SourceRow({
@@ -39,6 +40,7 @@ function SourceRow({
   onSync: (id: string) => Promise<void>;
   source: ISocialSource;
 }) {
+  const translateDesk = useTranslations('common.trends.desk');
   const isImportContainer = source.sourceType === SocialSourceType.POST;
   const syncStatus = source.lastSyncStatus ?? null;
   const statusLabel =
@@ -64,7 +66,11 @@ function SourceRow({
           <span className="truncate">
             @{source.handle || source.displayName || 'source'}
           </span>
-          {isImportContainer ? <Badge variant="ghost">Imported</Badge> : null}
+          {isImportContainer ? (
+            <Badge variant="ghost">
+              {translateDesk('sourcesMenu.imported')}
+            </Badge>
+          ) : null}
           {statusLabel ? (
             <Badge
               variant={
@@ -138,6 +144,7 @@ export default function DeskSourcesMenu({
   onSourcesChanged: () => Promise<void>;
   sources: ISocialSource[];
 }) {
+  const translateDesk = useTranslations('common.trends.desk');
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const [isFollowOpen, setIsFollowOpen] = useState(false);
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -241,14 +248,14 @@ export default function DeskSourcesMenu({
         <DropdownMenuContent align="end" className="w-52">
           <DropdownMenuItem onSelect={() => setIsFollowOpen(true)}>
             <Plus className="size-4" />
-            Follow source
+            {translateDesk('sourcesMenu.followSource')}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={sources.length === 0}
             onSelect={() => setIsManageOpen(true)}
           >
             <List className="size-4" />
-            Manage sources
+            {translateDesk('sourcesMenu.manageSources')}
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={sources.length === 0 || busyId === 'sync-all'}
@@ -257,7 +264,7 @@ export default function DeskSourcesMenu({
             }}
           >
             <RefreshCw className="size-4" />
-            Sync all
+            {translateDesk('sourcesMenu.syncAll')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -273,10 +280,13 @@ export default function DeskSourcesMenu({
       <Dialog open={isManageOpen} onOpenChange={setIsManageOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Manage sources</DialogTitle>
+            <DialogTitle>
+              {translateDesk('sourcesMenu.manageSources')}
+            </DialogTitle>
             <DialogDescription>
-              {sources.length} source{sources.length === 1 ? '' : 's'} followed
-              for this brand.
+              {translateDesk('sourcesMenu.manageSourcesDescription', {
+                count: sources.length,
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-[50vh] divide-y divide-border overflow-y-auto rounded-card border border-border">
@@ -292,7 +302,7 @@ export default function DeskSourcesMenu({
               ))
             ) : (
               <div className="p-5 text-sm text-foreground/62">
-                No sources followed yet.
+                {translateDesk('sourcesMenu.noSourcesFollowed')}
               </div>
             )}
           </div>
