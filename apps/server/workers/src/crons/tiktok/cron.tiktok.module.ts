@@ -15,7 +15,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 @Module({
   imports: [
     forwardRef(() => CredentialsModule),
-    forwardRef(() => CronPostsModule),
+    CronPostsModule,
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WorkflowsModule),
