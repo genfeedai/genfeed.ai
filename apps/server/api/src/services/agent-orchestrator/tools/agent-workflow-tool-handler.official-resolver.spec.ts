@@ -26,10 +26,28 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
     createWorkflowFromRecurringScaffold: vi.fn(),
   };
 
+  // Server-owned confirmation cache: a card build persists the pending
+  // install and the confirmed resume must present its sourceActionId.
+  const cacheService = {
+    get: vi.fn(),
+    set: vi.fn().mockResolvedValue(true),
+  };
+
   const ctx: ToolExecutionContext = {
     organizationId: 'org-1',
     userId: 'user-1',
   } as ToolExecutionContext;
+  const confirmedCtx: ToolExecutionContext = {
+    ...ctx,
+    confirmationOrigin: 'thread-ui-action',
+    threadId: 'thread-1',
+  } as ToolExecutionContext;
+  const persistedInstall = {
+    organizationId: 'org-1',
+    sourceActionId: 'workflow-bootstrap-preview-1',
+    threadId: 'thread-1',
+    toolName: 'install_official_workflow',
+  };
 
   let handler: AgentWorkflowToolInstallService;
 
@@ -72,12 +90,17 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
     systemWorkflowCatalogService.listCatalogForOrganization.mockResolvedValue(
       buildCatalog(),
     );
+    cacheService.get.mockResolvedValue(persistedInstall);
+    cacheService.set.mockResolvedValue(true);
     handler = new AgentWorkflowToolInstallService(
       {} as never,
       workflowsService as never,
       brandsService as never,
       systemWorkflowCatalogService as never,
       createService as never,
+      undefined,
+      undefined,
+      cacheService as never,
     );
   });
 
@@ -158,13 +181,13 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
 
     const result = await handler.installOfficialWorkflow(
       {
-        confirmed: true,
+        sourceActionId: 'workflow-bootstrap-preview-1',
         prompt: 'poll replies and draft responses every 15 minutes',
         sourceId: 'reply-polling-x',
         sourceName: 'Reply Polling',
         sourceType: 'system-catalog',
       },
-      ctx,
+      confirmedCtx,
     );
 
     expect(systemWorkflowCatalogService.install).toHaveBeenCalledWith({
@@ -190,12 +213,12 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
 
     const result = await handler.installOfficialWorkflow(
       {
-        confirmed: true,
+        sourceActionId: 'workflow-bootstrap-preview-1',
         sourceId: 'reply-polling-x',
         sourceName: 'Reply Polling',
         sourceType: 'system-catalog',
       },
-      ctx,
+      confirmedCtx,
     );
 
     expect(result).toMatchObject({
@@ -215,11 +238,11 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
 
     const result = await handler.installOfficialWorkflow(
       {
-        confirmed: true,
+        sourceActionId: 'workflow-bootstrap-preview-1',
         prompt: 'invent a unique sunrise mural nobody has catalogued',
         schedule: '0 9 * * 1-5',
       },
-      ctx,
+      confirmedCtx,
     );
 
     expect(
@@ -229,5 +252,25 @@ describe('AgentWorkflowToolInstallService official workflow resolution', () => {
       creditsUsed: 1,
       success: true,
     });
+  });
+  it('rejects a confirmed install whose sourceActionId was never persisted', async () => {
+    cacheService.get.mockResolvedValue(null);
+
+    const result = await handler.installOfficialWorkflow(
+      {
+        sourceActionId: 'forged-id',
+        sourceId: 'reply-polling-x',
+        sourceName: 'Reply Polling',
+        sourceType: 'system-catalog',
+      },
+      confirmedCtx,
+    );
+
+    expect(result).toMatchObject({
+      error:
+        'sourceActionId does not match a persisted workflow install confirmation.',
+      success: false,
+    });
+    expect(systemWorkflowCatalogService.install).not.toHaveBeenCalled();
   });
 });

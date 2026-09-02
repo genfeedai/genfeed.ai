@@ -297,12 +297,9 @@
     "openOverlayPreview": "Open overlay preview",
     "returnToConversation": "Return to conversation",
     "tabs": {
-      "add": "Add inspector panel",
       "browser": "Browser",
       "browserEmptyDescription": "Page and generation previews appear here when you open them.",
       "browserEmptyTitle": "Open a preview to get started",
-      "close": "Close {tab}",
-      "configure": "Inspector panels",
       "context": "Context",
       "conversation": "Conversation",
       "files": "Files",
@@ -910,8 +907,10 @@
         "openSource": "Open source",
         "remix": "Remix",
         "remixUnavailable": "Remix unavailable",
-        "sendToAgent": "Send to agent"
+        "sendToAgent": "Send to agent",
+        "useAsContext": "Use as context"
       },
+      "engagementCount": "{value} engagement",
       "metrics": {
         "comments": "{count} comments",
         "likes": "{count} likes",
@@ -919,7 +918,9 @@
         "shares": "{count} shares",
         "views": "{count} views"
       },
-      "rank": "Rank #{rank}"
+      "rank": "Rank #{rank}",
+      "velocityPerHour": "{value}/h",
+      "videoBadge": "Video"
     },
     "desk": {
       "title": "Discovery",
@@ -938,11 +939,45 @@
         "remixUnavailable": "Remix is not available for this item."
       },
       "loading": "Loading the Desk…",
+      "emptyState": {
+        "connectAccounts": "Connect accounts",
+        "followCreators": "Follow creators"
+      },
       "selectionBar": {
         "count": "{count} selected",
         "remix": "Remix {count}",
         "clear": "Clear",
-        "skippedRemix": "{count} items skipped — remix is not available for them."
+        "skippedRemix": "{count} items skipped — remix is not available for them.",
+        "hints": {
+          "keyJ": "J",
+          "keyK": "K",
+          "moveLabel": "move",
+          "keyX": "X",
+          "selectLabel": "select",
+          "keyR": "R",
+          "remixLabel": "remix",
+          "keyEsc": "Esc",
+          "clearLabel": "clear"
+        }
+      },
+      "sourcesMenu": {
+        "imported": "Imported",
+        "followSource": "Follow source",
+        "manageSources": "Manage sources",
+        "syncAll": "Sync all",
+        "manageSourcesDescription": "{count, plural, one {# source followed for this brand.} other {# sources followed for this brand.}}",
+        "noSourcesFollowed": "No sources followed yet."
+      },
+      "tableHeaders": {
+        "select": "Select",
+        "author": "Author",
+        "content": "Content",
+        "source": "Source",
+        "velocity": "Velocity",
+        "virality": "Virality",
+        "engagement": "Engagement",
+        "published": "Published",
+        "actions": "Actions"
       }
     }
   },

@@ -1,10 +1,4 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
@@ -618,7 +612,7 @@ describe('UniversalWorkspaceShell', () => {
     router.push.mockClear();
     router.replace.mockClear();
     vi.mocked(captureWorkspaceShellTransition).mockClear();
-    window.localStorage?.removeItem('genfeed:workspace-inspector:tabs');
+    window.localStorage?.removeItem('genfeed:workspace-inspector:panes');
     libraryPickerState.items = [];
     libraryPickerState.status = 'empty';
   });
@@ -953,7 +947,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.push).toHaveBeenCalledWith('/acme/moonrise/agent/thread-1');
   });
 
-  it('switches the inspector to Conversation on the composer event', async () => {
+  it('renders the pinned Conversation section even when the surface declares no product panes', () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -963,33 +957,47 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    // Context is the default tab, so the composer event has to move the rail
-    // for this to pass — a dropped listener leaves it on Context.
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    // This route registers no product surface adapter — the context pane
+    // falls back to the generic workspace body. Conversation still has to
+    // render: it is pinned chrome, not a pane a surface opts into.
+    const [conversationSection] = screen.getAllByTestId(
+      'workspace-inspector-conversation-section',
+    );
+    expect(conversationSection).toBeInTheDocument();
+  });
+
+  it('expands the Context pane on the composer context event', async () => {
+    navigation.pathname = '/acme/moonrise/publishing/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publishing overview</div>
+      </UniversalWorkspaceShell>,
     );
 
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+    const [contextTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-context',
+    );
+    const [filesTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-files',
+    );
 
+    // Collapse the default-expanded Context pane first, so the event's
+    // effect is observable rather than a no-op.
+    fireEvent.click(contextTrigger);
     await waitFor(() =>
-      expect(
-        screen
-          .getAllByRole('tab', { name: 'Conversation' })
-          .every((tab) => tab.getAttribute('aria-selected') === 'true'),
-      ).toBe(true),
+      expect(contextTrigger).toHaveAttribute('aria-expanded', 'false'),
     );
 
-    // And back, so the context listener is covered by the same transition.
     fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
 
     await waitFor(() =>
-      expect(
-        screen
-          .getAllByRole('tab', { name: 'Context' })
-          .every((tab) => tab.getAttribute('aria-selected') === 'true'),
-      ).toBe(true),
+      expect(contextTrigger).toHaveAttribute('aria-expanded', 'true'),
     );
+    // A dropped listener would leave Files at its default state either way —
+    // assert it stays collapsed so this isn't proving something trivial.
+    expect(filesTrigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('opens the mobile inspector drawer on the composer conversation event', async () => {
@@ -1027,7 +1035,7 @@ describe('UniversalWorkspaceShell', () => {
     ).toBeVisible();
   });
 
-  it('keeps the desktop rail conversation on the composer event at xl+', async () => {
+  it('keeps the desktop rail conversation pinned and visible at xl+ on the composer event', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -1039,13 +1047,14 @@ describe('UniversalWorkspaceShell', () => {
 
     fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
 
-    await waitFor(() =>
-      expect(
-        screen
-          .getAllByRole('tab', { name: 'Conversation' })
-          .some((tab) => tab.getAttribute('aria-selected') === 'true'),
-      ).toBe(true),
-    );
+    // Conversation never toggles — it is always mounted. The event only
+    // matters for the mobile drawer, so at xl+ the drawer copy stays absent.
+    await waitFor(() => {
+      const [conversationSection] = screen.getAllByTestId(
+        'workspace-inspector-conversation-section',
+      );
+      expect(conversationSection).toBeVisible();
+    });
     expect(
       screen.queryByText(
         'Context and conversation for the active workspace surface.',
@@ -1053,7 +1062,7 @@ describe('UniversalWorkspaceShell', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('leads the inspector rail with Context, then Conversation', () => {
+  it('leads the inspector rail with Context, Files, Browser, then pins Conversation last', () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -1063,17 +1072,38 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    // The desktop rail and the mobile drawer both render the list; order is
+    // The desktop rail and the mobile drawer both render the stack; order is
     // identical in each, so assert on the first one.
-    const [tabList] = screen.getAllByRole('tablist');
-    const labels = within(tabList)
-      .getAllByRole('tab')
-      .map((tab) => tab.textContent);
+    const [panes] = screen.getAllByTestId('workspace-inspector-panes');
+    const [contextTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-context',
+    );
+    const [filesTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-files',
+    );
+    const [browserTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-browser',
+    );
 
-    expect(labels).toEqual(['Context', 'Conversation']);
+    expect(
+      contextTrigger.compareDocumentPosition(filesTrigger) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      filesTrigger.compareDocumentPosition(browserTrigger) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const [conversationSection] = screen.getAllByTestId(
+      'workspace-inspector-conversation-section',
+    );
+    expect(
+      panes.compareDocumentPosition(conversationSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
-  it('does not put a vertical scrollbar inside the inspector tab strip', () => {
+  it('collapses and re-expands a product pane from its accordion trigger', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -1083,15 +1113,23 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    const [tabList] = screen.getAllByRole('tablist');
+    const [filesTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-files',
+    );
+    expect(filesTrigger).toHaveAttribute('aria-expanded', 'false');
 
-    // overflow-x-auto alone computes overflow-y to auto, which paints a
-    // scrollbar inside the Context pill when the h-8 track is a pixel short.
-    expect(tabList.className).toContain('overflow-y-hidden');
-    expect(tabList.className).not.toMatch(/(?:^|\s)overflow-y-auto(?:\s|$)/);
+    fireEvent.click(filesTrigger);
+    await waitFor(() =>
+      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
+    );
+
+    fireEvent.click(filesTrigger);
+    await waitFor(() =>
+      expect(filesTrigger).toHaveAttribute('aria-expanded', 'false'),
+    );
   });
 
-  it('renders inspector tabs flush like an editor strip, not a pill in a box', () => {
+  it('expands multiple product panes at the same time', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
 
@@ -1101,17 +1139,37 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    const [tabList] = screen.getAllByRole('tablist');
-    expect(tabList).toHaveAttribute('data-variant', 'underline');
-
-    const contextTab = screen.getByRole('tab', { name: 'Context' });
-    expect(contextTab).toHaveAttribute('data-variant', 'underline');
-    expect(contextTab.className).not.toContain(
-      'data-[state=active]:bg-secondary',
+    const [contextTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-context',
     );
+    const [filesTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-files',
+    );
+    const [browserTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-browser',
+    );
+
+    // Context is expanded by default.
+    expect(contextTrigger).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(filesTrigger);
+    await waitFor(() =>
+      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
+    );
+
+    fireEvent.click(browserTrigger);
+    await waitFor(() =>
+      expect(browserTrigger).toHaveAttribute('aria-expanded', 'true'),
+    );
+
+    // Expanding Files and then Browser never collapsed Context — unlike the
+    // old exclusive tabs, the accordion supports N panes open at once.
+    expect(contextTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(filesTrigger).toHaveAttribute('aria-expanded', 'true');
+    expect(browserTrigger).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('lets the operator add a Files pane and preview a library source in Browser', async () => {
+  it('lets the operator expand the Files pane and preview a library source in Browser without collapsing Files', async () => {
     navigation.pathname = '/acme/moonrise/publishing/overview';
     navigation.searchParams = new URLSearchParams();
     libraryPickerState.status = 'ready';
@@ -1125,38 +1183,30 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    const addPanel = screen.getByRole('button', {
-      name: 'Add inspector panel',
-    });
-    fireEvent.pointerDown(addPanel, { button: 0 });
+    const [filesTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-files',
+    );
+    fireEvent.click(filesTrigger);
 
-    const menu = await screen.findByRole('menu');
-    const rail = screen.getByLabelText('Workspace inspector');
-    expect(rail).toHaveClass('overflow-hidden');
-    expect(rail.contains(menu)).toBe(false);
-
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Files' }));
-
-    await waitFor(() => {
-      const [tabList] = screen.getAllByRole('tablist');
-      expect(
-        within(tabList).getByRole('tab', { name: 'Files' }),
-      ).toHaveAttribute('aria-selected', 'true');
-    });
-
+    await waitFor(() =>
+      expect(filesTrigger).toHaveAttribute('aria-expanded', 'true'),
+    );
     expect(screen.getByTestId('source-preview-image-1')).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Select Source image-1' }),
     );
 
-    await waitFor(() => {
-      const [tabList] = screen.getAllByRole('tablist');
-      expect(
-        within(tabList).getByRole('tab', { name: 'Browser' }),
-      ).toHaveAttribute('aria-selected', 'true');
-    });
+    const [browserTrigger] = screen.getAllByTestId(
+      'workspace-inspector-pane-trigger-browser',
+    );
+    await waitFor(() =>
+      expect(browserTrigger).toHaveAttribute('aria-expanded', 'true'),
+    );
 
+    // Browser opening to preview the selection never collapsed Files — both
+    // panes stay expanded simultaneously.
+    expect(filesTrigger).toHaveAttribute('aria-expanded', 'true');
     expect(
       screen.getAllByTestId('source-preview-image-1').length,
     ).toBeGreaterThan(1);

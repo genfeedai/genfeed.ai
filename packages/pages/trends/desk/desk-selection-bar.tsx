@@ -90,15 +90,15 @@ export default function DeskSelectionBar({
         />
 
         <span className="ml-1 hidden items-center gap-1.5 text-xs text-foreground/50 sm:flex">
-          <Kbd size="sm">J</Kbd>
-          <Kbd size="sm">K</Kbd>
-          <span>move</span>
-          <Kbd size="sm">X</Kbd>
-          <span>select</span>
-          <Kbd size="sm">R</Kbd>
-          <span>remix</span>
-          <Kbd size="sm">Esc</Kbd>
-          <span>clear</span>
+          <Kbd size="sm">{translateDesk('selectionBar.hints.keyJ')}</Kbd>
+          <Kbd size="sm">{translateDesk('selectionBar.hints.keyK')}</Kbd>
+          <span>{translateDesk('selectionBar.hints.moveLabel')}</span>
+          <Kbd size="sm">{translateDesk('selectionBar.hints.keyX')}</Kbd>
+          <span>{translateDesk('selectionBar.hints.selectLabel')}</span>
+          <Kbd size="sm">{translateDesk('selectionBar.hints.keyR')}</Kbd>
+          <span>{translateDesk('selectionBar.hints.remixLabel')}</span>
+          <Kbd size="sm">{translateDesk('selectionBar.hints.keyEsc')}</Kbd>
+          <span>{translateDesk('selectionBar.hints.clearLabel')}</span>
         </span>
       </div>
     </div>

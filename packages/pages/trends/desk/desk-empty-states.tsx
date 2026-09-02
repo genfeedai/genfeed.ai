@@ -9,6 +9,7 @@ import { EmptyStateCard } from '@ui/feedback';
 import { Button } from '@ui/primitives/button';
 import { AtSign, Link2, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 /**
  * Readiness metrics shown while the Desk has zero items — ported verbatim
@@ -64,6 +65,8 @@ export function DeskEmptyState({
   onRefresh: () => void;
   publishingHref: string;
 }) {
+  const translateDesk = useTranslations('common.trends.desk');
+
   if (hasSearch) {
     return (
       <EmptyStateCard
@@ -89,13 +92,13 @@ export function DeskEmptyState({
           >
             <Link href={publishingHref}>
               <Link2 className="size-3.5" />
-              Connect accounts
+              {translateDesk('emptyState.connectAccounts')}
             </Link>
           </Button>
           <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
             <Link href={followingHref}>
               <AtSign className="size-3.5" />
-              Follow creators
+              {translateDesk('emptyState.followCreators')}
             </Link>
           </Button>
           <Button

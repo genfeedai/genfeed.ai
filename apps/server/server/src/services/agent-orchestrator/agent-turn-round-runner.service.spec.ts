@@ -142,7 +142,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     expect(executionContext).not.toHaveProperty('confirmationOrigin');
     expect(executionContext).not.toHaveProperty('sourceActionId');
     expect(loggerService.warn).toHaveBeenCalledWith(
-      'Rejected untrusted campaign confirmation proof',
+      'Rejected untrusted tool confirmation proof',
       expect.objectContaining({
         campaignId: 'campaign-1',
         organizationId: 'org-1',

@@ -1,5 +1,3 @@
-import { AgentPublishToolHandler } from '@server/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   AgentAutonomyMode,
@@ -9,7 +7,14 @@ import {
   PostVisibility,
   ReleaseStatus,
 } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentPublishToolHandler } from '@server/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { describe, expect, it, vi } from 'vitest';
+
+function confirmedContext(brandId: string): ToolExecutionContext {
+  return { ...scopedContext(brandId), confirmationOrigin: 'thread-ui-action' };
+}
 
 function scopedContext(brandId: string): ToolExecutionContext {
   return {
@@ -82,6 +87,22 @@ function createHandler() {
   const agentPublishAuditsService = {
     createAudit: vi.fn().mockResolvedValue({ id: 'audit-1' }),
   };
+  // Server-owned confirmation cache backing `verifyPendingToolConfirmation`
+  // (`agent-tool-pending-confirmation.util.ts`). Resolves a pending
+  // confirmation matching whatever `sourceActionId` the caller requested so
+  // existing card-confirmed tests keep passing without asserting on cache
+  // internals; tests exercising rejection override `get` per-call.
+  const cacheService = {
+    get: vi.fn().mockImplementation((key: string) =>
+      Promise.resolve({
+        organizationId: 'org-1',
+        sourceActionId: key.split(':').pop(),
+        threadId: 'thread-1',
+        toolName: AgentToolName.CREATE_POST,
+      }),
+    ),
+    set: vi.fn().mockResolvedValue(true),
+  };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
     { create: vi.fn(), findOne: vi.fn() } as never,
@@ -93,12 +114,14 @@ function createHandler() {
     undefined,
     agentStrategiesService as never,
     agentPublishAuditsService as never,
+    cacheService as never,
   );
 
   return {
     agentPublishAuditsService,
     agentScopeContextService,
     agentStrategiesService,
+    cacheService,
     credentialsService,
     handler,
     ingredientsService,
@@ -201,7 +224,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Shared caption',
-        confirmed: true,
         contentId: 'ingredient-1',
         sourceActionId: 'publish-card-1',
         targets: [
@@ -221,7 +243,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
           },
         ],
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(true);
@@ -270,7 +292,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Launch copy',
-        confirmed: true,
         contentId: 'ingredient-1',
         postingSetId: 'set-launch',
         sourceActionId: 'publish-card-1',
@@ -291,7 +312,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
         ],
         timezone: 'Europe/Malta',
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(true);
@@ -346,7 +367,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Launch clip',
-        confirmed: true,
         contentId: 'ingredient-1',
         sourceActionId: 'publish-card-1',
         targets: [
@@ -357,7 +377,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
           },
         ],
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(false);
@@ -384,7 +404,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Launch post',
-        confirmed: true,
         contentId: 'ingredient-1',
         sourceActionId: 'action-1',
         targets: [
@@ -395,7 +414,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
           },
         ],
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(true);
@@ -438,7 +457,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Launch post',
-        confirmed: true,
         contentId: 'ingredient-1',
         sourceActionId: 'action-1',
         targets: [
@@ -449,7 +467,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
           },
         ],
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(true);
@@ -492,7 +510,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     const result = await handler.createPost(
       {
         caption: 'Launch post',
-        confirmed: true,
         contentId: 'ingredient-1',
         sourceActionId: 'action-1',
         targets: [
@@ -503,7 +520,7 @@ describe('AgentPublishToolHandler per-channel review', () => {
           },
         ],
       },
-      scopedContext('brand-1'),
+      confirmedContext('brand-1'),
     );
 
     expect(result.success).toBe(true);
@@ -524,5 +541,130 @@ describe('AgentPublishToolHandler per-channel review', () => {
         decision: AgentPublishDecision.DENIED,
       }),
     );
+  });
+});
+
+describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
+  it('renders a publish card instead of scheduling when the model forges confirmed:true without a card', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        platforms: ['twitter'],
+        scheduledAt: '2026-09-10T12:00:00.000Z',
+        sourceActionId: 'forged-action-id',
+      },
+      scopedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        requiresConfirmation: true,
+        type: 'publish_post_card',
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+
+  it('publishes when the card-button resume presents a verified sourceActionId', async () => {
+    const {
+      cacheService,
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+    cacheService.get.mockResolvedValueOnce({
+      organizationId: 'org-1',
+      sourceActionId: 'verified-action-id',
+      threadId: 'thread-1',
+      toolName: AgentToolName.CREATE_POST,
+    });
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        contentId: 'ingredient-1',
+        sourceActionId: 'verified-action-id',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      confirmedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.create).toHaveBeenCalled();
+  });
+
+  it('rejects publishing when sourceActionId does not match a persisted confirmation', async () => {
+    const {
+      cacheService,
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+    cacheService.get.mockResolvedValueOnce(null);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        contentId: 'ingredient-1',
+        sourceActionId: 'unknown-action-id',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      confirmedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'sourceActionId does not match a persisted publish card.',
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,3 @@
-import type { WorkspaceInspectorAssetKind } from '@/lib/workspace-shell/workspace-inspector-tabs.util';
-
 export type WorkspaceInspectorPaneKind =
   | 'empty-agent'
   | 'product-surface'
@@ -79,24 +77,11 @@ export function shouldShowInspectorOverlayPreview(input: {
   return !input.hasEffectiveSurfaceAdapter && !input.hasPresentationAdapter;
 }
 
-export type WorkspaceInspectorTab = WorkspaceInspectorAssetKind;
-
 export function isAgentOwnedInspector(
   hasAgentPanelSlot: boolean,
   hasAgentInspectorPanel: boolean,
 ): boolean {
   return hasAgentPanelSlot && hasAgentInspectorPanel;
-}
-
-export function resolveActiveInspectorTab(
-  hasConversationSlot: boolean,
-  inspectorTab: WorkspaceInspectorTab,
-): WorkspaceInspectorTab {
-  if (inspectorTab === 'conversation' && !hasConversationSlot) {
-    return 'context';
-  }
-
-  return inspectorTab;
 }
 
 export function isInspectorComposerOwner(
@@ -106,10 +91,8 @@ export function isInspectorComposerOwner(
   return hasConversationSlot && !isOverlayState;
 }
 
-export { inspectorTabFromValue } from '@/lib/workspace-shell/workspace-inspector-tabs.util';
-
 const INSPECTOR_CONTEXT_PANE_BASE_CLASS =
-  'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden';
+  'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto';
 
 export function inspectorContextPaneClassName(
   hasProductSurfaceAdapter: boolean,

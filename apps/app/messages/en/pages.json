@@ -431,6 +431,28 @@
     "unresolved": "Unresolved checks"
   },
   "posts": {
+    "board": {
+      "bulk": {
+        "clearSelection": "Clear selection",
+        "delete": "Delete",
+        "scheduleNextSlot": "Schedule at next slot",
+        "scheduleNextSlotError": "Couldn't schedule that release at the next available slot",
+        "selectedCount": "{count, plural, one {# selected} other {# selected}}"
+      },
+      "columns": {
+        "draft": "Draft",
+        "failed": "Failed",
+        "published": "Published",
+        "review": "Awaiting review",
+        "reviewLink": "Open review queue",
+        "scheduled": "Scheduled"
+      },
+      "dropBlocked": "That release can't be moved right now",
+      "dropMissingSchedule": "That release has no scheduled date to move to",
+      "dropRefused": "That column can't be changed by dragging a card",
+      "loadError": "We couldn't load the release board",
+      "refresh": "Refresh"
+    },
     "desk": {
       "loadErrorBody": "The content desk could not reach posts, articles, or newsletters. Try again, or return to Posts and open the item from the list.",
       "loadErrorTitle": "Could not load content",
@@ -464,7 +486,11 @@
           "next": "Next / previous",
           "open": "Open",
           "previous": "Previous",
-          "refresh": "Refresh"
+          "refresh": "Refresh",
+          "enterKey": "Enter",
+          "jKey": "j",
+          "kKey": "k",
+          "rKey": "r"
         },
         "nextAt": "Next at {time}",
         "noMedia": "No media",
@@ -512,6 +538,10 @@
           "description": "Posts already live on at least one destination platform.",
           "title": "Posted"
         }
+      },
+      "viewToggle": {
+        "board": "Board",
+        "list": "List"
       }
     }
   },
@@ -553,6 +583,27 @@
       "scheduleAt": "Schedule at {label}",
       "skip": "Skip",
       "write": "Write"
+    },
+    "overview": {
+      "blockedCount": "{count, plural, one {# blocked release} other {# blocked releases}}",
+      "blockedDescription": "Failed releases grouped by error, with the accounts affected.",
+      "blockedEmpty": "No blocked releases right now.",
+      "blockedTitle": "Blocked",
+      "blockedViewAction": "View",
+      "cadenceDescription": "Days since each connected account last published, and whether anything is queued.",
+      "cadenceEmpty": "No connected accounts yet.",
+      "cadenceGapDays": "{count, plural, one {# day since last publish} other {# days since last publish}}",
+      "cadenceHold": "On hold",
+      "cadenceNeverPublished": "Never published",
+      "cadenceReconnect": "Needs reconnect",
+      "cadenceReconnectAction": "Reconnect",
+      "cadenceScheduled": "Scheduled",
+      "cadenceTitle": "Cadence",
+      "queueBucketLater": "Later",
+      "queueBucketNear": "Next 3 hours",
+      "queueDescription": "Scheduled releases due within the next 24 hours.",
+      "queueEmpty": "Nothing scheduled in the next 24 hours.",
+      "queueTitle": "Next 24 hours"
     },
     "review": {
       "lineage": {

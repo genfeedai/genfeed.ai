@@ -99,11 +99,19 @@ export class AgentOrchestratorUiActionConfirmedToolService {
   private async executeOfficialWorkflowInstall(
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
+    const sourceActionId =
+      typeof params.payload?.sourceActionId === 'string'
+        ? params.payload.sourceActionId.trim()
+        : '';
     const toolPayload = { ...(params.payload ?? {}), confirmed: true };
     const execution = await this.executeTool(
       params,
-      'install_official_workflow' as AgentToolName,
+      AgentToolName.INSTALL_OFFICIAL_WORKFLOW,
       toolPayload,
+      {
+        confirmationOrigin: 'thread-ui-action',
+        ...(sourceActionId ? { sourceActionId } : {}),
+      },
     );
     if (!execution.result.success) {
       throwFailedUiActionResult(
