@@ -59,12 +59,12 @@ export class AgentTransferToolHandler {
       typeof params.query === 'string' && params.query.trim()
         ? params.query.trim()
         : undefined;
-    const data = await this.transfersService.discoverConversations(
+    const conversations = await this.transfersService.discoverConversations(
       this.actor(ctx),
       ctx.threadId,
       query,
     );
-    return { creditsUsed: 0, data, success: true };
+    return { creditsUsed: 0, data: { conversations }, success: true };
   }
 
   async transfer(
@@ -141,7 +141,7 @@ export class AgentTransferToolHandler {
       };
     }
 
-    const data = await this.transfersService.create(
+    const transfer = await this.transfersService.create(
       {
         ...payload,
         explicitUserIntent: deliveryMode === 'SEND_AND_RUN',
@@ -149,7 +149,7 @@ export class AgentTransferToolHandler {
       },
       this.actor(ctx),
     );
-    return { creditsUsed: 0, data, success: true };
+    return { creditsUsed: 0, data: { transfer }, success: true };
   }
 
   private actor(ctx: ToolExecutionContext): AgentTransferActor {

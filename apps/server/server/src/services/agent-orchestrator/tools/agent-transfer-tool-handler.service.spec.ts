@@ -28,7 +28,7 @@ describe('AgentTransferToolHandler', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.data).toEqual([{ id: 'thread-2' }]);
+    expect(result.data).toEqual({ conversations: [{ id: 'thread-2' }] });
     expect(discoverConversations).toHaveBeenCalledWith(
       { organizationId: 'org-1', userId: 'user-1' },
       'source-thread',
