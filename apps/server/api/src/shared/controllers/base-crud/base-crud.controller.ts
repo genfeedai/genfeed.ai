@@ -1,29 +1,29 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { EntityDocument } from '@api/helpers/types/common/common.types';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   BaseService,
   type PrismaFindAllInput,
-} from '@server/shared/services/base/base.service';
+} from '@api/shared/services/base/base.service';
 import {
   PopulateBuilder,
   PopulatePatterns,
-} from '@server/shared/utils/populate/populate.util';
+} from '@api/shared/utils/populate/populate.util';
 import type {
   IJsonApiSerializer,
   JsonApiCollectionResponse,

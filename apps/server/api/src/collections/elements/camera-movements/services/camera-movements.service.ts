@@ -1,9 +1,9 @@
 import { CreateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/create-camera-movement.dto';
 import { UpdateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/update-camera-movement.dto';
 import type { ElementCameraMovementDocument } from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
-import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

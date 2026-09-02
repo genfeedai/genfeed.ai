@@ -1,3 +1,7 @@
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { PublishApprovalsService } from '@api/index';
 import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   PostCategory,
@@ -5,13 +9,9 @@ import {
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   buildEvergreenExpansionWorkflowDefinition,
   EVERGREEN_EXPANSION_ACTION_ID,

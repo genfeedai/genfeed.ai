@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { remixErrorMessage } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
@@ -16,12 +16,13 @@ import {
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { GenerationReservationBarrier } from '@api/collections/content-runs/services/generation-reservation-barrier';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/index';
+import { ByokService } from '@api/services/byok/byok.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,
@@ -39,7 +40,6 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import {
   ConflictException,
   HttpException,

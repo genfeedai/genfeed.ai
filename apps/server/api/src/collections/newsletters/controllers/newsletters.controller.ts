@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateNewsletterDto } from '@server/collections/newsletters/dto/create-newsletter.dto';
-import { GenerateNewsletterDraftDto } from '@server/collections/newsletters/dto/generate-newsletter-draft.dto';
-import { GenerateNewsletterTopicsDto } from '@server/collections/newsletters/dto/generate-newsletter-topics.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateNewsletterDto } from '@api/collections/newsletters/dto/create-newsletter.dto';
+import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
+import { GenerateNewsletterTopicsDto } from '@api/collections/newsletters/dto/generate-newsletter-topics.dto';
 import { NewslettersQueryDto } from '@api/collections/newsletters/dto/newsletters-query.dto';
-import { UpdateNewsletterDto } from '@server/collections/newsletters/dto/update-newsletter.dto';
-import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
+import { UpdateNewsletterDto } from '@api/collections/newsletters/dto/update-newsletter.dto';
+import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

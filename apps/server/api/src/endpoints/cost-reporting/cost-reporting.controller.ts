@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { CostReportingService } from '@api/endpoints/cost-reporting/cost-reporting.service';
 import { buildCostReportCsv } from '@api/endpoints/cost-reporting/cost-reporting-export.util';

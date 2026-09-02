@@ -1,6 +1,6 @@
-import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
+import { SERVER_TOKENS } from '@api/index';
+import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
-import { SERVER_TOKENS } from '@genfeedai/server';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('PublishersModule', () => {

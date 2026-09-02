@@ -2,9 +2,9 @@ import type {
   GenerateLaunchCopyDto,
   LaunchCopyChannel,
 } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
-import { SecurityUtil } from '@server/helpers/utils/security/security.util';
-import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import type { OpenRouterChatCompletionParams } from '@server/services/integrations/openrouter/dto/openrouter.dto';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Platform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

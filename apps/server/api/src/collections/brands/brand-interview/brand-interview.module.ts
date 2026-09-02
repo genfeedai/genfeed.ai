@@ -7,7 +7,7 @@
  * registers a controller in addition to providers.
  */
 import { BrandInterviewController } from '@api/collections/brands/brand-interview/controllers/brand-interview.controller';
-import { BrandInterviewService } from '@server/collections/brands/brand-interview/services/brand-interview.service';
+import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { Module } from '@nestjs/common';

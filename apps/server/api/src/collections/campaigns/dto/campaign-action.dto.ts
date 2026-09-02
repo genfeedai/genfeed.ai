@@ -1,6 +1,6 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ContentCampaignStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   ArrayMaxSize,
   ArrayNotEmpty,

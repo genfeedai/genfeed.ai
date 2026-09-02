@@ -1,12 +1,12 @@
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -14,8 +14,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

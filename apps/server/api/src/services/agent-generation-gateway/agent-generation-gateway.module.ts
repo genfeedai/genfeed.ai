@@ -18,11 +18,11 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
+import { AGENT_GENERATION_GATEWAY } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
-import { AGENT_GENERATION_GATEWAY } from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 
 /**
  * Wires the in-process generation gateway.

@@ -4,10 +4,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
-import type { IngredientsQueryDto } from '@server/collections/ingredients/dto/ingredients-query.dto';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   IngredientCategory,
   IngredientStatus,

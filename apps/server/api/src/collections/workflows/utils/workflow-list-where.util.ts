@@ -1,4 +1,4 @@
-import { SYSTEM_WORKFLOW_METADATA_KEY } from '@server/collections/workflows/system-workflow.contract';
+import { SYSTEM_WORKFLOW_METADATA_KEY } from '@api/collections/workflows/system-workflow.contract';
 
 type WorkflowListWhereInput = {
   brandId?: string;

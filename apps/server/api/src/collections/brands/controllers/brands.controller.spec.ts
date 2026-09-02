@@ -1,30 +1,30 @@
 import type { BrandEntity } from '@api/collections/brands/entities/brand.entity';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import 'reflect-metadata';
 
 import type {
   AuthenticatedUser,
   AuthenticatedUser as User,
-} from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+} from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { LinksService } from '@server/collections/links/services/links.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LinksService } from '@api/collections/links/services/links.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SkillsService } from '@server/collections/skills/services/skills.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';

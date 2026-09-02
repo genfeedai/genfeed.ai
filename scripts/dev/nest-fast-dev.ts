@@ -83,11 +83,6 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
     if (!entry.isDirectory()) continue;
     const appSrc = path.join(SERVER_ROOT, entry.name, 'src');
     if (!fs.existsSync(appSrc)) continue;
-    if (entry.name === 'server') {
-      aliases['@genfeedai/server'] = appSrc;
-      aliases['@server'] = appSrc;
-      continue;
-    }
     aliases[`@${entry.name}`] = appSrc;
   }
 
@@ -97,8 +92,6 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
   aliases['@serializers'] = path.join(PACKAGES_ROOT, 'serializers/src');
   aliases['@api-types'] = path.join(PACKAGES_ROOT, 'api-types/src');
   aliases['@genfeedai-types'] = path.join(PACKAGES_ROOT, 'types/src');
-  aliases['@workflow-engine'] = path.join(PACKAGES_ROOT, 'workflow-engine/src');
-  aliases['@workflow-saas'] = path.join(PACKAGES_ROOT, 'workflow-saas/src');
   aliases['@api-root'] = path.join(SERVER_ROOT, 'api');
 
   return aliases;
@@ -116,13 +109,11 @@ function shouldBundleImport(id: string): boolean {
   if (id.startsWith('@genfeedai/')) return true;
   if (id.startsWith('@api')) return true;
   if (id.startsWith('@libs/')) return true;
-  if (id.startsWith('@server')) return true;
   if (id.startsWith('@helpers/')) return true;
   if (id.startsWith('@config/')) return true;
   if (id.startsWith('@serializers/')) return true;
   if (id.startsWith('@api-types')) return true;
   if (id.startsWith('@genfeedai-types')) return true;
-  if (id.startsWith('@workflow-')) return true;
   if (id.startsWith('@files/')) return true;
   if (id.startsWith('@workers/')) return true;
   if (id.startsWith('@notifications/')) return true;

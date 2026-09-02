@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GoalsController } from '@api/collections/goals/controllers/goals.controller';
 import type { GoalDocument } from '@api/collections/goals/schemas/goal.schema';
 import { GoalsService } from '@api/collections/goals/services/goals.service';

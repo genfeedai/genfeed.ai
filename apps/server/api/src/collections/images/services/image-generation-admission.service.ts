@@ -1,16 +1,16 @@
+import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 
 const IMAGE_POPULATE = [
   PopulatePatterns.promptFull,

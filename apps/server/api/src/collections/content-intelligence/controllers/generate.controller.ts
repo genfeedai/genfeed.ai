@@ -1,3 +1,6 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
@@ -5,9 +8,6 @@ import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { GeneratedContentSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post, Req } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { GenerateContentDto } from '@server/collections/content-intelligence/dto/generate-content.dto';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

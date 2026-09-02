@@ -11,9 +11,9 @@ import {
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
 const ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
 const AGENT_TYPE_CONFIG_PATH =
-  'apps/server/server/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
+  'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const BRANDLESS_TOOLS_PATH =
-  'apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 const DISPATCH_PATH =
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 

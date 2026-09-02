@@ -7,6 +7,15 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
+import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
+import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
+import { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -30,15 +39,6 @@ import { RouterModule } from '@api/services/router/router.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
-import { ArticleAnalyticsService } from '@server/collections/articles/services/article-analytics.service';
-import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
-import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
-import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
 
 @Module({
   // `ArticlesOperationsController` and `ArticlesTransformationsController` must

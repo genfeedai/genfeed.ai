@@ -1,11 +1,11 @@
-import type { ModelsService } from '@server/collections/models/services/models.service';
-import type { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
+import type { RunTextGenerationStepParams } from '@api/collections/articles/services/articles-content.types';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ModelCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
-import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import type { RunTextGenerationStepParams } from '@server/collections/articles/services/articles-content.types';
 
 /**
  * Focused unit tests for the shared `runTextGenerationStep` prologue that backs

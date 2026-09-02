@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

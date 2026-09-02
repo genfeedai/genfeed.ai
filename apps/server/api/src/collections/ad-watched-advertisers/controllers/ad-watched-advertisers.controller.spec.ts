@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AdWatchedAdvertisersController } from '@api/collections/ad-watched-advertisers/controllers/ad-watched-advertisers.controller';
-import type { AdWatchedAdvertiserDocument } from '@server/collections/ad-watched-advertisers/schemas/ad-watched-advertiser.schema';
-import { AdWatchedAdvertisersService } from '@server/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import type { AdWatchedAdvertiserDocument } from '@api/collections/ad-watched-advertisers/schemas/ad-watched-advertiser.schema';
+import { AdWatchedAdvertisersService } from '@api/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';

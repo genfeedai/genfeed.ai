@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable } from '@nestjs/common';

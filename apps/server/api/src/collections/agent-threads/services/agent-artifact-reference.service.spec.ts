@@ -1,11 +1,11 @@
+import {
+  AgentArtifactReferenceService,
+  type AgentArtifactReferenceTransaction,
+} from '@api/index';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
 } from '@genfeedai/interfaces';
-import {
-  AgentArtifactReferenceService,
-  type AgentArtifactReferenceTransaction,
-} from '@genfeedai/server';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@genfeedai/serializers', () => {

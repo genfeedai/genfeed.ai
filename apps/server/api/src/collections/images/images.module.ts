@@ -33,6 +33,7 @@ import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/serv
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
@@ -47,6 +48,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -62,8 +64,6 @@ import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingr
 import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 
 @Module({
   controllers: [

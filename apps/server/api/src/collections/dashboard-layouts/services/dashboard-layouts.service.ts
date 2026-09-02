@@ -1,0 +1,152 @@
+import type { CreateDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/create-dashboard-layout.dto';
+import type { UpdateDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/update-dashboard-layout.dto';
+import type { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
+import type { DashboardLayoutDocument } from '@api/collections/dashboard-layouts/schemas/dashboard-layout.schema';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
+import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
+import { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+
+const DEFAULT_PAGE_KEY = 'workspace-overview';
+
+@Injectable()
+export class DashboardLayoutsService extends BaseService<
+  DashboardLayoutDocument,
+  CreateDashboardLayoutDto,
+  UpdateDashboardLayoutDto
+> {
+  constructor(
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
+  ) {
+    super(prisma, 'dashboardLayout', logger);
+  }
+
+  /**
+   * Invalidate the dashboard-layout list + single-record cache keys after a
+   * write. Mirrors ApiKeysService.invalidateRotationCaches — exact keys cover
+   * the canonical list/single caches while the collection tag covers any
+   * controller cache entries registered through `@Cache`.
+   */
+  private async invalidateLayoutCaches(
+    organizationId: string,
+    layoutId?: string,
+  ): Promise<void> {
+    const keys = [CACHE_PATTERNS.DASHBOARD_LAYOUTS_LIST(organizationId)];
+    if (layoutId) {
+      keys.push(CACHE_PATTERNS.DASHBOARD_LAYOUTS_SINGLE(layoutId));
+    }
+
+    await this.cacheInvalidationService.invalidate(...keys);
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.DASHBOARD_LAYOUTS,
+    ]);
+  }
+
+  async findForPage(
+    brandId: string,
+    organizationId: string,
+    pageKey: string,
+  ): Promise<DashboardLayoutDocument | null> {
+    return this.findOne(scopedWhere(organizationId, { brandId, pageKey }));
+  }
+
+  async upsertForPage(
+    organizationId: string,
+    dto: UpsertDashboardLayoutDto,
+  ): Promise<DashboardLayoutDocument> {
+    // Scope the brand lookup to the caller's organization so a user from one
+    // org can neither read nor upsert-create the dashboard layout of a brand
+    // owned by another org. Mirrors MoodBoardsService.findOrCreateByBrand.
+    const brand = await this.prisma.brand.findFirst({
+      select: { organizationId: true },
+      where: scopedWhere(organizationId, { id: dto.brandId }),
+    });
+
+    if (!brand) {
+      throw new NotFoundException('Brand', dto.brandId);
+    }
+
+    const { document, issues } = sanitizeLayoutForPersistence(dto.document);
+
+    if (issues.length > 0) {
+      this.logger?.warn('Rejected invalid dashboard layout document', {
+        brandId: dto.brandId,
+        issues,
+        organizationId,
+      });
+      throw new ValidationException(
+        'Dashboard layout document failed validation',
+        'document',
+        issues,
+      );
+    }
+
+    const pageKey = dto.pageKey ?? DEFAULT_PAGE_KEY;
+    // Prisma's Json input type doesn't structurally match our persisted
+    // document interface — bridge through `unknown` rather than casting
+    // directly, since the two shapes aren't guaranteed assignable.
+    const documentJson = document as unknown as Prisma.InputJsonValue;
+
+    const record = await this.prisma.dashboardLayout.upsert({
+      create: {
+        brandId: dto.brandId,
+        document: documentJson,
+        organizationId: brand.organizationId,
+        pageKey,
+        ...(dto.version !== undefined && { version: dto.version }),
+      },
+      update: {
+        document: documentJson,
+        // Restore a previously reset (soft-deleted) layout: the compound-unique
+        // row still matches, so re-saving must flip isDeleted back to false.
+        isDeleted: false,
+        ...(dto.version !== undefined && { version: dto.version }),
+      },
+      where: {
+        organizationId_brandId_pageKey: {
+          brandId: dto.brandId,
+          organizationId,
+          pageKey,
+        },
+      },
+    });
+
+    await this.invalidateLayoutCaches(organizationId, record.id);
+
+    return record as DashboardLayoutDocument;
+  }
+
+  async removeScoped(
+    id: string,
+    organizationId: string,
+  ): Promise<DashboardLayoutDocument | null> {
+    // Atomic, tenant-scoped soft delete: the WHERE clause (not a prior read)
+    // is what enforces the org boundary, so there is no gap between the
+    // ownership check and the mutation for a concurrent request to exploit.
+    // BaseService.remove() only scopes by id, so it can't be reused here.
+    const { count } = await this.prisma.dashboardLayout.updateMany({
+      data: { isDeleted: true },
+      where: scopedWhere(organizationId, { id }),
+    });
+
+    if (count === 0) {
+      return null;
+    }
+
+    await this.invalidateLayoutCaches(organizationId, id);
+
+    return this.findOne({ id, organizationId });
+  }
+}

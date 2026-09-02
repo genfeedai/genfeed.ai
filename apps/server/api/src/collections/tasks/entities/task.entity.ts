@@ -1,5 +1,5 @@
-import type { TaskLinkedEntityModel } from '@server/collections/tasks/schemas/task.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import type { TaskLinkedEntityModel } from '@api/collections/tasks/schemas/task.schema';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class TaskEntity extends BaseEntity {
   declare readonly organizationId: string;

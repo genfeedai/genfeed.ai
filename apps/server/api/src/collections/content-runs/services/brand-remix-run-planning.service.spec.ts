@@ -1,10 +1,10 @@
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import type { ResolvedBrandContext } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { BrandRemixDraft } from '@api-types/contracts/brand-remix-run.contract';
 import { IngredientStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const brandContext = {

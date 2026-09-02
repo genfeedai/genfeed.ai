@@ -56,7 +56,7 @@ const RETIRED_FLEET_CONTROL_PATHS = [
   'apps/app/app/(protected)/admin/fleet',
   'apps/server/api/src/endpoints/admin/fleet',
   'apps/server/api/src/services/integrations/fleet',
-  'apps/server/server/src/services/integrations/fleet',
+  'apps/server/api/src/services/integrations/fleet',
   'packages/services/admin/fleet.service.ts',
   'playwright/e2e/tests/admin/admin-fleet.spec.ts',
 ] as const;
@@ -143,7 +143,7 @@ describe('public repository hygiene', () => {
       existsSync(
         path.join(
           REPO_ROOT,
-          'apps/server/server/src/services/integrations/managed-inference-runtime/managed-inference-runtime.service.ts',
+          'apps/server/api/src/services/integrations/managed-inference-runtime/managed-inference-runtime.service.ts',
         ),
       ),
     ).toBe(true);

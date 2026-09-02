@@ -2,7 +2,7 @@
  * @fileoverview Tests for AggregationCacheStrategy
  */
 
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { AggregationCacheStrategy } from '@api/services/cache/strategies/aggregation-cache.strategy';
 import { Test, TestingModule } from '@nestjs/testing';
 

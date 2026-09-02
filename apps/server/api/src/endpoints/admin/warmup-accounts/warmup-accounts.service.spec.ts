@@ -3,7 +3,7 @@ import {
   AdminWarmupAccountsService,
   createSlugSeed,
 } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WarmupAccountStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, GoneException } from '@nestjs/common';

@@ -2,7 +2,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { Module } from '@nestjs/common';

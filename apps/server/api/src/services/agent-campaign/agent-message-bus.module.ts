@@ -1,4 +1,4 @@
-import { AgentMessageBusService } from '@server/services/agent-campaign/agent-message-bus.service';
+import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { RedisModule } from '@libs/redis/redis.module';

@@ -1,5 +1,5 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { PostLifecycleService, SERVER_TOKENS } from '@genfeedai/server';
+import { PostLifecycleService, SERVER_TOKENS } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 

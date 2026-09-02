@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BlacklistsQueryDto } from '@api/collections/elements/blacklists/dto/blacklists-query.dto';
 import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/create-blacklist.dto';
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
 import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { ElementsBlacklistsService } from '@api/collections/elements/blacklists/services/blacklists.service';
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
@@ -36,7 +36,7 @@ import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;
 
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
 @Controller('elements/blacklists')

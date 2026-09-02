@@ -1,8 +1,8 @@
 import {
   NEWSLETTER_STATUSES,
   type NewsletterStatus,
-} from '@server/collections/newsletters/newsletter.constants';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+} from '@api/collections/newsletters/newsletter.constants';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';

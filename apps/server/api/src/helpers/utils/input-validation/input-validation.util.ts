@@ -1,5 +1,5 @@
-import { ValidationException } from '@server/exceptions/validation.exception';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { ValidationException } from '@api/exceptions/validation.exception';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ValidationConfigService } from '@libs/config/services/validation.config';
 
 /**

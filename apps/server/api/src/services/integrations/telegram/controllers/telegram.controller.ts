@@ -1,4 +1,4 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   type TelegramAuthData,

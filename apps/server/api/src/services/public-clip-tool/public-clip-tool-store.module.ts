@@ -1,4 +1,4 @@
-import { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { Module } from '@nestjs/common';
 
 @Module({

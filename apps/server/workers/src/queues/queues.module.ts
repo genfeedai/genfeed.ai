@@ -6,6 +6,9 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
+import { SERVER_TOKENS } from '@api/index';
+import { QueueService } from '@api/queues/core/queue.service';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import {
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
@@ -14,7 +17,6 @@ import {
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -25,8 +27,6 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { QueueService } from '@server/queues/core/queue.service';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 

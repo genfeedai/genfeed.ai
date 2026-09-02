@@ -1,10 +1,10 @@
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
 import type { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

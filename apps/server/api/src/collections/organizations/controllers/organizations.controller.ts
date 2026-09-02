@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateOrganizationDto } from '@server/collections/organizations/dto/create-organization.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
-import type { UpdateOrganizationDto } from '@server/collections/organizations/dto/update-organization.dto';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { SkipRoles } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
@@ -20,7 +20,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

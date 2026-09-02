@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
-import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
+import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
@@ -18,10 +18,10 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   AnalyticsEngagementSerializer,

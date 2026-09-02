@@ -1,25 +1,25 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BotLivestreamOverrideDto } from '@api/collections/bots/dto/bot-livestream-override.dto';
 import { BotLivestreamRestreamChatIngestDto } from '@api/collections/bots/dto/bot-livestream-restream-chat.dto';
 import { BotLivestreamSendNowDto } from '@api/collections/bots/dto/bot-livestream-send-now.dto';
 import { BotLivestreamSessionPatchDto } from '@api/collections/bots/dto/bot-livestream-session-patch.dto';
 import { BotLivestreamTranscriptDto } from '@api/collections/bots/dto/bot-livestream-transcript.dto';
 import { BotsQueryDto } from '@api/collections/bots/dto/bots-query.dto';
-import { CreateBotDto } from '@server/collections/bots/dto/create-bot.dto';
-import { UpdateBotDto } from '@server/collections/bots/dto/update-bot.dto';
-import type { BotDocument } from '@server/collections/bots/schemas/bot.schema';
-import { BotsService } from '@server/collections/bots/services/bots.service';
-import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
-import { BotsRestreamChatService } from '@server/collections/bots/services/bots-restream-chat.service';
+import { CreateBotDto } from '@api/collections/bots/dto/create-bot.dto';
+import { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
+import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
+import { BotsService } from '@api/collections/bots/services/bots.service';
+import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
+import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { BotLivestreamSessionStatus } from '@genfeedai/enums';
 import {
   BotSerializer,

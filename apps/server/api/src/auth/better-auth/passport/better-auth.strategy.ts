@@ -1,7 +1,7 @@
 import { BETTER_AUTH_STRATEGY_NAME } from '@api/auth/better-auth/better-auth.constants';
 import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import { BetterAuthIdentityResolverService } from '@api/auth/better-auth/services/better-auth-identity-resolver.service';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';

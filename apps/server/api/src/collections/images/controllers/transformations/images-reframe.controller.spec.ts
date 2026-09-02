@@ -2,7 +2,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesReframeController } from '@api/collections/images/controllers/transformations/images-reframe.controller';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { ImageReframeService } from '@api/collections/images/services/image-reframe.service';

@@ -4,8 +4,8 @@
  *
  * The Prisma schema is the model inventory: any model carrying both an
  * `organizationId` field and an `isDeleted` field is tenant-scoped. This guard
- * then inspects Prisma-shaped delegate calls in the API and shared server
- * package and requires their `where` clauses to prove both keys are present.
+ * then inspects Prisma-shaped delegate calls in the API tree and requires
+ * their `where` clauses to prove both keys are present.
  *
  * This is a static regression ratchet, not a soundness proof. It deliberately
  * reports unresolved `where` expressions instead of treating them as safe, but
@@ -19,12 +19,11 @@
  * - that a model-shaped object is definitely a Prisma client without a type
  *   checker.
  *
- * The scan surface is intentionally limited to `apps/server/api/src` and
- * `apps/server/server/src`. Other backend workspaces are outside this chip and
- * must not be assumed covered by the CI guard.
+ * The scan surface is `apps/server/api/src`. Other backend workspaces are
+ * outside this chip and must not be assumed covered by the CI guard.
  *
  * New code should use the canonical `scopedWhere` export from
- * `@genfeedai/server`. Existing Chips B/C debt is captured by an exact,
+ * `@api/tenancy/scoped-where`. Existing Chips B/C debt is captured by an exact,
  * deterministic baseline. New findings and stale baseline entries both fail,
  * so the baseline can only move with an explicit reviewed change.
  */
@@ -44,10 +43,7 @@ export { discoverTenantModels, type TenantModel };
 
 const DEFAULT_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
 const DEFAULT_BASELINE_PATH = 'scripts/architecture/tenant-scope-baseline.json';
-const DEFAULT_INCLUDE_GLOBS = [
-  'apps/server/api/src/**/*.ts',
-  'apps/server/server/src/**/*.ts',
-];
+const DEFAULT_INCLUDE_GLOBS = ['apps/server/api/src/**/*.ts'];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
   '**/*.test.ts',
@@ -76,8 +72,7 @@ const TENANT_SCOPE_FINDING_REASONS = new Set<TenantScopeFindingReason>([
 const PRISMA_WHERE_METHODS = TENANT_QUERY_OPERATION_SET;
 
 const SCOPED_WHERE_MODULE_PATTERNS = [
-  /^@genfeedai\/server$/u,
-  /^@server(?:\/|$)/u,
+  /^@api\/index$/u,
   /(?:^|\/)tenancy\/scoped-where$/u,
 ];
 

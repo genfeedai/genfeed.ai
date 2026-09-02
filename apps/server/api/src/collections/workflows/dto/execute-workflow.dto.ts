@@ -1,5 +1,5 @@
+import { WorkflowActionContextDto } from '@api/collections/workflows/dto/workflow-action-context.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,

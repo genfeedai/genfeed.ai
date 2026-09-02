@@ -1,13 +1,13 @@
 import fs from 'node:fs';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { PostStatus, PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 
 // Mock googleapis
 const mockVideosInsert = vi.fn();
@@ -33,7 +33,7 @@ vi.mock('node:fs', () => ({
 }));
 
 // Mock htmlToText
-vi.mock('@server/shared/utils/html-to-text/html-to-text.util', () => ({
+vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((html: string) => html || ''),
 }));
 

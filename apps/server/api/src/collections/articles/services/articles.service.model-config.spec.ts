@@ -6,24 +6,24 @@ import { describe, expect, it, vi } from 'vitest';
 // metadata BaseService needs without importing the real client.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
-import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
-import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import type { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
-import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const ARTICLE_LOAD_GENERATION_ACTION_ID = 'article.generation.load-context';
 

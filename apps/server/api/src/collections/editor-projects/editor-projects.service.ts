@@ -1,12 +1,13 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import type { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import {
   findOrThrow,
   findUniqueOrThrow,
-} from '@server/shared/utils/find-or-throw/find-or-throw.util';
+} from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { EditorProjectStatus } from '@genfeedai/enums';
 import type {
   IEditorRenderCorrelation,
@@ -15,7 +16,6 @@ import type {
   IEditorRenderProvenance,
 } from '@genfeedai/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 

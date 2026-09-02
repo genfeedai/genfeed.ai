@@ -1,9 +1,9 @@
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
-} from '@server/collections/workflows/schemas/workflow.schema';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/workflows/schemas/workflow.schema';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const BRAND_REMIX_DOWNSTREAM_ACTION_IDS = {
   META_CREATE_AD: 'brand-remix.meta.create-ad',

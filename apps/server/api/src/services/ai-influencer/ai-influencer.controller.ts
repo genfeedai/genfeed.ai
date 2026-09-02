@@ -1,5 +1,8 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
+import { AiInfluencerWorkflowService } from '@api/services/ai-influencer/ai-influencer-workflow.service';
 import {
   GeneratePostDto,
   ListPostsQueryDto,
@@ -17,9 +20,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { AiInfluencerService } from '@server/services/ai-influencer/ai-influencer.service';
-import { AiInfluencerWorkflowService } from '@server/services/ai-influencer/ai-influencer-workflow.service';
 
 @ApiTags('Admin / AI Influencer')
 @Controller('admin/ai-influencer')

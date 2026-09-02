@@ -1,4 +1,19 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@api/services/router/router.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -15,21 +30,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';

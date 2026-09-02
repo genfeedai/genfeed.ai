@@ -1,9 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
+import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -26,10 +30,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiOperation } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { GenerateVoiceDto } from '@server/collections/voices/dto/generate-voice.dto';
-import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()

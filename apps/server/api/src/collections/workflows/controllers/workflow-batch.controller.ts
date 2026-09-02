@@ -1,4 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { ExecuteWorkflowBatchDto } from '@api/collections/workflows/dto/execute-workflow.dto';
+import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -9,10 +13,6 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()

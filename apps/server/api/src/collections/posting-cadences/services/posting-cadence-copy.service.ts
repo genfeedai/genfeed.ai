@@ -1,3 +1,16 @@
+import { buildBrandVoiceSummary } from '@api/collections/brands/utils/brand-context.util';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+import {
+  calculateEstimatedTextCredits,
+  getMinimumTextCredits,
+} from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { scopedWhere } from '@api/index';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   isWithinConsumptionTolerance,
   MAX_CADENCE_SPAN_DAYS,
@@ -17,20 +30,7 @@ import {
 } from '@genfeedai/constants';
 import { ActivitySource } from '@genfeedai/enums';
 import type { ICalendarSlot } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { buildBrandVoiceSummary } from '@server/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { SecurityUtil } from '@server/helpers/utils/security/security.util';
-import {
-  calculateEstimatedTextCredits,
-  getMinimumTextCredits,
-} from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   BrandContextRow,
   CadenceRecord,

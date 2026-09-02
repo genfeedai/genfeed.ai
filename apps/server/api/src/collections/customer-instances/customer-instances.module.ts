@@ -1,5 +1,5 @@
 import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
-import { SERVER_TOKENS } from '@genfeedai/server';
+import { SERVER_TOKENS } from '@api/index';
 import { Module } from '@nestjs/common';
 
 const SERVER_CUSTOMER_INSTANCE_RESOLVER_PROVIDER = {

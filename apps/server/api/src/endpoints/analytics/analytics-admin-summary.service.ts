@@ -1,15 +1,15 @@
-import { BotsService } from '@server/collections/bots/services/bots.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { BotsService } from '@api/collections/bots/services/bots.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { AnalyticsAdminSummary } from '@api/endpoints/analytics/analytics.types';
-import type { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import {

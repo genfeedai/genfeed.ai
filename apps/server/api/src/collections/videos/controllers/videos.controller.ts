@@ -1,18 +1,18 @@
 import { Readable } from 'node:stream';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { VotesService } from '@server/collections/votes/services/votes.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -23,11 +23,11 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -35,8 +35,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { scopedWhere } from '@api/index';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
   ActivitySource,
@@ -49,7 +51,6 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import {
   Body,
@@ -68,7 +69,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 function toPlainRecord(value: unknown): Record<string, unknown> {
   const maybeDocument = value as {

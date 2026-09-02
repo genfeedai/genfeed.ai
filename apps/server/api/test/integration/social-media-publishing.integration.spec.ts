@@ -1,33 +1,30 @@
 // Mock YouTube service to break circular dependency chain
 // YoutubeService <-> YoutubeAnalyticsService creates circular imports
-vi.mock(
-  '@server/services/integrations/youtube/services/youtube.service',
-  () => ({
-    YoutubeService: vi.fn().mockImplementation(() => ({
-      exchangeCodeForTokens: vi.fn(),
-      generateAuthUrl: vi.fn(),
-      getChannelDetails: vi.fn(),
-      getMediaAnalytics: vi.fn(),
-      getMediaAnalyticsBatch: vi.fn(),
-      getTrends: vi.fn(),
-      getVideoMetadata: vi.fn(),
-      getVideoStatus: vi.fn(),
-      parseDuration: vi.fn(),
-      postComment: vi.fn(),
-      refreshToken: vi.fn(),
-      uploadVideo: vi.fn(),
-    })),
-  }),
-);
+vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
+  YoutubeService: vi.fn().mockImplementation(() => ({
+    exchangeCodeForTokens: vi.fn(),
+    generateAuthUrl: vi.fn(),
+    getChannelDetails: vi.fn(),
+    getMediaAnalytics: vi.fn(),
+    getMediaAnalyticsBatch: vi.fn(),
+    getTrends: vi.fn(),
+    getVideoMetadata: vi.fn(),
+    getVideoStatus: vi.fn(),
+    parseDuration: vi.fn(),
+    postComment: vi.fn(),
+    refreshToken: vi.fn(),
+    uploadVideo: vi.fn(),
+  })),
+}));
 
 import process from 'node:process';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { IngredientStatus } from '@genfeedai/enums';
 import { ConfigModule } from '@libs/config/config.module';

@@ -1,4 +1,4 @@
-import { resolveVideoGenerationFidelityMode } from '@server/services/generation-brief/resolve-video-generation-fidelity-mode';
+import { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
 import { describe, expect, it } from 'vitest';
 
 describe('resolveVideoGenerationFidelityMode', () => {

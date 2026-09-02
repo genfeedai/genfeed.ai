@@ -3,9 +3,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { ProfilesController } from '@api/collections/profiles/controllers/profiles.controller';
 import { AnalyzeToneDto } from '@api/collections/profiles/dto/analyze-tone.dto';
 import { ApplyProfileDto } from '@api/collections/profiles/dto/apply-profile.dto';

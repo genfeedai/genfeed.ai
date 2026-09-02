@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
 import { ImportSocialPostDto } from '@api/collections/social-sources/dto/import-social-post.dto';
 import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';

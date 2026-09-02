@@ -1,30 +1,30 @@
 import { randomUUID } from 'node:crypto';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
   GeneratePostVariationsParams,
   PostVariationResponseMeta,
   PostVariationVoiceMode,
 } from '@api/collections/posts/services/source-post-variation.types';
+import {
+  describeVariationRejections,
+  filterSourcePostVariations,
+} from '@api/collections/posts/services/source-post-variation-output.util';
+import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
 import { sourcePostVariationCredits } from '@genfeedai/constants';
-import { scopedWhere } from '@genfeedai/server';
 import {
   BadGatewayException,
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  describeVariationRejections,
-  filterSourcePostVariations,
-} from '@server/collections/posts/services/source-post-variation-output.util';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { paginatedQueryCacheTag } from '@server/shared/utils/query-cache/query-cache.util';
 
 const SOURCE_CONTEXT_CHUNK_SIZE = 480;
 const MAX_SOURCE_CONTEXT_CHUNKS = 8;

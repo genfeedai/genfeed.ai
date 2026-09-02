@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { AnalyzeToneDto } from '@api/collections/profiles/dto/analyze-tone.dto';
 import { ApplyProfileDto } from '@api/collections/profiles/dto/apply-profile.dto';
 import { CreateProfileDto } from '@api/collections/profiles/dto/create-profile.dto';
@@ -11,7 +11,7 @@ import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';

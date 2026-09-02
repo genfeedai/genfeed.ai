@@ -1,10 +1,10 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   EngagementMetric,
   EngagementRuleAction,
   EngagementRuleMode,
 } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,

@@ -1,9 +1,17 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
+import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import { type ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
@@ -30,14 +38,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateModelDto } from '@server/collections/models/dto/create-model.dto';
-import { UpdateModelDto } from '@server/collections/models/dto/update-model.dto';
-import { type ModelDocument } from '@server/collections/models/schemas/model.schema';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
 import type { Request } from 'express';
 
 type MatchConditions = Record<string, unknown>;

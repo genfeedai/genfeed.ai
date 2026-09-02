@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { type CreditTransaction as CreditTransactions } from '@genfeedai/prisma';
 

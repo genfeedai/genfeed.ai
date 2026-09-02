@@ -1,18 +1,18 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

@@ -10,6 +10,22 @@
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipAnalysisWorkflowService } from '@api/collections/clip-projects/services/clip-analysis-workflow.service';
+import { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import { ClipContinuityWorkflowService } from '@api/collections/clip-projects/services/clip-continuity-workflow.service';
+import { ClipFactoryWorkflowService } from '@api/collections/clip-projects/services/clip-factory-workflow.service';
+import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
+import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@api/collections/clip-projects/services/clip-generation-dispatch.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
+import { ClipHighlightDetector } from '@api/collections/clip-projects/services/clip-highlight-detector.service';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
+import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -23,22 +39,6 @@ import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipAnalysisWorkflowService } from '@server/collections/clip-projects/services/clip-analysis-workflow.service';
-import { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
-import { ClipContinuityWorkflowService } from '@server/collections/clip-projects/services/clip-continuity-workflow.service';
-import { ClipFactoryWorkflowService } from '@server/collections/clip-projects/services/clip-factory-workflow.service';
-import { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
-import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import { ClipHighlightDetector } from '@server/collections/clip-projects/services/clip-highlight-detector.service';
-import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
-import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
-import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
-import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 
 @Module({
   exports: [

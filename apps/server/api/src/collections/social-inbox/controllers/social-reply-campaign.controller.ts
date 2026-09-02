@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   SocialReplyCampaignCreateDto,
   SocialReplyCampaignQueryDto,
@@ -6,7 +6,7 @@ import {
   SocialReplyCampaignStatusDto,
   SocialReplyCampaignUpdateDto,
 } from '@api/collections/social-inbox/dto/social-reply-campaign.dto';
-import type { SocialInboxScope } from '@server/collections/social-inbox/services/social-inbox.types';
+import type { SocialInboxScope } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';

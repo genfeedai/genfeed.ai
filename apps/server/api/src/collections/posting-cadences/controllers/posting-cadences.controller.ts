@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   BookCalendarSlotDto,
   BulkGenerateCalendarSlotsDto,
@@ -13,7 +13,7 @@ import { PostingCadencesService } from '@api/collections/posting-cadences/servic
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   serializeCollection,
   serializeSingle,

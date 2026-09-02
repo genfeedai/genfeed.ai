@@ -1,4 +1,4 @@
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import { RequestWithBody } from '@libs/interfaces/http.interface';
 import {

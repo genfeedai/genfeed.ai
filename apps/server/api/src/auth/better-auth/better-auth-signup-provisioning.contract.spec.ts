@@ -1,16 +1,16 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';
 import { magicLink } from 'better-auth/plugins';
@@ -146,7 +146,7 @@ function createSignupProvisioningHarness() {
     settingsService as unknown as SettingsService,
     {
       ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
-    } as unknown as import('@server/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
+    } as unknown as import('@api/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
     creditBalanceService as unknown as CreditBalanceService,
     creditsUtilsService as unknown as CreditsUtilsService,
     logger as unknown as LoggerService,

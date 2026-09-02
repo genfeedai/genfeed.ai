@@ -1,5 +1,5 @@
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
-import { PatternMatcherService } from '@server/services/pattern-matcher/pattern-matcher.service';
+import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { Module } from '@nestjs/common';
 
 @Module({

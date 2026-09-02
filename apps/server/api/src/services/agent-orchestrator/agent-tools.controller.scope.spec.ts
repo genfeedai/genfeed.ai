@@ -1,9 +1,9 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import type { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ApiKeyScope } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { UsersService } from '@server/collections/users/services/users.service';
-import type { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { Request } from 'express';
 
 const request = {} as Request;

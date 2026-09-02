@@ -1,3 +1,17 @@
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import {
+  buildScheduledPostFailureWorkflowDefinition,
+  buildScheduledPostWorkflowDefinition,
+  SCHEDULED_POST_ACTION_IDS,
+  type ScheduledPostWorkflowInput,
+} from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { PublishApprovalsService, type PublishResult } from '@api/index';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -5,23 +19,9 @@ import {
   PublishApprovalStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { PublishApprovalsService, type PublishResult } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
-import {
-  buildScheduledPostFailureWorkflowDefinition,
-  buildScheduledPostWorkflowDefinition,
-  SCHEDULED_POST_ACTION_IDS,
-  type ScheduledPostWorkflowInput,
-} from '@server/collections/posts/services/scheduled-post-workflow-definition';
-import {
-  type SystemWorkflowActionRequest,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';

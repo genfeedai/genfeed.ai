@@ -1,3 +1,5 @@
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -18,7 +20,18 @@ import {
   shouldFinalizeExternalOutput,
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { GenerationWebhookOutput } from '@api-types/contracts/generation-webhook-events.contract';
 import {
   ActivityEntityModel,
@@ -33,19 +46,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { toRedactedGenerationBriefProviderData } from '@server/services/generation-brief';
-import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 
 interface RealizedImageDimensions {
   height?: number;

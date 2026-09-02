@@ -6,8 +6,8 @@ import {
 import {
   type CreatePatternDto,
   PatternStoreService,
-} from '@server/collections/content-intelligence/services/pattern-store.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+} from '@api/collections/content-intelligence/services/pattern-store.service';
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,

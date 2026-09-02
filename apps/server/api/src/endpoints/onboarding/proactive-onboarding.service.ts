@@ -1,13 +1,13 @@
 import { BrandEntity } from '@api/collections/brands/entities/brand.entity';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import type {
   CrmGenerateContentDto,
   PrepareBrandDto,
@@ -20,12 +20,13 @@ import {
   getProactivePrepStage,
   isProactiveInviteEligible,
 } from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
-import { MasterPromptGeneratorService } from '@server/services/knowledge-base/master-prompt-generator.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
@@ -33,7 +34,6 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
 import { type Lead, toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

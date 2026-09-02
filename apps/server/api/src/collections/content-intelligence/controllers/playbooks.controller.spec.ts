@@ -18,13 +18,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PlaybooksController } from '@api/collections/content-intelligence/controllers/playbooks.controller';
 import type {
   CreatePlaybookDto,
   UpdatePlaybookDto,
-} from '@server/collections/content-intelligence/dto/create-playbook.dto';
-import { PlaybookBuilderService } from '@server/collections/content-intelligence/services/playbook-builder.service';
+} from '@api/collections/content-intelligence/dto/create-playbook.dto';
+import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { ContentIntelligencePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

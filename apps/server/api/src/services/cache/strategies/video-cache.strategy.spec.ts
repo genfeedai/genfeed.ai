@@ -2,7 +2,7 @@
  * @fileoverview Tests for VideoCacheStrategy
  */
 
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { VideoCacheStrategy } from '@api/services/cache/strategies/video-cache.strategy';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -1,3 +1,7 @@
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import {
   CREDIT_DEDUCTION_QUEUE,
@@ -8,10 +12,6 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { Job, UnrecoverableError } from 'bullmq';
 
 const LOW_CREDITS_THRESHOLD = 1000;

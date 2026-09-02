@@ -2,7 +2,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, value) => ({ data: value })),
 }));
 
-import type { BrandOsPreviewService } from '@server/collections/brands/services/brand-os-preview.service';
+import type { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {

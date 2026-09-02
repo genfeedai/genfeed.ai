@@ -1,16 +1,16 @@
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,

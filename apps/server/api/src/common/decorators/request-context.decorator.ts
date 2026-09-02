@@ -1,4 +1,4 @@
-import type { IRequestContext } from '@server/common/interfaces/request-context.interface';
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 

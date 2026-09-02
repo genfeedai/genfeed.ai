@@ -154,22 +154,6 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './test'),
       },
       {
-        find: '@genfeedai/server',
-        replacement: path.resolve(serviceDir, '../server/src'),
-      },
-      {
-        find: /^@genfeedai\/server\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../server/src/$1'),
-      },
-      {
-        find: '@server',
-        replacement: path.resolve(serviceDir, '../server/src'),
-      },
-      {
-        find: /^@server\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../server/src/$1'),
-      },
-      {
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
@@ -192,10 +176,7 @@ export default defineConfig({
       },
       {
         find: '@credits',
-        replacement: path.resolve(
-          serviceDir,
-          '../server/src/collections/credits',
-        ),
+        replacement: path.resolve(serviceDir, './src/collections/credits'),
       },
       {
         find: '@files',

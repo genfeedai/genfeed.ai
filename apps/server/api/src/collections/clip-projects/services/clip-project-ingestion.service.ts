@@ -1,10 +1,21 @@
 import { createHash } from 'node:crypto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import type { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   MAX_CLIP_SOURCE_SIZE_BYTES,
   type PrepareClipUploadDto,
 } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
@@ -16,17 +27,6 @@ import {
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
-import { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 

@@ -1,4 +1,4 @@
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

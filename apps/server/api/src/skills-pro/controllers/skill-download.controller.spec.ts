@@ -1,10 +1,10 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SkillDownloadController } from '@api/skills-pro/controllers/skill-download.controller';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { isPublicRoute } from '@libs/decorators/public.decorator';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
 describe('SkillDownloadController', () => {

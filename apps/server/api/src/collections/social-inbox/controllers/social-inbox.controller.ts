@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   SocialConversationUpdateDto,
   SocialDmDto,
@@ -10,6 +11,15 @@ import {
   SocialInboxQueryDto,
   SocialMessagesQueryDto,
 } from '@api/collections/social-inbox/dto/social-inbox-query.dto';
+import {
+  type SocialInboxScope,
+  SocialInboxService,
+} from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
+import type {
+  SocialInboxSyncConversationType,
+  SocialInboxSyncPlatform,
+} from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -46,16 +56,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import {
-  type SocialInboxScope,
-  SocialInboxService,
-} from '@server/collections/social-inbox/services/social-inbox.service';
-import { SocialInboxSyncWorkflowService } from '@server/collections/social-inbox/services/social-inbox-sync-workflow.service';
-import type {
-  SocialInboxSyncConversationType,
-  SocialInboxSyncPlatform,
-} from '@server/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import type { Request } from 'express';
 
 @ApiTags('Messages')

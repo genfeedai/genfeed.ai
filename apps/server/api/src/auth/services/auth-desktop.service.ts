@@ -5,16 +5,16 @@ import type {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   buildCodeChallenge,
   hashToken,
   safeEqual,
   toBase64Url,
-} from '@server/auth/shared/pkce.util';
+} from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

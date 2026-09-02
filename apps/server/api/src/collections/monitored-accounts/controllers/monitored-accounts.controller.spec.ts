@@ -4,9 +4,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { MonitoredAccountsController } from '@api/collections/monitored-accounts/controllers/monitored-accounts.controller';
-import { MonitoredAccountsService } from '@server/collections/monitored-accounts/services/monitored-accounts.service';
+import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -1,4 +1,4 @@
-import { mapEngineNodeStatus } from '@server/collections/workflows/services/workflow-execution-status.util';
+import { mapEngineNodeStatus } from '@api/collections/workflows/services/workflow-execution-status.util';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 

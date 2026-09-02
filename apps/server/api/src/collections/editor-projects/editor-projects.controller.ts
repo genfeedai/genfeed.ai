@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -20,7 +20,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   EditorProjectStatus,
   EditorTrackType,

@@ -1,16 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { scopedWhere } from '@api/index';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

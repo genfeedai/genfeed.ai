@@ -1,6 +1,6 @@
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
-import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Bot } from 'grammy';
 
 // Mock grammy

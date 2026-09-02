@@ -3,10 +3,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_, __, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

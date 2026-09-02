@@ -1,8 +1,8 @@
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 
 /**
  * Builds a public reference image URL for a given reference id.

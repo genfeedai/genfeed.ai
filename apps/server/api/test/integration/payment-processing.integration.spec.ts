@@ -5,8 +5,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
   mockConfigService,

@@ -1,10 +1,10 @@
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 import type {
   StripeCharge,
   StripeDispute,
-} from '@server/services/integrations/stripe/services/stripe.service';
+} from '@api/services/integrations/stripe/services/stripe.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 
 function resourceId(value: unknown): string | null {
   if (typeof value === 'string') {

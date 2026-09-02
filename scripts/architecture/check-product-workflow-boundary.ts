@@ -11,7 +11,7 @@ const DEFAULT_INCLUDE_GLOBS = [
   'apps/server/discord/src/**/*.ts',
   'apps/server/files/src/**/*.ts',
   'apps/server/mcp/src/**/*.ts',
-  'apps/server/server/src/**/*.ts',
+  'apps/server/api/src/**/*.ts',
   'apps/server/slack/src/**/*.ts',
   'apps/server/telegram/src/**/*.ts',
   'apps/server/workers/src/**/*.ts',
@@ -114,7 +114,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'platform-maintenance',
-      file: 'apps/server/server/src/services/notifications/notifications.service.ts',
+      file: 'apps/server/api/src/services/notifications/notifications.service.ts',
       id: 'notification-redis-publisher',
       reason:
         'Infrastructure notification fan-out uses a Redis publisher; it does not publish customer content or orchestrate product behavior.',
@@ -129,7 +129,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/collections/workflows/services/youtube-long-form-workflow.service.ts',
+      file: 'apps/server/api/src/collections/workflows/services/youtube-long-form-workflow.service.ts',
       id: 'youtube-long-form-actions',
       reason:
         'The service registers the atomic YouTube source, transcription, transformation, persistence, and Library-promotion executors used by the hidden graphs.',
@@ -148,7 +148,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.ts',
+      file: 'apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts',
       id: 'reply-bot-orchestration',
       reason:
         'The service registers atomic reply-bot action adapters and queues immutable organization, bot, content, DM, and test workflow graphs.',
@@ -162,7 +162,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/services/reply-bot/bot-action-executor.service.ts',
+      file: 'apps/server/api/src/services/reply-bot/bot-action-executor.service.ts',
       id: 'reply-bot-action-executor',
       reason:
         'Low-level social client adapter used by workflow-backed action callers; it must not schedule product behavior itself.',
@@ -182,7 +182,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
+      file: 'apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts',
       id: 'social-inbox-manual-actions',
       reason:
         'Low-level provider adapters are registered once and invoked by the immutable social inbox outbound reply and DM workflows.',
@@ -193,7 +193,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/services/campaign/campaign-executor.service.ts',
+      file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
       id: 'campaign-reply-action-adapter',
       reason:
         'Atomic campaign reply target actions are sequenced by immutable batch and per-target workflows.',
@@ -204,7 +204,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/server/src/services/campaign/dm-campaign-executor.service.ts',
+      file: 'apps/server/api/src/services/campaign/dm-campaign-executor.service.ts',
       id: 'campaign-dm-action-adapter',
       reason:
         'Atomic campaign DM target actions are sequenced by immutable batch and per-target workflows.',
@@ -353,7 +353,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'social-inbox-direct-platform-action',
     matches: (file, source) =>
       (file.startsWith('apps/server/api/src/collections/social-inbox/') ||
-        file.startsWith('apps/server/server/src/collections/social-inbox/')) &&
+        file.startsWith('apps/server/api/src/collections/social-inbox/')) &&
       (/\byoutubeService\s*\.\s*postCommentReply\s*\(/.test(source) ||
         /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/.test(
           source,

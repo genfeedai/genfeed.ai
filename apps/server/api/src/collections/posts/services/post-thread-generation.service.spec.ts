@@ -1,20 +1,20 @@
-vi.mock('@server/collections/templates/services/templates.service', () => ({
+vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
-import type { PostDocument } from '@server/collections/posts/post.schema';
+import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PostStatus, Status, TargetExecutionState } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 const extraChildPostId = testId('post', 4);
 

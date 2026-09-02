@@ -1,4 +1,4 @@
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 
 /**
  * Utility to provide default values for query parameters based on BaseQueryDto

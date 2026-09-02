@@ -1,4 +1,4 @@
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';

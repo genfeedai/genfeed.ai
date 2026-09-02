@@ -6,10 +6,10 @@
  * customized forks are never overwritten.
  */
 
-import type { FirstPartySkillDefinition } from '@server/collections/skills/catalog/first-party-skill.types';
-import { loadFirstPartySkillDefinitions } from '@server/collections/skills/catalog/first-party-skill-loader';
-import { isBuiltInSkillIdentity } from '@server/collections/skills/constants/skill-validation.constant';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
+import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
+import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';

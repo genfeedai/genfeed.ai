@@ -8,22 +8,22 @@ import { describe, expect, it, vi } from 'vitest';
 // BaseService needs without importing the client.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
+import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@api/helpers/utils/article-filter/article-filter.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import { getModelMeta } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
-import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
-import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@server/helpers/utils/article-filter/article-filter.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Regression coverage for #2767. `articles` persisted `title`/`excerpt` while
@@ -219,12 +219,7 @@ describe('ArticlesService create persistence', () => {
 
   it('generate persist source never assigns unknown Prisma Article fields', () => {
     const source = readFileSync(
-      fileURLToPath(
-        new URL(
-          '../../../../../server/src/collections/articles/services/articles-content.service.ts',
-          import.meta.url,
-        ),
-      ),
+      fileURLToPath(new URL('./articles-content.service.ts', import.meta.url)),
       'utf8',
     );
 

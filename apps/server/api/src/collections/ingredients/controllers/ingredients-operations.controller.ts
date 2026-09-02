@@ -1,12 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
-import type { IngredientMetadataDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { UpdateMetadataDto } from '@server/collections/metadata/dto/update-metadata.dto';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -14,9 +14,10 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   categoryToPlural,
   FileInputType,
@@ -45,7 +46,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

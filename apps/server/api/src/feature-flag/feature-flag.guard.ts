@@ -1,9 +1,9 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FEATURE_FLAG_KEY } from '@api/feature-flag/feature-flag.decorator';
 import {
   type FeatureFlagAttributes,
   FeatureFlagService,
 } from '@api/feature-flag/feature-flag.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type CanActivate,
   type ExecutionContext,

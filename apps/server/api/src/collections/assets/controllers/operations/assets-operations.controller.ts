@@ -3,24 +3,25 @@
  * Handles AI asset generation.
  */
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ValidationException } from '@server/exceptions/validation.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   CLOUD_QUALITY_IMAGE_MODEL_KEY,
@@ -45,7 +46,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 function buildBrandAssetPrompt(

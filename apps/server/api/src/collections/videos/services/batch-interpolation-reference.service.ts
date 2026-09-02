@@ -1,10 +1,10 @@
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { InterpolationPairDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 
 @Injectable()
 export class BatchInterpolationReferenceService {

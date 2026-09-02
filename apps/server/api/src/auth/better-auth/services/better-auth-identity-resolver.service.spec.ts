@@ -1,10 +1,10 @@
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { UnauthorizedException } from '@nestjs/common';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { UsersService } from '@server/collections/users/services/users.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BetterAuthIdentityResolverService } from './better-auth-identity-resolver.service';

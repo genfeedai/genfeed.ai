@@ -5,8 +5,8 @@
  * scaffolding lives in one place and the dashboard service stays focused.
  */
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import {
   BrandWithStatsEntity,
@@ -15,10 +15,10 @@ import {
   PaginatedBrandsResponse,
   PaginatedOrgsResponse,
 } from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { DateRangeUtil } from '@server/helpers/utils/date-range/date-range.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { IEntityAnalyticsStats } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

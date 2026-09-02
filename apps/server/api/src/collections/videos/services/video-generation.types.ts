@@ -91,12 +91,12 @@ export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
   width: number;
 }
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import type { ModelProvider } from '@genfeedai/enums';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import type { SharedService } from '@server/shared/services/shared/shared.service';

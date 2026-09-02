@@ -11,8 +11,11 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
+import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -20,9 +23,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { of } from 'rxjs';
 
 describe('ThreadsController', () => {

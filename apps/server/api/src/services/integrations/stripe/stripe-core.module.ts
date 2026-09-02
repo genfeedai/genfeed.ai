@@ -1,7 +1,7 @@
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 
 /**
  * Stripe client only. Controllers that talk to billing stay on `StripeModule`

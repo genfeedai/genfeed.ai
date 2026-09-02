@@ -1,24 +1,24 @@
 import {
   computeVariantPerformanceScore,
   rankByScoreDesc,
-} from '@server/collections/content-performance/utils/variant-performance-scoring.util';
+} from '@api/collections/content-performance/utils/variant-performance-scoring.util';
 import {
   hydrateContentRun,
   isContentRunRecord,
   toContentRunJsonValue,
-} from '@server/collections/content-runs/utils/content-run-data.util';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+} from '@api/collections/content-runs/utils/content-run-data.util';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import {
   ContentOptimizationService,
   type WinnerContentSignal,
-} from '@server/services/content-optimization/content-optimization.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+} from '@api/services/content-optimization/content-optimization.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

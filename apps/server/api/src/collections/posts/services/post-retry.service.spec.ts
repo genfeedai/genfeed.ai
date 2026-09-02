@@ -1,5 +1,5 @@
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpStatus } from '@nestjs/common';

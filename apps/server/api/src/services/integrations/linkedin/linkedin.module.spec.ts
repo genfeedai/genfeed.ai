@@ -1,15 +1,15 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SERVER_TOKENS } from '@api/server.dependencies';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 
 describe('LinkedInModule', () => {
   let _module: TestingModule;

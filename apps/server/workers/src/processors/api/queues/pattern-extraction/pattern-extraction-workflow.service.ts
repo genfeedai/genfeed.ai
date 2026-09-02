@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
+import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   AD_PERFORMANCE_CHECKPOINT_SOURCE,
   CONTENT_PERFORMANCE_CHECKPOINT_SOURCE,

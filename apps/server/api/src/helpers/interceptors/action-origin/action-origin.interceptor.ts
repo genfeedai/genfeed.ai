@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { normalizeActionOrigin, runWithActionOrigin } from '@api/index';
 import { ActionOrigin, MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
-import { normalizeActionOrigin, runWithActionOrigin } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import {
   type CallHandler,

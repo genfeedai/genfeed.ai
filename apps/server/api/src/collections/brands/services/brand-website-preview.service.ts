@@ -1,4 +1,4 @@
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

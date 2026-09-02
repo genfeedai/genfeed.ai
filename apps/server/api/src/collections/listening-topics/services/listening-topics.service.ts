@@ -12,10 +12,11 @@ import type {
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ListeningSourcePlatform } from '@genfeedai/enums';
 import {
   type IAuthorizedListeningSource,
@@ -23,7 +24,6 @@ import {
   type INormalizedListeningTopicContract,
   LISTENING_CONTRACT_VERSION,
 } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,

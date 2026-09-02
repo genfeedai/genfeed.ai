@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeysController } from '@api/collections/api-keys/controllers/api-keys.controller';
 import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import type { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import { type ApiKey } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
-import type { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';

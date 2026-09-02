@@ -1,4 +1,14 @@
+import { CustomerInstanceResolverService } from '@api/collections/customer-instances/customer-instance-resolver.service';
+import { SERVER_TOKENS } from '@api/server.dependencies';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
+import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -6,16 +16,6 @@ import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { CustomerInstanceResolverService } from '@server/collections/customer-instances/customer-instance-resolver.service';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
-import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
-import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
-import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { FileServicesModule } from '@workers/services/file-services.module';
 
 const GENERATION_SERVICES = [

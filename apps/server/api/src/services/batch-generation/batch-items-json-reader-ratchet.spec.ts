@@ -11,9 +11,7 @@ import { describe, expect, it } from 'vitest';
  * Writers in this PR still persist `Batch.items` so existing rows stay in
  * sync; a follow-up can delete the JSON column once this fallback is unused.
  */
-const dir = fileURLToPath(
-  new URL('../../../../server/src/services/batch-generation/', import.meta.url),
-);
+const dir = fileURLToPath(new URL('./', import.meta.url));
 
 const PRODUCTION_FILES = readdirSync(dir).filter(
   (name) =>

@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CompleteSocialWarmupItemDto } from '@api/collections/social-warmup-enrollments/dto/complete-social-warmup-item.dto';
 import { CreateSocialWarmupEnrollmentDto } from '@api/collections/social-warmup-enrollments/dto/create-social-warmup-enrollment.dto';
 import { SocialWarmupEnrollmentsQueryDto } from '@api/collections/social-warmup-enrollments/dto/social-warmup-enrollments-query.dto';

@@ -2,7 +2,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
 import type { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';

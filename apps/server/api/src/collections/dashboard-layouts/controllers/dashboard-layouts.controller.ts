@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { UpsertDashboardLayoutDto } from '@server/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
-import { DashboardLayoutsService } from '@server/collections/dashboard-layouts/services/dashboard-layouts.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
+import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {

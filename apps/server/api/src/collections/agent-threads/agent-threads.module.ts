@@ -6,10 +6,10 @@
 
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
-import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { AgentScopeContextService, SERVER_TOKENS } from '@genfeedai/server';
+import { AgentScopeContextService, SERVER_TOKENS } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 

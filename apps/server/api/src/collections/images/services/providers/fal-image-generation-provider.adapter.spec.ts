@@ -1,7 +1,7 @@
 import type { ImageGenerationProviderRequest } from '@api/collections/images/services/image-generation.types';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
-import type { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { FalSchemaFamily } from '@server/services/integrations/fal/services/fal-contract';
+import type { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 
 describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
   it('executes a reviewed modern multi-image family through the contract adapter', async () => {

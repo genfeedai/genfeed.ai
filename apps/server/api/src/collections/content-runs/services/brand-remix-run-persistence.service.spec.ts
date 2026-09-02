@@ -1,6 +1,6 @@
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { RUN_SELECT } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import { ContentRunStatus } from '@genfeedai/enums';
 import { ConflictException } from '@nestjs/common';

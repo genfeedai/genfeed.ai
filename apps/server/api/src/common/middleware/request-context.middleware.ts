@@ -1,5 +1,5 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   buildRcKey,
   buildRcKeysSetKey,
@@ -7,8 +7,8 @@ import {
   RC_PREFIX,
   RC_TTL,
 } from '@api/common/constants/request-context-cache.constants';
-import { IRequestContext } from '@server/common/interfaces/request-context.interface';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import {

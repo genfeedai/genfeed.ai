@@ -1,16 +1,21 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
 import { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
+import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -27,11 +32,6 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import type { Request } from 'express';
 
 @AutoSwagger()

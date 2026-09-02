@@ -1,15 +1,23 @@
+import { AdCreativeMappingsService } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import {
   BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
   BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
   buildBrandRemixXPausedDraftWorkflowDefinition,
 } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
+import {
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
+import { scopedWhere } from '@api/index';
+import type { XAdsRequestCredentials } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
+import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
 } from '@api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform, IngredientStatus } from '@genfeedai/enums';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   BadRequestException,
@@ -17,14 +25,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import {
-  type SystemWorkflowProvenance,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
-import type { XAdsRequestCredentials } from '@server/services/integrations/x-ads/interfaces/x-ads.interface';
-import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export interface PausedXAdsCampaignDraftInput {
   adAccountId: string;

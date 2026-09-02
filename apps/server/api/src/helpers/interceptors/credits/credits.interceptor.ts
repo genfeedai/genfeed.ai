@@ -1,3 +1,5 @@
+import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
@@ -8,8 +10,6 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { from, Observable, throwError } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 

@@ -1,19 +1,19 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateLinkDto } from '@server/collections/links/dto/create-link.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateLinkDto } from '@api/collections/links/dto/create-link.dto';
 import { LinksQueryDto } from '@api/collections/links/dto/links-query.dto';
-import { UpdateLinkDto } from '@server/collections/links/dto/update-link.dto';
-import type { LinkDocument } from '@server/collections/links/schemas/link.schema';
-import { LinksService } from '@server/collections/links/services/links.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { UpdateLinkDto } from '@api/collections/links/dto/update-link.dto';
+import type { LinkDocument } from '@api/collections/links/schemas/link.schema';
+import { LinksService } from '@api/collections/links/services/links.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { PopulateBuilder } from '@server/shared/utils/populate/populate.util';
-import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   JsonApiSingleResponse,
   PopulateOption,

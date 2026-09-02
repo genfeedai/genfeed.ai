@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ElementDto } from '@api/shared/dto/element/element.dto';
 import { ModelCategory, Platform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';

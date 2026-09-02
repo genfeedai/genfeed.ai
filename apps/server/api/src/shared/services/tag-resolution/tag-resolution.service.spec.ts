@@ -1,6 +1,6 @@
-import { TagsService } from '@server/collections/tags/services/tags.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { testIds } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -25,7 +25,7 @@ describe('TagResolutionService', () => {
       totalDocs: docs.length,
       totalPages: 1,
     }) as unknown as AggregatePaginateResult<
-      import('@server/collections/tags/schemas/tag.schema').TagDocument
+      import('@api/collections/tags/schemas/tag.schema').TagDocument
     >;
 
   beforeEach(async () => {
@@ -145,7 +145,7 @@ describe('TagResolutionService', () => {
         isActive: true,
         isDeleted: false,
         label: 'Technology',
-      } as unknown as import('@server/collections/tags/schemas/tag.schema').TagDocument;
+      } as unknown as import('@api/collections/tags/schemas/tag.schema').TagDocument;
 
       tagsService.findOne.mockResolvedValue(mockTag);
 
@@ -186,7 +186,7 @@ describe('TagResolutionService', () => {
         isActive: true,
         isDeleted: false,
         label: null,
-      } as unknown as import('@server/collections/tags/schemas/tag.schema').TagDocument;
+      } as unknown as import('@api/collections/tags/schemas/tag.schema').TagDocument;
 
       tagsService.findOne.mockResolvedValue(mockTag);
 

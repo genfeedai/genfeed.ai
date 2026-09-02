@@ -1,6 +1,6 @@
+import type { ServerModelRecord } from '@api/index';
 import { ModelCategory, PricingType } from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/pricing';
-import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type { IModelPricingEstimate } from '@workers/interfaces/model-discovery.interface';

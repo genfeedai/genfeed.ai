@@ -1,22 +1,22 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
-import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
-import { UpdateArticleDto } from '@server/collections/articles/dto/update-article.dto';
-import type { ArticleDocument } from '@server/collections/articles/schemas/article.schema';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
+import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
+import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
+import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import {
   ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
   createArticlePreviewToken,
 } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';

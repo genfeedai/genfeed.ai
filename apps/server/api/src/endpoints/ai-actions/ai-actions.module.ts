@@ -1,5 +1,5 @@
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
-import { AiActionsService } from '@server/endpoints/ai-actions/ai-actions.service';
+import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';

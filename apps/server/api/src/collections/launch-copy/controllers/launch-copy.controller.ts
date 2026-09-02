@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateLaunchCopyDto } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
 import { LaunchCopyGeneratorService } from '@api/collections/launch-copy/services/launch-copy-generator.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

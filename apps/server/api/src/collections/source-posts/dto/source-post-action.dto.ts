@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { SourcePostActionType } from '@genfeedai/enums';
 import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';

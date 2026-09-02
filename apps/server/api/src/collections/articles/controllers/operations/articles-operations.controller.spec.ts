@@ -1,23 +1,23 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
+import type { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
+import type { Article } from '@api/collections/articles/schemas/article.schema';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ArticleCategory, AssetScope, ModelCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { GenerateArticlesDto } from '@server/collections/articles/dto/generate-articles.dto';
-import type { Article } from '@server/collections/articles/schemas/article.schema';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 
 describe('ArticlesOperationsController', () => {

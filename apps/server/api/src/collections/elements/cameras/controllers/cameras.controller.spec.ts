@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsCamerasController } from '@api/collections/elements/cameras/controllers/cameras.controller';
 import { CreateElementCameraDto } from '@api/collections/elements/cameras/dto/create-camera.dto';
 import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/update-camera.dto';
 import { ElementsCamerasService } from '@api/collections/elements/cameras/services/cameras.service';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';

@@ -1,3 +1,4 @@
+import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import {
   AdBulkUploadService,
   type CreateBulkUploadInput,
@@ -5,7 +6,6 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 
 describe('AdBulkUploadService', () => {
   let service: AdBulkUploadService;

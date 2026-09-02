@@ -23,18 +23,18 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type { Request } from 'express';
 
 describe('UserStripeController', () => {

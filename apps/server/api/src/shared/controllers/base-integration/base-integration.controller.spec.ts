@@ -1,9 +1,9 @@
 import type {
   AuthenticatedUser,
   AuthenticatedUser as User,
-} from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+} from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   BaseIntegrationController,
   type OAuthUrlResult,

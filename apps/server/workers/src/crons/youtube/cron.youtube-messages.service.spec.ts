@@ -1,4 +1,4 @@
-import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@server/collections/social-inbox/services/social-inbox-sync-workflow-definition';
+import { SOCIAL_INBOX_SYNC_WORKFLOW_IDS } from '@api/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import { buildYoutubeCommentsSweepDefinition } from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
 
 describe('YouTube comment workflows', () => {

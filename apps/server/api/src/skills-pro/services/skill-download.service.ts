@@ -1,15 +1,15 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { parseSkillsProPack } from '@api/skills-pro/utils/skill-pack-archive.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { inferFirstPartySkillTaxonomy } from '@server/collections/skills/catalog/first-party-skill-taxonomy';
-import { SkillsService } from '@server/collections/skills/services/skills.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const DOWNLOAD_URL_TTL_SECONDS = 900;
 const MAX_PACK_DOWNLOAD_BYTES = 1_000_000;

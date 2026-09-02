@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
 import type { ElementLensDocument } from '@api/collections/elements/lenses/schemas/lens.schema';
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
 import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';

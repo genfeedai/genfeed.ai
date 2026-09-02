@@ -4,7 +4,7 @@
 and QR code generation.
  */
 import { LinksController } from '@api/collections/links/controllers/links.controller';
-import { LinksService } from '@server/collections/links/services/links.service';
+import { LinksService } from '@api/collections/links/services/links.service';
 import { Module } from '@nestjs/common';
 
 @Module({

@@ -1,4 +1,4 @@
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

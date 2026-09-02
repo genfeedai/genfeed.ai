@@ -2,12 +2,12 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';

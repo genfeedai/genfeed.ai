@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateVoteDto } from '@server/collections/votes/dto/create-vote.dto';
-import { VotesService } from '@server/collections/votes/services/votes.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateVoteDto } from '@api/collections/votes/dto/create-vote.dto';
+import { VotesService } from '@api/collections/votes/services/votes.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

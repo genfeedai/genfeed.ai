@@ -1,16 +1,16 @@
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipAnalysisWorkflowQueueService } from '@api/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import type { ClipFactoryWorkflowQueueService } from '@api/collections/clip-projects/services/clip-factory-workflow-queue.service';
+import type { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
+import type { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { BadRequestException } from '@nestjs/common';
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import type { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
-import type { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
-import type { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import type { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 
 describe('ClipProjectIngestionService', () => {
   const currentUser = {

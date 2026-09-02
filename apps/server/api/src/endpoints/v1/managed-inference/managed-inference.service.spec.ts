@@ -1,23 +1,23 @@
-vi.mock('@server/collections/credits/services/credits.utils.service', () => ({
+vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class CreditsUtilsService {},
 }));
-vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
+vi.mock('@api/services/integrations/fal/services/fal.service', () => ({
   FalService: class FalService {},
 }));
 vi.mock(
-  '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service',
+  '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service',
   () => ({
     ManagedInferenceRuntimeService: class ManagedInferenceRuntimeService {},
   }),
 );
 vi.mock(
-  '@server/services/integrations/leonardoai/services/leonardoai.service',
+  '@api/services/integrations/leonardoai/services/leonardoai.service',
   () => ({
     LeonardoAIService: class LeonardoAIService {},
   }),
 );
 vi.mock(
-  '@server/services/integrations/replicate/services/replicate.service',
+  '@api/services/integrations/replicate/services/replicate.service',
   () => ({
     ReplicateService: class ReplicateService {},
   }),
@@ -26,20 +26,20 @@ vi.mock('@libs/logger/logger.service', () => ({
   LoggerService: class LoggerService {},
 }));
 
-import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
-import { ActivitySource } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
-} from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import type { ManagedInferenceAuthenticatedRequest } from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
-import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
+} from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
+import { ActivitySource } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
 
 describe('ManagedInferenceService', () => {
   const creditsUtilsService = {

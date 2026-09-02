@@ -1,5 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
+import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
+import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
+import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -7,6 +15,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { scopedWhere } from '@api/index';
+import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type {
   JsonApiCollectionResponse,
@@ -14,7 +24,6 @@ import type {
   SortObject,
 } from '@genfeedai/interfaces';
 import { TaskSerializer } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -32,15 +41,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
-import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
-import { UpdateTaskDto } from '@server/collections/tasks/dto/update-task.dto';
-import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema';
-import { TasksService } from '@server/collections/tasks/services/tasks.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 import type { Request } from 'express';
 
 @ApiTags('Tasks')

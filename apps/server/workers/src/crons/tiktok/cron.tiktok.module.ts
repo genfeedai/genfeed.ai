@@ -1,8 +1,8 @@
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { PostLifecycleService } from '@api/index';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
-import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';

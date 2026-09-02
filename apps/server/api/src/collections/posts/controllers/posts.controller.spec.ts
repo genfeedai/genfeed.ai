@@ -1,7 +1,7 @@
 import 'reflect-metadata';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import {
   ApiKeyScope,

@@ -1,9 +1,9 @@
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
+import type { ServerModelRecord } from '@api/index';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { getProviderModelKey } from '@server/collections/models/utils/model-key.util';
 import { ConfigService } from '@workers/config/config.service';
 import type {
   IModelDiscoveryInput,

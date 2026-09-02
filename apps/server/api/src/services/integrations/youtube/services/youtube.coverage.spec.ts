@@ -1,13 +1,13 @@
 // Break circular dependencies: both YoutubeAnalyticsService and YoutubeMetadataService import YoutubeService
 vi.mock(
-  '@server/services/integrations/youtube/services/modules/youtube-analytics.service',
+  '@api/services/integrations/youtube/services/modules/youtube-analytics.service',
   () => ({
     YoutubeAnalyticsService: vi.fn(),
   }),
 );
 
 vi.mock(
-  '@server/services/integrations/youtube/services/modules/youtube-metadata.service',
+  '@api/services/integrations/youtube/services/modules/youtube-metadata.service',
   () => ({
     YoutubeMetadataService: vi.fn(),
   }),
@@ -15,24 +15,24 @@ vi.mock(
 
 // Mock YoutubeOAuth2Util so generateAuthUrl / exchangeCodeForTokens can be tested
 // without real Google OAuth credentials.
-vi.mock('@server/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
+vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
   YoutubeOAuth2Util: {
     createClient: vi.fn(),
   },
 }));
 
-import { ConfigService } from '@libs/config/config.service';
-import { Test, TestingModule } from '@nestjs/testing';
 import {
   SERVER_TOKENS,
   type ServerYoutubeUploader,
-} from '@server/server.dependencies';
-import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
-import { YoutubeMetadataService } from '@server/services/integrations/youtube/services/modules/youtube-metadata.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import { YoutubeOAuth2Util } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
+} from '@api/server.dependencies';
+import { YoutubeAnalyticsService } from '@api/services/integrations/youtube/services/modules/youtube-analytics.service';
+import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
+import { YoutubeMetadataService } from '@api/services/integrations/youtube/services/modules/youtube-metadata.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
+import { ConfigService } from '@libs/config/config.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------

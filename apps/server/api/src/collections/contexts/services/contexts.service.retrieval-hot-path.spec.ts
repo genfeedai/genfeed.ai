@@ -1,15 +1,15 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import { ContextsService } from '@server/collections/contexts/services/contexts.service';
-import type { RouterService } from '@server/services/router/router.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { RouterService } from '@api/services/router/router.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 interface MockSql {
   sql: string;

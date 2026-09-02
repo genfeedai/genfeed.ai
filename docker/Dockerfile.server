@@ -61,7 +61,6 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       @genfeedai/files \
       @genfeedai/mcp \
       @genfeedai/notifications \
-      @genfeedai/server \
       @genfeedai/slack \
       @genfeedai/telegram \
       @genfeedai/workers \
@@ -78,7 +77,6 @@ RUN --mount=type=bind,source=.,target=/ctx,ro \
       @genfeedai/files \
       @genfeedai/mcp \
       @genfeedai/notifications \
-      @genfeedai/server \
       @genfeedai/slack \
       @genfeedai/telegram \
       @genfeedai/workers \

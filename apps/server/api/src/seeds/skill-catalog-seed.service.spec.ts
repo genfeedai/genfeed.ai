@@ -1,6 +1,6 @@
-import type { FirstPartySkillDefinition } from '@server/collections/skills/catalog/first-party-skill.types';
-import { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@server/collections/skills/constants/skill-catalog-identity';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
+import { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-catalog-identity';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

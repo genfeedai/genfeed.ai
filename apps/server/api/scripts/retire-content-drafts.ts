@@ -17,7 +17,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import { AgentArtifactReferenceService } from '@api/index';
 import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,

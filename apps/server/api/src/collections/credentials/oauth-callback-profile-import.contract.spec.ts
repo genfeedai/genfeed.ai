@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
 const API_SRC = path.resolve(SPEC_DIR, '../..');
-const SERVER_SRC = path.resolve(SPEC_DIR, '../../../../server/src');
 
 const OAUTH_PROFILE_IMPORT_PROVIDERS = [
   Platform.FACEBOOK,
@@ -22,7 +21,7 @@ describe('OAuth callback profile import contract', () => {
   it('imports avatars through the shared SSRF-guarded credential path', () => {
     const source = readFileSync(
       path.join(
-        SERVER_SRC,
+        API_SRC,
         'collections/credentials/services/credentials.service.ts',
       ),
       'utf8',

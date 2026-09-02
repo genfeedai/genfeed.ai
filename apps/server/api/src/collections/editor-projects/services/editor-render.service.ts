@@ -1,21 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import {
   buildValidatedEditorExportContract,
   EditorExportContractValidationError,
 } from '@api/collections/editor-projects/utils/editor-export-contract.util';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   categoryToPlural,
   EditorProjectStatus,

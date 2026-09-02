@@ -6,20 +6,20 @@
  * - Get training sources
  */
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,

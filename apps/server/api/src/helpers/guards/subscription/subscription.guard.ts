@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
@@ -12,7 +13,6 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request } from 'express';
 
 export interface SubscriptionGuardRequest extends Omit<Request, 'user'> {

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClaimReferralDto } from '@api/collections/referrals/dto/claim-referral.dto';
 import {
   REFERRAL_ADMIN_MAX_PAGE,
@@ -30,7 +31,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 
 const ADMIN_DEFAULT_LIMIT = 50;
 const ADMIN_MAX_LIMIT = 100;

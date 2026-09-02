@@ -9,25 +9,22 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
-vi.mock('@server/collections/videos/services/videos.service', () => ({
+vi.mock('@api/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
-vi.mock(
-  '@server/services/files-microservice/client/files-client.service',
-  () => ({
-    FilesClientService: class {},
-  }),
-);
+vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
+  FilesClientService: class {},
+}));
 
 import { Readable } from 'node:stream';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { AssetScope, IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,

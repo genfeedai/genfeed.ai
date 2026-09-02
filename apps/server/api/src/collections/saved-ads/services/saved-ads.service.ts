@@ -1,4 +1,12 @@
 import { createHash } from 'node:crypto';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { scopedWhere } from '@api/index';
+import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
 import { FileInputType, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import type {
   SaveAdInput,
@@ -6,15 +14,7 @@ import type {
   UpdateSavedAdNoteInput,
 } from '@genfeedai/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
-import { mapAdsCredentialPlatform } from '@server/services/ads-gateway/ads-credential-platform.util';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
 const MAX_SAVE_CONCURRENCY = 4;
 const MAX_SNAPSHOT_MEDIA_PER_KIND = 4;

@@ -1,4 +1,6 @@
+import { CacheService } from '@api/services/cache/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
@@ -9,8 +11,6 @@ import {
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { CacheService } from '@server/services/cache/cache.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 
 const MANAGED_CHECKOUT_RESULT_TTL_SECONDS = 60 * 60;
 const MANAGED_CHECKOUT_PROCESSED_TTL_SECONDS = 60 * 60 * 24 * 7;

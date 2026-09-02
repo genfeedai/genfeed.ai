@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CLIP_RESULT_MODES,
   type ClipResultMode,
@@ -6,7 +7,6 @@ import {
   type SupportedAvatarVideoProviderName,
 } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsIn,
   IsNumber,

@@ -1,6 +1,6 @@
 import { ImagesModule } from '@api/collections/images/images.module';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('ImagesModule', () => {

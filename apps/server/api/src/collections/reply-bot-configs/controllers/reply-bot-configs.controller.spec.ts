@@ -4,15 +4,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { ReplyBotConfigsController } from '@api/collections/reply-bot-configs/controllers/reply-bot-configs.controller';
+import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
-import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 
 describe('ReplyBotConfigsController', () => {
   let controller: ReplyBotConfigsController;

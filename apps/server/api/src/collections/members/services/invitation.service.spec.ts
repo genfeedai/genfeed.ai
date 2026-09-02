@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, GoneException } from '@nestjs/common';

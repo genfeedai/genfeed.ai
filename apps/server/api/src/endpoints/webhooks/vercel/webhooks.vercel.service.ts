@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ConfigService } from '@libs/config/config.service';
 import { VercelWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,0 +1,164 @@
+import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  WEBHOOK_CLIENT_QUEUE,
+  WebhookJobData,
+} from '@genfeedai/queue-contracts';
+import { IngredientSerializer } from '@genfeedai/serializers';
+import { LoggerService } from '@libs/logger/logger.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable } from '@nestjs/common';
+import { Queue } from 'bullmq';
+import { assertSafeWebhookEndpoint } from './webhook-endpoint.validator';
+
+@Injectable()
+export class WebhookClientService {
+  private readonly constructorName = 'WebhookClientService';
+
+  constructor(
+    @InjectQueue(WEBHOOK_CLIENT_QUEUE) private readonly webhookQueue: Queue,
+    private readonly logger: LoggerService,
+    private readonly organizationSettingsService: OrganizationSettingsService,
+  ) {}
+
+  /**
+   * Queue webhook notification when an ingredient (image or video) is generated
+   */
+  async sendIngredientWebhook(
+    organizationId: string,
+    ingredient: IngredientEntity,
+    metadata?: MetadataEntity | null,
+  ): Promise<void> {
+    try {
+      // Fetch organization settings
+      const settings = await this.organizationSettingsService.findOne({
+        organizationId: organizationId,
+      });
+
+      if (
+        !settings ||
+        !settings.isWebhookEnabled ||
+        !settings.webhookEndpoint
+      ) {
+        this.logger.log(
+          `${this.constructorName} webhooks not enabled or endpoint not configured`,
+          { organizationId },
+        );
+        return;
+      }
+
+      if (!settings.webhookSecret) {
+        this.logger.warn(
+          `${this.constructorName} webhook secret not configured`,
+          { organizationId },
+        );
+        return;
+      }
+
+      await assertSafeWebhookEndpoint(settings.webhookEndpoint);
+
+      // Serialize ingredient
+      const serializedIngredient = IngredientSerializer.serialize(ingredient);
+
+      // Build payload
+      const payload = {
+        event: 'ingredient.generated',
+        ingredient: serializedIngredient.data || serializedIngredient,
+        metadata: metadata
+          ? {
+              duration: metadata.duration,
+              extension: metadata.extension,
+              externalProvider: metadata.externalProvider,
+              height: metadata.height,
+              model: metadata.model,
+              size: metadata.size,
+              width: metadata.width,
+            }
+          : null,
+        timestamp: new Date().toISOString(),
+      };
+
+      const jobData: WebhookJobData = {
+        endpoint: settings.webhookEndpoint,
+        ingredientId: ingredient.id,
+        organizationId,
+        payload,
+        secret: settings.webhookSecret,
+      };
+
+      // Add job to queue
+      const job = await this.webhookQueue.add('send-webhook', jobData, {
+        jobId: `webhook-${organizationId}-${ingredient.id}-${Date.now()}`,
+      });
+
+      this.logger.log(`${this.constructorName} webhook job queued`, {
+        event: payload.event,
+        ingredientId: ingredient.id,
+        jobId: job.id,
+        organizationId,
+      });
+    } catch (error: unknown) {
+      // Log failure but don't throw - webhook failures shouldn't break the flow
+      this.logger.error(`${this.constructorName} failed to queue webhook`, {
+        error: (error as Error)?.message,
+        ingredientId: ingredient.id,
+        organizationId,
+      });
+    }
+  }
+
+  /**
+   * Queue a generic webhook event
+   */
+  async sendWebhook(
+    organizationId: string,
+    event: string,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      const settings = await this.organizationSettingsService.findOne({
+        organizationId: organizationId,
+      });
+
+      if (
+        !settings ||
+        !settings.isWebhookEnabled ||
+        !settings.webhookEndpoint ||
+        !settings.webhookSecret
+      ) {
+        return;
+      }
+
+      await assertSafeWebhookEndpoint(settings.webhookEndpoint);
+
+      const payload = {
+        ...data,
+        event,
+        timestamp: new Date().toISOString(),
+      };
+
+      const jobData: WebhookJobData = {
+        endpoint: settings.webhookEndpoint,
+        organizationId,
+        payload,
+        secret: settings.webhookSecret,
+      };
+
+      await this.webhookQueue.add('send-webhook', jobData, {
+        jobId: `webhook-${organizationId}-${event}-${Date.now()}`,
+      });
+
+      this.logger.log(`${this.constructorName} webhook job queued`, {
+        event,
+        organizationId,
+      });
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName} failed to queue webhook`, {
+        error: (error as Error)?.message,
+        event,
+        organizationId,
+      });
+    }
+  }
+}

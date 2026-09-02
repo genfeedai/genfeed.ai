@@ -1,4 +1,4 @@
-import { TagsService } from '@server/collections/tags/services/tags.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

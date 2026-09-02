@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { scopedWhere } from '@api/index';
 import {
   expandCadenceOccurrences,
   isWithinConsumptionTolerance,
@@ -12,7 +13,6 @@ import {
   PostingCadenceStatus,
 } from '@genfeedai/enums';
 import type { ICalendarSlot, IPostingCadence } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException } from '@nestjs/common';
 import type {
   CadenceRecord,

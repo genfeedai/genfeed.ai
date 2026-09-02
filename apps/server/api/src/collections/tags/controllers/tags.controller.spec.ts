@@ -1,6 +1,6 @@
 import { TagsController } from '@api/collections/tags/controllers/tags.controller';
 import type { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
-import { TagsService } from '@server/collections/tags/services/tags.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 

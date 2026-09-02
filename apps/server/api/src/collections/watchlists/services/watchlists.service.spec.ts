@@ -1,12 +1,12 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockDelegate = {

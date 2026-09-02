@@ -1,5 +1,5 @@
 import { WordpressController } from '@api/services/integrations/wordpress/controllers/wordpress.controller';
-import { WordpressService } from '@server/services/integrations/wordpress/services/wordpress.service';
+import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -209,6 +209,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';

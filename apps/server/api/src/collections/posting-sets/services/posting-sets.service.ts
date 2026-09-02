@@ -16,8 +16,9 @@ import {
   toPostingSignatureInput,
 } from '@api/collections/posting-sets/services/posting-set-persistence.helpers';
 import { PostingSignaturesService } from '@api/collections/posting-sets/services/posting-signatures.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   expandPostingSetTargets,
   expandPostingSetTargetsInputSchema,
@@ -28,7 +29,6 @@ import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract
 import { TargetValidationState } from '@genfeedai/enums';
 import type { IPostingSetScope } from '@genfeedai/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const CREDENTIAL_REF_SELECT = {

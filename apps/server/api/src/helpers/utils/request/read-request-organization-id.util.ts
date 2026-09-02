@@ -1,5 +1,5 @@
-import type { AuthenticatedRequest } from '@server/auth/interfaces/authenticated-user.interface';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import type { AuthenticatedRequest } from '@api/auth/interfaces/authenticated-user.interface';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 const LEGACY_OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
 

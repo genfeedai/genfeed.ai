@@ -6,18 +6,18 @@ import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimiz
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { AdBulkUploadWorkflowService } from '@api/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
+import { SERVER_TOKENS } from '@api/server.dependencies';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
 import { MetaAdsOptimizationController } from '@api/services/integrations/meta-ads/controllers/meta-ads-optimization.controller';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @Module({
   controllers: [

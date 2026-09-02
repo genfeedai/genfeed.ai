@@ -4,24 +4,24 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { Role } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { TagsService } from '@server/collections/tags/services/tags.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
-import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   createTestBrand,
   createTestCredential,

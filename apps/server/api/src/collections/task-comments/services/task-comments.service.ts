@@ -1,9 +1,9 @@
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from '@api/collections/task-comments/dto/update-task-comment.dto';
 import type { TaskCommentDocument } from '@api/collections/task-comments/schemas/task-comment.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { scopedWhere } from '@genfeedai/server';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

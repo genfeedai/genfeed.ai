@@ -1,9 +1,20 @@
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { CacheService } from '@api/services/cache/cache.service';
 import {
   type AuthorizedSignalsSettledResult,
   retryProviderRequest,
   settleProviderRequest,
 } from '@api/services/integrations/_shared/authorized-signals-request.util';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import {
   getLinkedinRetryAfterMs,
   isLinkedinAuthorizationError,
@@ -12,6 +23,7 @@ import {
   isLinkedinScopeError,
   parseLinkedinGrantedScopes,
 } from '@api/services/integrations/linkedin/utils/linkedin-error.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type LinkedinAuthorizedSignalEvidence,
   type LinkedinAuthorizedSignalsSnapshot,
@@ -20,22 +32,10 @@ import {
   linkedinAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import {
-  CACHE_PATTERNS,
-  CACHE_TAGS,
-  SCOPED_CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import {
   hasAnyScope,

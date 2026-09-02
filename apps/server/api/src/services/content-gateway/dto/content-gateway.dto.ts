@@ -1,4 +1,4 @@
-import type { ContentSignalType } from '@server/services/content-gateway/interfaces/content-gateway.interfaces';
+import type { ContentSignalType } from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
 import { IsIn, IsObject, IsOptional, IsString } from 'class-validator';
 
 const SIGNAL_TYPES: ContentSignalType[] = [

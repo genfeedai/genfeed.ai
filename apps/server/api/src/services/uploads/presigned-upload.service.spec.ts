@@ -1,12 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
   IngredientCategory,
@@ -16,7 +17,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 // Mock legacy auth provider utilities
 

@@ -1,5 +1,5 @@
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';

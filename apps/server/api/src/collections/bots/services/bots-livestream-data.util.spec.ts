@@ -3,7 +3,7 @@ import {
   normalizeLivestreamBotDocument,
   normalizeLivestreamSessionDocument,
   serializeLivestreamSessionData,
-} from '@server/collections/bots/services/bots-livestream-data.util';
+} from '@api/collections/bots/services/bots-livestream-data.util';
 import { describe, expect, it } from 'vitest';
 
 describe('bots-livestream-data.util', () => {

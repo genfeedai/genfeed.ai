@@ -1,4 +1,4 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OssCreditsUtilsService } from '@api/common/credits/oss-credits-utils.service';
 import { isEEEnabled, usesMeteredCredits } from '@genfeedai/config';
 import {

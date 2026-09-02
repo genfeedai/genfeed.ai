@@ -1,7 +1,7 @@
-import { PUBLISHING_PROVIDER_ENV_DESCRIPTORS } from '@server/collections/publishing-setup/publishing-setup.constants';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
+import { PUBLISHING_PROVIDER_ENV_DESCRIPTORS } from '@api/collections/publishing-setup/publishing-setup.constants';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getDeployment } from '@genfeedai/config';
 import {
   classifyPublishingSetupChecklistState,

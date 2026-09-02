@@ -2,7 +2,7 @@ import { PublicMediaService } from '@api/endpoints/public/services/public-media.
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,

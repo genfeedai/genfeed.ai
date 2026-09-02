@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateRoleDto } from '@api/collections/roles/dto/create-role.dto';
 import { UpdateRoleDto } from '@api/collections/roles/dto/update-role.dto';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
   serializeCollection,
   serializeSingle,

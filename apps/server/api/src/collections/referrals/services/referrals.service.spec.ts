@@ -1,4 +1,8 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   ReferralClaimStatus,
@@ -7,10 +11,6 @@ import {
 } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configMock = vi.hoisted(() => ({ organizationBilling: true }));

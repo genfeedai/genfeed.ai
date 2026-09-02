@@ -12,7 +12,7 @@ import {
   WEBHOOK_CLIENT_DEFAULT_JOB_OPTIONS,
   WebhookClientModule,
 } from '@api/services/webhook-client/webhook-client.module';
-import { WebhookClientService } from '@server/services/webhook-client/webhook-client.service';
+import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 
 describe('WebhookClientModule', () => {
   it('does not register the webhook processor provider in the API module', () => {

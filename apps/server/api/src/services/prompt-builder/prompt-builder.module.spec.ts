@@ -1,7 +1,7 @@
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { ReplicatePromptBuilder } from '@server/services/prompt-builder/builders/replicate-prompt.builder';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

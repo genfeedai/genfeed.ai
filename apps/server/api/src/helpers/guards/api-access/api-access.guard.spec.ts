@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import * as authUtil from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionTier } from '@genfeedai/enums';

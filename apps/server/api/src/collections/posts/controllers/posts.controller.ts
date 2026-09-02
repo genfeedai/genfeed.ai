@@ -6,13 +6,26 @@
  * are in PostsOperationsController
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
+import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import { createPost } from '@api/collections/posts/handlers/post-create.handler';
+import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnBadRequest,
@@ -20,7 +33,9 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
@@ -45,21 +60,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
-import { UpdatePostDto } from '@server/collections/posts/dto/update-post.dto';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { assertApiKeyPublishingScope } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { QuotaService } from '@server/services/quota/quota.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 @AutoSwagger()

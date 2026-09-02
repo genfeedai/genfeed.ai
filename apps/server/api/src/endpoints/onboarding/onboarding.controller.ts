@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { SetPrefixDto } from '@api/endpoints/onboarding/dto/set-prefix.dto';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';

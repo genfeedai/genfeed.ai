@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -6,7 +6,7 @@ import {
   serializeProviderCatalog,
   throwProviderCatalogError,
 } from '@api/services/integrations/_shared/serialize-provider-catalog';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get } from '@nestjs/common';

@@ -1,8 +1,8 @@
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { PublicYoutubeClipClaimService } from '@api/collections/clip-projects/services/public-youtube-clip-claim.service';
-import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 describe('PublicYoutubeClipClaimService', () => {
   const project = {

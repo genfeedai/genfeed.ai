@@ -7,9 +7,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MusicsController } from '@api/collections/musics/controllers/musics.controller';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 import {
   serializeCollection,
   serializeSingle,

@@ -1,5 +1,5 @@
+import type { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { LifecycleEmailsController } from '@api/services/lifecycle-emails/lifecycle-emails.controller';
-import type { LifecycleEmailDeliveryService } from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
 
 describe('LifecycleEmailsController', () => {
   it('renders unsubscribe feedback with the operating system color scheme', async () => {

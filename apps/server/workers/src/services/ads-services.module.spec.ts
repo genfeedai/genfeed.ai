@@ -1,14 +1,14 @@
+import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import { AdCreativeMappingsService } from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
+import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
+import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
+import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { Test } from '@nestjs/testing';
-import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
-import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
-import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import { AdOptimizationRecommendationsService } from '@server/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
-import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { AdsServicesModule } from '@workers/services/ads-services.module';
 
 describe('AdsServicesModule', () => {

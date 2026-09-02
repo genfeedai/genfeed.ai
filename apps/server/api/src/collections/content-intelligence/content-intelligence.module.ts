@@ -8,13 +8,13 @@ import { CreatorsController } from '@api/collections/content-intelligence/contro
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { PatternsController } from '@api/collections/content-intelligence/controllers/patterns.controller';
 import { PlaybooksController } from '@api/collections/content-intelligence/controllers/playbooks.controller';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { CreatorScraperService } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
-import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
-import { PlaybookBuilderService } from '@server/collections/content-intelligence/services/playbook-builder.service';
-import { TopPerformerPromptContextService } from '@server/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
+import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';

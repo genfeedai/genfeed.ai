@@ -1,7 +1,7 @@
 import type { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {

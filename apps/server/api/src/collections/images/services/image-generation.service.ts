@@ -1,3 +1,6 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationCompletionPlan,
@@ -9,9 +12,33 @@ import type {
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  GenerationBriefCompileError,
+  runImageGenerationBrief,
+  toRedactedGenerationBriefProviderData,
+} from '@api/services/generation-brief';
+import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@api/services/router/router.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type {
   ImageGenerationBrief,
   ImageGenerationBriefReference,
@@ -28,33 +55,6 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import type {
-  GenerationPlaceholderCreatedCallback,
-  GenerationPlaceholderScope,
-} from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import {
-  GenerationBriefCompileError,
-  runImageGenerationBrief,
-  toRedactedGenerationBriefProviderData,
-} from '@server/services/generation-brief';
-import type { ImageGenerationBriefDispatch } from '@server/services/generation-brief/image-generation-brief-registry';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 
 /** Populate patterns for every image read on the wait/serialize path. */
 const IMAGE_POPULATE = [

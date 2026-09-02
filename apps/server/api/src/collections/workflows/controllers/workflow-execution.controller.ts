@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import {
   CreditEstimateQueryDto,
   ExecutePartialDto,
@@ -8,11 +8,11 @@ import {
   ResumeExecutionDto,
   SubmitApprovalDto,
 } from '@api/collections/workflows/dto/execute-workflow.dto';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

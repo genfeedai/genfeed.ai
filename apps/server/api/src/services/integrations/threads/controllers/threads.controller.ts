@@ -1,3 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  ConnectCredentialDto,
+  CreateCredentialVerifyDto,
+} from '@api/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -6,6 +13,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
@@ -25,14 +33,6 @@ import {
   Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import {
-  ConnectCredentialDto,
-  CreateCredentialVerifyDto,
-} from '@server/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import type { AxiosResponse } from 'axios';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';

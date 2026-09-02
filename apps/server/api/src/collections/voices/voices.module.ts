@@ -10,8 +10,12 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
+import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
+import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -25,10 +29,6 @@ import { ManagedInferenceRuntimeModule } from '@api/services/integrations/manage
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { Module } from '@nestjs/common';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
-import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
-import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
 
 @Module({
   controllers: [

@@ -1,6 +1,6 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
@@ -11,15 +11,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersController } from '@api/collections/folders/controllers/folders.controller';
 import type { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';

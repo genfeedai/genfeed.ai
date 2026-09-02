@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { BrandDataMapper } from '@server/collections/brands/services/brand-data.mapper';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OnboardingContentType } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { FileInputType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('OnboardingPreviewService', () => {

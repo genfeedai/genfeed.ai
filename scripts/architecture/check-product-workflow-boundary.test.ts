@@ -47,7 +47,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('rejects dynamic single-action workflow wrappers repository-wide', () => {
     writeFixture(
-      'apps/server/server/src/collections/articles/articles.service.ts',
+      'apps/server/api/src/collections/articles/articles.service.ts',
       `
         export class ArticlesService {
           async generate(): Promise<void> {
@@ -108,7 +108,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('rejects the retired facecam callback orchestration actions', () => {
     writeFixture(
-      'apps/server/server/src/services/task-orchestration/legacy-facecam.ts',
+      'apps/server/api/src/services/task-orchestration/legacy-facecam.ts',
       `runner.registerAction('workspace.task.facecam.schedule-poll', schedulePoll);`,
     );
 
@@ -125,14 +125,14 @@ describe('check-product-workflow-boundary', () => {
 
   it('rejects workflow-entry IDs reused as internal node actions', () => {
     writeFixture(
-      'apps/server/server/src/collections/articles/articles.service.ts',
+      'apps/server/api/src/collections/articles/articles.service.ts',
       `
         const ARTICLE_GENERATION_TOOL_ID = 'create_article';
         runner.registerAction(ARTICLE_GENERATION_TOOL_ID, persistDraft);
       `,
     );
     writeFixture(
-      'apps/server/server/src/collections/content-intelligence/content-generator.service.ts',
+      'apps/server/api/src/collections/content-intelligence/content-generator.service.ts',
       `
         createGenfeedActionNode({
           actionId: 'generate_linkedin_content',
@@ -243,7 +243,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('rejects persisted hidden workflow clones and empty action contracts', () => {
     writeFixture(
-      'apps/server/server/src/collections/workflows/system-workflow-runner.service.ts',
+      'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
       `
         async function ensureSystemWorkflow(definition, organizationId, userId) {
           return createVersionedWorkflow(transaction, {
@@ -276,7 +276,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('allows one code-owned hidden workflow mirror under a fixed principal', () => {
     writeFixture(
-      'apps/server/server/src/collections/workflows/system-workflow-runner.service.ts',
+      'apps/server/api/src/collections/workflows/system-workflow-runner.service.ts',
       `
         const SYSTEM_WORKFLOW_PRINCIPAL_ID = 'genfeed-public-tools';
         const metadata = { sourceType: 'hidden-system-workflow' };
@@ -340,7 +340,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('allows the documented YouTube long-form action adapter only', () => {
     const file =
-      'apps/server/server/src/collections/workflows/services/youtube-long-form-workflow.service.ts';
+      'apps/server/api/src/collections/workflows/services/youtube-long-form-workflow.service.ts';
     writeFixture(
       file,
       `
@@ -438,7 +438,7 @@ describe('check-product-workflow-boundary', () => {
 
   it('flags direct social inbox platform actions from the server source root', () => {
     writeFixture(
-      'apps/server/server/src/collections/social-inbox/services/social-inbox.service.ts',
+      'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
       `
         export class SocialInboxService {
           async postReply(): Promise<void> {
@@ -460,7 +460,7 @@ describe('check-product-workflow-boundary', () => {
     expect(result.detections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          file: 'apps/server/server/src/collections/social-inbox/services/social-inbox.service.ts',
+          file: 'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
           ruleId: 'social-inbox-direct-platform-action',
         }),
       ]),

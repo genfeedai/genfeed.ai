@@ -1,4 +1,4 @@
-import { replaceMarkup } from '@server/shared/utils/string/strip-markup.util';
+import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { parseTweet } from 'twitter-text';
 

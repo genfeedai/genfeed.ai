@@ -1,3 +1,20 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import {
+  ManagedInferenceOperation,
+  ManagedInferenceProvider,
+  type ManagedInferenceRequestDto,
+  type ManagedInferenceVideoInput,
+} from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import type {
+  ManagedInferenceAuthenticatedRequest,
+  ManagedInferenceResponse,
+} from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+import { FalService } from '@api/services/integrations/fal/services/fal.service';
+import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
+import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -8,23 +25,6 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import {
-  ManagedInferenceOperation,
-  ManagedInferenceProvider,
-  type ManagedInferenceRequestDto,
-  type ManagedInferenceVideoInput,
-} from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import type {
-  ManagedInferenceAuthenticatedRequest,
-  ManagedInferenceResponse,
-} from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
-import { ManagedInferenceRuntimeService } from '@server/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
 const DEFAULT_MANAGED_INFERENCE_CREDITS = 1;
 const MANAGED_INFERENCE_REFUND_DAYS = 30;

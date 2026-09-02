@@ -4,7 +4,7 @@ import {
   type GoalLevel,
   type GoalStatus,
 } from '@api/collections/goals/schemas/goal.schema';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 

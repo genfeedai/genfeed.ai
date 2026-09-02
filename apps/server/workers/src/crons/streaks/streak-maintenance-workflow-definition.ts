@@ -1,6 +1,6 @@
+import type { WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const STREAK_MAINTENANCE_ACTION_IDS = {
   APPLY_FREEZE: 'streak.record.apply-freeze',

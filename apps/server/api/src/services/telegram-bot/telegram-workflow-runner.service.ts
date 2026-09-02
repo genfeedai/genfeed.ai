@@ -3,16 +3,16 @@
  * every other Genfeed entry surface. Telegram owns presentation only.
  */
 
+import type { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { scopedWhere } from '@api/index';
 import type {
   ChatAuthContext,
   ConversationState,
 } from '@api/services/telegram-bot/telegram-bot.types';
 import { TELEGRAM_SYSTEM_WORKFLOW_PREFIX } from '@api/services/telegram-bot/telegram-workflow-loader';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode, WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { Context } from 'grammy';
 
 type TelegramMediaOutput = {

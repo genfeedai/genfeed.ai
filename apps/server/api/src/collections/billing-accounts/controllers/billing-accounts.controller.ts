@@ -1,7 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { GrantBillingRoleDto } from '@api/collections/billing-accounts/dto/grant-billing-role.dto';
 import { LinkOrganizationDto } from '@api/collections/billing-accounts/dto/link-organization.dto';
 import { BillingAccountMigrationService } from '@api/collections/billing-accounts/services/billing-account-migration.service';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -18,9 +21,6 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 @AutoSwagger()
 @Controller('billing-accounts')
 @UseGuards(RolesGuard)

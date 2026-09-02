@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import type {
   InstallReadinessResponse,

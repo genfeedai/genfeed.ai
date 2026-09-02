@@ -1,4 +1,4 @@
-import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 

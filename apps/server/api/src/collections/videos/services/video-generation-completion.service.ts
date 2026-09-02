@@ -1,22 +1,22 @@
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import {
   resolveBackgroundMusicDuration,
   resolveBackgroundMusicVolume,
   shouldStartBackgroundMusic,
 } from '@api/collections/videos/services/video-generation-music.util';
-import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { CacheService } from '@server/services/cache/cache.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { CacheService } from '@api/services/cache/cache.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 
 const VIDEO_POPULATE = [
   PopulatePatterns.promptFull,

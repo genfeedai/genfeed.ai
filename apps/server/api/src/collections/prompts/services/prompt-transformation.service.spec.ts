@@ -1,16 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
-import type { PromptDocument } from '@server/collections/prompts/schemas/prompt.schema';
+import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { PromptParser } from '@server/helpers/utils/prompt-parser/prompt-parser.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ActivityKey,
   PromptCategory,
@@ -23,7 +24,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpStatus } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('PromptTransformationService', () => {

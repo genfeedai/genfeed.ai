@@ -1,7 +1,7 @@
 import { InternalWorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/internal-workflow-executions.controller';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

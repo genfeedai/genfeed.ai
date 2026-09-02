@@ -9,7 +9,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,63 +18,63 @@ import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException } from '@nestjs/common';
 
-vi.mock('@server/collections/metadata/services/metadata.service', () => ({
+vi.mock('@api/collections/metadata/services/metadata.service', () => ({
   MetadataService: class {},
 }));
-vi.mock('@server/collections/models/services/models.service', () => ({
+vi.mock('@api/collections/models/services/models.service', () => ({
   ModelsService: class {},
 }));
-vi.mock('@server/collections/prompts/services/prompts.service', () => ({
+vi.mock('@api/collections/prompts/services/prompts.service', () => ({
   PromptsService: class {},
 }));
 vi.mock(
-  '@server/services/integrations/replicate/services/replicate.service',
+  '@api/services/integrations/replicate/services/replicate.service',
   () => ({
     ReplicateService: class {},
   }),
 );
-vi.mock('@server/services/prompt-builder/prompt-builder.service', () => ({
+vi.mock('@api/services/prompt-builder/prompt-builder.service', () => ({
   PromptBuilderService: class {},
 }));
 vi.mock(
-  '@server/shared/services/failed-generation/failed-generation.service',
+  '@api/shared/services/failed-generation/failed-generation.service',
   () => ({ FailedGenerationService: class {} }),
 );
-vi.mock('@server/shared/services/shared/shared.service', () => ({
+vi.mock('@api/shared/services/shared/shared.service', () => ({
   SharedService: class {},
 }));
-vi.mock('@server/collections/videos/services/videos.service', () => ({
+vi.mock('@api/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
-vi.mock('@server/collections/credits/services/credits.utils.service', () => ({
+vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class {},
 }));
-vi.mock('@server/collections/activities/services/activities.service', () => ({
+vi.mock('@api/collections/activities/services/activities.service', () => ({
   ActivitiesService: class {},
 }));
 vi.mock(
-  '@server/services/notifications/publisher/notifications-publisher.service',
+  '@api/services/notifications/publisher/notifications-publisher.service',
   () => ({ NotificationsPublisherService: class {} }),
 );
 
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ActivitySource } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const mockReq = {} as Request;

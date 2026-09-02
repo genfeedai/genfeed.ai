@@ -1,5 +1,5 @@
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 

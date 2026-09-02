@@ -1,22 +1,24 @@
 # Project Structure — Genfeed.ai
 
-**last_verified: 2026-07-26** · Auto-loaded every request — keep it short. `ls` gives you the
+**last_verified: 2026-09-02** · Auto-loaded every request — keep it short. `ls` gives you the
 full inventory; this file records only what `ls` cannot tell you.
 
 ## Top level
 
 | path | what |
 |---|---|
-| `apps/server/*` | backend service/server-tier workspaces (port table in CLAUDE.md) |
-| `apps/extensions/{browser,ide}/app` | browser + IDE extensions (v2 milestone) |
+| `apps/server/*` | backend workspaces with a `package.json` (api, workers, files, mcp, notifications, discord, slack, telegram) |
+| `apps/mobile/app` | Expo workspace (v2). The parent `apps/mobile/` is not a workspace. |
+| `apps/extensions/{browser,ide}/app` | extension workspaces (v2). The parent `apps/extensions/` is not a workspace. |
 | `.agents/` | agent memory, sessions, build skills |
 
 ## Non-obvious facts
 
-- **`apps/server/clips/` is not a workspace** — no `package.json` on `origin/master`. Clip code
-  currently lives under API/packages/files paths. Re-verify before treating it as a service.
-- **`apps/server/server/`** is the shared `@genfeedai/server` package, aliased `@server/*`.
-  The name "core" is retired — see `rules/server_not_core.md`.
+- **`apps/server/api/`** is the shared server tree (`@genfeedai/api`, alias `@api/*`).
+  #4348 folded `@genfeedai/server` back into api. Do not recreate `apps/server/server`.
+  The name "core" stays retired — see `rules/server_not_core.md`.
+- **`apps/server/{clips,images,videos,voices}/` are not services.** Clip/media code lives under
+  API, files, and packages. Do not recreate those directories or `@clips`/`@images`/`@videos`/`@voices` aliases.
 - **`packages/workflows` is the only workflow package** (subpath exports `/contracts`, `/engine`,
   `/generation`, `/nodes`, `/ui`). `packages/core`, `workflow-engine`, `workflow-saas`, and
   `workflow-ui` are **deleted**; stale `dist/`/`node_modules/` residue may linger locally — delete it.

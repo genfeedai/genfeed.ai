@@ -1,11 +1,11 @@
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 
 describe('MediumService', () => {
   let service: MediumService;

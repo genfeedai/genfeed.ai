@@ -3,12 +3,9 @@
  * Stores individual agent chat messages in a separate collection
  * instead of embedding them in the AgentRoom document.
  */
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  AgentArtifactReferenceService,
-  SERVER_TOKENS,
-} from '@genfeedai/server';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 

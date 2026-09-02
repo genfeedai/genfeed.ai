@@ -4,10 +4,10 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

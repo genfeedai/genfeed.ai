@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { TaskCommentsService } from '@api/collections/task-comments/services/task-comments.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

@@ -1,7 +1,7 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
-import { QuotaService } from '@server/services/quota/quota.service';
+import { QuotaService } from '@api/services/quota/quota.service';
 import { Module } from '@nestjs/common';
 
 @Module({

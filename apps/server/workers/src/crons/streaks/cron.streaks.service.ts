@@ -1,13 +1,13 @@
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   type StreakMaintenanceEvaluation,
   type StreakMaintenanceRequest,
   type StreakRecordMaintenanceRequest,
   StreaksService,
-} from '@server/collections/streaks/services/streaks.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/streaks/services/streaks.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   buildStreakOrganizationWorkflowDefinition,
   buildStreakRecordWorkflowDefinition,

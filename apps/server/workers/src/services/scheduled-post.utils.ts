@@ -1,4 +1,4 @@
-import type { PostEntity } from '@server/collections/posts/entities/post.entity';
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 
 export function readPostString(
   post: PostEntity,

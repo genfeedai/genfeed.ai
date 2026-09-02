@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
   DesktopThreadDto,
   PushDesktopThreadsDto,

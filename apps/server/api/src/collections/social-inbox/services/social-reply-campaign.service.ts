@@ -1,22 +1,13 @@
 import {
-  SocialMessageType,
-  SocialReplyCampaignRecipientStatus,
-  SocialReplyCampaignStatus,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Injectable } from '@nestjs/common';
-import {
   boundLimit,
   boundPage,
   sanitizeBody,
   toPage,
-} from '@server/collections/social-inbox/services/social-inbox.helpers';
+} from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   SocialInboxPage,
   SocialInboxScope,
-} from '@server/collections/social-inbox/services/social-inbox.types';
+} from '@api/collections/social-inbox/services/social-inbox.types';
 import type {
   SocialReplyCampaignCreateInput,
   SocialReplyCampaignDocument,
@@ -24,11 +15,20 @@ import type {
   SocialReplyCampaignRecipientDocument,
   SocialReplyCampaignRecipientListQuery,
   SocialReplyCampaignUpdateInput,
-} from '@server/collections/social-inbox/services/social-reply-campaign.types';
-import { buildSocialReplyCampaignWorkflowDefinition } from '@server/collections/social-inbox/services/social-reply-campaign-workflow-definition';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
+} from '@api/collections/social-inbox/services/social-reply-campaign.types';
+import { buildSocialReplyCampaignWorkflowDefinition } from '@api/collections/social-inbox/services/social-reply-campaign-workflow-definition';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  SocialMessageType,
+  SocialReplyCampaignRecipientStatus,
+  SocialReplyCampaignStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Transitions a campaign can be asked to make. `start` and `resume` differ only

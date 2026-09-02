@@ -1,8 +1,8 @@
 import { CaptionsController } from '@api/collections/captions/controllers/captions.controller';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { WhisperService } from '@server/services/whisper/whisper.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

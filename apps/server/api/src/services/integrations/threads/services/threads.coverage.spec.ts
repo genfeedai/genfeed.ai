@@ -18,16 +18,16 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
+import { SERVER_TOKENS } from '@api/server.dependencies';
 import {
   ThreadsContainerStatus,
   ThreadsMediaType,
   ThreadsService,
-} from '@server/services/integrations/threads/services/threads.service';
+} from '@api/services/integrations/threads/services/threads.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { SERVER_TOKENS } from '@server/server.dependencies';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

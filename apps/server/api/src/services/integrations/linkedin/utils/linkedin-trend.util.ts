@@ -1,5 +1,5 @@
-import type { TrendSourceClassification } from '@server/collections/trends/interfaces/trend.interfaces';
-import { buildPublicPlatformReferenceClassification } from '@server/collections/trends/utils/trend-source-classification.util';
+import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
+import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 
 export interface LinkedInTrendTopic {
   growthRate: number;

@@ -1,9 +1,9 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OptimizersService } from '@server/collections/optimizers/services/optimizers.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('OptimizersService', () => {
   let service: OptimizersService;

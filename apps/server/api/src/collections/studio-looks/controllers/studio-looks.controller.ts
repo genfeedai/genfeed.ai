@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateStudioLookDto } from '@api/collections/studio-looks/dto/create-studio-look.dto';
 import { StudioLooksQueryDto } from '@api/collections/studio-looks/dto/studio-looks-query.dto';
 import { UpdateStudioLookDto } from '@api/collections/studio-looks/dto/update-studio-look.dto';
@@ -6,10 +6,10 @@ import {
   type StudioLookRequestScope,
   StudioLooksService,
 } from '@api/collections/studio-looks/services/studio-looks.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,

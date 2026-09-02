@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { buildCodeChallenge } from '@server/auth/shared/pkce.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { buildCodeChallenge } from '@api/auth/shared/pkce.util';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
 import { OAuthAuthorizeService } from './oauth-authorize.service';

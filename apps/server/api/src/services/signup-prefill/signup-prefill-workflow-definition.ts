@@ -1,5 +1,5 @@
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const SIGNUP_PREFILL_ACTION_IDS = {
   ANALYZE: 'signup.prefill.analyze',

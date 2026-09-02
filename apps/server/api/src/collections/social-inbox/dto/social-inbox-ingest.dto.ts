@@ -1,4 +1,4 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, Max, Min } from 'class-validator';

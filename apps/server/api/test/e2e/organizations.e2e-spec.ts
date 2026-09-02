@@ -4,32 +4,32 @@
  * All external services are mocked to prevent real API calls
  */
 
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { LinksService } from '@server/collections/links/services/links.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { LinksService } from '@api/collections/links/services/links.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 // Import controllers and services
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
-import { TagsService } from '@server/collections/tags/services/tags.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { QuotaService } from '@server/services/quota/quota.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { QuotaService } from '@api/services/quota/quota.service';
 import {
   createTestBrand,
   createTestCredential,

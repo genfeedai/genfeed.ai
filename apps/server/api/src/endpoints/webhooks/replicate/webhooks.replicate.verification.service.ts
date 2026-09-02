@@ -1,11 +1,11 @@
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { ReplicatePredictionRecord } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * How long a delivered `webhook-id` suppresses repeats. Replicate retries a

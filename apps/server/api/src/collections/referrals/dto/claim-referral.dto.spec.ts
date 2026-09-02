@@ -1,6 +1,6 @@
 import { ClaimReferralDto } from '@api/collections/referrals/dto/claim-referral.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { BadRequestException } from '@nestjs/common';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 import { describe, expect, it } from 'vitest';
 
 describe('ClaimReferralDto', () => {

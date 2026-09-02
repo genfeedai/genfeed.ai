@@ -1,4 +1,4 @@
-import { BrandOsPreviewService } from '@server/collections/brands/services/brand-os-preview.service';
+import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import { BrandOsPreviewDto } from '@api/endpoints/public/controllers/brand-os/brand-os-preview.dto';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';

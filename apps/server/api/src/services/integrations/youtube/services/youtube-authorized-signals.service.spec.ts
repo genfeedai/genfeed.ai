@@ -4,13 +4,13 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   },
 }));
 
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CacheService } from '@server/services/cache/cache.service';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { CacheService } from '@api/services/cache/cache.service';
+import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalsSnapshot,

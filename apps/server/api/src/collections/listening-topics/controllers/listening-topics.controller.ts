@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyzeListeningTopicDto } from '@api/collections/listening-topics/dto/analyze-listening-topic.dto';
 import { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import { CreateListeningTopicDto } from '@api/collections/listening-topics/dto/create-listening-topic.dto';

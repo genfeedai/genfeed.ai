@@ -3,8 +3,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

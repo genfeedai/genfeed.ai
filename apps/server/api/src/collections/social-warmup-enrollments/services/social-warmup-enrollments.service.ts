@@ -18,9 +18,10 @@ import {
   socialWarmupEnrollmentStateFromStorage,
   socialWarmupEventRecordFromStorage,
   socialWarmupSignalRecordFromStorage,
-} from '@server/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+} from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
 import type { LinkedinAuthorizedSignalsSnapshot } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import {
@@ -50,7 +51,6 @@ import type {
   SyncSocialWarmupPlatformSnapshotInput,
 } from '@genfeedai/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 

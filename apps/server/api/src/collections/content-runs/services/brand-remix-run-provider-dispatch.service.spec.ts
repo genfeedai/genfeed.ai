@@ -1,12 +1,12 @@
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunProviderDispatchService } from '@api/collections/content-runs/services/brand-remix-run-provider-dispatch.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixRunConfig,
   brandRemixRunConfigSchema,
 } from '@api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeConfig() {

@@ -1,22 +1,22 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
-import { UpdateUserDto } from '@server/collections/users/dto/update-user.dto';
+import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -24,6 +24,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
@@ -46,7 +47,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

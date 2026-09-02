@@ -1,0 +1,225 @@
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: { decrypt: vi.fn((v: string) => `dec:${v}`) },
+}));
+vi.mock('@libs/utils/caller/caller.util', () => ({
+  CallerUtil: { getCallerName: vi.fn(() => 'test') },
+}));
+
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
+import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
+import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+
+describe('SnapchatPublisherService', () => {
+  let service: SnapchatPublisherService;
+  let snapchatService: {
+    createMedia: ReturnType<typeof vi.fn>;
+    publishStory: ReturnType<typeof vi.fn>;
+  };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
+  };
+
+  const orgId = 'test-object-id';
+  const brandId = 'test-object-id';
+  const snapAdAccountId = 'snap-ad-account-001';
+
+  const mockCredential = {
+    id: 'test-object-id',
+    accessToken: 'encrypted-snap-token',
+    externalId: snapAdAccountId,
+    platform: CredentialPlatform.SNAPCHAT,
+  };
+
+  const mockOrganization = {
+    id: orgId,
+    isDeleted: false,
+    name: 'Test Organization',
+  } as unknown as OrganizationDocument;
+
+  const makeContext = (
+    overrides: Partial<PublishContext> = {},
+  ): PublishContext => ({
+    settings: {},
+    brandId,
+    credential: mockCredential as never,
+    isDraft: false,
+    organization: mockOrganization,
+    organizationId: orgId,
+    post: {
+      category: PostCategory.IMAGE,
+      description: 'Check this out!',
+      ingredients: ['test-object-id'],
+      label: 'My Snap',
+      status: PostStatus.DRAFT,
+    } as never,
+    postId: 'test-object-id',
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    snapchatService = {
+      createMedia: vi.fn().mockResolvedValue('media-id-123'),
+      publishStory: vi.fn().mockResolvedValue('snap-story-456'),
+    };
+    logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SnapchatPublisherService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn(),
+            ingredientsEndpoint: 'https://cdn.genfeed.ai',
+          },
+        },
+        { provide: SnapchatService, useValue: snapchatService },
+        { provide: LoggerService, useValue: logger },
+      ],
+    }).compile();
+
+    service = module.get<SnapchatPublisherService>(SnapchatPublisherService);
+  });
+
+  afterEach(() => vi.clearAllMocks());
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('should expose correct platform capabilities', () => {
+    expect(service.platform).toBe(CredentialPlatform.SNAPCHAT);
+    expect(service.supportsTextOnly).toBe(false);
+    expect(service.supportsImages).toBe(true);
+    expect(service.supportsVideos).toBe(true);
+    expect(service.supportsCarousel).toBe(false);
+    expect(service.supportsThreads).toBe(false);
+  });
+
+  describe('validatePost', () => {
+    it('should fail when post has no ingredients', () => {
+      const result = service.validatePost(makeContext(), {
+        hasIngredients: false,
+        isCarousel: false,
+        isImagePost: false,
+        mediaUrls: [],
+      });
+      expect(result.valid).toBe(false);
+      expect(result.error).toMatch(/media/i);
+    });
+
+    it('should fail for carousel posts', () => {
+      const result = service.validatePost(makeContext(), {
+        hasIngredients: true,
+        isCarousel: true,
+        isImagePost: false,
+        mediaUrls: ['url1', 'url2'],
+      });
+      expect(result.valid).toBe(false);
+      expect(result.error).toMatch(/carousel/i);
+    });
+
+    it('should pass for single image post', () => {
+      const result = service.validatePost(makeContext(), {
+        hasIngredients: true,
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['url1'],
+      });
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('publish', () => {
+    it('should publish an image post successfully', async () => {
+      const result = await service.publish(makeContext());
+      expect(result.success).toBe(true);
+      expect(result.externalId).toBe('snap-story-456');
+    });
+
+    it('should publish as the account on the context, not a sibling account', async () => {
+      const secondAccount = {
+        id: 'second-account-id',
+        accessToken: 'encrypted-snap-token-2',
+        externalId: 'snap-ad-account-002',
+        platform: CredentialPlatform.SNAPCHAT,
+      };
+
+      await service.publish(
+        makeContext({ credential: secondAccount as never }),
+      );
+
+      expect(snapchatService.createMedia).toHaveBeenCalledWith(
+        expect.any(String),
+        'snap-ad-account-002',
+        expect.any(String),
+        expect.any(String),
+        'IMAGE',
+      );
+      expect(snapchatService.publishStory).toHaveBeenCalledWith(
+        expect.any(String),
+        'snap-ad-account-002',
+        'media-id-123',
+        expect.any(String),
+      );
+    });
+
+    it('should return failed result when credential is missing', async () => {
+      const result = await service.publish(
+        makeContext({ credential: undefined as never }),
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it('should return failed result when createMedia returns null', async () => {
+      snapchatService.createMedia.mockResolvedValue(null);
+      const result = await service.publish(makeContext());
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/media/i);
+    });
+
+    it('should return failed result when publishStory returns null', async () => {
+      snapchatService.publishStory.mockResolvedValue(null);
+      const result = await service.publish(makeContext());
+      expect(result.success).toBe(false);
+    });
+
+    it('should return failed result when post has no ingredients', async () => {
+      const context = makeContext({
+        post: {
+          category: PostCategory.TEXT,
+          description: 'text only',
+          ingredients: [],
+          label: 'Text',
+          status: PostStatus.DRAFT,
+        } as never,
+      });
+      const result = await service.publish(context);
+      expect(result.success).toBe(false);
+    });
+
+    it('should rethrow unexpected errors', async () => {
+      snapchatService.createMedia.mockRejectedValue(
+        new Error('Snap API error'),
+      );
+      await expect(service.publish(makeContext())).rejects.toThrow(
+        'Snap API error',
+      );
+    });
+  });
+
+  describe('buildPostUrl', () => {
+    it('should build spotlight URL from externalId', () => {
+      const url = service.buildPostUrl('story-789', mockCredential as never);
+      expect(url).toBe('https://www.snapchat.com/spotlight/story-789');
+    });
+  });
+});

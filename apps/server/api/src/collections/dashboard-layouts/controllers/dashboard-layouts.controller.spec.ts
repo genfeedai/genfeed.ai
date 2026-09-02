@@ -1,7 +1,7 @@
 import { DashboardLayoutsController } from '@api/collections/dashboard-layouts/controllers/dashboard-layouts.controller';
-import { UpsertDashboardLayoutDto } from '@server/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
-import { DashboardLayoutsService } from '@server/collections/dashboard-layouts/services/dashboard-layouts.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
+import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

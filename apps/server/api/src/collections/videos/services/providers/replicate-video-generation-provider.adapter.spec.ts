@@ -1,9 +1,9 @@
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ErrorCode } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 function buildParams(
   overrides: Partial<DispatchVideoGenerationParams> = {},

@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ShopifyController } from '@api/services/integrations/shopify/controllers/shopify.controller';
-import { ShopifyService } from '@server/services/integrations/shopify/services/shopify.service';
+import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';

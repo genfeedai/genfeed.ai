@@ -1,10 +1,10 @@
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
 
 /**
  * Workflow persistence plus the two leaves most non-workflow consumers need:

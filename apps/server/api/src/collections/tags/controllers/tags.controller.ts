@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
-import { UpdateTagDto } from '@server/collections/tags/dto/update-tag.dto';
-import type { TagDocument } from '@server/collections/tags/schemas/tag.schema';
-import { TagsService } from '@server/collections/tags/services/tags.service';
+import { UpdateTagDto } from '@api/collections/tags/dto/update-tag.dto';
+import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';

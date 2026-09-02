@@ -1,18 +1,18 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
 import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
-import { UsersService } from '@server/collections/users/services/users.service';
-import type { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import type { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('UsersController', () => {
   let controller: UsersController;

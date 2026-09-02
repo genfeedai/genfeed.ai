@@ -1,6 +1,6 @@
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
+import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import { Module } from '@nestjs/common';
 
 /**

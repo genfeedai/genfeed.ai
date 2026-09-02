@@ -5,10 +5,10 @@ import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.s
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {

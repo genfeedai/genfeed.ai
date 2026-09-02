@@ -1,4 +1,4 @@
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';

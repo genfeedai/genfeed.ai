@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OpusProController } from '@api/services/integrations/opuspro/controllers/opuspro.controller';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { testId } from '@helpers/testing/test-id.helper';

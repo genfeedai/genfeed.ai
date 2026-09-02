@@ -1,6 +1,6 @@
 import type { UserSubscriptionDocument } from '@api/collections/user-subscriptions/schemas/user-subscription.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IUserSubscriptionsService } from '@genfeedai/interfaces/billing';
 import { type Prisma, SubscriptionStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

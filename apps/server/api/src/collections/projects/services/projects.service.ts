@@ -1,8 +1,8 @@
 import { CreateProjectDto } from '@api/collections/projects/dto/create-project.dto';
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';
 import type { ProjectDocument } from '@api/collections/projects/schemas/project.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,10 +1,10 @@
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { ConfigService } from '@libs/config/config.service';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {

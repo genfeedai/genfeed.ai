@@ -1,6 +1,6 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
@@ -17,11 +17,11 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
   };
 });
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AvatarsController } from '@api/collections/avatars/controllers/avatars.controller';
 import { AvatarsService } from '@api/collections/avatars/services/avatars.service';
 import { CaptionsController } from '@api/collections/captions/controllers/captions.controller';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { FoldersController } from '@api/collections/folders/controllers/folders.controller';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { GifsController } from '@api/collections/gifs/controllers/gifs.controller';
@@ -29,34 +29,36 @@ import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import type { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
-import { ImagesService } from '@server/collections/images/services/images.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MusicsController } from '@api/collections/musics/controllers/musics.controller';
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
 import type { MusicQueryDto } from '@api/collections/musics/dto/music-query.dto';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import type { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
-import type { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { VoicesService } from '@api/collections/voices/services/voices.service';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { HedraService } from '@server/services/integrations/hedra/services/hedra.service';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -82,8 +84,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { ModuleRef } from '@nestjs/core';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
 type PrismaWhere = Record<string, unknown>;

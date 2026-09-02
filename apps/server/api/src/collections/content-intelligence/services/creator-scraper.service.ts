@@ -1,6 +1,6 @@
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
-import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,

@@ -6,12 +6,12 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((value: string) => value) },
 }));
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { XAdsController } from '@api/services/integrations/x-ads/controllers/x-ads.controller';
-import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
-import { XAdsOAuthService } from '@server/services/integrations/x-ads/services/x-ads-oauth.service';
+import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
+import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

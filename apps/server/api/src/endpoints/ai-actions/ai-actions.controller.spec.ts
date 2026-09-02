@@ -1,8 +1,8 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
-import type { AiActionResult } from '@server/endpoints/ai-actions/ai-actions.service';
-import { AiActionsService } from '@server/endpoints/ai-actions/ai-actions.service';
-import { ExecuteAiActionDto } from '@server/endpoints/ai-actions/dto/ai-action.dto';
+import type { AiActionResult } from '@api/endpoints/ai-actions/ai-actions.service';
+import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
+import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, TestingModule } from '@nestjs/testing';
 

@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateSkillDto,
   CustomizeSkillDto,
   ImportSkillDto,
   UpdateSkillDto,
-} from '@server/collections/skills/dto/skill.dto';
-import { SkillsService } from '@server/collections/skills/services/skills.service';
+} from '@api/collections/skills/dto/skill.dto';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {

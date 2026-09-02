@@ -4,15 +4,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplatesController } from '@api/collections/templates/controllers/templates.controller';
-import { CreateTemplateDto } from '@server/collections/templates/dto/create-template.dto';
-import { SuggestTemplatesDto } from '@server/collections/templates/dto/suggest-templates.dto';
-import { UpdateTemplateDto } from '@server/collections/templates/dto/update-template.dto';
-import { UseTemplateDto } from '@server/collections/templates/dto/use-template.dto';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { CreateTemplateDto } from '@api/collections/templates/dto/create-template.dto';
+import { SuggestTemplatesDto } from '@api/collections/templates/dto/suggest-templates.dto';
+import { UpdateTemplateDto } from '@api/collections/templates/dto/update-template.dto';
+import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';

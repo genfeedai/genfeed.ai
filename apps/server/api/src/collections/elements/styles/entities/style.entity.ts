@@ -1,5 +1,5 @@
 import type { ElementStyle } from '@api/collections/elements/styles/schemas/style.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import type { ModelCategory } from '@genfeedai/enums';
 
 export class ElementStyleEntity extends BaseEntity implements ElementStyle {

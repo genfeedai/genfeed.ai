@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -23,7 +23,7 @@ vi.mock('@api/collections/api-keys/services/api-keys.service', () => ({
   ApiKeysService: class ApiKeysService {},
 }));
 
-vi.mock('@server/shared/modules/prisma/prisma.service', () => ({
+vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 

@@ -1,10 +1,10 @@
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { extractAttributionMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import {
   type StripeCheckoutSession,
   type StripeCustomer,
   StripeService,
-} from '@server/services/integrations/stripe/services/stripe.service';
+} from '@api/services/integrations/stripe/services/stripe.service';
 import {
   type ISubscriptionAttributionsService,
   type ISubscriptionOssReadModel,

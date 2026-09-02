@@ -9,7 +9,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
 import {
@@ -18,7 +18,7 @@ import {
   LeaderboardQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
-import type { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import {
   AnalyticSerializer,

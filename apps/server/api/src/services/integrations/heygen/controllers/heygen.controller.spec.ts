@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HeyGenController } from '@api/services/integrations/heygen/controllers/heygen.controller';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

@@ -1,6 +1,6 @@
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { BillingPortalQueryDto } from '@api/services/integrations/stripe/dto/billing-portal-query.dto';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 
 const metadata: ArgumentMetadata = {
   metatype: BillingPortalQueryDto,

@@ -1,10 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideoExtendDto } from '@api/collections/videos/dto/video-extend.dto';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import type { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -39,11 +44,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import type { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 
 @AutoSwagger()
 @Controller('videos')

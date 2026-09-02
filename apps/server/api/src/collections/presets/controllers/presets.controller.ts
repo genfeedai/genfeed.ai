@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { PresetsQueryDto } from '@api/collections/presets/dto/presets-query.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
 import { PresetsService } from '@api/collections/presets/services/presets.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

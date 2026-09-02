@@ -1,9 +1,9 @@
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { getMinimumTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
+import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { BadRequestException } from '@nestjs/common';
 
 export async function assertOrganizationCreditsAvailable(

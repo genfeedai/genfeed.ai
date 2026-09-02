@@ -1,10 +1,29 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import {
+  ArticleGenerationType,
+  GenerateArticlesDto,
+} from '@api/collections/articles/dto/generate-articles.dto';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import {
   assertOrganizationCreditsAvailable,
   resolveTextModelMinimumCredits,
@@ -15,6 +34,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import type { AgentEndpointRequest } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
+import type {
+  AgentGenerationInput,
+  AgentGenerationResourceInput,
+  IAgentGenerationGateway,
+} from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -39,31 +64,6 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import {
-  ArticleGenerationType,
-  GenerateArticlesDto,
-} from '@server/collections/articles/dto/generate-articles.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { CreateAvatarVideoDto } from '@server/collections/videos/dto/create-avatar-video.dto';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { GenerateVoiceDto } from '@server/collections/voices/dto/generate-voice.dto';
-import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
-import type {
-  AgentGenerationInput,
-  AgentGenerationResourceInput,
-  IAgentGenerationGateway,
-} from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 /** `@SetMetadata('roles', [...])` shared by the media creation endpoints. */
 const GENERATION_ROLES: (string | MemberRole)[] = [

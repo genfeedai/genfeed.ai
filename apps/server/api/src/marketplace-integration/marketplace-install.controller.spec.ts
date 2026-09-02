@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MarketplaceInstallController } from '@api/marketplace-integration/marketplace-install.controller';
-import type { MarketplaceInstallService } from '@server/marketplace-integration/marketplace-install.service';
+import type { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MarketplaceInstallController', () => {

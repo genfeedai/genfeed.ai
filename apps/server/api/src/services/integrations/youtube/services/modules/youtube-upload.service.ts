@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import type {
+  ServerYoutubeUploader,
+  YoutubeUploadPostInput,
+} from '@api/server.dependencies';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import { htmlToText } from '@server/shared/utils/html-to-text/html-to-text.util';
+import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,
@@ -13,11 +18,6 @@ import { PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type {
-  ServerYoutubeUploader,
-  YoutubeUploadPostInput,
-} from '@server/server.dependencies';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 import { google, type youtube_v3 } from 'googleapis';
 
 @Injectable()

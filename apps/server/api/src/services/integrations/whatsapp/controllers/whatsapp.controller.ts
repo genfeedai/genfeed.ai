@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { returnBadRequest } from '@api/helpers/utils/response/response.util';
-import { WhatsappService } from '@server/services/integrations/whatsapp/services/whatsapp.service';
+import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
 import type {
   IWhatsappSendMessageParams,
   IWhatsappSendTemplateParams,

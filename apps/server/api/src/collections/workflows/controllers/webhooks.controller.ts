@@ -6,8 +6,8 @@
  */
 
 import { timingSafeEqual } from 'node:crypto';
-import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

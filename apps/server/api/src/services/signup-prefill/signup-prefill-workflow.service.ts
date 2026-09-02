@@ -1,15 +1,15 @@
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  SignupPrefillService,
+  type SignupPrefillState,
+} from '@api/services/signup-prefill/signup-prefill.service';
 import {
   buildSignupPrefillWorkflowDefinition,
   SIGNUP_PREFILL_ACTION_IDS,
 } from '@api/services/signup-prefill/signup-prefill-workflow-definition';
 import type { SignupPrefillWorkflowInput } from '@genfeedai/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import {
-  SignupPrefillService,
-  type SignupPrefillState,
-} from '@server/services/signup-prefill/signup-prefill.service';
 
 export function signupPrefillJobId(userId: string): string {
   return `signup-prefill-${userId}`;

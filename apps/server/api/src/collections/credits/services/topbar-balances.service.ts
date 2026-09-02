@@ -1,5 +1,5 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ByokService } from '@server/services/byok/byok.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/enums';
 import type {
   ITopbarBalanceSegment,

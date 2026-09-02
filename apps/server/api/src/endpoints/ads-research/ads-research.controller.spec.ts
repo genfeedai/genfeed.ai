@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

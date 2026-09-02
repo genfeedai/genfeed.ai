@@ -1,26 +1,26 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { StreaksService } from '@api/collections/streaks/services/streaks.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import {
+  type AccessBootstrapCachePayload,
+  AccessBootstrapCacheService,
+} from '@api/common/services/access-bootstrap-cache.service';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
-import { toPlainJson } from '@serializers/helpers/plain-json.helper';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { StreaksService } from '@server/collections/streaks/services/streaks.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import {
-  type AccessBootstrapCachePayload,
-  AccessBootstrapCacheService,
-} from '@server/common/services/access-bootstrap-cache.service';
 import {
   BatchGenerationService,
   ReviewInboxSummary,
-} from '@server/services/batch-generation/batch-generation.service';
+} from '@api/services/batch-generation/batch-generation.service';
+import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
+import { Injectable } from '@nestjs/common';
+import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export interface AuthBootstrapRequest extends RequestWithContext {}
 

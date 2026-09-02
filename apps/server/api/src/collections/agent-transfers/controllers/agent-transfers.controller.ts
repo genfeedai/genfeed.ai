@@ -1,6 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -22,8 +24,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import type { Request } from 'express';
 
 @ApiTags('Agent Transfers')

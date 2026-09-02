@@ -1,11 +1,11 @@
 import { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto';
 import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
   type PopulateInput,
-} from '@server/shared/services/base/base.service';
+} from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

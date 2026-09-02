@@ -1,5 +1,5 @@
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';

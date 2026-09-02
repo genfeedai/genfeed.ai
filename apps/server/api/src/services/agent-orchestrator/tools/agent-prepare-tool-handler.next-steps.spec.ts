@@ -1,4 +1,4 @@
-import { AgentPrepareToolHandler } from '@server/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
+import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { AgentNextStepOption } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 

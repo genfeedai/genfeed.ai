@@ -1,20 +1,20 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
-} from '@server/common/constants/cache-patterns.constants';
+} from '@api/common/constants/cache-patterns.constants';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
+import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {
   ByokUsageSummarySerializer,

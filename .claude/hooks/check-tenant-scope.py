@@ -24,7 +24,6 @@ GUARD_TIMEOUT_SECONDS = 30
 MAX_OUTPUT_LINES = 40
 SCAN_ROOTS = (
     Path("apps/server/api/src"),
-    Path("apps/server/server/src"),
 )
 IGNORED_DIRECTORY_NAMES = {
     "__fixtures__",

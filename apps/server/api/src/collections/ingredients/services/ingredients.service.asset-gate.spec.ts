@@ -1,6 +1,6 @@
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { AssetGateService } from '@server/collections/organization-settings/services/asset-gate.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // getModelMeta('ingredient') resolves without a heavy PrismaClient import.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });

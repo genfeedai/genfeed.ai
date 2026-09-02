@@ -15,14 +15,14 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { BrandRemixSourceSelector } from '@api-types/contracts/brand-remix-run.contract';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { AdsResearchDetail } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class BrandRemixSourceResolverService {

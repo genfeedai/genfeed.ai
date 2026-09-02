@@ -1,4 +1,4 @@
-import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
+import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 

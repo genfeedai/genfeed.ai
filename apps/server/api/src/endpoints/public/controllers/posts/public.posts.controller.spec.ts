@@ -1,10 +1,10 @@
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,

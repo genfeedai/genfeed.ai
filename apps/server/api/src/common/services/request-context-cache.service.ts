@@ -5,7 +5,7 @@ import {
 import {
   collectRedisKeysByPattern,
   invalidateRedisSnapshot,
-} from '@server/common/services/redis-cache-snapshot.helper';
+} from '@api/common/services/redis-cache-snapshot.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';

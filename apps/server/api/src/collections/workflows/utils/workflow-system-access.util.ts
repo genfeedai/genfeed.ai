@@ -1,6 +1,6 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import type { Request } from 'express';
 
 export function assertCanIncludeSystemWorkflows(

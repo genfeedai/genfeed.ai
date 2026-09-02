@@ -1,14 +1,14 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
+import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
+import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
-import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
-import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

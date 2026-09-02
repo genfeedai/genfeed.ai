@@ -5,7 +5,7 @@ SRT/VTT export, and automated caption timing.
  */
 
 import { CaptionsController } from '@api/collections/captions/controllers/captions.controller';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';

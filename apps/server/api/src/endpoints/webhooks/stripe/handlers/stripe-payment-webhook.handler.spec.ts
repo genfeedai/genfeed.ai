@@ -1,10 +1,10 @@
 import { ReferralsService } from '@api/collections/referrals/services/referrals.service';
 import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-payment-webhook.handler';
-import { LoggerService } from '@libs/logger/logger.service';
 import type {
   StripeCharge,
   StripeDispute,
-} from '@server/services/integrations/stripe/services/stripe.service';
+} from '@api/services/integrations/stripe/services/stripe.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('StripePaymentWebhookHandler', () => {

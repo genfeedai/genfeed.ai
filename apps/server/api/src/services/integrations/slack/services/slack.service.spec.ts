@@ -1,4 +1,4 @@
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

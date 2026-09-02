@@ -4,7 +4,7 @@
 and tag auto-suggestions.
  */
 import { TagsController } from '@api/collections/tags/controllers/tags.controller';
-import { TagsService } from '@server/collections/tags/services/tags.service';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import { Module } from '@nestjs/common';
 
 @Module({

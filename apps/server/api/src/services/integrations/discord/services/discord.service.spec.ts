@@ -2,7 +2,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

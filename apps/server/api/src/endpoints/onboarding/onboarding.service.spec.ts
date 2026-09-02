@@ -23,13 +23,13 @@
 // subpath (equivalent to the hand-rolled version below, which this replaces).
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

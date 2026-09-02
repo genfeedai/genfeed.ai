@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PresetsController } from '@api/collections/presets/controllers/presets.controller';
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';

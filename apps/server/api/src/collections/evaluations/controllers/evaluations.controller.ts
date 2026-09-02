@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CompareEvaluationsDto } from '@server/collections/evaluations/dto/compare-evaluations.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CompareEvaluationsDto } from '@api/collections/evaluations/dto/compare-evaluations.dto';
 import { EvaluateContentDto } from '@api/collections/evaluations/dto/evaluate-content.dto';
-import { EvaluateExternalDto } from '@server/collections/evaluations/dto/evaluate-external.dto';
-import { EvaluationFiltersDto } from '@server/collections/evaluations/dto/evaluation-filters.dto';
+import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
+import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
 import type { EvaluationEntityType } from '@api/collections/evaluations/dto/evaluations-query.dto';
 import { EvaluationsQueryDto } from '@api/collections/evaluations/dto/evaluations-query.dto';
-import { RecordEvaluationReviewDto } from '@server/collections/evaluations/dto/record-evaluation-review.dto';
-import type { EvaluationDocument } from '@server/collections/evaluations/schemas/evaluation.schema';
-import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
+import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
+import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -18,7 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { PrismaFindAllInput } from '@server/shared/services/base/base.service';
+import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,5 +1,5 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

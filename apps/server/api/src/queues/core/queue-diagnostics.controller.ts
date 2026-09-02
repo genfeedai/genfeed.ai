@@ -1,5 +1,5 @@
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { QueueService } from '@server/queues/core/queue.service';
+import { QueueService } from '@api/queues/core/queue.service';
 import {
   DEFAULT_QUEUE,
   type QueueDispatchResult,

@@ -1,8 +1,9 @@
 import { LeonardoAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/leonardoai-webhook-payload.dto';
 import { parseAllowedIps } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.constants';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { assertWebhookToken } from '@api/webhooks/webhook-token.util';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
@@ -16,7 +17,6 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { assertWebhookToken } from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
 
 @AutoSwagger()

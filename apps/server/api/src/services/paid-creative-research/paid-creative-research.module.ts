@@ -1,12 +1,12 @@
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { AdWatchedAdvertisersCoreModule } from '@api/collections/ad-watched-advertisers/ad-watched-advertisers-core.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
-import { GoogleAdsTransparencyProvider } from '@server/services/paid-creative-research/providers/google-ads-transparency.provider';
-import { MetaAdLibraryProvider } from '@server/services/paid-creative-research/providers/meta-ad-library.provider';
-import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
-import { TikTokCreativeCenterProvider } from '@server/services/paid-creative-research/providers/tiktok-creative-center.provider';
-import { XAdsRepositoryProvider } from '@server/services/paid-creative-research/providers/x-ads-repository.provider';
-import { PaidCreativeResearchIngestionService } from '@server/services/paid-creative-research/services/paid-creative-research-ingestion.service';
+import { GoogleAdsTransparencyProvider } from '@api/services/paid-creative-research/providers/google-ads-transparency.provider';
+import { MetaAdLibraryProvider } from '@api/services/paid-creative-research/providers/meta-ad-library.provider';
+import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { TikTokCreativeCenterProvider } from '@api/services/paid-creative-research/providers/tiktok-creative-center.provider';
+import { XAdsRepositoryProvider } from '@api/services/paid-creative-research/providers/x-ads-repository.provider';
+import { PaidCreativeResearchIngestionService } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 
 /**

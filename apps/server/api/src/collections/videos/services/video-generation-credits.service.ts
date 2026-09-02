@@ -1,4 +1,9 @@
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   applyVideoResolutionCreditMultiplier,
   calculateDynamicVideoCost,
@@ -15,6 +20,8 @@ import {
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { ByokService } from '@api/services/byok/byok.service';
+import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
 import {
@@ -22,13 +29,6 @@ import {
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { ByokService } from '@server/services/byok/byok.service';
-import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 
 @Injectable()
 export class VideoGenerationCreditsService {

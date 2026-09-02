@@ -1,5 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BookmarksController } from '@api/collections/bookmarks/controllers/bookmarks.controller';
 import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-query.dto';
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';

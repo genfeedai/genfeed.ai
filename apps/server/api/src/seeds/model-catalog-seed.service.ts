@@ -7,6 +7,7 @@
  * provider survive every subsequent boot.
  */
 
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   getModelCatalogForDeployment,
@@ -18,7 +19,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class ModelCatalogSeedService implements OnApplicationBootstrap {

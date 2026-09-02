@@ -1,9 +1,9 @@
 import { ByokModule } from '@api/services/byok/byok.module';
 import { AnthropicModule } from '@api/services/integrations/anthropic/anthropic.module';
-import { LlmCompletionTelemetryService } from '@server/services/integrations/llm/llm-completion-telemetry.service';
-import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import { LlmInstanceService } from '@server/services/integrations/llm/llm-instance.service';
-import { LlmVendorCostLedgerService } from '@server/services/integrations/llm/llm-vendor-cost-ledger.service';
+import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
+import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { createServiceModule } from '@api/shared/service-module.factory';

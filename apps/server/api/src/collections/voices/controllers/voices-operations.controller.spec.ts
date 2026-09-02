@@ -1,13 +1,13 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { ActivitySource } from '@genfeedai/enums';
 import { Reflector } from '@nestjs/core';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

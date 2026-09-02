@@ -29,14 +29,6 @@ const checks = [
     command: [
       'bun',
       'run',
-      'scripts/architecture/check-no-api-imports-in-workers.ts',
-    ],
-    name: 'Workers @api import boundary',
-  },
-  {
-    command: [
-      'bun',
-      'run',
       'scripts/architecture/check-no-workspace-tasks-shadow.ts',
     ],
     name: 'Retired workspace-tasks shadow',
@@ -76,14 +68,6 @@ const checks = [
       'scripts/architecture/check-deterministic-locale.ts',
     ],
     name: 'Deterministic locale boundary',
-  },
-  {
-    command: [
-      'bun',
-      'run',
-      'scripts/architecture/check-server-package-boundary.ts',
-    ],
-    name: 'Shared server package API boundary',
   },
   {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],

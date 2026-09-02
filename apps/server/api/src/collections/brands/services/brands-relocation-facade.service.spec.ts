@@ -1,6 +1,6 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import type { BrandRelocationService } from '@server/collections/brands/services/brand-relocation.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 
 describe('BrandsService relocation facade', () => {
   const brand = { id: 'brand-1' } as BrandDocument;

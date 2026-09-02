@@ -1,15 +1,15 @@
+import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 const ALLOWED_URL = 'https://replicate.delivery/pbxt/abc/out-0.png';
 const FOREIGN_URL = 'https://evil.example.com/out-0.png';

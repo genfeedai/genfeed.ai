@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class TaskCommentEntity extends BaseEntity {
   declare readonly organizationId: string;

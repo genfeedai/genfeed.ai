@@ -1,11 +1,22 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import type {
+  IngredientDocument,
+  IngredientMetadataDocument,
+} from '@api/collections/ingredients/schemas/ingredient.schema';
+import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { TagsService } from '@api/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -16,7 +27,11 @@ import {
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityKey,
   ActivitySource,
@@ -44,21 +59,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type {
-  IngredientDocument,
-  IngredientMetadataDocument,
-} from '@server/collections/ingredients/schemas/ingredient.schema';
-import { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
-import { TagsService } from '@server/collections/tags/services/tags.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 
 import sharp from 'sharp';
 

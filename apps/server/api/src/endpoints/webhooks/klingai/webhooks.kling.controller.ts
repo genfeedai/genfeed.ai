@@ -1,7 +1,8 @@
 import { KlingAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/klingai-webhook-payload.dto';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { assertWebhookToken } from '@api/webhooks/webhook-token.util';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
@@ -15,7 +16,6 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { assertWebhookToken } from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
 
 @AutoSwagger()

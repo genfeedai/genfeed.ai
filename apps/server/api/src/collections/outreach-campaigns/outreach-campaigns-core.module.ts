@@ -1,4 +1,4 @@
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { Module } from '@nestjs/common';
 
 /** Outreach campaign persistence only. Execution stays on CampaignModule. */

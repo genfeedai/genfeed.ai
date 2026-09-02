@@ -1,5 +1,5 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import {
   PostStatus,
   PostVisibility,

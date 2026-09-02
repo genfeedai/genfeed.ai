@@ -29,7 +29,7 @@ import {
 } from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
+import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;

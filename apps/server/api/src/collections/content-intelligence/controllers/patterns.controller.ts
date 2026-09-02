@@ -1,16 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PatternsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
-import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
+import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

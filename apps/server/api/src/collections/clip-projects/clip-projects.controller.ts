@@ -1,6 +1,16 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
+import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -8,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -27,17 +38,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
-import { UpdateClipProjectDto } from '@server/collections/clip-projects/dto/update-clip-project.dto';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Request } from 'express';
 
 @AutoSwagger()

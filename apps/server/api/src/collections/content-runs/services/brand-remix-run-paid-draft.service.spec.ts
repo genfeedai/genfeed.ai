@@ -1,5 +1,6 @@
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import {
   ContentRunStatus,
@@ -7,7 +8,6 @@ import {
   PersistedReviewDecision,
 } from '@genfeedai/enums';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');

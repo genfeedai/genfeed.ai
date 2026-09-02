@@ -15,12 +15,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

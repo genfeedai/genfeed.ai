@@ -15,7 +15,7 @@
  */
 
 import process from 'node:process';
-import { OAUTH_STATE_TTL_MS } from '@server/collections/credentials/constants/oauth.constants';
+import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import {
   PrismaClient,
   CredentialPlatform as PrismaCredentialPlatform,

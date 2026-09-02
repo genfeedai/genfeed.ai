@@ -1,5 +1,5 @@
-import { getNodeDefinition } from '@server/collections/workflows/registry/node-registry-adapter';
-import { WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/workflow-templates';
+import { getNodeDefinition } from '@api/collections/workflows/registry/node-registry-adapter';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { describe, expect, it } from 'vitest';
 
 describe('workflow template node coverage', () => {

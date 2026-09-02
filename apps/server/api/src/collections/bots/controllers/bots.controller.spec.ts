@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BotsController } from '@api/collections/bots/controllers/bots.controller';
-import type { BotDocument } from '@server/collections/bots/schemas/bot.schema';
-import { BotsService } from '@server/collections/bots/services/bots.service';
-import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
-import { BotsRestreamChatService } from '@server/collections/bots/services/bots-restream-chat.service';
+import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
+import { BotsService } from '@api/collections/bots/services/bots.service';
+import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
+import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 

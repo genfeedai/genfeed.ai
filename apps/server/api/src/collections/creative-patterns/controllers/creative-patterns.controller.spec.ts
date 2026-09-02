@@ -1,5 +1,5 @@
 import { CreativePatternsController } from '@api/collections/creative-patterns/controllers/creative-patterns.controller';
-import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
+import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const currentUser = {

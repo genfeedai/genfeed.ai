@@ -1,18 +1,18 @@
-import { ArticleCategory, TagCategory } from '@genfeedai/enums';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import {
   ArticleGenerationType,
   type GenerateArticlesDto,
-} from '@server/collections/articles/dto/generate-articles.dto';
-import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
-import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
-import type { ArticleCreateFn } from '@server/collections/articles/services/articles-content.types';
-import type { TagsService } from '@server/collections/tags/services/tags.service';
-import type { TemplatesService } from '@server/collections/templates/services/templates.service';
-import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+} from '@api/collections/articles/dto/generate-articles.dto';
+import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
+import type { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
+import type { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
+import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
+import type { ArticleCreateFn } from '@api/collections/articles/services/articles-content.types';
+import type { TagsService } from '@api/collections/tags/services/tags.service';
+import type { TemplatesService } from '@api/collections/templates/services/templates.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { ArticleCategory, TagCategory } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

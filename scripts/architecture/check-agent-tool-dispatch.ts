@@ -41,12 +41,12 @@ const DEFAULT_CATALOG_PATH =
   'packages/actions/src/registry/curated-action-catalog.ts';
 const DEFAULT_ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
 const DEFAULT_AGENT_TYPE_CONFIG_PATH =
-  'apps/server/server/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
+  'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DEFAULT_BRANDLESS_TOOLS_PATH =
-  'apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts';
 const DEFAULT_DISPATCH_GLOBS = [
   'apps/server/api/src/services/agent-orchestrator/tools/**/*.ts',
-  'apps/server/server/src/services/agent-orchestrator/tools/**/*.ts',
+  'apps/server/api/src/services/agent-orchestrator/tools/**/*.ts',
 ];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',

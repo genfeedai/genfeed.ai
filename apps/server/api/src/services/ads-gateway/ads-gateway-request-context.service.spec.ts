@@ -7,8 +7,8 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   })),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import {
   CredentialPlatform,

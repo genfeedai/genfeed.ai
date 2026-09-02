@@ -24,8 +24,8 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,

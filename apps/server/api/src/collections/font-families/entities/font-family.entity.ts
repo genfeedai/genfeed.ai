@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import { ModelCategory } from '@genfeedai/enums';
 import { type FontFamilyRecord as FontFamily } from '@genfeedai/prisma';
 

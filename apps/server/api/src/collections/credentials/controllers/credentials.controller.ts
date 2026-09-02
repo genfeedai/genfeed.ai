@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { UpdateCredentialDto } from '@server/collections/credentials/dto/update-credential.dto';
-import { type CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
+import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
-import { CreateTagDto } from '@server/collections/tags/dto/create-tag.dto';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -20,17 +20,17 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
-import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
+import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
-import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
-import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
+import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
+import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

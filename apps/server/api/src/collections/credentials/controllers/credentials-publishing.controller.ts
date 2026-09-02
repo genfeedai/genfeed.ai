@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AssessAccountHealthDto } from '@api/collections/credentials/dto/assess-account-health.dto';
 import {
   CredentialPostingTimeDto,
@@ -6,17 +6,17 @@ import {
   ReplaceCredentialPostingTimesDto,
 } from '@api/collections/credentials/dto/credential-posting-time.dto';
 import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
-import { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
+import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type {
   AccountHealthSummary,
   ContentSurface,

@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -8,7 +8,7 @@ import {
   returnInternalServerError,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { GhostService } from '@server/services/integrations/ghost/services/ghost.service';
+import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   GhostConnectPayload,

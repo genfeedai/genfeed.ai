@@ -8,11 +8,24 @@
  * apart from the plain CRUD surface on `ArticlesController`.
  */
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import {
+  ArticleGenerationType,
+  GenerateArticlesDto,
+} from '@api/collections/articles/dto/generate-articles.dto';
 import { ReviewArticleDto } from '@api/collections/articles/dto/review-article.dto';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -27,6 +40,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -47,20 +61,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import {
-  ArticleGenerationType,
-  GenerateArticlesDto,
-} from '@server/collections/articles/dto/generate-articles.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 
 /**

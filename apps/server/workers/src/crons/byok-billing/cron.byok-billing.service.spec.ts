@@ -1,5 +1,5 @@
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,3 +1,4 @@
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AGENT_CHAT_MODEL_KEYS,
   getModelCatalogForDeployment,
@@ -6,7 +7,6 @@ import {
 } from '@genfeedai/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 import { ModelCatalogSeedService } from './model-catalog-seed.service';
 

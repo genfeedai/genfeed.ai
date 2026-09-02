@@ -2,23 +2,23 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
-import { QuotaModule } from '@api/services/quota/quota.module';
-import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
-import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
   PostLifecycleService,
   PublishApprovalsService,
   SERVER_TOKENS,
-} from '@genfeedai/server';
+} from '@api/index';
+import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
+import { QuotaModule } from '@api/services/quota/quota.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
-import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';

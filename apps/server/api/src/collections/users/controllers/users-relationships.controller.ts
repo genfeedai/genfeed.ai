@@ -1,26 +1,26 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UpdateSettingDto } from '@server/collections/settings/dto/update-setting.dto';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import {
   buildMeBrandsWhere,
   getCanonicalId,
   nestedSettingsRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
 import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/users/dto/update-workflow-email-notification-preference.dto';
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,
@@ -28,7 +28,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { NotificationPreferenceService } from '@server/services/notifications/workflow-notifications/notification-preference.service';
+import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import {
   BrandSerializer,
   NotificationPreferenceSerializer,

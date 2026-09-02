@@ -1,6 +1,6 @@
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 

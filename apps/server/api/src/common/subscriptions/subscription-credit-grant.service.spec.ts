@@ -1,5 +1,5 @@
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
 import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';

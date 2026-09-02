@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ThreadsCallbackService } from '@api/services/integrations/threads/services/threads-callback.service';
 import { verifyThreadsDeletionReceipt } from '@api/services/integrations/threads/services/threads-callback-signature.util';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -6,7 +7,6 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 const SECRET = 'threads-app-secret';
 

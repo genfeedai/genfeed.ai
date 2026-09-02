@@ -1,6 +1,15 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateRssSourceDto } from '@api/collections/rss-sources/dto/create-rss-source.dto';
+import { RssSourcesQueryDto } from '@api/collections/rss-sources/dto/rss-sources-query.dto';
+import { UpdateRssSourceDto } from '@api/collections/rss-sources/dto/update-rss-source.dto';
+import type { RssSourceScope } from '@api/collections/rss-sources/schemas/rss-source.schema';
+import { RssSourceWorkflowService } from '@api/collections/rss-sources/services/rss-source-workflow.service';
+import { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import {
@@ -21,15 +30,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateRssSourceDto } from '@server/collections/rss-sources/dto/create-rss-source.dto';
-import { RssSourcesQueryDto } from '@server/collections/rss-sources/dto/rss-sources-query.dto';
-import { UpdateRssSourceDto } from '@server/collections/rss-sources/dto/update-rss-source.dto';
-import type { RssSourceScope } from '@server/collections/rss-sources/schemas/rss-source.schema';
-import { RssSourceWorkflowService } from '@server/collections/rss-sources/services/rss-source-workflow.service';
-import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
 import type { Request } from 'express';
 
 @AutoSwagger()

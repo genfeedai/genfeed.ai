@@ -1,5 +1,5 @@
-import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class TrainingEntity extends BaseEntity implements TrainingDocument {
   declare readonly id: string;

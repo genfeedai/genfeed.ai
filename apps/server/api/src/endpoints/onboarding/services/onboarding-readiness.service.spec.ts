@@ -1,7 +1,7 @@
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import type { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import type { UsersService } from '@server/collections/users/services/users.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedConfig = vi.hoisted(() => ({ isCloud: false }));

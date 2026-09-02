@@ -6,7 +6,7 @@ import {
   getEmailDomainForLog,
   getEmailLogMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import type { StripeInvoice } from '@server/services/integrations/stripe/services/stripe.service';
+import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import { describe, expect, it, vi } from 'vitest';
 
 function invoiceWith(overrides: Record<string, unknown>): StripeInvoice {

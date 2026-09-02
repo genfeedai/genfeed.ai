@@ -5,8 +5,8 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AdsGatewayService } from '@server/services/ads-gateway/ads-gateway.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import type { AdsAdapterContext, AdsPlatform } from '@genfeedai/interfaces';

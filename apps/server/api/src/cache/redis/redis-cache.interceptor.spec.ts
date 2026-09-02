@@ -1,5 +1,5 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';

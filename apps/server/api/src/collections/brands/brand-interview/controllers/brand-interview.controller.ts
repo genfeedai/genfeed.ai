@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SubmitBrandInterviewAnswerDto } from '@api/collections/brands/brand-interview/dto/submit-brand-interview-answer.dto';
-import { BrandInterviewService } from '@server/collections/brands/brand-interview/services/brand-interview.service';
+import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type {

@@ -28,16 +28,16 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
-import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
+import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@api/server.dependencies';
+import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { CredentialDocument } from '@server/collections/credentials/credential.types';
-import {
-  SERVER_TOKENS,
-  type ServerCredentialStore,
-} from '@server/server.dependencies';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,3 +1,30 @@
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { PostDocument } from '@api/collections/posts/post.schema';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import {
+  SCHEDULED_POST_ACTION_IDS,
+  type ScheduledPostWorkflowInput,
+} from '@api/collections/posts/services/scheduled-post-workflow-definition';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  type CredentialDocument,
+  type IPublisher,
+  type PublishContext,
+  type PublishResult,
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+  type ServerPublisherFactory,
+  scopedWhere,
+  TIKTOK_APP_HANDOFF_SETTING,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
+} from '@api/index';
+import { QuotaService } from '@api/services/quota/quota.service';
+import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import {
   resolveChannelTargetSettings,
@@ -12,38 +39,11 @@ import {
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import {
-  type CredentialDocument,
-  type IPublisher,
-  type PublishContext,
-  type PublishResult,
-  SERVER_TOKENS,
-  type ServerCredentialStore,
-  type ServerPublisherFactory,
-  scopedWhere,
-  TIKTOK_APP_HANDOFF_SETTING,
-  WORKFLOW_APPROVED_SCHEDULE_SETTING,
-} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  SCHEDULED_POST_ACTION_IDS,
-  type ScheduledPostWorkflowInput,
-} from '@server/collections/posts/services/scheduled-post-workflow-definition';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { QuotaService } from '@server/services/quota/quota.service';
-import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
-import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   createChannelTargetError,
   createFailedPublishResult,

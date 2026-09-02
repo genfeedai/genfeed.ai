@@ -5,14 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
 const API_SRC = path.resolve(SPEC_DIR, '../..');
-const SERVER_SRC = path.resolve(SPEC_DIR, '../../../../server/src');
-const SERVER_ROOT = path.resolve(SPEC_DIR, '../../../..');
-const INTEGRATIONS_DIRS = [
-  path.join(API_SRC, 'services/integrations'),
-  path.join(SERVER_SRC, 'services/integrations'),
-];
+const INTEGRATIONS_DIRS = [path.join(API_SRC, 'services/integrations')];
 const CREDENTIALS_SERVICE_PATH = path.join(
-  SERVER_SRC,
+  API_SRC,
   'collections/credentials/services/credentials.service.ts',
 );
 
@@ -37,10 +32,7 @@ const INTEGRATION_SOURCES = INTEGRATIONS_DIRS.flatMap((directory) =>
   collectIntegrationSources(directory),
 ).map(
   (filePath) =>
-    [
-      path.relative(SERVER_ROOT, filePath),
-      readFileSync(filePath, 'utf8'),
-    ] as const,
+    [path.relative(API_SRC, filePath), readFileSync(filePath, 'utf8')] as const,
 );
 
 /**

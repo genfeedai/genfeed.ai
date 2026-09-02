@@ -7,16 +7,16 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
-import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import type { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import type { RolesService } from '@api/collections/roles/services/roles.service';
-import type { UsersService } from '@server/collections/users/services/users.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { SubscriptionTier } from '@genfeedai/enums';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';

@@ -2,7 +2,7 @@ import type {
   BrandingMode,
   JsonPrompt,
   PromptBuilderParams,
-} from '@server/services/prompt-builder/interfaces/prompt-builder-params.interface';
+} from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 
 /**
  * Utility to build universal JSON prompt structure

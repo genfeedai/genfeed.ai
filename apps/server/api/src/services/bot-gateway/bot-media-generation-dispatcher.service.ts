@@ -1,4 +1,6 @@
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
+import type { AgentGenerationInput } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import type { BotMediaGenerationDispatcher } from '@api/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
 import { ActivitySource, BotCommandType } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
@@ -6,8 +8,6 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import type { AgentGenerationInput } from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
-import type { BotMediaGenerationDispatcher } from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
 
 /**
  * Bot slash-command media generation.

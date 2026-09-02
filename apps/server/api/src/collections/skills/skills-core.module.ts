@@ -1,4 +1,4 @@
-import { SkillsService } from '@server/collections/skills/services/skills.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { Module } from '@nestjs/common';
 

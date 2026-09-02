@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { CreateTemplateDto } from '@server/collections/templates/dto/create-template.dto';
-import { SuggestTemplatesDto } from '@server/collections/templates/dto/suggest-templates.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { CreateTemplateDto } from '@api/collections/templates/dto/create-template.dto';
+import { SuggestTemplatesDto } from '@api/collections/templates/dto/suggest-templates.dto';
 import { TemplatesQueryDto } from '@api/collections/templates/dto/templates-query.dto';
-import { UpdateTemplateDto } from '@server/collections/templates/dto/update-template.dto';
-import { UseTemplateDto } from '@server/collections/templates/dto/use-template.dto';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { UpdateTemplateDto } from '@api/collections/templates/dto/update-template.dto';
+import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';

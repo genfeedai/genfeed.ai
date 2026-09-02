@@ -1,9 +1,9 @@
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   createChannelTargetError,
   createFailedPublishResult,

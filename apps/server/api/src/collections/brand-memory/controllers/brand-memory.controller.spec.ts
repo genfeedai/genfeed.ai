@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandMemoryController } from '@api/collections/brand-memory/controllers/brand-memory.controller';
-import { BrandMemoryService } from '@server/collections/brand-memory/services/brand-memory.service';
+import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';

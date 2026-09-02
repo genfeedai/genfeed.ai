@@ -1,8 +1,8 @@
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentCampaignStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ORG_ID = 'org-1';

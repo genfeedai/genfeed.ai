@@ -1,5 +1,26 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@api/services/router/router.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { SharedService } from '@api/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -15,27 +36,6 @@ import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CreateMusicDto } from '@server/collections/musics/dto/create-music.dto';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import type { Request } from 'express';
 
 const MUSICGEN_VERSION =

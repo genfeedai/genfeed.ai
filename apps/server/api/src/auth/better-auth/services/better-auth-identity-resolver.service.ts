@@ -1,11 +1,11 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { UsersService } from '@server/collections/users/services/users.service';
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
 import { isPlatformSuperAdmin } from '../better-auth-access.util';
 

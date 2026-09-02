@@ -1,6 +1,6 @@
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { WhisperService } from '@server/services/whisper/whisper.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';

@@ -3,7 +3,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   return { ...actual, isSelfHostedDeployment: () => false };
 });
 
-import type { SystemWorkflowActionExecutor } from '@server/collections/workflows/system-workflow-runner.service';
+import type { SystemWorkflowActionExecutor } from '@api/collections/workflows/system-workflow-runner.service';
 import { LifecycleEmailService } from './lifecycle-email.service';
 import {
   LIFECYCLE_SCHEDULING_ACTION_IDS,

@@ -5,8 +5,8 @@ billing history, and subscription management.
  */
 
 import { CustomersService } from '@api/collections/customers/services/customers.service';
+import { CacheModule } from '@api/services/cache/cache.module';
 import { Module } from '@nestjs/common';
-import { CacheModule } from '@server/services/cache/cache.module';
 
 @Module({
   controllers: [],

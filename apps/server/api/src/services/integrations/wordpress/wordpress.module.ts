@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { WordpressController } from '@api/services/integrations/wordpress/controllers/wordpress.controller';
-import { WordpressService } from '@server/services/integrations/wordpress/services/wordpress.service';
+import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';

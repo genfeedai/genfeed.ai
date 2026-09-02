@@ -2,13 +2,13 @@ vi.mock('node:crypto', () => ({
   randomUUID: vi.fn(() => 'mock-uuid-1234'),
 }));
 
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

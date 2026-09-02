@@ -1,4 +1,4 @@
-import { ConnectCredentialDto } from '@server/collections/credentials/dto/create-credential.dto';
+import { ConnectCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Matches } from 'class-validator';
 

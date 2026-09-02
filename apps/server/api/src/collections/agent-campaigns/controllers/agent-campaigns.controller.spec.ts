@@ -1,11 +1,11 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
 import type { AgentCampaignsQueryDto } from '@api/collections/agent-campaigns/dto/agent-campaigns-query.dto';
-import type { AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
-import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
-import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
-import { UsersService } from '@server/collections/users/services/users.service';
+import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
+import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
+import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';

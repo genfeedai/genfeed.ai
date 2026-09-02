@@ -1,11 +1,11 @@
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { isAllowedReplicateOutputUrl } from '@server/endpoints/webhooks/replicate/webhooks.replicate.constants';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Injectable()
 export class WorkflowContinuationReconcileService {

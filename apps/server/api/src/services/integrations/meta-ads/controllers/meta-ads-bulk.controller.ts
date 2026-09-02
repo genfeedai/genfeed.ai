@@ -1,3 +1,10 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type {
+  BulkUploadStatus,
+  CreativeSource,
+} from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
+import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -18,13 +25,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type {
-  BulkUploadStatus,
-  CreativeSource,
-} from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
-import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 interface CreateBulkUploadBody {
   credentialId: string;

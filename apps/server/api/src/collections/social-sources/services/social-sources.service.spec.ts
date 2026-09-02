@@ -1,14 +1,14 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('SocialSourcesService', () => {
   const logger = {

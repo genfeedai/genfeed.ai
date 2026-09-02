@@ -1,3 +1,5 @@
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -5,8 +7,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { firstValueFrom } from 'rxjs';
 
 interface MediumUser {

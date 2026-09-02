@@ -1,10 +1,10 @@
-import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
+import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { verifyArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,

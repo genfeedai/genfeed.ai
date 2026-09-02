@@ -1,4 +1,4 @@
-import { BaseEntity } from '@server/entities/base.entity';
+import { BaseEntity } from '@api/entities/base.entity';
 import type {
   AvatarProvider,
   PersonaStatus,

@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ElementsLensesController } from '@api/collections/elements/lenses/controllers/lenses.controller';
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

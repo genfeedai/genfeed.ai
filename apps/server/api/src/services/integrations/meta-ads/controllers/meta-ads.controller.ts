@@ -1,18 +1,27 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   INVALID_CAMPAIGN_STATUS_MESSAGE,
   isAcceptedCampaignStatus,
   resolveProviderCampaignStatus,
   resolveProviderPausedStatus,
-} from '@server/services/ads-gateway/ads-campaign-status.util';
+} from '@api/services/ads-gateway/ads-campaign-status.util';
+import type {
+  CreateAdParams,
+  CreateAdSetParams,
+  CreateCampaignParams,
+  MetaInsightsParams,
+  UpdateAdSetParams,
+  UpdateCampaignParams,
+} from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -29,15 +38,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import type {
-  CreateAdParams,
-  CreateAdSetParams,
-  CreateCampaignParams,
-  MetaInsightsParams,
-  UpdateAdSetParams,
-  UpdateCampaignParams,
-} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @AutoSwagger()
 @Controller('services/meta-ads')

@@ -1,16 +1,16 @@
+import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
 import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
-import { isAllowedReplicateOutputUrl } from '@server/endpoints/webhooks/replicate/webhooks.replicate.constants';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 /**
  * Handles the non-training branches of the Replicate webhook: asset

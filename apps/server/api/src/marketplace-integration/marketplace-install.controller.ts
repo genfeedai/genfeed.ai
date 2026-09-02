@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { MarketplaceInstallService } from '@server/marketplace-integration/marketplace-install.service';
+import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { Controller, Param, Post } from '@nestjs/common';
 
 @AutoSwagger()

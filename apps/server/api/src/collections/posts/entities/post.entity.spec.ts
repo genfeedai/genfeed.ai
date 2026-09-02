@@ -1,4 +1,4 @@
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostEntity } from '@api/collections/posts/entities/post.entity';
 
 describe('PostEntity', () => {
   it('should be defined', () => {

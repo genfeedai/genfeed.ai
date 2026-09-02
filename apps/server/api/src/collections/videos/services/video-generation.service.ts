@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
-} from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
+} from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';

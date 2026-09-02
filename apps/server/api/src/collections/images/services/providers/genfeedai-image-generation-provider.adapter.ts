@@ -3,7 +3,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
-import { isGenfeedAiDestination } from '@server/collections/models/utils/model-key.util';
+import { isGenfeedAiDestination } from '@api/collections/models/utils/model-key.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,3 +1,19 @@
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import {
+  buildScopedTrendsRefreshWorkflowDefinition,
+  buildScopedTrendTaskWorkflowDefinition,
+  buildTrendDatasetTaskWorkflowDefinition,
+  buildTrendsRefreshWorkflowDefinition,
+  type ScopedTrendRefreshTask,
+  TRENDS_MAINTENANCE_ACTION_IDS,
+  type TrendDatasetTask,
+  type TrendsMaintenanceRequest,
+} from '@api/collections/trends/services/trends-maintenance-workflow-definition';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@api/collections/workflows/system-workflow-runner.service';
 import {
   fromPrismaCredentialPlatform,
   WorkflowExecutionTrigger,
@@ -10,22 +26,6 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import {
-  buildScopedTrendsRefreshWorkflowDefinition,
-  buildScopedTrendTaskWorkflowDefinition,
-  buildTrendDatasetTaskWorkflowDefinition,
-  buildTrendsRefreshWorkflowDefinition,
-  type ScopedTrendRefreshTask,
-  TRENDS_MAINTENANCE_ACTION_IDS,
-  type TrendDatasetTask,
-  type TrendsMaintenanceRequest,
-} from '@server/collections/trends/services/trends-maintenance-workflow-definition';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import {
-  type SystemWorkflowGraphDefinition,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
 import { ConfigService } from '@workers/config/config.service';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';

@@ -1,4 +1,4 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import type { PatchAgentWorkflowDto } from '@api/workflows/dto/patch-agent-workflow.dto';
 import { testId } from '@helpers/testing/test-id.helper';

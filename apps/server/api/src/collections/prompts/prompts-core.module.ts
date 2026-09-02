@@ -1,4 +1,4 @@
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { Module } from '@nestjs/common';
 
 /** Prompt persistence only. Marketplace install imports this, not PromptsModule. */

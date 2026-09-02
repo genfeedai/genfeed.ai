@@ -3,14 +3,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
+import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { Request } from 'express';
 
 describe('PostGroupsController', () => {

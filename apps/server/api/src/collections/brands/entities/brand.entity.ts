@@ -1,8 +1,8 @@
 import {
   Brand,
   type BrandDocument,
-} from '@server/collections/brands/schemas/brand.schema';
-import { BaseEntity } from '@server/entities/base.entity';
+} from '@api/collections/brands/schemas/brand.schema';
+import { BaseEntity } from '@api/entities/base.entity';
 
 export class BrandEntity extends BaseEntity implements Brand {
   declare readonly id: string;

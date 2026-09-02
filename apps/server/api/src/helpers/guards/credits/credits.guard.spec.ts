@@ -1,8 +1,12 @@
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import type { ByokService } from '@api/services/byok/byok.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ActivitySource, ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -10,10 +14,6 @@ import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { ModelsService } from '@server/collections/models/services/models.service';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import type { ByokService } from '@server/services/byok/byok.service';
 
 const orgId = testId('org');
 

@@ -7,7 +7,7 @@ import {
 } from '@api/agent-auth/dto/agent-auth.dto';
 import { AgentAuthService } from '@api/agent-auth/services/agent-auth.service';
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';

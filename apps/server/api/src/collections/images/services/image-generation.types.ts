@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import type { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { ImageGenerationBriefDispatch } from '@server/services/generation-brief/image-generation-brief-registry';
-import type { SharedService } from '@server/shared/services/shared/shared.service';
+import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import type { ModelProvider } from '@genfeedai/enums';

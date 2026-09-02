@@ -2,7 +2,7 @@ import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PlatformSettingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

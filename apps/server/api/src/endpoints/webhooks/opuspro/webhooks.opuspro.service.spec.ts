@@ -1,4 +1,4 @@
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { testId } from '@helpers/testing/test-id.helper';

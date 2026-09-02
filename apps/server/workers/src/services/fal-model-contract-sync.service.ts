@@ -1,12 +1,12 @@
-import { ModelProvider } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   classifyFalSchemaFamily,
   extractFalEndpointSchemas,
   type FalEndpointSchemas,
-} from '@genfeedai/server/services/integrations/fal/services/fal-contract';
+} from '@api/services/integrations/fal/services/fal-contract';
+import { ModelProvider } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
-import { ModelsService } from '@server/collections/models/services/models.service';
 import {
   mapFalPricing,
   type NormalizedFalPrice,

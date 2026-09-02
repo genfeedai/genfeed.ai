@@ -16,7 +16,7 @@
  * skipped grant are recoverable; an unattributed grant is not.
  */
 
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   parseSubscriptionPlan,
   SubscriptionPlan,

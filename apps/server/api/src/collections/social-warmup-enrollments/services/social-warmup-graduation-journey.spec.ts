@@ -1,13 +1,13 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import { AccountHealthService } from '@server/collections/credentials/services/account-health.service';
+import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,

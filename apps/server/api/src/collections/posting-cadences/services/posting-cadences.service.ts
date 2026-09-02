@@ -1,7 +1,17 @@
 import { createHash } from 'node:crypto';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import type { BookCalendarSlotDto } from '@api/collections/posting-cadences/dto/calendar-slot-action.dto';
 import type { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import type { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
+import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   buildSlotIdentityKey,
   collapseOverlappingCadenceOccurrences,
@@ -23,18 +33,8 @@ import type {
   ICalendarSlotFillResult,
   IPostingCadence,
 } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import {
-  type ApiKeyPublishingContext,
-  assertApiKeyPublishingScope,
-} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   CadenceDelegate,
   CadenceRecord,

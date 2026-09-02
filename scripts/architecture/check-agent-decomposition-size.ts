@@ -27,8 +27,11 @@ const AGENT_ORCHESTRATOR_TREE =
  */
 const RATCHET_CEILINGS: Record<string, number> = {
   'apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts': 5356,
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts': 1333,
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts': 1275,
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts': 9292,
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-registry.ts': 1136,
+  'apps/server/api/src/services/agent-orchestrator/tools/agent-workflow-tool-install.service.ts': 1087,
 };
 
 /**

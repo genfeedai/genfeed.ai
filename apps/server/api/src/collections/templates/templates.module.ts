@@ -10,7 +10,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { TemplateMetadataModule } from '@api/collections/template-metadata/template-metadata.module';
 import { TemplateUsageModule } from '@api/collections/template-usage/template-usage.module';
 import { TemplatesController } from '@api/collections/templates/controllers/templates.controller';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';

@@ -6,8 +6,9 @@ import type {
   ListeningSignalDocument,
   ListeningThemeDocument,
 } from '@api/collections/listening-topics/schemas/listening-topic.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type IListeningScope,
   LISTENING_ANALYSIS_METHODOLOGY_VERSION,
@@ -16,7 +17,6 @@ import {
   type ListeningSignalType,
   type SourcePostMetrics,
 } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_WINDOW_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;

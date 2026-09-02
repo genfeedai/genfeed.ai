@@ -3,9 +3,9 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { Injectable } from '@nestjs/common';
-import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 
 @Injectable()
 export class LeonardoImageGenerationProviderAdapter

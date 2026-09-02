@@ -1,12 +1,12 @@
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import type {
   ModelRecommendation,
   PromptAnalysis,
-} from '@server/services/router/interfaces/router.interfaces';
+} from '@api/services/router/interfaces/router.interfaces';
 import { RouterController } from '@api/services/router/router.controller';
-import { RouterService } from '@server/services/router/router.service';
+import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

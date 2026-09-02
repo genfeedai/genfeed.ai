@@ -26,20 +26,20 @@ import { InstagramModule } from '@api/services/integrations/instagram/instagram.
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
+import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
+import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
+import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
+import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
+import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
-import { RateLimitService } from '@server/services/reply-bot/rate-limit.service';
-import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
-import { ReplyCandidatePrefilterService } from '@server/services/reply-bot/reply-candidate-prefilter.service';
-import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
-import { ReplyInboundProcessorService } from '@server/services/reply-bot/reply-inbound-processor.service';
-import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
-import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.service';
-import { XActivitySubscriptionService } from '@server/services/reply-bot/x-activity-subscription.service';
-import { XActivityWebhookService } from '@server/services/reply-bot/x-activity-webhook.service';
 
 @Module({
   exports: [

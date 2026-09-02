@@ -2,9 +2,9 @@ import type {
   ResolvedPostVariationSource,
   SourcePostVariationRequest,
 } from '@api/collections/posts/services/source-post-variation.types';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { scopedWhere } from '@genfeedai/server';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BadRequestException,
   CanActivate,

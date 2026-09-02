@@ -10,7 +10,7 @@ import { StripeWebhookErrorKind } from '@api/endpoints/webhooks/stripe/stripe-we
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';

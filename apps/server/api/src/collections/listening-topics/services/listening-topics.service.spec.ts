@@ -1,12 +1,12 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@server/shared/testing/prisma-mock'
+    '@api/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ListeningSourcePlatform } from '@genfeedai/enums';
 
 describe('ListeningTopicsService', () => {

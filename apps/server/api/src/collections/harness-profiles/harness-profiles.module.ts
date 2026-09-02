@@ -1,5 +1,5 @@
 import { HarnessProfilesController } from '@api/collections/harness-profiles/controllers/harness-profiles.controller';
-import { HarnessProfilesService } from '@server/collections/harness-profiles/services/harness-profiles.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 

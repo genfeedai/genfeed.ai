@@ -1,4 +1,4 @@
-import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
+import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';

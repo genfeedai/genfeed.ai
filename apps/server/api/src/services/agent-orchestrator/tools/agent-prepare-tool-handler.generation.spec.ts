@@ -1,6 +1,6 @@
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentPrepareToolHandler } from '@server/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
+import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { describe, expect, it, vi } from 'vitest';
 
 type PrepareHandlerCtor = ConstructorParameters<typeof AgentPrepareToolHandler>;

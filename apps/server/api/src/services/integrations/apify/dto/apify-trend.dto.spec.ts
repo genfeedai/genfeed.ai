@@ -5,9 +5,9 @@ import {
   GetTrendingSoundsDto,
   GetTrendsDto,
   GetViralVideosDto,
-  TrendResponseDto,
   TrendingHashtagResponseDto,
   TrendingSoundResponseDto,
+  TrendResponseDto,
   ViralVideoResponseDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
 import { Platform, Timeframe } from '@genfeedai/enums';

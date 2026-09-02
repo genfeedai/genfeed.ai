@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';

@@ -1,7 +1,7 @@
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
-import type { StripeCheckoutSession } from '@server/services/integrations/stripe/services/stripe.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
 import { SUBSCRIPTION_ATTRIBUTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';

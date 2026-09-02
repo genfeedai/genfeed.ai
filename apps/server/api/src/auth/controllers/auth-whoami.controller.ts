@@ -1,9 +1,9 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
-import type { IRequestContext } from '@server/common/interfaces/request-context.interface';
-import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
-import { PopulateBuilder } from '@server/shared/utils/populate/populate.util';
+import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 

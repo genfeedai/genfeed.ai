@@ -1,5 +1,5 @@
-import { CreateIngredientDto } from '@server/collections/ingredients/dto/create-ingredient.dto';
-import { CreateMetadataDto } from '@server/collections/metadata/dto/create-metadata.dto';
+import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
+import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsOptional, IsString, ValidateNested } from 'class-validator';

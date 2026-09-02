@@ -1,4 +1,4 @@
-import { ALLOW_UNKNOWN_PROPERTIES } from '@server/helpers/pipes/validation.pipe';
+import { ALLOW_UNKNOWN_PROPERTIES } from '@api/helpers/pipes/validation.pipe';
 
 /**
  * Base class for every provider webhook `@Body()` DTO.

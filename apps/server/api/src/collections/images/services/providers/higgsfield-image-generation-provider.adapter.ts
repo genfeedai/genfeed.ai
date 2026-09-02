@@ -3,7 +3,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { calculateAspectRatio } from '@genfeedai/helpers';
 

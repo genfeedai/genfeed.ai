@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateBrandRemixRunDto,
   PreparePausedMetaCampaignDraftDto,
@@ -6,10 +6,10 @@ import {
   StartBrandRemixRunDto,
   SubmitBrandRemixRunForReviewDto,
 } from '@api/collections/content-runs/dto/brand-remix-run.dto';
-import { CreateContentRunBriefDto } from '@server/collections/content-runs/dto/create-content-run-brief.dto';
+import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
-import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
+import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   Credits,

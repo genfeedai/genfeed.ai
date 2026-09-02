@@ -16,7 +16,7 @@ const migrationSource = readFileSync(
 const resolverSource = readFileSync(
   join(
     prismaDir,
-    '../../../apps/server/server/src/collections/brands/services/brand-kit-assets.service.ts',
+    '../../../apps/server/api/src/collections/brands/services/brand-kit-assets.service.ts',
   ),
   'utf8',
 );

@@ -1,3 +1,5 @@
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
@@ -6,8 +8,6 @@ import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 
 const BASE_URL = 'https://cdn.genfeed.ai';
 const ORGANIZATION_ID = testId('org');

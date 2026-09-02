@@ -5,7 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { BotActivitiesController } from '@api/collections/bot-activities/controllers/bot-activities.controller';
-import { BotActivitiesService } from '@server/collections/bot-activities/services/bot-activities.service';
+import { BotActivitiesService } from '@api/collections/bot-activities/services/bot-activities.service';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { LoggerService } from '@libs/logger/logger.service';

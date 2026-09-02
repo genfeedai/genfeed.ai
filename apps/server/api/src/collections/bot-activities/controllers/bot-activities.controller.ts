@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BotActivitiesQueryDto } from '@server/collections/bot-activities/dto/bot-activities-query.dto';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BotActivitiesQueryDto } from '@api/collections/bot-activities/dto/bot-activities-query.dto';
 import {
   BotActivitiesService,
   type BotActivityStats,
-} from '@server/collections/bot-activities/services/bot-activities.service';
+} from '@api/collections/bot-activities/services/bot-activities.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

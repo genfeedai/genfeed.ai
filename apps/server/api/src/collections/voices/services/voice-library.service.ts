@@ -1,19 +1,19 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
+import { VoicesService } from '@api/collections/voices/services/voices.service';
 import {
   parseVoiceProviders,
   toLibraryVoiceDocument,
-} from '@server/collections/voices/utils/voice-provider.util';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
+} from '@api/collections/voices/utils/voice-provider.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
+import { scopedWhere } from '@api/index';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()

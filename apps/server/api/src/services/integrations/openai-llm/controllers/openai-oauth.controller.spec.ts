@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ByokService } from '@server/services/byok/byok.service';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthController } from '@api/services/integrations/openai-llm/controllers/openai-oauth.controller';
-import { OpenAiOAuthService } from '@server/services/integrations/openai-llm/services/openai-oauth.service';
+import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import { ByokProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

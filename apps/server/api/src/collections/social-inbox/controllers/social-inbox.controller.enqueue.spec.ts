@@ -1,9 +1,9 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import type { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { Platform, SocialConversationType } from '@genfeedai/enums';
 import { UnauthorizedException } from '@nestjs/common';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import type { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
-import type { SocialInboxSyncWorkflowService } from '@server/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { vi } from 'vitest';
 
 function buildUser(): AuthenticatedUser {

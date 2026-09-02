@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';

@@ -1,3 +1,8 @@
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { type IPublisher, scopedWhere } from '@api/index';
+import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
 import {
   type EngagementCredentialEligibility,
@@ -19,15 +24,10 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { type IPublisher, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
 import {
   buildEngagementRuleWorkflowDefinition,
   buildEngagementSweepWorkflowDefinition,

@@ -1,5 +1,5 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollUntilModule } from '@api/shared/services/poll-until/poll-until.module';
 import { Module } from '@nestjs/common';
 

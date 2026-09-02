@@ -1,11 +1,11 @@
 import { CreateMemberDto } from '@api/collections/members/dto/create-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import type { AgentTeamMentionItem } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

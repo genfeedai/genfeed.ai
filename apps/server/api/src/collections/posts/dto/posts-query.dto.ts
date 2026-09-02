@@ -1,12 +1,12 @@
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CredentialPlatform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { FORBID_NON_WHITELISTED } from '@server/helpers/pipes/validation.pipe';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsDateString,
   IsEnum,

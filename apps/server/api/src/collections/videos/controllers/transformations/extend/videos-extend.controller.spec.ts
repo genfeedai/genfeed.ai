@@ -1,4 +1,7 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VideosExtendController } from '@api/collections/videos/controllers/transformations/extend/videos-extend.controller';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
@@ -13,9 +16,6 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { VideosService } from '@server/collections/videos/services/videos.service';
-import type { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

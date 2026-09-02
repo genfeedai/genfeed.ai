@@ -1,21 +1,21 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import type { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
-import type { UsersService } from '@server/collections/users/services/users.service';
-import type { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
-import type { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 
 const identity = vi.hoisted(() => ({
   metadataUserId: 'cuser000000000000000000001',
   organizationId: 'corg000000000000000000001',
 }));
 
-vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
+vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((e: unknown) => {
       throw e;

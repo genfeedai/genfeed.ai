@@ -40,22 +40,22 @@ import {
   AgentArtifactReferenceService,
   PostLifecycleService,
   PublishApprovalsService,
-} from '@genfeedai/server';
+} from '@api/index';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 type Fixture = {
   brandId: string;

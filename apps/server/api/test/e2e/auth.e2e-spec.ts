@@ -19,9 +19,9 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 // Import services
-import { UsersService } from '@server/collections/users/services/users.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 
 describe('Authentication E2E Tests', () => {
   let app: INestApplication;

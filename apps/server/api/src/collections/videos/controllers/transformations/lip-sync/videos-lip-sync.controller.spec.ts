@@ -1,4 +1,4 @@
-vi.mock('@server/helpers/utils/websocket/websocket.util', () => ({
+vi.mock('@api/helpers/utils/websocket/websocket.util', () => ({
   WebSocketPaths: {
     video: vi.fn((id: string) => `/ws/videos/${id}`),
   },
@@ -16,13 +16,23 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -30,16 +40,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { ByokService } from '@server/services/byok/byok.service';
-import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 
 const brandId = testId('brand');

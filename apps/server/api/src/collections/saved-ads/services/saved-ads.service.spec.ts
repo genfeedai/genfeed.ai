@@ -1,6 +1,6 @@
-import type { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SavedAdsService } from './saved-ads.service';
 

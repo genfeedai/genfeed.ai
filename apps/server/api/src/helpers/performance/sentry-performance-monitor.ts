@@ -3,7 +3,7 @@ import type {
   ApiPerformanceTelemetryInput,
   MetricAttributes,
   PerformanceMetrics,
-} from '@server/shared/interfaces/performance/performance.interface';
+} from '@api/shared/interfaces/performance/performance.interface';
 import type { ConfigService } from '@libs/config/config.service';
 import * as Sentry from '@sentry/nestjs';
 

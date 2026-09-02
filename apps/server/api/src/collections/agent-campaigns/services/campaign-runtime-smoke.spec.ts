@@ -1,5 +1,5 @@
-import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
-import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
+import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
+import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**

@@ -1,5 +1,5 @@
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const EVERGREEN_EXPANSION_WORKFLOW_ID = 'evergreen.release.expand';
 export const EVERGREEN_EXPANSION_ACTION_ID = 'evergreen-release-expansion';

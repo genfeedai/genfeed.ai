@@ -1,4 +1,4 @@
-import type { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
   ModelsGuard,
   ValidateModel,

@@ -4,8 +4,8 @@ import {
   loadCinematicLexiconGuidance,
   resolveEnhancePromptSystemPrompt,
   translateNaiveCinematicLanguage,
-} from '@server/endpoints/ai-actions/prompts/cinematic-enhancement';
-import { CINEMATIC_LEXICON } from '@server/endpoints/ai-actions/prompts/cinematic-lexicon';
+} from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
+import { CINEMATIC_LEXICON } from '@api/endpoints/ai-actions/prompts/cinematic-lexicon';
 import { PromptCategory } from '@genfeedai/enums';
 
 const NAIVE_PROMPT_BENCHMARK: ReadonlyArray<{

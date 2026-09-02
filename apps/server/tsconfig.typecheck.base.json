@@ -14,7 +14,6 @@
       "@api-test/*": ["./api/test/*"],
       "@api-types/*": ["../../packages/api-types/dist/*"],
       "@api/*": ["./api/src/*"],
-      "@clips/*": ["./clips/src/*"],
       "@cloud-types/*": ["../../packages/types/dist/*"],
       "@config/*": ["../../packages/config/dist/*"],
       "@discord/*": ["./discord/src/*"],
@@ -47,11 +46,6 @@
       "@genfeedai/prisma/*": ["../../packages/prisma/dist/src/*"],
       "@genfeedai/serializers": ["../../packages/serializers/dist/index.d.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/dist/*"],
-      "@genfeedai/server": [
-        "./server/dist/index.d.ts",
-        "./server/src/index.ts"
-      ],
-      "@genfeedai/server/*": ["./server/dist/*", "./server/src/*"],
       "@genfeedai/storage": ["../../packages/storage/dist/index.d.ts"],
       "@genfeedai/storage/*": ["../../packages/storage/dist/*"],
       "@genfeedai/types": ["../../packages/types/dist/index.d.ts"],
@@ -70,7 +64,6 @@
       "@mcp/*": ["./mcp/src/*"],
       "@notifications/*": ["./notifications/src/*"],
       "@serializers/*": ["../../packages/serializers/dist/*"],
-      "@server/*": ["./server/dist/*", "./server/src/*"],
       "@slack/*": ["./slack/src/*"],
       "@telegram/*": ["./telegram/src/*"],
       "@ui/*": ["../../packages/ui/src/*"],

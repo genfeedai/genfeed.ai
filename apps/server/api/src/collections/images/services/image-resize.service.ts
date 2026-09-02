@@ -1,11 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
@@ -18,7 +19,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 

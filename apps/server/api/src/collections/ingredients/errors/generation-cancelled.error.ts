@@ -1,5 +1,5 @@
-import { GENERATION_CANCELLED_BY_USER } from '@server/collections/ingredients/constants/generation-cancellation.constants';
-import { PollAbortException } from '@server/shared/services/poll-until/poll-until.exception';
+import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
+import { PollAbortException } from '@api/shared/services/poll-until/poll-until.exception';
 
 /**
  * Thrown when a studio generation is stopped while the provider job is still

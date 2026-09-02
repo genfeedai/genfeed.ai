@@ -4,12 +4,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TiktokController } from '@api/services/integrations/tiktok/controllers/tiktok.controller';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';

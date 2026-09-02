@@ -1,5 +1,6 @@
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type ClockTime,
   clockTimeMinutes,
@@ -11,7 +12,6 @@ import {
 } from '@api-types/contracts/credential-posting-times.contract';
 import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const OCCUPYING_POST_STATUSES: string[] = [

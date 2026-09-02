@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
-import { ExternalVoiceCatalogService } from '@server/collections/voices/services/external-voice-catalog.service';
+import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';

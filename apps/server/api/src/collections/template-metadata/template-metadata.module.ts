@@ -3,7 +3,7 @@
  * Stores template properties and aggregated usage statistics
  * Service-only (no controller) - follows ingredient.metadata pattern
  */
-import { TemplateMetadataService } from '@server/collections/template-metadata/services/template-metadata.service';
+import { TemplateMetadataService } from '@api/collections/template-metadata/services/template-metadata.service';
 import { Module } from '@nestjs/common';
 
 @Module({

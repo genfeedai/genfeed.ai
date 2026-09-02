@@ -1,7 +1,7 @@
 import { ModelsModule } from '@api/collections/models/models.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
-import { MediaVendorCostLedgerService } from '@server/services/media-vendor-cost/media-vendor-cost-ledger.service';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
+import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { Module } from '@nestjs/common';
 

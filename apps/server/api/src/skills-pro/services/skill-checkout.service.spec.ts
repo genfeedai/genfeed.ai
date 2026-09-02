@@ -1,3 +1,4 @@
+import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkout.dto';
 import { SkillCheckoutService } from '@api/skills-pro/services/skill-checkout.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
@@ -9,7 +10,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type Stripe from 'stripe';
 
 describe('SkillCheckoutService', () => {

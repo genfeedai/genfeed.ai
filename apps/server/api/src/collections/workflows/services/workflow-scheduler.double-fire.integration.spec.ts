@@ -2,7 +2,7 @@ import net from 'node:net';
 import {
   WorkflowExecutionQueueService,
   workflowSchedulerId,
-} from '@server/collections/workflows/services/workflow-execution-queue.service';
+} from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { ActionOrigin } from '@genfeedai/enums';
 import { Queue } from 'bullmq';
 import { afterAll, describe, expect, it, vi } from 'vitest';

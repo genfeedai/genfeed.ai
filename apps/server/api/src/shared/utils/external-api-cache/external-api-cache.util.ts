@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { CacheService } from '@server/services/cache/cache.service';
+import { CacheService } from '@api/services/cache/cache.service';
 import type {
   CacheDecoratorTarget,
   CachedMethodArgs,

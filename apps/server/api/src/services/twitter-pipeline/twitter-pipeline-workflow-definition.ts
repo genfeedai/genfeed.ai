@@ -1,9 +1,9 @@
-import { createGenfeedActionNode } from '@genfeedai/actions';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
-} from '@server/collections/workflows/schemas/workflow.schema';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+} from '@api/collections/workflows/schemas/workflow.schema';
+import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 
 export const TWITTER_PIPELINE_ACTION_IDS = {
   DRAFT_BUILD_PROMPT: 'twitter.pipeline.draft.build-prompt',

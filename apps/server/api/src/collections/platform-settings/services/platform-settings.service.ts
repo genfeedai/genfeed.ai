@@ -1,8 +1,8 @@
 import { CreatePlatformSettingDto } from '@api/collections/platform-settings/dto/create-platform-setting.dto';
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
 import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
