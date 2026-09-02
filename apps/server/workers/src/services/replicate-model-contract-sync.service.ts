@@ -8,7 +8,10 @@ import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
-import { hashProviderContract } from '@workers/services/provider-contract.util';
+import {
+  hashProviderContract,
+  isRecord,
+} from '@workers/services/provider-contract.util';
 
 export interface ReplicateSyncModelRecord {
   category: string;
@@ -50,10 +53,6 @@ interface CandidateContract {
 }
 
 const SUPPORTED_PRICING_TYPES = new Set<string>(Object.values(PricingType));
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function billingUnitForPricingType(pricingType: string): string {
   switch (pricingType) {

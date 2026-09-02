@@ -688,7 +688,6 @@ export class RouterService {
         );
       }
 
-      // Select the best model using scoring
       const selectedModel = this.selectBestModel(models, options, analysis);
 
       if (!selectedModel) {

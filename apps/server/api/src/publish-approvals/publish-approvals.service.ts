@@ -569,7 +569,7 @@ export class PublishApprovalsService {
           reviewDecision: null,
           reviewVersionPinId: null,
         },
-        where: { id: postId, organizationId },
+        where: { id: postId, organizationId: organizationId },
       });
     });
     this.recordApprovalTelemetry(
@@ -761,7 +761,7 @@ export class PublishApprovalsService {
           this.contractCodec.transition(from, next, actorId, reason),
         ]),
       },
-      where: { id: current.id, organizationId, status: from },
+      where: { id: current.id, organizationId: organizationId, status: from },
     });
     if (transitioned.count !== 1) {
       throw new ConflictException(

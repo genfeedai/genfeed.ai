@@ -269,6 +269,7 @@ export class WorkflowsService extends BaseService<
           workflowId: existing.id,
         },
       });
+      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on workflow.id after the tenant-scoped load; currentVersionId is the concurrency token.
       const changed = await transaction.workflow.updateMany({
         data: { ...scalarPatch, currentVersionId: version.id },
         where: { currentVersionId: existing.versionId, id },

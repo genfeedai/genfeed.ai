@@ -300,6 +300,7 @@ export class WorkflowNodeContinuationService {
         continue;
       }
 
+      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on a row already loaded with organizationId; id+pollAttempt is the lease key.
       const claimed = await this.prisma.workflowNodeContinuation.updateMany({
         data: { pollDispatchClaimedAt: new Date() },
         where: {
@@ -327,6 +328,7 @@ export class WorkflowNodeContinuationService {
         if (!jobId) {
           throw new Error('HeyGen poll queue is unavailable');
         }
+        // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on the same continuation row already tenant-loaded above.
         await this.prisma.workflowNodeContinuation.updateMany({
           data: {
             pollDispatchClaimedAt: null,
@@ -340,6 +342,7 @@ export class WorkflowNodeContinuationService {
         });
         dispatched += 1;
       } catch (error: unknown) {
+        // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on the same continuation row already tenant-loaded above.
         await this.prisma.workflowNodeContinuation.updateMany({
           data: { pollDispatchClaimedAt: null },
           where: { id: row.id, pollAttempt: row.pollAttempt },
@@ -645,6 +648,7 @@ export class WorkflowNodeContinuationService {
         this.validateActionOutput(continuation.actionId, finalOutput);
       }
 
+      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on continuation.id after the tenant-scoped load of this row.
       const claimed = await transaction.workflowNodeContinuation.updateMany({
         data: {
           error: input.error ?? null,
@@ -734,6 +738,7 @@ export class WorkflowNodeContinuationService {
         );
       }
 
+      // sql-risk-audit: ignore bulk-write-tenant-review -- compare-and-set on continuation.id after the tenant-scoped load of this row.
       const recorded = await transaction.workflowNodeContinuation.updateMany({
         data: {
           error: input.error ?? null,

@@ -13,7 +13,10 @@ import {
   normalizeFalPrice,
 } from '@workers/crons/fal-model-watcher/fal-pricing';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
-import { hashProviderContract } from '@workers/services/provider-contract.util';
+import {
+  hashProviderContract,
+  isRecord,
+} from '@workers/services/provider-contract.util';
 
 export interface FalSyncModelRecord {
   endpoint: string;
@@ -45,10 +48,6 @@ interface CandidateContract {
   unitPriceMicros: bigint | null;
   unsupportedReason: string | null;
   version: string;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 @Injectable()

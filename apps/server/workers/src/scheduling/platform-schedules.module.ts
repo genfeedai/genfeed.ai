@@ -1,7 +1,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
+import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
 import { ConfigModule as LibsConfigModule } from '@libs/config/config.module';
@@ -44,7 +44,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     IngredientsModule,
     ReferralsModule,
     VideoCompletionCoreModule,
-    WebhooksModule,
+    WebhooksCoreModule,
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 1,

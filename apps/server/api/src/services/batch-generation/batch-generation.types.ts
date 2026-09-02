@@ -202,6 +202,21 @@ export function cloneBatchItems(
  * fall back to `Batch.items` JSON. A later PR can drop the JSON blob once
  * every writer and backfill goes through the typed table.
  */
+function isBatchConfig(value: unknown): value is BatchConfig {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function toBatchWithConfig(
+  batch: Batch & { batchItems?: BatchItemTypedRow[] | null },
+): BatchWithConfig {
+  return {
+    ...batch,
+    batchItems: batch.batchItems ?? undefined,
+    config: isBatchConfig(batch.config) ? batch.config : {},
+    items: resolveBatchItems(batch),
+  } as unknown as BatchWithConfig;
+}
+
 export function resolveBatchItems(batch: {
   batchItems?: BatchItemTypedRow[] | null;
   items?: Batch['items'] | null;

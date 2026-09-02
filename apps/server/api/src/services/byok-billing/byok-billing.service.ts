@@ -12,6 +12,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
 
 interface ByokInvoiceMetadata {
+  [key: string]: string;
   billableCredits: string;
   feePercentage: string;
   organizationId: string;
@@ -300,7 +301,7 @@ export class ByokBillingService {
           auto_advance: true,
           collection_method: 'charge_automatically',
           customer: subscription.stripeCustomerId,
-          metadata: metadata as unknown as Record<string, string>,
+          metadata,
         });
 
         await this.stripeService.stripe.invoices.finalizeInvoice(invoice.id);
