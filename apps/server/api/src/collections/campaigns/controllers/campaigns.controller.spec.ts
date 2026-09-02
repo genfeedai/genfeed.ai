@@ -1,4 +1,6 @@
 import { CampaignsController } from '@api/collections/campaigns/controllers/campaigns.controller';
+import { CampaignGenerationService } from '@api/collections/campaigns/services/campaign-generation.service';
+import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/enums';
@@ -30,6 +32,14 @@ const user = {
 } as never;
 
 describe('CampaignsController', () => {
+  const generationService = {
+    generate: vi.fn(),
+  };
+  const lifecycleService = {
+    complete: vi.fn(),
+    pause: vi.fn(),
+    start: vi.fn(),
+  };
   const service = {
     archive: vi.fn(),
     assignPosts: vi.fn(),
@@ -46,6 +56,8 @@ describe('CampaignsController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controller = new CampaignsController(
+      generationService as unknown as CampaignGenerationService,
+      lifecycleService as unknown as CampaignLifecycleService,
       service as unknown as CampaignsService,
     );
   });
@@ -53,7 +65,11 @@ describe('CampaignsController', () => {
   it('wires the collection routes onto the campaigns service', async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CampaignsController],
-      providers: [{ provide: CampaignsService, useValue: service }],
+      providers: [
+        { provide: CampaignGenerationService, useValue: generationService },
+        { provide: CampaignLifecycleService, useValue: lifecycleService },
+        { provide: CampaignsService, useValue: service },
+      ],
     }).compile();
 
     expect(module.get(CampaignsController)).toBeDefined();
@@ -87,6 +103,42 @@ describe('CampaignsController', () => {
       'org-1',
       'legacy-base62-user-id',
       { brandId: 'cbrand0000001', name: 'Q4 launch' },
+    );
+  });
+
+  it('coordinates start, pause, complete, and generate through lifecycle services', async () => {
+    lifecycleService.start.mockResolvedValue({ id: CAMPAIGN_ID });
+    lifecycleService.pause.mockResolvedValue({ id: CAMPAIGN_ID });
+    lifecycleService.complete.mockResolvedValue({ id: CAMPAIGN_ID });
+    generationService.generate.mockResolvedValue({ id: CAMPAIGN_ID });
+
+    await controller.start(request, user, CAMPAIGN_ID);
+    await controller.pause(request, user, CAMPAIGN_ID);
+    await controller.complete(request, user, CAMPAIGN_ID);
+    await controller.generate(request, user, CAMPAIGN_ID, {
+      credentialIds: ['ccred00000001'],
+    });
+
+    expect(lifecycleService.start).toHaveBeenCalledWith(
+      'org-1',
+      'legacy-base62-user-id',
+      CAMPAIGN_ID,
+    );
+    expect(lifecycleService.pause).toHaveBeenCalledWith(
+      'org-1',
+      'legacy-base62-user-id',
+      CAMPAIGN_ID,
+    );
+    expect(lifecycleService.complete).toHaveBeenCalledWith(
+      'org-1',
+      'legacy-base62-user-id',
+      CAMPAIGN_ID,
+    );
+    expect(generationService.generate).toHaveBeenCalledWith(
+      'org-1',
+      'legacy-base62-user-id',
+      CAMPAIGN_ID,
+      { credentialIds: ['ccred00000001'] },
     );
   });
 
@@ -161,6 +213,30 @@ describe('CampaignsController', () => {
       Reflect.getMetadata(
         API_KEY_SCOPES_KEY,
         CampaignsController.prototype.remove,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        CampaignsController.prototype.start,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        CampaignsController.prototype.pause,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        CampaignsController.prototype.complete,
+      ),
+    ).toEqual(MUTATION_SCOPES);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        CampaignsController.prototype.generate,
       ),
     ).toEqual(MUTATION_SCOPES);
     expect(

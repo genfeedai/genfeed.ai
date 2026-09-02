@@ -146,6 +146,7 @@ const POST_SCALAR_FIELDS = [
   'analyticsCollectionState',
   'analyticsNextCollectAt',
   'brandId',
+  'campaignId',
   'category',
   'contentRunId',
   'credentialId',
@@ -278,6 +279,7 @@ export class PostsService extends BaseService<
     prismaWriteData.visibility = visibility;
     this.assertPublishTarget(executionState, dto.credentialId, dto.platform);
     this.assertVisibilitySupported(visibility, dto.platform);
+    await this.assertCampaignMembership(dto);
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -611,6 +613,30 @@ export class PostsService extends BaseService<
     ) {
       throw new BadRequestException(
         `${platform ?? 'The selected platform'} does not support ${visibility} visibility.`,
+      );
+    }
+  }
+
+  private async assertCampaignMembership(dto: PostCreateInput): Promise<void> {
+    if (!dto.campaignId) {
+      return;
+    }
+    const organizationId = dto.organizationId;
+    if (!organizationId) {
+      throw new BadRequestException(
+        'Campaign membership requires an organization id.',
+      );
+    }
+    const campaign = await this.prisma.campaign.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        ...(dto.brandId ? { brandId: dto.brandId } : {}),
+        id: dto.campaignId,
+      }),
+    });
+    if (!campaign) {
+      throw new BadRequestException(
+        `Campaign '${dto.campaignId}' is unavailable in this organization`,
       );
     }
   }

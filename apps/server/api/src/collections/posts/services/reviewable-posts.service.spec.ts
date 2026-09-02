@@ -40,6 +40,25 @@ describe('ReviewablePostsService', () => {
     );
   });
 
+  it('stamps an explicit campaign id onto generated reviewable posts', async () => {
+    await service.create({
+      brandId: 'brand-1',
+      campaignId: 'ccampaign0001',
+      content: 'Generated launch post',
+      generatedBy: 'content-writing',
+      organizationId: 'org-1',
+      skillSlug: 'content-writing',
+      type: 'text',
+      userId: 'user-1',
+    });
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        campaignId: 'ccampaign0001',
+      }),
+    );
+  });
+
   it('persists generated content as an untargeted canonical Post', async () => {
     await service.create({
       brandId: 'brand-1',

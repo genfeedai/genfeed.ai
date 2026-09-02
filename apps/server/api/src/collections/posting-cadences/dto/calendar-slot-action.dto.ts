@@ -47,6 +47,15 @@ export class FillCalendarSlotDto {
   @ApiProperty({ required: false })
   readonly brief?: string;
 
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description:
+      'Publish content campaign to stamp on generated calendar content',
+    required: false,
+  })
+  readonly campaignId?: string;
+
   @IsString()
   @MaxLength(400)
   @ApiProperty()
@@ -73,6 +82,15 @@ export class BulkGenerateCalendarSlotsDto {
   @MaxLength(4000)
   @ApiProperty({ required: false })
   readonly brief?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description:
+      'Publish content campaign to stamp on generated calendar content',
+    required: false,
+  })
+  readonly campaignId?: string;
 
   @IsInt()
   @Min(1)

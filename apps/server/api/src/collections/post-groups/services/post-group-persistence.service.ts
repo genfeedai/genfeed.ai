@@ -171,6 +171,18 @@ export class PostGroupPersistenceService {
       params.input.brandId,
       credentials,
     );
+    if (params.input.campaignId) {
+      const campaign = await tx.campaign.findFirst({
+        select: { id: true },
+        where: scopedWhere(params.organizationId, {
+          ...(brandId ? { brandId } : {}),
+          id: params.input.campaignId,
+        }),
+      });
+      if (!campaign) {
+        throw new NotFoundException('Campaign', params.input.campaignId);
+      }
+    }
     const isDraft = params.status === ReleaseStatus.DRAFT;
     const readinessByCredential =
       await this.readinessService.resolveForCredentials(
@@ -266,6 +278,9 @@ export class PostGroupPersistenceService {
           }),
           ...(params.provenance?.agentContextVersion !== undefined && {
             agentContextVersion: params.provenance.agentContextVersion,
+          }),
+          ...(params.provenance?.contentRunId && {
+            contentRunId: params.provenance.contentRunId,
           }),
           ...(params.provenance?.workflowExecutionId && {
             workflowExecutionId: params.provenance.workflowExecutionId,

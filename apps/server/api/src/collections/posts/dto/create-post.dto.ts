@@ -43,6 +43,15 @@ export class CreatePostDto {
   @IsString()
   readonly campaign?: string;
 
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description:
+      'Publish content campaign this post belongs to. Distinct from `campaign`, which resolves approved campaign image ingredients.',
+    required: false,
+  })
+  readonly campaignId?: string;
+
   @IsEntityId()
   @ApiProperty({
     description: 'The credential ID (platform account) to use for publishing',

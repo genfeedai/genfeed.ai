@@ -1,8 +1,11 @@
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentCampaignStatus } from '@genfeedai/enums';
-import { BadRequestException } from '@nestjs/common';
+import {
+  ContentCampaignItemOutcomeStatus,
+  ContentCampaignLifecycleAction,
+  ContentCampaignStatus,
+} from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ORG_ID = 'org-1';
@@ -47,6 +50,7 @@ describe('CampaignsService', () => {
       update: vi.fn(),
     },
     post: { findMany: vi.fn(), updateMany: vi.fn() },
+    postGroup: { updateMany: vi.fn() },
   } as unknown as PrismaService;
   let service: CampaignsService;
 
@@ -188,27 +192,54 @@ describe('CampaignsService', () => {
     expect(prisma.post.updateMany).not.toHaveBeenCalled();
   });
 
-  it('rejects assigning a post that belongs to another brand', async () => {
+  it('assigns owned posts and reports out-of-scope items without rolling back', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(campaignRow());
-    asMock(prisma.post.findMany).mockResolvedValue([{ id: 'cpost00000001' }]);
+    asMock(prisma.post.findMany).mockResolvedValue([
+      { groupId: 'cgroup0000001', id: 'cpost00000001' },
+    ]);
+    asMock(prisma.post.updateMany).mockResolvedValue({ count: 1 });
+    asMock(prisma.postGroup.updateMany).mockResolvedValue({ count: 1 });
 
-    await expect(
-      service.assignPosts(ORG_ID, CAMPAIGN_ID, {
-        postIds: ['cpost00000001', 'cpost00000002'],
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(asMock(prisma.post.findMany).mock.calls[0][0].where).toEqual({
-      brandId: BRAND_ID,
-      id: { in: ['cpost00000001', 'cpost00000002'] },
-      isDeleted: false,
-      organizationId: ORG_ID,
+    const result = await service.assignPosts(ORG_ID, CAMPAIGN_ID, {
+      postIds: ['cpost00000001', 'cpost00000002'],
     });
-    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+
+    expect(result.action).toBe(ContentCampaignLifecycleAction.ASSIGN);
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'cpost00000001',
+        status: ContentCampaignItemOutcomeStatus.SUCCEEDED,
+      }),
+      expect.objectContaining({
+        id: 'cpost00000002',
+        status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
+      }),
+    ]);
+    expect(asMock(prisma.post.updateMany).mock.calls[0][0]).toEqual({
+      data: { campaignId: CAMPAIGN_ID },
+      where: {
+        brandId: BRAND_ID,
+        id: { in: ['cpost00000001'] },
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
+    expect(asMock(prisma.postGroup.updateMany).mock.calls[0][0]).toEqual({
+      data: { campaignId: CAMPAIGN_ID },
+      where: {
+        id: { in: ['cgroup0000001'] },
+        isDeleted: false,
+        organizationId: ORG_ID,
+      },
+    });
   });
 
   it('assigns and unassigns in-scope posts by campaign id', async () => {
     asMock(prisma.campaign.findFirst).mockResolvedValue(campaignRow());
-    asMock(prisma.post.findMany).mockResolvedValue([{ id: 'cpost00000001' }]);
+    asMock(prisma.post.findMany)
+      .mockResolvedValueOnce([{ groupId: null, id: 'cpost00000001' }])
+      .mockResolvedValueOnce([{ groupId: null, id: 'cpost00000001' }])
+      .mockResolvedValueOnce([]);
     asMock(prisma.post.updateMany).mockResolvedValue({ count: 1 });
 
     await service.assignPosts(ORG_ID, CAMPAIGN_ID, {

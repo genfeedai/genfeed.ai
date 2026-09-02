@@ -80,7 +80,7 @@ describe('ContentGatewayService', () => {
     const result = await service.routeSignal({
       brandId: testId('brand'),
       organizationId: testId('org'),
-      payload: { skillSlugs: ['content-writing'] },
+      payload: { campaignId: 'ccampaign0001', skillSlugs: ['content-writing'] },
       type: 'cron',
     });
 
@@ -90,7 +90,10 @@ describe('ContentGatewayService', () => {
     expect(
       reviewablePostsService.createFromSkillExecution,
     ).toHaveBeenCalledWith(
-      expect.objectContaining({ executionId: 'execution-1' }),
+      expect.objectContaining({
+        campaignId: 'ccampaign0001',
+        executionId: 'execution-1',
+      }),
     );
     expect(result.executions).toEqual(['execution-1']);
     expect(result.posts).toHaveLength(1);

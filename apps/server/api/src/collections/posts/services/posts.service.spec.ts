@@ -34,6 +34,9 @@ describe('PostsService batchSchedule', () => {
   };
 
   function makeService() {
+    const campaign = {
+      findFirst: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
+    };
     const credential = {
       findFirst: vi.fn(),
     };
@@ -81,12 +84,18 @@ describe('PostsService batchSchedule', () => {
     return {
       $transaction,
       cacheService,
+      campaign,
       credential,
       post,
       postPublishQueueService,
       publishApprovalsService,
       service: new PostsService(
-        { $transaction, credential, post } as unknown as PrismaService,
+        {
+          $transaction,
+          campaign,
+          credential,
+          post,
+        } as unknown as PrismaService,
         logger as unknown as LoggerService,
         cacheService as unknown as CacheService,
         undefined,
@@ -164,6 +173,39 @@ describe('PostsService batchSchedule', () => {
     expect(writeData).not.toHaveProperty('organization');
     expect(writeData).not.toHaveProperty('parent');
     expect(writeData).not.toHaveProperty('user');
+  });
+
+  it('stamps campaign membership after validating brand and organization ownership', async () => {
+    const { campaign, post, service } = makeService();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        campaignId: 'campaign-1',
+        credentialId: 'credential-1',
+        description: 'Campaign post',
+        ingredients: [],
+        label: 'Campaign post',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        userId: 'user-1',
+      },
+      [],
+    );
+
+    expect(campaign.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'campaign-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(post.create.mock.calls[0]?.[0].data).toMatchObject({
+      campaignId: 'campaign-1',
+    });
   });
 
   it('defaults omitted execution state to draft when no scheduled date is set', async () => {
