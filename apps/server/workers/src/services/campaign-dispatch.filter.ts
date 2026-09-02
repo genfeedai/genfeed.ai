@@ -1,7 +1,7 @@
 import {
   CONTENT_CAMPAIGN_DISPATCH_BLOCKED_STATUSES,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 /**

@@ -16,11 +16,11 @@ import {
   parseReviewDecision,
   ReviewDecision,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Campaign, Post } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
