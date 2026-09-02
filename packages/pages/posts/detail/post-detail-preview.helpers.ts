@@ -37,7 +37,7 @@ function resolveIngredientMediaKind(
 }
 
 function buildPostMedia(post: IPost): IReleaseMediaReference[] {
-  return post.ingredients.reduce<IReleaseMediaReference[]>(
+  return (post.ingredients ?? []).reduce<IReleaseMediaReference[]>(
     (media, ingredient, index) => {
       const url =
         ingredient.cdnUrl ??

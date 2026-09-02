@@ -19,6 +19,13 @@ vi.mock('next/image', () => ({
   }: MockImageProps) => <img {...props} alt={props.alt ?? ''} />,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('./ReviewDetailPanelAside', () => ({
   default: function MockReviewDetailPanelAside() {
     return <div data-testid="review-detail-panel-aside" />;

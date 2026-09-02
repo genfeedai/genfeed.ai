@@ -115,4 +115,14 @@ describe('buildPostTargetPreview', () => {
     const withoutCredential = buildPostTargetPreview(makePost(), '', undefined);
     expect(withoutCredential?.credential.platform).toBe(Platform.TWITTER);
   });
+
+  it('treats a missing ingredients array as empty media', () => {
+    const preview = buildPostTargetPreview(
+      makePost({ ingredients: undefined }),
+      '',
+      undefined,
+    );
+
+    expect(preview?.release.media).toEqual([]);
+  });
 });

@@ -125,6 +125,12 @@ type ContentCalendarItem =
   | ReleaseContentCalendarItem
   | SlotContentCalendarItem;
 
+function mutationErrorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'The schedule change could not be saved.';
+}
+
 export default function ContentCalendarPage(): React.JSX.Element {
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
