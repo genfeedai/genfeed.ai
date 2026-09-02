@@ -5,7 +5,6 @@ import { AgentThreadRuntimeController } from '@api/services/agent-threading/cont
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Effect } from 'effect';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -42,26 +41,19 @@ describe('Threading AgentThreadRuntimeController', () => {
 
     controller = new AgentThreadRuntimeController(
       {
-        getSnapshot: vi.fn(),
-        getSnapshotEffect: vi.fn(() =>
-          Effect.succeed({
-            lastSequence: 0,
-            memorySummaryRefs: [],
-            pendingApprovals: [],
-            pendingInputRequests: [],
-            timeline: [],
-          }),
-        ),
-        listEvents: vi.fn(),
-        listEventsEffect: vi.fn(() => Effect.succeed([])),
-        recordMemoryFlushEffect: vi.fn(() => Effect.void),
-        resolveInputRequest: vi.fn(),
-        resolveInputRequestEffect: vi.fn(() =>
-          Effect.succeed({
-            requestId: 'req-1',
-            status: 'resolved',
-          }),
-        ),
+        getSnapshot: vi.fn().mockResolvedValue({
+          lastSequence: 0,
+          memorySummaryRefs: [],
+          pendingApprovals: [],
+          pendingInputRequests: [],
+          timeline: [],
+        }),
+        listEvents: vi.fn().mockResolvedValue([]),
+        recordMemoryFlush: vi.fn().mockResolvedValue(undefined),
+        resolveInputRequest: vi.fn().mockResolvedValue({
+          requestId: 'req-1',
+          status: 'resolved',
+        }),
       } as never as AgentThreadEngineService,
       {
         assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),

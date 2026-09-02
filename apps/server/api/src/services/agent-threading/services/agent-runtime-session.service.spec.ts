@@ -11,13 +11,12 @@ vi.mock('@genfeedai/prisma', async () => {
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import {
   AgentRuntimeSessionService,
-  getRuntimeBindingEffect,
-  upsertRuntimeBindingEffect,
+  getRuntimeBinding,
+  upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Effect } from 'effect';
 
 describe('AgentRuntimeSessionService', () => {
   let service: AgentRuntimeSessionService;
@@ -79,17 +78,15 @@ describe('AgentRuntimeSessionService', () => {
   });
 
   describe('upsertBinding', () => {
-    it('should expose an Effect-based upsert path', async () => {
+    it('should return the created binding document without relation aliases', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
-      const result = await Effect.runPromise(
-        service.upsertBindingEffect({
-          organizationId,
-          status: 'active',
-          threadId,
-        }),
-      );
+      const result = await service.upsertBinding({
+        organizationId,
+        status: 'active',
+        threadId,
+      });
 
       expect(result).not.toBeNull();
       expect((result as AgentSessionBindingDocument).threadId).toBe(threadId);
@@ -238,14 +235,12 @@ describe('AgentRuntimeSessionService', () => {
   });
 
   describe('getBinding', () => {
-    it('should expose an Effect-based get path', async () => {
+    it('should scope the lookup by organization and thread', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
         mockSnapshotRow,
       );
 
-      const result = await Effect.runPromise(
-        service.getBindingEffect(threadId, organizationId),
-      );
+      const result = await service.getBinding(threadId, organizationId);
 
       expect(result).not.toBeNull();
       expect(mockPrisma.agentThreadSnapshot.findFirst).toHaveBeenCalledWith(
@@ -331,73 +326,51 @@ describe('AgentRuntimeSessionService', () => {
 
       expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
     });
-
-    it('should expose an Effect-based cancel path and log the transition', async () => {
-      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
-      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
-
-      await Effect.runPromise(
-        service.markCancelledEffect(threadId, organizationId, runId),
-      );
-
-      expect(logger.warn).toHaveBeenCalledWith(
-        'Agent runtime session marked cancelled',
-        {
-          organizationId,
-          runId,
-          threadId,
-        },
-      );
-    });
   });
 
   describe('optional runtime binding helpers', () => {
-    it('getRuntimeBindingEffect returns null when service is absent', async () => {
-      const result = await Effect.runPromise(
-        getRuntimeBindingEffect(undefined, threadId, organizationId),
+    it('getRuntimeBinding returns null when service is absent', async () => {
+      const result = await getRuntimeBinding(
+        undefined,
+        threadId,
+        organizationId,
       );
 
       expect(result).toBeNull();
       expect(mockPrisma.agentThreadSnapshot.findFirst).not.toHaveBeenCalled();
     });
 
-    it('getRuntimeBindingEffect delegates when service is present', async () => {
+    it('getRuntimeBinding delegates when service is present', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
         mockSnapshotRow,
       );
 
-      const result = await Effect.runPromise(
-        getRuntimeBindingEffect(service, threadId, organizationId),
-      );
+      const result = await getRuntimeBinding(service, threadId, organizationId);
 
       expect(result).not.toBeNull();
       expect(mockPrisma.agentThreadSnapshot.findFirst).toHaveBeenCalled();
     });
 
-    it('upsertRuntimeBindingEffect no-ops when service is absent', async () => {
-      await Effect.runPromise(
-        upsertRuntimeBindingEffect(undefined, {
-          organizationId,
-          status: 'running',
-          threadId,
-        }),
-      );
+    it('upsertRuntimeBinding no-ops when service is absent', async () => {
+      await upsertRuntimeBinding(undefined, {
+        organizationId,
+        status: 'running',
+        threadId,
+      });
 
       expect(mockPrisma.agentThreadSnapshot.findFirst).not.toHaveBeenCalled();
       expect(mockPrisma.agentThreadSnapshot.create).not.toHaveBeenCalled();
     });
 
-    it('upsertRuntimeBindingEffect delegates when service is present', async () => {
+    it('upsertRuntimeBinding delegates when service is present', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
-      await Effect.runPromise(
-        upsertRuntimeBindingEffect(service, {
-          organizationId,
-          status: 'running',
-          threadId,
-        }),
-      );
+      await upsertRuntimeBinding(service, {
+        organizationId,
+        status: 'running',
+        threadId,
+      });
 
       expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
     });

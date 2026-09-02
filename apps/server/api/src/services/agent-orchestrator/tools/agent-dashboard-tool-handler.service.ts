@@ -1,5 +1,4 @@
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
@@ -13,7 +12,6 @@ import type {
   TopPostsBlock,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
-import { Effect } from 'effect';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
 
@@ -338,44 +336,14 @@ export class AgentDashboardToolHandler {
     }
   }
 
-  private publishTokenEffect(
-    data: Parameters<AgentStreamPublisherService['publishToken']>[0],
-  ): Effect.Effect<void, unknown> {
-    if (!this.streamPublisher) {
-      return Effect.void;
-    }
-
-    return this.streamPublisher.publishTokenEffect(data);
-  }
-
-  private publishToolProgressEffect(
-    data: Parameters<AgentStreamPublisherService['publishToolProgress']>[0],
-  ): Effect.Effect<void, unknown> {
-    if (!this.streamPublisher) {
-      return Effect.void;
-    }
-
-    return this.streamPublisher.publishToolProgressEffect(data);
-  }
-
-  private publishWorkEventEffect(
-    data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
-  ): Effect.Effect<void, unknown> {
-    if (!this.streamPublisher) {
-      return Effect.void;
-    }
-
-    return this.streamPublisher.publishWorkEventEffect(data);
-  }
-
-  private publishUIBlocksEffect(
+  private async publishUIBlocks(
     data: Parameters<AgentStreamPublisherService['publishUIBlocks']>[0],
-  ): Effect.Effect<void, unknown> {
+  ): Promise<void> {
     if (!this.streamPublisher) {
-      return Effect.void;
+      return;
     }
 
-    return this.streamPublisher.publishUIBlocksEffect(data);
+    await this.streamPublisher.publishUIBlocks(data);
   }
 
   private async publishStagedDashboardHydration(params: {
@@ -392,16 +360,14 @@ export class AgentDashboardToolHandler {
     }
 
     try {
-      await runEffectPromise(
-        this.publishUIBlocksEffect({
-          blockIds,
-          blocks: initialBlocks,
-          operation,
-          runId: ctx.runId,
-          threadId: ctx.threadId,
-          userId: ctx.userId,
-        }),
-      );
+      await this.publishUIBlocks({
+        blockIds,
+        blocks: initialBlocks,
+        operation,
+        runId: ctx.runId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
     } catch {
       return;
     }
@@ -413,16 +379,14 @@ export class AgentDashboardToolHandler {
             setTimeout(
               async () => {
                 try {
-                  await runEffectPromise(
-                    this.publishUIBlocksEffect({
-                      blockIds: [block.id],
-                      blocks: [this.markDashboardBlockReady(block)],
-                      operation: 'update',
-                      runId: ctx.runId,
-                      threadId: ctx.threadId ?? ctx.runId ?? block.id,
-                      userId: ctx.userId,
-                    }),
-                  );
+                  await this.publishUIBlocks({
+                    blockIds: [block.id],
+                    blocks: [this.markDashboardBlockReady(block)],
+                    operation: 'update',
+                    runId: ctx.runId,
+                    threadId: ctx.threadId ?? ctx.runId ?? block.id,
+                    userId: ctx.userId,
+                  });
                 } catch {
                   // Redis failure is non-fatal.
                 } finally {

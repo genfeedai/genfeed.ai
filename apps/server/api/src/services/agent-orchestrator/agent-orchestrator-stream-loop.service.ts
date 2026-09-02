@@ -3,7 +3,6 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { scopedWhere } from '@api/index';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
@@ -60,7 +59,6 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { Effect } from 'effect';
 
 // During live token streaming, cancellation cannot be checked per token
 // (isRunCancelled is a Redis lookup); throttle it to at most once per this
@@ -149,14 +147,12 @@ export class AgentOrchestratorStreamLoopService {
     };
 
     try {
-      await runEffectPromise(
-        this.streamEffects.publishStreamLifecycleStartedEffect({
-          context,
-          model,
-          startedAt: runStartedAt,
-          threadId,
-        }),
-      );
+      await this.streamEffects.publishStreamLifecycleStarted({
+        context,
+        model,
+        startedAt: runStartedAt,
+        threadId,
+      });
 
       const memoryEntriesForResponse =
         this.contextService.buildMemoryEntriesForResponse(memoryEntries);
@@ -267,42 +263,32 @@ export class AgentOrchestratorStreamLoopService {
             }
           }
 
-          await runEffectPromise(
-            this.streamEffects
-              .publishStreamTokenEffect({
-                runId: context.executionId,
-                threadId,
-                token: delta,
-                userId: context.userId,
-              })
-              .pipe(
-                // Keep swallowing publish failures (a transient Redis hiccup must
-                // not abort a live stream) but surface a throttled log so a
-                // sustained outage is diagnosable rather than silent.
-                Effect.tapError((error) =>
-                  Effect.sync(() => {
-                    const errorAt = Date.now();
-                    if (
-                      errorAt - lastPublishErrorLoggedAt >=
-                      STREAM_PUBLISH_LOG_INTERVAL_MS
-                    ) {
-                      lastPublishErrorLoggedAt = errorAt;
-                      this.loggerService.warn(
-                        `${this.constructorName} stream token publish failed (throttled)`,
-                        {
-                          error:
-                            error instanceof Error
-                              ? error.message
-                              : String(error),
-                          threadId,
-                        },
-                      );
-                    }
-                  }),
-                ),
-                Effect.catchAll(() => Effect.void),
-              ),
-          );
+          try {
+            await this.streamEffects.publishStreamToken({
+              runId: context.executionId,
+              threadId,
+              token: delta,
+              userId: context.userId,
+            });
+          } catch (error) {
+            // Keep swallowing publish failures (a transient Redis hiccup must
+            // not abort a live stream) but surface a throttled log so a
+            // sustained outage is diagnosable rather than silent.
+            const errorAt = Date.now();
+            if (
+              errorAt - lastPublishErrorLoggedAt >=
+              STREAM_PUBLISH_LOG_INTERVAL_MS
+            ) {
+              lastPublishErrorLoggedAt = errorAt;
+              this.loggerService.warn(
+                `${this.constructorName} stream token publish failed (throttled)`,
+                {
+                  error: error instanceof Error ? error.message : String(error),
+                  threadId,
+                },
+              );
+            }
+          }
         };
 
         // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
@@ -449,17 +435,15 @@ export class AgentOrchestratorStreamLoopService {
             return;
           }
 
-          await runEffectPromise(
-            this.streamEffects.publishStreamAssistantResponseEffect({
-              content,
-              context,
-              reasoning,
-              // When this round already streamed real deltas live, don't
-              // re-emit the content as simulated word-split tokens.
-              suppressTokenStreaming: roundStreamedTokenCount > 0,
-              threadId,
-            }),
-          );
+          await this.streamEffects.publishStreamAssistantResponse({
+            content,
+            context,
+            reasoning,
+            // When this round already streamed real deltas live, don't
+            // re-emit the content as simulated word-split tokens.
+            suppressTokenStreaming: roundStreamedTokenCount > 0,
+            threadId,
+          });
 
           const enhancedUiActions =
             this.completionCardBuilder.buildAssistantUiActions({
@@ -522,37 +506,33 @@ export class AgentOrchestratorStreamLoopService {
             userId: context.userId,
           });
 
-          await runEffectPromise(
-            this.streamEffects.publishStreamCompletionEffect({
-              completionMetadata: {
-                isFallbackContent: normalizedContent.isFallback,
-                memoryEntries: memoryEntriesForResponse,
-                memoryInfluence,
-                ...buildResolvedModelMetadata(model, Array.from(actualModels)),
-                reasoning,
-                reviewRequired: toolRoundState.reviewRequired,
-                riskLevel: toolRoundState.highestRiskLevel,
-                ...(enhancedUiActions.suggestedActions.length
-                  ? { suggestedActions: enhancedUiActions.suggestedActions }
-                  : {}),
-                totalCreditsUsed: toolRoundState.totalCreditsUsed,
-                uiActions: enhancedUiActions.uiActions,
-                ...(toolRoundState.latestUiBlocks
-                  ? { uiBlocks: toolRoundState.latestUiBlocks }
-                  : {}),
-              },
-              content,
-              context,
-              creditsRemaining,
-              creditsUsed: toolRoundState.totalCreditsUsed,
-              runStartedAt,
-              threadId,
-              ...(appliedThreadTitle
-                ? { threadTitle: appliedThreadTitle }
+          await this.streamEffects.publishStreamCompletion({
+            completionMetadata: {
+              isFallbackContent: normalizedContent.isFallback,
+              memoryEntries: memoryEntriesForResponse,
+              memoryInfluence,
+              ...buildResolvedModelMetadata(model, Array.from(actualModels)),
+              reasoning,
+              reviewRequired: toolRoundState.reviewRequired,
+              riskLevel: toolRoundState.highestRiskLevel,
+              ...(enhancedUiActions.suggestedActions.length
+                ? { suggestedActions: enhancedUiActions.suggestedActions }
                 : {}),
-              toolCalls: toolRoundState.toolCalls,
-            }),
-          );
+              totalCreditsUsed: toolRoundState.totalCreditsUsed,
+              uiActions: enhancedUiActions.uiActions,
+              ...(toolRoundState.latestUiBlocks
+                ? { uiBlocks: toolRoundState.latestUiBlocks }
+                : {}),
+            },
+            content,
+            context,
+            creditsRemaining,
+            creditsUsed: toolRoundState.totalCreditsUsed,
+            runStartedAt,
+            threadId,
+            ...(appliedThreadTitle ? { threadTitle: appliedThreadTitle } : {}),
+            toolCalls: toolRoundState.toolCalls,
+          });
 
           return;
         }
@@ -578,107 +558,97 @@ export class AgentOrchestratorStreamLoopService {
               (await this.isRunCancelled(context)) ? 'cancel' : 'continue',
             onToolCompleted: async (event) => {
               if (event.kind === 'unknown') {
-                await runEffectPromise(
-                  this.streamEffects.publishStreamingToolCompletedEffect({
-                    context,
-                    debug: {
-                      error: event.summary.error,
-                      parameters: event.parameters,
-                    },
-                    detail: event.summary.error,
-                    durationMs: event.summary.durationMs,
+                await this.streamEffects.publishStreamingToolCompleted({
+                  context,
+                  debug: {
                     error: event.summary.error,
-                    label: event.requestedToolName,
                     parameters: event.parameters,
-                    resultSummary: event.summary.error,
-                    status: 'failed',
-                    threadId,
-                    toolCallId: event.toolCallId,
-                    toolName: event.requestedToolName,
-                  }),
-                );
+                  },
+                  detail: event.summary.error,
+                  durationMs: event.summary.durationMs,
+                  error: event.summary.error,
+                  label: event.requestedToolName,
+                  parameters: event.parameters,
+                  resultSummary: event.summary.error,
+                  status: 'failed',
+                  threadId,
+                  toolCallId: event.toolCallId,
+                  toolName: event.requestedToolName,
+                });
                 return;
               }
 
               if (event.kind === 'insufficient_credits') {
-                await runEffectPromise(
-                  this.streamEffects.publishStreamingToolCompletedEffect({
-                    context,
-                    debug: {
-                      error: event.summary.error,
-                      parameters: event.parameters,
-                    },
-                    detail: event.summary.error,
-                    durationMs: event.summary.durationMs,
+                await this.streamEffects.publishStreamingToolCompleted({
+                  context,
+                  debug: {
                     error: event.summary.error,
                     parameters: event.parameters,
-                    resultSummary: event.summary.error,
-                    status: 'failed',
-                    threadId,
-                    toolCallId: event.toolCallId,
-                    toolName: event.toolName,
-                  }),
-                );
+                  },
+                  detail: event.summary.error,
+                  durationMs: event.summary.durationMs,
+                  error: event.summary.error,
+                  parameters: event.parameters,
+                  resultSummary: event.summary.error,
+                  status: 'failed',
+                  threadId,
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                });
                 return;
               }
 
-              await runEffectPromise(
-                this.streamEffects.publishStreamingToolCompletedEffect({
-                  context,
-                  creditsUsed: event.summary.creditsUsed,
-                  debug: event.summary.error
-                    ? {
-                        error: event.summary.error,
-                        parameters: event.parameters,
-                        result: event.result?.data,
-                      }
-                    : {
-                        parameters: event.parameters,
-                        result: event.result?.data,
-                      },
-                  detail:
-                    event.summary.status === 'completed'
-                      ? (event.summary.resultSummary ??
-                        `${event.toolName} completed`)
-                      : event.summary.error,
-                  durationMs: event.durationMs,
-                  error: event.summary.error,
-                  parameters: event.parameters,
-                  resultSummary: event.summary.resultSummary,
-                  status: event.summary.status,
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                  uiActions: event.result?.nextActions,
-                }),
-              );
+              await this.streamEffects.publishStreamingToolCompleted({
+                context,
+                creditsUsed: event.summary.creditsUsed,
+                debug: event.summary.error
+                  ? {
+                      error: event.summary.error,
+                      parameters: event.parameters,
+                      result: event.result?.data,
+                    }
+                  : {
+                      parameters: event.parameters,
+                      result: event.result?.data,
+                    },
+                detail:
+                  event.summary.status === 'completed'
+                    ? (event.summary.resultSummary ??
+                      `${event.toolName} completed`)
+                    : event.summary.error,
+                durationMs: event.durationMs,
+                error: event.summary.error,
+                parameters: event.parameters,
+                resultSummary: event.summary.resultSummary,
+                status: event.summary.status,
+                threadId,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+                uiActions: event.result?.nextActions,
+              });
             },
             onToolStarted: async (event) => {
-              await runEffectPromise(
-                this.streamEffects.publishStreamingToolStartedEffect({
-                  context,
-                  parameters: event.parameters,
-                  startedAt: new Date(event.startTime).toISOString(),
-                  threadId,
-                  toolCallId: event.toolCallId,
-                  toolName: event.toolName,
-                }),
-              );
+              await this.streamEffects.publishStreamingToolStarted({
+                context,
+                parameters: event.parameters,
+                startedAt: new Date(event.startTime).toISOString(),
+                threadId,
+                toolCallId: event.toolCallId,
+                toolName: event.toolName,
+              });
             },
             onUiBlocks: async (event) => {
               if (event.deferPublish) {
                 return;
               }
-              await runEffectPromise(
-                this.streamEffects.publishStreamUiBlocksEffect({
-                  blockIds: event.blockIds,
-                  blocks: event.blocks as AgentUIBlocksEvent['blocks'],
-                  context,
-                  operation: event.operation,
-                  runId: context.executionId,
-                  threadId,
-                }),
-              );
+              await this.streamEffects.publishStreamUiBlocks({
+                blockIds: event.blockIds,
+                blocks: event.blocks as AgentUIBlocksEvent['blocks'],
+                context,
+                operation: event.operation,
+                runId: context.executionId,
+                threadId,
+              });
             },
           },
           thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
@@ -700,15 +670,13 @@ export class AgentOrchestratorStreamLoopService {
       await settleAccruedTurnCredits();
 
       const errorMsg = `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`;
-      await runEffectPromise(
-        this.streamEffects.publishStreamFailureEffect({
-          context,
-          error: errorMsg,
-          failRun: true,
-          persistedError: classifyAgentRunFailure(errorMsg),
-          threadId,
-        }),
-      );
+      await this.streamEffects.publishStreamFailure({
+        context,
+        error: errorMsg,
+        failRun: true,
+        persistedError: classifyAgentRunFailure(errorMsg),
+        threadId,
+      });
     } catch (error: unknown) {
       toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
       if (await this.isRunCancelled(context)) {
@@ -732,15 +700,13 @@ export class AgentOrchestratorStreamLoopService {
         throw error;
       }
 
-      await runEffectPromise(
-        this.streamEffects.publishStreamFailureEffect({
-          context,
-          error: readAgentRunPublicError(error),
-          failRun: true,
-          persistedError: classifyAgentRunFailure(error),
-          threadId,
-        }),
-      );
+      await this.streamEffects.publishStreamFailure({
+        context,
+        error: readAgentRunPublicError(error),
+        failRun: true,
+        persistedError: classifyAgentRunFailure(error),
+        threadId,
+      });
     } finally {
       this.activeStreams.delete(threadId);
     }
@@ -761,8 +727,6 @@ export class AgentOrchestratorStreamLoopService {
     context: AgentChatContext,
     threadId: string,
   ): Promise<void> {
-    await runEffectPromise(
-      this.streamEffects.publishStreamCancelledEffect(context, threadId),
-    );
+    await this.streamEffects.publishStreamCancelled(context, threadId);
   }
 }

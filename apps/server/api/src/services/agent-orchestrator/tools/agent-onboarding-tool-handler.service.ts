@@ -8,7 +8,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -50,7 +49,6 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
-import { Effect } from 'effect';
 
 /**
  * BYOK providers `generate_image` can actually reach, mirroring the branches in
@@ -121,17 +119,17 @@ export class AgentOnboardingToolHandler {
     private readonly streamPublisher?: AgentStreamPublisherService,
   ) {}
 
-  private publishToolProgressEffect(data: {
+  private async publishToolProgress(data: {
     message: string;
     progress: number;
     threadId: string;
     toolName: string;
     userId: string;
-  }) {
+  }): Promise<void> {
     if (!this.streamPublisher) {
-      return Effect.void;
+      return;
     }
-    return this.streamPublisher.publishToolProgressEffect(data);
+    await this.streamPublisher.publishToolProgress(data);
   }
 
   private aspectRatioToDimensions(ratio: string): {
@@ -1115,15 +1113,20 @@ export class AgentOnboardingToolHandler {
       const tweets: string[] = [];
       for (let i = 0; i < tweetTopics.length; i++) {
         const topic = tweetTopics[i];
-        await runEffectPromise(
-          this.publishToolProgressEffect({
+        try {
+          await this.publishToolProgress({
             message: `Generating tweet ${i + 1}/3...`,
             progress: i / 6,
             threadId: ctx.threadId ?? `onboarding-${brandId}`,
             toolName: 'generate_onboarding_content',
             userId: ctx.userId,
-          }).pipe(Effect.catchAll(() => Effect.void)),
-        );
+          });
+        } catch (error) {
+          this.loggerService.warn(
+            'generateOnboardingContent tweet progress publish failed',
+            { error },
+          );
+        }
         const result = await (
           this
             .contentGeneratorService as unknown as ContentGeneratorTextServiceLike
@@ -1146,15 +1149,20 @@ export class AgentOnboardingToolHandler {
 
       const imageResults: PromiseSettledResult<AgentToolResult>[] = [];
       for (let i = 0; i < imagePrompts.length; i++) {
-        await runEffectPromise(
-          this.publishToolProgressEffect({
+        try {
+          await this.publishToolProgress({
             message: `Generating image ${i + 1}/3...`,
             progress: (3 + i) / 6,
             threadId: ctx.threadId ?? `onboarding-${brandId}`,
             toolName: 'generate_onboarding_content',
             userId: ctx.userId,
-          }).pipe(Effect.catchAll(() => Effect.void)),
-        );
+          });
+        } catch (error) {
+          this.loggerService.warn(
+            'generateOnboardingContent image progress publish failed',
+            { error },
+          );
+        }
         const imageResult = await this.generateOnboardingImage(
           imagePrompts[i] ?? '',
           ctx,

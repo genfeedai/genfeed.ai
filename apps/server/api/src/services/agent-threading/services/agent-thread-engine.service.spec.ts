@@ -29,7 +29,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Effect } from 'effect';
 
 import { AgentThreadEngineService } from './agent-thread-engine.service';
 
@@ -93,13 +92,7 @@ describe('AgentThreadEngineService', () => {
     Pick<AgentMemoriesService, 'createMemory'>
   >;
   let runtimeSessionService: vi.Mocked<
-    Pick<
-      AgentRuntimeSessionService,
-      | 'upsertBinding'
-      | 'markCancelled'
-      | 'upsertBindingEffect'
-      | 'markCancelledEffect'
-    >
+    Pick<AgentRuntimeSessionService, 'upsertBinding' | 'markCancelled'>
   >;
   let projectorService: vi.Mocked<
     Pick<AgentThreadProjectorService, 'applyEvent'>
@@ -128,9 +121,7 @@ describe('AgentThreadEngineService', () => {
     };
     runtimeSessionService = {
       markCancelled: vi.fn().mockResolvedValue(undefined),
-      markCancelledEffect: vi.fn(() => Effect.void),
       upsertBinding: vi.fn().mockResolvedValue(undefined),
-      upsertBindingEffect: vi.fn(() => Effect.void),
     };
     projectorService = {
       applyEvent: vi.fn().mockReturnValue({ timeline: [] }),
@@ -189,16 +180,6 @@ describe('AgentThreadEngineService', () => {
       expect(result).not.toHaveProperty('thread');
     });
 
-    it('exposes an Effect-based append path', async () => {
-      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
-      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
-
-      const result = await Effect.runPromise(service.appendEventEffect(params));
-
-      expect(result).toBeDefined();
-      expect(mockPrisma.agentThreadEvent.create).toHaveBeenCalled();
-    });
-
     it('returns existing event when duplicate commandId+type found', async () => {
       mockPrisma.agentThreadEvent.findFirst.mockResolvedValue(mockEventRow);
 
@@ -234,7 +215,7 @@ describe('AgentThreadEngineService', () => {
       );
     });
 
-    it('calls runtimeSessionService.upsertBindingEffect for work.started event', async () => {
+    it('calls runtimeSessionService.upsertBinding for work.started event', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
       mockPrisma.agentThreadSnapshot.findUnique.mockResolvedValue(
@@ -246,7 +227,7 @@ describe('AgentThreadEngineService', () => {
         runId: 'run-2',
         type: 'work.started',
       });
-      expect(runtimeSessionService.upsertBindingEffect).toHaveBeenCalledWith(
+      expect(runtimeSessionService.upsertBinding).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'running', threadId }),
       );
     });
@@ -254,15 +235,6 @@ describe('AgentThreadEngineService', () => {
 
   // ── listEvents ────────────────────────────────────────────────────────────────
   describe('listEvents', () => {
-    it('exposes an Effect-based list path', async () => {
-      const result = await Effect.runPromise(
-        service.listEventsEffect(threadId, orgId, undefined, userId),
-      );
-
-      expect(result).toBeDefined();
-      expect(mockPrisma.agentThreadEvent.findMany).toHaveBeenCalled();
-    });
-
     it('returns sorted events', async () => {
       const result = await service.listEvents(
         threadId,
@@ -312,18 +284,6 @@ describe('AgentThreadEngineService', () => {
       );
     });
 
-    it('exposes an Effect-based snapshot path', async () => {
-      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
-        mockSnapshotRow,
-      );
-
-      const result = await Effect.runPromise(
-        service.getSnapshotEffect(threadId, orgId, userId),
-      );
-
-      expect(result).toBeDefined();
-    });
-
     it('creates snapshot when none exists', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
@@ -367,7 +327,7 @@ describe('AgentThreadEngineService', () => {
         data: { ...mockSnapshotRow.data, inputRequests: [pendingRequest] },
       };
       mockPrisma.agentThreadSnapshot.findFirst
-        .mockResolvedValueOnce(snapshotWithRequest) // resolveInputRequestEffect
+        .mockResolvedValueOnce(snapshotWithRequest) // resolveInputRequest
         .mockResolvedValueOnce(null); // appendEvent's snapshot lookup
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
       mockPrisma.agentThreadSnapshot.update.mockResolvedValue({
@@ -399,38 +359,6 @@ describe('AgentThreadEngineService', () => {
       expect(result).not.toHaveProperty('organization');
       expect(result).not.toHaveProperty('thread');
       expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalled();
-    });
-
-    it('exposes an Effect-based input resolution path', async () => {
-      const snapshotWithRequest = {
-        ...mockSnapshotRow,
-        data: { ...mockSnapshotRow.data, inputRequests: [pendingRequest] },
-      };
-      mockPrisma.agentThreadSnapshot.findFirst
-        .mockResolvedValueOnce(snapshotWithRequest)
-        .mockResolvedValueOnce(null);
-      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
-      mockPrisma.agentThreadSnapshot.update.mockResolvedValue({
-        ...snapshotWithRequest,
-        data: {
-          ...snapshotWithRequest.data,
-          inputRequests: [
-            { ...pendingRequest, status: 'resolved', answer: '42' },
-          ],
-        },
-      });
-
-      const result = await Effect.runPromise(
-        service.resolveInputRequestEffect({
-          answer: '42',
-          organizationId: orgId,
-          requestId: 'req-1',
-          threadId,
-          userId: orgId,
-        }),
-      );
-
-      expect(result.status).toBe('resolved');
     });
 
     it('throws NotFoundException when snapshot not found', async () => {
@@ -468,7 +396,7 @@ describe('AgentThreadEngineService', () => {
 
   // ── recordProfileSnapshot ─────────────────────────────────────────────────────
   describe('recordProfileSnapshot', () => {
-    it('exposes an Effect-based profile snapshot path', async () => {
+    it('persists the profile snapshot without relation aliases', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
         mockSnapshotRow,
       );
@@ -480,10 +408,11 @@ describe('AgentThreadEngineService', () => {
         },
       });
 
-      const result = await Effect.runPromise(
-        service.recordProfileSnapshotEffect(threadId, orgId, userId, {
-          agentType: 'default',
-        }),
+      const result = await service.recordProfileSnapshot(
+        threadId,
+        orgId,
+        userId,
+        { agentType: 'default' },
       );
 
       expect(result).toBeDefined();
@@ -503,24 +432,6 @@ describe('AgentThreadEngineService', () => {
 
   // ── recordMemoryFlush ─────────────────────────────────────────────────────────
   describe('recordMemoryFlush', () => {
-    it('exposes an Effect-based memory flush path', async () => {
-      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
-      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
-
-      const result = await Effect.runPromise(
-        service.recordMemoryFlushEffect(
-          threadId,
-          orgId,
-          orgId,
-          'Summary of session',
-          ['tag-1'],
-        ),
-      );
-
-      expect(result).toBe('mem-id-1');
-      expect(agentMemoriesService.createMemory).toHaveBeenCalled();
-    });
-
     it('creates memory and appends event', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);

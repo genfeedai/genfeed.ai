@@ -1,4 +1,3 @@
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type {
   AgentOrchestratorUiActionHost,
@@ -13,7 +12,6 @@ import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestra
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentAutonomyMode, RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { Effect } from 'effect';
 
 type PlanAction = 'approve_plan' | 'revise_plan';
 
@@ -149,30 +147,29 @@ export class AgentOrchestratorUiActionPlanService {
   private async readLatestPlan(
     params: ThreadUiActionExecutionParams,
   ): Promise<Record<string, unknown> | undefined> {
-    const snapshot = await runEffectPromise(
-      this.getThreadSnapshotEffect(
-        params.threadId,
-        params.context.organizationId,
-        params.context.userId,
-      ),
+    const snapshot = await this.getThreadSnapshot(
+      params.threadId,
+      params.context.organizationId,
+      params.context.userId,
     );
     return snapshot?.latestProposedPlan as Record<string, unknown> | undefined;
   }
 
-  private getThreadSnapshotEffect(
+  private async getThreadSnapshot(
     threadId: string,
     organizationId: string,
     userId: string,
-  ): Effect.Effect<
-    Awaited<ReturnType<AgentThreadEngineService['getSnapshot']>> | null,
-    unknown
-  > {
-    return this.agentThreadEngineService
-      ? this.agentThreadEngineService.getSnapshotEffect(
-          threadId,
-          organizationId,
-          userId,
-        )
-      : Effect.succeed(null);
+  ): Promise<Awaited<
+    ReturnType<AgentThreadEngineService['getSnapshot']>
+  > | null> {
+    if (!this.agentThreadEngineService) {
+      return null;
+    }
+
+    return this.agentThreadEngineService.getSnapshot(
+      threadId,
+      organizationId,
+      userId,
+    );
   }
 }

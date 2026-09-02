@@ -31,7 +31,6 @@
     "class-validator": "0.15.1",
     "compression": "1.8.1",
     "cookie-parser": "1.4.7",
-    "effect": "3.22.1",
     "express": "5.2.1",
     "google-auth-library": "11.0.2",
     "googleapis": "176.0.0",

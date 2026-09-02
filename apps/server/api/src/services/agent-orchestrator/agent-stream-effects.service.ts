@@ -8,145 +8,159 @@ import {
   type AgentUIBlocksEvent,
   type AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Effect } from 'effect';
 
 @Injectable()
 export class AgentStreamEffectsService {
-  constructor(private readonly streamPublisher: AgentStreamPublisherService) {}
+  private readonly constructorName = String(this.constructor.name);
 
-  publishStreamLifecycleStartedEffect(params: {
+  constructor(
+    private readonly streamPublisher: AgentStreamPublisherService,
+    private readonly loggerService: LoggerService,
+  ) {}
+
+  async publishStreamLifecycleStarted(params: {
     context: AgentChatContext;
     model: string;
     startedAt?: string;
     threadId: string;
-  }): Effect.Effect<void, unknown> {
-    return this.publishStreamStartEffect({
-      model: params.model,
-      runId: params.context.executionId,
-      startedAt: params.startedAt,
-      threadId: params.threadId,
-      userId: params.context.userId,
-    }).pipe(
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          event: 'started',
-          label: 'Agent started',
-          runId: params.context.executionId,
-          startedAt: params.startedAt,
-          status: 'running',
-          threadId: params.threadId,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+  }): Promise<void> {
+    try {
+      await this.publishStreamStart({
+        model: params.model,
+        runId: params.context.executionId,
+        startedAt: params.startedAt,
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        event: 'started',
+        label: 'Agent started',
+        runId: params.context.executionId,
+        startedAt: params.startedAt,
+        status: 'running',
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} stream lifecycle started publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamStartEffect(
+  async publishStreamStart(
     data: Parameters<AgentStreamPublisherService['publishStreamStart']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishStreamStartEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishStreamStart(data);
   }
 
-  publishStreamTokenEffect(
+  async publishStreamToken(
     data: Parameters<AgentStreamPublisherService['publishToken']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishTokenEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishToken(data);
   }
 
-  publishStreamReasoningEffect(
+  async publishStreamReasoning(
     data: Parameters<AgentStreamPublisherService['publishReasoning']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishReasoningEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishReasoning(data);
   }
 
-  publishStreamDoneEffect(
+  async publishStreamDone(
     data: Parameters<AgentStreamPublisherService['publishDone']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishDoneEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishDone(data);
   }
 
-  publishStreamToolStartEffect(
+  async publishStreamToolStart(
     data: Parameters<AgentStreamPublisherService['publishToolStart']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishToolStartEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishToolStart(data);
   }
 
-  publishStreamToolCompleteEffect(
+  async publishStreamToolComplete(
     data: Parameters<AgentStreamPublisherService['publishToolComplete']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishToolCompleteEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishToolComplete(data);
   }
 
-  publishStreamErrorEffect(
+  async publishStreamError(
     data: Parameters<AgentStreamPublisherService['publishError']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishErrorEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishError(data);
   }
 
-  publishStreamWorkEventEffect(
+  async publishStreamWorkEvent(
     data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishWorkEventEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishWorkEvent(data);
   }
 
-  publishStreamUiBlocksEventEffect(
+  async publishStreamUiBlocksEvent(
     data: Parameters<AgentStreamPublisherService['publishUIBlocks']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishUIBlocksEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishUIBlocks(data);
   }
 
-  publishStreamInputRequestEventEffect(
+  async publishStreamInputRequestEvent(
     data: Parameters<AgentStreamPublisherService['publishInputRequest']>[0],
-  ): Effect.Effect<void, unknown> {
-    return this.streamPublisher.publishInputRequestEffect(data);
+  ): Promise<void> {
+    await this.streamPublisher.publishInputRequest(data);
   }
 
-  publishStreamAssistantResponseEffect(params: {
+  async publishStreamAssistantResponse(params: {
     content: string;
     context: AgentChatContext;
     reasoning: string | null;
     threadId: string;
     suppressTokenStreaming?: boolean;
-  }): Effect.Effect<void, unknown> {
-    const publishReasoningEffect = params.reasoning
-      ? this.publishStreamReasoningEffect({
+  }): Promise<void> {
+    if (params.reasoning) {
+      try {
+        await this.publishStreamReasoning({
           content: params.reasoning,
           runId: params.context.executionId,
           threadId: params.threadId,
           userId: params.context.userId,
-        }).pipe(Effect.catchAll(() => Effect.void))
-      : Effect.void;
+        });
+      } catch (error) {
+        this.loggerService.warn(
+          `${this.constructorName} assistant reasoning publish failed`,
+          { error },
+        );
+      }
+    }
 
     // Real streaming already emitted the tokens live this turn — only the
     // reasoning still needs publishing; the final content arrives via
     // agent:done. Otherwise fall back to simulated word-split token streaming.
     if (params.suppressTokenStreaming) {
-      return publishReasoningEffect.pipe(Effect.catchAll(() => Effect.void));
+      return;
     }
 
     const words = params.content.split(/(\s+)/).filter(Boolean);
 
-    return publishReasoningEffect.pipe(
-      Effect.zipRight(
-        Effect.forEach(
-          words,
-          (word) =>
-            this.publishStreamTokenEffect({
-              runId: params.context.executionId,
-              threadId: params.threadId,
-              token: word,
-              userId: params.context.userId,
-            }).pipe(Effect.catchAll(() => Effect.void)),
-          { discard: true },
-        ),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+    for (const word of words) {
+      try {
+        await this.publishStreamToken({
+          runId: params.context.executionId,
+          threadId: params.threadId,
+          token: word,
+          userId: params.context.userId,
+        });
+      } catch (error) {
+        this.loggerService.warn(
+          `${this.constructorName} assistant token publish failed`,
+          { error },
+        );
+      }
+    }
   }
 
-  publishStreamCompletionEffect(params: {
+  async publishStreamCompletion(params: {
     completionMetadata: Record<string, unknown>;
     content: string;
     context: AgentChatContext;
@@ -157,36 +171,39 @@ export class AgentStreamEffectsService {
     threadId: string;
     threadTitle?: string;
     toolCalls: ToolCallSummary[];
-  }): Effect.Effect<void, unknown> {
-    return this.publishStreamDoneEffect({
-      creditsRemaining: params.creditsRemaining,
-      creditsUsed: params.creditsUsed,
-      durationMs: params.durationMs,
-      fullContent: params.content,
-      metadata: params.completionMetadata,
-      runId: params.context.executionId,
-      startedAt: params.runStartedAt,
-      threadId: params.threadId,
-      threadTitle: params.threadTitle,
-      toolCalls: params.toolCalls,
-      userId: params.context.userId,
-    }).pipe(
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: `${params.toolCalls.length} tool call${params.toolCalls.length === 1 ? '' : 's'} completed`,
-          event: 'completed',
-          label: 'Agent completed',
-          runId: params.context.executionId,
-          status: 'completed',
-          threadId: params.threadId,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+  }): Promise<void> {
+    try {
+      await this.publishStreamDone({
+        creditsRemaining: params.creditsRemaining,
+        creditsUsed: params.creditsUsed,
+        durationMs: params.durationMs,
+        fullContent: params.content,
+        metadata: params.completionMetadata,
+        runId: params.context.executionId,
+        startedAt: params.runStartedAt,
+        threadId: params.threadId,
+        threadTitle: params.threadTitle,
+        toolCalls: params.toolCalls,
+        userId: params.context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        detail: `${params.toolCalls.length} tool call${params.toolCalls.length === 1 ? '' : 's'} completed`,
+        event: 'completed',
+        label: 'Agent completed',
+        runId: params.context.executionId,
+        status: 'completed',
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} stream completion publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamDoneOnlyEffect(params: {
+  async publishStreamDoneOnly(params: {
     content: string;
     context: AgentChatContext;
     creditsRemaining: number;
@@ -195,21 +212,28 @@ export class AgentStreamEffectsService {
     startedAt?: string;
     threadId: string;
     toolCalls: ToolCallSummary[];
-  }): Effect.Effect<void, unknown> {
-    return this.publishStreamDoneEffect({
-      creditsRemaining: params.creditsRemaining,
-      creditsUsed: params.creditsUsed,
-      fullContent: params.content,
-      metadata: params.metadata,
-      runId: params.context.executionId,
-      startedAt: params.startedAt,
-      threadId: params.threadId,
-      toolCalls: params.toolCalls,
-      userId: params.context.userId,
-    }).pipe(Effect.catchAll(() => Effect.void));
+  }): Promise<void> {
+    try {
+      await this.publishStreamDone({
+        creditsRemaining: params.creditsRemaining,
+        creditsUsed: params.creditsUsed,
+        fullContent: params.content,
+        metadata: params.metadata,
+        runId: params.context.executionId,
+        startedAt: params.startedAt,
+        threadId: params.threadId,
+        toolCalls: params.toolCalls,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} stream done publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamingToolStartedEffect(params: {
+  async publishStreamingToolStarted(params: {
     context: AgentChatContext;
     detail?: string;
     label?: string;
@@ -221,66 +245,76 @@ export class AgentStreamEffectsService {
     toolName: string;
     workEventDetail?: string;
     workEventLabel?: string;
-  }): Effect.Effect<void, unknown> {
+  }): Promise<void> {
     const detail = params.detail ?? `Starting ${params.toolName}`;
     const label = params.label ?? params.toolName;
     // Only publish determinate progress when the caller has real progress.
     // Defaulting to 15% made every tool look stuck at a fake quarter bar.
     const progress = params.progress;
 
-    return this.publishStreamToolStartEffect({
-      detail,
-      label,
-      parameters: params.parameters,
-      phase: 'executing',
-      progress,
-      runId: params.context.executionId,
-      startedAt: params.startedAt,
-      threadId: params.threadId,
-      toolCallId: params.toolCallId,
-      toolName: params.toolName,
-      userId: params.context.userId,
-    }).pipe(
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: params.workEventDetail ?? `Running ${params.toolName}`,
-          event: 'tool_started',
-          label: params.workEventLabel ?? label,
-          parameters: params.parameters,
-          phase: 'executing',
-          progress,
-          runId: params.context.executionId,
-          startedAt: params.startedAt,
-          status: 'running',
-          threadId: params.threadId,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+    try {
+      await this.publishStreamToolStart({
+        detail,
+        label,
+        parameters: params.parameters,
+        phase: 'executing',
+        progress,
+        runId: params.context.executionId,
+        startedAt: params.startedAt,
+        threadId: params.threadId,
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        userId: params.context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        detail: params.workEventDetail ?? `Running ${params.toolName}`,
+        event: 'tool_started',
+        label: params.workEventLabel ?? label,
+        parameters: params.parameters,
+        phase: 'executing',
+        progress,
+        runId: params.context.executionId,
+        startedAt: params.startedAt,
+        status: 'running',
+        threadId: params.threadId,
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} tool started publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamUiBlocksEffect(params: {
+  async publishStreamUiBlocks(params: {
     blockIds?: string[];
     blocks?: AgentUIBlocksEvent['blocks'];
     context: AgentChatContext;
     operation: AgentDashboardOperation;
     runId?: string;
     threadId: string;
-  }): Effect.Effect<void, unknown> {
-    return this.publishStreamUiBlocksEventEffect({
-      blockIds: params.blockIds,
-      blocks: params.blocks,
-      operation: params.operation,
-      runId: params.runId ?? params.context.executionId,
-      threadId: params.threadId,
-      userId: params.context.userId,
-    }).pipe(Effect.catchAll(() => Effect.void));
+  }): Promise<void> {
+    try {
+      await this.publishStreamUiBlocksEvent({
+        blockIds: params.blockIds,
+        blocks: params.blocks,
+        operation: params.operation,
+        runId: params.runId ?? params.context.executionId,
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} ui blocks publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamInputRequestEffect(params: {
+  async publishStreamInputRequest(params: {
     allowFreeText?: boolean;
     context: AgentChatContext;
     fieldId?: string;
@@ -296,23 +330,30 @@ export class AgentStreamEffectsService {
     runId?: string;
     threadId: string;
     title: string;
-  }): Effect.Effect<void, unknown> {
-    return this.publishStreamInputRequestEventEffect({
-      allowFreeText: params.allowFreeText,
-      fieldId: params.fieldId,
-      inputRequestId: params.inputRequestId,
-      metadata: params.metadata,
-      options: params.options,
-      prompt: params.prompt,
-      recommendedOptionId: params.recommendedOptionId,
-      runId: params.runId ?? params.context.executionId,
-      threadId: params.threadId,
-      title: params.title,
-      userId: params.context.userId,
-    }).pipe(Effect.catchAll(() => Effect.void));
+  }): Promise<void> {
+    try {
+      await this.publishStreamInputRequestEvent({
+        allowFreeText: params.allowFreeText,
+        fieldId: params.fieldId,
+        inputRequestId: params.inputRequestId,
+        metadata: params.metadata,
+        options: params.options,
+        prompt: params.prompt,
+        recommendedOptionId: params.recommendedOptionId,
+        runId: params.runId ?? params.context.executionId,
+        threadId: params.threadId,
+        title: params.title,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} input request publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamingToolCompletedEffect(params: {
+  async publishStreamingToolCompleted(params: {
     context: AgentChatContext;
     creditsUsed?: number;
     debug?: Record<string, unknown>;
@@ -327,116 +368,129 @@ export class AgentStreamEffectsService {
     toolCallId: string;
     toolName: string;
     uiActions?: AgentUiAction[];
-  }): Effect.Effect<void, unknown> {
+  }): Promise<void> {
     const label = params.label ?? params.toolName;
     const phase = params.status === 'completed' ? 'completed' : 'failed';
 
-    return this.publishStreamToolCompleteEffect({
-      creditsUsed: params.creditsUsed ?? 0,
-      debug: params.debug,
-      detail: params.detail,
-      durationMs: params.durationMs,
-      error: params.error,
-      label,
-      parameters: params.parameters,
-      phase,
-      progress: 100,
-      resultSummary: params.resultSummary,
-      runId: params.context.executionId,
-      status: params.status,
-      threadId: params.threadId,
-      toolCallId: params.toolCallId,
-      toolName: params.toolName,
-      uiActions: params.uiActions,
-      userId: params.context.userId,
-    }).pipe(
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: params.detail,
-          event: 'tool_completed',
-          label,
-          parameters: params.parameters,
-          phase,
-          progress: 100,
-          resultSummary: params.resultSummary,
-          runId: params.context.executionId,
-          status: params.status,
-          threadId: params.threadId,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+    try {
+      await this.publishStreamToolComplete({
+        creditsUsed: params.creditsUsed ?? 0,
+        debug: params.debug,
+        detail: params.detail,
+        durationMs: params.durationMs,
+        error: params.error,
+        label,
+        parameters: params.parameters,
+        phase,
+        progress: 100,
+        resultSummary: params.resultSummary,
+        runId: params.context.executionId,
+        status: params.status,
+        threadId: params.threadId,
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        uiActions: params.uiActions,
+        userId: params.context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        detail: params.detail,
+        event: 'tool_completed',
+        label,
+        parameters: params.parameters,
+        phase,
+        progress: 100,
+        resultSummary: params.resultSummary,
+        runId: params.context.executionId,
+        status: params.status,
+        threadId: params.threadId,
+        toolCallId: params.toolCallId,
+        toolName: params.toolName,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} tool completed publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamFailureEffect(params: {
+  async publishStreamFailure(params: {
     context: AgentChatContext;
     error: string;
     failRun: boolean;
     persistedError?: string;
     threadId: string;
-  }): Effect.Effect<void, unknown> {
-    return Effect.void.pipe(
-      Effect.zipRight(
-        this.publishStreamErrorEffect({
-          error: params.error,
-          runId: params.context.executionId,
-          threadId: params.threadId,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: params.error,
-          event: 'failed',
-          label: 'Agent failed',
-          runId: params.context.executionId,
-          status: 'failed',
-          threadId: params.threadId,
-          userId: params.context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+  }): Promise<void> {
+    try {
+      await this.publishStreamError({
+        error: params.error,
+        runId: params.context.executionId,
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        detail: params.error,
+        event: 'failed',
+        label: 'Agent failed',
+        runId: params.context.executionId,
+        status: 'failed',
+        threadId: params.threadId,
+        userId: params.context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} stream failure publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamCancelledEffect(
+  async publishStreamCancelled(
     context: AgentChatContext,
     threadId: string,
-  ): Effect.Effect<void, unknown> {
-    return this.publishStreamErrorEffect({
-      error: 'Agent run cancelled',
-      runId: context.executionId,
-      threadId,
-      userId: context.userId,
-    }).pipe(
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: 'The active run was stopped by the user.',
-          event: 'cancelled',
-          label: 'Agent cancelled',
-          runId: context.executionId,
-          status: 'cancelled',
-          threadId,
-          userId: context.userId,
-        }),
-      ),
-      Effect.catchAll(() => Effect.void),
-    );
+  ): Promise<void> {
+    try {
+      await this.publishStreamError({
+        error: 'Agent run cancelled',
+        runId: context.executionId,
+        threadId,
+        userId: context.userId,
+      });
+      await this.publishStreamWorkEvent({
+        detail: 'The active run was stopped by the user.',
+        event: 'cancelled',
+        label: 'Agent cancelled',
+        runId: context.executionId,
+        status: 'cancelled',
+        threadId,
+        userId: context.userId,
+      });
+    } catch (error) {
+      this.loggerService.warn(
+        `${this.constructorName} stream cancelled publish failed`,
+        { error },
+      );
+    }
   }
 
-  publishStreamErrorOnlyEffect(
+  async publishStreamErrorOnly(
     context: AgentChatContext,
     threadId: string,
     error: string,
-  ): Effect.Effect<void, unknown> {
-    return this.publishStreamErrorEffect({
-      error,
-      runId: context.executionId,
-      threadId,
-      userId: context.userId,
-    }).pipe(Effect.catchAll(() => Effect.void));
+  ): Promise<void> {
+    try {
+      await this.publishStreamError({
+        error,
+        runId: context.executionId,
+        threadId,
+        userId: context.userId,
+      });
+    } catch (publishError) {
+      this.loggerService.warn(
+        `${this.constructorName} stream error publish failed`,
+        { error: publishError },
+      );
+    }
   }
 }

@@ -1,8 +1,4 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import {
-  fromPromiseEffect,
-  runEffectPromise,
-} from '@api/helpers/utils/effect/effect.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import {
   AgentThreadEngineService,
@@ -18,7 +14,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
 
@@ -125,7 +120,7 @@ export class AgentStreamPublisherService {
    * Timer-triggered flush. Runs outside any caller's awaited chain (it's
    * scheduled via `setTimeout`), so unlike the byte-threshold flush inside
    * `publishToken` — whose promise is awaited and errors bubble to the
-   * caller's own `Effect.catchAll` — this path must swallow and log its own
+   * caller's own error handling — this path must swallow and log its own
    * errors or it becomes an unhandled promise rejection.
    */
   private flushTokenBufferOnTimer(key: string): void {
@@ -185,41 +180,29 @@ export class AgentStreamPublisherService {
         return;
       }
 
-      await runEffectPromise(
-        this.appendThreadEventEffect({
-          commandId: params.commandId,
-          metadata: { origin: 'stream-publisher' },
-          organizationId,
-          payload: params.payload,
-          runId: params.runId,
-          threadId,
-          type: params.type,
-          userId: params.userId,
-        }),
-      );
+      await this.appendThreadEvent({
+        commandId: params.commandId,
+        metadata: { origin: 'stream-publisher' },
+        organizationId,
+        payload: params.payload,
+        runId: params.runId,
+        threadId,
+        type: params.type,
+        userId: params.userId,
+      });
     } catch {
       // Persisted thread events should not break live stream fan-out.
     }
   }
 
-  private appendThreadEventEffect(
+  private async appendThreadEvent(
     params: AppendAgentThreadEventParams,
-  ): Effect.Effect<void, unknown> {
+  ): Promise<void> {
     if (!this.agentThreadEngineService) {
-      return Effect.void;
+      return;
     }
 
-    return this.agentThreadEngineService
-      .appendEventEffect(params)
-      .pipe(Effect.asVoid);
-  }
-
-  publishStreamStartEffect(
-    data: Parameters<AgentStreamPublisherService['publishStreamStart']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishStreamStart(data)).pipe(
-      Effect.asVoid,
-    );
+    await this.agentThreadEngineService.appendEvent(params);
   }
 
   async publishStreamStart(data: {
@@ -244,12 +227,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:stream_start',
     });
-  }
-
-  publishTokenEffect(
-    data: Parameters<AgentStreamPublisherService['publishToken']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishToken(data)).pipe(Effect.asVoid);
   }
 
   /**
@@ -304,14 +281,6 @@ export class AgentStreamPublisherService {
     }
   }
 
-  publishReasoningEffect(
-    data: Parameters<AgentStreamPublisherService['publishReasoning']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishReasoning(data)).pipe(
-      Effect.asVoid,
-    );
-  }
-
   async publishReasoning(data: {
     content: string;
     threadId: string;
@@ -334,14 +303,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:reasoning',
     });
-  }
-
-  publishToolStartEffect(
-    data: Parameters<AgentStreamPublisherService['publishToolStart']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishToolStart(data)).pipe(
-      Effect.asVoid,
-    );
   }
 
   async publishToolStart(data: {
@@ -379,14 +340,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:tool_start',
     });
-  }
-
-  publishToolCompleteEffect(
-    data: Parameters<AgentStreamPublisherService['publishToolComplete']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishToolComplete(data)).pipe(
-      Effect.asVoid,
-    );
   }
 
   async publishToolComplete(data: {
@@ -438,12 +391,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:tool_complete',
     });
-  }
-
-  publishDoneEffect(
-    data: Parameters<AgentStreamPublisherService['publishDone']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishDone(data)).pipe(Effect.asVoid);
   }
 
   async publishDone(data: {
@@ -517,12 +464,6 @@ export class AgentStreamPublisherService {
     );
   }
 
-  publishErrorEffect(
-    data: Parameters<AgentStreamPublisherService['publishError']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishError(data)).pipe(Effect.asVoid);
-  }
-
   async publishError(data: {
     threadId: string;
     error: string;
@@ -540,7 +481,7 @@ export class AgentStreamPublisherService {
     });
 
     // Both failure and cancellation route through here (see
-    // publishStreamCancelledEffect/publishStreamFailureEffect) — force-flush
+    // publishStreamCancelled/publishStreamFailure) — force-flush
     // any buffered token deltas so partial text isn't silently dropped right
     // before the error surfaces, and so the buffer's Map entry never leaks.
     const flushEntry = this.buildFlushEntry(
@@ -556,14 +497,6 @@ export class AgentStreamPublisherService {
 
     await this.redisService.publishBatch(
       flushEntry ? [flushEntry, errorEntry] : [errorEntry],
-    );
-  }
-
-  publishUIBlocksEffect(
-    data: Parameters<AgentStreamPublisherService['publishUIBlocks']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishUIBlocks(data)).pipe(
-      Effect.asVoid,
     );
   }
 
@@ -591,14 +524,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:ui_blocks',
     });
-  }
-
-  publishWorkEventEffect(
-    data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishWorkEvent(data)).pipe(
-      Effect.asVoid,
-    );
   }
 
   async publishWorkEvent(data: {
@@ -670,14 +595,6 @@ export class AgentStreamPublisherService {
     });
   }
 
-  publishInputRequestEffect(
-    data: Parameters<AgentStreamPublisherService['publishInputRequest']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishInputRequest(data)).pipe(
-      Effect.asVoid,
-    );
-  }
-
   async publishInputRequest(data: {
     allowFreeText?: boolean;
     threadId: string;
@@ -716,14 +633,6 @@ export class AgentStreamPublisherService {
       data: { ...data, timestamp: new Date().toISOString() },
       type: 'agent:input_request',
     });
-  }
-
-  publishInputResolvedEffect(
-    data: Parameters<AgentStreamPublisherService['publishInputResolved']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishInputResolved(data)).pipe(
-      Effect.asVoid,
-    );
   }
 
   async publishInputResolved(data: {
@@ -792,14 +701,6 @@ export class AgentStreamPublisherService {
       data,
       type: 'agent:run_complete',
     });
-  }
-
-  publishToolProgressEffect(
-    data: Parameters<AgentStreamPublisherService['publishToolProgress']>[0],
-  ): Effect.Effect<void, unknown> {
-    return fromPromiseEffect(() => this.publishToolProgress(data)).pipe(
-      Effect.asVoid,
-    );
   }
 
   async publishToolProgress(data: {

@@ -1,7 +1,6 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentScopeContextService } from '@api/index';
@@ -27,7 +26,7 @@ import type {
 import { withAgentScopeResult } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   AgentRuntimeSessionService,
-  getRuntimeBindingEffect,
+  getRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -328,12 +327,10 @@ export class AgentOrchestratorUiActionService {
     threadId: string,
     organizationId: string,
   ): Promise<string> {
-    const binding = await runEffectPromise(
-      getRuntimeBindingEffect(
-        this.agentRuntimeSessionService,
-        threadId,
-        organizationId,
-      ),
+    const binding = await getRuntimeBinding(
+      this.agentRuntimeSessionService,
+      threadId,
+      organizationId,
     );
     // UI actions price and call the bound model directly, bypassing the
     // orchestrator's resolution chokepoint — a binding stored against a retired

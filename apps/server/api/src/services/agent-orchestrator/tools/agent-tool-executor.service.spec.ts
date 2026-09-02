@@ -56,7 +56,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Effect } from 'effect';
 
 describe('AgentToolExecutorService', () => {
   const createWorkflowRunner = () => {
@@ -488,31 +487,11 @@ describe('AgentToolExecutorService', () => {
       publishReasoning: vi.fn().mockResolvedValue(undefined),
       publishStreamStart: vi.fn().mockResolvedValue(undefined),
       publishToken: vi.fn().mockResolvedValue(undefined),
-      publishTokenEffect: vi.fn((...args: unknown[]) =>
-        Effect.tryPromise(() => streamPublisher.publishToken(...args)).pipe(
-          Effect.asVoid,
-        ),
-      ),
       publishToolComplete: vi.fn().mockResolvedValue(undefined),
       publishToolProgress: vi.fn().mockResolvedValue(undefined),
-      publishToolProgressEffect: vi.fn((...args: unknown[]) =>
-        Effect.tryPromise(() =>
-          streamPublisher.publishToolProgress(...args),
-        ).pipe(Effect.asVoid),
-      ),
       publishToolStart: vi.fn().mockResolvedValue(undefined),
       publishUIBlocks: vi.fn().mockResolvedValue(undefined),
-      publishUIBlocksEffect: vi.fn((...args: unknown[]) =>
-        Effect.tryPromise(() => streamPublisher.publishUIBlocks(...args)).pipe(
-          Effect.asVoid,
-        ),
-      ),
       publishWorkEvent: vi.fn().mockResolvedValue(undefined),
-      publishWorkEventEffect: vi.fn((...args: unknown[]) =>
-        Effect.tryPromise(() => streamPublisher.publishWorkEvent(...args)).pipe(
-          Effect.asVoid,
-        ),
-      ),
     };
     const credentialsService = {
       find: vi.fn().mockResolvedValue([]),
