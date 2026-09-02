@@ -45,6 +45,10 @@ vi.mock('@services/social/brands.service', () => ({
   BrandsService: { getInstance: vi.fn() },
 }));
 
+vi.mock('@services/organization/credentials.service', () => ({
+  CredentialsService: { getInstance: vi.fn() },
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: MockQueryOptions) => {
     mocks.queryOptions.push(options);
@@ -123,6 +127,26 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('./components/Next24hQueueSection', () => ({
+  default: ({ groups }: { groups: Array<{ items: unknown[] }> }) => (
+    <div data-testid="next-24h-queue">
+      {groups.reduce((total, group) => total + group.items.length, 0)}
+    </div>
+  ),
+}));
+
+vi.mock('./components/BlockedTargetsSection', () => ({
+  default: ({ groups }: { groups: unknown[] }) => (
+    <div data-testid="blocked-targets">{groups.length}</div>
+  ),
+}));
+
+vi.mock('./components/CadenceGapsSection', () => ({
+  default: ({ gaps }: { gaps: unknown[] }) => (
+    <div data-testid="cadence-gaps">{gaps.length}</div>
+  ),
+}));
+
 import PublishingOverviewPage from './PublishingOverviewPage';
 
 function expectMetric(label: string, value: number): void {
@@ -137,9 +161,13 @@ describe('PublishingOverviewPage', () => {
     mocks.brandId = 'brand-1';
     mocks.queryOptions = [];
     mocks.queryResults = {
+      'publish-overview-account-health': { data: [], isLoading: false },
       'publish-overview-batches': { data: [], isLoading: false },
+      'publish-overview-failed': { data: [], isLoading: false },
       'publish-overview-not-posted-total': { data: 0, isLoading: false },
+      'publish-overview-posted-recent': { data: [], isLoading: false },
       'publish-overview-published-total': { data: 0, isLoading: false },
+      'publish-overview-upcoming': { data: [], isLoading: false },
     };
   });
 
@@ -183,12 +211,6 @@ describe('PublishingOverviewPage', () => {
     expectMetric('Not posted', 0);
     expectMetric('Published', 0);
     expectMetric('Failed items', 0);
-    expect(screen.getByText('No open batches')).toBeVisible();
-    expect(
-      screen.getByText(
-        'No queue pressure — open Review when the next batch lands.',
-      ),
-    ).toBeVisible();
     expect(
       screen.getByText(
         'No drafts waiting — create a release when you are ready.',
@@ -239,11 +261,6 @@ describe('PublishingOverviewPage', () => {
     expectMetric('Published', 12);
     expectMetric('Failed items', 1);
     expect(
-      screen.getByText(
-        '2 open batches · 2 still generating · 2 need a decision',
-      ),
-    ).toBeVisible();
-    expect(
       screen.getByText('2 items ready to approve or reject.'),
     ).toBeVisible();
     expect(
@@ -254,19 +271,81 @@ describe('PublishingOverviewPage', () => {
     ).toBeVisible();
   });
 
-  it('disables both publication queries until a brand is available', () => {
+  it('disables every brand-scoped overview query until a brand is available', () => {
     mocks.brandId = undefined;
 
     render(<PublishingOverviewPage />);
 
-    const notPostedQuery = mocks.queryOptions.find(
-      ({ queryKey }) => queryKey[0] === 'publish-overview-not-posted-total',
-    );
-    const publishedQuery = mocks.queryOptions.find(
-      ({ queryKey }) => queryKey[0] === 'publish-overview-published-total',
-    );
+    const brandScopedQueryKeys = [
+      'publish-overview-not-posted-total',
+      'publish-overview-published-total',
+      'publish-overview-upcoming',
+      'publish-overview-failed',
+      'publish-overview-posted-recent',
+      'publish-overview-account-health',
+    ];
 
-    expect(notPostedQuery).toMatchObject({ enabled: false });
-    expect(publishedQuery).toMatchObject({ enabled: false });
+    for (const key of brandScopedQueryKeys) {
+      const query = mocks.queryOptions.find(
+        ({ queryKey }) => queryKey[0] === key,
+      );
+      expect(query).toMatchObject({ enabled: false });
+    }
+  });
+
+  it('passes the derived next-24h queue, blocked groups, and cadence gaps to their sections', () => {
+    mocks.queryResults['publish-overview-upcoming'] = {
+      data: [
+        {
+          id: 'release-1',
+          targets: [
+            {
+              credentialId: 'credential-1',
+              executionState: 'scheduled',
+              id: 'target-1',
+              platform: 'instagram',
+              scheduledAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            },
+          ],
+          title: 'Launch post',
+        },
+      ],
+      isLoading: false,
+    };
+    mocks.queryResults['publish-overview-failed'] = {
+      data: [
+        {
+          id: 'release-2',
+          targets: [
+            {
+              credentialId: 'credential-2',
+              error: { code: 'RATE_LIMITED', message: 'Too many requests' },
+              executionState: 'failed',
+              id: 'target-2',
+              platform: 'x',
+            },
+          ],
+          title: 'Failed post',
+        },
+      ],
+      isLoading: false,
+    };
+    mocks.queryResults['publish-overview-account-health'] = {
+      data: [
+        {
+          credentialId: 'credential-3',
+          holdPublishing: false,
+          label: 'Brand Instagram',
+          platform: 'instagram',
+        },
+      ],
+      isLoading: false,
+    };
+
+    render(<PublishingOverviewPage />);
+
+    expect(screen.getByTestId('next-24h-queue')).toHaveTextContent('1');
+    expect(screen.getByTestId('blocked-targets')).toHaveTextContent('1');
+    expect(screen.getByTestId('cadence-gaps')).toHaveTextContent('1');
   });
 });

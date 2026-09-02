@@ -554,6 +554,27 @@
       "skip": "Skip",
       "write": "Write"
     },
+    "overview": {
+      "blockedCount": "{count, plural, one {# blocked release} other {# blocked releases}}",
+      "blockedDescription": "Failed releases grouped by error, with the accounts affected.",
+      "blockedEmpty": "No blocked releases right now.",
+      "blockedTitle": "Blocked",
+      "blockedViewAction": "View",
+      "cadenceDescription": "Days since each connected account last published, and whether anything is queued.",
+      "cadenceEmpty": "No connected accounts yet.",
+      "cadenceGapDays": "{count, plural, one {# day since last publish} other {# days since last publish}}",
+      "cadenceHold": "On hold",
+      "cadenceNeverPublished": "Never published",
+      "cadenceReconnect": "Needs reconnect",
+      "cadenceReconnectAction": "Reconnect",
+      "cadenceScheduled": "Scheduled",
+      "cadenceTitle": "Cadence",
+      "queueBucketLater": "Later",
+      "queueBucketNear": "Next 3 hours",
+      "queueDescription": "Scheduled releases due within the next 24 hours.",
+      "queueEmpty": "Nothing scheduled in the next 24 hours.",
+      "queueTitle": "Next 24 hours"
+    },
     "review": {
       "lineage": {
         "action": "Action",
