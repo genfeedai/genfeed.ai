@@ -18,6 +18,7 @@ import {
 } from '@pages/posts/list/release-posts-list-query';
 
 export type PostsListSearchParams = Promise<{
+  account?: string | string[];
   contentType?: string | string[];
   page?: string;
   platform?: string;
@@ -41,6 +42,7 @@ export async function renderPostsListPage({
 }) {
   const [
     {
+      account,
       contentType,
       page,
       platform,
@@ -51,6 +53,11 @@ export async function renderPostsListPage({
     },
     bootstrap,
   ] = await Promise.all([searchParams, loadProtectedBootstrap()]);
+  const credentialIds = account
+    ? Array.isArray(account)
+      ? account
+      : [account]
+    : undefined;
   const normalizedStatus = parsePostsStatus(status);
   const requestedPublicationState = parsePostsPublicationState(
     publicationStateParam,
@@ -85,6 +92,7 @@ export async function renderPostsListPage({
     queryFn: async () => {
       const pageData = await loadReleasePostsPageData({
         contentTypes,
+        credentialIds,
         currentPage,
         executionStates,
         platform: platformFilter,
@@ -101,6 +109,7 @@ export async function renderPostsListPage({
     queryKey: buildReleasePostsListQueryKey({
       brandId,
       contentTypes,
+      credentialIds,
       currentPage,
       executionStates,
       organizationId,
@@ -116,6 +125,7 @@ export async function renderPostsListPage({
     <ServerQueryHydrationBoundary>
       <ReleasePostsList
         contentTypes={contentTypes}
+        credentialIds={credentialIds}
         executionStates={executionStates}
         platform={normalizedPlatform}
         publicationState={canonicalPublicationState}
