@@ -48,7 +48,9 @@ vi.mock('next/dynamic', () => ({
     }: {
       ingredients: IIngredient[];
     }) {
-      return <div data-testid="library-canvas">{ingredients.length}</div>;
+      return (
+        <div data-testid="library-canvas">{(ingredients ?? []).length}</div>
+      );
     }
 
     return LibraryCanvasStub;
