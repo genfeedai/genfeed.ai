@@ -9,7 +9,7 @@ import type { ReleaseRailAccountsProps } from '@props/publisher/release-rail.pro
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { Badge } from '@ui/primitives/badge';
-import Button from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
