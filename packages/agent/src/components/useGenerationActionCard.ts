@@ -6,7 +6,6 @@ import type {
   AgentApiService,
   GenerationModel,
 } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { formatStructuredPrompt } from '@genfeedai/agent/utils/format-structured-prompt.util';
@@ -248,7 +247,8 @@ export function useGenerationActionCard({
     const controller = new AbortController();
     setModelsLoading(true);
     setModelsError(null);
-    runAgentApiEffect(apiService.getModelsEffect(controller.signal))
+    apiService
+      .getModels(controller.signal)
       .then((data) => {
         setModels(data);
         setModelsError(null);
@@ -598,18 +598,16 @@ export function useGenerationActionCard({
         return;
       }
 
-      const promptDoc = await runAgentApiEffect(
-        apiService.createPromptEffect(
-          {
-            category: getPromptCategoryForGenerationType(generationType),
-            duration: requestDuration,
-            isSkipEnhancement: true,
-            model: !isAutoMode && modelKey ? modelKey : undefined,
-            original: prompt,
-            ratio: aspectRatio,
-          },
-          controller.signal,
-        ),
+      const promptDoc = await apiService.createPrompt(
+        {
+          category: getPromptCategoryForGenerationType(generationType),
+          duration: requestDuration,
+          isSkipEnhancement: true,
+          model: !isAutoMode && modelKey ? modelKey : undefined,
+          original: prompt,
+          ratio: aspectRatio,
+        },
+        controller.signal,
       );
 
       const body = buildAgentGenerationRequestBody({
@@ -633,12 +631,10 @@ export function useGenerationActionCard({
         waitForCompletion: false,
       });
 
-      const result = await runAgentApiEffect(
-        apiService.generateIngredientEffect(
-          generationType,
-          body,
-          controller.signal,
-        ),
+      const result = await apiService.generateIngredient(
+        generationType,
+        body,
+        controller.signal,
       );
       setResultId(result.id);
       const mediaPath = generationType === 'video' ? 'videos' : 'images';

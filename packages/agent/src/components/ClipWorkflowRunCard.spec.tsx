@@ -2,7 +2,6 @@ import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRun
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -41,26 +40,16 @@ describe('ClipWorkflowRunCard', () => {
     };
 
     const apiService = {
-      createManualReviewBatchEffect: vi.fn(() =>
-        Effect.succeed({
-          id: 'batch-123',
-          items: [{ id: 'item-456', postId: 'post-789' }],
-        }),
-      ),
-      createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
-      generateIngredientEffect: vi.fn(() =>
-        Effect.succeed({ id: 'video-123' }),
-      ),
-      mergeVideosEffect: vi.fn(() =>
-        Effect.succeed({ id: 'merged-video-123' }),
-      ),
-      reframeVideoEffect: vi.fn(() =>
-        Effect.succeed({ id: 'video-portrait-123' }),
-      ),
-      resizeVideoEffect: vi.fn(() =>
-        Effect.succeed({ id: 'resized-video-123' }),
-      ),
-      triggerWorkflowEffect: vi.fn(() => Effect.succeed({ id: 'exec-123' })),
+      createManualReviewBatch: vi.fn().mockResolvedValue({
+        id: 'batch-123',
+        items: [{ id: 'item-456', postId: 'post-789' }],
+      }),
+      createPrompt: vi.fn().mockResolvedValue({ id: 'prompt-123' }),
+      generateIngredient: vi.fn().mockResolvedValue({ id: 'video-123' }),
+      mergeVideos: vi.fn().mockResolvedValue({ id: 'merged-video-123' }),
+      reframeVideo: vi.fn().mockResolvedValue({ id: 'video-portrait-123' }),
+      resizeVideo: vi.fn().mockResolvedValue({ id: 'resized-video-123' }),
+      triggerWorkflow: vi.fn().mockResolvedValue({ id: 'exec-123' }),
     };
 
     render(
@@ -72,14 +61,14 @@ describe('ClipWorkflowRunCard', () => {
     fireEvent.click(runNextButton);
 
     await waitFor(() => {
-      expect(apiService.generateIngredientEffect).toHaveBeenCalledTimes(1);
+      expect(apiService.generateIngredient).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByText('Generated clips: 1')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Run Next Step' }));
 
     await waitFor(() => {
-      expect(apiService.reframeVideoEffect).toHaveBeenCalledTimes(1);
+      expect(apiService.reframeVideo).toHaveBeenCalledTimes(1);
     });
 
     const reviewLink = await screen.findByRole('link', {
@@ -128,13 +117,13 @@ describe('ClipWorkflowRunCard', () => {
     };
 
     const apiService = {
-      createManualReviewBatchEffect: vi.fn(),
-      createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
-      generateIngredientEffect: vi.fn(),
-      mergeVideosEffect: vi.fn(),
-      reframeVideoEffect: vi.fn(),
-      resizeVideoEffect: vi.fn(),
-      triggerWorkflowEffect: vi.fn(),
+      createManualReviewBatch: vi.fn(),
+      createPrompt: vi.fn().mockResolvedValue({ id: 'prompt-123' }),
+      generateIngredient: vi.fn(),
+      mergeVideos: vi.fn(),
+      reframeVideo: vi.fn(),
+      resizeVideo: vi.fn(),
+      triggerWorkflow: vi.fn(),
     };
 
     render(
@@ -148,6 +137,6 @@ describe('ClipWorkflowRunCard', () => {
         /Configure saved avatar and voice defaults or enter explicit IDs before generating clips\./,
       ),
     ).toBeInTheDocument();
-    expect(apiService.createPromptEffect).not.toHaveBeenCalled();
+    expect(apiService.createPrompt).not.toHaveBeenCalled();
   });
 });

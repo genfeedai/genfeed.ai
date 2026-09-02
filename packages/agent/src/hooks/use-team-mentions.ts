@@ -1,5 +1,4 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useEffect, useState } from 'react';
 
@@ -15,14 +14,15 @@ export function useTeamMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!apiService || typeof apiService.getTeamMentionsEffect !== 'function') {
+    if (!apiService || typeof apiService.getTeamMentions !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getTeamMentionsEffect(controller.signal))
+    apiService
+      .getTeamMentions(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
           setMentions(data);

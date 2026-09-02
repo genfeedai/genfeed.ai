@@ -1,6 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildThreadSummaryFromSnapshot,
@@ -56,10 +55,8 @@ export async function restoreThreadFromSnapshot(
   deps: RestoreThreadFromSnapshotDeps,
 ): Promise<void> {
   const [snapshot, messages] = await Promise.all([
-    runAgentApiEffect(deps.apiService.getThreadSnapshotEffect(threadId)),
-    runAgentApiEffect(
-      deps.apiService.getMessagesEffect(threadId, { limit: 100 }),
-    ),
+    deps.apiService.getThreadSnapshot(threadId),
+    deps.apiService.getMessages(threadId, { limit: 100 }),
   ]);
 
   const state = useAgentChatStore.getState();

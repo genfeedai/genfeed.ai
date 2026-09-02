@@ -2,7 +2,6 @@ import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversatio
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -225,48 +224,16 @@ vi.mock('@genfeedai/agent/components/AgentThreadContextPanel', () => ({
 
 let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;
 
-const EFFECT_METHOD_MAP = {
-  getCreditsInfo: 'getCreditsInfoEffect',
-  getMessages: 'getMessagesPageEffect',
-  getThread: 'getThreadEffect',
-  getThreadSnapshot: 'getThreadSnapshotEffect',
-} as const;
-
-function withAgentApiEffects<T extends Record<string, unknown>>(
-  apiService: T,
-): T {
-  for (const [method, effectMethod] of Object.entries(EFFECT_METHOD_MAP)) {
-    const handler = apiService[method as keyof T];
-
-    if (typeof handler !== 'function' || effectMethod in apiService) {
-      continue;
-    }
-
-    Object.assign(apiService, {
-      [effectMethod]: vi.fn((...args: unknown[]) =>
-        Effect.promise(async () => {
-          const value = await Promise.resolve(
-            (handler as (...effectArgs: unknown[]) => unknown)(...args),
-          );
-          return method === 'getMessages'
-            ? { hasMore: false, messages: value, nextCursor: null }
-            : value;
-        }),
-      ),
-    });
-  }
-
-  return apiService;
-}
-
 function createApiService(overrides: Record<string, unknown> = {}) {
-  return withAgentApiEffects({
+  return {
     getCreditsInfo: vi.fn().mockResolvedValue({ balance: 50, modelCosts: {} }),
-    getMessages: vi.fn().mockResolvedValue([]),
+    getMessagesPage: vi
+      .fn()
+      .mockResolvedValue({ hasMore: false, messages: [], nextCursor: null }),
     getThread: vi.fn(),
     getThreadSnapshot: vi.fn(),
     ...overrides,
-  });
+  };
 }
 
 function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
@@ -339,9 +306,12 @@ describe('AgentFullPage', () => {
       },
     ];
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(messages, signal),
+          createAbortAwareValue(
+            { hasMore: false, messages, nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -394,14 +364,16 @@ describe('AgentFullPage', () => {
     });
 
     expect(apiService.getThread).toHaveBeenCalledTimes(2);
-    expect(apiService.getMessages).toHaveBeenCalledTimes(2);
+    expect(apiService.getMessagesPage).toHaveBeenCalledTimes(2);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(2);
     expect(storeState.setError).toHaveBeenCalledWith(null);
   });
 
   it('restores a durable terminal error during cold thread hydration', async () => {
     const apiService = createApiService({
-      getMessages: vi.fn().mockResolvedValue([]),
+      getMessagesPage: vi
+        .fn()
+        .mockResolvedValue({ hasMore: false, messages: [], nextCursor: null }),
       getThread: vi.fn().mockResolvedValue({
         createdAt: '2026-08-28T17:00:00.000Z',
         id: 'thread-failed',
@@ -465,9 +437,12 @@ describe('AgentFullPage', () => {
       },
     ];
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(messages, signal),
+          createAbortAwareValue(
+            { hasMore: false, messages, nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn(),
       getThreadSnapshot: vi.fn(),
@@ -487,7 +462,7 @@ describe('AgentFullPage', () => {
 
     expect(apiService.getThread).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
-    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPage).toHaveBeenCalledTimes(1);
     expect(storeState.setError).not.toHaveBeenCalled();
   });
 
@@ -501,9 +476,12 @@ describe('AgentFullPage', () => {
       },
     ];
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue([], signal),
+          createAbortAwareValue(
+            { hasMore: false, messages: [], nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn(),
       getThreadSnapshot: vi.fn(),
@@ -525,7 +503,7 @@ describe('AgentFullPage', () => {
   it('still reports a load failure for a messages-only rejection when the cache is fresh (#2790)', async () => {
     storeState.isConversationCacheFresh.mockReturnValue(true);
     const apiService = createApiService({
-      getMessages: vi.fn().mockRejectedValue(new Error('Messages down')),
+      getMessagesPage: vi.fn().mockRejectedValue(new Error('Messages down')),
       getThread: vi.fn(),
       getThreadSnapshot: vi.fn(),
     });
@@ -588,7 +566,7 @@ describe('AgentFullPage', () => {
         }),
     );
     const apiService = createApiService({
-      getMessages: vi.fn(),
+      getMessagesPage: vi.fn(),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
           {
@@ -608,7 +586,7 @@ describe('AgentFullPage', () => {
       <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
     );
 
-    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
 
     resolvePrefetch?.({
@@ -640,25 +618,29 @@ describe('AgentFullPage', () => {
       });
     });
 
-    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
     expect(apiService.getThread).toHaveBeenCalledTimes(1);
   });
 
   it('debounces a rapid bounce so the intermediate thread never starts a request set (#2790)', async () => {
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (threadId: string, _params: unknown, signal?: AbortSignal) =>
           createAbortAwareValue(
-            [
-              {
-                content: threadId,
-                createdAt: '2026-03-10T10:00:00.000Z',
-                id: `msg-${threadId}`,
-                role: 'user',
-                threadId,
-              },
-            ],
+            {
+              hasMore: false,
+              messages: [
+                {
+                  content: threadId,
+                  createdAt: '2026-03-10T10:00:00.000Z',
+                  id: `msg-${threadId}`,
+                  role: 'user',
+                  threadId,
+                },
+              ],
+              nextCursor: null,
+            },
             signal,
           ),
       ),
@@ -703,7 +685,7 @@ describe('AgentFullPage', () => {
       <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
     );
     await waitFor(() => {
-      expect(apiService.getMessages).toHaveBeenCalledWith(
+      expect(apiService.getMessagesPage).toHaveBeenCalledWith(
         'thread-a',
         expect.anything(),
         expect.anything(),
@@ -733,7 +715,7 @@ describe('AgentFullPage', () => {
     });
 
     const requestedThreadIds = (
-      apiService.getMessages as ReturnType<typeof vi.fn>
+      apiService.getMessagesPage as ReturnType<typeof vi.fn>
     ).mock.calls.map((call) => call[0]);
     expect(requestedThreadIds).toContain('thread-a');
     expect(requestedThreadIds).toContain('thread-c');
@@ -753,9 +735,12 @@ describe('AgentFullPage', () => {
       },
     ];
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(messages, signal),
+          createAbortAwareValue(
+            { hasMore: false, messages, nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -807,7 +792,7 @@ describe('AgentFullPage', () => {
 
     expect(apiService.getThread).toHaveBeenCalledTimes(1);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(1);
-    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPage).toHaveBeenCalledTimes(1);
     expect(storeState.setError).toHaveBeenCalledWith(null);
   });
 
@@ -823,13 +808,13 @@ describe('AgentFullPage', () => {
     });
 
     expect(apiService.getThread).not.toHaveBeenCalled();
-    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
   });
 
   it('surfaces a generic load error when bootstrap fails', async () => {
     const apiService = createApiService({
-      getMessages: vi.fn(),
+      getMessagesPage: vi.fn(),
       getThread: vi.fn().mockRejectedValue(new Error('Network down')),
       getThreadSnapshot: vi.fn(),
     });
@@ -856,9 +841,12 @@ describe('AgentFullPage', () => {
       },
     ];
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(messages, signal),
+          createAbortAwareValue(
+            { hasMore: false, messages, nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -1103,9 +1091,16 @@ describe('AgentFullPage', () => {
     ];
 
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(storeState.messages, signal),
+          createAbortAwareValue(
+            {
+              hasMore: false,
+              messages: storeState.messages,
+              nextCursor: null,
+            },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -1166,9 +1161,12 @@ describe('AgentFullPage', () => {
     storeState.messages = persistedMessages;
 
     const apiService = createApiService({
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue(persistedMessages, signal),
+          createAbortAwareValue(
+            { hasMore: false, messages: persistedMessages, nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -1232,7 +1230,7 @@ describe('AgentFullPage', () => {
     await waitFor(() => {
       expect(apiService.getThread).toHaveBeenCalledTimes(1);
     });
-    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(apiService.getMessagesPage).toHaveBeenCalledTimes(1);
     expect(apiService.getThreadSnapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -1254,9 +1252,12 @@ describe('AgentFullPage', () => {
 
     const apiService = createApiService({
       // A page fetched now predates the assistant turn: it must never land.
-      getMessages: vi.fn(
+      getMessagesPage: vi.fn(
         (_threadId: string, _params: unknown, signal?: AbortSignal) =>
-          createAbortAwareValue([], signal),
+          createAbortAwareValue(
+            { hasMore: false, messages: [], nextCursor: null },
+            signal,
+          ),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
         createAbortAwareValue(
@@ -1287,7 +1288,7 @@ describe('AgentFullPage', () => {
       );
     });
 
-    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
     expect(storeState.setMessagesPage).not.toHaveBeenCalled();
     expect(storeState.resetStreamState).not.toHaveBeenCalled();

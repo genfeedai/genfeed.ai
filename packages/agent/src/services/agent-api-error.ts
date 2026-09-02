@@ -1,15 +1,17 @@
-import { Data } from 'effect';
-
-export class AgentApiAuthError extends Data.TaggedError('AgentApiAuthError')<{
+export class AgentApiAuthError extends Error {
+  readonly _tag = 'AgentApiAuthError';
   readonly cause: unknown;
-  readonly message: string;
-}> {}
 
-export class AgentApiRequestError extends Data.TaggedError(
-  'AgentApiRequestError',
-)<{
+  constructor(options: { cause: unknown; message: string }) {
+    super(options.message);
+    this.name = 'AgentApiAuthError';
+    this.cause = options.cause;
+  }
+}
+
+export class AgentApiRequestError extends Error {
+  readonly _tag = 'AgentApiRequestError';
   readonly detail?: string;
-  readonly message: string;
   readonly source?:
     | 'acknowledgement'
     | 'api'
@@ -17,14 +19,36 @@ export class AgentApiRequestError extends Data.TaggedError(
     | 'provider'
     | 'stream_recovery';
   readonly status: number;
-}> {}
 
-export class AgentApiDecodeError extends Data.TaggedError(
-  'AgentApiDecodeError',
-)<{
+  constructor(options: {
+    detail?: string;
+    message: string;
+    source?:
+      | 'acknowledgement'
+      | 'api'
+      | 'network'
+      | 'provider'
+      | 'stream_recovery';
+    status: number;
+  }) {
+    super(options.message);
+    this.name = 'AgentApiRequestError';
+    this.detail = options.detail;
+    this.source = options.source;
+    this.status = options.status;
+  }
+}
+
+export class AgentApiDecodeError extends Error {
+  readonly _tag = 'AgentApiDecodeError';
   readonly cause: unknown;
-  readonly message: string;
-}> {}
+
+  constructor(options: { cause: unknown; message: string }) {
+    super(options.message);
+    this.name = 'AgentApiDecodeError';
+    this.cause = options.cause;
+  }
+}
 
 export type AgentApiError =
   | AgentApiAuthError

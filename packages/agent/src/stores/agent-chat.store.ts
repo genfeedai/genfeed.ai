@@ -242,8 +242,8 @@ export const CONVERSATION_CACHE_LIMIT = 20;
 /**
  * A cached conversation counts as fresh for this long after it was written
  * (#2790). Within the window, switching to that thread skips the
- * thread-metadata and snapshot requests (`getThreadEffect` /
- * `getThreadSnapshotEffect`) entirely — the messages list still refetches
+ * thread-metadata and snapshot requests (`getThread` /
+ * `getThreadSnapshot`) entirely — the messages list still refetches
  * (nothing else can supply it, and it is what gates paint). Deliberately
  * short and time-bounded rather than "cache forever": a thread whose status,
  * plan, or work events changed server-side while the tab was open still

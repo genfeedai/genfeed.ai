@@ -9,7 +9,6 @@ import type {
   SendMessagePayload,
   UpdateAgentThreadContextPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
-import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -18,7 +17,6 @@ import type {
   AgentTransferPresentation,
   IAgentTransfer,
 } from '@genfeedai/contracts/interfaces';
-import { Effect } from 'effect';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
 
@@ -127,27 +125,29 @@ function hydrateTransferCards(
   });
 }
 
-function getTransfersEffect(
+async function getTransfers(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<IAgentTransfer[], AgentApiError> {
-  return api
-    .fetchCollectionEffect<IAgentTransfer>(
+): Promise<IAgentTransfer[]> {
+  try {
+    return await api.fetchCollection<IAgentTransfer>(
       `${api.config.baseUrl}/agent/transfers?threadId=${encodeURIComponent(threadId)}`,
       { signal },
       'Failed to fetch conversation transfers',
       'Failed to deserialize conversation transfers',
-    )
-    .pipe(Effect.catchAll(() => Effect.succeed([])));
+    );
+  } catch {
+    return [];
+  }
 }
 
-export function retryAgentTransferEffect(
+export async function retryAgentTransfer(
   api: AgentBaseApiService,
   transferId: string,
   signal?: AbortSignal,
-): Effect.Effect<IAgentTransfer, AgentApiError> {
-  return api.fetchResourceEffect<IAgentTransfer>(
+): Promise<IAgentTransfer> {
+  return api.fetchResource<IAgentTransfer>(
     `${api.config.baseUrl}/agent/transfers/${encodeURIComponent(transferId)}/retry`,
     { method: 'POST', signal },
     'Failed to retry conversation transfer',
@@ -155,12 +155,12 @@ export function retryAgentTransferEffect(
   );
 }
 
-export function createThreadEffect(
+export async function createThread(
   api: AgentBaseApiService,
   payload: CreateThreadPayload,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return api.fetchResourceEffect<AgentThread>(
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
     { body: JSON.stringify(payload), method: 'POST', signal },
     'Failed to create thread',
@@ -168,78 +168,72 @@ export function createThreadEffect(
   );
 }
 
-export function sendMessageEffect(
+export async function sendMessage(
   api: AgentBaseApiService,
   payload: SendMessagePayload,
   signal?: AbortSignal,
-): Effect.Effect<AgentChatMessage, AgentApiError> {
+): Promise<AgentChatMessage> {
   const { threadId, ...body } = payload;
-  return api
-    .fetchResourceEffect<AgentChatMessage>(
-      `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages`,
-      { body: JSON.stringify(body), method: 'POST', signal },
-      'Failed to send message',
-      'Failed to deserialize thread message',
-    )
-    .pipe(
-      Effect.map((message) => ({
-        ...message,
-        threadId,
-      })),
-    );
+  const message = await api.fetchResource<AgentChatMessage>(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/messages`,
+    { body: JSON.stringify(body), method: 'POST', signal },
+    'Failed to send message',
+    'Failed to deserialize thread message',
+  );
+
+  return { ...message, threadId };
 }
 
-export function chatEffect(
+export async function chat(
   api: AgentBaseApiService,
   payload: AgentChatPayload,
   signal?: AbortSignal,
-): Effect.Effect<AgentChatResponse, AgentApiError> {
+): Promise<AgentChatResponse> {
   const { threadId, ...body } = payload;
   const endpoint = threadId
     ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns`
     : `${AGENT_THREADS_ENDPOINT}/turns`;
 
-  return api.fetchJsonEffect<AgentChatResponse>(
+  return api.fetchJson<AgentChatResponse>(
     `${api.config.baseUrl}${endpoint}`,
     { body: JSON.stringify(body), method: 'POST', signal },
     'Agent chat failed',
   );
 }
 
-export function chatStreamEffect(
+export async function chatStream(
   api: AgentBaseApiService,
   payload: AgentChatPayload,
   signal?: AbortSignal,
-): Effect.Effect<AgentChatStreamResponse, AgentApiError> {
+): Promise<AgentChatStreamResponse> {
   const { threadId, ...body } = payload;
   const endpoint = threadId
     ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns/stream`
     : `${AGENT_THREADS_ENDPOINT}/turns/stream`;
 
-  return api
-    .fetchJsonEffect<AgentChatStreamResponse>(
+  try {
+    return await api.fetchJson<AgentChatStreamResponse>(
       `${api.config.baseUrl}${endpoint}`,
       { body: JSON.stringify(body), method: 'POST', signal },
       'Agent chat stream failed',
-    )
-    .pipe(
-      Effect.mapError((error) =>
-        error instanceof AgentApiRequestError
-          ? new AgentApiRequestError({
-              detail: error.detail,
-              message: error.message,
-              source:
-                error.status === 408 || error.status === 504
-                  ? 'acknowledgement'
-                  : error.source,
-              status: error.status,
-            })
-          : error,
-      ),
     );
+  } catch (error) {
+    if (error instanceof AgentApiRequestError) {
+      throw new AgentApiRequestError({
+        detail: error.detail,
+        message: error.message,
+        source:
+          error.status === 408 || error.status === 504
+            ? 'acknowledgement'
+            : error.source,
+        status: error.status,
+      });
+    }
+    throw error;
+  }
 }
 
-export function getThreadsEffect(
+export async function getThreads(
   api: AgentBaseApiService,
   params?: {
     page?: number;
@@ -254,7 +248,7 @@ export function getThreadsEffect(
     source?: string | null;
   },
   signal?: AbortSignal,
-): Effect.Effect<AgentThread[], AgentApiError> {
+): Promise<AgentThread[]> {
   const qs = new URLSearchParams();
   if (params?.page) {
     qs.set('page', String(params.page));
@@ -272,7 +266,7 @@ export function getThreadsEffect(
     qs.set('source', params.source);
   }
   const queryString = qs.toString();
-  return api.fetchCollectionEffect<AgentThread>(
+  return api.fetchCollection<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}${
       queryString ? `?${queryString}` : ''
     }`,
@@ -282,12 +276,12 @@ export function getThreadsEffect(
   );
 }
 
-export function archiveAllThreadsEffect(
+export async function archiveAllThreads(
   api: AgentBaseApiService,
   brandId?: string | null,
   signal?: AbortSignal,
-): Effect.Effect<{ archivedCount: number }, AgentApiError> {
-  return api.fetchJsonEffect<{ archivedCount: number }>(
+): Promise<{ archivedCount: number }> {
+  return api.fetchJson<{ archivedCount: number }>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}`,
     {
       body: JSON.stringify({
@@ -301,12 +295,12 @@ export function archiveAllThreadsEffect(
   );
 }
 
-export function archiveThreadEffect(
+export async function archiveThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return updateThreadEffect(
+): Promise<AgentThread> {
+  return updateThread(
     api,
     threadId,
     { status: AgentThreadStatus.ARCHIVED },
@@ -314,12 +308,12 @@ export function archiveThreadEffect(
   );
 }
 
-export function unarchiveThreadEffect(
+export async function unarchiveThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return updateThreadEffect(
+): Promise<AgentThread> {
+  return updateThread(
     api,
     threadId,
     { status: AgentThreadStatus.ACTIVE },
@@ -327,12 +321,12 @@ export function unarchiveThreadEffect(
   );
 }
 
-export function getThreadEffect(
+export async function getThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return api.fetchResourceEffect<AgentThread>(
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
     { signal },
     'Failed to fetch thread',
@@ -340,19 +334,19 @@ export function getThreadEffect(
   );
 }
 
-export function getThreadSnapshotEffect(
+export async function getThreadSnapshot(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThreadSnapshot, AgentApiError> {
-  return api.fetchJsonEffect<AgentThreadSnapshot>(
+): Promise<AgentThreadSnapshot> {
+  return api.fetchJson<AgentThreadSnapshot>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`,
     { signal },
     'Failed to fetch thread snapshot',
   );
 }
 
-export function updateThreadEffect(
+export async function updateThread(
   api: AgentBaseApiService,
   threadId: string,
   payload: {
@@ -366,8 +360,8 @@ export function updateThreadEffect(
     status?: AgentThreadStatus;
   },
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return api.fetchResourceEffect<AgentThread>(
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}`,
     { body: JSON.stringify(payload), method: 'PATCH', signal },
     'Failed to update thread',
@@ -375,13 +369,13 @@ export function updateThreadEffect(
   );
 }
 
-export function updateThreadContextEffect(
+export async function updateThreadContext(
   api: AgentBaseApiService,
   threadId: string,
   payload: UpdateAgentThreadContextPayload,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return api.fetchResourceEffect<AgentThread>(
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/context`,
     { body: JSON.stringify(payload), method: 'PATCH', signal },
     'Failed to update thread context',
@@ -389,12 +383,12 @@ export function updateThreadContextEffect(
   );
 }
 
-export function branchThreadEffect(
+export async function branchThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return api.fetchResourceEffect<AgentThread>(
+): Promise<AgentThread> {
+  return api.fetchResource<AgentThread>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/branches`,
     { method: 'POST', signal },
     'Failed to branch thread',
@@ -402,24 +396,21 @@ export function branchThreadEffect(
   );
 }
 
-export function respondToInputRequestEffect(
+export async function respondToInputRequest(
   api: AgentBaseApiService,
   threadId: string,
   requestId: string,
   answer: string,
   signal?: AbortSignal,
   scope?: AgentScopePayload,
-): Effect.Effect<
-  {
-    answer: string | null;
-    requestId: string;
-    resolvedAt: string | null;
-    status: string;
-    threadId: string;
-  },
-  AgentApiError
-> {
-  return api.fetchJsonEffect<{
+): Promise<{
+  answer: string | null;
+  requestId: string;
+  resolvedAt: string | null;
+  status: string;
+  threadId: string;
+}> {
+  return api.fetchJson<{
     answer: string | null;
     requestId: string;
     resolvedAt: string | null;
@@ -436,15 +427,15 @@ export function respondToInputRequestEffect(
   );
 }
 
-export function respondToUiActionEffect(
+export async function respondToUiAction(
   api: AgentBaseApiService,
   threadId: string,
   action: string,
   payload?: Record<string, unknown>,
   signal?: AbortSignal,
   scope?: AgentScopePayload,
-): Effect.Effect<AgentChatResponse, AgentApiError> {
-  return api.fetchJsonEffect<AgentChatResponse>(
+): Promise<AgentChatResponse> {
+  return api.fetchJson<AgentChatResponse>(
     `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,
     {
       body: JSON.stringify({ action, payload, ...(scope ?? {}) }),
@@ -455,64 +446,56 @@ export function respondToUiActionEffect(
   );
 }
 
-export function pinThreadEffect(
+export async function pinThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return updateThreadEffect(api, threadId, { isPinned: true }, signal);
+): Promise<AgentThread> {
+  return updateThread(api, threadId, { isPinned: true }, signal);
 }
 
-export function unpinThreadEffect(
+export async function unpinThread(
   api: AgentBaseApiService,
   threadId: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentThread, AgentApiError> {
-  return updateThreadEffect(api, threadId, { isPinned: false }, signal);
+): Promise<AgentThread> {
+  return updateThread(api, threadId, { isPinned: false }, signal);
 }
 
-export function getMessagesEffect(
+export async function getMessages(
   api: AgentBaseApiService,
   threadId: string,
   params?: GetMessagesParams,
   signal?: AbortSignal,
-): Effect.Effect<AgentChatMessage[], AgentApiError> {
-  return Effect.all({
-    messages: api.fetchCollectionEffect<AgentChatMessage>(
-      buildMessagesUrl(api, threadId, params),
-      { signal },
-      'Failed to fetch messages',
-      'Failed to deserialize thread messages',
-    ),
-    transfers: getTransfersEffect(api, threadId, signal),
-  }).pipe(
-    Effect.map(({ messages, transfers }) =>
-      hydrateTransferCards(messages, transfers, threadId),
-    ),
+): Promise<AgentChatMessage[]> {
+  const messages = await api.fetchCollection<AgentChatMessage>(
+    buildMessagesUrl(api, threadId, params),
+    { signal },
+    'Failed to fetch messages',
+    'Failed to deserialize thread messages',
   );
+  const transfers = await getTransfers(api, threadId, signal);
+
+  return hydrateTransferCards(messages, transfers, threadId);
 }
 
-export function getMessagesPageEffect(
+export async function getMessagesPage(
   api: AgentBaseApiService,
   threadId: string,
   params?: GetMessagesParams,
   signal?: AbortSignal,
-): Effect.Effect<AgentMessagesPage, AgentApiError> {
-  return Effect.all({
-    page: api.fetchCollectionPageEffect<AgentChatMessage>(
-      buildMessagesUrl(api, threadId, params),
-      { signal },
-      'Failed to fetch messages',
-      'Failed to deserialize thread messages',
-    ),
-    transfers: getTransfersEffect(api, threadId, signal),
-  }).pipe(
-    Effect.map(
-      ({ page, transfers }): AgentMessagesPage => ({
-        hasMore: page.hasMore,
-        messages: hydrateTransferCards(page.docs, transfers, threadId),
-        nextCursor: page.nextCursor,
-      }),
-    ),
+): Promise<AgentMessagesPage> {
+  const page = await api.fetchCollectionPage<AgentChatMessage>(
+    buildMessagesUrl(api, threadId, params),
+    { signal },
+    'Failed to fetch messages',
+    'Failed to deserialize thread messages',
   );
+  const transfers = await getTransfers(api, threadId, signal);
+
+  return {
+    hasMore: page.hasMore,
+    messages: hydrateTransferCards(page.docs, transfers, threadId),
+    nextCursor: page.nextCursor,
+  };
 }

@@ -12,7 +12,6 @@ import type {
   AgentApiService,
   GenerationModel,
 } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   AGENT_GENERATION_SETUP_TYPE_OPTIONS,
@@ -188,7 +187,8 @@ function AgentChatInputToolbarInner({
     }
 
     const controller = new AbortController();
-    runAgentApiEffect(apiService.getModelsEffect(controller.signal))
+    apiService
+      .getModels(controller.signal)
       .then(setRegistryModels)
       .catch(() => {
         if (!controller.signal.aborted) setRegistryModels([]);

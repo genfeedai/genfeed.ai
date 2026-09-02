@@ -16,12 +16,6 @@ export {
   AgentApiDecodeError,
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
-export type {
-  AgentApiConfig,
-  AgentApiEffectError,
-} from '@genfeedai/agent/services/agent-base-api.service';
-export {
-  AgentBaseApiService,
-  runAgentApiEffect,
-} from '@genfeedai/agent/services/agent-base-api.service';
+export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.service';
+export { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 export { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';

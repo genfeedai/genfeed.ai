@@ -2,7 +2,6 @@ import type {
   AgentApiService,
   CredentialMentionItem,
 } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useEffect, useState } from 'react';
 
 interface UseCredentialMentionsReturn {
@@ -17,14 +16,15 @@ export function useCredentialMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!apiService || typeof apiService.getMentionsEffect !== 'function') {
+    if (!apiService || typeof apiService.getMentions !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getMentionsEffect(controller.signal))
+    apiService
+      .getMentions(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
           setMentions(data);

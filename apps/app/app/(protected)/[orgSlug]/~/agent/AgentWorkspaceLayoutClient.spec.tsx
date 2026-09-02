@@ -9,12 +9,11 @@ const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
 const useAgentChatStreamSpy = vi.fn();
-// Hoisted: the `@genfeedai/agent` factory reads `runAgentApiEffect` eagerly as a
+// Hoisted: the `@genfeedai/agent` factory reads `getThreads` eagerly as a
 // property value, so a plain `const` would still be in its temporal dead zone
 // when the hoisted `vi.mock` runs.
-const { getThreadsEffect, runAgentApiEffect } = vi.hoisted(() => ({
-  getThreadsEffect: vi.fn(),
-  runAgentApiEffect: vi.fn(),
+const { getThreads } = vi.hoisted(() => ({
+  getThreads: vi.fn(),
 }));
 
 const navigationState = {
@@ -97,10 +96,9 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@genfeedai/agent', () => ({
   AgentApiService: class AgentApiService {
-    getThreadsEffect = getThreadsEffect;
+    getThreads = getThreads;
   },
   AgentApiServiceProvider: ({ children }: PropsWithChildren) => <>{children}</>,
-  runAgentApiEffect,
   isRenderableThreadId: (id: string) =>
     Boolean(id && id !== 'undefined' && id !== 'null'),
   AgentFullPage: ({
@@ -175,10 +173,8 @@ describe('AgentWorkspaceLayoutClient', () => {
     getToken.mockReset();
     getToken.mockResolvedValue('token');
     useAgentChatStreamSpy.mockClear();
-    getThreadsEffect.mockReset();
-    getThreadsEffect.mockReturnValue('threads-effect');
-    runAgentApiEffect.mockReset();
-    runAgentApiEffect.mockResolvedValue([]);
+    getThreads.mockReset();
+    getThreads.mockResolvedValue([]);
   });
 
   it('reuses a protected-shell agent service when one is provided', () => {
@@ -207,7 +203,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
 
     expect(routerReplace).not.toHaveBeenCalled();
-    expect(getThreadsEffect).not.toHaveBeenCalled();
+    expect(getThreads).not.toHaveBeenCalled();
   });
 
   it('redirects a deep-linked thread to the brand that owns it', async () => {
@@ -263,7 +259,7 @@ describe('AgentWorkspaceLayoutClient', () => {
   it('restores the most recent active thread authorized for the route organization', async () => {
     navigationState.pathname = '/agent';
     storeState.activeThreadId = null;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'deleted-brand',
         id: 'stale-brand-thread',
@@ -305,7 +301,7 @@ describe('AgentWorkspaceLayoutClient', () => {
         '/acme-org/acme-creator/agent/latest-authorized-thread',
       );
     });
-    expect(getThreadsEffect).toHaveBeenCalledWith(
+    expect(getThreads).toHaveBeenCalledWith(
       { status: 'active' },
       expect.any(AbortSignal),
     );
@@ -314,7 +310,7 @@ describe('AgentWorkspaceLayoutClient', () => {
   it('falls back by replacement to a new org conversation when none is authorized', async () => {
     navigationState.pathname = '/agent';
     storeState.activeThreadId = null;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'brand-2',
         id: 'other-org-thread',
@@ -340,7 +336,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     storeState.activeThreadId = null;
     brandState.brands = [];
     brandState.isBrandScopeResolved = false;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'brand-1',
         id: 'branded-thread',
@@ -360,7 +356,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       await Promise.resolve();
     });
 
-    expect(getThreadsEffect).not.toHaveBeenCalled();
+    expect(getThreads).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
 
     brandState.brands = AUTHORIZED_BRANDS;
@@ -385,7 +381,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     brandState.brands = AUTHORIZED_BRANDS.filter(
       (brand) => brand.id === 'brand-2',
     );
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'brand-1',
         id: 'foreign-brand-thread',
@@ -411,7 +407,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     storeState.activeThreadId = null;
     brandState.brands = AUTHORIZED_BRANDS;
     brandState.isBrandScopeResolved = true;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'brand-1',
         id: 'branded-thread',
@@ -433,7 +429,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       );
     });
 
-    const callsAfterFirst = getThreadsEffect.mock.calls.length;
+    const callsAfterFirst = getThreads.mock.calls.length;
     routerReplace.mockClear();
 
     // Org switch / session change: brand scope drops; guard must release so a
@@ -455,16 +451,14 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(getThreadsEffect.mock.calls.length).toBeGreaterThan(
-        callsAfterFirst,
-      );
+      expect(getThreads.mock.calls.length).toBeGreaterThan(callsAfterFirst);
     });
   });
 
   it('looks the returning thread up once while brand scope stays resolved', async () => {
     navigationState.pathname = '/agent';
     storeState.activeThreadId = null;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         brandId: 'brand-1',
         id: 'branded-thread',
@@ -481,7 +475,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+      expect(getThreads).toHaveBeenCalledTimes(1);
     });
 
     view.rerender(
@@ -494,7 +488,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       await Promise.resolve();
     });
 
-    expect(getThreadsEffect).toHaveBeenCalledTimes(1);
+    expect(getThreads).toHaveBeenCalledTimes(1);
   });
 
   it('preserves explicit thread routes without running returning-user bootstrap', async () => {
@@ -512,7 +506,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       await Promise.resolve();
     });
 
-    expect(getThreadsEffect).not.toHaveBeenCalled();
+    expect(getThreads).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
   });
 
@@ -647,7 +641,7 @@ describe('AgentWorkspaceLayoutClient', () => {
   it('resumes the most recent onboarding thread when the entry route carries no prefill', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       {
         id: 'thread-standard',
         source: 'agent',
@@ -676,7 +670,7 @@ describe('AgentWorkspaceLayoutClient', () => {
         '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
       );
     });
-    expect(getThreadsEffect).toHaveBeenCalledWith(
+    expect(getThreads).toHaveBeenCalledWith(
       { source: 'onboarding', status: 'active' },
       expect.any(AbortSignal),
     );
@@ -693,7 +687,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       source: 'agent',
       updatedAt: `2026-08-${String(index + 10).padStart(2, '0')}T12:00:00.000Z`,
     }));
-    runAgentApiEffect.mockResolvedValue([
+    getThreads.mockResolvedValue([
       ...newerStandardThreads,
       {
         id: 'thread-onboarding-latest',
@@ -718,7 +712,7 @@ describe('AgentWorkspaceLayoutClient', () => {
         '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
       );
     });
-    expect(getThreadsEffect).toHaveBeenCalledWith(
+    expect(getThreads).toHaveBeenCalledWith(
       { source: 'onboarding', status: 'active' },
       expect.any(AbortSignal),
     );
@@ -735,10 +729,10 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(getThreadsEffect).toHaveBeenCalled();
+      expect(getThreads).toHaveBeenCalled();
     });
 
-    expect(getThreadsEffect.mock.calls[0]?.[0]).not.toHaveProperty('limit');
+    expect(getThreads.mock.calls[0]?.[0]).not.toHaveProperty('limit');
   });
 
   it('leaves a first-time operator on the onboarding entry route when no thread exists', async () => {
@@ -752,7 +746,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
 
     await waitFor(() => {
-      expect(runAgentApiEffect).toHaveBeenCalled();
+      expect(getThreads).toHaveBeenCalled();
     });
 
     expect(routerReplace).not.toHaveBeenCalled();
@@ -773,7 +767,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(sendMessage).toHaveBeenCalled();
     });
 
-    expect(runAgentApiEffect).not.toHaveBeenCalled();
+    expect(getThreads).not.toHaveBeenCalled();
   });
 
   it('boots onboarding prefills with onboarding source on the onboarding route', async () => {

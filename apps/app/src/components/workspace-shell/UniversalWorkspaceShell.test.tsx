@@ -51,9 +51,9 @@ const agentActions = vi.hoisted(() => ({
   setActiveThread: vi.fn(),
 }));
 const inspectorConversationMount = vi.hoisted(() => vi.fn());
-const updateThreadContextEffect = vi.hoisted(() => vi.fn());
+const updateThreadContext = vi.hoisted(() => vi.fn());
 const agentApiService = {
-  updateThreadContextEffect,
+  updateThreadContext,
 } as never;
 
 vi.mock('next-intl', async () => {
@@ -250,7 +250,6 @@ vi.mock('@genfeedai/agent', () => ({
       </div>
     );
   },
-  runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: Object.assign(
     (selector: (state: typeof agentState) => unknown) => selector(agentState),
     {
@@ -583,8 +582,8 @@ describe('UniversalWorkspaceShell', () => {
         Object.assign(agentState.threads[0], patch);
       },
     );
-    updateThreadContextEffect.mockReset();
-    updateThreadContextEffect.mockResolvedValue({
+    updateThreadContext.mockReset();
+    updateThreadContext.mockResolvedValue({
       brandId: 'brand-studio',
       contextVersion: 4,
       id: 'thread-1',
@@ -654,7 +653,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     await waitFor(() =>
-      expect(updateThreadContextEffect).toHaveBeenCalledWith(
+      expect(updateThreadContext).toHaveBeenCalledWith(
         'thread-1',
         {
           brandId: 'brand-studio',
@@ -1228,7 +1227,7 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveAttribute('data-composer-brand', 'brand-1');
 
     await waitFor(() =>
-      expect(updateThreadContextEffect).toHaveBeenCalledWith(
+      expect(updateThreadContext).toHaveBeenCalledWith(
         'thread-1',
         {
           brandId: 'brand-1',

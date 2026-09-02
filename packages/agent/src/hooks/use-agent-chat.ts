@@ -1,6 +1,5 @@
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
@@ -86,22 +85,20 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === activeThreadId);
-        const response = await runAgentApiEffect(
-          apiService.chatEffect(
-            {
-              artifactReferences: sendOptions?.artifactReferences,
-              attachments: sendOptions?.attachments,
-              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
-              content,
-              expectedContextVersion: currentThread?.contextVersion,
-              model: resolvedModel,
-              pageContext: requestPageContext,
-              planModeEnabled: sendOptions?.planModeEnabled,
-              source: sendOptions?.source,
-              threadId: activeThreadId ?? undefined,
-            },
-            signal,
-          ),
+        const response = await apiService.chat(
+          {
+            artifactReferences: sendOptions?.artifactReferences,
+            attachments: sendOptions?.attachments,
+            brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
+            content,
+            expectedContextVersion: currentThread?.contextVersion,
+            model: resolvedModel,
+            pageContext: requestPageContext,
+            planModeEnabled: sendOptions?.planModeEnabled,
+            source: sendOptions?.source,
+            threadId: activeThreadId ?? undefined,
+          },
+          signal,
         );
 
         const existingThread = useAgentChatStore

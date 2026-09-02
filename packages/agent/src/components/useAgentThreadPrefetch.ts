@@ -1,7 +1,6 @@
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   mapSnapshotPendingInputRequest,
@@ -117,16 +116,12 @@ export function useAgentThreadPrefetch({
           threadId,
           async (signal) => {
             const [page, snapshot] = await Promise.all([
-              runAgentApiEffect(
-                apiService.getMessagesPageEffect(
-                  threadId,
-                  { limit: AGENT_MESSAGE_PAGE_SIZE },
-                  signal,
-                ),
+              apiService.getMessagesPage(
+                threadId,
+                { limit: AGENT_MESSAGE_PAGE_SIZE },
+                signal,
               ),
-              runAgentApiEffect(
-                apiService.getThreadSnapshotEffect(threadId, signal),
-              ),
+              apiService.getThreadSnapshot(threadId, signal),
             ]);
             return { page, snapshot };
           },

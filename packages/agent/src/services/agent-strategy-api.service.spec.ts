@@ -7,7 +7,6 @@ import {
 } from '@agent-tests/json-api-fetch.mock';
 import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeService() {
@@ -26,25 +25,14 @@ describe('AgentStrategyApiService', () => {
     it('fetches strategies', async () => {
       mockJsonApiCollection([{ id: 's-1' }]);
       const service = makeService();
-      const result = await Effect.runPromise(service.getStrategiesEffect());
-      expect(Array.isArray(result)).toBe(true);
+      const result = await service.getStrategies();
+      expect(result).toEqual([{ id: 's-1' }]);
     });
 
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.getStrategiesEffect()),
-      ).rejects.toThrow('500');
-    });
-
-    it('supports an Effect-native getStrategies flow', async () => {
-      mockJsonApiCollection([{ id: 's-1' }]);
-      const service = makeService();
-
-      const result = await Effect.runPromise(service.getStrategiesEffect());
-
-      expect(result).toEqual([{ id: 's-1' }]);
+      await expect(service.getStrategies()).rejects.toThrow('500');
     });
   });
 
@@ -52,16 +40,14 @@ describe('AgentStrategyApiService', () => {
     it('fetches single strategy', async () => {
       mockJsonApiResource({ id: 's-1' });
       const service = makeService();
-      const result = await Effect.runPromise(service.getStrategyEffect('s-1'));
+      const result = await service.getStrategy('s-1');
       expect(result).toBeDefined();
     });
 
     it('throws on error', async () => {
       mockError(404);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.getStrategyEffect('s-1')),
-      ).rejects.toThrow('404');
+      await expect(service.getStrategy('s-1')).rejects.toThrow('404');
     });
   });
 
@@ -69,9 +55,7 @@ describe('AgentStrategyApiService', () => {
     it('creates strategy', async () => {
       mockJsonApiResource({ id: 's-1', label: 'Test' });
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.createStrategyEffect({ label: 'Test' }),
-      );
+      const result = await service.createStrategy({ label: 'Test' });
       expect(result).toBeDefined();
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent-strategies',
@@ -82,20 +66,16 @@ describe('AgentStrategyApiService', () => {
     it('throws on error', async () => {
       mockError(400);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.createStrategyEffect({ label: 'Test' })),
-      ).rejects.toThrow('400');
+      await expect(service.createStrategy({ label: 'Test' })).rejects.toThrow(
+        '400',
+      );
     });
 
     it('maps invalid strategy documents to a typed decode error', async () => {
       mockOk({});
       const service = makeService();
 
-      const error = await Effect.runPromise(
-        Effect.flip(service.createStrategyEffect({ label: 'Broken' })),
-      );
-
-      expect(error).toEqual(
+      await expect(service.createStrategy({ label: 'Broken' })).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to deserialize strategy',
@@ -108,9 +88,9 @@ describe('AgentStrategyApiService', () => {
     it('updates strategy', async () => {
       mockJsonApiResource({ id: 's-1', label: 'Updated' });
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.updateStrategyEffect('s-1', { label: 'Updated' }),
-      );
+      const result = await service.updateStrategy('s-1', {
+        label: 'Updated',
+      });
       expect(result.label).toBe('Updated');
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent-strategies/s-1',
@@ -121,9 +101,7 @@ describe('AgentStrategyApiService', () => {
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.updateStrategyEffect('s-1', {})),
-      ).rejects.toThrow('500');
+      await expect(service.updateStrategy('s-1', {})).rejects.toThrow('500');
     });
   });
 
@@ -131,7 +109,7 @@ describe('AgentStrategyApiService', () => {
     it('deletes strategy', async () => {
       mockJsonApiResource({ id: 's-1' });
       const service = makeService();
-      await Effect.runPromise(service.deleteStrategyEffect('s-1'));
+      await service.deleteStrategy('s-1');
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent-strategies/s-1',
         expect.objectContaining({ method: 'DELETE' }),
@@ -141,9 +119,7 @@ describe('AgentStrategyApiService', () => {
     it('throws on error', async () => {
       mockError(404);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.deleteStrategyEffect('s-1')),
-      ).rejects.toThrow('404');
+      await expect(service.deleteStrategy('s-1')).rejects.toThrow('404');
     });
   });
 
@@ -151,9 +127,7 @@ describe('AgentStrategyApiService', () => {
     it('toggles strategy', async () => {
       mockJsonApiResource({ id: 's-1', isActive: true });
       const service = makeService();
-      const result = await Effect.runPromise(
-        service.toggleStrategyEffect('s-1'),
-      );
+      const result = await service.toggleStrategy('s-1');
       expect(result.isActive).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent-strategies/s-1/toggle',
@@ -164,9 +138,7 @@ describe('AgentStrategyApiService', () => {
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.toggleStrategyEffect('s-1')),
-      ).rejects.toThrow('500');
+      await expect(service.toggleStrategy('s-1')).rejects.toThrow('500');
     });
   });
 
@@ -174,7 +146,7 @@ describe('AgentStrategyApiService', () => {
     it('triggers run', async () => {
       mockOk({ id: 's-1' });
       const service = makeService();
-      const result = await Effect.runPromise(service.runNowEffect('s-1'));
+      const result = await service.runNow('s-1');
       expect(result).toEqual({ id: 's-1' });
       expect(mockFetch).toHaveBeenCalledWith(
         'http://api.test/agent-strategies/s-1/run-now',
@@ -185,9 +157,7 @@ describe('AgentStrategyApiService', () => {
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
-      await expect(
-        Effect.runPromise(service.runNowEffect('s-1')),
-      ).rejects.toThrow('500');
+      await expect(service.runNow('s-1')).rejects.toThrow('500');
     });
   });
 });

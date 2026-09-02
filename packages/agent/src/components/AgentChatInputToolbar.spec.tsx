@@ -4,7 +4,6 @@ import type {
 } from '@genfeedai/agent/services/agent-api.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { agentChatState } = vi.hoisted(() => ({
@@ -287,9 +286,7 @@ describe('AgentChatInputToolbar', () => {
       id: 'model-video',
     });
     const apiService = {
-      getModelsEffect: vi.fn(() =>
-        Effect.promise(() => Promise.resolve([imageModel, videoModel])),
-      ),
+      getModels: vi.fn().mockResolvedValue([imageModel, videoModel]),
     } as unknown as AgentApiService;
 
     render(<AgentChatInputToolbar {...buildDefaultProps({ apiService })} />);
@@ -304,9 +301,7 @@ describe('AgentChatInputToolbar', () => {
 
   it('drops the whole catalogue when the model fetch fails', async () => {
     const apiService = {
-      getModelsEffect: vi.fn(() =>
-        Effect.promise(() => Promise.reject(new Error('network error'))),
-      ),
+      getModels: vi.fn().mockRejectedValue(new Error('network error')),
     } as unknown as AgentApiService;
 
     render(<AgentChatInputToolbar {...buildDefaultProps({ apiService })} />);

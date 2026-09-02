@@ -1,4 +1,3 @@
-import { Effect } from 'effect';
 import type {
   AgentApiDecodeError,
   AgentApiRequestError,
@@ -6,31 +5,7 @@ import type {
 import {
   type AgentApiConfig,
   AgentBaseApiService,
-  runAgentApiEffect,
 } from './agent-base-api.service';
-
-// Concrete subclass to test the protected base methods
-class TestApiService extends AgentBaseApiService {
-  public async getHeaders(): Promise<Record<string, string>> {
-    return runAgentApiEffect(this.headersEffect());
-  }
-
-  public async callFetchJson<T>(
-    url: string,
-    init?: RequestInit,
-    errorMessage?: string,
-  ): Promise<T> {
-    return runAgentApiEffect(this.fetchJsonEffect<T>(url, init, errorMessage));
-  }
-
-  public callFetchJsonEffect<T>(
-    url: string,
-    init?: RequestInit,
-    errorMessage?: string,
-  ) {
-    return this.fetchJsonEffect<T>(url, init, errorMessage);
-  }
-}
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -48,12 +23,12 @@ describe('AgentBaseApiService', () => {
 
   describe('constructor', () => {
     it('should be defined', () => {
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       expect(service).toBeDefined();
     });
 
     it('should store config', () => {
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       expect((service as unknown as { config: AgentApiConfig }).config).toBe(
         baseConfig,
       );
@@ -62,29 +37,29 @@ describe('AgentBaseApiService', () => {
 
   describe('headers()', () => {
     it('should include Authorization header when token is present', async () => {
-      const service = new TestApiService({
+      const service = new AgentBaseApiService({
         ...baseConfig,
         getToken: vi.fn().mockResolvedValue('my-token'),
       });
-      const headers = await service.getHeaders();
+      const headers = await service.headers();
       expect(headers.Authorization).toBe('Bearer my-token');
       expect(headers['Content-Type']).toBe('application/json');
     });
 
     it('should omit Authorization header when token is null', async () => {
-      const service = new TestApiService({
+      const service = new AgentBaseApiService({
         ...baseConfig,
         getToken: vi.fn().mockResolvedValue(null),
       });
-      const headers = await service.getHeaders();
+      const headers = await service.headers();
       expect(headers.Authorization).toBeUndefined();
       expect(headers['Content-Type']).toBe('application/json');
     });
 
     it('should call getToken to retrieve the current token', async () => {
       const getToken = vi.fn().mockResolvedValue('fresh-token');
-      const service = new TestApiService({ ...baseConfig, getToken });
-      await service.getHeaders();
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
+      await service.headers();
       expect(getToken).toHaveBeenCalledOnce();
     });
   });
@@ -97,8 +72,8 @@ describe('AgentBaseApiService', () => {
         ok: true,
       });
 
-      const service = new TestApiService(baseConfig);
-      const result = await service.callFetchJson<{ id: string; name: string }>(
+      const service = new AgentBaseApiService(baseConfig);
+      const result = await service.fetchJson<{ id: string; name: string }>(
         'https://api.genfeed.ai/test',
       );
 
@@ -122,9 +97,9 @@ describe('AgentBaseApiService', () => {
         status: 404,
       });
 
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       await expect(
-        service.callFetchJson('https://api.genfeed.ai/missing'),
+        service.fetchJson('https://api.genfeed.ai/missing'),
       ).rejects.toMatchObject({
         _tag: 'AgentApiRequestError',
         message: 'Request failed: 404 - Not Found',
@@ -139,9 +114,9 @@ describe('AgentBaseApiService', () => {
         status: 403,
       });
 
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       await expect(
-        service.callFetchJson(
+        service.fetchJson(
           'https://api.genfeed.ai/secret',
           undefined,
           'Access denied',
@@ -162,9 +137,9 @@ describe('AgentBaseApiService', () => {
         status: 422,
       });
 
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       await expect(
-        service.callFetchJson('https://api.genfeed.ai/resource'),
+        service.fetchJson('https://api.genfeed.ai/resource'),
       ).rejects.toMatchObject({
         _tag: 'AgentApiRequestError',
         detail: 'Invalid field value',
@@ -182,9 +157,9 @@ describe('AgentBaseApiService', () => {
         status: 400,
       });
 
-      const service = new TestApiService(baseConfig);
+      const service = new AgentBaseApiService(baseConfig);
       await expect(
-        service.callFetchJson('https://api.genfeed.ai/bad'),
+        service.fetchJson('https://api.genfeed.ai/bad'),
       ).rejects.toMatchObject({
         _tag: 'AgentApiRequestError',
         detail: 'field is required, field must be a string',
@@ -203,8 +178,8 @@ describe('AgentBaseApiService', () => {
       const formData = new FormData();
       formData.append('file', new Blob(['test']), 'test.txt');
 
-      const service = new TestApiService(baseConfig);
-      await service.callFetchJson('https://api.genfeed.ai/upload', {
+      const service = new AgentBaseApiService(baseConfig);
+      await service.fetchJson('https://api.genfeed.ai/upload', {
         body: formData,
         method: 'POST',
       });
@@ -222,8 +197,8 @@ describe('AgentBaseApiService', () => {
         ok: true,
       });
 
-      const service = new TestApiService(baseConfig);
-      await service.callFetchJson('https://api.genfeed.ai/test', {
+      const service = new AgentBaseApiService(baseConfig);
+      await service.fetchJson('https://api.genfeed.ai/test', {
         headers: { 'X-Custom-Header': 'custom-value' },
       });
 
@@ -254,9 +229,9 @@ describe('AgentBaseApiService', () => {
           ok: true,
         });
 
-      const service = new TestApiService({ ...baseConfig, getToken });
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
       await expect(
-        service.callFetchJson<{ ok: boolean }>('https://api.genfeed.ai/test'),
+        service.fetchJson<{ ok: boolean }>('https://api.genfeed.ai/test'),
       ).resolves.toEqual({ ok: true });
 
       expect(getToken).toHaveBeenNthCalledWith(1, undefined);
@@ -290,9 +265,9 @@ describe('AgentBaseApiService', () => {
         status: 401,
       });
 
-      const service = new TestApiService({ ...baseConfig, getToken });
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
       await expect(
-        service.callFetchJson('https://api.genfeed.ai/test'),
+        service.fetchJson('https://api.genfeed.ai/test'),
       ).rejects.toMatchObject({
         _tag: 'AgentApiRequestError',
         detail: 'Invalid token',
@@ -304,36 +279,16 @@ describe('AgentBaseApiService', () => {
       expect(mockFetch).toHaveBeenCalledOnce();
     });
 
-    it('exposes an Effect-native request path for incremental adoption', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: vi.fn().mockResolvedValue({ id: '1' }),
-        ok: true,
-      });
-
-      const service = new TestApiService(baseConfig);
-      const result = await Effect.runPromise(
-        service.callFetchJsonEffect<{ id: string }>(
-          'https://api.genfeed.ai/effect',
-        ),
-      );
-
-      expect(result).toEqual({ id: '1' });
-    });
-
-    it('maps invalid success payloads to a typed decode error in the Effect path', async () => {
+    it('maps invalid success payloads to a typed decode error', async () => {
       mockFetch.mockResolvedValueOnce({
         json: vi.fn().mockRejectedValue(new Error('invalid json')),
         ok: true,
       });
 
-      const service = new TestApiService(baseConfig);
-      const error = await Effect.runPromise(
-        Effect.flip(
-          service.callFetchJsonEffect('https://api.genfeed.ai/bad-json'),
-        ),
-      );
-
-      expect(error).toEqual(
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchJson('https://api.genfeed.ai/bad-json'),
+      ).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiDecodeError',
           message: 'Failed to decode JSON response',
@@ -341,17 +296,13 @@ describe('AgentBaseApiService', () => {
       );
     });
 
-    it('maps transport failures to a typed request error in the Effect path', async () => {
+    it('maps transport failures to a typed request error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('network down'));
 
-      const service = new TestApiService(baseConfig);
-      const error = await Effect.runPromise(
-        Effect.flip(
-          service.callFetchJsonEffect('https://api.genfeed.ai/offline'),
-        ),
-      );
-
-      expect(error).toEqual(
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchJson('https://api.genfeed.ai/offline'),
+      ).rejects.toEqual(
         expect.objectContaining({
           _tag: 'AgentApiRequestError',
           detail: 'network down',

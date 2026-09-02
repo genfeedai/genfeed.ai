@@ -1,6 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentGenerationRequestBody,
@@ -158,18 +157,16 @@ export function useClipWorkflowRunCard({
       ...buildClipIdentityInputValues(identity),
     };
 
-    const execution = await runAgentApiEffect(
-      apiService.triggerWorkflowEffect(
-        workflowId,
-        inputValues,
-        undefined,
-        activeThreadId && activeThread?.contextVersion !== undefined
-          ? {
-              expectedContextVersion: activeThread.contextVersion,
-              threadId: activeThreadId,
-            }
-          : undefined,
-      ),
+    const execution = await apiService.triggerWorkflow(
+      workflowId,
+      inputValues,
+      undefined,
+      activeThreadId && activeThread?.contextVersion !== undefined
+        ? {
+            expectedContextVersion: activeThread.contextVersion,
+            threadId: activeThreadId,
+          }
+        : undefined,
     );
     setWorkflowExecutionId(execution.id);
     setStep('trigger_workflow', 'completed');
@@ -192,28 +189,24 @@ export function useClipWorkflowRunCard({
       throw new Error(getClipIdentityError(identity));
     }
 
-    const promptDoc = await runAgentApiEffect(
-      apiService.createPromptEffect({
-        category: getPromptCategoryForGenerationType('video'),
+    const promptDoc = await apiService.createPrompt({
+      category: getPromptCategoryForGenerationType('video'),
+      duration: Math.max(5, Math.min(60, durationSeconds)),
+      isSkipEnhancement: true,
+      model: clipRun.model || undefined,
+      original: prompt,
+    });
+    const result = await apiService.generateIngredient(
+      'video',
+      buildAgentGenerationRequestBody({
+        aspectRatio: '16:9',
         duration: Math.max(5, Math.min(60, durationSeconds)),
-        isSkipEnhancement: true,
-        model: clipRun.model || undefined,
-        original: prompt,
+        identity,
+        modelKey: clipRun.model || undefined,
+        promptId: promptDoc.id,
+        promptText: prompt,
+        waitForCompletion: true,
       }),
-    );
-    const result = await runAgentApiEffect(
-      apiService.generateIngredientEffect(
-        'video',
-        buildAgentGenerationRequestBody({
-          aspectRatio: '16:9',
-          duration: Math.max(5, Math.min(60, durationSeconds)),
-          identity,
-          modelKey: clipRun.model || undefined,
-          promptId: promptDoc.id,
-          promptText: prompt,
-          waitForCompletion: true,
-        }),
-      ),
     );
     setGeneratedVideoIds((prev) => [...prev, result.id]);
     setStep('generate_clip', 'completed');
@@ -225,13 +218,11 @@ export function useClipWorkflowRunCard({
       return;
     }
     setStep('merge_clips', 'running');
-    const result = await runAgentApiEffect(
-      apiService.mergeVideosEffect(generatedVideoIds, {
-        isMuteVideoAudio: true,
-        transition: 'none',
-        transitionDuration: 0.5,
-      }),
-    );
+    const result = await apiService.mergeVideos(generatedVideoIds, {
+      isMuteVideoAudio: true,
+      transition: 'none',
+      transitionDuration: 0.5,
+    });
     setMergedVideoId(result.id);
     setStep('merge_clips', 'completed');
   }, [apiService, generatedVideoIds, mergeGeneratedVideos, setStep]);
@@ -244,19 +235,15 @@ export function useClipWorkflowRunCard({
     }
     setStep('reframe_portrait', 'running');
     try {
-      const result = await runAgentApiEffect(
-        apiService.reframeVideoEffect(sourceVideoId, {
-          format: 'portrait',
-          height: 1920,
-          prompt,
-          width: 1080,
-        }),
-      );
+      const result = await apiService.reframeVideo(sourceVideoId, {
+        format: 'portrait',
+        height: 1920,
+        prompt,
+        width: 1080,
+      });
       setPortraitVideoId(result.id);
     } catch {
-      const fallback = await runAgentApiEffect(
-        apiService.resizeVideoEffect(sourceVideoId, 1080, 1920),
-      );
+      const fallback = await apiService.resizeVideo(sourceVideoId, 1080, 1920);
       setPortraitVideoId(fallback.id);
     }
     setStep('reframe_portrait', 'completed');
@@ -271,24 +258,22 @@ export function useClipWorkflowRunCard({
     let nextUrl = draftReviewUrl;
 
     if (action.brandId) {
-      const batch = await runAgentApiEffect(
-        apiService.createManualReviewBatchEffect({
-          brandId: action.brandId,
-          items: [
-            {
-              caption: prompt,
-              format: 'video',
-              ingredientId: finalVideoId,
-              label: action.title || 'Generated clip draft',
-              platform: action.platform,
-              prompt,
-              sourceActionId: action.id,
-              sourceWorkflowId: action.workflowId,
-              sourceWorkflowName: action.workflowName,
-            },
-          ],
-        }),
-      );
+      const batch = await apiService.createManualReviewBatch({
+        brandId: action.brandId,
+        items: [
+          {
+            caption: prompt,
+            format: 'video',
+            ingredientId: finalVideoId,
+            label: action.title || 'Generated clip draft',
+            platform: action.platform,
+            prompt,
+            sourceActionId: action.id,
+            sourceWorkflowId: action.workflowId,
+            sourceWorkflowName: action.workflowName,
+          },
+        ],
+      });
       const firstItemId = batch.items[0]?.id;
       const params = new URLSearchParams({ batch: batch.id });
       if (firstItemId) {

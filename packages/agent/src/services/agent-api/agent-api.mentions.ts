@@ -1,9 +1,6 @@
 import type { AgentMemoryEntry } from '@genfeedai/agent/models/agent-chat.model';
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.types';
-import {
-  AgentApiDecodeError,
-  type AgentApiError,
-} from '@genfeedai/agent/services/agent-api-error';
+import { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import type {
   AgentCharacterMentionsResponse,
@@ -13,113 +10,97 @@ import type {
   AgentContentMentionItem as ContentMentionItem,
   AgentTeamMentionItem as TeamMentionItem,
 } from '@genfeedai/contracts/interfaces';
-import { Effect } from 'effect';
 
-// fetchJsonEffect trusts whatever JSON a 2xx carries, so a proxy or error
+// fetchJson trusts whatever JSON a 2xx carries, so a proxy or error
 // envelope answering 200 without a `mentions` array must become a decode
-// failure here — succeeding with `undefined` crashes composer consumers.
-function decodeMentionsEffect<T>(
+// failure here — returning `undefined` crashes composer consumers.
+function decodeMentions<T>(
   json: { mentions?: unknown } | null | undefined,
   message: string,
-): Effect.Effect<T[], AgentApiDecodeError> {
+): T[] {
   const mentions = json?.mentions;
-  return Array.isArray(mentions)
-    ? Effect.succeed(mentions as T[])
-    : Effect.fail(new AgentApiDecodeError({ cause: json, message }));
+  if (!Array.isArray(mentions)) {
+    throw new AgentApiDecodeError({ cause: json, message });
+  }
+  return mentions as T[];
 }
 
-export function getMentionsEffect(
+export async function getMentions(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<CredentialMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<{ mentions: CredentialMentionItem[] }>(
-      `${api.config.baseUrl}/credentials/mentions`,
-      { signal },
-      'Failed to fetch mentions',
-    )
-    .pipe(
-      Effect.flatMap((json) =>
-        decodeMentionsEffect<CredentialMentionItem>(
-          json,
-          'Failed to decode credential mentions',
-        ),
-      ),
-    );
+): Promise<CredentialMentionItem[]> {
+  const json = await api.fetchJson<{ mentions: CredentialMentionItem[] }>(
+    `${api.config.baseUrl}/credentials/mentions`,
+    { signal },
+    'Failed to fetch mentions',
+  );
+
+  return decodeMentions<CredentialMentionItem>(
+    json,
+    'Failed to decode credential mentions',
+  );
 }
 
-export function getTeamMentionsEffect(
+export async function getTeamMentions(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<TeamMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<AgentTeamMentionsResponse>(
-      `${api.config.baseUrl}/team/mentions`,
-      { signal },
-      'Failed to fetch team mentions',
-    )
-    .pipe(
-      Effect.flatMap((json) =>
-        decodeMentionsEffect<TeamMentionItem>(
-          json,
-          'Failed to decode team mentions',
-        ),
-      ),
-    );
+): Promise<TeamMentionItem[]> {
+  const json = await api.fetchJson<AgentTeamMentionsResponse>(
+    `${api.config.baseUrl}/team/mentions`,
+    { signal },
+    'Failed to fetch team mentions',
+  );
+
+  return decodeMentions<TeamMentionItem>(
+    json,
+    'Failed to decode team mentions',
+  );
 }
 
-export function getCharacterMentionsEffect(
+export async function getCharacterMentions(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<CharacterMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<AgentCharacterMentionsResponse>(
-      `${api.config.baseUrl}/personas/mentions`,
-      { signal },
-      'Failed to fetch character mentions',
-    )
-    .pipe(
-      Effect.flatMap((json) =>
-        decodeMentionsEffect<CharacterMentionItem>(
-          json,
-          'Failed to decode character mentions',
-        ),
-      ),
-    );
+): Promise<CharacterMentionItem[]> {
+  const json = await api.fetchJson<AgentCharacterMentionsResponse>(
+    `${api.config.baseUrl}/personas/mentions`,
+    { signal },
+    'Failed to fetch character mentions',
+  );
+
+  return decodeMentions<CharacterMentionItem>(
+    json,
+    'Failed to decode character mentions',
+  );
 }
 
-export function getContentMentionsEffect(
+export async function getContentMentions(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<ContentMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<AgentContentMentionsResponse>(
-      `${api.config.baseUrl}/content/mentions`,
-      { signal },
-      'Failed to fetch content mentions',
-    )
-    .pipe(
-      Effect.flatMap((json) =>
-        decodeMentionsEffect<ContentMentionItem>(
-          json,
-          'Failed to decode content mentions',
-        ),
-      ),
-    );
+): Promise<ContentMentionItem[]> {
+  const json = await api.fetchJson<AgentContentMentionsResponse>(
+    `${api.config.baseUrl}/content/mentions`,
+    { signal },
+    'Failed to fetch content mentions',
+  );
+
+  return decodeMentions<ContentMentionItem>(
+    json,
+    'Failed to decode content mentions',
+  );
 }
 
-export function listMemoriesEffect(
+export async function listMemories(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<AgentMemoryEntry[], AgentApiError> {
-  return api.fetchJsonEffect<AgentMemoryEntry[]>(
+): Promise<AgentMemoryEntry[]> {
+  return api.fetchJson<AgentMemoryEntry[]>(
     `${api.config.baseUrl}/agent/memories`,
     { signal },
     'Failed to list memories',
   );
 }
 
-export function createMemoryEffect(
+export async function createMemory(
   api: AgentBaseApiService,
   payload: {
     content: string;
@@ -140,20 +121,20 @@ export function createMemoryEffect(
     saveToContextMemory?: boolean;
   },
   signal?: AbortSignal,
-): Effect.Effect<AgentMemoryEntry, AgentApiError> {
-  return api.fetchJsonEffect<AgentMemoryEntry>(
+): Promise<AgentMemoryEntry> {
+  return api.fetchJson<AgentMemoryEntry>(
     `${api.config.baseUrl}/agent/memories`,
     { body: JSON.stringify(payload), method: 'POST', signal },
     'Failed to create memory',
   );
 }
 
-export function deleteMemoryEffect(
+export async function deleteMemory(
   api: AgentBaseApiService,
   memoryId: string,
   signal?: AbortSignal,
-): Effect.Effect<{ status: string }, AgentApiError> {
-  return api.fetchJsonEffect<{ status: string }>(
+): Promise<{ status: string }> {
+  return api.fetchJson<{ status: string }>(
     `${api.config.baseUrl}/agent/memories/${memoryId}`,
     { method: 'DELETE', signal },
     'Failed to delete memory',

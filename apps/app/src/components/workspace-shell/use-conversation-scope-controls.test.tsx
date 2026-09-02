@@ -20,9 +20,9 @@ const store = vi.hoisted(() => ({
   upsertThread: vi.fn(),
 }));
 const api = vi.hoisted(() => ({
-  createThreadEffect: vi.fn(),
-  getThreadEffect: vi.fn(),
-  updateThreadContextEffect: vi.fn(),
+  createThread: vi.fn(),
+  getThread: vi.fn(),
+  updateThreadContext: vi.fn(),
 }));
 
 const brands = [
@@ -41,7 +41,6 @@ const brands = [
 ];
 
 vi.mock('@genfeedai/agent', () => ({
-  runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: (selector: (state: typeof store) => unknown) =>
     selector(store),
 }));
@@ -178,12 +177,12 @@ describe('useConversationScopeControls', () => {
           (organization) => organization.id === organizationId,
         )?.slug ?? null,
     );
-    api.updateThreadContextEffect.mockResolvedValue({
+    api.updateThreadContext.mockResolvedValue({
       ...activeThread,
       brandId: 'brand-b',
       contextVersion: 4,
     });
-    api.getThreadEffect.mockResolvedValue(activeThread);
+    api.getThread.mockResolvedValue(activeThread);
     window.sessionStorage.clear();
     window.localStorage.clear();
   });
@@ -195,7 +194,7 @@ describe('useConversationScopeControls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Select Brand B' }));
 
     await waitFor(() =>
-      expect(api.updateThreadContextEffect).toHaveBeenCalledWith('thread-1', {
+      expect(api.updateThreadContext).toHaveBeenCalledWith('thread-1', {
         brandId: 'brand-b',
         expectedContextVersion: 3,
       }),
@@ -209,7 +208,7 @@ describe('useConversationScopeControls', () => {
   });
 
   it('blocks consequential controls after another tab publishes a newer version', async () => {
-    api.getThreadEffect.mockResolvedValue({
+    api.getThread.mockResolvedValue({
       ...activeThread,
       brandId: 'brand-b',
       contextVersion: 4,

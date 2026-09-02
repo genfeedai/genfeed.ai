@@ -8,25 +8,22 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 interface ApiOverrides {
-  createPromptEffect?: ReturnType<typeof vi.fn>;
-  generateIngredientEffect?: ReturnType<typeof vi.fn>;
+  createPrompt?: ReturnType<typeof vi.fn>;
+  generateIngredient?: ReturnType<typeof vi.fn>;
 }
 
 function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   return {
     baseUrl: 'http://api.test',
-    createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-1' })),
-    generateIngredientEffect: vi.fn(() =>
-      Effect.succeed({
-        id: 'gen-1',
-        status: 'completed',
-        url: 'https://cdn.test/gen-1.png',
-      }),
-    ),
+    createPrompt: vi.fn().mockResolvedValue({ id: 'prompt-1' }),
+    generateIngredient: vi.fn().mockResolvedValue({
+      id: 'gen-1',
+      status: 'completed',
+      url: 'https://cdn.test/gen-1.png',
+    }),
     ...overrides,
   } as unknown as AgentApiService;
 }
@@ -67,20 +64,18 @@ describe('IngredientAlternativesCard', () => {
   });
 
   it('generates an image for the selected alternative', async () => {
-    const createPromptEffect = vi.fn(() => Effect.succeed({ id: 'prompt-1' }));
-    const generateIngredientEffect = vi.fn(() =>
-      Effect.succeed({
-        id: 'gen-1',
-        status: 'completed',
-        url: 'https://cdn.test/gen-1.png',
-      }),
-    );
+    const createPrompt = vi.fn().mockResolvedValue({ id: 'prompt-1' });
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'gen-1',
+      status: 'completed',
+      url: 'https://cdn.test/gen-1.png',
+    });
     render(
       <IngredientAlternativesCard
         action={makeAction()}
         apiService={makeApiService({
-          createPromptEffect,
-          generateIngredientEffect,
+          createPrompt,
+          generateIngredient,
         })}
       />,
     );
@@ -89,14 +84,14 @@ describe('IngredientAlternativesCard', () => {
       fireEvent.click(screen.getByText('Bold colors'));
     });
 
-    expect(createPromptEffect).toHaveBeenCalledWith(
+    expect(createPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         isSkipEnhancement: true,
         original: 'A bold colorful poster',
       }),
       expect.any(AbortSignal),
     );
-    expect(generateIngredientEffect).toHaveBeenCalledWith(
+    expect(generateIngredient).toHaveBeenCalledWith(
       'image',
       expect.any(Object),
       expect.any(AbortSignal),
@@ -115,13 +110,13 @@ describe('IngredientAlternativesCard', () => {
   });
 
   it('falls back to the API media URL when the result has no url', async () => {
-    const generateIngredientEffect = vi.fn(() =>
-      Effect.succeed({ id: 'gen-2', status: 'completed', url: '' }),
-    );
+    const generateIngredient = vi
+      .fn()
+      .mockResolvedValue({ id: 'gen-2', status: 'completed', url: '' });
     render(
       <IngredientAlternativesCard
         action={makeAction()}
-        apiService={makeApiService({ generateIngredientEffect })}
+        apiService={makeApiService({ generateIngredient })}
       />,
     );
 
@@ -142,13 +137,13 @@ describe('IngredientAlternativesCard', () => {
   });
 
   it('shows the error state with retry when generation fails', async () => {
-    const generateIngredientEffect = vi.fn(() =>
-      Effect.fail(new Error('generation blew up')),
-    );
+    const generateIngredient = vi
+      .fn()
+      .mockRejectedValue(new Error('generation blew up'));
     render(
       <IngredientAlternativesCard
         action={makeAction()}
-        apiService={makeApiService({ generateIngredientEffect })}
+        apiService={makeApiService({ generateIngredient })}
       />,
     );
 

@@ -13,7 +13,6 @@ import {
   AgentApiServiceProvider,
   type AgentThread,
   isRenderableThreadId,
-  runAgentApiEffect,
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
@@ -247,15 +246,14 @@ function AgentWorkspaceLayoutClientContent({
     hasAttemptedResumeRef.current = true;
     const controller = new AbortController();
 
-    void runAgentApiEffect(
-      agentApiService.getThreadsEffect(
+    void agentApiService
+      .getThreads(
         {
           source: ONBOARDING_THREAD_SOURCE,
           status: AgentThreadStatus.ACTIVE,
         },
         controller.signal,
-      ),
-    )
+      )
       .then((threads) => {
         if (controller.signal.aborted) {
           return;
@@ -325,12 +323,8 @@ function AgentWorkspaceLayoutClientContent({
     const controller = new AbortController();
     const fallbackHref = buildOrganizationNewThreadHref(orgSlug);
 
-    void runAgentApiEffect(
-      agentApiService.getThreadsEffect(
-        { status: AgentThreadStatus.ACTIVE },
-        controller.signal,
-      ),
-    )
+    void agentApiService
+      .getThreads({ status: AgentThreadStatus.ACTIVE }, controller.signal)
       .then((threads) => {
         if (controller.signal.aborted) {
           return;

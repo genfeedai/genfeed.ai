@@ -163,7 +163,6 @@ export type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 export type {
   AgentApiConfig,
-  AgentApiEffectError,
   AgentApiError,
   CredentialMentionItem,
   GenerateIngredientResult,
@@ -173,7 +172,6 @@ export {
   AgentApiAuthError,
   AgentApiDecodeError,
   AgentApiRequestError,
-  runAgentApiEffect,
 } from '@genfeedai/agent/services';
 // Services
 export { AgentApiService } from '@genfeedai/agent/services/agent-api.service';

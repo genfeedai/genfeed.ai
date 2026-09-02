@@ -1,5 +1,4 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentCharacterMentionItem } from '@genfeedai/contracts/interfaces';
 import { useEffect, useState } from 'react';
 
@@ -11,17 +10,15 @@ export function useCharacterMentions(apiService: AgentApiService | null): {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (
-      !apiService ||
-      typeof apiService.getCharacterMentionsEffect !== 'function'
-    ) {
+    if (!apiService || typeof apiService.getCharacterMentions !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getCharacterMentionsEffect(controller.signal))
+    apiService
+      .getCharacterMentions(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) {
           setMentions(data ?? []);

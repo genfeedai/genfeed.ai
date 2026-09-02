@@ -7,7 +7,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { Effect } from 'effect';
 import type { MouseEventHandler, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -220,45 +219,8 @@ function createThread(
   };
 }
 
-const EFFECT_METHOD_MAP = {
-  archiveAllThreads: 'archiveAllThreadsEffect',
-  archiveThread: 'archiveThreadEffect',
-  branchThread: 'branchThreadEffect',
-  getMessages: 'getMessagesEffect',
-  getThread: 'getThreadEffect',
-  getThreads: 'getThreadsEffect',
-  pinThread: 'pinThreadEffect',
-  unarchiveThread: 'unarchiveThreadEffect',
-  unpinThread: 'unpinThreadEffect',
-  updateThread: 'updateThreadEffect',
-} as const;
-
-function withAgentApiEffects<T extends Record<string, unknown>>(
-  apiService: T,
-): T {
-  for (const [method, effectMethod] of Object.entries(EFFECT_METHOD_MAP)) {
-    const handler = apiService[method as keyof T];
-
-    if (typeof handler !== 'function' || effectMethod in apiService) {
-      continue;
-    }
-
-    Object.assign(apiService, {
-      [effectMethod]: vi.fn((...args: unknown[]) =>
-        Effect.promise(() =>
-          Promise.resolve(
-            (handler as (...effectArgs: unknown[]) => unknown)(...args),
-          ),
-        ),
-      ),
-    });
-  }
-
-  return apiService;
-}
-
 function createApiService(overrides: Record<string, unknown> = {}) {
-  return withAgentApiEffects({
+  return {
     archiveAllThreads: vi.fn(),
     archiveThread: vi.fn(),
     branchThread: vi.fn(),
@@ -270,7 +232,7 @@ function createApiService(overrides: Record<string, unknown> = {}) {
     unpinThread: vi.fn(),
     updateThread: vi.fn(),
     ...overrides,
-  });
+  };
 }
 
 function createDeferred<T>(): {

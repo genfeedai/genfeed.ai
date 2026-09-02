@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -347,13 +346,11 @@ function createApiServiceMock(options?: {
 
   return {
     baseUrl: 'http://genfeed.localhost:3010',
-    createPromptEffect: vi.fn((...args: unknown[]) =>
-      Effect.promise(() => createPrompt(...args)),
+    createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
+    generateIngredient: vi.fn((...args: unknown[]) =>
+      generateIngredient(...args),
     ),
-    generateIngredientEffect: vi.fn((...args: unknown[]) =>
-      Effect.promise(() => generateIngredient(...args)),
-    ),
-    getModelsEffect: vi.fn(() => Effect.succeed(models)),
+    getModels: vi.fn(() => Promise.resolve(models)),
   };
 }
 

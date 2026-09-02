@@ -1,6 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
@@ -127,9 +126,7 @@ export function VoiceCloneCard({
       reconciliationAttemptsRef.current += 1;
 
       try {
-        const asset = await runAgentApiEffect(
-          apiService.getGeneratedAssetEffect(activeVoiceId, signal),
-        );
+        const asset = await apiService.getGeneratedAsset(activeVoiceId, signal);
 
         if (!isStillReconciling()) {
           return;
@@ -173,9 +170,7 @@ export function VoiceCloneCard({
     }
 
     try {
-      const voices = await runAgentApiEffect(
-        apiService.getClonedVoicesEffect(),
-      );
+      const voices = await apiService.getClonedVoices();
 
       if (!isStillReconciling()) {
         return;
@@ -249,21 +244,17 @@ export function VoiceCloneCard({
 
     try {
       if (action.brandId) {
-        await runAgentApiEffect(
-          apiService.setBrandVoiceDefaultsEffect(action.brandId, {
-            defaultVoiceId: effectiveSelectedVoiceId,
-          }),
-        );
+        await apiService.setBrandVoiceDefaults(action.brandId, {
+          defaultVoiceId: effectiveSelectedVoiceId,
+        });
       }
       if (action.voiceoverText) {
-        const accepted = await runAgentApiEffect(
-          apiService.generateVoiceEffect({
-            sourceActionId: action.id,
-            text: action.voiceoverText,
-            voiceId: effectiveSelectedVoiceId,
-            waitForCompletion: false,
-          }),
-        );
+        const accepted = await apiService.generateVoice({
+          sourceActionId: action.id,
+          text: action.voiceoverText,
+          voiceId: effectiveSelectedVoiceId,
+          waitForCompletion: false,
+        });
         setActiveVoiceId(accepted.id);
         setProgress(10);
         setStatus('cloning');
@@ -298,17 +289,13 @@ export function VoiceCloneCard({
       formData.append('name', file.name.replace(/\.[^.]+$/, '') || 'My Voice');
       formData.append('provider', VoiceProvider.ELEVENLABS);
       formData.append('file', file);
-      const voice = await runAgentApiEffect(
-        apiService.cloneVoiceEffect(formData),
-      );
+      const voice = await apiService.cloneVoice(formData);
       setActiveVoiceId(voice.id);
 
       if (action.brandId) {
-        await runAgentApiEffect(
-          apiService.setBrandVoiceDefaultsEffect(action.brandId, {
-            defaultVoiceId: voice.id,
-          }),
-        );
+        await apiService.setBrandVoiceDefaults(action.brandId, {
+          defaultVoiceId: voice.id,
+        });
       }
 
       if (voice.cloneStatus === VoiceCloneStatus.READY) {

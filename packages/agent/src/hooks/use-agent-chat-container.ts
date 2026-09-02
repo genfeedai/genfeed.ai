@@ -19,7 +19,6 @@ import type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   readConversationComposerDraft,
@@ -214,7 +213,7 @@ export function useAgentChatContainer({
     initialAttachments: initialComposerAttachments,
     onAttachmentsChange: handleComposerAttachmentsChange,
     onUpload: (file, onProgress) =>
-      runAgentApiEffect(apiService.uploadAttachmentEffect(file, onProgress)),
+      apiService.uploadAttachment(file, onProgress),
   });
   const previousDraftScopeKeyRef = useRef(draftScopeKey);
   useEffect(() => {
@@ -399,9 +398,7 @@ export function useAgentChatContainer({
     setActiveRunStatus('cancelling');
 
     try {
-      await runAgentApiEffect(
-        apiService.cancelWorkflowExecutionEffect(activeRunId),
-      );
+      await apiService.cancelWorkflowExecution(activeRunId);
       return true;
     } catch (error) {
       if (error instanceof AgentApiRequestError && error.status === 404) {
@@ -467,11 +464,9 @@ export function useAgentChatContainer({
       updateThread(activeThreadId, { planModeEnabled: enabled });
 
       try {
-        await runAgentApiEffect(
-          apiService.updateThreadEffect(activeThreadId, {
-            planModeEnabled: enabled,
-          }),
-        );
+        await apiService.updateThread(activeThreadId, {
+          planModeEnabled: enabled,
+        });
       } catch {
         updateThread(activeThreadId, { planModeEnabled: !enabled });
         setDraftPlanModeEnabled(!enabled);
@@ -627,22 +622,18 @@ export function useAgentChatContainer({
           status: AgentWorkEventStatus.COMPLETED,
           threadId: request.threadId,
         } satisfies AgentWorkEvent);
-        await runAgentApiEffect(
-          apiService.respondToInputRequestEffect(
-            request.threadId,
-            request.inputRequestId,
-            normalizedAnswer,
-            undefined,
-            (() => {
-              const thread = threads.find(
-                (item) => item.id === request.threadId,
-              );
-              return {
-                brandId: thread?.brandId ?? null,
-                expectedContextVersion: thread?.contextVersion,
-              };
-            })(),
-          ),
+        await apiService.respondToInputRequest(
+          request.threadId,
+          request.inputRequestId,
+          normalizedAnswer,
+          undefined,
+          (() => {
+            const thread = threads.find((item) => item.id === request.threadId);
+            return {
+              brandId: thread?.brandId ?? null,
+              expectedContextVersion: thread?.contextVersion,
+            };
+          })(),
         );
         clearPendingInputRequest();
       } catch {
@@ -786,12 +777,10 @@ export function useAgentChatContainer({
     olderMessagesAbortControllerRef.current = controller;
 
     try {
-      const page = await runAgentApiEffect(
-        apiService.getMessagesPageEffect(
-          threadId,
-          { cursor, limit: AGENT_MESSAGE_PAGE_SIZE },
-          controller.signal,
-        ),
+      const page = await apiService.getMessagesPage(
+        threadId,
+        { cursor, limit: AGENT_MESSAGE_PAGE_SIZE },
+        controller.signal,
       );
 
       if (
@@ -976,9 +965,8 @@ export function useAgentChatContainer({
     const controller = new AbortController();
     const restoredRunId = activeRunId;
 
-    runAgentApiEffect(
-      apiService.getActiveWorkflowExecutionsEffect(controller.signal),
-    )
+    apiService
+      .getActiveWorkflowExecutions(controller.signal)
       .then((executions) => {
         if (controller.signal.aborted) {
           return;

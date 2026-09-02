@@ -4,44 +4,39 @@ import type {
   WorkflowInterfaceSchema,
   WorkflowTriggerScope,
 } from '@genfeedai/agent/services/agent-api.types';
-import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { Effect } from 'effect';
 
-export function getWorkflowInterfaceEffect(
+export async function getWorkflowInterface(
   api: AgentBaseApiService,
   workflowId: string,
   signal?: AbortSignal,
-): Effect.Effect<WorkflowInterfaceSchema, AgentApiError> {
-  return api
-    .fetchJsonEffect<{
-      data?: WorkflowInterfaceSchema;
-      inputs?: Record<string, WorkflowInterfaceField>;
-      outputs?: Record<string, WorkflowInterfaceField>;
-    }>(
-      `${api.config.baseUrl}/workflows/${workflowId}/interface`,
-      { signal },
-      'Failed to fetch workflow interface',
-    )
-    .pipe(
-      Effect.map(
-        (json) =>
-          json.data ?? {
-            inputs: json.inputs ?? {},
-            outputs: json.outputs ?? {},
-          },
-      ),
-    );
+): Promise<WorkflowInterfaceSchema> {
+  const json = await api.fetchJson<{
+    data?: WorkflowInterfaceSchema;
+    inputs?: Record<string, WorkflowInterfaceField>;
+    outputs?: Record<string, WorkflowInterfaceField>;
+  }>(
+    `${api.config.baseUrl}/workflows/${workflowId}/interface`,
+    { signal },
+    'Failed to fetch workflow interface',
+  );
+
+  return (
+    json.data ?? {
+      inputs: json.inputs ?? {},
+      outputs: json.outputs ?? {},
+    }
+  );
 }
 
-export function triggerWorkflowEffect(
+export async function triggerWorkflow(
   api: AgentBaseApiService,
   workflowId: string,
   inputValues?: Record<string, unknown>,
   signal?: AbortSignal,
   scope?: WorkflowTriggerScope,
-): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-  return api.fetchJsonEffect<{ id: string; status: string }>(
+): Promise<{ id: string; status: string }> {
+  return api.fetchJson<{ id: string; status: string }>(
     `${api.config.baseUrl}/workflow-executions`,
     {
       body: JSON.stringify({
@@ -56,18 +51,15 @@ export function triggerWorkflowEffect(
   );
 }
 
-export function createManualReviewBatchEffect(
+export async function createManualReviewBatch(
   api: AgentBaseApiService,
   payload: ManualReviewBatchPayload,
   signal?: AbortSignal,
-): Effect.Effect<
-  {
-    id: string;
-    items: Array<{ id: string; postId?: string }>;
-  },
-  AgentApiError
-> {
-  return api.fetchJsonEffect<{
+): Promise<{
+  id: string;
+  items: Array<{ id: string; postId?: string }>;
+}> {
+  return api.fetchJson<{
     id: string;
     items: Array<{ id: string; postId?: string }>;
   }>(

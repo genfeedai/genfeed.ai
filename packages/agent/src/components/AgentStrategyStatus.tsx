@@ -1,4 +1,3 @@
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -69,12 +68,10 @@ export function AgentStrategyStatus({
     setIsToggling(true);
 
     try {
-      const updated = await runAgentApiEffect(
-        apiService.updateStrategyEffect(
-          strategy.id,
-          { isEnabled: !strategy.isEnabled },
-          abortRef.current.signal,
-        ),
+      const updated = await apiService.updateStrategy(
+        strategy.id,
+        { isEnabled: !strategy.isEnabled },
+        abortRef.current.signal,
       );
       setStrategy(updated);
     } catch {
@@ -93,9 +90,7 @@ export function AgentStrategyStatus({
     abortRef.current = new AbortController();
 
     try {
-      await runAgentApiEffect(
-        apiService.runNowEffect(strategy.id, abortRef.current.signal),
-      );
+      await apiService.runNow(strategy.id, abortRef.current.signal);
     } catch {
       // Silently ignore aborted/failed requests
     }

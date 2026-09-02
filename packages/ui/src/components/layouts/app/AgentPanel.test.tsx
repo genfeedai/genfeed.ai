@@ -70,10 +70,6 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
     selector(storeState),
 }));
 
-vi.mock('@genfeedai/agent/services/agent-base-api.service', () => ({
-  runAgentApiEffect: (effect: Promise<unknown>) => effect,
-}));
-
 vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
   AgentChatContainer: () => <div data-testid="agent-chat-container" />,
 }));
@@ -121,17 +117,17 @@ function renderAgentPanel(apiService: AgentApiService) {
 describe('AgentPanel', () => {
   it('fetches credits on mount and renders the terminal', async () => {
     const apiService = {
-      getCreditsInfoEffect: vi.fn().mockResolvedValue({
+      getCreditsInfo: vi.fn().mockResolvedValue({
         balance: 123,
         modelCosts: {},
       }),
-      getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
     renderAgentPanel(apiService);
 
     await waitFor(() => {
-      expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
+      expect(apiService.getCreditsInfo).toHaveBeenCalledTimes(1);
     });
 
     expect(mockSetCreditsRemaining).toHaveBeenCalledWith(123);
@@ -144,17 +140,17 @@ describe('AgentPanel', () => {
 
   it('renders terminal toggle button that calls toggleOpen from store', async () => {
     const apiService = {
-      getCreditsInfoEffect: vi.fn().mockResolvedValue({
+      getCreditsInfo: vi.fn().mockResolvedValue({
         balance: 123,
         modelCosts: {},
       }),
-      getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
     renderAgentPanel(apiService);
 
     await waitFor(() => {
-      expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
+      expect(apiService.getCreditsInfo).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByLabelText('Collapse terminal'));

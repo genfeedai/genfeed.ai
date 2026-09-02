@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { runAgentApiEffect, useAgentApiService } from '@genfeedai/agent';
+import { useAgentApiService } from '@genfeedai/agent';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
@@ -125,9 +125,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         throw new Error('Workspace media service is unavailable');
       }
 
-      return await runAgentApiEffect(
-        agentApiService.uploadAttachmentEffect(file, onProgress),
-      );
+      return await agentApiService.uploadAttachment(file, onProgress);
     },
     [agentApiService],
   );

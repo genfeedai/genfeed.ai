@@ -5,22 +5,18 @@ import type {
   GenerationModel,
   PresignedUploadResponse,
 } from '@genfeedai/agent/services/agent-api.types';
-import {
-  type AgentApiError,
-  AgentApiRequestError,
-} from '@genfeedai/agent/services/agent-api-error';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
-import { Effect } from 'effect';
 
-export function getModelsEffect(
+export async function getModels(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<GenerationModel[], AgentApiError> {
+): Promise<GenerationModel[]> {
   // List endpoints are always paginated server-side (HTTP does not accept a
   // `pagination` flag) — the active model catalog fits in one max-size page.
-  return api.fetchCollectionEffect<GenerationModel>(
+  return api.fetchCollection<GenerationModel>(
     `${api.config.baseUrl}/models?isActive=true&limit=${MAX_PAGE_SIZE}`,
     { signal },
     'Failed to fetch models',
@@ -28,37 +24,31 @@ export function getModelsEffect(
   );
 }
 
-export function getGeneratedAssetEffect(
+export async function getGeneratedAsset(
   api: AgentBaseApiService,
   id: string,
   signal?: AbortSignal,
-): Effect.Effect<AgentGeneratedAsset, AgentApiError> {
-  return api
-    .fetchCollectionEffect<AgentGeneratedAsset>(
-      `${api.config.baseUrl}/ingredients/batch?ids=${encodeURIComponent(id)}`,
-      { signal },
-      'Failed to reconcile generated asset',
-      'Failed to deserialize generated asset',
-    )
-    .pipe(
-      Effect.flatMap((assets) =>
-        assets[0]
-          ? Effect.succeed({
-              ...assets[0],
-              url: assets[0].url ?? assets[0].cdnUrl,
-            })
-          : Effect.fail(
-              new AgentApiRequestError({
-                detail: `Generated asset ${id} was not found`,
-                message: 'Generated asset was not found',
-                status: 404,
-              }),
-            ),
-      ),
-    );
+): Promise<AgentGeneratedAsset> {
+  const assets = await api.fetchCollection<AgentGeneratedAsset>(
+    `${api.config.baseUrl}/ingredients/batch?ids=${encodeURIComponent(id)}`,
+    { signal },
+    'Failed to reconcile generated asset',
+    'Failed to deserialize generated asset',
+  );
+
+  const asset = assets[0];
+  if (!asset) {
+    throw new AgentApiRequestError({
+      detail: `Generated asset ${id} was not found`,
+      message: 'Generated asset was not found',
+      status: 404,
+    });
+  }
+
+  return { ...asset, url: asset.url ?? asset.cdnUrl };
 }
 
-export function mergeVideosEffect(
+export async function mergeVideos(
   api: AgentBaseApiService,
   ids: string[],
   options?: {
@@ -68,8 +58,8 @@ export function mergeVideosEffect(
     transitionDuration?: number;
   },
   signal?: AbortSignal,
-): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-  return api.fetchJsonEffect<{ id: string; status: string }>(
+): Promise<{ id: string; status: string }> {
+  return api.fetchJson<{ id: string; status: string }>(
     `${api.config.baseUrl}/videos/merge`,
     {
       body: JSON.stringify({
@@ -87,7 +77,7 @@ export function mergeVideosEffect(
   );
 }
 
-export function reframeVideoEffect(
+export async function reframeVideo(
   api: AgentBaseApiService,
   videoId: string,
   payload?: {
@@ -98,8 +88,8 @@ export function reframeVideoEffect(
     width?: number;
   },
   signal?: AbortSignal,
-): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-  return api.fetchJsonEffect<{ id: string; status: string }>(
+): Promise<{ id: string; status: string }> {
+  return api.fetchJson<{ id: string; status: string }>(
     `${api.config.baseUrl}/videos/${videoId}/reframe`,
     {
       body: JSON.stringify({
@@ -115,14 +105,14 @@ export function reframeVideoEffect(
   );
 }
 
-export function resizeVideoEffect(
+export async function resizeVideo(
   api: AgentBaseApiService,
   videoId: string,
   width: number,
   height: number,
   signal?: AbortSignal,
-): Effect.Effect<{ id: string; status: string }, AgentApiError> {
-  return api.fetchJsonEffect<{ id: string; status: string }>(
+): Promise<{ id: string; status: string }> {
+  return api.fetchJson<{ id: string; status: string }>(
     `${api.config.baseUrl}/videos/${videoId}/resize`,
     {
       body: JSON.stringify({ height, width }),
@@ -133,7 +123,7 @@ export function resizeVideoEffect(
   );
 }
 
-export function createPromptEffect(
+export async function createPrompt(
   api: AgentBaseApiService,
   body: {
     category: string;
@@ -144,30 +134,30 @@ export function createPromptEffect(
     isSkipEnhancement?: boolean;
   },
   signal?: AbortSignal,
-): Effect.Effect<{ id: string }, AgentApiError> {
-  return api
-    .fetchJsonEffect<{
-      data: { id: string };
-    }>(
-      `${api.config.baseUrl}/prompts`,
-      {
-        body: JSON.stringify(body),
-        method: 'POST',
-        signal,
-      },
-      'Failed to create prompt',
-    )
-    .pipe(Effect.map((res) => ({ id: res.data.id })));
+): Promise<{ id: string }> {
+  const res = await api.fetchJson<{
+    data: { id: string };
+  }>(
+    `${api.config.baseUrl}/prompts`,
+    {
+      body: JSON.stringify(body),
+      method: 'POST',
+      signal,
+    },
+    'Failed to create prompt',
+  );
+
+  return { id: res.data.id };
 }
 
-export function generateIngredientEffect(
+export async function generateIngredient(
   api: AgentBaseApiService,
   type: 'image' | 'video',
   body: Record<string, unknown>,
   signal?: AbortSignal,
-): Effect.Effect<GenerateIngredientResult, AgentApiError> {
+): Promise<GenerateIngredientResult> {
   const endpoint = type === 'video' ? '/videos' : '/images';
-  return api.fetchJsonEffect<GenerateIngredientResult>(
+  return api.fetchJson<GenerateIngredientResult>(
     `${api.config.baseUrl}${endpoint}`,
     {
       body: JSON.stringify({
@@ -181,12 +171,12 @@ export function generateIngredientEffect(
   );
 }
 
-export function cloneVoiceEffect(
+export async function cloneVoice(
   api: AgentBaseApiService,
   formData: FormData,
   signal?: AbortSignal,
-): Effect.Effect<AgentClonedVoice, AgentApiError> {
-  return api.fetchResourceEffect<AgentClonedVoice>(
+): Promise<AgentClonedVoice> {
+  return api.fetchResource<AgentClonedVoice>(
     `${api.config.baseUrl}/voices/clone`,
     {
       body: formData,
@@ -198,7 +188,7 @@ export function cloneVoiceEffect(
   );
 }
 
-export function generateVoiceEffect(
+export async function generateVoice(
   api: AgentBaseApiService,
   payload: {
     sourceActionId?: string;
@@ -207,8 +197,8 @@ export function generateVoiceEffect(
     waitForCompletion: false;
   },
   signal?: AbortSignal,
-): Effect.Effect<AgentGeneratedAsset, AgentApiError> {
-  return api.fetchResourceEffect<AgentGeneratedAsset>(
+): Promise<AgentGeneratedAsset> {
+  return api.fetchResource<AgentGeneratedAsset>(
     `${api.config.baseUrl}/voices/generate`,
     { body: JSON.stringify(payload), method: 'POST', signal },
     'Failed to generate voice',
@@ -216,11 +206,11 @@ export function generateVoiceEffect(
   );
 }
 
-export function getClonedVoicesEffect(
+export async function getClonedVoices(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Effect.Effect<AgentClonedVoice[], AgentApiError> {
-  return api.fetchCollectionEffect<AgentClonedVoice>(
+): Promise<AgentClonedVoice[]> {
+  return api.fetchCollection<AgentClonedVoice>(
     `${api.config.baseUrl}/voices/cloned`,
     { signal },
     'Failed to fetch cloned voices',
@@ -228,7 +218,7 @@ export function getClonedVoicesEffect(
   );
 }
 
-export function setBrandVoiceDefaultsEffect(
+export async function setBrandVoiceDefaults(
   api: AgentBaseApiService,
   brandId: string,
   payload: {
@@ -237,91 +227,86 @@ export function setBrandVoiceDefaultsEffect(
     defaultAvatarIngredientId?: string;
   },
   signal?: AbortSignal,
-): Effect.Effect<void, AgentApiError> {
-  return api
-    .fetchJsonEffect<JsonApiResponseDocument>(
-      `${api.config.baseUrl}/brands/${brandId}/agent-config`,
-      {
-        body: JSON.stringify(payload),
-        method: 'PATCH',
-        signal,
-      },
-      'Failed to update brand voice defaults',
-    )
-    .pipe(Effect.as(undefined));
+): Promise<void> {
+  await api.fetchJson<JsonApiResponseDocument>(
+    `${api.config.baseUrl}/brands/${brandId}/agent-config`,
+    {
+      body: JSON.stringify(payload),
+      method: 'PATCH',
+      signal,
+    },
+    'Failed to update brand voice defaults',
+  );
 }
 
-export function uploadAttachmentEffect(
+export async function uploadAttachment(
   api: AgentBaseApiService,
   file: File,
   onProgress?: (pct: number) => void,
-): Effect.Effect<{ ingredientId: string; url: string }, AgentApiError> {
-  return Effect.gen(function* () {
-    const presigned = yield* api.fetchJsonEffect<PresignedUploadResponse>(
-      `${api.config.baseUrl}/images/upload/presigned`,
-      {
-        body: JSON.stringify({
-          contentType: file.type,
-          filename: file.name,
-          type: 'image',
-        }),
-        method: 'POST',
-      },
-      'Failed to get presigned upload URL',
-    );
+): Promise<{ ingredientId: string; url: string }> {
+  const presigned = await api.fetchJson<PresignedUploadResponse>(
+    `${api.config.baseUrl}/images/upload/presigned`,
+    {
+      body: JSON.stringify({
+        contentType: file.type,
+        filename: file.name,
+        type: 'image',
+      }),
+      method: 'POST',
+    },
+    'Failed to get presigned upload URL',
+  );
 
-    const { id } = presigned.data;
-    const { uploadUrl, publicUrl } = presigned.data.attributes;
+  const { id } = presigned.data;
+  const { uploadUrl, publicUrl } = presigned.data.attributes;
 
-    yield* uploadFileToPresignedUrlEffect(api, file, uploadUrl, onProgress);
-    yield* api.fetchJsonEffect(
-      `${api.config.baseUrl}/images/upload/confirm/${id}`,
-      { method: 'POST' },
-      'Failed to confirm upload',
-    );
+  await uploadFileToPresignedUrl(api, file, uploadUrl, onProgress);
+  await api.fetchJson(
+    `${api.config.baseUrl}/images/upload/confirm/${id}`,
+    { method: 'POST' },
+    'Failed to confirm upload',
+  );
 
-    return { ingredientId: id, url: publicUrl };
-  }) as Effect.Effect<{ ingredientId: string; url: string }, AgentApiError>;
+  return { ingredientId: id, url: publicUrl };
 }
 
-function uploadFileToPresignedUrlEffect(
+async function uploadFileToPresignedUrl(
   _api: AgentBaseApiService,
   file: File,
   uploadUrl: string,
   onProgress?: (pct: number) => void,
-): Effect.Effect<void, AgentApiRequestError> {
-  return Effect.tryPromise({
-    catch: (cause) =>
-      new AgentApiRequestError({
-        detail: cause instanceof Error ? cause.message : undefined,
-        message: cause instanceof Error ? cause.message : 'S3 upload failed',
-        status: 0,
-      }),
-    try: () =>
-      new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
+): Promise<void> {
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
 
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable && onProgress) {
-            onProgress(Math.round((event.loaded * 100) / event.total));
-          }
-        });
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable && onProgress) {
+          onProgress(Math.round((event.loaded * 100) / event.total));
+        }
+      });
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-            return;
-          }
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+          return;
+        }
 
-          reject(new Error(`S3 upload failed: ${xhr.status}`));
-        });
+        reject(new Error(`S3 upload failed: ${xhr.status}`));
+      });
 
-        xhr.addEventListener('error', () =>
-          reject(new Error('S3 upload failed')),
-        );
-        xhr.send(file);
-      }),
-  });
+      xhr.addEventListener('error', () =>
+        reject(new Error('S3 upload failed')),
+      );
+      xhr.send(file);
+    });
+  } catch (cause) {
+    throw new AgentApiRequestError({
+      detail: cause instanceof Error ? cause.message : undefined,
+      message: cause instanceof Error ? cause.message : 'S3 upload failed',
+      status: 0,
+    });
+  }
 }

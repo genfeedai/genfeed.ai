@@ -3,7 +3,6 @@
 import {
   type AgentApiService,
   type AgentThread,
-  runAgentApiEffect,
   useAgentChatStore,
 } from '@genfeedai/agent';
 import {
@@ -275,9 +274,7 @@ export function useConversationScopeControls({
       return null;
     }
     try {
-      const latest = await runAgentApiEffect(
-        apiService.getThreadEffect(activeThread.id),
-      );
+      const latest = await apiService.getThread(activeThread.id);
       if (latest.contextVersion > activeThread.contextVersion) {
         setStaleContext({
           brandId: latest.brandId ?? null,
@@ -365,9 +362,7 @@ export function useConversationScopeControls({
     setIsMutating(true);
     setScopeError(null);
     try {
-      const latest = await runAgentApiEffect(
-        apiService.getThreadEffect(activeThread.id),
-      );
+      const latest = await apiService.getThread(activeThread.id);
       const nextDraftScopeKey = `${currentOrganizationSlug}:${latest.id}:${latest.contextVersion}`;
       preserveDraftText(currentDraftScopeKey, nextDraftScopeKey);
       upsertThread(latest);
@@ -406,9 +401,9 @@ export function useConversationScopeControls({
       setScopeError(null);
       try {
         if (!activeThread) {
-          const created = await runAgentApiEffect(
-            apiService.createThreadEffect({ brandId: nextBrandId }),
-          );
+          const created = await apiService.createThread({
+            brandId: nextBrandId,
+          });
           const nextDraftScopeKey = `${currentOrganizationSlug}:${created.id}:${created.contextVersion}`;
           preserveDraftText(currentDraftScopeKey, nextDraftScopeKey);
           upsertThread(created);
@@ -424,12 +419,10 @@ export function useConversationScopeControls({
           return;
         }
 
-        const updated = await runAgentApiEffect(
-          apiService.updateThreadContextEffect(activeThread.id, {
-            brandId: nextBrandId,
-            expectedContextVersion: activeThread.contextVersion,
-          }),
-        );
+        const updated = await apiService.updateThreadContext(activeThread.id, {
+          brandId: nextBrandId,
+          expectedContextVersion: activeThread.contextVersion,
+        });
         const nextDraftScopeKey = `${currentOrganizationSlug}:${updated.id}:${updated.contextVersion}`;
         preserveDraftText(currentDraftScopeKey, nextDraftScopeKey);
         upsertThread(updated);

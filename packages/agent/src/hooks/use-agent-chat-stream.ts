@@ -20,7 +20,6 @@ import type {
   AgentChatStreamResponse,
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
@@ -564,25 +563,23 @@ export function useAgentChatStream(
         const clientRequestId =
           sendOptions?.clientRequestId ?? createClientRequestId();
         const startTurn = () =>
-          runAgentApiEffect(
-            apiService.chatStreamEffect(
-              {
-                artifactReferences: sendOptions?.artifactReferences,
-                attachments: sendOptions?.attachments,
-                brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
-                clientRequestId,
-                content,
-                expectedContextVersion: currentThread?.contextVersion,
-                generationMode: sendOptions?.generationMode,
-                generationSettings: sendOptions?.generationSettings,
-                model: resolvedModel,
-                pageContext: requestPageContext,
-                planModeEnabled: sendOptions?.planModeEnabled,
-                source: sendOptions?.source,
-                threadId: currentActiveThreadId ?? undefined,
-              },
-              signal,
-            ),
+          apiService.chatStream(
+            {
+              artifactReferences: sendOptions?.artifactReferences,
+              attachments: sendOptions?.attachments,
+              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
+              clientRequestId,
+              content,
+              expectedContextVersion: currentThread?.contextVersion,
+              generationMode: sendOptions?.generationMode,
+              generationSettings: sendOptions?.generationSettings,
+              model: resolvedModel,
+              pageContext: requestPageContext,
+              planModeEnabled: sendOptions?.planModeEnabled,
+              source: sendOptions?.source,
+              threadId: currentActiveThreadId ?? undefined,
+            },
+            signal,
           );
         let response: AgentChatStreamResponse;
         try {

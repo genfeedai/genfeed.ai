@@ -3,7 +3,6 @@ import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-messag
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildThreadSummaryFromSnapshot,
@@ -327,7 +326,8 @@ export function useAgentFullPage({
 
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getCreditsInfoEffect(controller.signal))
+    apiService
+      .getCreditsInfo(controller.signal)
       .then((info) => {
         if (!info) {
           return;
@@ -513,17 +513,13 @@ export function useAgentFullPage({
         (plan.shouldFetchMessages
           ? conversationHydrationFlights.begin(threadId, async (signal) => {
               const [page, snapshot] = await Promise.all([
-                runAgentApiEffect(
-                  apiService.getMessagesPageEffect(
-                    threadId,
-                    { limit: AGENT_MESSAGE_PAGE_SIZE },
-                    signal,
-                  ),
+                apiService.getMessagesPage(
+                  threadId,
+                  { limit: AGENT_MESSAGE_PAGE_SIZE },
+                  signal,
                 ),
                 plan.shouldFetchSnapshot
-                  ? runAgentApiEffect(
-                      apiService.getThreadSnapshotEffect(threadId, signal),
-                    )
+                  ? apiService.getThreadSnapshot(threadId, signal)
                   : Promise.resolve(null),
               ]);
               return { page, snapshot };
@@ -583,9 +579,7 @@ export function useAgentFullPage({
       }
 
       const threadRequest = plan.shouldFetchThread
-        ? runAgentApiEffect(
-            apiService.getThreadEffect(threadId, controller.signal),
-          )
+        ? apiService.getThread(threadId, controller.signal)
         : null;
 
       if (threadRequest && snapshotRequest) {
@@ -683,9 +677,7 @@ export function useAgentFullPage({
       return;
     }
 
-    const restored = await runAgentApiEffect(
-      apiService.unarchiveThreadEffect(threadId),
-    );
+    const restored = await apiService.unarchiveThread(threadId);
     const nextStatus = restored.status ?? AgentThreadStatus.ACTIVE;
     setActiveThreadStatus(nextStatus);
     updateThread(threadId, {

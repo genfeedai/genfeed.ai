@@ -1,7 +1,6 @@
 import {
   AgentApiAuthError,
   AgentApiDecodeError,
-  type AgentApiError,
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
 import {
@@ -9,7 +8,6 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@helpers/data/json-api/json-api.helper';
-import { Cause, Effect, Exit } from 'effect';
 
 export interface AgentApiConfig {
   baseUrl: string;
@@ -26,20 +24,6 @@ export interface AgentApiCollectionPage<T> {
   nextCursor: string | null;
 }
 
-export type AgentApiEffectError = AgentApiError | AgentApiAuthError;
-
-export async function runAgentApiEffect<T>(
-  effect: Effect.Effect<T, AgentApiEffectError>,
-): Promise<T> {
-  const exit = await Effect.runPromiseExit(effect);
-
-  if (Exit.isSuccess(exit)) {
-    return exit.value;
-  }
-
-  throw Cause.squash(exit.cause);
-}
-
 /**
  * Shared HTTP client for agent API modules. Fetch helpers are public so
  * domain modules (`agent-api/threads`, `runs`, …) can compose without
@@ -52,188 +36,166 @@ export class AgentBaseApiService {
     this.config = config;
   }
 
-  headersEffect(options?: {
+  async headers(options?: {
     forceRefresh?: boolean;
-  }): Effect.Effect<Record<string, string>, AgentApiAuthError> {
-    return Effect.tryPromise({
-      catch: (cause) =>
-        new AgentApiAuthError({
-          cause,
-          message: 'Failed to resolve auth token',
-        }),
-      try: () => this.config.getToken(options),
-    }).pipe(
-      Effect.map((token) => {
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
+  }): Promise<Record<string, string>> {
+    let token: string | null;
 
-        if (token) {
-          headers.Authorization = `Bearer ${token}`;
-        }
+    try {
+      token = await this.config.getToken(options);
+    } catch (cause) {
+      throw new AgentApiAuthError({
+        cause,
+        message: 'Failed to resolve auth token',
+      });
+    }
 
-        return headers;
-      }),
-    );
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
   }
 
-  fetchJsonEffect<T>(
+  async fetchJson<T>(
     url: string,
     init?: RequestInit,
     errorMessage?: string,
-  ): Effect.Effect<T, AgentApiError> {
-    return this.fetchJsonWithRetryEffect<T>(url, init, errorMessage, false);
+  ): Promise<T> {
+    return this.fetchJsonWithRetry<T>(url, init, errorMessage, false);
   }
 
-  fetchResourceEffect<T>(
+  async fetchResource<T>(
     url: string,
     init: RequestInit | undefined,
     requestErrorMessage: string,
     decodeErrorMessage: string,
-  ): Effect.Effect<T, AgentApiError> {
-    return this.fetchJsonEffect<JsonApiResponseDocument>(
+  ): Promise<T> {
+    const json = await this.fetchJson<JsonApiResponseDocument>(
       url,
       init,
       requestErrorMessage,
-    ).pipe(
-      Effect.flatMap((json) =>
-        this.deserializeResourceEffect<T>(json, decodeErrorMessage),
-      ),
     );
+
+    return this.deserializeResourceOrThrow<T>(json, decodeErrorMessage);
   }
 
-  fetchCollectionEffect<T>(
+  async fetchCollection<T>(
     url: string,
     init: RequestInit | undefined,
     requestErrorMessage: string,
     decodeErrorMessage: string,
-  ): Effect.Effect<T[], AgentApiError> {
-    return this.fetchJsonEffect<JsonApiResponseDocument>(
+  ): Promise<T[]> {
+    const json = await this.fetchJson<JsonApiResponseDocument>(
       url,
       init,
       requestErrorMessage,
-    ).pipe(
-      Effect.flatMap((json) =>
-        this.deserializeCollectionEffect<T>(json, decodeErrorMessage),
-      ),
     );
+
+    return this.deserializeCollectionOrThrow<T>(json, decodeErrorMessage);
   }
 
   /**
-   * Like `fetchCollectionEffect`, but keeps the keyset-pagination links the
+   * Like `fetchCollection`, but keeps the keyset-pagination links the
    * plain collection fetch drops. Callers that page need the cursor, and the
    * only place it exists is the top-level JSON:API document.
    */
-  fetchCollectionPageEffect<T>(
+  async fetchCollectionPage<T>(
     url: string,
     init: RequestInit | undefined,
     requestErrorMessage: string,
     decodeErrorMessage: string,
-  ): Effect.Effect<AgentApiCollectionPage<T>, AgentApiError> {
-    return this.fetchJsonEffect<JsonApiResponseDocument>(
+  ): Promise<AgentApiCollectionPage<T>> {
+    const json = await this.fetchJson<JsonApiResponseDocument>(
       url,
       init,
       requestErrorMessage,
-    ).pipe(
-      Effect.flatMap((json) =>
-        this.deserializeCollectionEffect<T>(json, decodeErrorMessage).pipe(
-          Effect.map((docs) => ({
-            docs,
-            // A response without cursor links reads as "nothing older", which
-            // stops the caller asking rather than looping on a cursor the
-            // server never issued.
-            hasMore: json.links?.cursor?.hasMore ?? false,
-            nextCursor: json.links?.cursor?.nextCursor ?? null,
-          })),
-        ),
-      ),
     );
+    const docs = this.deserializeCollectionOrThrow<T>(json, decodeErrorMessage);
+
+    return {
+      docs,
+      // A response without cursor links reads as "nothing older", which
+      // stops the caller asking rather than looping on a cursor the
+      // server never issued.
+      hasMore: json.links?.cursor?.hasMore ?? false,
+      nextCursor: json.links?.cursor?.nextCursor ?? null,
+    };
   }
 
-  deserializeResourceEffect<T>(
+  private deserializeResourceOrThrow<T>(
     document: JsonApiResponseDocument,
     message: string,
-  ): Effect.Effect<T, AgentApiDecodeError> {
-    return Effect.try({
-      catch: (cause) =>
-        new AgentApiDecodeError({
-          cause,
-          message,
-        }),
-      try: () => deserializeResource<T>(document),
-    });
+  ): T {
+    try {
+      return deserializeResource<T>(document);
+    } catch (cause) {
+      throw new AgentApiDecodeError({ cause, message });
+    }
   }
 
-  deserializeCollectionEffect<T>(
+  private deserializeCollectionOrThrow<T>(
     document: JsonApiResponseDocument,
     message: string,
-  ): Effect.Effect<T[], AgentApiDecodeError> {
-    return Effect.try({
-      catch: (cause) =>
-        new AgentApiDecodeError({
-          cause,
-          message,
-        }),
-      try: () => deserializeCollection<T>(document),
-    });
+  ): T[] {
+    try {
+      return deserializeCollection<T>(document);
+    } catch (cause) {
+      throw new AgentApiDecodeError({ cause, message });
+    }
   }
 
-  private fetchJsonWithRetryEffect<T>(
+  private async fetchJsonWithRetry<T>(
     url: string,
     init: RequestInit | undefined,
     errorMessage: string | undefined,
     hasRetriedAuth: boolean,
-  ): Effect.Effect<T, AgentApiError> {
+  ): Promise<T> {
     const isFormDataBody =
       typeof FormData !== 'undefined' && init?.body instanceof FormData;
 
-    return Effect.gen(this, function* () {
-      const defaultHeaders = yield* this.headersEffect(
-        hasRetriedAuth ? { forceRefresh: true } : undefined,
-      );
+    const defaultHeaders = await this.headers(
+      hasRetriedAuth ? { forceRefresh: true } : undefined,
+    );
 
-      if (isFormDataBody) {
-        delete defaultHeaders['Content-Type'];
+    if (isFormDataBody) {
+      delete defaultHeaders['Content-Type'];
+    }
+
+    const response = await this.performFetch(url, {
+      ...init,
+      headers: {
+        ...defaultHeaders,
+        ...(init?.headers as Record<string, string> | undefined),
+      },
+    });
+
+    if (!response.ok) {
+      const message = errorMessage ?? 'Request failed';
+      const detail = await this.extractErrorDetail(response);
+
+      if (
+        !hasRetriedAuth &&
+        this.shouldRetryWithFreshToken(response.status, detail)
+      ) {
+        return this.fetchJsonWithRetry(url, init, errorMessage, true);
       }
 
-      const response = yield* this.performFetchEffect(url, {
-        ...init,
-        headers: {
-          ...defaultHeaders,
-          ...(init?.headers as Record<string, string> | undefined),
-        },
+      throw new AgentApiRequestError({
+        detail,
+        message: detail
+          ? `${message}: ${response.status} - ${detail}`
+          : `${message}: ${response.status}`,
+        source: 'api',
+        status: response.status,
       });
+    }
 
-      if (!response.ok) {
-        const message = errorMessage ?? 'Request failed';
-        const detail = yield* this.extractErrorDetailEffect(response);
-
-        if (
-          !hasRetriedAuth &&
-          this.shouldRetryWithFreshToken(response.status, detail)
-        ) {
-          return yield* this.fetchJsonWithRetryEffect(
-            url,
-            init,
-            errorMessage,
-            true,
-          );
-        }
-
-        return yield* Effect.fail(
-          new AgentApiRequestError({
-            detail,
-            message: detail
-              ? `${message}: ${response.status} - ${detail}`
-              : `${message}: ${response.status}`,
-            source: 'api',
-            status: response.status,
-          }),
-        );
-      }
-
-      return yield* this.decodeJsonEffect<T>(response);
-    }) as Effect.Effect<T, AgentApiError>;
+    return this.decodeJson<T>(response);
   }
 
   private shouldRetryWithFreshToken(status: number, detail?: string): boolean {
@@ -249,82 +211,76 @@ export class AgentBaseApiService {
     );
   }
 
-  private performFetchEffect(
+  private async performFetch(
     url: string,
     init: RequestInit,
-  ): Effect.Effect<Response, AgentApiRequestError> {
-    return Effect.tryPromise({
-      catch: (cause) =>
-        new AgentApiRequestError({
-          detail: cause instanceof Error ? cause.message : undefined,
-          message:
-            cause instanceof Error ? cause.message : 'Network request failed',
-          source: 'network',
-          status: 0,
-        }),
-      try: () => fetch(url, init),
-    });
+  ): Promise<Response> {
+    try {
+      return await fetch(url, init);
+    } catch (cause) {
+      throw new AgentApiRequestError({
+        detail: cause instanceof Error ? cause.message : undefined,
+        message:
+          cause instanceof Error ? cause.message : 'Network request failed',
+        source: 'network',
+        status: 0,
+      });
+    }
   }
 
-  private decodeJsonEffect<T>(
-    response: Response,
-  ): Effect.Effect<T, AgentApiDecodeError> {
-    return Effect.tryPromise({
-      catch: (cause) =>
-        new AgentApiDecodeError({
-          cause,
-          message: 'Failed to decode JSON response',
-        }),
-      try: () => response.json() as Promise<T>,
-    });
+  private async decodeJson<T>(response: Response): Promise<T> {
+    try {
+      return (await response.json()) as T;
+    } catch (cause) {
+      throw new AgentApiDecodeError({
+        cause,
+        message: 'Failed to decode JSON response',
+      });
+    }
   }
 
-  private extractErrorDetailEffect(
+  private async extractErrorDetail(
     response: Response,
-  ): Effect.Effect<string | undefined> {
-    return Effect.tryPromise({
-      catch: () => undefined,
-      try: () =>
-        response.json() as Promise<
-          | {
-              errors?: Array<{
-                detail?: string;
-                message?: string;
-                title?: string;
-              }>;
-              detail?: string;
-              error?: string;
-              message?: string | string[];
-              title?: string;
-            }
-          | undefined
-        >,
-    }).pipe(
-      Effect.catchAll(() => Effect.succeed(undefined)),
-      Effect.map((payload) => {
-        const firstJsonApiError = payload?.errors?.[0];
-        const fromErrors =
-          firstJsonApiError?.detail ||
-          firstJsonApiError?.message ||
-          firstJsonApiError?.title;
-
-        if (fromErrors) {
-          return fromErrors;
+  ): Promise<string | undefined> {
+    let payload:
+      | {
+          errors?: Array<{
+            detail?: string;
+            message?: string;
+            title?: string;
+          }>;
+          detail?: string;
+          error?: string;
+          message?: string | string[];
+          title?: string;
         }
+      | undefined;
 
-        if (Array.isArray(payload?.message)) {
-          return payload.message.join(', ');
-        }
+    try {
+      payload = await response.json();
+    } catch {
+      return undefined;
+    }
 
-        return (
-          payload?.detail ||
-          (typeof payload?.message === 'string'
-            ? payload.message
-            : undefined) ||
-          payload?.error ||
-          payload?.title
-        );
-      }),
+    const firstJsonApiError = payload?.errors?.[0];
+    const fromErrors =
+      firstJsonApiError?.detail ||
+      firstJsonApiError?.message ||
+      firstJsonApiError?.title;
+
+    if (fromErrors) {
+      return fromErrors;
+    }
+
+    if (Array.isArray(payload?.message)) {
+      return payload.message.join(', ');
+    }
+
+    return (
+      payload?.detail ||
+      (typeof payload?.message === 'string' ? payload.message : undefined) ||
+      payload?.error ||
+      payload?.title
     );
   }
 }

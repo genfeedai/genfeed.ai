@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
@@ -23,30 +22,28 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
 import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 
 interface ApiOverrides {
-  cloneVoiceEffect?: ReturnType<typeof vi.fn>;
-  getClonedVoicesEffect?: ReturnType<typeof vi.fn>;
-  getGeneratedAssetEffect?: ReturnType<typeof vi.fn>;
-  generateVoiceEffect?: ReturnType<typeof vi.fn>;
-  setBrandVoiceDefaultsEffect?: ReturnType<typeof vi.fn>;
+  cloneVoice?: ReturnType<typeof vi.fn>;
+  getClonedVoices?: ReturnType<typeof vi.fn>;
+  getGeneratedAsset?: ReturnType<typeof vi.fn>;
+  generateVoice?: ReturnType<typeof vi.fn>;
+  setBrandVoiceDefaults?: ReturnType<typeof vi.fn>;
 }
 
 function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
   return {
-    cloneVoiceEffect: vi.fn(() =>
-      Effect.succeed({
-        cloneStatus: VoiceCloneStatus.READY,
-        id: 'voice-new',
-        label: 'New voice',
-      }),
-    ),
-    getClonedVoicesEffect: vi.fn(() => Effect.succeed([])),
-    getGeneratedAssetEffect: vi.fn(() =>
-      Effect.succeed({ id: 'generated-voice-1', status: 'GENERATED' }),
-    ),
-    generateVoiceEffect: vi.fn(() =>
-      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
-    ),
-    setBrandVoiceDefaultsEffect: vi.fn(() => Effect.succeed(undefined)),
+    cloneVoice: vi.fn().mockResolvedValue({
+      cloneStatus: VoiceCloneStatus.READY,
+      id: 'voice-new',
+      label: 'New voice',
+    }),
+    getClonedVoices: vi.fn().mockResolvedValue([]),
+    getGeneratedAsset: vi
+      .fn()
+      .mockResolvedValue({ id: 'generated-voice-1', status: 'GENERATED' }),
+    generateVoice: vi
+      .fn()
+      .mockResolvedValue({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    setBrandVoiceDefaults: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   } as unknown as AgentApiService;
 }
@@ -93,11 +90,11 @@ describe('VoiceCloneCard', () => {
   });
 
   it('uses the recommended existing voice as brand default', async () => {
-    const setBrandVoiceDefaultsEffect = vi.fn(() => Effect.succeed(undefined));
+    const setBrandVoiceDefaults = vi.fn().mockResolvedValue(undefined);
     render(
       <VoiceCloneCard
         action={makeAction()}
-        apiService={makeApiService({ setBrandVoiceDefaultsEffect })}
+        apiService={makeApiService({ setBrandVoiceDefaults })}
       />,
     );
 
@@ -107,7 +104,7 @@ describe('VoiceCloneCard', () => {
       );
     });
 
-    expect(setBrandVoiceDefaultsEffect).toHaveBeenCalledWith('brand-1', {
+    expect(setBrandVoiceDefaults).toHaveBeenCalledWith('brand-1', {
       defaultVoiceId: 'voice-1',
     });
     await waitFor(() =>
@@ -116,16 +113,16 @@ describe('VoiceCloneCard', () => {
   });
 
   it('generates requested speech from the selected voice instead of only saving a default', async () => {
-    const generateVoiceEffect = vi.fn(() =>
-      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
-    );
+    const generateVoice = vi
+      .fn()
+      .mockResolvedValue({ id: 'generated-voice-1', status: 'PROCESSING' });
     render(
       <VoiceCloneCard
         action={makeAction({
           title: 'Generate Voice',
           voiceoverText: 'Welcome to FUD News',
         })}
-        apiService={makeApiService({ generateVoiceEffect })}
+        apiService={makeApiService({ generateVoice })}
       />,
     );
 
@@ -135,7 +132,7 @@ describe('VoiceCloneCard', () => {
       );
     });
 
-    expect(generateVoiceEffect).toHaveBeenCalledWith({
+    expect(generateVoice).toHaveBeenCalledWith({
       sourceActionId: 'voice-card-1',
       text: 'Welcome to FUD News',
       voiceId: 'voice-1',
@@ -145,16 +142,16 @@ describe('VoiceCloneCard', () => {
 
   it('stops voice generation reconciliation after repeated API failures', async () => {
     vi.useFakeTimers();
-    const getGeneratedAssetEffect = vi.fn(() =>
-      Effect.fail(new Error('network unavailable')),
-    );
+    const getGeneratedAsset = vi
+      .fn()
+      .mockRejectedValue(new Error('network unavailable'));
     render(
       <VoiceCloneCard
         action={makeAction({
           title: 'Generate Voice',
           voiceoverText: 'Welcome to FUD News',
         })}
-        apiService={makeApiService({ getGeneratedAssetEffect })}
+        apiService={makeApiService({ getGeneratedAsset })}
       />,
     );
 
@@ -167,7 +164,7 @@ describe('VoiceCloneCard', () => {
       await vi.advanceTimersByTimeAsync(50_000);
     });
 
-    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(10);
+    expect(getGeneratedAsset).toHaveBeenCalledTimes(10);
     expect(
       screen.getByText(
         'Unable to reconcile voice generation. Please try again.',
@@ -177,16 +174,16 @@ describe('VoiceCloneCard', () => {
 
   it('bounds voice reconciliation when the asset remains processing', async () => {
     vi.useFakeTimers();
-    const getGeneratedAssetEffect = vi.fn(() =>
-      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
-    );
+    const getGeneratedAsset = vi
+      .fn()
+      .mockResolvedValue({ id: 'generated-voice-1', status: 'PROCESSING' });
     render(
       <VoiceCloneCard
         action={makeAction({
           title: 'Generate Voice',
           voiceoverText: 'Welcome to FUD News',
         })}
-        apiService={makeApiService({ getGeneratedAssetEffect })}
+        apiService={makeApiService({ getGeneratedAsset })}
       />,
     );
 
@@ -199,7 +196,7 @@ describe('VoiceCloneCard', () => {
       await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
     });
 
-    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(360);
+    expect(getGeneratedAsset).toHaveBeenCalledTimes(360);
     expect(
       screen.getByText(
         'Voice generation is taking longer than expected. Please try again.',
@@ -225,13 +222,13 @@ describe('VoiceCloneCard', () => {
   });
 
   it('surfaces API failures when setting the default voice', async () => {
-    const setBrandVoiceDefaultsEffect = vi.fn(() =>
-      Effect.fail(new Error('config rejected')),
-    );
+    const setBrandVoiceDefaults = vi
+      .fn()
+      .mockRejectedValue(new Error('config rejected'));
     render(
       <VoiceCloneCard
         action={makeAction()}
-        apiService={makeApiService({ setBrandVoiceDefaultsEffect })}
+        apiService={makeApiService({ setBrandVoiceDefaults })}
       />,
     );
 
@@ -245,20 +242,18 @@ describe('VoiceCloneCard', () => {
   });
 
   it('accepts a dropped audio file and clones it to done', async () => {
-    const cloneVoiceEffect = vi.fn(() =>
-      Effect.succeed({
-        cloneStatus: VoiceCloneStatus.READY,
-        id: 'voice-new',
-        label: 'New voice',
-      }),
-    );
-    const setBrandVoiceDefaultsEffect = vi.fn(() => Effect.succeed(undefined));
+    const cloneVoice = vi.fn().mockResolvedValue({
+      cloneStatus: VoiceCloneStatus.READY,
+      id: 'voice-new',
+      label: 'New voice',
+    });
+    const setBrandVoiceDefaults = vi.fn().mockResolvedValue(undefined);
     render(
       <VoiceCloneCard
         action={makeAction()}
         apiService={makeApiService({
-          cloneVoiceEffect,
-          setBrandVoiceDefaultsEffect,
+          cloneVoice,
+          setBrandVoiceDefaults,
         })}
       />,
     );
@@ -277,8 +272,8 @@ describe('VoiceCloneCard', () => {
       fireEvent.click(screen.getByRole('button', { name: /clone new voice/i }));
     });
 
-    expect(cloneVoiceEffect).toHaveBeenCalled();
-    expect(setBrandVoiceDefaultsEffect).toHaveBeenCalledWith('brand-1', {
+    expect(cloneVoice).toHaveBeenCalled();
+    expect(setBrandVoiceDefaults).toHaveBeenCalledWith('brand-1', {
       defaultVoiceId: 'voice-new',
     });
     await waitFor(() =>
@@ -287,17 +282,15 @@ describe('VoiceCloneCard', () => {
   });
 
   it('enters the cloning state when the clone is still processing', async () => {
-    const cloneVoiceEffect = vi.fn(() =>
-      Effect.succeed({
-        cloneStatus: VoiceCloneStatus.CLONING,
-        id: 'voice-new',
-        label: 'New voice',
-      }),
-    );
+    const cloneVoice = vi.fn().mockResolvedValue({
+      cloneStatus: VoiceCloneStatus.CLONING,
+      id: 'voice-new',
+      label: 'New voice',
+    });
     render(
       <VoiceCloneCard
         action={makeAction({ brandId: undefined })}
-        apiService={makeApiService({ cloneVoiceEffect })}
+        apiService={makeApiService({ cloneVoice })}
       />,
     );
 
@@ -338,13 +331,11 @@ describe('VoiceCloneCard', () => {
   });
 
   it('shows a clone failure message when the API rejects', async () => {
-    const cloneVoiceEffect = vi.fn(() =>
-      Effect.fail(new Error('quota exceeded')),
-    );
+    const cloneVoice = vi.fn().mockRejectedValue(new Error('quota exceeded'));
     render(
       <VoiceCloneCard
         action={makeAction()}
-        apiService={makeApiService({ cloneVoiceEffect })}
+        apiService={makeApiService({ cloneVoice })}
       />,
     );
 
