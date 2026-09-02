@@ -1,6 +1,6 @@
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
+import {
+  createExecutableActionNode,
+  type ExecutableWorkflow,
 } from '@genfeedai/workflows/engine';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
@@ -25,13 +25,11 @@ describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () 
 
   let runner: WorkflowNodeGraphRunnerService;
 
-  const node: ExecutableNode = {
-    config: {},
+  const node = createExecutableActionNode({
+    actionId: 'publish',
     id: 'publish',
-    inputs: [],
     label: 'Publish',
-    type: 'publish',
-  };
+  });
 
   const workflow: ExecutableWorkflow = {
     edges: [],
