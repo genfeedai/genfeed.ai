@@ -1,9 +1,7 @@
 import {
   inspectorContextPaneClassName,
-  inspectorTabFromValue,
   isAgentOwnedInspector,
   isInspectorComposerOwner,
-  resolveActiveInspectorTab,
   resolveWorkspaceInspectorBodyKind,
   resolveWorkspaceInspectorPaneKind,
   shouldShowInspectorOverlayPreview,
@@ -119,26 +117,13 @@ describe('inspector chrome helpers', () => {
     expect(isAgentOwnedInspector(false, true)).toBe(false);
   });
 
-  it('locks the tab to context when the conversation slot is absent', () => {
-    expect(resolveActiveInspectorTab(false, 'conversation')).toBe('context');
-    expect(resolveActiveInspectorTab(false, 'files')).toBe('files');
-    expect(resolveActiveInspectorTab(true, 'conversation')).toBe(
-      'conversation',
-    );
-  });
-
   it('owns the composer only when a conversation slot is mounted off overlay', () => {
     expect(isInspectorComposerOwner(true, false)).toBe(true);
     expect(isInspectorComposerOwner(true, true)).toBe(false);
     expect(isInspectorComposerOwner(false, false)).toBe(false);
   });
 
-  it('maps tab values and pads the generic context pane', () => {
-    expect(inspectorTabFromValue('conversation')).toBe('conversation');
-    expect(inspectorTabFromValue('context')).toBe('context');
-    expect(inspectorTabFromValue('files')).toBe('files');
-    expect(inspectorTabFromValue('browser')).toBe('browser');
-    expect(inspectorTabFromValue('other')).toBe('context');
+  it('pads the generic context pane only when no adapter owns it', () => {
     expect(inspectorContextPaneClassName(true, false)).not.toContain(
       'gap-3 p-3',
     );
