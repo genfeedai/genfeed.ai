@@ -825,7 +825,10 @@ jobs:
           if [ "$WITH_COVERAGE" = "true" ]; then
             # Shards emit mergeable Vitest blobs. LCOV is finalized once in
             # Changed Coverage Report after every successful shard arrives.
-            COVERAGE_ARGS=(--coverage --reporter=default --reporter=blob)
+            # Pass the same explicit flags the app lane uses: a bare --coverage
+            # left the API shards reporting `All files | 0 | 0 | 0 | 0`, so the
+            # merge job had nothing to turn into LCOV and failed the report.
+            COVERAGE_ARGS=(--coverage --coverage.enabled=true --coverage.provider=v8 --coverage.all=false --reporter=default --reporter=blob)
           fi
           cd apps/server/api && bunx vitest run --config vitest.config.ts \
             --maxWorkers=2 --passWithNoTests --changed "$BASE" \
