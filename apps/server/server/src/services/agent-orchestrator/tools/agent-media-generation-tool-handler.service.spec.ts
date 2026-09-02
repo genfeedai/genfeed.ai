@@ -12,10 +12,11 @@ function createHandler() {
   const contentGeneratorService = {
     generateContent: vi.fn(),
   };
-  const internalApi = {
-    callInternalApi: vi.fn(),
+  const newslettersService = {
+    generateDraft: vi.fn(),
   };
   const gateway = {
+    generateArticle: vi.fn(),
     generateAvatarVideo: vi.fn(),
     generateImage: vi.fn(),
     generateMusic: vi.fn(),
@@ -31,9 +32,10 @@ function createHandler() {
   const logger = { error: vi.fn(), warn: vi.fn() };
   const handler = new AgentMediaGenerationToolHandler(
     new AgentMediaTextGenerationService(
-      internalApi as never,
       aiActionsService as never,
       contentGeneratorService as never,
+      newslettersService as never,
+      gateway as never,
     ),
     new AgentMediaAssetGenerationService(
       logger as never,
@@ -53,7 +55,7 @@ function createHandler() {
     contentGeneratorService,
     gateway,
     handler,
-    internalApi,
+    newslettersService,
     onboardingHandler,
   };
 }
@@ -225,16 +227,12 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('generates a durable newsletter and emits reader metadata', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
-      data: {
-        attributes: {
-          content: '## Weekly signal\n\nThe important update.',
-          label: 'The founder briefing',
-          summary: 'The useful parts in three minutes.',
-        },
-        id: 'newsletter-1',
-      },
+    const { handler, newslettersService } = createHandler();
+    newslettersService.generateDraft.mockResolvedValue({
+      content: '## Weekly signal\n\nThe important update.',
+      id: 'newsletter-1',
+      label: 'The founder briefing',
+      summary: 'The useful parts in three minutes.',
     });
 
     const result = await handler.generateContent(
@@ -242,11 +240,13 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/newsletters/generate-draft',
+    expect(newslettersService.generateDraft).toHaveBeenCalledWith(
       expect.objectContaining({ topic: 'AI content systems' }),
-      context,
+      {
+        brandId: 'brand-1',
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
     );
     expect(result.nextActions?.[0]).toMatchObject({
       contentFormat: 'newsletter',
@@ -259,8 +259,8 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
   });
 
   it('emits the generated article body as a text preview', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({
       data: {
         attributes: {
           content: '# Durable agents\n\nMake the output observable.',
@@ -283,30 +283,28 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
     });
   });
 
-  it('generates standard articles through POST /v1/articles/generations', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({ data: [] });
+  it('generates standard articles through the generation gateway', async () => {
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
 
     await handler.generateContent(
       { topic: 'agent architecture', type: 'article' },
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/articles/generations',
-      expect.objectContaining({
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         count: 1,
         prompt: 'agent architecture',
         type: 'standard',
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('generates long-form X articles with the x-article generation type', async () => {
-    const { handler, internalApi } = createHandler();
-    internalApi.callInternalApi.mockResolvedValue({ data: [] });
+    const { gateway, handler } = createHandler();
+    gateway.generateArticle.mockResolvedValue({ data: [] });
 
     await handler.generateContent(
       {
@@ -318,25 +316,23 @@ describe('AgentMediaGenerationToolHandler text previews', () => {
       context,
     );
 
-    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
-      'POST',
-      '/v1/articles/generations',
-      expect.objectContaining({
+    expect(gateway.generateArticle).toHaveBeenCalledWith({
+      body: expect.objectContaining({
         generateHeaderImage: true,
         prompt: 'agent evaluation',
         targetWordCount: 3000,
         tone: 'analytical',
         type: 'x-article',
       }),
-      context,
-    );
+      principal: context,
+    });
   });
 
   it('reads the first resource when the route answers with a collection', async () => {
-    const { handler, internalApi } = createHandler();
+    const { gateway, handler } = createHandler();
     // `type: 'standard'` is serialized as a JSON:API collection, so the handler
     // has to unwrap `data[0]` rather than `data`.
-    internalApi.callInternalApi.mockResolvedValue({
+    gateway.generateArticle.mockResolvedValue({
       data: [
         {
           attributes: {

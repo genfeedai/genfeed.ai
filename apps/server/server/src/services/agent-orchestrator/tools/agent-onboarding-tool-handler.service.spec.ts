@@ -1,15 +1,14 @@
-import { AgentOnboardingToolHandler } from '@server/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentUiAction } from '@genfeedai/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
+import { AgentOnboardingToolHandler } from '@server/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const CONTEXT: ToolExecutionContext = {
-  authToken: 'test-auth-token',
   organizationId: 'organization-1',
   userId: 'user-1',
 };
@@ -63,29 +62,36 @@ function createHandler(options?: {
   const contentGeneratorService = {
     generateText: vi.fn().mockResolvedValue({ text: 'Generated tweet' }),
   };
-  const internalApi = {
-    callInternalApi: vi.fn(),
-    callInternalFindOne: vi.fn().mockResolvedValue(null),
+  const generationGateway = {
+    generateImage: vi.fn().mockResolvedValue({
+      data: { attributes: {}, id: undefined },
+    }),
   };
+  const configService = {
+    ingredientsEndpoint: 'https://cdn.example.com/ingredients',
+  };
+  const organizationsService = { patch: vi.fn() };
+  const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const postsService = { findOne: vi.fn().mockResolvedValue(null) };
   const handler = new AgentOnboardingToolHandler(
     { error: vi.fn() } as never,
+    configService as never,
     brandsService as never,
     postsService as never,
     creditsUtilsService as never,
     contentGeneratorService as never,
-    internalApi as never,
+    generationGateway as never,
     credentialsService as never,
     imagesService as never,
-    { patch: vi.fn() } as never,
+    organizationsService as never,
     organizationSettingsService as never,
-    { findOne: vi.fn(), patch: vi.fn() } as never,
+    usersService as never,
   );
 
   return {
     creditsUtilsService,
+    generationGateway,
     handler,
-    internalApi,
     organizationSettingsService,
     postsService,
   };
@@ -332,7 +338,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
 
   it('does not call the image API when only a text provider is configured', async () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
-    const { handler, internalApi } = createHandler({
+    const { generationGateway, handler } = createHandler({
       byokKeys: {
         openai: {
           apiKey: 'encrypted-openai-key',
@@ -352,7 +358,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       (step) => step.id === 'generate_first_image',
     );
 
-    expect(internalApi.callInternalApi).not.toHaveBeenCalled();
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
     expect(imageStep).toMatchObject({
       ctaHref: '/settings/api-keys',
       isCompleted: false,
