@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildExecutionJsonApiResource } from '../../playwright/e2e/fixtures/api-mocks.fixture';
-import { buildEmptyElementsAggregatePayload } from '../../playwright/e2e/utils/api-interceptor';
+import {
+  buildEmptyElementsAggregatePayload,
+  buildUnhandledApiMockBody,
+} from '../../playwright/e2e/utils/api-interceptor';
 
 const ELEMENT_COLLECTION_KEYS = [
   'blacklists',
@@ -61,5 +64,27 @@ describe('Playwright API mocks', () => {
         },
       });
     }
+  });
+
+  it('returns a bare array for brand account-health, not JSON:API', () => {
+    expect(
+      buildUnhandledApiMockBody(
+        'https://api.genfeed.ai/v1/credentials/brand/brand-1/account-health',
+      ),
+    ).toEqual([]);
+  });
+
+  it('returns a bare array for brand publishing-readiness, not JSON:API', () => {
+    expect(
+      buildUnhandledApiMockBody(
+        'https://api.genfeed.ai/v1/credentials/brand/brand-1/publishing-readiness',
+      ),
+    ).toEqual([]);
+  });
+
+  it('keeps the JSON:API collection fallback for unknown collections', () => {
+    expect(
+      buildUnhandledApiMockBody('https://api.genfeed.ai/v1/batches'),
+    ).toEqual({ data: [], meta: { totalCount: 0 } });
   });
 });

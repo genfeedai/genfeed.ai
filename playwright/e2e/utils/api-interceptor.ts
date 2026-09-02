@@ -1492,6 +1492,37 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   });
 }
 
+/**
+ * Catch-all body for unmocked API URLs.
+ *
+ * Most collection endpoints are JSON:API `{ data: [] }`. A few production
+ * routes return a bare array; wrapping those as a document makes the client
+ * call `.map` on an object and the page never paints.
+ */
+export function buildUnhandledApiMockBody(url: string): unknown {
+  if (url.includes('/v1/health') || /\/health(?:\?|$)/.test(url)) {
+    return { status: 'ok' };
+  }
+
+  if (url.includes('/system/db-mode')) {
+    return { mode: 'development' };
+  }
+
+  if (url.includes('/mentions')) {
+    return { mentions: [] };
+  }
+
+  // CredentialsPublishingController returns these as raw arrays, not JSON:API.
+  if (
+    url.includes('/account-health') ||
+    url.includes('/publishing-readiness')
+  ) {
+    return [];
+  }
+
+  return { data: [], meta: { totalCount: 0 } };
+}
+
 export async function registerProtectedAppHostFallbacks(
   page: Page,
 ): Promise<void> {
@@ -1523,37 +1554,8 @@ export async function setupApiMocks(
   // production-host catch-all must sit below routeApi() or it shadows every
   // resource handler and pages deserialize the wrong JSON:API shape.
   const fallbackCollectionHandler = async (r: Route): Promise<void> => {
-    const url = r.request().url();
-
-    if (url.includes('/v1/health') || /\/health(?:\?|$)/.test(url)) {
-      await r.fulfill({
-        body: JSON.stringify({ status: 'ok' }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/system/db-mode')) {
-      await r.fulfill({
-        body: JSON.stringify({ mode: 'development' }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    if (url.includes('/mentions')) {
-      await r.fulfill({
-        body: JSON.stringify({ mentions: [] }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
     await r.fulfill({
-      body: JSON.stringify({ data: [], meta: { totalCount: 0 } }),
+      body: JSON.stringify(buildUnhandledApiMockBody(r.request().url())),
       contentType: 'application/json',
       status: 200,
     });
@@ -1647,6 +1649,22 @@ export async function setupApiMocks(
   await routeApi('/credentials/mentions**', async (r) => {
     await r.fulfill({
       body: JSON.stringify({ mentions: [] }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApi('/credentials/brand/**/account-health**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify([]),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await routeApi('/credentials/brand/**/publishing-readiness**', async (r) => {
+    await r.fulfill({
+      body: JSON.stringify([]),
       contentType: 'application/json',
       status: 200,
     });
