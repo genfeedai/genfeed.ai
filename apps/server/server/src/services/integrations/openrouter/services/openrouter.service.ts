@@ -388,48 +388,6 @@ export class OpenRouterService {
     const decoder = new TextDecoder();
     let buffer = '';
 
-    const drainEvent = async (rawEvent: string): Promise<void> => {
-      const lines = rawEvent
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.startsWith('data:'));
-
-      for (const line of lines) {
-        const payload = line.slice(5).trim();
-        if (!payload || payload === '[DONE]') {
-          continue;
-        }
-
-        const parsed: unknown = JSON.parse(payload);
-        const envelope = asRecord(parsed);
-        const streamError = asRecord(envelope?.error);
-        if (streamError) {
-          const status = asHttpStatus(streamError.code) ?? 502;
-          throw Object.assign(
-            new Error(
-              asNonEmptyString(streamError.message) ??
-                'OpenRouter stream failed',
-            ),
-            {
-              response: { data: envelope, status },
-              status,
-            },
-          );
-        }
-
-        const chunk = parsed as OpenRouterStreamChunk;
-        applyChunk(chunk);
-
-        const token = chunk.choices[0]?.delta?.content;
-        if (token) {
-          content += token;
-          if (onToken) {
-            await onToken(token);
-          }
-        }
-      }
-    };
-
     for await (const chunk of stream) {
       buffer +=
         typeof chunk === 'string'
@@ -441,7 +399,7 @@ export class OpenRouterService {
         const rawEvent = buffer.slice(0, boundaryIndex);
         buffer = buffer.slice(boundaryIndex + 2);
         boundaryIndex = buffer.indexOf('\n\n');
-        await drainEvent(rawEvent);
+        content += await this.drainStreamEvent(rawEvent, applyChunk, onToken);
       }
     }
 
@@ -450,7 +408,7 @@ export class OpenRouterService {
       buffer += flushed;
     }
     if (buffer.trim().length > 0) {
-      await drainEvent(buffer);
+      content += await this.drainStreamEvent(buffer, applyChunk, onToken);
     }
 
     const toolCalls: OpenRouterToolCallResponse[] = Array.from(
@@ -482,6 +440,54 @@ export class OpenRouterService {
       },
       apiKey,
     );
+  }
+
+  private async drainStreamEvent(
+    rawEvent: string,
+    applyChunk: (chunk: OpenRouterStreamChunk) => void,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<string> {
+    const lines = rawEvent
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('data:'));
+    let content = '';
+
+    for (const line of lines) {
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') {
+        continue;
+      }
+
+      const parsed: unknown = JSON.parse(payload);
+      const envelope = asRecord(parsed);
+      const streamError = asRecord(envelope?.error);
+      if (streamError) {
+        const status = asHttpStatus(streamError.code) ?? 502;
+        throw Object.assign(
+          new Error(
+            asNonEmptyString(streamError.message) ?? 'OpenRouter stream failed',
+          ),
+          {
+            response: { data: envelope, status },
+            status,
+          },
+        );
+      }
+
+      const chunk = parsed as OpenRouterStreamChunk;
+      applyChunk(chunk);
+
+      const token = chunk.choices[0]?.delta?.content;
+      if (token) {
+        content += token;
+        if (onToken) {
+          await onToken(token);
+        }
+      }
+    }
+
+    return content;
   }
 
   private async attachExactUsageCost(

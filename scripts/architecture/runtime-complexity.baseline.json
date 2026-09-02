@@ -336,18 +336,6 @@
     "symbol": "apps/server/server/src/services/integrations/meta-ads/services/meta-ads.service.ts"
   },
   {
-    "actual": 154,
-    "file": "apps/server/server/src/services/integrations/openai-llm/services/openai-llm.service.ts",
-    "metric": "method-lines",
-    "symbol": "OpenAiLlmService.streamChatCompletionAggregated"
-  },
-  {
-    "actual": 190,
-    "file": "apps/server/server/src/services/integrations/openrouter/services/openrouter.service.ts",
-    "metric": "method-lines",
-    "symbol": "OpenRouterService.streamChatCompletionAggregatedOnce"
-  },
-  {
     "actual": 17,
     "file": "apps/server/server/src/services/integrations/publishers/publisher-factory.service.ts",
     "metric": "constructor-dependencies",
