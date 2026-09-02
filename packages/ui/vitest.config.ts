@@ -427,8 +427,8 @@ export default defineConfig({
     testTimeout: 30_000,
     // Memory hygiene: one fork, no file parallelism, reclaim mocks. Isolate
     // stays on — sharing the module cache pollutes vi.mock across files.
-    // The suite still OOMs a single process after ~2500 tests, so `package.json`
-    // runs two sequential vitest shards so each process can exit.
+    // The suite still OOMs a single process after ~1200 tests, so `package.json`
+    // runs four sequential vitest shards so each process can exit.
     clearMocks: true,
     fileParallelism: false,
     maxWorkers: 1,

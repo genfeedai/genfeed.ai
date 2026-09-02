@@ -128,7 +128,7 @@
   "scripts": {
     "build": "tsc --build && tsc-alias -p tsconfig.json",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "../../scripts/sh/sanitize-node-color-env.sh sh -c 'bun run test:shard -- 1/2 && bun run test:shard -- 2/2'",
+    "test": "../../scripts/sh/sanitize-node-color-env.sh sh -c 'bun run test:shard -- 1/4 && bun run test:shard -- 2/4 && bun run test:shard -- 3/4 && bun run test:shard -- 4/4'",
     "test:shard": "vitest run --config vitest.config.ts --maxWorkers=1 --no-file-parallelism --shard",
     "test:watch": "vitest watch --config vitest.config.ts"
   },
