@@ -43,7 +43,7 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),
   ],
-  exports: [CronPostsService],
+  exports: [CronPostsService, ScheduledPostWorkflowService],
   providers: [
     AgentArtifactReferenceService,
     CronPostsService,
