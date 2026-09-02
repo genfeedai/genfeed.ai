@@ -11,6 +11,7 @@ import {
 function makeInput(
   config: Record<string, unknown>,
   inputData?: Record<string, unknown>,
+  contextOverrides: Partial<ExecutionContext> = {},
 ): ExecutorInput {
   const node: ExecutableNode = {
     config,
@@ -26,10 +27,13 @@ function makeInput(
     }
   }
   const context: ExecutionContext = {
+    executionId: 'execution-1',
     organizationId: 'org-1',
     runId: 'run-1',
     userId: 'user-1',
     workflowId: 'wf-1',
+    workflowVersionId: 'wf-version-1',
+    ...contextOverrides,
   };
   return { context, inputs, node };
 }
@@ -77,6 +81,7 @@ describe('SendEmailExecutor', () => {
     );
     expect(mockSender).toHaveBeenCalledWith({
       html: '<p>Hello</p>',
+      idempotencyKey: 'workflow:execution-1:email-1',
       subject: 'Daily trends',
       to: 'owner@org.com',
     });
@@ -89,10 +94,30 @@ describe('SendEmailExecutor', () => {
     );
     expect(mockSender).toHaveBeenCalledWith({
       html: '<p>cfg</p>',
+      idempotencyKey: 'workflow:execution-1:email-1',
       subject: 'cfg',
       to: 'cfg@org.com',
     });
     expect(result.data).toMatchObject({ sent: true });
+  });
+
+  it('reuses the execution and node key across resume run ids', async () => {
+    const inputData = {
+      html: '<p>Hello</p>',
+      subject: 'Hello',
+      to: 'owner@org.com',
+    };
+
+    await executor.execute(makeInput({}, inputData, { runId: 'run-original' }));
+    await executor.execute(makeInput({}, inputData, { runId: 'run-resumed' }));
+
+    expect(mockSender).toHaveBeenCalledTimes(2);
+    expect(mockSender.mock.calls[0]?.[0].idempotencyKey).toBe(
+      'workflow:execution-1:email-1',
+    );
+    expect(mockSender.mock.calls[1]?.[0].idempotencyKey).toBe(
+      'workflow:execution-1:email-1',
+    );
   });
 
   it('throws if recipient is missing', async () => {

@@ -3,6 +3,7 @@ import {
   GENFEED_ACTION_NODE_TYPE,
 } from '@genfeedai/actions';
 import type { ExecutableNode } from '../../types';
+import { deriveWorkflowActionIdempotencyKey } from '../../utils/idempotency';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -47,6 +48,11 @@ export class GenfeedActionExecutor extends BaseExecutor {
     }
 
     const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
+    const idempotencyKey = deriveWorkflowActionIdempotencyKey({
+      actionId,
+      executionId: context.executionId,
+      nodeId: node.id,
+    });
     const input = {
       ...(typeof parameters === 'object' &&
       parameters !== null &&
@@ -63,7 +69,7 @@ export class GenfeedActionExecutor extends BaseExecutor {
           typeof node.config.brandId === 'string'
             ? node.config.brandId
             : undefined,
-        idempotencyKey: `workflow:${context.executionId ?? context.runId}:${node.id}`,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
         nodeId: node.id,
         organizationId: context.organizationId,
         origin: 'workflow',

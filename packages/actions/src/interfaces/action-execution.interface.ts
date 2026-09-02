@@ -11,7 +11,7 @@ export type ActionExecutionOrigin =
 export interface ActionExecutionContext {
   actionId: string;
   brandId?: string;
-  idempotencyKey: string;
+  idempotencyKey?: string;
   nodeId: string;
   organizationId: string;
   origin: ActionExecutionOrigin;
