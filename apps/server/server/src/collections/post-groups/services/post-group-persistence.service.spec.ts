@@ -460,6 +460,28 @@ describe('PostGroupPersistenceService', () => {
     ]);
   });
 
+  it('narrows the calendar to releases belonging to one Publish content campaign', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ campaignId: 'cmp_spring', id: 'group-campaign' }),
+      makeGroup({ id: 'group-unassigned' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-campaign', id: 'campaign-target' }),
+      makeTarget({ groupId: 'group-unassigned', id: 'unassigned-target' }),
+    ]);
+
+    const result = await service.listReleaseGroups({
+      campaignId: 'cmp_spring',
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      organizationId: 'org-1',
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+    });
+
+    expect(result.docs.map((release) => release.id)).toEqual([
+      'group-campaign',
+    ]);
+  });
+
   it('filters the canonical projection by derived manual and workflow provenance', async () => {
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({ id: 'group-agent' }),
@@ -727,6 +749,7 @@ function makeGroup(
     attachments: [],
     baseContent: 'Launch note',
     brandId: 'brand-1',
+    campaignId: null,
     createdAt: new Date('2026-07-19T10:00:00.000Z'),
     id: 'group-1',
     idempotencyKey: 'request-1',
@@ -763,6 +786,7 @@ function makeTarget(
     analyticsCollectionRequestedAt: null,
     analyticsCollectionState: 'unavailable',
     brandId: 'brand-1',
+    campaignId: null,
     createdAt: new Date('2026-07-19T10:00:00.000Z'),
     credentialId: 'credential-1',
     externalId: null,

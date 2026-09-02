@@ -1,4 +1,3 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   CredentialPlatform,
   PostCategory,
@@ -7,6 +6,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -161,6 +161,14 @@ export class PostGroupsQueryDto {
   @IsOptional()
   @IsEntityId()
   brandId?: string;
+
+  @ApiProperty({
+    description: 'Filter release groups to one Publish content campaign',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  campaignId?: string;
 
   @ApiProperty({
     description:
