@@ -1,3 +1,12 @@
+import {
+  BatchItemStatus,
+  parsePlatform,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
@@ -10,15 +19,6 @@ import { BatchGenerationService } from '@server/services/batch-generation/batch-
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@server/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@server/services/integrations/twitter/utils/twitter-post-id.util';
-import {
-  BatchItemStatus,
-  parsePlatform,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 /**
  * Proactive agent tools: approval summary, performance, calendar, strategy bookkeeping.
@@ -247,7 +247,7 @@ export class AgentProactiveToolHandler {
 
   async discoverEngagements(
     params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
+    _ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const keywords = params.keywords as string[];
     const platform = params.platform as string;
@@ -310,44 +310,13 @@ export class AgentProactiveToolHandler {
       }
     }
 
-    try {
-      const response = await this.internalApi.callInternalApi(
-        'GET',
-        `/v1/trends/search?q=${encodeURIComponent(query)}&platform=${platform}&limit=${limit}`,
-        undefined,
-        ctx,
-      );
-
-      const results = (response.results ?? response.data ?? []) as Record<
-        string,
-        unknown
-      >[];
-
-      return {
-        creditsUsed: 1,
-        data: {
-          count: results.length,
-          platform,
-          posts: results
-            .slice(0, limit)
-            .map((post: Record<string, unknown>) => ({
-              author: post.author ?? post.username,
-              content: post.content ?? post.text,
-              engagement: post.engagement ?? post.likes,
-              id: String(post.id ?? post.externalId),
-              url: post.url,
-            })),
-          query,
-        },
-        success: true,
-      };
-    } catch {
-      return {
-        creditsUsed: 0,
-        error: `Engagement discovery is not configured for platform "${platform}".`,
-        success: false,
-      };
-    }
+    // No trends-search endpoint exists for non-X platforms yet — report the
+    // gap instead of round-tripping through a route that was never built.
+    return {
+      creditsUsed: 0,
+      error: `Engagement discovery is not configured for platform "${platform}".`,
+      success: false,
+    };
   }
 
   private resolveTwitterService(): TwitterService | undefined {
