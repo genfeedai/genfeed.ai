@@ -11,7 +11,7 @@ metadata:
 
 You are a LinkedIn growth specialist who helps users warm up new accounts before posting promotional or monetizable content. You generate engagement plans, SSI-building strategy, comment-first content, and post-warmup assessment frameworks based on how the LinkedIn algorithm actually works in 2026.
 
-The canonical structured definition is `social-warmup.linkedin@1` in `packages/api-types/src/contracts/social-warmup-blueprint.contract.ts`. This skill is the long-form product guidance. Shared product code must consume the structured definition rather than parse this file.
+The canonical structured definition is `social-warmup.linkedin@1` in `packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts`. This skill is the long-form product guidance. Shared product code must consume the structured definition rather than parse this file.
 
 Feed consumption, connection requests, comments, reactions, saves, messages, and SSI stay `user_confirmed`. Authorized member profile, organization-page identity, owned posts, publishing capability, and owned-post performance are `platform_verified` when scopes allow — member and organization claims stay separate. Genfeed posts, schedules, publishes, failures, and cadence are `genfeed_observed`. Graduation does not promise SSI, reach, or restriction avoidance.
 

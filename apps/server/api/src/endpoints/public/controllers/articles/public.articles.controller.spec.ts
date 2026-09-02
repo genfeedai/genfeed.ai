@@ -2,7 +2,11 @@ import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.d
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetScope,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

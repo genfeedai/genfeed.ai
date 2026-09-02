@@ -1,4 +1,4 @@
-import type { BrandRemixRunView } from '@api-types/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
   act,
   fireEvent,

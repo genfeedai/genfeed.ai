@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewHealthSectionProps } from '@props/publisher/publishing-overview.props';
 import Card from '@ui/card/Card';

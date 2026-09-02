@@ -4,9 +4,9 @@ import type {
   ModelLifecycle,
   QualityTier,
   RouterPriority,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import type { RefObject } from 'react';
 export interface ModelSelectorOption {
   model: IModel;

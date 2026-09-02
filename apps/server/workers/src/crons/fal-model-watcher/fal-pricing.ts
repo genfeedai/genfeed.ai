@@ -1,4 +1,4 @@
-import { PricingType } from '@genfeedai/enums';
+import { PricingType } from '@genfeedai/contracts';
 
 export interface NormalizedFalPrice {
   conditionalDimensions: Record<string, unknown>;

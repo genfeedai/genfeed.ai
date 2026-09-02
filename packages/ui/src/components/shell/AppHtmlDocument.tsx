@@ -1,4 +1,4 @@
-import type { ThemePreference } from '@genfeedai/constants';
+import type { ThemePreference } from '@genfeedai/contracts/constants';
 import {
   DNS_PREFETCH_ORIGINS,
   PRECONNECT_ORIGINS,

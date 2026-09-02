@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { PricingToggleProps } from '@genfeedai/props/content/pricing.props';
 import { Button } from '@ui/primitives/button';
 

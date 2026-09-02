@@ -1,5 +1,5 @@
 import { ClipResultStatus } from '@api/collections/clip-results/schemas/clip-result.schema';
-import { CLIP_RESULT_MODES } from '@genfeedai/interfaces';
+import { CLIP_RESULT_MODES } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

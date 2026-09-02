@@ -1,5 +1,5 @@
 import { brandPath } from '@e2e/utils/app-chrome';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';

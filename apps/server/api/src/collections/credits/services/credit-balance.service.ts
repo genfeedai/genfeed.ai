@@ -7,7 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   IApplyCreditDeltaInput,
   ICreditWalletSnapshot,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

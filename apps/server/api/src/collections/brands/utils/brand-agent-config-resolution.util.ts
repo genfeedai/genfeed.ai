@@ -14,7 +14,10 @@ import type {
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
-import { normalizeAgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import {
+  normalizeAgentAutonomyMode,
+  RouterPriority,
+} from '@genfeedai/contracts';
 
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =

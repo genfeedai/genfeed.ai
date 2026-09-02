@@ -13,13 +13,13 @@ import {
   type AdsGatewayAdapterContextInput,
   AdsGatewayRequestContextService,
 } from '@api/services/ads-gateway/ads-gateway-request-context.service';
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type {
   CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
   UpdateCampaignInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

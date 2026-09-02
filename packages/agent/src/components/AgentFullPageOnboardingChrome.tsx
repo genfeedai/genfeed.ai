@@ -1,6 +1,6 @@
 import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
 import { isCloudDeployment } from '@genfeedai/config/deployment';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { OnboardingChecklistStep } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import {
   Drawer,

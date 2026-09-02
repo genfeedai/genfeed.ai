@@ -19,7 +19,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MediumController } from '@api/services/integrations/medium/controllers/medium.controller';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

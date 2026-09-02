@@ -5,7 +5,7 @@ import type {
   ISubscriptionFindOneFilter,
   ISubscriptionOssReadModel,
   ISubscriptionsService,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
 function organizationBillingUnavailable(): never {

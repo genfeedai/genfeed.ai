@@ -1,7 +1,7 @@
 'use client';
 
+import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import type {
   RouteTabItem,
   TabItem,

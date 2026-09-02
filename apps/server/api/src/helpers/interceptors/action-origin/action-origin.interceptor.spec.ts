@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
 import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
 import { getActionOriginContext } from '@api/index';
-import { ActionOrigin, MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  MCP_ACTION_ORIGIN_PROOF_HEADER,
+} from '@genfeedai/contracts';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { defer, firstValueFrom, of } from 'rxjs';
 

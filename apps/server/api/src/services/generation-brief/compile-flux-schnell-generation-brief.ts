@@ -2,26 +2,26 @@ import { GenerationBriefCompileError } from '@api/services/generation-brief/gene
 import type {
   GenerationFidelityPolicy,
   ImageGenerationBrief,
-} from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   FluxSchnellCompileResult,
   FluxSchnellDispatch,
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_SCHNELL_IMAGE_COMPILER_ID,
   FLUX_SCHNELL_IMAGE_COMPILER_VERSION,
   fluxSchnellCompileResultSchema,
   GENERATION_BRIEF_CONTRACT_VERSION,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_SCHNELL_CAPABILITY_PROFILE,
   FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
   FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
   FLUX_SCHNELL_MODEL_KEY,
-} from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
 export interface CompileFluxSchnellGenerationBriefInput {

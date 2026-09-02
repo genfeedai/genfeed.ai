@@ -5,7 +5,7 @@ import { SocialInboxIngestionService } from '@api/collections/social-inbox/servi
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 

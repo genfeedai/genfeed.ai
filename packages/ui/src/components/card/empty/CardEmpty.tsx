@@ -1,4 +1,4 @@
-import { ButtonVariant, CardEmptySize } from '@genfeedai/enums';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardEmptyProps } from '@genfeedai/props/ui/cards/card-empty.props';
 import CardIcon from '@ui/card/icon/CardIcon';

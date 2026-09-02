@@ -31,7 +31,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

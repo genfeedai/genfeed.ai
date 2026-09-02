@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { getReviewItemBadgeStatus } from './review-item.helpers';

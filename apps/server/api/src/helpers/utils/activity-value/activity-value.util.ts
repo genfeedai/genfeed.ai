@@ -2,7 +2,7 @@ import {
   getActivityLabel,
   getActivityResultType,
 } from '@api/helpers/utils/activity-label/activity-label.util';
-import { ActivityKey } from '@genfeedai/enums';
+import { ActivityKey } from '@genfeedai/contracts';
 
 export interface CompletionValueParams {
   activityKey: ActivityKey;

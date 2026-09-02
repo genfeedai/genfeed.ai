@@ -3,7 +3,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   OrganizationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 /**
@@ -62,7 +62,7 @@ export type PrismaIngredientStatusValue =
  * in category-prisma.util.spec.ts. Also accepts legacy lowercase input via
  * PRISMA_INGREDIENT_CATEGORY_VALUES passthrough below after uppercasing paths.
  *
- * If you add a member to @genfeedai/enums IngredientCategory you MUST add it
+ * If you add a member to @genfeedai/contracts IngredientCategory you MUST add it
  * here too.
  */
 const APP_TO_PRISMA_INGREDIENT_CATEGORY: Record<
@@ -86,7 +86,7 @@ const APP_TO_PRISMA_INGREDIENT_CATEGORY: Record<
 /**
  * Explicit app→Prisma mapping for OrganizationCategory.
  *
- * If you add a member to @genfeedai/enums OrganizationCategory you MUST add it
+ * If you add a member to @genfeedai/contracts OrganizationCategory you MUST add it
  * here too — the guard test in category-prisma.util.spec.ts will fail otherwise.
  */
 const APP_TO_PRISMA_ORGANIZATION_CATEGORY: Record<
@@ -120,7 +120,7 @@ const PRISMA_ORGANIZATION_CATEGORY_VALUES = new Set<string>(
  * Domain values already match Prisma SCREAMING_SNAKE (identity map). Kept as an
  * exhaustive boundary against dual-spelling regressions.
  *
- * If you add a member to @genfeedai/enums AssetScope you MUST add it here too —
+ * If you add a member to @genfeedai/contracts AssetScope you MUST add it here too —
  * the guard test in category-prisma.util.spec.ts will fail otherwise.
  */
 const APP_TO_PRISMA_ASSET_SCOPE: Record<AssetScope, PrismaAssetScopeValue> = {
@@ -136,7 +136,7 @@ const APP_TO_PRISMA_ASSET_SCOPE: Record<AssetScope, PrismaAssetScopeValue> = {
  * Domain values already match Prisma SCREAMING_SNAKE (identity map). Kept as an
  * exhaustive boundary against dual-spelling regressions.
  *
- * If you add a member to @genfeedai/enums IngredientStatus you MUST add it here
+ * If you add a member to @genfeedai/contracts IngredientStatus you MUST add it here
  * too — the guard test in category-prisma.util.spec.ts will fail otherwise.
  */
 const APP_TO_PRISMA_INGREDIENT_STATUS: Record<

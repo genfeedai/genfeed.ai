@@ -1,19 +1,19 @@
 import {
+  type CredentialPlatform,
+  formatPlatformLabel,
+  IngredientCategory,
+  parsePlatform,
+  TargetValidationState,
+} from '@genfeedai/contracts';
+import {
   type ChannelCapability,
   type ChannelMediaKind,
   type ChannelTargetValidationResult,
   getChannelCapability,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
   validateChannelTargetSettings,
-} from '@api-types/contracts';
-import {
-  type CredentialPlatform,
-  formatPlatformLabel,
-  IngredientCategory,
-  parsePlatform,
-  TargetValidationState,
-} from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 
 import type {
   CaptionPreviewState,

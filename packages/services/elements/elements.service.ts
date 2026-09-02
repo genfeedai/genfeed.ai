@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -9,7 +9,7 @@ import type {
   IElementScene,
   IElementStyle,
   ISound,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeCollection,

@@ -5,8 +5,8 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import type { IBrandAgentVoice } from '@genfeedai/interfaces';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { IBrandAgentVoice } from '@genfeedai/contracts/interfaces';
 import type { AnalyticsFeedbackOutput } from '@genfeedai/workflows/engine';
 import {
   createAnalyticsFeedbackExecutor,

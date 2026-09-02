@@ -13,13 +13,13 @@ import type {
 import { TIKTOK_APP_HANDOFF_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

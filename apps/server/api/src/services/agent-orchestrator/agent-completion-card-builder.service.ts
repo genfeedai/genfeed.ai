@@ -1,9 +1,9 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   AgentToolName,
   type AgentUiAction,
   type AgentUiActionCta,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export interface AgentCompletionSuggestedAction {

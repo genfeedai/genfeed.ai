@@ -4,7 +4,7 @@ import type {
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
+import { ButtonVariant, PostVisibility } from '@genfeedai/contracts';
 import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
 import { Button } from '@ui/primitives/button';

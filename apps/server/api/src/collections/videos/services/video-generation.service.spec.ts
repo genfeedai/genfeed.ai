@@ -13,15 +13,15 @@ import { VideoGenerationProviderDispatchService } from '@api/collections/videos/
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import {
-  buildMinimaxH3GenerationSource,
-  buildPrunaaiPVideoGenerationSource,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import {
   IngredientCategory,
   IngredientStatus,
   ModelProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  buildMinimaxH3GenerationSource,
+  buildPrunaaiPVideoGenerationSource,
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

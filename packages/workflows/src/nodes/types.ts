@@ -1,5 +1,5 @@
-import type { BaseNodeData as CoreBaseNodeData } from '@genfeedai/types/nodes';
-import * as CoreNodeTypes from '@genfeedai/types/nodes';
+import type { BaseNodeData as CoreBaseNodeData } from '@genfeedai/contracts/types/nodes';
+import * as CoreNodeTypes from '@genfeedai/contracts/types/nodes';
 
 export type {
   HandleDefinition,
@@ -8,12 +8,12 @@ export type {
   NodeDefinition,
   NodeStatus,
   NodeType,
-} from '@genfeedai/types/nodes';
+} from '@genfeedai/contracts/types/nodes';
 
 export const NodeStatusEnum = CoreNodeTypes.NodeStatusEnum;
 export const HandleTypeEnum = CoreNodeTypes.HandleTypeEnum;
 
-export type { NodeType as CoreNodeType } from '@genfeedai/types/nodes';
+export type { NodeType as CoreNodeType } from '@genfeedai/contracts/types/nodes';
 
 export interface BaseNodeData extends CoreBaseNodeData {
   label: CoreBaseNodeData['label'];

@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ANALYTICS_EVENTS } from './analytics-events';
 import { captureAnalyticsEvent } from './posthog-client';
 

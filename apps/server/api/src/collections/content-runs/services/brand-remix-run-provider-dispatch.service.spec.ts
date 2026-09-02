@@ -5,7 +5,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixRunConfig,
   brandRemixRunConfigSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

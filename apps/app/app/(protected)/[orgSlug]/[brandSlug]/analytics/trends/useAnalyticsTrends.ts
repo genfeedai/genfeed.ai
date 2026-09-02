@@ -1,5 +1,5 @@
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import { Platform, Timeframe } from '@genfeedai/enums';
+import { Platform, Timeframe } from '@genfeedai/contracts';
 import type {
   IBrand,
   ITrend,
@@ -8,9 +8,9 @@ import type {
   ITrendSound,
   ITrendVideo,
   IVideo,
-} from '@genfeedai/interfaces';
-import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-watchlist.interface';
-import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { ICreatorWatchlist } from '@genfeedai/contracts/interfaces/analytics/creator-watchlist.interface';
+import type { ITrendPlatformConfig } from '@genfeedai/contracts/interfaces/analytics/platform-config.interface';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';

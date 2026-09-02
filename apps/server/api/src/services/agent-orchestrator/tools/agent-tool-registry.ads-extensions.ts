@@ -1,5 +1,5 @@
-import type { AgentToolDefinition } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import type { AgentToolDefinition } from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /** Ads research and launch-review overrides for reviewed catalog actions. */
 export const ADS_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [

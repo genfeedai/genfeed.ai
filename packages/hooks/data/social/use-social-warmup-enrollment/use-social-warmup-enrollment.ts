@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { ISocialWarmupEnrollment } from '@genfeedai/interfaces';
+import type { ISocialWarmupEnrollment } from '@genfeedai/contracts/interfaces';
 import { SocialWarmupEnrollmentsService } from '@genfeedai/services/social/social-warmup-enrollments.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

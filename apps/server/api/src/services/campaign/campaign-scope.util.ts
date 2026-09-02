@@ -1,6 +1,6 @@
 import { type OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import type { ICampaignScope } from '@genfeedai/interfaces';
+import type { ICampaignScope } from '@genfeedai/contracts/interfaces';
 
 /**
  * Resolve an outreach campaign's ownership from its scalar FK columns.

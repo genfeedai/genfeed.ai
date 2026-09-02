@@ -6,7 +6,7 @@ import {
 } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

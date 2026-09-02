@@ -1,4 +1,7 @@
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { redirect } from 'next/navigation';
 
 /**

@@ -3,7 +3,7 @@ import { PublishingSetupController } from '@api/collections/publishing-setup/con
 import type { PublishingSetupService } from '@api/collections/publishing-setup/services/publishing-setup.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,

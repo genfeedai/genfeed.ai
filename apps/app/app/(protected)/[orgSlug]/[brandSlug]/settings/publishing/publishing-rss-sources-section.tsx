@@ -5,8 +5,8 @@ import {
   ButtonVariant,
   RssApprovalMode,
   RssImportPolicy,
-} from '@genfeedai/enums';
-import type { ICredential, IRssSource } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ICredential, IRssSource } from '@genfeedai/contracts/interfaces';
 import { useRssSources } from '@hooks/data/content/use-rss-sources';
 import type { PublishingRssSourcesSectionProps } from '@props/scheduler/rss-sources-section.props';
 import { logger } from '@services/core/logger.service';

@@ -1,6 +1,6 @@
 'use client';
 
-import { BatchItemStatus } from '@genfeedai/enums';
+import { BatchItemStatus } from '@genfeedai/contracts';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import {
   formatDateInTimezone,

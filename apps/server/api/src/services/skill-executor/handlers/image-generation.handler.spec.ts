@@ -4,7 +4,7 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
-import { ImageTaskModel } from '@genfeedai/enums';
+import { ImageTaskModel } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -2,7 +2,7 @@ import type {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { AgentStrategy } from '@genfeedai/services/automation/agent-strategies.service';
 
 export interface AgentStrategyFormState {

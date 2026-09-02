@@ -1,4 +1,4 @@
-import type { FolderTreeNode, IFolder } from '@genfeedai/interfaces';
+import type { FolderTreeNode, IFolder } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import { buildFolderTree, getFolderAncestorIds } from './folder-tree.util';

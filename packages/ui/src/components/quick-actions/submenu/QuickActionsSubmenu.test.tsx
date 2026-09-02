@@ -1,4 +1,4 @@
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
+import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import { render } from '@testing-library/react';
 import QuickActionsSubmenu from '@ui/quick-actions/submenu/QuickActionsSubmenu';
 import type { PropsWithChildren, ReactNode } from 'react';

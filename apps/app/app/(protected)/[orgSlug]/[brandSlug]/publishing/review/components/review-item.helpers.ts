@@ -9,8 +9,11 @@ import {
   TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IBatchItem, IReleaseMediaReference } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IBatchItem,
+  IReleaseMediaReference,
+} from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 
 import {

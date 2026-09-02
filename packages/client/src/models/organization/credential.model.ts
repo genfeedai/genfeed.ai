@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IBrand,
   IClockTime,
@@ -9,7 +9,7 @@ import type {
   IOrganization,
   ITag,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class BaseCredential extends BaseEntity implements ICredential {
   public declare userId: string | null;

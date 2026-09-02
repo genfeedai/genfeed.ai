@@ -3,11 +3,11 @@ import type {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IReleaseAnalyticsComparison,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { CalendarItem } from '@props/components/calendar.props';
 
 /**

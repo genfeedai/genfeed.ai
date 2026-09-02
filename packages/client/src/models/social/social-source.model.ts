@@ -1,6 +1,9 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
-import type { ISocialSource } from '@genfeedai/interfaces';
+import type {
+  SocialSourcePlatform,
+  SocialSourceType,
+} from '@genfeedai/contracts';
+import type { ISocialSource } from '@genfeedai/contracts/interfaces';
 
 export class SocialSource extends BaseEntity implements ISocialSource {
   public declare organizationId: string;

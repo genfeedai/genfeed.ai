@@ -16,8 +16,8 @@ import {
   buildBatchGenerationWorkflowDefinition,
 } from '@api/services/batch-generation/batch-generation-workflow-definition';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActionOrigin } from '@genfeedai/enums';
-import type { BatchGenerationWorkflowInput } from '@genfeedai/interfaces';
+import { ActionOrigin } from '@genfeedai/contracts';
+import type { BatchGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

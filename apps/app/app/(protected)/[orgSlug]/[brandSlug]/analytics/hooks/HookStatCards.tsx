@@ -1,6 +1,6 @@
 'use client';
 
-import type { IViralHookAnalysis } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
+import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import { Clock, Eye, Heart, TrendingUp } from 'lucide-react';

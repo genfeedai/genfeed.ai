@@ -1,5 +1,5 @@
-import { AssetScope } from '@genfeedai/enums';
-import type { IBrand } from '@genfeedai/interfaces';
+import { AssetScope } from '@genfeedai/contracts';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

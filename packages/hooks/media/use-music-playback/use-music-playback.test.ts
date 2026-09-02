@@ -2,8 +2,8 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { useMusicPlayback } from '@hooks/media/use-music-playback/use-music-playback';
 import { act, renderHook } from '@testing-library/react';
 import type { SetStateAction } from 'react';

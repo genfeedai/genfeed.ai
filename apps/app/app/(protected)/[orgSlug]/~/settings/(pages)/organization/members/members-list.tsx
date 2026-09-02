@@ -1,9 +1,16 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/enums';
-import type { IMemberInvitation, IQueryParams } from '@genfeedai/interfaces';
+import { ButtonVariant, MemberRole, ModalEnum } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  EMPTY_STATES,
+  ITEMS_PER_PAGE,
+} from '@genfeedai/contracts/constants';
+import type {
+  IMemberInvitation,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
 import {
   getSeatLimitForTier,
   getUpgradeTierForLimit,

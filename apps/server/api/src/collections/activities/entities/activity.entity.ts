@@ -4,7 +4,7 @@ import type {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export class ActivityEntity extends BaseEntity {
   declare readonly action: string | null;

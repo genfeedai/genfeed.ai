@@ -6,7 +6,10 @@ import {
   BaseService,
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
-import type { IJsonApiSerializer, PopulateOption } from '@genfeedai/interfaces';
+import type {
+  IJsonApiSerializer,
+  PopulateOption,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module, Type } from '@nestjs/common';
 

@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { BotActivityStatus, ReplyBotPlatform } from '@genfeedai/enums';
-import type { IBotActivity } from '@genfeedai/interfaces';
+import type { BotActivityStatus, ReplyBotPlatform } from '@genfeedai/contracts';
+import type { IBotActivity } from '@genfeedai/contracts/interfaces';
 
 export class BotActivity extends BaseEntity implements IBotActivity {
   public declare organizationId: string;

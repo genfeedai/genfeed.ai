@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { compilePrunaaiPVideoGenerationBrief } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
-import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { prunaaiPVideoDispatchSchema } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { prunaaiPVideoDispatchSchema } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 const fixturesDir = join(

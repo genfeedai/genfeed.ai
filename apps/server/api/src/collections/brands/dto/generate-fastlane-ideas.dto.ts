@@ -1,4 +1,4 @@
-import type { FastlaneFormat } from '@genfeedai/interfaces';
+import type { FastlaneFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMinSize,

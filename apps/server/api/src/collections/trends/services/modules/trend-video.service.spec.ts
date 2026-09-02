@@ -1,5 +1,5 @@
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendVideoService', () => {

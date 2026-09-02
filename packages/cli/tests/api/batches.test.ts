@@ -1,4 +1,4 @@
-import { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   batchItemAction,

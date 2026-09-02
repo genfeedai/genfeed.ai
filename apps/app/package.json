@@ -5,15 +5,10 @@
     "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
-    "@genfeedai/constants": "*",
-    "@genfeedai/desktop-contracts": "*",
-    "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
-    "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",
     "@genfeedai/styles": "*",
-    "@genfeedai/types": "*",
     "@genfeedai/ui": "*",
     "@genfeedai/workflows": "*",
     "@remotion/player": "4.0.518",
@@ -36,7 +31,8 @@
     "react-dom": "19.2.8",
     "remotion": "4.0.518",
     "serwist": "9.5.12",
-    "zustand": "5.0.15"
+    "zustand": "5.0.15",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Content Hub - Unified content management, publishing, and analytics",
   "devDependencies": {

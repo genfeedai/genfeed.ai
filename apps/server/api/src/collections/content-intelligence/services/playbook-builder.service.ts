@@ -12,7 +12,7 @@ import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/re
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

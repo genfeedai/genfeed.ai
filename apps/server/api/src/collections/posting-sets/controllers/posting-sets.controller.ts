@@ -15,7 +15,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { IPostingSetScope } from '@genfeedai/interfaces';
+import type { IPostingSetScope } from '@genfeedai/contracts/interfaces';
 import { PostingSetSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

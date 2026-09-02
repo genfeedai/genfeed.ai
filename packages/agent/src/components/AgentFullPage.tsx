@@ -9,8 +9,8 @@ import AgentThreadContextPanel from '@genfeedai/agent/components/AgentThreadCont
 import { useConversationInspectorShell } from '@genfeedai/agent/components/ConversationInspectorShellContext';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { MemberRole } from '@genfeedai/enums';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/contracts';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ReactElement } from 'react';
 import { useEffect } from 'react';

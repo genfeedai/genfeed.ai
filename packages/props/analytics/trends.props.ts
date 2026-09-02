@@ -1,9 +1,9 @@
-import type { Timeframe } from '@genfeedai/enums';
+import type { Timeframe } from '@genfeedai/contracts';
 import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface ViralVideoLeaderboardProps {
   videos: ITrendVideo[];

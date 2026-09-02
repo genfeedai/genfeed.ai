@@ -3,12 +3,12 @@
  * Manages AI-generated insights and analytics recommendations
  */
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IDateRange,
   IInsightResponse,
   IReportConfig,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Insight } from '@genfeedai/props/analytics/insights.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';

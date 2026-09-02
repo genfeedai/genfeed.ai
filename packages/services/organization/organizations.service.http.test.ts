@@ -1,5 +1,5 @@
-import { IngredientCategory, OrganizationCategory } from '@genfeedai/enums';
-import type { IMemberInvitation } from '@genfeedai/interfaces';
+import { IngredientCategory, OrganizationCategory } from '@genfeedai/contracts';
+import type { IMemberInvitation } from '@genfeedai/contracts/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Image } from '@genfeedai/models/ingredients/image.model';

@@ -4,7 +4,7 @@ import type {
   HarnessProfileScope,
   ICreateHarnessProfilePayload,
   IHarnessProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { HarnessProfilesService } from '@genfeedai/services/ai/harness-profiles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

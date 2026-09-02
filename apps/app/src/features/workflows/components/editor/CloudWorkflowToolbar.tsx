@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { usePaneActions } from '@genfeedai/workflows/ui/hooks';
 import {
   selectIsDirty,

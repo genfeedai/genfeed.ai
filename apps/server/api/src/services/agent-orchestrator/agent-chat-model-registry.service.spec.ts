@@ -1,6 +1,6 @@
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const row = (overrides: Record<string, unknown>) => ({

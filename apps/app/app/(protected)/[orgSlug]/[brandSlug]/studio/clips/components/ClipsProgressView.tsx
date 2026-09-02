@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ProjectState } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';

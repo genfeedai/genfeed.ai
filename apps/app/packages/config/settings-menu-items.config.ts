@@ -1,6 +1,6 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { SettingsSurface } from '@genfeedai/enums';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { SettingsSurface } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Bell,
   Bot,

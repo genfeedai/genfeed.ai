@@ -1,4 +1,4 @@
-import type { ContentIntelligencePlatform } from '@genfeedai/enums';
+import type { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import type { PatternPlaybook as PrismaPatternPlaybook } from '@genfeedai/prisma';
 
 export type { PatternPlaybook as PrismaPatternPlaybook } from '@genfeedai/prisma';

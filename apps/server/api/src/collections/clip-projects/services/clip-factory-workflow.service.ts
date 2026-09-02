@@ -22,7 +22,7 @@ import {
   DEFAULT_CLIP_RESULT_MODE,
   isClipResultMode,
   isSupportedAvatarVideoProviderName,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type HighlightedClipFactoryInput = {

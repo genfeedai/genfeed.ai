@@ -2,7 +2,7 @@ import type {
   ContentIntelligencePlatform,
   ContentPatternType,
   TemplateCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ContentPattern as PrismaContentPattern } from '@genfeedai/prisma';
 
 export type { ContentPattern as PrismaContentPattern } from '@genfeedai/prisma';

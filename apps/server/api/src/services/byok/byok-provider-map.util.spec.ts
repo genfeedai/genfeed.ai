@@ -3,7 +3,7 @@ import {
   modelProviderToByokProvider,
   resolveModelByokProvider,
 } from '@api/services/byok/byok-provider-map.util';
-import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
 describe('byok-provider-map.util', () => {
   describe('modelProviderToByokProvider', () => {

@@ -1,4 +1,4 @@
-import { TagCategory } from '@genfeedai/enums';
+import { TagCategory } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const tagSchema = z.object({

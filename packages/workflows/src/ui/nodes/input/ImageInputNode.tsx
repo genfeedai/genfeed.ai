@@ -1,6 +1,6 @@
 'use client';
 
-import type { ImageInputNodeData } from '@genfeedai/types';
+import type { ImageInputNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, ImageIcon, Link, LoaderCircle, Upload, X } from 'lucide-react';
 import Image from 'next/image';

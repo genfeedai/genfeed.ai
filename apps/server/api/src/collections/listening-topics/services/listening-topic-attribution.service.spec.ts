@@ -7,7 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 
 describe('ListeningTopicAttributionService', () => {
   const listeningTheme = { findFirst: vi.fn() };

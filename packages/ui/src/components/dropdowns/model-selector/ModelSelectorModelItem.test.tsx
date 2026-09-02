@@ -1,5 +1,5 @@
-import { ModelCategory, ModelProvider, SpeedTier } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ModelCategory, ModelProvider, SpeedTier } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';

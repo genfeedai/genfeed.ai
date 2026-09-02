@@ -6,7 +6,7 @@ import type {
   IPreset,
   ITag,
   ITraining,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { createContext, useContext } from 'react';
 
 export interface PromptBarContextValue {

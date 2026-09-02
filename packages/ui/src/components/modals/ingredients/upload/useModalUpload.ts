@@ -8,17 +8,17 @@ import {
   ModalEnum,
   UploadStatus,
   VoiceProvider,
-} from '@genfeedai/enums';
-import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useAudioRecording } from '@genfeedai/hooks/media/use-audio-recording/use-audio-recording';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IHttpInterceptorError,
   IIngredient,
   IUploadProgressData,
-} from '@genfeedai/interfaces';
-import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useAudioRecording } from '@genfeedai/hooks/media/use-audio-recording/use-audio-recording';
 import type { Asset } from '@genfeedai/models/ingredients/asset.model';
 import type { ModalUploadProps } from '@genfeedai/props/modals/modal.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';

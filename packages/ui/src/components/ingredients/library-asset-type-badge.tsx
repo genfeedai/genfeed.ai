@@ -4,7 +4,7 @@ import {
   ComponentSize,
   formatEnumLabel,
   type IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
 import Badge from '@ui/display/badge/Badge';
 

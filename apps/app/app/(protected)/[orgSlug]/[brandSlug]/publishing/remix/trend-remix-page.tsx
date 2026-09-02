@@ -1,11 +1,14 @@
 'use client';
 
-import { APP_ROUTES, sourcePostVariationCredits } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  sourcePostVariationCredits,
+} from '@genfeedai/contracts/constants';
 import type {
   GenerateSourcePostVariationsInput,
   IPostVariationResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';

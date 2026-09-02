@@ -3,9 +3,9 @@ import {
   CredentialPlatform,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { SocialUrlHelper } from '@genfeedai/helpers';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Credential } from '@models/auth/credential.model';
 import { User } from '@models/auth/user.model';
 import { Ingredient } from '@models/content/ingredient.model';

@@ -1,4 +1,4 @@
-import type { TrendDirection } from '@genfeedai/enums';
+import type { TrendDirection } from '@genfeedai/contracts';
 import type {
   IAnalytics,
   IAnalyticsCSVRecord,
@@ -13,7 +13,7 @@ import type {
   IPostWithAnalytics,
   ITimeSeriesDataPoint,
   ITopContent,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Analytics implements IAnalytics {
   public declare totalPosts: number;

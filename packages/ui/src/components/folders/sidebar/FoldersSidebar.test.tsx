@@ -1,4 +1,4 @@
-import type { IFolder } from '@genfeedai/interfaces';
+import type { IFolder } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
 import type { ReactNode } from 'react';

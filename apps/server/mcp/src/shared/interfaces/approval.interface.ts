@@ -1,4 +1,4 @@
-import type { McpApprovalStatus } from '@genfeedai/enums';
+import type { McpApprovalStatus } from '@genfeedai/contracts';
 
 export interface McpApprovalResource {
   id: string;

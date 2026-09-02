@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { CardEmptySize } from '@genfeedai/enums';
+import { CardEmptySize } from '@genfeedai/contracts';
 import type { CredentialsGuardProps } from '@genfeedai/props/guards/credentials-guard.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CardEmpty from '@ui/card/empty/CardEmpty';

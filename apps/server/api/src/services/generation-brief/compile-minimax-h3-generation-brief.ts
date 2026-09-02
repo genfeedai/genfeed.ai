@@ -2,25 +2,25 @@ import { GenerationBriefCompileError } from '@api/services/generation-brief/gene
 import type {
   GenerationFidelityPolicy,
   VideoGenerationBrief,
-} from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   MinimaxH3CompileResult,
   MinimaxH3Dispatch,
   VideoGenerationBriefOmittedSignal,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_COMPILER_ID,
   MINIMAX_H3_COMPILER_VERSION,
   minimaxH3CompileResultSchema,
   VIDEO_GENERATION_BRIEF_CONTRACT_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_CAPABILITY_PROFILE,
   MINIMAX_H3_CAPABILITY_PROFILE_ID,
   MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
   MINIMAX_H3_MODEL_KEY,
-} from '@api-types/contracts/video-generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
 export interface CompileMinimaxH3GenerationBriefInput {

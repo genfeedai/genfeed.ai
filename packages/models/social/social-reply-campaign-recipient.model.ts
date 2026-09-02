@@ -1,7 +1,7 @@
 import type {
   SocialReplyCampaignRecipient,
   SocialReplyCampaignRecipientStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialReplyCampaignRecipientModel
   implements SocialReplyCampaignRecipient

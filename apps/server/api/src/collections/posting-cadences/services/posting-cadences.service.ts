@@ -13,11 +13,6 @@ import {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  buildSlotIdentityKey,
-  collapseOverlappingCadenceOccurrences,
-  expandCadenceOccurrences,
-} from '@api-types/contracts/cadence-expansion.contract';
-import {
   ArticleStatus,
   CadenceGenerateLanding,
   CalendarSlotItemType,
@@ -26,13 +21,18 @@ import {
   PostCategory,
   PostingCadenceStatus,
   ReleaseStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  buildSlotIdentityKey,
+  collapseOverlappingCadenceOccurrences,
+  expandCadenceOccurrences,
+} from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
 import type {
   ICalendarSlot,
   ICalendarSlotBulkGenerateResult,
   ICalendarSlotFillResult,
   IPostingCadence,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {

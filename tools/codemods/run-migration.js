@@ -187,7 +187,7 @@ function transformFile(filePath) {
   }
 
   // Now fix imports:
-  // Remove ModelKey from @genfeedai/enums import
+  // Remove ModelKey from @genfeedai/contracts import
   output = output.replace(
     /import\s*\{([^}]*)\}\s*from\s*['"]@genfeedai\/enums['"]/g,
     (_match, specifiers) => {
@@ -196,13 +196,13 @@ function transformFile(filePath) {
         .map((s) => s.trim())
         .filter((s) => s !== '' && s !== 'ModelKey');
       if (parts.length === 0) return '';
-      return `import { ${parts.join(', ')} } from '@genfeedai/enums'`;
+      return `import { ${parts.join(', ')} } from '@genfeedai/contracts'`;
     },
   );
   // Clean up empty lines from removed imports
   output = output.replace(/^[\t ]*\n/gm, '\n').replace(/\n{3,}/g, '\n\n');
 
-  // Add MODEL_KEYS import from @genfeedai/constants if not present
+  // Add MODEL_KEYS import from @genfeedai/contracts/constants if not present
   const hasModelKeysImport =
     /from\s*['"]@genfeedai\/constants['"]/.test(output) &&
     /MODEL_KEYS/.test(
@@ -218,7 +218,7 @@ function transformFile(filePath) {
     if (constImportMatch) {
       output = output.replace(
         constImportMatch[0],
-        `import { ${constImportMatch[1].trim()}, MODEL_KEYS } from '@genfeedai/constants'`,
+        `import { ${constImportMatch[1].trim()}, MODEL_KEYS } from '@genfeedai/contracts/constants'`,
       );
     } else {
       // Add new import after the last complete import statement
@@ -251,11 +251,11 @@ function transformFile(filePath) {
         lines.splice(
           lastImportEndLine + 1,
           0,
-          `import { MODEL_KEYS } from '@genfeedai/constants';`,
+          `import { MODEL_KEYS } from '@genfeedai/contracts/constants';`,
         );
         output = lines.join('\n');
       } else {
-        output = `import { MODEL_KEYS } from '@genfeedai/constants';\n${output}`;
+        output = `import { MODEL_KEYS } from '@genfeedai/contracts/constants';\n${output}`;
       }
     }
   }

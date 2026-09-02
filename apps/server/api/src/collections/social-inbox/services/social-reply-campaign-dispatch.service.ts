@@ -34,7 +34,7 @@ import {
   SocialReplyCampaignRecipientStatus,
   SocialReplyCampaignStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 

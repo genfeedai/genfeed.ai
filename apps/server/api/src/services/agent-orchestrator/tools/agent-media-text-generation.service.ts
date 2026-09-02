@@ -24,8 +24,8 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import {
   ContentIntelligencePlatform,
   formatPlatformLabel,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 const AI_ACTIONS: Readonly<Record<string, AiActionType>> = {

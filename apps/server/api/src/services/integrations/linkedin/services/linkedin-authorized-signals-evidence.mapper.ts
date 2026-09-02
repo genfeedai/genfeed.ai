@@ -10,7 +10,7 @@ import {
   type LinkedinOwnedPostPerformanceSignal,
   type LinkedinOwnedPostSignal,
   linkedinAuthorizedSignalStatusValues,
-} from '@api-types/contracts/linkedin-authorized-signals.contract';
+} from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
 
 export const LINKEDIN_OPENID_SCOPE = 'openid';
 export const LINKEDIN_PROFILE_SCOPE = 'profile';

@@ -12,11 +12,11 @@ import { scopedWhere } from '@api/index';
 import type { XAdsRequestCredentials } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, IngredientStatus } from '@genfeedai/contracts';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { CredentialPlatform, IngredientStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {

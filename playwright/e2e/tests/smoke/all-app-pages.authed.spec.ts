@@ -1,4 +1,7 @@
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { expect, type Page, type Response, test } from '@playwright/test';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { setupStrictNetworkGuard } from '../../utils/network-guard';

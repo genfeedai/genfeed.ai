@@ -1,4 +1,7 @@
-import type { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import type {
+  IntegrationPlatform,
+  IntegrationStatus,
+} from '@genfeedai/contracts';
 
 /**
  * Shared types for platform integrations

@@ -1,6 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
-import { ContentCampaignStatus } from '@genfeedai/enums';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {

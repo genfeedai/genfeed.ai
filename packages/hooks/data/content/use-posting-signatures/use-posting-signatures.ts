@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { IPostingSignature } from '@genfeedai/interfaces';
+import type { IPostingSignature } from '@genfeedai/contracts/interfaces';
 import { PostingSignaturesService } from '@genfeedai/services/content/posting-signatures.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

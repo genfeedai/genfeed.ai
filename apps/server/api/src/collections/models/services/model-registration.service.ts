@@ -1,4 +1,4 @@
-import { ModelLifecycle } from '@genfeedai/enums';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

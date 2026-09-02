@@ -3,8 +3,8 @@
 import type {
   ISocketEventHandler,
   ISocketManagerConfig,
-} from '@genfeedai/interfaces';
-import type { UseSocketManagerOptions } from '@genfeedai/interfaces/hooks/hooks.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { UseSocketManagerOptions } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import {

@@ -32,7 +32,7 @@ import {
   SocialMediaException,
   StorageServiceException,
 } from '@api/helpers/exceptions/external/external-service.exception';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type ExceptionResponse = {

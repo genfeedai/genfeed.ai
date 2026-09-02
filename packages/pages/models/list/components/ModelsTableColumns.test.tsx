@@ -3,8 +3,8 @@ import {
   ModelCategory,
   ModelLifecycle,
   QualityTier,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -38,7 +38,7 @@ import {
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,

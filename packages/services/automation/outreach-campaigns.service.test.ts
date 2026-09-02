@@ -1,4 +1,4 @@
-import { CampaignStatus, CampaignTargetType } from '@genfeedai/enums';
+import { CampaignStatus, CampaignTargetType } from '@genfeedai/contracts';
 import {
   axiosResponse,
   collectionDocument,

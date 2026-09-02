@@ -1,4 +1,4 @@
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import { usePromptBarForm } from '@hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

@@ -8,8 +8,8 @@ import {
   Platform,
   PostCategory,
   PostStatus,
-} from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type { TableColumn } from '@props/ui/display/table.props';

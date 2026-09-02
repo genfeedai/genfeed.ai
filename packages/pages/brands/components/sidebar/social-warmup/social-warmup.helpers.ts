@@ -1,19 +1,19 @@
-import type { SocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
-import { isSocialWarmupEnrollmentAllowed } from '@api-types/contracts/social-warmup-capability.contract';
-import {
-  isSocialWarmupJourneyCheckBlocking,
-  isSocialWarmupJourneyCheckSatisfied,
-} from '@api-types/contracts/social-warmup-journey.contract';
 import {
   type CredentialPlatform,
   formatPlatformLabel,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { SocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import { isSocialWarmupEnrollmentAllowed } from '@genfeedai/contracts/api-types/contracts/social-warmup-capability.contract';
+import {
+  isSocialWarmupJourneyCheckBlocking,
+  isSocialWarmupJourneyCheckSatisfied,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
 import type {
   ISocialWarmupEnrollment,
   ISocialWarmupSignal,
   SocialWarmupEventProvenance,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   BuildSocialWarmupProgramModelInput,
   ResolveSocialWarmupCheckStateInput,

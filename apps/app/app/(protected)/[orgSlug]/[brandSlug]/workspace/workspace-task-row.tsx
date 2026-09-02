@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import { Button as BaseButton } from '@ui/primitives/button';

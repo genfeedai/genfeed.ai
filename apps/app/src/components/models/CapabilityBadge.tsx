@@ -1,7 +1,7 @@
 'use client';
 
-import type { ModelCapability } from '@genfeedai/types';
-import { ModelCapabilityEnum } from '@genfeedai/types';
+import type { ModelCapability } from '@genfeedai/contracts/types';
+import { ModelCapabilityEnum } from '@genfeedai/contracts/types';
 
 const CAPABILITY_LABELS: Record<ModelCapability, string> = {
   [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt->img',

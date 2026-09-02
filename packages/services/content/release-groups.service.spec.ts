@@ -3,7 +3,7 @@ import {
   PostFrequency,
   PostVisibility,
   ReleaseStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

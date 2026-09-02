@@ -1,5 +1,5 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render } from '@testing-library/react';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';

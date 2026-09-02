@@ -1,6 +1,6 @@
 'use client';
 
-import { BatchItemStatus } from '@genfeedai/enums';
+import { BatchItemStatus } from '@genfeedai/contracts';
 import {
   DefinitionDetail,
   DefinitionList,

@@ -1,8 +1,12 @@
 'use client';
 
 import type { IEvaluation } from '@genfeedai/client/models';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient, ITag, IVideo } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  ITag,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';

@@ -2,9 +2,9 @@ import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-ac
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { MemberRole } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/contracts';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   Calendar,
   ChartColumn,

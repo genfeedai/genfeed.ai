@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GenerationSetupFieldRowProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
 import { Button } from '@ui/primitives/button';

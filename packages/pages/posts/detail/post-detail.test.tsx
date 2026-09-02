@@ -1,5 +1,5 @@
-import { PageScope, Platform, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetail from '@pages/posts/detail/post-detail';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';

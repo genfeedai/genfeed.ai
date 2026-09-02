@@ -1,7 +1,10 @@
 'use client';
 
-import type { AnimationNodeData, EasingPreset } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type {
+  AnimationNodeData,
+  EasingPreset,
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,

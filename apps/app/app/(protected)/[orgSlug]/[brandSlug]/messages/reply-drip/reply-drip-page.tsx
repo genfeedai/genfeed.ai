@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { SocialPlatform } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import type {
   ReplyCampaignDraft,

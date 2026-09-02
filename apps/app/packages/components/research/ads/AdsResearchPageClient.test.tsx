@@ -1,4 +1,4 @@
-import type { AdsResearchDetail } from '@genfeedai/interfaces';
+import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -11,7 +11,7 @@ import {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('ReplyBotConfigsService persistence', () => {

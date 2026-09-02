@@ -1,5 +1,5 @@
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
-import { OrganizationCategory } from '@genfeedai/enums';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 

@@ -1,5 +1,11 @@
-import { TargetExecutionState, TargetValidationState } from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+import {
+  TargetExecutionState,
+  TargetValidationState,
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import type {
   ReleaseRailOutcomeSummary,
   ReleaseRailTargetTone,

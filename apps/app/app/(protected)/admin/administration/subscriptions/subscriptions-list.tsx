@@ -2,8 +2,8 @@
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { LazyModalSubscription } from '@components/lazy/lazy-modal.admin';
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import type { IUser } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Subscription } from '@models/billing/subscription.model';

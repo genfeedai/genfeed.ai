@@ -1,4 +1,4 @@
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import type { NotificationsService } from '@services/core/notifications.service';

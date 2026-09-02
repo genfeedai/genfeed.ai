@@ -3,8 +3,8 @@ import type {
   SchedulerPostGroup,
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
-import { TargetExecutionState } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 
 export function toSyntheticReleaseGroup(
   target: SchedulerPostTarget,

@@ -9,8 +9,8 @@ import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/constants';
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import type {
   Brand,
   Organization,

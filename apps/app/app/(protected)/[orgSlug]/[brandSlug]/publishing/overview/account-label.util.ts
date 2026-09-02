@@ -1,5 +1,5 @@
-import { formatPlatformLabel } from '@genfeedai/enums';
-import type { ICredential } from '@genfeedai/interfaces';
+import { formatPlatformLabel } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 
 /**
  * Best available human label for a channel target's account: the operator's

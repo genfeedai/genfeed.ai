@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { TemplateCategory, TemplatePlatform } from '@genfeedai/enums';
+import type { TemplateCategory, TemplatePlatform } from '@genfeedai/contracts';
 import type {
   IOrganization,
   ITemplate,
@@ -7,7 +7,7 @@ import type {
   ITemplatePerformance,
   ITemplateVariable,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Template extends BaseEntity implements ITemplate {
   public declare organization?: string;

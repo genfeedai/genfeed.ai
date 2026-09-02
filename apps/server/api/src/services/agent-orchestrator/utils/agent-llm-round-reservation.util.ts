@@ -1,10 +1,10 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { ActivitySource } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_MODEL_KEYS,
   calculateAgentExactCredits,
-} from '@genfeedai/constants';
-import { ActivitySource } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 type ReservationCreditsClient = Pick<
   CreditsUtilsService,

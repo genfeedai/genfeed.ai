@@ -1,9 +1,9 @@
 import type { PrepareBrandDto } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
-import { ProactiveOnboardingStatus } from '@genfeedai/enums';
+import { ProactiveOnboardingStatus } from '@genfeedai/contracts';
 import type {
   IProactivePreparationStatus,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export function getProactivePrepStage(
   status?: ProactiveOnboardingStatus,

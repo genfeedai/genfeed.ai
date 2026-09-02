@@ -1,6 +1,6 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 import {
   DEFAULT_VIDEO_DURATION_OPTIONS,

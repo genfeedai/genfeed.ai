@@ -4,8 +4,8 @@ import {
   IngredientCategory,
   IngredientFormat,
   RouterPriority,
-} from '@genfeedai/enums';
-import type { IIngredient, IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildAvatarPayload,

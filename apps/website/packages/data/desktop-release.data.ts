@@ -11,7 +11,7 @@
  * renders its unreleased state. That is the correct answer, not a failure — so
  * "no release found" is deliberately not logged.
  */
-import { DesktopOs } from '@genfeedai/enums';
+import { DesktopOs } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 
 const RELEASE_OWNER = 'genfeedai';

@@ -5,7 +5,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentScopeContextService } from '@api/index';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 

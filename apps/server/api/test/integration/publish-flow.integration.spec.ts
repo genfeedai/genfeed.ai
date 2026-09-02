@@ -66,7 +66,7 @@ import {
   PostVisibility,
   TargetExecutionState,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Test, type TestingModule } from '@nestjs/testing';

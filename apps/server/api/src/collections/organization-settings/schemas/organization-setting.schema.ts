@@ -1,4 +1,4 @@
-import type { AgentAutonomyMode } from '@genfeedai/enums';
+import type { AgentAutonomyMode } from '@genfeedai/contracts';
 import type { OrganizationSetting as PrismaOrganizationSetting } from '@genfeedai/prisma';
 
 export interface AgentPolicyCreditGovernance {

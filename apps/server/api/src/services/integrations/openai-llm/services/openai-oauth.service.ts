@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { ByokProvider } from '@genfeedai/enums';
-import type { IByokKeyEntry } from '@genfeedai/interfaces';
+import { ByokProvider } from '@genfeedai/contracts';
+import type { IByokKeyEntry } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

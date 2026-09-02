@@ -3,7 +3,7 @@ import {
   type NodeType as CoreNodeType,
   type NodeCategory,
   type NodeDefinition,
-} from '@genfeedai/types/nodes';
+} from '@genfeedai/contracts/types/nodes';
 import { isEngineNativeNodeType } from '../../engine/utils/action-node';
 import type { ExtendedNodeCategory } from '../types';
 import { ACTION_NODE_DEFINITIONS } from './action-node-definitions';

@@ -2,17 +2,15 @@
   "dependencies": {
     "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@tanstack/react-query": "5.102.8",
     "@xyflow/react": "12.11.5",
-    "gsap": "3.15.0"
+    "gsap": "3.15.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "7.0.1",

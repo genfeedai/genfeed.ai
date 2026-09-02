@@ -3,7 +3,7 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Sparkles } from 'lucide-react';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';

@@ -39,7 +39,8 @@ import { parseCatalogSource } from '../../packages/actions/scripts/report-curate
 
 const DEFAULT_CATALOG_PATH =
   'packages/actions/src/registry/curated-action-catalog.ts';
-const DEFAULT_ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
+const DEFAULT_ENUM_PATH =
+  'packages/contracts/src/interfaces/ai/agent-tool.interface.ts';
 const DEFAULT_AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const DEFAULT_BRANDLESS_TOOLS_PATH =

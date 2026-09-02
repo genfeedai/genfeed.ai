@@ -13,7 +13,7 @@ import type {
   WorkflowInput,
 } from '@api/services/telegram-bot/telegram-bot.types';
 import type { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 

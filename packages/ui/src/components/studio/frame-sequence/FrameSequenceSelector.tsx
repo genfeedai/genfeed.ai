@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-sequence.props';
 import Card from '@ui/card/Card';

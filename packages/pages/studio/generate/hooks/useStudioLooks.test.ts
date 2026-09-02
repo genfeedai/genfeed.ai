@@ -1,6 +1,6 @@
-import { RouterPriority } from '@genfeedai/enums';
-import type { IStudioLook } from '@genfeedai/interfaces';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import {
   buildStudioLookPayload,
   presetToGenerationSetupValues,

@@ -1,5 +1,5 @@
 import { getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import {
   AGENT_NEXT_STEP_DESTINATION_KEYS,
   AGENT_NEXT_STEP_DESTINATIONS,

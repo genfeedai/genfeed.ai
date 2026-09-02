@@ -7,7 +7,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

@@ -1,8 +1,12 @@
 {
   "compilerOptions": {
     "paths": {
-      "@api-types/*": ["../../../../../packages/api-types/src/*"],
-      "@genfeedai-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../../../../packages/contracts/src/api-types/*"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../../packages/contracts/src/types/*"
+      ],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/utils/*": ["../../../../packages/utils/*"],

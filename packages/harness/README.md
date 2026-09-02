@@ -45,7 +45,7 @@ const brief = await composeContentHarnessBrief(registry, {
 
 ## Related Packages
 
-- `@genfeedai/interfaces`
+- `@genfeedai/contracts/interfaces`
 
 ## License
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';

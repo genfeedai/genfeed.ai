@@ -11,8 +11,8 @@ import type {
   ReplicateInput,
   TrainedModelInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,

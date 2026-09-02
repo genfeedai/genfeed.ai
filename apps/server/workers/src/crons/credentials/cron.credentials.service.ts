@@ -15,7 +15,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';

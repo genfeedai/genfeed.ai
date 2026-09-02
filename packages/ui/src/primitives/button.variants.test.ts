@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   BUTTON_VARIANT_CONFIG,

@@ -1,4 +1,4 @@
-import type { IAuthentication } from '@genfeedai/interfaces';
+import type { IAuthentication } from '@genfeedai/contracts/interfaces';
 
 export class Authentication implements IAuthentication {
   public declare token: string;

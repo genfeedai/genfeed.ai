@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import type { Article } from '@models/content/article.model';
 import ArticlesList from '@pages/articles/list/articles-list';
@@ -86,7 +86,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@ui/lazy/modal/LazyModal', async () => {
   const React = await import('react');
-  const { ModalEnum: ArticleModalEnum } = await import('@genfeedai/enums');
+  const { ModalEnum: ArticleModalEnum } = await import('@genfeedai/contracts');
   const { isModalOpen, subscribeModal } = await import(
     '@helpers/ui/modal/modal.helper'
   );

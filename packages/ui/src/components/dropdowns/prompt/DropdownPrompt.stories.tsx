@@ -1,4 +1,4 @@
-import { DropdownDirection } from '@genfeedai/enums';
+import { DropdownDirection } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownPrompt from '@ui/dropdowns/prompt/DropdownPrompt';
 

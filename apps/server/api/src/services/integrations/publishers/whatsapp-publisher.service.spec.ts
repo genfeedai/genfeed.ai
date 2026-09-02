@@ -4,7 +4,11 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -3,7 +3,7 @@ import {
   type YoutubeRequestAuth,
 } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
-import type { IYouTubeVideoStats } from '@genfeedai/interfaces';
+import type { IYouTubeVideoStats } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { IImage } from '@genfeedai/interfaces';
+import type { IImage } from '@genfeedai/contracts/interfaces';
 
 export class Image extends Ingredient implements IImage {
   public declare colorSpace?: string;

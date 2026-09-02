@@ -1,9 +1,9 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/contracts';
 import type {
   IOnboardingJourneyMissionState,
   IOrganizationSetting,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class OrganizationSetting
   extends BaseEntity

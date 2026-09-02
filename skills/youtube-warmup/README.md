@@ -40,7 +40,7 @@ npx skills add genfeedai/skills/youtube-warmup
 | First Shorts | 8-10 | Shorts script, thumbnail brief, owned-upload snapshot |
 | Performance and long-form | 11-14 | Owned-video analytics, Shorts-to-long-form path, Genfeed cadence |
 
-The canonical machine-readable definition is `social-warmup.youtube@1` in `@genfeedai/api-types`; `SKILL.md` remains the long-form guidance source.
+The canonical machine-readable definition is `social-warmup.youtube@1` in `@genfeedai/contracts/api-types`; `SKILL.md` remains the long-form guidance source.
 
 ## License
 

@@ -1,4 +1,4 @@
-import type { AvailableVariable } from '@genfeedai/types';
+import type { AvailableVariable } from '@genfeedai/contracts/types';
 import type { RefObject } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 

@@ -2,6 +2,7 @@ import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalReason,
@@ -9,8 +10,7 @@ import {
   type TwitterOwnedPostSignal,
   twitterAuthorizedSignalStatusValues,
   twitterAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/twitter-authorized-signals.contract';
-import { CredentialPlatform } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 
 export const USERS_READ_SCOPE = 'users.read';
 export const TWEET_READ_SCOPE = 'tweet.read';

@@ -1,4 +1,4 @@
-import { QualityTier, SubscriptionTier } from '@genfeedai/enums';
+import { QualityTier, SubscriptionTier } from '@genfeedai/contracts';
 import {
   getQualityTiersForSubscription,
   hasQualityAccess,

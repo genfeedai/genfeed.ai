@@ -27,16 +27,16 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   IngredientStatus,
   TrainingStage,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { TrainingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

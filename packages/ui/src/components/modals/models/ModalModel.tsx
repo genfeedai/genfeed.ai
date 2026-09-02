@@ -1,10 +1,13 @@
 import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModalEnum, ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModalEnum, ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type {
+  IModel,
+  IModelProviderContracts,
+} from '@genfeedai/contracts/interfaces';
 import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IModel, IModelProviderContracts } from '@genfeedai/interfaces';
 import { Model } from '@genfeedai/models/ai/model.model';
 import type { ModalModelProps } from '@genfeedai/props/modals/modal.props';
 import { ModelsService } from '@genfeedai/services/ai/models.service';

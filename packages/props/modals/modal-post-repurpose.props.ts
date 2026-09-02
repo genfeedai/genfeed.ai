@@ -1,4 +1,4 @@
-import type { Platform, PostRepurposeMode } from '@genfeedai/enums';
+import type { Platform, PostRepurposeMode } from '@genfeedai/contracts';
 
 /**
  * Minimal source shape so the repurpose modal serves both post surfaces

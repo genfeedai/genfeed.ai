@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowNode } from '@genfeedai/types';
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 import {
   useNodes,
   useReactFlow,

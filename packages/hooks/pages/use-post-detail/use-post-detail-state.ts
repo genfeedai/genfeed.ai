@@ -7,9 +7,9 @@ import {
   Platform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { ICredential, IPost } from '@genfeedai/interfaces';
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+} from '@genfeedai/contracts';
+import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
+import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import {
   PostsService,
   type PostUpdateInput,

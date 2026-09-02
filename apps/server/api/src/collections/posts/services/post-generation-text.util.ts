@@ -1,5 +1,5 @@
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { parseTweet } from 'twitter-text';
 
 function stripHtmlTags(html: string): string {

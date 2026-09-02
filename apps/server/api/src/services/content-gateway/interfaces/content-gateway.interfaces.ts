@@ -1,5 +1,5 @@
 import type { PostDocument } from '@api/collections/posts/post.schema';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 
 export type ContentSignalType =
   | 'cron'

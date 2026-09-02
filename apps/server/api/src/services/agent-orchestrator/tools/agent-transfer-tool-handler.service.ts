@@ -4,7 +4,7 @@ import type {
   AgentArtifactReference,
   AgentToolResult,
   AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 interface AgentTransferActor {

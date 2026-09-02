@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { TwitterResponseMapper } from './twitter-response.mapper';
 
 describe('TwitterResponseMapper', () => {

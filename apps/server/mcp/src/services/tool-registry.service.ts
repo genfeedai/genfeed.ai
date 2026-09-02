@@ -4,7 +4,10 @@ import {
   type McpToolOutput,
   toMcpTools,
 } from '@genfeedai/actions';
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import {
+  AgentToolName,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {

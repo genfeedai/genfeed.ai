@@ -1,8 +1,8 @@
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
-} from '@genfeedai/interfaces';
-import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
 
 const MAX_COMPLETION_ARTIFACT_REFERENCES = 100;
 

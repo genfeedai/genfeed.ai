@@ -1,4 +1,4 @@
-import type { IBackgroundTaskUpdatePayload } from '@genfeedai/interfaces';
+import type { IBackgroundTaskUpdatePayload } from '@genfeedai/contracts/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock socket.io-client

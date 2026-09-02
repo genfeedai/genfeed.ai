@@ -1,6 +1,6 @@
 'use client';
 
-import { ReviewDecision } from '@genfeedai/enums';
+import { ReviewDecision } from '@genfeedai/contracts';
 import type { PostReviewSummary } from '@genfeedai/props/components/post-detail-sidebar.props';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';

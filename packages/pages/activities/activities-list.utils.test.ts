@@ -1,5 +1,8 @@
-import { ActivityKey, getActivityMessageDescriptor } from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+import {
+  ActivityKey,
+  getActivityMessageDescriptor,
+} from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 import {

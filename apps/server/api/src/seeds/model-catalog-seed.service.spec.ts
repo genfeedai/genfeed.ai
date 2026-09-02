@@ -4,7 +4,7 @@ import {
   getModelCatalogForDeployment,
   LOWEST_COST_VIDEO_MODEL_KEY,
   UNIFIED_MODEL_CATALOG,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 

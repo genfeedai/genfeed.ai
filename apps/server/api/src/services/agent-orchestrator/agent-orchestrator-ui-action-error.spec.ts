@@ -2,7 +2,7 @@ import {
   rethrowUiActionError,
   throwFailedUiActionResult,
 } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-error';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
 import {
   HttpException,
   HttpStatus,

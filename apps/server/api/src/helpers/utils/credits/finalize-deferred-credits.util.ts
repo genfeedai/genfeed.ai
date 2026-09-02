@@ -1,4 +1,4 @@
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import type { Request } from 'express';
 
 type DeferredCreditsConfig = CreditsConfig & {

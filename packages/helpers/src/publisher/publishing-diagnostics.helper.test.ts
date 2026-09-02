@@ -1,7 +1,7 @@
 import type {
   IPublishingDiagnostic,
   IPublishingSetupCheck,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   buildPublishingProviderReadiness,
   canScheduleWithPublishingReadiness,

@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
 import { ImagesService } from '@genfeedai/services/ingredients/images.service';

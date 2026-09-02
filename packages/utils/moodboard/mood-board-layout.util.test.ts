@@ -1,4 +1,7 @@
-import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 import {
   MOOD_BOARD_TILE_HEIGHT,
   mergeMoodBoardLayout,

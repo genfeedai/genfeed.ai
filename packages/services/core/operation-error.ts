@@ -1,4 +1,4 @@
-import type { IStructuredError } from '@genfeedai/interfaces/utils/error.interface';
+import type { IStructuredError } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { getJsonApiErrorMember } from '@services/core/json-api-error-message';
 
 export const SERVICE_OPERATION_ERROR_NAME = 'ServiceOperationError';

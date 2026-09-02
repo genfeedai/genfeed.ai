@@ -16,7 +16,7 @@
     "nodeBuilder": "packages/sdk/src/node-builder.ts",
     "sdkTypes": "packages/sdk/src/types.ts",
     "registry": "packages/sdk/src/registry.ts",
-    "handleTypes": "packages/types/src/nodes.ts"
+    "handleTypes": "packages/contracts/src/types/nodes.ts"
   },
   "outputs": ["typescript"],
   "tags": ["sdk", "node", "custom", "development", "extension"]

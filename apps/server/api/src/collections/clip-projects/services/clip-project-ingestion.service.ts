@@ -17,15 +17,15 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_SOURCE_SCHEMA_VERSION,
   type ClipProcessingFlow,
   type ClipSourceContract,
   DEFAULT_CLIP_RESULT_MODE,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;

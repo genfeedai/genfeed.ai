@@ -1,4 +1,4 @@
-import { BotPlatform } from '@genfeedai/enums';
+import { BotPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 

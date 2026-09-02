@@ -1,4 +1,4 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ReviewGrid from './ReviewGrid';
 import {

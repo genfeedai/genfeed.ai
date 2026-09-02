@@ -1,6 +1,6 @@
 import { OutreachCampaignDispatchWorkflowService } from '@api/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@api/services/campaign/campaign-dispatch-workflow-definition';
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('OutreachCampaignDispatchWorkflowService atomic actions', () => {

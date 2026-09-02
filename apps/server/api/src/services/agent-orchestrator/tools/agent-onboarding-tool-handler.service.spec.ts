@@ -1,11 +1,11 @@
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { TargetExecutionState } from '@genfeedai/enums';
-import type { AgentUiAction } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const CONTEXT: ToolExecutionContext = {

@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialPlatform, IngredientCategory } from '@genfeedai/enums';
+import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import {
   InstagramIcon,
   TiktokIcon,

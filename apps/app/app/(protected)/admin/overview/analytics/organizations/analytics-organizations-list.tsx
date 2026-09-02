@@ -1,8 +1,12 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { AnalyticsMetric, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  AnalyticsMetric,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {

@@ -1,5 +1,5 @@
 import { GenerateArticlesDto } from '@api/collections/articles/dto/generate-articles.dto';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';

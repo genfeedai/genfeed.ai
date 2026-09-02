@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { subscriptionStatusFromStripe } from '@genfeedai/enums';
+import { subscriptionStatusFromStripe } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 

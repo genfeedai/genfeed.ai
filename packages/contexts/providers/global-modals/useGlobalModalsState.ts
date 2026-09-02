@@ -6,19 +6,19 @@ import {
   ModalEnum,
   type Platform,
   type PostRepurposeMode,
-} from '@genfeedai/enums';
-import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
-import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
   ICredential,
   IIngredient,
   IPost,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { getPublishingPostHref } from '@genfeedai/helpers/content/posts.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   ModalConfirmProps,

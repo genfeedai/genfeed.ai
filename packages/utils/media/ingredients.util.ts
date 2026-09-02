@@ -1,4 +1,4 @@
-import type { IngredientCategory } from '@genfeedai/enums';
+import type { IngredientCategory } from '@genfeedai/contracts';
 
 /**
  * Ingredient endpoint configuration

@@ -14,7 +14,7 @@
 import type {
   GenerationSetupSources,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,

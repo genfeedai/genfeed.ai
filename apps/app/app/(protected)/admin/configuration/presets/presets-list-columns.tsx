@@ -1,6 +1,6 @@
 'use client';
 
-import type { IOrganization } from '@genfeedai/interfaces';
+import type { IOrganization } from '@genfeedai/contracts/interfaces';
 import type { Preset } from '@models/elements/preset.model';
 import Badge from '@ui/display/badge/Badge';
 

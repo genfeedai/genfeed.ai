@@ -1,11 +1,11 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type { LibraryViewMode } from '@genfeedai/constants';
 import type {
   AssetScope,
   IngredientCategory,
   ModalEnum,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { LibraryViewMode } from '@genfeedai/contracts/constants';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -18,7 +18,7 @@ import type {
   IPreset,
   ISound,
   ITag,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
 import type { Dispatch, SetStateAction } from 'react';
 

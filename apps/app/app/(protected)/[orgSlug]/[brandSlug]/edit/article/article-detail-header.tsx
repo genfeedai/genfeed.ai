@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GlobalModalsContextValue } from '@providers/global-modals/global-modals.provider';
 import type { ClipboardService } from '@services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';

@@ -1,4 +1,3 @@
-import type { CreatePostRequest } from '@genfeedai/api-types';
 import {
   type MultiPostSchema,
   multiPostSchema,
@@ -11,20 +10,21 @@ import {
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+} from '@genfeedai/contracts';
+import type { CreatePostRequest } from '@genfeedai/contracts/api-types';
 import type {
   ICredential,
   IIngredient,
   IMetadata,
   IOrganizationSetting,
   IPostPlatformConfig,
-} from '@genfeedai/interfaces';
-import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { PlatformSubmissionStatus } from '@genfeedai/contracts/interfaces/modals/platform-submission-status.interface';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

@@ -4,7 +4,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 

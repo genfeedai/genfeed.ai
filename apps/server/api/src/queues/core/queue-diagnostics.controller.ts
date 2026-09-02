@@ -3,7 +3,7 @@ import { QueueService } from '@api/queues/core/queue.service';
 import {
   DEFAULT_QUEUE,
   type QueueDispatchResult,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { RedisDriver, resolveRedisDriver } from '@libs/redis/redis-driver';
 import { Controller, Get } from '@nestjs/common';

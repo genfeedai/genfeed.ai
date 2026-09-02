@@ -10,11 +10,11 @@ import type {
   IElementScene,
   IElementStyle,
   ISound,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { createContext, useContext } from 'react';
 
 export interface ElementsContextValue {

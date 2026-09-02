@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';

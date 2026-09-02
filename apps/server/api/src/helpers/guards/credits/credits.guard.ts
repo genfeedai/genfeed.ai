@@ -26,14 +26,14 @@ import {
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   type ByokProvider,
   PricingType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { getDeserializer, isDeserializerRuntime } from '@genfeedai/helpers';
-import type { CreditsConfig } from '@genfeedai/interfaces';
 import {
   billCreditsFromProviderCost,
   buildPricingAuditStamp,

@@ -1,11 +1,11 @@
 'use client';
 
-import { CredentialPlatform, PageScope, Platform } from '@genfeedai/enums';
+import { CredentialPlatform, PageScope, Platform } from '@genfeedai/contracts';
 import type {
   IIngredient,
   IPost,
   PostQuickActionKey,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';

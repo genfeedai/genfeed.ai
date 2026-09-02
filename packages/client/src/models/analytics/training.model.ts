@@ -1,12 +1,12 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { TrainingCategory, TrainingStatus } from '@genfeedai/enums';
+import type { TrainingCategory, TrainingStatus } from '@genfeedai/contracts';
 import type {
   IBrand,
   IImage,
   IOrganization,
   ITraining,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Training extends BaseEntity implements ITraining {
   public declare organization?: IOrganization | string;

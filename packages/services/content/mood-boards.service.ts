@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { MoodBoard } from '@genfeedai/models/content/mood-board.model';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
 import {

@@ -9,7 +9,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { DevtoService } from '@api/services/integrations/devto/services/devto.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { CredentialSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

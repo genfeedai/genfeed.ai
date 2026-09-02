@@ -1,4 +1,4 @@
-import type { MenuConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { MenuConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import MenuShared from '@ui/menus/shared/MenuShared';

@@ -1,5 +1,5 @@
-import { CalendarSlotState, PostCategory } from '@genfeedai/enums';
-import type { ICalendarSlot } from '@genfeedai/interfaces';
+import { CalendarSlotState, PostCategory } from '@genfeedai/contracts';
+import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   aggregateCalendarItemsByDay,

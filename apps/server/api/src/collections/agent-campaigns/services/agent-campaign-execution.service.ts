@@ -6,7 +6,7 @@ import { scopedWhere } from '@api/index';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
+import type { IAgentCampaignStatusResponse } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

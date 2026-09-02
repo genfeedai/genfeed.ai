@@ -1,4 +1,4 @@
-import { ALL_QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { ALL_QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';

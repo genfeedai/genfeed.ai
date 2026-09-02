@@ -23,7 +23,7 @@ import {
   getDefaultTextMinimumCredits,
 } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { OptimizationSerializer } from '@genfeedai/serializers';
 import {
   Body,

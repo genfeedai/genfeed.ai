@@ -1,5 +1,5 @@
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export interface TwitterTrendItem {

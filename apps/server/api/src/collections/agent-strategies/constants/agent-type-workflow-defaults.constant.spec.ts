@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import {
   AGENT_TYPE_WORKFLOW_DEFAULTS,
   getAgentTypeWorkflowDefault,

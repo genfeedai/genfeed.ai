@@ -1,8 +1,8 @@
+import { CostTier } from '@genfeedai/contracts';
 import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   SELECTABLE_AGENT_CHAT_MODELS,
-} from '@genfeedai/constants';
-import { CostTier } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 export interface OpenRouterToolFunction {
   name: string;

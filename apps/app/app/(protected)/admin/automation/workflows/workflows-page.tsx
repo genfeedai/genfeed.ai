@@ -1,7 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';

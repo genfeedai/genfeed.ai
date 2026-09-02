@@ -6,7 +6,7 @@ import type {
   WorkflowNodeData,
   WorkflowNodePosition,
   WorkflowVisualNode,
-} from '@genfeedai/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import type { DragEvent } from 'react';
 
 export interface WorkflowCanvasNode {

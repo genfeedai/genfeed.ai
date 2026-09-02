@@ -1,4 +1,4 @@
-import type { IBrand, IBrandKitDraft } from '@genfeedai/interfaces';
+import type { IBrand, IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

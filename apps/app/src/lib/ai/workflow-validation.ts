@@ -1,5 +1,5 @@
-import type { HandleType, NodeType } from '@genfeedai/types';
-import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
+import type { HandleType, NodeType } from '@genfeedai/contracts/types';
+import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 
 const CONNECTION_RULE_LOOKUP = new Map<HandleType, Set<HandleType>>(
   Object.entries(CONNECTION_RULES).map(([sourceType, targetTypes]) => [
@@ -21,7 +21,7 @@ function canConnectHandleTypes(
 
 /**
  * Simplified node shape for validating raw AI-generated JSON.
- * NOT the same as WorkflowNode from @genfeedai/types (which is a full React Flow Node).
+ * NOT the same as WorkflowNode from @genfeedai/contracts/types (which is a full React Flow Node).
  * Raw JSON has `type: string` (any string, may be invalid) and `data: Record<string, unknown>`.
  */
 interface ValidationNode {
@@ -33,7 +33,7 @@ interface ValidationNode {
 
 /**
  * Simplified edge shape for validating raw AI-generated JSON.
- * NOT the same as WorkflowEdge from @genfeedai/types (which is a full React Flow Edge).
+ * NOT the same as WorkflowEdge from @genfeedai/contracts/types (which is a full React Flow Edge).
  * Raw JSON has required sourceHandle/targetHandle (not optional like React Flow).
  */
 interface ValidationEdge {

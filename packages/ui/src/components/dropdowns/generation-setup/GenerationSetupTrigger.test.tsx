@@ -1,9 +1,13 @@
-import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import {
+  ModelCategory,
+  ModelProvider,
+  RouterPriority,
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetup,
   GenerationSetupSources,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { render, screen, within } from '@testing-library/react';
 import GenerationSetupTrigger from '@ui/dropdowns/generation-setup/GenerationSetupTrigger';

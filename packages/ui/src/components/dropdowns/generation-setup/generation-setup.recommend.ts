@@ -11,14 +11,14 @@
  * would invert the package dependency direction) — see
  * `GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE` below.
  */
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetupFieldKey,
   GenerationSetupRecommendation,
   GenerationSetupRecommendationInput,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 
 /** Default aspect ratio per type when the prompt gives no framing hint. */
 export const GENERATION_SETUP_DEFAULT_ASPECT_RATIO_BY_TYPE: Partial<

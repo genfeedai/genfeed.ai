@@ -2346,7 +2346,7 @@ model Post {
   entityModel         PostEntityModel?
   credentialId        String?
   credential          Credential?        @relation(fields: [credentialId], references: [id])
-  // Drifted enum collapsed to String: code enum (@genfeedai/enums) uses lowercase
+  // Drifted enum collapsed to String: code enum (@genfeedai/contracts) uses lowercase
   // values; Prisma enum used UPPERCASE labels — mismatch was both a TS error and a
   // runtime Postgres "invalid input value for enum" rejection. String stores the
   // canonical lowercase value directly.
@@ -2558,7 +2558,7 @@ model Campaign {
   brief          String?
   startDate      DateTime?
   endDate        DateTime?
-  // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/enums)
+  // Drifted enum collapsed to String: ContentCampaignStatus (@genfeedai/contracts)
   // is lowercase product language, matching PostStatus and WorkflowStatus.
   status         String       @default("draft")
   idempotencyKey String?

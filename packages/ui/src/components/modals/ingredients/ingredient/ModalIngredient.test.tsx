@@ -1,5 +1,5 @@
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalIngredient from '@ui/modals/ingredients/ingredient/ModalIngredient';
 import type { ReactNode } from 'react';

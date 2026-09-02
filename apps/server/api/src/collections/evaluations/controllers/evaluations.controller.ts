@@ -19,7 +19,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

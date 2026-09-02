@@ -1,7 +1,7 @@
 import type {
   SocialPostUrlReference,
   SocialSourcePlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   SourceCollectContext,
   SourceCollectResult,

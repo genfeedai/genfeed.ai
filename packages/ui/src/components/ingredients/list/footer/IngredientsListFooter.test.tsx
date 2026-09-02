@@ -1,5 +1,5 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
 import { describe, expect, it, vi } from 'vitest';

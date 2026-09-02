@@ -1,5 +1,5 @@
 import { AgentPublishAudit as BaseAgentPublishAudit } from '@genfeedai/client/models';
-import type { IAgentPublishAudit } from '@genfeedai/interfaces';
+import type { IAgentPublishAudit } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

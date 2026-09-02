@@ -7,7 +7,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';

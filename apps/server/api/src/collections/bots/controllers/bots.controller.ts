@@ -20,7 +20,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { BotLivestreamSessionStatus } from '@genfeedai/enums';
+import { BotLivestreamSessionStatus } from '@genfeedai/contracts';
 import {
   BotSerializer,
   LivestreamBotSessionSerializer,

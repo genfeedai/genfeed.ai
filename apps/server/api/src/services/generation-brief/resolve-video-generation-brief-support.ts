@@ -2,7 +2,7 @@ import {
   getVideoGenerationBriefExemptionReason,
   getVideoGenerationBriefRegistryEntry,
 } from '@api/services/generation-brief/video-generation-brief-registry';
-import type { VideoGenerationBriefSupport } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { VideoGenerationBriefSupport } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 
 export function resolveVideoGenerationBriefSupport(
   model: string,

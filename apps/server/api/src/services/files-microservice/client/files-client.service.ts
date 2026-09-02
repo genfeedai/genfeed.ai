@@ -1,14 +1,14 @@
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import type {
   IApiUploadSource,
   IFFprobeStream,
   IFileMetadata,
   IVideoDimensions,
   UploadSource,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

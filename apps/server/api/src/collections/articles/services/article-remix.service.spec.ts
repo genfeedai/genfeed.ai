@@ -1,5 +1,9 @@
 import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
-import { ArticleCategory, ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleScope,
+  ArticleStatus,
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('ArticleRemixService', () => {

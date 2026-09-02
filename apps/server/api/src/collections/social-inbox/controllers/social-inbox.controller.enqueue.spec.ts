@@ -2,7 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import type { SocialInboxSyncWorkflowService } from '@api/collections/social-inbox/services/social-inbox-sync-workflow.service';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { UnauthorizedException } from '@nestjs/common';
 import { vi } from 'vitest';
 

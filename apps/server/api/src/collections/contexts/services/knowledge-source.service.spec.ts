@@ -1,6 +1,9 @@
 import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
+import {
+  KnowledgeBaseCategory,
+  KnowledgeBaseStatus,
+} from '@genfeedai/contracts';
 
 describe('KnowledgeSourceService', () => {
   function buildService(

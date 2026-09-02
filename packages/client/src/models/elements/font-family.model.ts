@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IFontFamily } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IFontFamily } from '@genfeedai/contracts/interfaces';
 
 export class FontFamily extends BaseEntity implements IFontFamily {
   public declare key: string;

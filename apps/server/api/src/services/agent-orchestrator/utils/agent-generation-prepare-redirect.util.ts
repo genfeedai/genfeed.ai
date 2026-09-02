@@ -1,4 +1,4 @@
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const DIRECT_VISUAL_GENERATION_TOOLS = new Set<string>([
   AgentToolName.GENERATE_AS_IDENTITY,

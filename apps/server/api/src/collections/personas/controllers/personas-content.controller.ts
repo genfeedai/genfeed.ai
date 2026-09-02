@@ -9,7 +9,7 @@ import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
-import { PostCategory } from '@genfeedai/enums';
+import { PostCategory } from '@genfeedai/contracts';
 import { PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

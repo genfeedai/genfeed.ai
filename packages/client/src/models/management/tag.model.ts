@@ -1,6 +1,11 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { TagCategory } from '@genfeedai/enums';
-import type { IBrand, IOrganization, ITag, IUser } from '@genfeedai/interfaces';
+import type { TagCategory } from '@genfeedai/contracts';
+import type {
+  IBrand,
+  IOrganization,
+  ITag,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 
 export class Tag extends BaseEntity implements ITag {
   public declare brand: IBrand;

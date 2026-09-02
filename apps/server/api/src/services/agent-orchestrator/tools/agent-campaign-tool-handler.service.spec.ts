@@ -2,7 +2,7 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   BadRequestException,

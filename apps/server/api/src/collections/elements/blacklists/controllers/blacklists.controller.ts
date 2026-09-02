@@ -15,8 +15,8 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { MemberRole } from '@genfeedai/enums';
-import type { SortObject } from '@genfeedai/interfaces';
+import { MemberRole } from '@genfeedai/contracts';
+import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { BlacklistSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -1,7 +1,7 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { ListPageLayoutProps } from '@genfeedai/props/layout/list-page-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';

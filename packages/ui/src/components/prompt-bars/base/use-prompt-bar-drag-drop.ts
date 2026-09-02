@@ -1,7 +1,11 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IImage,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
+import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
 import type { UploadModalOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
 import { useCallback, useRef, useState } from 'react';

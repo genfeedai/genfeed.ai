@@ -1,10 +1,10 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import type {
   AdsChannel,
   AdsResearchFilters,
   AdsResearchPlatform,
   AdsResearchSource,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
+} from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
 
 export function readOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0

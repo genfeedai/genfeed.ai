@@ -5,7 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

@@ -1,11 +1,11 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import type {
   CreateContentRunInput,
   UpdateContentRunInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-05-03T10:00:00.000Z');

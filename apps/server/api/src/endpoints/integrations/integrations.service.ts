@@ -4,7 +4,7 @@ import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-int
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import {
   IntegrationPlatform as PrismaIntegrationPlatform,

@@ -1,14 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   type AppLocale,
   DEFAULT_LOCALE,
   getSelectableLocales,
   LOCALE_LABELS,
-} from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';

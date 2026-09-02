@@ -9,7 +9,7 @@ import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import { isGenericRunLifecycleEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';

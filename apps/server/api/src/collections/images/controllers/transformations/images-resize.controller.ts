@@ -8,7 +8,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type {
   IResizeBodyParams,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

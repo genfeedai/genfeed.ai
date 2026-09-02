@@ -6,7 +6,7 @@ import type {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBrand,
   IChannelTargetError,
@@ -18,7 +18,7 @@ import type {
   ITag,
   IUser,
   SeoScorecardSnapshot,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Post extends BaseEntity implements IPost {
   public declare analytics?: IPostAnalyticsSummary;

@@ -1,4 +1,4 @@
-import type { BrandRemixRunView } from '@api-types/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StudioRemixRunPanel from './StudioRemixRunPanel';

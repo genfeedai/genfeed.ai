@@ -25,9 +25,9 @@ import {
 import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { scopedWhere } from '@api/index';
-import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {

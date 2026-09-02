@@ -1,11 +1,11 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   IIngredient,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';

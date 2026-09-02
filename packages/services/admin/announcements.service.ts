@@ -1,7 +1,7 @@
 import type {
   IAnnouncement,
   IAnnouncementBroadcastRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

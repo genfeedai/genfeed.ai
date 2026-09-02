@@ -1,6 +1,6 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { formatDuration } from '@genfeedai/helpers';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
 

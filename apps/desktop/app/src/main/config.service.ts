@@ -1,4 +1,4 @@
-import type { IDesktopEnvironment } from '@genfeedai/desktop-contracts';
+import type { IDesktopEnvironment } from '@genfeedai/contracts/desktop';
 
 const DEFAULT_GENFEED_CLOUD_API_URL = 'https://api.genfeed.ai/v1';
 const DEFAULT_GENFEED_CLOUD_AUTH_URL = 'https://app.genfeed.ai/oauth/cli';

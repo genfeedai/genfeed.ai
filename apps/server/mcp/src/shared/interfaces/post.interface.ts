@@ -3,7 +3,7 @@ import type {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface PublishContentParams {
   contentId: string;

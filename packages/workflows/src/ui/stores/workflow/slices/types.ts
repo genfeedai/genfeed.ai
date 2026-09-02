@@ -4,7 +4,7 @@ import type {
   NodeType,
   WorkflowEdge,
   WorkflowNode,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 
 /**
  * A single atomic change to the workflow graph. Canonical shape shared with the

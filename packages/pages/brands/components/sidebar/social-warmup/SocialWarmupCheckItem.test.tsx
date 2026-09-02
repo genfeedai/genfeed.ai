@@ -1,11 +1,11 @@
-import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT } from '@api-types/contracts/social-warmup-blueprint.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
-import type { ISocialWarmupEnrollment } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { TIKTOK_SOCIAL_WARMUP_BLUEPRINT } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import type { ISocialWarmupEnrollment } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialWarmupCheckItem from './SocialWarmupCheckItem';

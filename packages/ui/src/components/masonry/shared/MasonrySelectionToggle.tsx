@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Check } from 'lucide-react';
 import type { MouseEvent } from 'react';

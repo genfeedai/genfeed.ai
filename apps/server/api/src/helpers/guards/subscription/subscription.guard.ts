@@ -4,7 +4,7 @@ import {
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CanActivate,

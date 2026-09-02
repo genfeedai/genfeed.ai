@@ -8,7 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('AgentStrategiesService', () => {

@@ -33,7 +33,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const appRoot = path.join(repoRoot, 'apps/app/app');
 const appRoutesFile = path.join(
   repoRoot,
-  'packages/constants/src/routes.constant.ts',
+  'packages/contracts/src/constants/routes.constant.ts',
 );
 const e2eRoots = [
   path.join(repoRoot, 'playwright/e2e/tests'),

@@ -3,7 +3,7 @@ import type { RunTextGenerationStepParams } from '@api/collections/articles/serv
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

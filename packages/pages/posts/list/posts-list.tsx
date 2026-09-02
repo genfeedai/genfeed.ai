@@ -1,8 +1,8 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import type { IPost, IPreset } from '@genfeedai/interfaces';
+import { PageScope, PostStatus } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
+import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';

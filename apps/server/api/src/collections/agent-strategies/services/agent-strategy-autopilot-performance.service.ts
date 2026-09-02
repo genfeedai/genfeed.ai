@@ -15,7 +15,7 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

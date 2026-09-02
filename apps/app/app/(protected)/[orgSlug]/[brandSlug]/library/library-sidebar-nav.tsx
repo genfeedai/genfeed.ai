@@ -7,14 +7,18 @@ import {
   LIBRARY_TAIL_MENU_ITEMS,
 } from '@app-config/library-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { LibraryShelf, ModalEnum, PageScope } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryShelfRoute,
   LIBRARY_ASSETS_REFRESH_EVENT,
-} from '@genfeedai/constants';
-import { LibraryShelf, ModalEnum, PageScope } from '@genfeedai/enums';
-import type { IFolder, IIngredient, IQueryParams } from '@genfeedai/interfaces';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+} from '@genfeedai/contracts/constants';
+import type {
+  IFolder,
+  IIngredient,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useLibrarySummary } from '@hooks/data/library/use-library-summary';

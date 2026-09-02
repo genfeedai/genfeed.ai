@@ -1,4 +1,4 @@
-import { BotLivestreamSessionStatus } from '@genfeedai/enums';
+import { BotLivestreamSessionStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
 

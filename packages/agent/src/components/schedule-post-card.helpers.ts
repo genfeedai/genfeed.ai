@@ -1,9 +1,9 @@
-import { ReleaseAttachmentKind } from '@genfeedai/enums';
+import { ReleaseAttachmentKind } from '@genfeedai/contracts';
 import type {
   AgentPublishTargetProposal,
   IPostingSetTarget,
   IPostingSignature,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ExpandedPostingSetTarget } from '@props/content/posting-sets.props';
 
 export function readActionTimezone(

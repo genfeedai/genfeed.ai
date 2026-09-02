@@ -1,12 +1,16 @@
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { useOptionalUser } from '@contexts/user/user-context/user-context';
 import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { AnalyticsMetric, ButtonVariant, PageScope } from '@genfeedai/enums';
+import {
+  AnalyticsMetric,
+  ButtonVariant,
+  PageScope,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   DashboardScopePreferences,
   IAnalytics,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';

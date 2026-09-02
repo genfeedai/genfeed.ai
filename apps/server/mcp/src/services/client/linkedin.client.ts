@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import type { BaseApiClient } from './base-api-client';
 import type {
   LinkedInConnectionStatus,

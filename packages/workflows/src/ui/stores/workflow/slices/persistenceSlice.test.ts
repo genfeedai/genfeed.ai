@@ -2,7 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowFile,
   WorkflowNode,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowData, WorkflowPersistenceService } from '../types';
 import { configureWorkflowPersistence } from '../workflowPersistence';

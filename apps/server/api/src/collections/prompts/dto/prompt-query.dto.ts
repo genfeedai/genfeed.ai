@@ -1,5 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

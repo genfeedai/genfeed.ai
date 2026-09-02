@@ -1,4 +1,4 @@
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { syncAgentThreadFromTurn } from './sync-agent-thread-from-turn';
 

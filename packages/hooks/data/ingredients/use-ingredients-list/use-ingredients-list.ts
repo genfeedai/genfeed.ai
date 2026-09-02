@@ -1,6 +1,6 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import type {
   IngredientsListProps,
   UseIngredientsListReturn,
@@ -11,7 +11,7 @@ import { useIngredientsGeneration } from '@hooks/data/ingredients/use-ingredient
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
 import { useCallback, useMemo } from 'react';
 
-export type { ImageToVideoGenerationPayload } from '@genfeedai/interfaces';
+export type { ImageToVideoGenerationPayload } from '@genfeedai/contracts/interfaces';
 
 export function useIngredientsList({
   folderNavigation = 'content',

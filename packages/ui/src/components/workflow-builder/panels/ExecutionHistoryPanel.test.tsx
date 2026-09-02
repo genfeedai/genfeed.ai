@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { formatEnumLabel, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { formatEnumLabel, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ExecutionHistoryPanel from '@ui/workflow-builder/panels/ExecutionHistoryPanel';
 import { describe, expect, it, vi } from 'vitest';

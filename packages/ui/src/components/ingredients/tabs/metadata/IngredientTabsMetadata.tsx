@@ -5,10 +5,10 @@ import {
   ButtonSize,
   ButtonVariant,
   formatEnumLabel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IUser } from '@genfeedai/contracts/interfaces';
+import type { IngredientTabsMetadataProps } from '@genfeedai/contracts/interfaces/components/ingredient-tabs.interface';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IUser } from '@genfeedai/interfaces';
-import type { IngredientTabsMetadataProps } from '@genfeedai/interfaces/components/ingredient-tabs.interface';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

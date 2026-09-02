@@ -1,12 +1,12 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   createBrandAppRoute,
   createOrganizationAppRoute,
   parseScopedAppPath,
-} from '@genfeedai/constants';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { IBrand } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useParams, usePathname } from 'next/navigation';
 
 export interface OrgUrlContext {

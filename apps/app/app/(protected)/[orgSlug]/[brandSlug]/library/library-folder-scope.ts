@@ -1,6 +1,6 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
-import { PageScope } from '@genfeedai/enums';
-import type { IQueryParams } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 
 /**
  * The folder axis is brand-scoped on every Library destination.

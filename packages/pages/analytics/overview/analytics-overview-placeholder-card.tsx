@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, type ButtonVariant, CardVariant } from '@genfeedai/enums';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import {
+  ButtonSize,
+  type ButtonVariant,
+  CardVariant,
+} from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import Card from '@ui/card/Card';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import Link from 'next/link';

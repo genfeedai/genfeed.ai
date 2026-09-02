@@ -1,4 +1,4 @@
-import { type AppLocale, PSEUDO_LOCALE } from '@genfeedai/constants';
+import { type AppLocale, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
 import agent from '../messages/en/agent.json';
 import common from '../messages/en/common.json';
 import pages from '../messages/en/pages.json';

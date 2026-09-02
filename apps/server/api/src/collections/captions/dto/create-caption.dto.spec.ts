@@ -1,6 +1,6 @@
 import { CreateCaptionDto } from '@api/collections/captions/dto/create-caption.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { CaptionFormat } from '@genfeedai/enums';
+import { CaptionFormat } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 

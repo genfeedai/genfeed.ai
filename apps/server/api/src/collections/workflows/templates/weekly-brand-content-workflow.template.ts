@@ -1,6 +1,6 @@
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
   category: 'content',

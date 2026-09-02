@@ -2,7 +2,7 @@ import {
   ReviewGateStatus,
   WorkflowExecutionStatus,
   WorkflowNodeStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ExecutionNodeResult,
   ExecutionResult,

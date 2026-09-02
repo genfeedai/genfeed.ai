@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import type { IDesktopContentRunDraft } from '@genfeedai/desktop-contracts';
+import type { IDesktopContentRunDraft } from '@genfeedai/contracts/desktop';
 import {
   buildWorkspaceDraftsPath,
   buildWorkspaceMetadataDir,

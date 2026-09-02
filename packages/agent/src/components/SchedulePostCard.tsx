@@ -2,7 +2,7 @@ import type {
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   fromDateTimeLocalInput,
   getBrowserTimezone,

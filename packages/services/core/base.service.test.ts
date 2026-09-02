@@ -86,7 +86,7 @@ vi.mock('@genfeedai/utils/validation/type-validator.util', () => ({
   },
 }));
 
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { PagesService } from '@services/content/pages.service';
 // Import after mocks
 import { BaseService } from '@services/core/base.service';

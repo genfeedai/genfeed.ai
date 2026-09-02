@@ -5,8 +5,8 @@ import type {
   IStudioLook,
   StudioGenerateType,
   StudioLookAssetType,
-} from '@genfeedai/interfaces';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { StudioLooksService } from '@services/content/studio-looks.service';
 import { logger } from '@services/core/logger.service';

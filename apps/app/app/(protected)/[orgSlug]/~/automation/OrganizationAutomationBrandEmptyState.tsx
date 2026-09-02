@@ -1,7 +1,10 @@
 'use client';
 
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import { Workflow } from 'lucide-react';
 import Link from 'next/link';

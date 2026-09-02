@@ -1,8 +1,8 @@
 'use client';
 
 import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
-import type { IImage, IMusic, IVideo } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import type { IImage, IMusic, IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';

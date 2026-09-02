@@ -1,8 +1,8 @@
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

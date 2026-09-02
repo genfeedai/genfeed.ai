@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   formatEnumLabel,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

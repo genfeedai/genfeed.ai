@@ -11,14 +11,14 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   type ExecutableNode,
   type ExecutionContext,

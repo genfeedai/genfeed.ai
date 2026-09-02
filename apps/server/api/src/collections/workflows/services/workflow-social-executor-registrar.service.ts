@@ -6,8 +6,8 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { CredentialPlatform, Platform } from '@genfeedai/enums';
-import type { INotificationPayloadTypes } from '@genfeedai/interfaces';
+import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import type { INotificationPayloadTypes } from '@genfeedai/contracts/interfaces';
 import {
   CommentTriggerExecutor,
   type DmSender,

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
+import type { ClipReferenceFrameSet } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ClipReferenceFrameSelector from './ClipReferenceFrameSelector';

@@ -4,7 +4,7 @@ import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   AgentScopeSource,
   ValidatedAgentScope,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,

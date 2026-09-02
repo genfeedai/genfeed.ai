@@ -14,13 +14,13 @@ import {
   runAgentApiEffect,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
   WorkspaceShellSurfaceKey,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';

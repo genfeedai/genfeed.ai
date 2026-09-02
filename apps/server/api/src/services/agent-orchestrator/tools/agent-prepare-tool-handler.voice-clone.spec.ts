@@ -2,7 +2,7 @@ import { ExternalVoiceCatalogService } from '@api/collections/voices/services/ex
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { AgentPrepareToolHandler } from '@api/services/agent-orchestrator/tools/agent-prepare-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 

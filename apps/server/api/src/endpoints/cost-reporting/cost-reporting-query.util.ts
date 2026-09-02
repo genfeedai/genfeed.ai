@@ -1,4 +1,4 @@
-import type { ICostReportQuery } from '@genfeedai/interfaces/billing';
+import type { ICostReportQuery } from '@genfeedai/contracts/interfaces/billing';
 import { BadRequestException } from '@nestjs/common';
 
 const DAY_MS = 24 * 60 * 60 * 1000;

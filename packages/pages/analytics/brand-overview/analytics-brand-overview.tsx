@@ -1,9 +1,9 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import type { IAnalytics } from '@genfeedai/interfaces';
+import { PageScope, PostStatus } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
 import {
   isManagedCreditsTransientError,

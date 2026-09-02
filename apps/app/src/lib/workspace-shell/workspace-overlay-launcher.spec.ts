@@ -1,4 +1,4 @@
-import type { WorkspaceShellOverlayRequest } from '@genfeedai/interfaces/ui/workspace-shell.interface';
+import type { WorkspaceShellOverlayRequest } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import { describe, expect, it } from 'vitest';
 import { resolveWorkspaceOverlayLaunch } from './workspace-overlay-launcher';
 

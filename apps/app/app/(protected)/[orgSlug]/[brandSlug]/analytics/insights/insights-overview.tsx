@@ -8,7 +8,7 @@ import {
   ComponentSize,
   SmartAlertSeverity,
   TrendDirection,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { InsightsOverviewProps } from '@props/analytics/insights.props';

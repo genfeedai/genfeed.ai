@@ -2,7 +2,7 @@ import {
   type PromptTextareaSchema,
   promptTextareaSchema,
 } from '@genfeedai/client/schemas';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import type {
   UsePromptBarFormOptions,
   UsePromptBarFormReturn,

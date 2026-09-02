@@ -1,5 +1,5 @@
 import { parseAgentDashboardBlocks } from '@genfeedai/agent/dashboard/dashboard-openui';
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 import { create } from 'zustand';
 
 /** Versioned key so shape changes don't crash old sessions. */

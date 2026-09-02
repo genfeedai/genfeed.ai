@@ -1,6 +1,6 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
-import type { WorkflowExecutionListQueryParams } from '@genfeedai/types';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { WorkflowExecutionListQueryParams } from '@genfeedai/contracts/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeCollection,

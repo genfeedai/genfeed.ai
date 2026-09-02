@@ -1,4 +1,7 @@
-import { DEFAULT_THEME, type ThemePreference } from '@genfeedai/constants';
+import {
+  DEFAULT_THEME,
+  type ThemePreference,
+} from '@genfeedai/contracts/constants';
 import { create } from 'zustand';
 import {
   EXTENSION_SETTINGS_STORAGE_KEY,

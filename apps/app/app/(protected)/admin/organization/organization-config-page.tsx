@@ -1,7 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import { OrganizationSettingsTable } from '@protected/organization/components/organization-settings-table';
 import { useOrganizationSettings } from '@protected/organization/hooks/use-organization-settings';
 import Alert from '@ui/feedback/alert/Alert';

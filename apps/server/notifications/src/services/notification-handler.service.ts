@@ -1,9 +1,9 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   ICrmLeadOutreachEmailPayload,
   IReviewGatePendingEmailPayload,
   IVideoStatusEmailPayload,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,

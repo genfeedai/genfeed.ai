@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { formData } from '../../fixtures/test-data.fixture';
 import { LoginPage } from '../../pages/login.page';

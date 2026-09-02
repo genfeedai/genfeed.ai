@@ -1,12 +1,12 @@
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,
   SubscriptionChangePreview,
-} from '@genfeedai/interfaces';
-import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { UseSubscriptionReturn } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { StripeService } from '@genfeedai/services/billing/stripe.service';
 import { SubscriptionsService } from '@genfeedai/services/billing/subscriptions.service';
 import { logger } from '@genfeedai/services/core/logger.service';

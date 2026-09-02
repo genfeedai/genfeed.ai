@@ -1,7 +1,7 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DevController } from '@api/endpoints/dev/dev.controller';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';

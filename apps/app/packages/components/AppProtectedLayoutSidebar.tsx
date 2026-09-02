@@ -3,9 +3,9 @@
 import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_DISPLAY_LABELS } from '@genfeedai/constants';
-import { SettingsSurface } from '@genfeedai/enums';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { SettingsSurface } from '@genfeedai/contracts';
+import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type {
   MenuSharedProps,
   SidebarNavPanel,

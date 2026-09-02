@@ -1,6 +1,6 @@
 'use client';
 
-import { hasNativeExtend } from '@genfeedai/constants';
+import { hasNativeExtend } from '@genfeedai/contracts/constants';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   VideoExtendModelOption,

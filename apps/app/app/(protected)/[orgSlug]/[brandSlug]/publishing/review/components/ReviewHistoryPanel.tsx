@@ -1,7 +1,7 @@
 'use client';
 
-import { ReviewDecision } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { ReviewDecision } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';

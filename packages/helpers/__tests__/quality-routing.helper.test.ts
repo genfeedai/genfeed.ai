@@ -1,6 +1,10 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider, QualityTier } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import {
+  ModelCategory,
+  ModelProvider,
+  QualityTier,
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import {
   DEFAULT_QUALITY_TIER,
   getQualityTierForModel,
@@ -12,12 +16,14 @@ import {
   resolveQualityToModelFromDb,
 } from '@helpers/quality-routing.helper';
 
-vi.mock('@genfeedai/constants', async () => {
+vi.mock('@genfeedai/contracts/constants', async () => {
   const [actual, enums] = await Promise.all([
-    vi.importActual<typeof import('@genfeedai/constants')>(
-      '@genfeedai/constants',
+    vi.importActual<typeof import('@genfeedai/contracts/constants')>(
+      '@genfeedai/contracts/constants',
     ),
-    vi.importActual<typeof import('@genfeedai/enums')>('@genfeedai/enums'),
+    vi.importActual<typeof import('@genfeedai/contracts')>(
+      '@genfeedai/contracts',
+    ),
   ]);
   return {
     ...actual,

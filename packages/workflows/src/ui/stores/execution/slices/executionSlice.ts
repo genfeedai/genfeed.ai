@@ -1,4 +1,4 @@
-import { NodeStatusEnum } from '@genfeedai/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { StateCreator } from 'zustand';
 import { getWorkflowLogger } from '../../executionLogger';
 import { useSettingsStore } from '../../settingsStore';

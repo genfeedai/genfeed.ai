@@ -1,4 +1,4 @@
-import type { ReplyBotPlatform } from '@genfeedai/enums';
+import type { ReplyBotPlatform } from '@genfeedai/contracts';
 import type { MonitoredAccount } from '@genfeedai/prisma';
 
 export type { MonitoredAccount } from '@genfeedai/prisma';

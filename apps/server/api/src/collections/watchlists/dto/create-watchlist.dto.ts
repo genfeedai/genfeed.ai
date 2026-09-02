@@ -1,4 +1,4 @@
-import { WatchlistPlatform } from '@genfeedai/enums';
+import { WatchlistPlatform } from '@genfeedai/contracts';
 import { Transform } from 'class-transformer';
 import {
   IsEnum,

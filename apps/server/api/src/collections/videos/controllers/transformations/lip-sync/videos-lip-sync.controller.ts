@@ -19,7 +19,6 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   ByokProvider,
@@ -29,8 +28,9 @@ import {
   MetadataExtension,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

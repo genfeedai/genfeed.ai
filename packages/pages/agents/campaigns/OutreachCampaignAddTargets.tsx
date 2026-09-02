@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CampaignType } from '@genfeedai/enums';
+import { ButtonVariant, CampaignType } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Plus } from 'lucide-react';

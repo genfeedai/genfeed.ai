@@ -14,12 +14,12 @@ import {
   ContentCampaignItemOutcomeStatus,
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICampaign,
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 

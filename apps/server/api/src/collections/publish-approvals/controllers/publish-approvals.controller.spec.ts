@@ -7,7 +7,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { Request } from 'express';
 
 describe('PublishApprovalsController', () => {

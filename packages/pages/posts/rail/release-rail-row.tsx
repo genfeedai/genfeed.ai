@@ -4,7 +4,7 @@ import {
   ButtonSize,
   ButtonVariant,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   getPostsPlatformLabel,
   getPublishingPostHref,

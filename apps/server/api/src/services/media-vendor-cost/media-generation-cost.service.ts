@@ -3,7 +3,7 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
-import type { IMediaGenerationCostContext } from '@genfeedai/interfaces';
+import type { IMediaGenerationCostContext } from '@genfeedai/contracts/interfaces';
 import {
   computeMediaVendorCostMicros,
   resolveProviderCostUnits,

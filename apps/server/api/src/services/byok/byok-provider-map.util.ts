@@ -1,4 +1,4 @@
-import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
 
 const MODEL_PROVIDER_TO_BYOK: Record<string, ByokProvider> = {
   [ModelProvider.REPLICATE]: ByokProvider.REPLICATE,

@@ -1,4 +1,4 @@
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
+import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
 
 export type RawAnalyticsRow = Record<string, unknown>;
 

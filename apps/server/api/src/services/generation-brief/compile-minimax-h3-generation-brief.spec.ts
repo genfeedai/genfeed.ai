@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { compileMinimaxH3GenerationBrief } from '@api/services/generation-brief/compile-minimax-h3-generation-brief';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
-import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { minimaxH3DispatchSchema } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { minimaxH3DispatchSchema } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 const fixturesDir = join(

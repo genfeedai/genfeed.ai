@@ -4,7 +4,7 @@ import type {
   ReplicateModelSchema,
 } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
 import { IMAGE_REFERENCE_FIELDS } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
 import { HttpStatus } from '@nestjs/common';
 
 /**

@@ -12,8 +12,8 @@ vi.mock('@genfeedai/helpers', async () => ({
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateTextBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-text.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 const makeParams = (
   overrides: Partial<PromptBuilderParams> = {},

@@ -2,7 +2,10 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  TargetValidationState,
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

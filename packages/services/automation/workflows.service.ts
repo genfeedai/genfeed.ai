@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { Workflow } from '@genfeedai/models/automation/workflow.model';
 import { BaseService } from '@services/core/base.service';
 

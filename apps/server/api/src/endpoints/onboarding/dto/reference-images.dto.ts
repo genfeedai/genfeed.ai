@@ -1,4 +1,4 @@
-import { ReferenceImageCategory } from '@genfeedai/enums';
+import { ReferenceImageCategory } from '@genfeedai/contracts';
 import { Type } from 'class-transformer';
 import {
   IsArray,

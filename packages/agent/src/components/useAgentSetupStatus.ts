@@ -1,9 +1,9 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
-import type { ICredential } from '@genfeedai/interfaces';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { useMemo } from 'react';
 

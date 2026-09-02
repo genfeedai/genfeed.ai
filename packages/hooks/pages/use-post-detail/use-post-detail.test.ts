@@ -3,8 +3,8 @@ import {
   PageScope,
   PostCategory,
   PostStatus,
-} from '@genfeedai/enums';
-import type { ICredential, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

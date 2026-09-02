@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ILeaderboardOptions,
   ITrend,
@@ -9,7 +9,7 @@ import type {
   ITrendSound,
   ITrendVideo,
   IViralVideoOptions,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Trend } from '@genfeedai/models/analytics/trend.model';
 import type {
   RefreshTrendsResponse,

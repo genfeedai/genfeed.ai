@@ -20,7 +20,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { VoiceCatalogEntrySerializer } from '@genfeedai/serializers';
 import {
   Body,

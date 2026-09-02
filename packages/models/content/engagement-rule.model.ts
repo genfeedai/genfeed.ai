@@ -1,5 +1,5 @@
 import { EngagementRule as BaseEngagementRule } from '@genfeedai/client/models';
-import type { IEngagementRule } from '@genfeedai/interfaces';
+import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

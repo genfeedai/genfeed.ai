@@ -9,7 +9,7 @@ import type {
   IRAGEnhanceRequest,
   IRAGQuery,
   IRAGResult,
-} from '@genfeedai/interfaces/knowledge-base/knowledge-base.interface';
+} from '@genfeedai/contracts/interfaces/knowledge-base/knowledge-base.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeCollection,

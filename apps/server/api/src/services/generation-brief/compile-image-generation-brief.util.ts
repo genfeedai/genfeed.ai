@@ -14,12 +14,12 @@ import type {
   GenerationFidelityPolicy,
   ImageGenerationBrief,
   ImageGenerationBriefReference,
-} from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { GENERATION_BRIEF_CONTRACT_VERSION } from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { GENERATION_BRIEF_CONTRACT_VERSION } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
 export function joinGenerationBriefPromptParts(parts: string[]): string {

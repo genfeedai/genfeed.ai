@@ -1,6 +1,6 @@
 'use client';
 
-import type { ITraining } from '@genfeedai/interfaces';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
 

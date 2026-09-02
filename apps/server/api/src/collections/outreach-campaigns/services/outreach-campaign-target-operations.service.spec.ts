@@ -15,7 +15,7 @@ import {
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 describe('OutreachCampaignTargetOperationsService', () => {

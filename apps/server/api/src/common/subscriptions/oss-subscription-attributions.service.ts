@@ -1,4 +1,4 @@
-import type { ISubscriptionAttributionsService } from '@genfeedai/interfaces/billing';
+import type { ISubscriptionAttributionsService } from '@genfeedai/contracts/interfaces/billing';
 import { Injectable } from '@nestjs/common';
 
 /**

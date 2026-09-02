@@ -1,6 +1,6 @@
 'use client';
 
-import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import {

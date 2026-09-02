@@ -1,7 +1,7 @@
 import type {
   SocialPlatform,
   SocialReplyCampaignInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import type { SocialReplyCampaignTransition } from '@genfeedai/services/social/reply-campaigns.service';
 

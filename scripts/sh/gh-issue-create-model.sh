@@ -103,7 +103,7 @@ A draft entry has been created in the \`models\` collection with \`isActive: fal
 - [ ] Verify pricing estimate (${COST} credits) against actual API costs
 - [ ] Configure aspect ratios${RATIOS:+: ${RATIOS}}
 - [ ] Configure input fields${FIELDS:+: ${FIELDS}}
-- [ ] Add model key to \`ModelKey\` enum in \`../packages/enums/src/model.enum.ts\`
+- [ ] Add model key to \`ModelKey\` enum in \`../packages/contracts/src/enums/model.enum.ts\`
 - [ ] Set output capabilities (batch support, durations, end-frame, etc.)
 - [ ] Set router metadata (capabilities, costTier, speedTier, qualityTier)
 - [ ] Test generation end-to-end

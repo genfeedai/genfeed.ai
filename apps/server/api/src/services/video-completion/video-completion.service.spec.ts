@@ -9,8 +9,8 @@ import { VideoCompletionService } from '@api/services/video-completion/video-com
 import { VideoCompletionSubscriberService } from '@api/services/video-completion/video-completion-subscriber.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { createIngredientDocumentFixture } from '@api-test/fixtures/ingredient-document.fixture';
-import { IngredientStatus, Status } from '@genfeedai/enums';
-import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+import { IngredientStatus, Status } from '@genfeedai/contracts';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';

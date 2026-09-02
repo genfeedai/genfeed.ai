@@ -4,7 +4,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import {
   BadRequestException,

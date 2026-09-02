@@ -17,7 +17,7 @@ import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.uti
 import type {
   JsonApiSingleResponse,
   PopulateOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LinkSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

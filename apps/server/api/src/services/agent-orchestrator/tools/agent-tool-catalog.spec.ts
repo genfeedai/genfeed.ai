@@ -6,7 +6,7 @@ import {
   getToolsForSurface,
   isActionOnSurface,
 } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 

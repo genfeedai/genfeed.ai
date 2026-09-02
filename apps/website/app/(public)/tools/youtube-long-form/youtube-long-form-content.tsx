@@ -1,12 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IPublicYoutubeLongFormToolResult,
   PublicYoutubeLongFormOutputType,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { YoutubeLongFormService } from '@services/content/youtube-long-form.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';

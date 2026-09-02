@@ -1,4 +1,4 @@
-import type { IAgentPublishAuditDocument } from '@genfeedai/interfaces';
+import type { IAgentPublishAuditDocument } from '@genfeedai/contracts/interfaces';
 
 export type AgentPublishAuditDocument = IAgentPublishAuditDocument;
 

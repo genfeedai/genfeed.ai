@@ -7,7 +7,7 @@ import {
   type AgentDashboardOperation,
   type AgentUIBlocksEvent,
   type AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 import { Effect } from 'effect';
 

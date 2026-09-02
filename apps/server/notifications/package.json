@@ -2,15 +2,13 @@
   "dependencies": {
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@slack/web-api": "8.1.1",
     "jose": "^6.2.10",
     "node-pty": "1.1.0",
-    "tsconfig-paths": "4.2.0"
+    "tsconfig-paths": "4.2.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Notifications Service",
-  "devDependencies": {},
   "main": "../dist/apps/notifications/main.js",
   "name": "@genfeedai/notifications",
   "private": true,

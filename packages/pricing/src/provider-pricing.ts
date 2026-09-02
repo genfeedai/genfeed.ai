@@ -233,7 +233,7 @@ export const TOPAZ_NODE_TYPES = [
 export const DEFAULT_VIDEO_DURATION = 8;
 
 // Shared option arrays for UI dropdowns
-// These derive from the types in packages/types but provide runtime arrays
+// These derive from the types in packages/contracts/src/types but provide runtime arrays
 export const ASPECT_RATIOS = [
   '1:1',
   '16:9',

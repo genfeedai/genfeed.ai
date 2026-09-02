@@ -1,6 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { AssetScope, FontFamily } from '@genfeedai/enums';
+import { AssetScope, FontFamily } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

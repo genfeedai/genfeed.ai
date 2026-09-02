@@ -4,7 +4,7 @@ import {
   extractSourceText,
   UnsupportedKnowledgeSourceError,
 } from '@api/collections/contexts/utils/extract-source-text.util';
-import { KnowledgeBaseCategory } from '@genfeedai/enums';
+import { KnowledgeBaseCategory } from '@genfeedai/contracts';
 import { DestinationGuardError } from '@libs/security/destination-guard';
 
 describe('extractHtmlText', () => {

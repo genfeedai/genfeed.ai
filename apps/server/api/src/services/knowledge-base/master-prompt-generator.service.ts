@@ -13,8 +13,11 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { ActivitySource, KnowledgeBaseCategory } from '@genfeedai/enums';
-import type { IExtractedBrandData, IMasterPrompt } from '@genfeedai/interfaces';
+import { ActivitySource, KnowledgeBaseCategory } from '@genfeedai/contracts';
+import type {
+  IExtractedBrandData,
+  IMasterPrompt,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

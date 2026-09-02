@@ -11,11 +11,11 @@ import {
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { getSafeLinkedInOAuthErrorLog } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type ChannelTargetSettings,
   readChannelSettingString,
-} from '@genfeedai/api-types/contracts';
-import { CredentialPlatform } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,

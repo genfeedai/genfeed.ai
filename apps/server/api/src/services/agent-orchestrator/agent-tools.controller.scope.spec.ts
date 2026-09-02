@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import type { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 

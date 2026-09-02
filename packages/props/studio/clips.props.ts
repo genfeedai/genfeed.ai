@@ -10,7 +10,7 @@ import type {
   ClipSourceContract,
   ClipSourceKind,
   HookClipApprovalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 // ─── Shared Types ─────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import type {
   ILlmVendorCostGroupRow,
   ILlmVendorCostModelAggregate,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 function readSum(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;

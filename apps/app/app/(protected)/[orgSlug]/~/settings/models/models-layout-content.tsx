@@ -4,7 +4,7 @@ import { useModelsContext } from '@contexts/models/models-context/models-context
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { hasTrainingAccess } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';

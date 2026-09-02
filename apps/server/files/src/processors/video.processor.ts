@@ -21,11 +21,11 @@ import {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
-import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
+import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/contracts/constants';
 import {
   FILE_JOB_TYPES as JOB_TYPES,
   FILE_QUEUE_NAMES as QUEUE_NAMES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';

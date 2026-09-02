@@ -18,7 +18,7 @@ import {
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
 } from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   parseGrantedOAuthScopes,

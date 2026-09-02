@@ -1,4 +1,4 @@
-import type { PromptFormat, PromptJsonValue } from '@genfeedai/types';
+import type { PromptFormat, PromptJsonValue } from '@genfeedai/contracts/types';
 import type { PromptConstructorPayload } from '../../../contracts/prompt-constructor';
 import type { ExecutableNode } from '../../types';
 import {

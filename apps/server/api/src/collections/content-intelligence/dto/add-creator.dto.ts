@@ -1,4 +1,4 @@
-import { ContentIntelligencePlatform } from '@genfeedai/enums';
+import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

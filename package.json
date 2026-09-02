@@ -174,8 +174,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@google/design.md": "0.4.0",
     "@nestjs/cli": "12.0.0",
     "@nestjs/testing": "12.0.1",
@@ -218,7 +216,8 @@
     "unplugin-swc": "1.5.11",
     "vitest": "4.1.11",
     "webpack": "5.110.1",
-    "webpack-node-externals": "3.0.0"
+    "webpack-node-externals": "3.0.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1121.0",

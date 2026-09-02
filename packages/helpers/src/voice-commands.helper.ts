@@ -1,4 +1,4 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { VoiceCommand } from '@hooks/media/use-voice-commands/use-voice-commands';
 
 export const MODEL_VOICE_ALIASES: Record<string, string> = {

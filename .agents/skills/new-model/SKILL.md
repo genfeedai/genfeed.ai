@@ -40,8 +40,8 @@ Add a new AI generation model to the Genfeed.ai cloud platform.
 ## Pre-Flight Checks
 
 Before writing any file:
-1. Confirm model ID not already in `packages/constants/src/model-keys.constant.ts`
-2. Check if brand org exists in `packages/constants/src/model-brands.constant.ts`
+1. Confirm model ID not already in `packages/contracts/src/constants/model-keys.constant.ts`
+2. Check if brand org exists in `packages/contracts/src/constants/model-brands.constant.ts`
 3. Check if model is already auto-discovered in DB (may exist as `isActive: false`)
 4. Ask user: dedicated prompt builder or generic? (generic reads schema JSON at runtime)
 
@@ -51,10 +51,10 @@ Before writing any file:
 
 | Layer | File | When |
 |-------|------|------|
-| 1. Model Key | `packages/constants/src/model-keys.constant.ts` | Always |
-| 2. Capabilities | `packages/constants/src/model-capabilities.constant.ts` | Always |
-| 3. Aspect Ratios | `packages/constants/src/model-aspect-ratios.constant.ts` | If new ratio set |
-| 4. Model Brand | `packages/constants/src/model-brands.constant.ts` | If new org |
+| 1. Model Key | `packages/contracts/src/constants/model-keys.constant.ts` | Always |
+| 2. Capabilities | `packages/contracts/src/constants/model-capabilities.constant.ts` | Always |
+| 3. Aspect Ratios | `packages/contracts/src/constants/model-aspect-ratios.constant.ts` | If new ratio set |
+| 4. Model Brand | `packages/contracts/src/constants/model-brands.constant.ts` | If new org |
 | 5. Input Interface | `apps/server/api/src/services/prompt-builder/interfaces/replicate-input.interface.ts` | If dedicated builder |
 | 6. Prompt Builder | `apps/server/api/src/services/prompt-builder/builders/replicate/replicate-{category}.builder.ts` | If dedicated builder |
 | 7. Schema Sync | `scripts/sync-replicate-schemas.ts` | Replicate models |
@@ -62,14 +62,14 @@ Before writing any file:
 | 9. Router Default | `apps/server/api/src/services/router/router.service.ts` | If should be category default |
 | 10. Input Parsing | `apps/server/api/src/services/integrations/replicate/replicate.service.ts` | If non-standard input format |
 | 11. DB Activation | Admin API or direct DB | Always |
-| 12. Workflow UI Types | `packages/types/src/nodes/ai-nodes.ts` | If canvas support |
+| 12. Workflow UI Types | `packages/contracts/src/types/nodes/ai-nodes.ts` | If canvas support |
 | 13. Workflow UI Registry | `packages/workflows/src/ui/lib/models/registry.ts` | If canvas support |
 
 ---
 
 ## Layer 1: Model Key Constant (REQUIRED)
 
-**File:** `packages/constants/src/model-keys.constant.ts`
+**File:** `packages/contracts/src/constants/model-keys.constant.ts`
 
 Add to `MODEL_KEYS` object (alphabetical within provider section):
 ```typescript
@@ -80,13 +80,13 @@ FAL_FLUX_PRO: 'fal-ai/flux-pro',
 
 `ModelKeyValue` union type is auto-derived from this object — no extra change.
 
-**Note:** There is no `ModelKey` enum. `packages/enums/src/model.enum.ts` only has `ModelProvider`, `ModelCategory`, `QualityTier`, `CostTier`, `SpeedTier`, `PricingType`.
+**Note:** There is no `ModelKey` enum. `packages/contracts/src/enums/model.enum.ts` only has `ModelProvider`, `ModelCategory`, `QualityTier`, `CostTier`, `SpeedTier`, `PricingType`.
 
 ---
 
 ## Layer 2: Model Capabilities (REQUIRED)
 
-**File:** `packages/constants/src/model-capabilities.constant.ts`
+**File:** `packages/contracts/src/constants/model-capabilities.constant.ts`
 
 Add entry to `MODEL_OUTPUT_CAPABILITIES` keyed by `MODEL_KEYS.YOUR_KEY`:
 
@@ -125,7 +125,7 @@ Use existing capability interfaces: `ImageModelCapability`, `VideoModelCapabilit
 
 ## Layer 3: Aspect Ratios (IF NEW SET NEEDED)
 
-**File:** `packages/constants/src/model-aspect-ratios.constant.ts`
+**File:** `packages/contracts/src/constants/model-aspect-ratios.constant.ts`
 
 Only if model has a unique ratio set not covered by existing constants:
 - `ASPECT_RATIOS.IMAGEN` — Google Imagen models
@@ -145,7 +145,7 @@ NUEVO: [
 
 ## Layer 4: Model Brand (IF NEW ORG)
 
-**File:** `packages/constants/src/model-brands.constant.ts`
+**File:** `packages/contracts/src/constants/model-brands.constant.ts`
 
 Only if model org not already listed. Existing orgs: `black-forest-labs`, `bytedance`, `deepseek-ai`, `fal-ai`, `genfeed-ai`, `google`, `heygen`, `hf`, `ideogram-ai`, `kwaivgi`, `luma`, `meta`, `openai`, `prunaai`, `qwen`, `replicate`, `runwayml`, `topazlabs`, `wan-video`, `x-ai`.
 
@@ -306,7 +306,7 @@ bash scripts/sh/gh-issue-create-model.sh \
 
 ## Layer 12: Workflow UI Types (OPTIONAL — canvas support)
 
-**File:** `packages/types/src/nodes/ai-nodes.ts`
+**File:** `packages/contracts/src/types/nodes/ai-nodes.ts`
 
 Add to `ImageModel` or `VideoModel` union:
 ```typescript
@@ -373,7 +373,7 @@ bun run sync:replicate
 **Note:** fal.ai models route through `ReplicatePromptBuilder` via `getProviderFromModelKey()` returning `ModelProvider.REPLICATE`. Generic builder handles them automatically. No schema sync needed.
 
 ### Canvas workflow support (optional, any provider)
-- `packages/types/src/nodes/ai-nodes.ts` — union type
+- `packages/contracts/src/types/nodes/ai-nodes.ts` — union type
 - `packages/workflows/src/ui/lib/models/registry.ts` — registry array
 - `bun run sync:replicate` — regenerate types
 
@@ -395,5 +395,5 @@ bun run test --filter=@genfeedai/workers -- --grep "model-pricing"
 ls apps/server/api/src/services/integrations/replicate/schemas/<model-name>.schema.json
 
 # Verify constant exports
-bun run test --filter=@genfeedai/constants
+bun run test --filter=@genfeedai/contracts
 ```

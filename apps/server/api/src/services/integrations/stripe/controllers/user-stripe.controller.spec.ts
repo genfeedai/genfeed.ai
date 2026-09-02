@@ -31,7 +31,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

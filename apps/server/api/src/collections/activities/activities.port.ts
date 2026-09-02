@@ -1,4 +1,4 @@
-import type { ActivityKey, ActivitySource } from '@genfeedai/enums';
+import type { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 
 /** Activity fields required by server-owned integration services. */
 export type ServerActivityCreateInput = {

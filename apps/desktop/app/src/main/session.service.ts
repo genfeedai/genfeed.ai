@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import type {
   IDesktopSession as IDesktopContractSession,
   IDesktopEnvironment,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import { safeStorage } from 'electron';
 import type { DesktopKeyValueStore } from './store.service';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, PostStatus } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PostStatus } from '@genfeedai/contracts';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformTabBarProps } from '@props/content/platform-tab-bar.props';
 import type { TabItem } from '@props/ui/navigation/tabs.props';

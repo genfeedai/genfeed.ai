@@ -1,4 +1,4 @@
-import type { IBrandAgentVoice } from '@genfeedai/interfaces';
+import type { IBrandAgentVoice } from '@genfeedai/contracts/interfaces';
 import type { BaseNodeData } from '../types';
 
 /**

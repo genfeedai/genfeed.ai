@@ -1,7 +1,7 @@
 'use client';
 
-import { ComponentSize, PageScope } from '@genfeedai/enums';
-import type { ContentScope, ISound } from '@genfeedai/interfaces';
+import { ComponentSize, PageScope } from '@genfeedai/contracts';
+import type { ContentScope, ISound } from '@genfeedai/contracts/interfaces';
 import type { Sound } from '@models/ingredients/sound.model';
 import Badge from '@ui/display/badge/Badge';
 import { Checkbox } from '@ui/primitives/checkbox';

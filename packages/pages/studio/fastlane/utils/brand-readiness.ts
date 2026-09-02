@@ -1,5 +1,5 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
-import type { IBrand, ICredential } from '@genfeedai/interfaces';
+import type { CredentialPlatform } from '@genfeedai/contracts';
+import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import type { FastlaneFormat } from '../types';
 
 const SHORT_FORM_PLATFORMS: string[] = ['tiktok', 'instagram', 'youtube'];

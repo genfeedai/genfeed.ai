@@ -5,7 +5,7 @@ import type {
   IQueryPrompts,
   ModelCapability,
   ProviderModel,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { ComponentType } from 'react';
 import type { WorkflowRefApi } from '../nodes/composition/workflow-ref-node.helpers';
 import type {

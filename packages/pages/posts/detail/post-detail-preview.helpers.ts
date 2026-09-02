@@ -7,12 +7,12 @@ import {
   TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICredential,
   IPost,
   IReleaseMediaReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 
 function stripHtml(value?: string): string {

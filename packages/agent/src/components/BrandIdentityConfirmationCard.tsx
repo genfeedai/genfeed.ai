@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';

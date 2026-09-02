@@ -1,6 +1,6 @@
 'use client';
 
-import { AgentType, ButtonVariant } from '@genfeedai/enums';
+import { AgentType, ButtonVariant } from '@genfeedai/contracts';
 import {
   LinkedinIcon,
   XTwitterIcon,

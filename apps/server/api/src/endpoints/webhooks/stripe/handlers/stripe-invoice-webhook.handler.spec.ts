@@ -10,11 +10,11 @@ import {
   ByokBillingStatus,
   SubscriptionPlan,
   SubscriptionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

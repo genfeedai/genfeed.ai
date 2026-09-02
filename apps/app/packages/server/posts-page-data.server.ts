@@ -5,14 +5,18 @@ import {
   hasUsableServerAuthToken,
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModelCategory, PageScope, type PostStatus } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  PageScope,
+  type PostStatus,
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   IPost,
   IPreset,
   IQueryParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { mapPostsListStatusFilter } from '@pages/posts/list/components/posts-query.helpers';
 import { logger } from '@services/core/logger.service';
 import { PresetsService } from '@services/elements/presets.service';

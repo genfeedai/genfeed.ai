@@ -1,4 +1,4 @@
-import { PERSONAL_EMAIL_DOMAINS } from '@genfeedai/constants';
+import { PERSONAL_EMAIL_DOMAINS } from '@genfeedai/contracts/constants';
 
 export interface ResolveSignupBrandDomainInput {
   email?: string | null;

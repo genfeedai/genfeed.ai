@@ -1,7 +1,7 @@
 'use client';
 
-import { getPlatformPreviewLimit } from '@genfeedai/constants/platform-limits.constant';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import { getPlatformPreviewLimit } from '@genfeedai/contracts/constants/platform-limits.constant';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 
 import MediaPreview from './MediaPreview';

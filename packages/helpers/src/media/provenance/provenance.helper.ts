@@ -9,7 +9,7 @@ import type {
   IMediaTranscriptSidecar,
   IMediaWatermarkAttributionEvaluation,
   IProvenanceTranscriptSegment,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /** Current manifest schema version. Bump when the manifest shape changes. */
 export const MEDIA_PROVENANCE_SCHEMA_VERSION = 1;

@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   SocialReplyCampaign,
@@ -7,8 +7,8 @@ import type {
   SocialReplyCampaignQuery,
   SocialReplyCampaignRecipient,
   SocialReplyCampaignRecipientQuery,
-} from '@genfeedai/interfaces';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import { SocialReplyCampaignRecipientModel } from '@genfeedai/models/social/social-reply-campaign-recipient.model';
 import {

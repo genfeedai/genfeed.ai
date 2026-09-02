@@ -2,6 +2,12 @@
  * Regression guard for #481 (dead SaaS node pruning) plus #4107 (catalog-generated
  * action nodes). Removed product types must not reappear as hand-written
  * inventories; live product types come from ALL_ACTIONS.
+ *
+ * - The 16 removed SaaS node types must not reappear in the SaaS registry or the
+ *   merged registry.
+ * - The SaaS `videoInput` shadow was deleted; the core `videoInput` (defined in
+ *   @genfeedai/contracts/types) must be the effective merged-registry definition again.
+ * - The retained SaaS node types must remain present.
  */
 
 import { describe, expect, it } from 'vitest';

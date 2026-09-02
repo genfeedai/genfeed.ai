@@ -1,5 +1,5 @@
 import { RecurrenceValidator } from '@api/collections/workflows/validators/recurrence.validator';
-import { WorkflowRecurrenceType } from '@genfeedai/enums';
+import { WorkflowRecurrenceType } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('RecurrenceValidator.validate', () => {

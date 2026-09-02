@@ -1,7 +1,7 @@
 import { PostingSetsController } from '@api/collections/posting-sets/controllers/posting-sets.controller';
 import type { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 const MUTATION_SCOPES = [

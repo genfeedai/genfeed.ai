@@ -20,8 +20,8 @@ import {
   getDefaultTextMinimumCredits,
 } from '@api/helpers/utils/credits/organization-credits-gate.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import type { ValidateChannelTargetSettingsInput } from '@api-types/contracts/channel-capabilities.contract';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { ValidateChannelTargetSettingsInput } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ScheduleSerializer } from '@genfeedai/serializers';
 import {
   Body,

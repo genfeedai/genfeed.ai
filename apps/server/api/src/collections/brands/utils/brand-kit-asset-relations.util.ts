@@ -4,7 +4,7 @@ import type {
   IBrandKitAssetRelations,
   IBrandKitResolvedAsset,
   IBrandKitResolvedAssets,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 function toAssetRelation(
   asset: IBrandKitResolvedAsset,

@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import type { ContentIntelligencePlatform } from '@genfeedai/enums';
+import type { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import type { Request } from 'express';
 
 export type PostVariationSourceKind =

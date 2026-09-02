@@ -2,8 +2,12 @@ import type {
   ArticleStatus,
   IngredientStatus,
   PostStatus,
-} from '@genfeedai/enums';
-import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IArticle,
+  IIngredient,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
 
 export interface StatusDropdownProps {
   entity: IIngredient | IArticle | IPost;

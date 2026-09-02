@@ -2,12 +2,12 @@
 
 import AppProtectedLayout from '@app-components/app-protected-layout';
 import { SessionKeepAlive } from '@genfeedai/auth-client';
+import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
 import {
   APP_SWITCHER_FEATURE_FLAG_KEYS,
   DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
   REPLY_BOT_FEATURE_FLAG,
-} from '@genfeedai/constants';
-import { RoutedOrganizationProvider } from '@genfeedai/contexts/user/organization-context/organization-context';
+} from '@genfeedai/contracts/constants';
 import { useAuthUser } from '@hooks/auth/use-auth-user';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';

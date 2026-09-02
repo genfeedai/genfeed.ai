@@ -2,7 +2,7 @@ import type {
   IExtractedBrandData,
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Response from brand setup operation

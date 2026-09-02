@@ -2,8 +2,8 @@ import type {
   AgentChatAttachment,
   AgentPageContext,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { RouterPriority } from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

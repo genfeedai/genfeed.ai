@@ -7,7 +7,7 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
   TemplateCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

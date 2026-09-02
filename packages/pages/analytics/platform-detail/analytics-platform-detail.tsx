@@ -1,7 +1,7 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,

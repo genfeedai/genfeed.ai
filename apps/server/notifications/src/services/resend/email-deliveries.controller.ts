@@ -2,7 +2,7 @@ import type {
   IEmailDeliveryErrorResponse,
   IEmailDeliveryRequest,
   IEmailDeliveryResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   Body,
   Controller,

@@ -2,7 +2,7 @@ import {
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 
 type RegisteredActionRequest = {

@@ -1,4 +1,4 @@
-import type { IArticle, IImage, IVideo } from '@genfeedai/interfaces';
+import type { IArticle, IImage, IVideo } from '@genfeedai/contracts/interfaces';
 
 export interface ProfileSocialLinksProps {
   handle: string;

@@ -4,7 +4,7 @@ import type {
   IngredientCategory,
   IngredientStatus,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -16,7 +16,7 @@ import type {
   ITag,
   ITraining,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Ingredient extends BaseEntity implements IIngredient {
   public declare userId?: string | null;

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import type { IDesktopTerminalDataEvent } from '@genfeedai/desktop-contracts';
+import type { IDesktopTerminalDataEvent } from '@genfeedai/contracts/desktop';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 const ptyState = {

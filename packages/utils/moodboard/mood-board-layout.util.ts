@@ -1,4 +1,7 @@
-import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Default tile + grid geometry used when auto-placing assets that do not yet

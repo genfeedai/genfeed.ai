@@ -2,7 +2,7 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import type {
   IAgentCampaignContentRotation,
   IAgentCampaignRotationTarget,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export interface ContentRotationSelection {

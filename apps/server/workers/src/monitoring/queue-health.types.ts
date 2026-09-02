@@ -1,4 +1,4 @@
-import type { QueueName } from '@genfeedai/queue-contracts';
+import type { QueueName } from '@genfeedai/contracts/queue';
 
 export interface OperationalQueueHealthSnapshot {
   active: number;

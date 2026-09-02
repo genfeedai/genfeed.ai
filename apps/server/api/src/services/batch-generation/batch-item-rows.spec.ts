@@ -11,7 +11,7 @@ import {
   ContentFormat,
   PersistedReviewDecision,
   ReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('batch item row projection', () => {

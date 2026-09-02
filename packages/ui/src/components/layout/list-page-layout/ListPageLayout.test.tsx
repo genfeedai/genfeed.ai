@@ -1,4 +1,4 @@
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { render } from '@testing-library/react';
 import ListPageLayout from '@ui/layout/list-page-layout/ListPageLayout';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import type { ReactNode } from 'react';
 import { Badge } from './badge';

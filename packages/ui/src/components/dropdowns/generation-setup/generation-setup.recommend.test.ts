@@ -1,9 +1,9 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetupFieldKey,
   GenerationSetupRecommendationInput,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateCapabilities } from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { describe, expect, it } from 'vitest';
 import { recommendGenerationSetup } from './generation-setup.recommend';
 

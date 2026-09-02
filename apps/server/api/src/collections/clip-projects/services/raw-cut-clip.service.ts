@@ -1,5 +1,5 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

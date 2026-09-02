@@ -2,7 +2,7 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import type { QuotaCheckResult } from '@api/services/quota/quota.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 
 const ORGANIZATION_ID = 'org-1';

@@ -1,4 +1,4 @@
-import type { NodeType, WorkflowNode } from '@genfeedai/types';
+import type { NodeType, WorkflowNode } from '@genfeedai/contracts/types';
 import type { FitViewOptions } from '@xyflow/react';
 import { useEffect } from 'react';
 import { createIdLookup, filterItemsByIdLookup, hasSomeId } from '../lib';

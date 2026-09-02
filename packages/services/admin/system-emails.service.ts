@@ -1,4 +1,4 @@
-import type { LifecycleSystemEmailDefinition } from '@genfeedai/constants';
+import type { LifecycleSystemEmailDefinition } from '@genfeedai/contracts/constants';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

@@ -17,7 +17,7 @@ import {
   CONVERSATION_CACHE_LIMIT,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(

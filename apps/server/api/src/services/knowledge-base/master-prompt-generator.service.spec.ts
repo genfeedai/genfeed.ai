@@ -2,7 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
+import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

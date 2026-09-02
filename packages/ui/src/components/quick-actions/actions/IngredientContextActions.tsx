@@ -1,9 +1,9 @@
 'use client';
 
-import type { AssetScope } from '@genfeedai/enums';
-import { DropdownDirection } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/contracts';
+import { DropdownDirection } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IIngredient } from '@genfeedai/interfaces';
 import DropdownPrompt from '@ui/dropdowns/prompt/DropdownPrompt';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';

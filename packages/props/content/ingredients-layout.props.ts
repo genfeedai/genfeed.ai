@@ -1,4 +1,4 @@
-import type { PageScope } from '@genfeedai/enums';
+import type { PageScope } from '@genfeedai/contracts';
 import type { LayoutProps } from '@props/layout/layout.props';
 
 export interface IngredientsLayoutProps extends LayoutProps {

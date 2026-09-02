@@ -8,7 +8,11 @@ import type { TriggerEvent } from '@api/collections/workflows/services/workflow-
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Platform, WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import {
+  Platform,
+  WorkflowLifecycle,
+  WorkflowStatus,
+} from '@genfeedai/contracts';
 import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

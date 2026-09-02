@@ -8,7 +8,7 @@ import {
   BotInteractionType,
   BotResponseType,
   CredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

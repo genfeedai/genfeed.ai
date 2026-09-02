@@ -1,7 +1,7 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
-import type { ICredential, IIngredient } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   IngredientDetailImageProps,
   IngredientDetailVideoProps,

@@ -1,5 +1,5 @@
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
-import { BotPlatform } from '@genfeedai/enums';
+import { BotPlatform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BotsLivestreamService', () => {

@@ -1,5 +1,5 @@
 import type { WebsiteScrapingResult } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 

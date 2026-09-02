@@ -12,7 +12,7 @@ import {
   type ImageTaskModel,
   type MusicTaskModel,
   type VideoTaskModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

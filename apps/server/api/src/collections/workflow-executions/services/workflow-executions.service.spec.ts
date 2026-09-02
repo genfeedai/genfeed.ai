@@ -2,7 +2,7 @@ import { runWithActionOrigin } from '@api/index';
 import {
   ActionOrigin,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 

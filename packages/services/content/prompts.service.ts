@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { PromptSerializer } from '@genfeedai/serializers';
 import {

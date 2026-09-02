@@ -1,6 +1,6 @@
 'use client';
 
-import { CampaignType } from '@genfeedai/enums';
+import { CampaignType } from '@genfeedai/contracts';
 import { Input } from '@ui/primitives/input';
 
 type Props = {

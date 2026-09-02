@@ -21,7 +21,7 @@ import { TwitterPublisherService } from '@api/services/integrations/publishers/t
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 // ─── Mock factory ─────────────────────────────────────────────────────────────

@@ -9,8 +9,8 @@ import {
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { runWithActionOrigin } from '@api/index';
-import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

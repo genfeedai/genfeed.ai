@@ -1,8 +1,12 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ContentRating, IngredientStatus } from '@genfeedai/enums';
+import { ContentRating, IngredientStatus } from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  IMetadata,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type { IIngredient, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';

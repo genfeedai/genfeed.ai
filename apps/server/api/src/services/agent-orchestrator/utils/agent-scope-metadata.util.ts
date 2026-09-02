@@ -5,7 +5,7 @@ import type {
 import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export function withAgentScopeResult(
   result: AgentChatResult,

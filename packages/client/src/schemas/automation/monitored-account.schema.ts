@@ -1,4 +1,4 @@
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const monitoredAccountSchema = z.object({

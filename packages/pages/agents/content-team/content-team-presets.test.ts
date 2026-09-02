@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import { buildRoleStrategyInput } from '@pages/agents/content-team/content-team-presets';
 import { describe, expect, it } from 'vitest';
 

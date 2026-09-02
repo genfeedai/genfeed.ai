@@ -1,7 +1,7 @@
 'use client';
 
-import type { IFilterContextValue } from '@genfeedai/interfaces/providers/providers.interface';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import type { IFilterContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { createContext, useContext } from 'react';
 
 export const DEFAULT_FILTERS: IFiltersState = {

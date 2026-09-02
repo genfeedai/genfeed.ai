@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   ByokBillingStatus,
   formatEnumLabel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   BYOK_FEE_PERCENTAGE,
   BYOK_FREE_THRESHOLD_CREDITS,

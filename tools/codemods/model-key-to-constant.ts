@@ -60,10 +60,10 @@ export default function transformer(file: FileInfo, api: API) {
 
   if (!hasChanges) return undefined;
 
-  // Update imports: remove ModelKey from @genfeedai/enums, add MODEL_KEYS from @genfeedai/constants
+  // Update imports: remove ModelKey from @genfeedai/contracts, add MODEL_KEYS from @genfeedai/contracts/constants
   root
     .find(j.ImportDeclaration, {
-      source: { value: '@genfeedai/enums' },
+      source: { value: '@genfeedai/contracts' },
     })
     .forEach((path) => {
       const specifiers = path.node.specifiers ?? [];
@@ -84,7 +84,9 @@ export default function transformer(file: FileInfo, api: API) {
   // Add MODEL_KEYS import if not already present
   const hasModelKeysImport =
     root
-      .find(j.ImportDeclaration, { source: { value: '@genfeedai/constants' } })
+      .find(j.ImportDeclaration, {
+        source: { value: '@genfeedai/contracts/constants' },
+      })
       .filter((path) =>
         (path.node.specifiers ?? []).some(
           (s) =>
@@ -96,7 +98,7 @@ export default function transformer(file: FileInfo, api: API) {
 
   if (!hasModelKeysImport) {
     const constImport = root.find(j.ImportDeclaration, {
-      source: { value: '@genfeedai/constants' },
+      source: { value: '@genfeedai/contracts/constants' },
     });
 
     if (constImport.length > 0) {
@@ -107,7 +109,7 @@ export default function transformer(file: FileInfo, api: API) {
     } else {
       const newImport = j.importDeclaration(
         [j.importSpecifier(j.identifier('MODEL_KEYS'))],
-        j.literal('@genfeedai/constants'),
+        j.literal('@genfeedai/contracts/constants'),
       );
       const body = root.find(j.Program).get('body');
       body.value.unshift(newImport);

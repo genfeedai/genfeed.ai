@@ -2,7 +2,7 @@ import type { NodeDefinition } from '@api/collections/workflows/registry/node-re
 import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   SELECTABLE_AGENT_CHAT_MODELS,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 export const SOURCE_CORPUS_CONFIG_LIMITS = {
   days: { default: 7, max: 30, min: 1 },

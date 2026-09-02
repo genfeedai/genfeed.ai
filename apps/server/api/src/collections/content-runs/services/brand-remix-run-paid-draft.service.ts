@@ -20,14 +20,14 @@ import {
   type PausedXAdsCampaignDraftResult,
   PausedXAdsCampaignDraftService,
 } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
   brandRemixRunConfigSchema,
   type PreparePausedMetaCampaignDraft,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import {
   BadRequestException,
   ConflictException,

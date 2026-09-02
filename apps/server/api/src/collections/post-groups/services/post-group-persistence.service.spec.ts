@@ -17,7 +17,7 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException } from '@nestjs/common';
 

@@ -1,8 +1,8 @@
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 function buildParams(

@@ -19,7 +19,7 @@ import { YouTubePublisherService } from '@api/services/integrations/publishers/y
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 /**

@@ -2,8 +2,12 @@
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
-import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  ICreditsEventData,
+  IOrganizationEventData,
+} from '@genfeedai/contracts/interfaces';
 import {
   formatCompactNumber,
   formatNumberWithCommas,
@@ -12,10 +16,6 @@ import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-bala
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type {
-  ICreditsEventData,
-  IOrganizationEventData,
-} from '@genfeedai/interfaces';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CreditsBarTrigger from './CreditsBarTrigger';
 

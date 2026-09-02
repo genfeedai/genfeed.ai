@@ -1,7 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 

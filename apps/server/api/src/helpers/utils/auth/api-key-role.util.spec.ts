@@ -1,4 +1,4 @@
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { resolveApiKeyEffectiveMemberRole } from './api-key-role.util';
 
 describe('resolveApiKeyEffectiveMemberRole', () => {

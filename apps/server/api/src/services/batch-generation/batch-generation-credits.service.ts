@@ -7,11 +7,11 @@ import {
 } from '@api/services/batch-generation/batch-generation.types';
 import { batchItemRowsReadArgs } from '@api/services/batch-generation/batch-item-rows';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ActivitySource, BatchItemStatus } from '@genfeedai/contracts';
 import {
   type BatchPricingOptions,
   reconcileBatchGenerationCredits,
-} from '@genfeedai/constants';
-import { ActivitySource, BatchItemStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -2,8 +2,8 @@ import type {
   DropdownDirection,
   IngredientCategory,
   TagCategory,
-} from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { RefObject } from 'react';
 
 export interface DropdownTagsProps {

@@ -4,7 +4,7 @@ import {
   parseDashboardOpenUIDocument,
 } from '@genfeedai/agent/dashboard/dashboard-openui';
 import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
-import type { AgentDashboardOperation } from '@genfeedai/interfaces';
+import type { AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
 
 function normalizeDashboardOperation(
   operation: AgentDashboardOperation | string,

@@ -1,4 +1,4 @@
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { render, screen } from '@testing-library/react';
 import { CommandPaletteView } from '@ui/command-palette/command-palette/CommandPaletteView';
 import type { RefObject } from 'react';

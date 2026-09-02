@@ -1,9 +1,13 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, IngredientCategory, ModalEnum } from '@genfeedai/enums';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import {
+  ButtonVariant,
+  IngredientCategory,
+  ModalEnum,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ElementsProvider from '@providers/elements/elements.provider';

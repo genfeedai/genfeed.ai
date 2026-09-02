@@ -32,7 +32,7 @@ import type {
   WanVideoInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import { assertRequiredSchemaInput } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,

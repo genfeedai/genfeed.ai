@@ -7,11 +7,11 @@
  * @module test-data.fixture
  */
 
+import { PostStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 // ----------------------------------------------------------------------------
 // Type Definitions

@@ -1,6 +1,6 @@
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Square } from 'lucide-react';

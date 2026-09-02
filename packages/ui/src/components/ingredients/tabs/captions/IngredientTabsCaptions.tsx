@@ -5,11 +5,15 @@ import {
   ButtonSize,
   ButtonVariant,
   CaptionFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  ICaption,
+  IFieldOption,
+  IMetadata,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
 import type { IngredientTabsCaptionsProps } from '@genfeedai/props/content/ingredient.props';
 import { CaptionsService } from '@genfeedai/services/content/captions.service';
 import { logger } from '@genfeedai/services/core/logger.service';

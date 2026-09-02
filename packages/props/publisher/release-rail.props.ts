@@ -1,4 +1,4 @@
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type { ReleaseRailSegment } from '@pages/posts/rail/release-rail-segments.helpers';
 
 export interface ReleaseRailSegmentsProps {

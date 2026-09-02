@@ -4,19 +4,19 @@ import {
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   RemainingVideoDispatch,
   VideoGenerationBriefOmittedSignal,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   remainingVideoCompileEvidenceSchema,
   remainingVideoDispatchSchema,
   VIDEO_GENERATION_BRIEF_CONTRACT_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import type { RemainingVideoCapabilityProfile } from '@api-types/contracts/video-generation-capability-profile-remaining.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import type { RemainingVideoCapabilityProfile } from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile-remaining.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 import { getVideoResolutionsByModel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 

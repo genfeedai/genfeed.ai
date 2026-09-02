@@ -8,7 +8,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -16,7 +16,7 @@ import type {
   AccountPublishingSourceLineage,
   ContentSurface,
   Publishability,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

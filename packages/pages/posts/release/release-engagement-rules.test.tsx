@@ -7,8 +7,11 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IChannelTarget, IEngagementRule } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IEngagementRule,
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

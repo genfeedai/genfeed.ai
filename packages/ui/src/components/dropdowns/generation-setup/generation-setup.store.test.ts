@@ -1,7 +1,7 @@
 import type {
   GenerationSetupRecommendation,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   adoptNewScopeSetup,

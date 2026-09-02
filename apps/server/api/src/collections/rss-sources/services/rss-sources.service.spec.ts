@@ -17,7 +17,7 @@ import {
   RssApprovalMode,
   RssFeedItemStatus,
   RssImportPolicy,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const context = {

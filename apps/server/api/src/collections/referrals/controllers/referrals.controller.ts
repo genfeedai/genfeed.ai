@@ -14,7 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ReferralRewardStatus } from '@genfeedai/enums';
+import { ReferralRewardStatus } from '@genfeedai/contracts';
 import {
   ReferralAdminRewardSerializer,
   ReferralProgramSerializer,

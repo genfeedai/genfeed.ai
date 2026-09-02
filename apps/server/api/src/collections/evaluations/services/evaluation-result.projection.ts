@@ -1,11 +1,11 @@
-import { Status } from '@genfeedai/enums';
+import { Status } from '@genfeedai/contracts';
 import type {
   IEvaluationComparisonResult,
   IEvaluationComparisonScoreBreakdown,
   IEvaluationReview,
   IEvaluationReviewerComment,
   IEvaluationTrend,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface EvaluationAiResult {
   analysis: unknown;

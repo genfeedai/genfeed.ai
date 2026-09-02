@@ -1,7 +1,7 @@
 'use client';
 
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,

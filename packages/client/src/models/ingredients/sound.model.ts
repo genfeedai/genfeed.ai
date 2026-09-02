@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { ISound } from '@genfeedai/interfaces';
+import type { ISound } from '@genfeedai/contracts/interfaces';
 
 export class Sound extends Ingredient implements ISound {
   public declare duration?: number;

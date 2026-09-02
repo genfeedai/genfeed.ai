@@ -13,7 +13,7 @@ import {
   IngredientStatus,
   VoiceCloneStatus,
   VoiceProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface FleetVoiceCloneWebhookPayload {

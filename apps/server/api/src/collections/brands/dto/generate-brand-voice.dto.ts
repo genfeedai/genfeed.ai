@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { IGeneratedBrandProfile } from '@genfeedai/interfaces';
+import type { IGeneratedBrandProfile } from '@genfeedai/contracts/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,

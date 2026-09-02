@@ -1,4 +1,4 @@
-import type { ILlmVendorCostGroupRow } from '@genfeedai/interfaces';
+import type { ILlmVendorCostGroupRow } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { foldLlmVendorCostGroups } from './llm-vendor-cost-aggregate.util';
 

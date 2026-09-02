@@ -9,7 +9,7 @@ import {
   isClipResultMode,
   isSupportedAvatarVideoProviderName,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()

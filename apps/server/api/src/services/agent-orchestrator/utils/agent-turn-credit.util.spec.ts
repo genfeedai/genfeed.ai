@@ -5,7 +5,7 @@ import {
   resolveAgentTurnCreditCost,
   settleAgentTurnCredits,
 } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const CHEAP_MODEL = 'deepseek/deepseek-v4-flash-0731';
 const EXPENSIVE_MODEL = 'anthropic/claude-opus-5';

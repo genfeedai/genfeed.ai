@@ -1,5 +1,5 @@
 import { ByokService } from '@api/services/byok/byok.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { of, throwError } from 'rxjs';
 
 describe('ByokService Argil validation', () => {

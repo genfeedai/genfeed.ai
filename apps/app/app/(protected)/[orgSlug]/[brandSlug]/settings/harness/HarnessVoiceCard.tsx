@@ -1,6 +1,6 @@
 'use client';
 
-import type { IHarnessProfile } from '@genfeedai/interfaces';
+import type { IHarnessProfile } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';

@@ -9,8 +9,8 @@ import {
   isTrainerKey,
   isTrainingKey,
 } from '@api/collections/models/utils/model-key.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 // Contract tests for the model-routing heuristics that decide which provider a
 // given model key resolves to. These are string-prefix/regex heuristics on the

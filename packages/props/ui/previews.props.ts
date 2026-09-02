@@ -2,7 +2,7 @@ import type {
   IChannelTarget,
   ICredential,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * The slice of a release group a preview renderer needs. `attachments` is

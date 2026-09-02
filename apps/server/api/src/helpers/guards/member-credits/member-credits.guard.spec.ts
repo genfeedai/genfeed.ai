@@ -3,7 +3,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { UNLIMITED_SEATS_FAIR_USE_CEILING } from '@api/collections/organization-settings/utils/seat-policy.util';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import * as authUtil from '@api/helpers/utils/auth/auth.util';
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { FREE_SEAT_LIMIT } from '@genfeedai/pricing';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';

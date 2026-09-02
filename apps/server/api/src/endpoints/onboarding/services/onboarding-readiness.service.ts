@@ -17,7 +17,7 @@ import type {
   IOrganizationSetting,
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

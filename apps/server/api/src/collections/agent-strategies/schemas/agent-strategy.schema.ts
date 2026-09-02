@@ -1,4 +1,4 @@
-import type { AgentAutonomyMode } from '@genfeedai/enums';
+import type { AgentAutonomyMode } from '@genfeedai/contracts';
 import type { AgentStrategy as PrismaAgentStrategy } from '@genfeedai/prisma';
 
 export type { AgentStrategy as PrismaAgentStrategy } from '@genfeedai/prisma';

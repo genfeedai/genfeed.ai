@@ -11,7 +11,7 @@ import {
   similarityToCosineDistance,
 } from '@api/collections/contexts/utils/context-similarity-query.util';
 import type { MockSql } from '@api/shared/testing/prisma-mock';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 
 describe('context similarity query', () => {
   it('maps minimum similarity to cosine distance', () => {

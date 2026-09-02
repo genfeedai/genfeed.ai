@@ -3,7 +3,7 @@ import type {
   ConversationComposerActionName,
   ParsedConversationComposerCommand,
 } from '@genfeedai/agent/models/conversation-composer.model';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
 /**
  * Preferred product surface for each slash command.

@@ -3,7 +3,7 @@ import type { StripeCustomer } from '@api/services/integrations/stripe/services/
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

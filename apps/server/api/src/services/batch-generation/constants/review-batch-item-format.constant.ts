@@ -1,4 +1,4 @@
-import { ContentFormat } from '@genfeedai/enums';
+import { ContentFormat } from '@genfeedai/contracts';
 
 export const REVIEW_BATCH_ITEM_FORMATS = [
   ...Object.values(ContentFormat),

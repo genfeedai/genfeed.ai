@@ -1,4 +1,4 @@
-import type { SettingsSurface } from '@genfeedai/enums';
+import type { SettingsSurface } from '@genfeedai/contracts';
 
 export interface SettingsSearchItem {
   description: string;

@@ -1,13 +1,13 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
   ITwitterSearchResult,
   ITwitterVoiceConfig,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import OpportunityCard from '@pages/twitter-pipeline/components/opportunity-card';
 import TweetCard from '@pages/twitter-pipeline/components/tweet-card';

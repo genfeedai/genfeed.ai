@@ -1,6 +1,6 @@
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';

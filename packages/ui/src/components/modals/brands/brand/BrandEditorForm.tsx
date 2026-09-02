@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IFontFamily, IModel } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { IFontFamily, IModel } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';

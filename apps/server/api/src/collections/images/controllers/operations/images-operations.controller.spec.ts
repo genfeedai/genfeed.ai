@@ -92,7 +92,6 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
   IngredientCategory,
@@ -100,7 +99,8 @@ import {
   ModelCategory,
   TagCategory,
   TagKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

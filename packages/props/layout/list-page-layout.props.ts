@@ -1,7 +1,7 @@
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
 import type { ComponentType, ReactNode } from 'react';

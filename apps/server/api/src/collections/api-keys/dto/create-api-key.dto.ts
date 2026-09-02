@@ -1,5 +1,5 @@
-import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/constants';
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
+import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

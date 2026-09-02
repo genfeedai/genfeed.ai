@@ -6,7 +6,7 @@ import {
   resolveSettingsSearchHref,
 } from '@app-config/settings-search-catalog';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SettingsSearchItem,

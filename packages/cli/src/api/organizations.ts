@@ -1,4 +1,4 @@
-import type { OrganizationOption } from '@genfeedai/interfaces';
+import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
 import { get, patch } from './client';
 
 export interface SwitchOrganizationResponse {

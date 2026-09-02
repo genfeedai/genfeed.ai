@@ -10,8 +10,8 @@ import {
   IngredientCategory,
   ModalEnum,
   PageScope,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';

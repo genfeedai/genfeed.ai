@@ -1,4 +1,4 @@
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import type { StudioGenerateType } from '../types';
 import {

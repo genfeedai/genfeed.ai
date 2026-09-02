@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowNode } from '@genfeedai/types';
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 import type { NodeTypes } from '@xyflow/react';
 import type { ReactNode } from 'react';
 import { WorkflowCanvas } from '../canvas/WorkflowCanvas';

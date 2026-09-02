@@ -3,8 +3,8 @@ import type { LinksService } from '@api/collections/links/services/links.service
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { LinkCategory, ReferenceImageCategory } from '@genfeedai/enums';
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
+import { LinkCategory, ReferenceImageCategory } from '@genfeedai/contracts';
+import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

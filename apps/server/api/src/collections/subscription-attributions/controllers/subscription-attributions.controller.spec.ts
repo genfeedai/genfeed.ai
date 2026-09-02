@@ -7,7 +7,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import { SubscriptionAttributionsService } from '@api/collections/subscription-attributions/services/subscription-attributions.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { SubscriptionAttributionsController } from './subscription-attributions.controller';

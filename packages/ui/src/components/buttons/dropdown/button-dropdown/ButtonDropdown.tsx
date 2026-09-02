@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, DropdownDirection } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  DropdownDirection,
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ButtonDropdownProps } from '@genfeedai/props/ui/forms/button.props';
 import { Button as PrimitiveButton } from '@ui/primitives/button';

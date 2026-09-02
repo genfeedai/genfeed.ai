@@ -45,7 +45,7 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
 const INCLUDE_GLOBS = [
   'apps/server/**/*.ts',
   'packages/hooks/**/*.ts',
-  'packages/interfaces/src/**/*.ts',
+  'packages/contracts/src/interfaces/**/*.ts',
   'packages/models/**/*.ts',
   'packages/pages/**/*.ts',
   'packages/serializers/src/**/*.ts',

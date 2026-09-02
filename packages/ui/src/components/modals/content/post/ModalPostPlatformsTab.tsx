@@ -1,6 +1,5 @@
 'use client';
 
-import { resolveChannelTargetSettings } from '@api-types/contracts';
 import {
   ButtonSize,
   ButtonVariant,
@@ -8,12 +7,16 @@ import {
   PostCategory,
   PostVisibility,
   parsePlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { resolveChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
+import type {
+  IIngredient,
+  IPostPlatformConfig,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
 import { usePostingSignatures } from '@genfeedai/hooks/data/content/use-posting-signatures/use-posting-signatures';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type { ModalPostPlatformsTabProps } from '@genfeedai/props/modals/modal.props';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';

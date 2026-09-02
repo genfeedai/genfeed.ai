@@ -22,11 +22,11 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { ActivityEntityModel, IngredientCategory } from '@genfeedai/enums';
+import { ActivityEntityModel, IngredientCategory } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { ProviderModel } from '@genfeedai/types';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { ProviderModel } from '@genfeedai/contracts/types';
 import { Button } from '@ui/primitives/button';
 import { Clock, Sparkles } from 'lucide-react';
 import Image from 'next/image';

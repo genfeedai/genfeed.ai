@@ -1,6 +1,9 @@
 'use client';
 
-import type { IMoodBoard, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IMoodBoard,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 import { MoodBoardsService } from '@genfeedai/services/content/mood-boards.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

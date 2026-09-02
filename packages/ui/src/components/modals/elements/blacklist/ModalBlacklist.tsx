@@ -8,7 +8,7 @@ import {
   ButtonVariant,
   ModalEnum,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   hasFormErrors,
   parseFormErrors,

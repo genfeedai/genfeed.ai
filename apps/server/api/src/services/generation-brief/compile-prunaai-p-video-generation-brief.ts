@@ -2,25 +2,25 @@ import { GenerationBriefCompileError } from '@api/services/generation-brief/gene
 import type {
   GenerationFidelityPolicy,
   VideoGenerationBrief,
-} from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   PrunaaiPVideoCompileResult,
   PrunaaiPVideoDispatch,
   VideoGenerationBriefOmittedSignal,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   PRUNAAI_P_VIDEO_COMPILER_ID,
   PRUNAAI_P_VIDEO_COMPILER_VERSION,
   prunaaiPVideoCompileResultSchema,
   VIDEO_GENERATION_BRIEF_CONTRACT_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE,
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,
   PRUNAAI_P_VIDEO_MODEL_KEY,
-} from '@api-types/contracts/video-generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 
 export interface CompilePrunaaiPVideoGenerationBriefInput {

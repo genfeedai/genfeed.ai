@@ -1,5 +1,5 @@
-import { type ByokProvider, PricingType } from '@genfeedai/enums';
-import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
+import { type ByokProvider, PricingType } from '@genfeedai/contracts';
+import type { CreditsPricingMetadata } from '@genfeedai/contracts/interfaces';
 import { getVideoGenerationResolutionCreditMultiplier } from '@genfeedai/pricing';
 
 export const FALLBACK_GENERATION_CREDIT_COST = 5;

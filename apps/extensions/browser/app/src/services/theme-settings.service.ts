@@ -2,7 +2,7 @@ import {
   DEFAULT_THEME,
   isThemePreference,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { authService } from '~services/auth.service';
 import { EnvironmentService } from '~services/environment.service';
 

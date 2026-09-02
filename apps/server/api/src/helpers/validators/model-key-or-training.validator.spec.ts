@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 

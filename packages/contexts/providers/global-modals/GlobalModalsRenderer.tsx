@@ -1,6 +1,6 @@
 'use client';
 
-import type { SubscriptionTier } from '@genfeedai/enums';
+import type { SubscriptionTier } from '@genfeedai/contracts';
 import {
   LazyBrandOverlay,
   LazyIngredientOverlay,

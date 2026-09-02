@@ -17,7 +17,7 @@ import {
   buildAgentRuntimeCatalog,
   resolveThreadRuntimeOption,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentPanelShell } from '@ui/agent-panel';
 import { useRouter } from 'next/navigation';

@@ -3,7 +3,7 @@ import type {
   AssetScope,
   PromptCategory,
   PromptStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export class PromptEntity extends BaseEntity {
   declare readonly organizationId: string | null;

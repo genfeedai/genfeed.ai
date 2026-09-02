@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModelUseCase } from '@genfeedai/types';
+import type { ModelUseCase } from '@genfeedai/contracts/types';
 import { USE_CASE_CONFIG } from './model-browser-badges.constants';
 
 export function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {

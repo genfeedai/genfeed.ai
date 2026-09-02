@@ -3,7 +3,7 @@ import type {
   WorkflowEdge,
   WorkflowFile,
   WorkflowNode,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   configureEdgeStyleMirror,

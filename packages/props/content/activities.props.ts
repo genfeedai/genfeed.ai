@@ -1,4 +1,4 @@
-import type { ActivityMessageFormatter, PageScope } from '@genfeedai/enums';
+import type { ActivityMessageFormatter, PageScope } from '@genfeedai/contracts';
 
 export interface ActivitiesListProps {
   activityMessageFormatter?: ActivityMessageFormatter;

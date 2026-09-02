@@ -5,7 +5,7 @@ import {
   ReplyBotPlatform,
   ReplyBotType,
   SocialContentType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 const makeContent = (
   overrides: Partial<SocialContentData> = {},

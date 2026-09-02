@@ -1,4 +1,4 @@
-import { ContentSourceType, PublishingFrequency } from '@genfeedai/enums';
+import { ContentSourceType, PublishingFrequency } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

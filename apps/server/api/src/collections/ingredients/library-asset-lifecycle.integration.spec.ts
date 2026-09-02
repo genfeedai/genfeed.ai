@@ -63,11 +63,11 @@ import {
   IngredientCategory,
   IngredientStatus,
   VoiceProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   AvatarSerializer,
   CaptionSerializer,

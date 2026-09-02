@@ -1,5 +1,5 @@
-import type { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
 export interface CanvasGalleryProps {
   categoryType: IngredientCategory;

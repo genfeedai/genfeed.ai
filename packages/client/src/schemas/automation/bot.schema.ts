@@ -6,7 +6,7 @@ import {
   EngagementAction,
   MonitoringAlertType,
   PublishingFrequency,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const botLivestreamMessageTypes = [

@@ -6,7 +6,7 @@ import {
   BatchStatus,
   ContentFormat,
   ReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

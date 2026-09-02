@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';

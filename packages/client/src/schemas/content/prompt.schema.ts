@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const promptTextareaSchema = z.object({

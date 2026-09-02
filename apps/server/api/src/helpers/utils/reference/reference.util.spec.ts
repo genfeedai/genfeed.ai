@@ -4,7 +4,7 @@ import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
-import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
+import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

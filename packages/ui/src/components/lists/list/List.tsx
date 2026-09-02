@@ -1,7 +1,7 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAudioPlayer } from '@genfeedai/hooks/media/use-audio-player/use-audio-player';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { ListProps } from '@genfeedai/props/content/list.props';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';

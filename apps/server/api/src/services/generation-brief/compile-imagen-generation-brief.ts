@@ -19,25 +19,25 @@ import {
   resolveImageGenerationBriefAspectRatio,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
   ImagenDispatch,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   IMAGEN_IMAGE_COMPILER_ID,
   IMAGEN_IMAGE_COMPILER_VERSION,
   imagenDispatchSchema,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   IMAGEN_3_CAPABILITY_PROFILE,
   IMAGEN_3_FAST_CAPABILITY_PROFILE,
   IMAGEN_4_CAPABILITY_PROFILE,
   IMAGEN_4_FAST_CAPABILITY_PROFILE,
   IMAGEN_4_ULTRA_CAPABILITY_PROFILE,
-} from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 const IMAGEN_MODEL_LABEL = 'Imagen';
 

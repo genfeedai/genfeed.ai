@@ -8,7 +8,7 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
-import { MetadataExtension } from '@genfeedai/enums';
+import { MetadataExtension } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

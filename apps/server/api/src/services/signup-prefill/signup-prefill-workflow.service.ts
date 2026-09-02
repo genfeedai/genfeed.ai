@@ -8,7 +8,7 @@ import {
   buildSignupPrefillWorkflowDefinition,
   SIGNUP_PREFILL_ACTION_IDS,
 } from '@api/services/signup-prefill/signup-prefill-workflow-definition';
-import type { SignupPrefillWorkflowInput } from '@genfeedai/interfaces';
+import type { SignupPrefillWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export function signupPrefillJobId(userId: string): string {

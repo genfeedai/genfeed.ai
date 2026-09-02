@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import type { IByokProviderStatus } from '@genfeedai/interfaces';
+import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

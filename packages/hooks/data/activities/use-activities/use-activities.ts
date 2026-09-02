@@ -1,10 +1,10 @@
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { PageScope } from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import type {
   ActivitiesOptions,
   ActivitiesReturn,
-} from '@genfeedai/interfaces/hooks/hooks.interface';
+} from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { ActivitiesService } from '@genfeedai/services/social/activities.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';

@@ -3,13 +3,13 @@ import {
   IngredientStatus,
   PageScope,
   parseIngredientCategory,
-} from '@genfeedai/enums';
-import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
-import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
+} from '@genfeedai/contracts';
+import type { IBrand, IFieldOption } from '@genfeedai/contracts/interfaces';
+import type { IIngredientsContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';

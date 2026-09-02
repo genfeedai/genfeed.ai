@@ -6,16 +6,16 @@
  * settings util, keeping the shared store package-agnostic.
  */
 import type { ConversationComposerGenerationSettings } from '@genfeedai/agent/models/conversation-composer.model';
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type {
   StudioGenerateCapabilities,
   StudioGenerateType,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 
 /** The agent composer only ever offers these two generation types. */

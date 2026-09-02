@@ -1,4 +1,7 @@
-import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 import type { Node, NodeChange, NodeProps } from '@xyflow/react';
 
 /**

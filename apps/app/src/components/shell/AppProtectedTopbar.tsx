@@ -1,10 +1,5 @@
 'use client';
 
-import {
-  APP_DISPLAY_LABELS,
-  APP_ROUTES,
-  createOrganizationAppRoute,
-} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -12,8 +7,13 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IBrand } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_DISPLAY_LABELS,
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import SidebarToggleButton from '@ui/menus/sidebar-toggle/SidebarToggleButton';

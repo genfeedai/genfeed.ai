@@ -4,7 +4,7 @@ import type {
   IngredientCategory,
   IngredientStatus,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 /**
  * Canonical persistence contract for the Ingredient + Metadata pair backing

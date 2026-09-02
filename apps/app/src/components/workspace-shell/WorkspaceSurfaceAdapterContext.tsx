@@ -5,7 +5,7 @@ import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
   WorkspaceShellSurfaceKey,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   createContext,
   type ReactElement,

@@ -1,8 +1,4 @@
 {
-  "dependencies": {
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*"
-  },
   "devDependencies": {
     "@types/node": "24.13.3",
     "@typescript/native": "npm:typescript@7.0.2"
@@ -41,5 +37,8 @@
   "sideEffects": false,
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "dependencies": {
+    "@genfeedai/contracts": "workspace:*"
+  }
 }

@@ -8,7 +8,7 @@ import { IntegrationsService } from '@api/endpoints/integrations/integrations.se
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/contracts';
 import type { OrgIntegration } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';

@@ -1,5 +1,5 @@
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceApplication,
@@ -7,7 +7,7 @@ import {
   type ClipReferencePolicy,
   type ClipReferenceProvenance,
   type ClipResultMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 export type ClipReferenceRoute =

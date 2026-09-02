@@ -1,12 +1,12 @@
 'use client';
 
-import { BrandInterviewStatus } from '@genfeedai/enums';
+import { BrandInterviewStatus } from '@genfeedai/contracts';
 import type {
   BrandInterviewAnswerValue,
   IBrandInterviewProgress,
   IBrandInterviewQuestion,
   IBrandInterviewStep,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import {
   BrandInterviewService,

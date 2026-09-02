@@ -5,13 +5,13 @@ import {
   ALL_QUEUE_NAMES,
   CONSUMED_QUEUE_NAMES,
   UNCONSUMED_QUEUE_NAMES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { describe, expect, it } from 'vitest';
 
 const WORKERS_SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
 const QUEUE_CONTRACTS_SRC = join(
   WORKERS_SRC,
-  '../../../../packages/queue-contracts/src',
+  '../../../../packages/contracts/src/queue',
 );
 
 function walkTypeScriptFiles(dir: string): string[] {

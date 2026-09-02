@@ -1,5 +1,5 @@
 import { reserveGenerationRequestCredits } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { CreditReservationStatus } from '@genfeedai/enums';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('reserveGenerationRequestCredits', () => {

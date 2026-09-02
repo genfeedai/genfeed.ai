@@ -9,22 +9,22 @@ import { AccountHealthService } from '@api/collections/credentials/services/acco
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
-} from '@api-types/contracts/social-warmup-blueprint.contract';
-import {
-  listSocialWarmupJourneyChecks,
-  SOCIAL_WARMUP_TELEMETRY_EVENT,
-} from '@api-types/contracts/social-warmup-journey.contract';
-import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import {
+  listSocialWarmupJourneyChecks,
+  SOCIAL_WARMUP_TELEMETRY_EVENT,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const NOW = new Date('2026-08-14T12:00:00.000Z');

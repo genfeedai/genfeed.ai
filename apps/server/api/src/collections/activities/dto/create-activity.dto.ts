@@ -1,6 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
-import { ActivityEntityModel } from '@genfeedai/enums';
+import { ActivityEntityModel } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,

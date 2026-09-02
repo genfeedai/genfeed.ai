@@ -1,9 +1,9 @@
 'use client';
 
+import type { IPostAnalyticsSummary } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IPostAnalyticsSummary } from '@genfeedai/interfaces';
 import type { PostAnalyticsDashboardProps } from '@genfeedai/props/analytics/analytics.props';
 import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

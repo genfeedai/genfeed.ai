@@ -7,9 +7,9 @@ import {
   LivestreamTranscriptSource,
   Platform,
   parsePlatform,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 type LivestreamBotPlatform = Platform.YOUTUBE | Platform.TWITCH;

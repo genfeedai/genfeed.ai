@@ -4,7 +4,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getVideoResolutionsByModel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import type { PromptBarQuickOptionsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';

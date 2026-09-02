@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import Link from 'next/link';

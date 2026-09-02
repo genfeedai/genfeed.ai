@@ -1,4 +1,4 @@
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import { articleArtwork } from './article-artwork';
 import type { SeedArticle } from './launch-articles';
 

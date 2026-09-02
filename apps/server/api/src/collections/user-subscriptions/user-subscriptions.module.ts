@@ -9,7 +9,7 @@
  */
 import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
 import { userSubscriptionsServiceProvider } from '@api/common/subscriptions/billing.providers';
-import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { USER_SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { Module } from '@nestjs/common';
 
 @Module({

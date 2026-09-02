@@ -3,8 +3,8 @@ import {
   BillingAccountMemberRole,
   BillingAccountOrganizationStatus,
   BillingAccountStatus,
-} from '@genfeedai/enums';
-import type { IBillingAccountMigrationReport } from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts';
+import type { IBillingAccountMigrationReport } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

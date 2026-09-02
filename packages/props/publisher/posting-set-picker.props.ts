@@ -2,7 +2,7 @@ import type {
   IPostingSet,
   IPostingSetTargetValidation,
   IPostingSignature,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface PostingSetPickerProps {
   canSave: boolean;

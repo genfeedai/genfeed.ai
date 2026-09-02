@@ -4,7 +4,11 @@ import {
   extractReplicateEndpointSchemas,
   type ReplicateEndpointSchemas,
 } from '@api/services/integrations/replicate/services/replicate-contract';
-import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';

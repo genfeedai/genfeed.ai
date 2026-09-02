@@ -22,7 +22,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BeehiivController } from '@api/services/integrations/beehiiv/controllers/beehiiv.controller';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

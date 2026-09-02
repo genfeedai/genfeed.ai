@@ -16,7 +16,7 @@ import type {
   IBrandAgentPrompting,
   IExtractedBrandData,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

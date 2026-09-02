@@ -20,12 +20,12 @@ import type {
   ChannelCapabilityListOptions,
   ChannelTargetValidationResult,
   ValidateChannelTargetSettingsInput,
-} from '@api-types/contracts/channel-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import {
   listChannelCapabilities as resolveChannelCapabilities,
   getChannelCapability as resolveChannelCapability,
   validateChannelTargetSettings as resolveChannelTargetValidation,
-} from '@api-types/contracts/channel-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

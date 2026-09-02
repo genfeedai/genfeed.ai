@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import type { YoutubeCredential } from '@files/shared/interfaces/job.interface';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';

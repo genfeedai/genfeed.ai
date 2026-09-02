@@ -2,7 +2,7 @@ import {
   ADD_CAMPAIGN_TARGETS_MAX_ITEMS,
   AddCampaignTargetsDto,
 } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
-import { CampaignTargetType } from '@genfeedai/enums';
+import { CampaignTargetType } from '@genfeedai/contracts';
 import { validate } from 'class-validator';
 
 function buildUrls(count: number): string[] {

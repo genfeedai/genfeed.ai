@@ -13,7 +13,7 @@ import {
   Status,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   EDITOR_RENDER_PUBLIC_MESSAGES,
   type EditorRenderTerminalReason,
@@ -22,7 +22,7 @@ import {
   type IJobStatusResponse,
   parseEditorRenderOutputMetadata,
   RAW_CUT_JOB_PREFIX,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 

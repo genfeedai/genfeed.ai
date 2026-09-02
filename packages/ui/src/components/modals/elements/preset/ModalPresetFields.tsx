@@ -1,7 +1,7 @@
 'use client';
 
 import type { PresetElementSchema } from '@genfeedai/client/schemas';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';

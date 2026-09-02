@@ -10,8 +10,8 @@ import type {
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
-import { DEFAULT_CONTEXT_EMBEDDING_MODEL } from '@genfeedai/constants';
-import { ModelCategory, ModelLifecycle } from '@genfeedai/enums';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
+import { DEFAULT_CONTEXT_EMBEDDING_MODEL } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 

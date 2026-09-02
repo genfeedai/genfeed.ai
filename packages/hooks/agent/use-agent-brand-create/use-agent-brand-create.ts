@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { IBrand } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Brand } from '@models/organization/brand.model';
 import { BrandsService } from '@services/social/brands.service';

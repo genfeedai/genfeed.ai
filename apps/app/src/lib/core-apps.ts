@@ -5,7 +5,7 @@ import {
   APP_SWITCHER_FEATURE_FLAG_KEYS,
   type AppSwitcherFeatureFlagKey,
   REPLY_BOT_FEATURE_FLAG,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 export type CoreAppId = 'agent' | 'automation' | 'studio';
 export type CoreAppFeatureFlagKey =

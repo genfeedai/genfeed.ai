@@ -1,4 +1,4 @@
-import type { AccountHealthSummary } from '@genfeedai/interfaces';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 
 /**
  * Mirrors `isAccountAtRisk` from the rail's account chips, but answers the

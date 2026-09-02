@@ -3,8 +3,8 @@ import {
   IngredientStatus,
   ModalEnum,
   PageScope,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';

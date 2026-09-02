@@ -1,7 +1,7 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AuthorizeWorkflowExecutionInput {

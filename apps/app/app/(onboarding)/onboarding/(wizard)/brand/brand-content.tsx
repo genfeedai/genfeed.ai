@@ -2,8 +2,8 @@
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
+import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';

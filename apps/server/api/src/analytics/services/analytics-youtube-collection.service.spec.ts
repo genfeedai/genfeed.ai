@@ -4,8 +4,8 @@ import type {
   ServerPostAnalytics,
   ServerYouTubeAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
 import { AnalyticsYouTubeCollectionService } from './analytics-youtube-collection.service';
 
 function createHarness(analytics = new Map<string, unknown>()) {

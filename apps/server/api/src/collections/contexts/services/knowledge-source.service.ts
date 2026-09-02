@@ -14,7 +14,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { KnowledgeBaseStatus } from '@genfeedai/enums';
+import { KnowledgeBaseStatus } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 export interface KnowledgeSourceMutationResult {

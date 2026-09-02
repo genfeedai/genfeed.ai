@@ -3,7 +3,7 @@ import type {
   ArticleCategory,
   ArticleStatus,
   AssetScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IArticle,
   IBrand,
@@ -12,7 +12,7 @@ import type {
   IUser,
   IXArticleMetadata,
   SeoScorecardSnapshot,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Article extends BaseEntity implements IArticle {
   public declare user: IUser;

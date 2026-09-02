@@ -5,7 +5,7 @@ import type {
   AdWatchedAdvertiser,
   AdWatchlistPlatform,
   AdWatchlistPlatformReadiness,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
 import { AdsResearchService } from '@services/ads/ads-research.service';

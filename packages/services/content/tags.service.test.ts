@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { TagCategory } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import { TagCategory } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

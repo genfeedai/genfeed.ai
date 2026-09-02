@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { ActivityKey } from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+import { ActivityKey } from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,9 +1,9 @@
-import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import {
   ImageTaskModel,
   MusicTaskModel,
   VideoTaskModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 
 // ── Step discriminated unions ────────────────────────────────────────
 

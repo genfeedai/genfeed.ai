@@ -6,7 +6,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   LEGACY_APP_ROUTES,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';

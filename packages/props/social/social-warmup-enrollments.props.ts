@@ -1,4 +1,4 @@
-import type { ISocialWarmupEnrollment } from '@genfeedai/interfaces';
+import type { ISocialWarmupEnrollment } from '@genfeedai/contracts/interfaces';
 
 export interface UseSocialWarmupEnrollmentOptions {
   autoLoad?: boolean;

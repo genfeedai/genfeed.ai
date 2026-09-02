@@ -3,7 +3,7 @@ import {
   LibraryPlace,
   LibraryShelf,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

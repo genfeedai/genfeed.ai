@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
+import { ButtonVariant, type IngredientCategory } from '@genfeedai/contracts';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
 import { getCredentialErrorMessage } from './batch-post.utils';

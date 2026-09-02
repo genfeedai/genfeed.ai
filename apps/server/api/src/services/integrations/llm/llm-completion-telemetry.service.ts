@@ -5,11 +5,11 @@ import {
   computeLlmPromptCostUsd,
   computeLlmVendorCostMicros,
   LLM_GENERATION_TELEMETRY_EVENT,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type {
   ILlmCompletionTelemetryEvent,
   ILlmGenerationTelemetryCosts,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';

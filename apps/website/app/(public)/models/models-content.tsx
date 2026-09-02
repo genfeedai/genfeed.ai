@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { PublicModelCatalogItem } from '@public/models/models-loader';
 import { EnvironmentService } from '@services/core/environment.service';

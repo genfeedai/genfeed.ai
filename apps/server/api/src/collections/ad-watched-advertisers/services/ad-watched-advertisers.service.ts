@@ -8,13 +8,13 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { PaidCreativePlatform } from '@genfeedai/integrations/ads';
 import {
   isPaidCreativePlatform,
   normalizeAdvertiserHandle,
 } from '@genfeedai/integrations/ads';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

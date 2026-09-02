@@ -1,9 +1,9 @@
-import type { AnalyticsMetric, Timeframe } from '@genfeedai/enums';
+import type { AnalyticsMetric, Timeframe } from '@genfeedai/contracts';
 import type {
   IEngagementBreakdown,
   IGrowthTrends,
   ITimeSeriesDataPoint,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { PlatformBreakdownData } from '@genfeedai/services/analytics/analytics.service';
 import type { ComponentType } from 'react';
 

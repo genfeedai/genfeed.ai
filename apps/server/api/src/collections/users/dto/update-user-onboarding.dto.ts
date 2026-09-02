@@ -1,4 +1,4 @@
-import { OnboardingType } from '@genfeedai/enums';
+import { OnboardingType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

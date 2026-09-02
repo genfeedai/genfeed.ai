@@ -21,10 +21,10 @@ export default defineConfig({
     alias: [
       { find: '@', replacement: path.resolve(serviceDir, './src') },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/enums/src/index.ts',
+          '../../../packages/contracts/src/enums/index.ts',
         ),
       },
       {

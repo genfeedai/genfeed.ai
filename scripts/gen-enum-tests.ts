@@ -4,8 +4,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const enumDir = path.resolve(__dirname, '../../packages/enums/src');
-const testDir = path.resolve(__dirname, '../../packages/enums/__tests__');
+const enumDir = path.resolve(__dirname, '../../packages/contracts/src/enums');
+const testDir = path.resolve(
+  __dirname,
+  '../../packages/contracts/__tests__/enums',
+);
 
 fs.mkdirSync(testDir, { recursive: true });
 

@@ -8,8 +8,8 @@ import type {
   IFleetCapabilities,
   IOrganizationSetting,
   IUser,
-} from '@genfeedai/interfaces';
-import type { IStreakSummary } from '@genfeedai/types';
+} from '@genfeedai/contracts/interfaces';
+import type { IStreakSummary } from '@genfeedai/contracts/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';

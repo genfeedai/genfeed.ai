@@ -5,7 +5,7 @@ import type {
   SocialConversationStatus,
   SocialConversationType,
   SocialPlatform,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialConversationModel implements SocialConversation {
   id!: string;

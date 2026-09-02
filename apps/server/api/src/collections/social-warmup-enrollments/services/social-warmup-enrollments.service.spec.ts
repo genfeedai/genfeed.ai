@@ -7,25 +7,25 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { instagramAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/instagram-authorized-signals.contract';
-import { linkedinAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/linkedin-authorized-signals.contract';
-import {
-  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
-  TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
-  TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
-} from '@api-types/contracts/social-warmup-blueprint.contract';
-import { SOCIAL_WARMUP_TELEMETRY_EVENT } from '@api-types/contracts/social-warmup-journey.contract';
-import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
-import { youtubeAuthorizedSignalsSnapshotSchema } from '@api-types/contracts/youtube-authorized-signals.contract';
 import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { instagramAuthorizedSignalsSnapshotSchema } from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
+import { linkedinAuthorizedSignalsSnapshotSchema } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
+import {
+  INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TWITTER_SOCIAL_WARMUP_BLUEPRINT_VERSION,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import { SOCIAL_WARMUP_TELEMETRY_EVENT } from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
+import { youtubeAuthorizedSignalsSnapshotSchema } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const context = {

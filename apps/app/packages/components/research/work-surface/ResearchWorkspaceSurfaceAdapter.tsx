@@ -5,7 +5,7 @@ import {
   type ConversationComposerContextReference,
   useAgentChatStore,
 } from '@genfeedai/agent';
-import type { ScopedResearchFindingReference } from '@genfeedai/interfaces';
+import type { ScopedResearchFindingReference } from '@genfeedai/contracts/interfaces';
 import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindingInspector';
 import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import { usePathname } from 'next/navigation';

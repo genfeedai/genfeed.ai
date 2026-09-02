@@ -13,7 +13,7 @@ import {
   sortInstagramPosts,
 } from '@api/services/instagram-inspiration/instagram-inspiration.util';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
-import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
+import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/contracts';
 import type {
   InstagramInspirationBrandContext,
   InstagramInspirationDetailResult,
@@ -22,7 +22,7 @@ import type {
   InstagramInspirationSort,
   InstagramRemixMode,
   InstagramRemixWorkflowResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

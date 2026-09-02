@@ -13,19 +13,12 @@ import {
   toPrismaCredentialPlatform,
   WorkflowStatus,
   WorkflowTrigger,
-} from '@genfeedai/enums';
-import type { PaidCreativeProvider } from '@genfeedai/integrations/ads';
-import {
-  isPaidCreativeResearchSource,
-  resolvePaidCreativeLongevity,
-  resolvePaidCreativeSourceLabel,
-  resolvePaidCreativeUsagePolicy,
-} from '@genfeedai/integrations/ads';
+} from '@genfeedai/contracts';
 import type {
   AdsAdapterContext,
   AdsPlatform,
   UnifiedAd,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   AdPack,
   AdsChannel,
@@ -39,7 +32,14 @@ import type {
   AdsResearchSource,
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
+} from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
+import type { PaidCreativeProvider } from '@genfeedai/integrations/ads';
+import {
+  isPaidCreativeResearchSource,
+  resolvePaidCreativeLongevity,
+  resolvePaidCreativeSourceLabel,
+  resolvePaidCreativeUsagePolicy,
+} from '@genfeedai/integrations/ads';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

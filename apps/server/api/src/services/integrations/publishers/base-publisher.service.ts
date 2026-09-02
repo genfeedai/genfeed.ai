@@ -10,12 +10,12 @@ import type {
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import { getChannelCapability } from '@genfeedai/api-types/contracts';
 import {
   CredentialPlatform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 type PublisherConfig = {

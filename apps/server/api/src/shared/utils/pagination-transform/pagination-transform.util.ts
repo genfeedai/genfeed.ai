@@ -1,4 +1,4 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 
 export interface BackendPagination<T = unknown> {
   docs: T[];

@@ -5,7 +5,7 @@ import type {
   PromptConstructorNodeData,
   PromptFormat,
   PromptNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { Textarea, ToggleGroup, ToggleGroupItem } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import { Braces, Expand, Type } from 'lucide-react';

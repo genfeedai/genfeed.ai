@@ -29,7 +29,7 @@ import {
   IngredientStatus,
   MetadataExtension,
   PostCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';

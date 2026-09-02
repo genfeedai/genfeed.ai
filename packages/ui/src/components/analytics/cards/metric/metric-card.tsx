@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonVariant, type TrendDirection } from '@genfeedai/enums';
+import { ButtonVariant, type TrendDirection } from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatCompactNumberIntl } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import MetricCardCanonical from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';

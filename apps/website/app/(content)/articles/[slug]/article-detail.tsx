@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   InstagramIcon,
   LinkedinIcon,
@@ -8,7 +9,6 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import type { Article } from '@models/content/article.model';
 import { ClipboardService } from '@services/core/clipboard.service';

@@ -1,10 +1,10 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { DurationUtil, formatDuration } from '@helpers/video-duration.helper';
 
-vi.mock('@genfeedai/constants', async () => {
-  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
-    '@genfeedai/constants',
-  );
+vi.mock('@genfeedai/contracts/constants', async () => {
+  const actual = await vi.importActual<
+    typeof import('@genfeedai/contracts/constants')
+  >('@genfeedai/contracts/constants');
   return {
     ...actual,
     getModelDefaultDuration: vi.fn((model: string) => {

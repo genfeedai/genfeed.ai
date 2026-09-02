@@ -2,7 +2,7 @@ import { TrendsController } from '@api/collections/trends/controllers/trends.con
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { RequestMethod } from '@nestjs/common';
 import {
   METHOD_METADATA,

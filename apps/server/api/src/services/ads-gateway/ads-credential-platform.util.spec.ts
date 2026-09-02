@@ -1,5 +1,5 @@
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 
 describe('mapAdsCredentialPlatform', () => {
   it.each([

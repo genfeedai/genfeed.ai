@@ -5,7 +5,7 @@ import {
   resolveRoom,
   validateRoomMatch,
 } from '@api/helpers/utils/websocket-room/websocket-room.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 
 describe('WebSocketRoomUtil', () => {
   describe('getUserRoom', () => {

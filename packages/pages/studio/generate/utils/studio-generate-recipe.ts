@@ -1,6 +1,6 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateJob,
   StudioGenerateRecipe,

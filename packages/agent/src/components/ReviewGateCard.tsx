@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Check, ClipboardList, X } from 'lucide-react';

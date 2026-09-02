@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import type { CameraMovementPromptBarProps } from '@genfeedai/props/studio/camera-movement-prompt-bar.props';
 import Card from '@ui/card/Card';
 import FormDropdown from '@ui/primitives/dropdown-field';

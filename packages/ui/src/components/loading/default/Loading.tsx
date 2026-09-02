@@ -1,4 +1,4 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LoadingProps } from '@genfeedai/props/ui/feedback/loading.props';
 import Spinner from '@ui/feedback/spinner/Spinner';

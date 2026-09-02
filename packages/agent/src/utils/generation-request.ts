@@ -1,5 +1,5 @@
-import { RouterPriority } from '@genfeedai/enums';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 
 export const DEFAULT_AGENT_GENERATION_PRIORITY = RouterPriority.QUALITY;
 

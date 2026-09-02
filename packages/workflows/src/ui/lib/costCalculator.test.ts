@@ -1,5 +1,5 @@
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { DEFAULT_VIDEO_DURATION, PRICING } from '@genfeedai/pricing';
-import type { WorkflowNode } from '@genfeedai/types';
 import { describe, expect, it } from 'vitest';
 import { calculateWorkflowCost, formatCost } from './costCalculator';
 

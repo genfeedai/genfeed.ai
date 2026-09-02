@@ -25,7 +25,7 @@ import type {
   UpdatePlaybookDto,
 } from '@api/collections/content-intelligence/dto/create-playbook.dto';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
-import { ContentIntelligencePlatform } from '@genfeedai/enums';
+import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

@@ -33,9 +33,9 @@ Those stay in `apps/server/*` or other app packages.
 
 Default rule:
 
-- Global product enums belong in `@genfeedai/enums`, not here.
+- Global product enums belong in `@genfeedai/contracts`, not here.
 
-Examples that should stay in `@genfeedai/enums`:
+Examples that should stay in `@genfeedai/contracts`:
 
 - `CredentialPlatform`
 - `IntegrationPlatform`

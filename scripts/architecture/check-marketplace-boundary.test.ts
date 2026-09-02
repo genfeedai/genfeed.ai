@@ -28,16 +28,16 @@ function fixture(files: Record<string, string>): string {
 describe('check-marketplace-boundary', () => {
   it('accepts public preview and checkout DTOs', () => {
     const rootDir = fixture({
-      'packages/interfaces/src/marketplace/checkout.interface.ts':
+      'packages/contracts/src/interfaces/marketplace/checkout.interface.ts':
         'export interface ICreateCheckoutDto { listingId: string; }',
-      'packages/interfaces/src/marketplace/index.ts':
+      'packages/contracts/src/interfaces/marketplace/index.ts':
         "export * from './checkout.interface';\nexport * from './listing.interface';\nexport * from './seller.interface';",
-      'packages/interfaces/src/marketplace/listing.interface.ts':
+      'packages/contracts/src/interfaces/marketplace/listing.interface.ts':
         'export interface IListingPreview { id: string; title: string; }',
-      'packages/interfaces/src/marketplace/seller.interface.ts':
+      'packages/contracts/src/interfaces/marketplace/seller.interface.ts':
         'export interface ISellerPreview { id: string; slug: string; }',
       'packages/props/cards/listing-card.props.ts':
-        "import type { IListingPreview } from '@genfeedai/interfaces';\nexport interface ListingCardProps { listing: IListingPreview; }",
+        "import type { IListingPreview } from '@genfeedai/contracts/interfaces';\nexport interface ListingCardProps { listing: IListingPreview; }",
       'packages/services/core/environment.service.ts':
         "export const MARKETPLACE_ORIGIN = 'https://marketplace.genfeed.ai';",
     });
@@ -70,12 +70,12 @@ describe('check-marketplace-boundary', () => {
 
   it('flags persistence models and unexpected marketplace contract files', () => {
     const rootDir = fixture({
-      'packages/interfaces/src/marketplace/listing.interface.ts':
+      'packages/contracts/src/interfaces/marketplace/listing.interface.ts':
         'export interface IListing { id: string; organization: string; }',
-      'packages/interfaces/src/marketplace/purchase.interface.ts':
+      'packages/contracts/src/interfaces/marketplace/purchase.interface.ts':
         'export interface IPurchase { id: string; }',
       'packages/ui/src/example.ts':
-        "import type { ISeller } from '@genfeedai/interfaces';\nexport type Seller = ISeller;",
+        "import type { ISeller } from '@genfeedai/contracts/interfaces';\nexport type Seller = ISeller;",
     });
 
     expect(runCheckMarketplaceBoundary({ rootDir }).violations).toEqual(
@@ -84,7 +84,7 @@ describe('check-marketplace-boundary', () => {
         expect.objectContaining({ specifier: 'IPurchase' }),
         expect.objectContaining({ specifier: 'ISeller' }),
         expect.objectContaining({
-          file: 'packages/interfaces/src/marketplace/purchase.interface.ts',
+          file: 'packages/contracts/src/interfaces/marketplace/purchase.interface.ts',
         }),
       ]),
     );

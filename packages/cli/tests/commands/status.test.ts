@@ -1,4 +1,4 @@
-import { IngredientStatus, PersistedArticleStatus } from '@genfeedai/enums';
+import { IngredientStatus, PersistedArticleStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockGetArticle, mockGetImage, mockPrint, mockRequireAuth } = vi.hoisted(() => ({

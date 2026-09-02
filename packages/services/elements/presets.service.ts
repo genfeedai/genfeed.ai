@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Preset } from '@genfeedai/models/elements/preset.model';
 import { PresetSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

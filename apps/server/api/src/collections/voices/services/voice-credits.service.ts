@@ -1,7 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
-import { ActivitySource } from '@genfeedai/enums';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 

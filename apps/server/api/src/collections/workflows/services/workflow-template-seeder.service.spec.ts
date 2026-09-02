@@ -9,7 +9,7 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {

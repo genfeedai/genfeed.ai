@@ -3,8 +3,8 @@ import {
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
-} from '@genfeedai/enums';
-import type { IReleaseAnalyticsComparison } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IReleaseAnalyticsComparison } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';

@@ -13,7 +13,7 @@ import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_QUEUE,
   HeygenPollJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';

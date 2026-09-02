@@ -45,8 +45,8 @@ import {
   WorkflowExecutionTrigger,
   WorkflowLifecycle,
   WorkflowStatus,
-} from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

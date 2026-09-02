@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ClipsProjectListProps } from '@props/studio/clips.props';
 import LoadingState from '@ui/feedback/LoadingState';

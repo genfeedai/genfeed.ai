@@ -8,7 +8,7 @@ import {
   type GenerationWebhookStatus,
   generationWebhookPayloadSchema,
   redactGenerationWebhookText,
-} from '@api-types/contracts/generation-webhook-events.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import {

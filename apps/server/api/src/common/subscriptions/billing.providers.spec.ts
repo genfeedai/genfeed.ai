@@ -12,7 +12,7 @@ import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {

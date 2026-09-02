@@ -12,8 +12,8 @@ import {
   resolveOAuthAppUrl,
 } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import { ActionOrigin, ApiKeyCategory } from '@genfeedai/enums';
+import { ActionOrigin, ApiKeyCategory } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,

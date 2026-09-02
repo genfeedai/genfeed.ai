@@ -2,7 +2,7 @@ import {
   IngredientCategory,
   IngredientFormat,
   QualityTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { usePromptBarSync } from '@hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,7 +1,7 @@
 'use client';
 
 import { FAQ_CATEGORIES, type FAQCategory } from '@data/faq.data';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
   Accordion,

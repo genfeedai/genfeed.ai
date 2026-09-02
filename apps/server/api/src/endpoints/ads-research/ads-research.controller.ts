@@ -14,7 +14,7 @@ import type {
   AdsResearchPlatform,
   AdsResearchSource,
   AdsResearchTimeframe,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
+} from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
 import {
   BadRequestException,
   Body,

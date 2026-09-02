@@ -1,7 +1,7 @@
 'use client';
 
-import type { ITrendVideo } from '@genfeedai/interfaces';
-import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-watchlist.interface';
+import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
+import type { ICreatorWatchlist } from '@genfeedai/contracts/interfaces/analytics/creator-watchlist.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';

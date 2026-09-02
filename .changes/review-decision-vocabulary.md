@@ -1,4 +1,4 @@
-packages: @genfeedai/enums @genfeedai/interfaces @genfeedai/pages @genfeedai/props @genfeedai/serializers @genfeedai/services @genfeedai/ui
+packages: @genfeedai/contracts @genfeedai/contracts/interfaces @genfeedai/pages @genfeedai/props @genfeedai/serializers @genfeedai/services @genfeedai/ui
 
 ---
 

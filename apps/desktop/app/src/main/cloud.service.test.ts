@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import { DesktopCloudService } from './cloud.service';
 
 const environment: IDesktopEnvironment = {

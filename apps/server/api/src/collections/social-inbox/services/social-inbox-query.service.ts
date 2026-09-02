@@ -15,12 +15,15 @@ import type {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { SocialMessageDirection, SocialMessageType } from '@genfeedai/enums';
+import {
+  SocialMessageDirection,
+  SocialMessageType,
+} from '@genfeedai/contracts';
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxAgentMessageContext,
   SocialInboxReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

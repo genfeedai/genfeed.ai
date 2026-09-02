@@ -6,7 +6,7 @@ import {
   useAnalyticsContext,
   useOptionalAnalyticsContext,
 } from '@genfeedai/contexts/analytics/analytics-context';
-import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analytics-context.interface';
+import type { AnalyticsContextType } from '@genfeedai/contracts/interfaces/analytics/analytics-context.interface';
 import { act, render, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

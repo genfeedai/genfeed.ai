@@ -1,19 +1,19 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
   ComponentSize,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IWorkflowExecution,
   SurfaceSummaryItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
-import type { WorkflowExecutionStats } from '@genfeedai/types';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';

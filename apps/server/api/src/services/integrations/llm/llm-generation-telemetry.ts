@@ -2,7 +2,7 @@ import type {
   ILlmCompletionTelemetryEvent,
   ILlmGenerationTelemetryCosts,
   ILlmGenerationTelemetryProperties,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Allowlisted PostHog `$ai_generation` properties. Never copies messages,

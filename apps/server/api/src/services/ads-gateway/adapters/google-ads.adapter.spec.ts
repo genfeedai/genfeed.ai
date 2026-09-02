@@ -1,6 +1,6 @@
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
-import type { AdsAdapterContext } from '@genfeedai/interfaces';
+import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 

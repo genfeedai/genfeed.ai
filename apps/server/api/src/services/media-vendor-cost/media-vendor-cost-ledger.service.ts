@@ -5,7 +5,7 @@ import type {
   IMediaVendorCostModelAggregate,
   IMediaVendorCostRangeQuery,
   IMediaVendorCostRecordInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

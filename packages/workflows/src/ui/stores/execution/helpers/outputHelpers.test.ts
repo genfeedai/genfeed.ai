@@ -1,4 +1,4 @@
-import type { WorkflowNode } from '@genfeedai/types';
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 import type { useWorkflowStore } from '../../workflow/workflowStore';
 import { getOutputUpdate } from './outputHelpers';

@@ -1,4 +1,4 @@
-import type { AccountHealthSummary } from '@genfeedai/interfaces';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { buildAccountHealthRows } from './account-health.util';
 

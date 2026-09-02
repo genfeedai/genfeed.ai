@@ -5,8 +5,8 @@ import {
   getProactivePrepStage,
   isProactiveInviteEligible,
 } from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
-import { ProactiveOnboardingStatus } from '@genfeedai/enums';
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import { ProactiveOnboardingStatus } from '@genfeedai/contracts';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 describe('proactive onboarding value helpers', () => {

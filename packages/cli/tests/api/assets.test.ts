@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAsset, listAssets } from '../../src/api/assets';
 

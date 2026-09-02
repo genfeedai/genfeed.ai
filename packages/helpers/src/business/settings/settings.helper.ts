@@ -1,4 +1,4 @@
-import type { ISettingOption } from '@genfeedai/interfaces';
+import type { ISettingOption } from '@genfeedai/contracts/interfaces';
 
 export const settingsOptions: ISettingOption[] = [
   {

@@ -1,4 +1,4 @@
-import type { ILlmCompletionTelemetryEvent } from '@genfeedai/interfaces';
+import type { ILlmCompletionTelemetryEvent } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { buildLlmGenerationTelemetryProperties } from './llm-generation-telemetry';
 

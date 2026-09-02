@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { IAnnouncement } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IAnnouncement } from '@genfeedai/contracts/interfaces';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';

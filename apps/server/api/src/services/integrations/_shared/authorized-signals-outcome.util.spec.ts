@@ -1,4 +1,4 @@
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { mapAuthorizedSignalsOutcome } from './authorized-signals-outcome.util';
 
 describe('mapAuthorizedSignalsOutcome', () => {

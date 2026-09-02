@@ -1,6 +1,6 @@
 'use client';
 
-import { formatEnumLabel } from '@genfeedai/enums';
+import { formatEnumLabel } from '@genfeedai/contracts';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';

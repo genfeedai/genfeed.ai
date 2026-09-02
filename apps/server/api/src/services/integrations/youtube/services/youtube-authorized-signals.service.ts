@@ -23,6 +23,7 @@ import {
   parseYoutubeGrantedScopes,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalReason,
@@ -30,8 +31,7 @@ import {
   type YoutubeOwnedUploadSignal,
   type YoutubeOwnedVideoAnalyticsSignal,
   youtubeAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/youtube-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

@@ -5,7 +5,7 @@ import {
   BillingAccountMemberRole,
   BillingAccountOrganizationStatus,
   BillingAccountStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 

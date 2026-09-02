@@ -6,13 +6,13 @@ import {
   usePostModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import type { AssetScope } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/contracts';
 import {
   IngredientCategory,
   ModalEnum,
   PageScope,
   WebSocketEventStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IFilters,
   IFolder,
@@ -20,7 +20,7 @@ import type {
   IIngredient,
   IMediaEventData,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';

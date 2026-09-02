@@ -10,7 +10,7 @@ import {
   normalizeShopifyShopDomain,
   ShopifyService,
 } from '@api/services/integrations/shopify/services/shopify.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

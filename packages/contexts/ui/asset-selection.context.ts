@@ -1,4 +1,4 @@
-import type { IAssetSelectionContextType } from '@genfeedai/interfaces/components/asset-selection.interface';
+import type { IAssetSelectionContextType } from '@genfeedai/contracts/interfaces/components/asset-selection.interface';
 import { createContext, useContext } from 'react';
 
 export const AssetSelectionContext = createContext<IAssetSelectionContextType>({

@@ -1,4 +1,4 @@
-import { NodeStatusEnum } from '@genfeedai/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { useCallback } from 'react';
 import { useExecutionStore } from '../stores/execution';
 import { useWorkflowStore } from '../stores/workflow';

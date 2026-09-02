@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   PromptCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useWebsocketPrompt } from '@genfeedai/hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import { Prompt } from '@genfeedai/models/content/prompt.model';

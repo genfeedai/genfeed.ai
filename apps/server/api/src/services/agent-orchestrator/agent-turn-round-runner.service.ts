@@ -23,14 +23,14 @@ import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
+import { ActivitySource, type RouterPriority } from '@genfeedai/contracts';
 import {
   type AgentDashboardOperation,
   AgentToolName,
   type AgentToolResult,
   type AgentUIBlock,
   type AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

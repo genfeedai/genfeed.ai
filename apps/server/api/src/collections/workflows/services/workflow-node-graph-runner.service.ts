@@ -18,7 +18,7 @@ import {
   completeNodeClaim,
 } from '@api/collections/workflows/utils/workflow-node-idempotency.util';
 import { getActionDefinition } from '@genfeedai/actions';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   ExecutableEdge,
   ExecutableNode,

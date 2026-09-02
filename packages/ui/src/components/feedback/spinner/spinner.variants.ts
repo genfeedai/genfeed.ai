@@ -1,4 +1,4 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import { cva } from 'class-variance-authority';
 
 /**

@@ -7,7 +7,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

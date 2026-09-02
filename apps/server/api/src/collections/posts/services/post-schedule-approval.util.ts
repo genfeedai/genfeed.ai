@@ -1,6 +1,6 @@
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 const PUBLISHABLE_EXECUTION_STATES = new Set<string>([

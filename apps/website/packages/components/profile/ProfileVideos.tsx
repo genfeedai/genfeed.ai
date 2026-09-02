@@ -1,6 +1,6 @@
 'use client';
 
-import type { IVideo } from '@genfeedai/interfaces';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import type { ProfileVideosProps } from '@props/content/profile.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';

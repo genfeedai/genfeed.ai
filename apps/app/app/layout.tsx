@@ -2,7 +2,7 @@ import '@styles/globals.css';
 
 import { isDesktopServerRequest } from '@app-server/desktop-request.server';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { THEME_STORAGE_KEY } from '@genfeedai/constants';
+import { THEME_STORAGE_KEY } from '@genfeedai/contracts/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestLocale } from '@helpers/ui/locale/locale.helper';

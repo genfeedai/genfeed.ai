@@ -1,5 +1,5 @@
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
-import { ActivityKey, IngredientCategory } from '@genfeedai/enums';
+import { ActivityKey, IngredientCategory } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ActivityUpdateService', () => {

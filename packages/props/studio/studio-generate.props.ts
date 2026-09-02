@@ -1,10 +1,10 @@
-import type { ViewType } from '@genfeedai/enums';
-import type { IIngredient, IModel } from '@genfeedai/interfaces';
+import type { ViewType } from '@genfeedai/contracts';
+import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateJob,
   StudioGenerateSettings,
   StudioGenerateType,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 

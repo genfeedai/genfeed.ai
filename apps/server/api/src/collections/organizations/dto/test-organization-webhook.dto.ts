@@ -1,7 +1,7 @@
 import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
-} from '@api-types/contracts/webhook-events.contract';
+} from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
 

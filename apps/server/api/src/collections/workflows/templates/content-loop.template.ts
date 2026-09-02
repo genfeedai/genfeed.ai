@@ -1,6 +1,6 @@
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export const CONTENT_LOOP_PROMPT_TEMPLATE =
   'Write a {{tone}} social caption about {{topic}}.\n\nBrand voice:\n{{brandVoice}}\n\nKeep it under {{maxLength}} characters.';

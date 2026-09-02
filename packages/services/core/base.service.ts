@@ -1,9 +1,9 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
-import type { IPaginatedResponse } from '@genfeedai/interfaces';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type {
   IHttpError,
   IServiceSerializer,
-} from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   TypeValidator,
   type ValidationSchema,
@@ -47,7 +47,7 @@ const MAX_COLLECTED_PAGES = 50;
  *
  * @example
  * ```typescript
- * // With typed payloads from @genfeedai/api-types
+ * // With typed payloads from @genfeedai/contracts/api-types
  * class PostsService extends BaseService<Post, CreatePostRequest, UpdatePostRequest> {
  *   // post() and patch() now require correctly typed payloads
  * }
@@ -409,7 +409,7 @@ export abstract class BaseService<
    *
    * @example
    * ```typescript
-   * // Type-safe with @genfeedai/api-types
+   * // Type-safe with @genfeedai/contracts/api-types
    * const post = await postsService.post({
    *   credentialId: '...', // Required - TypeScript enforces this
    *   label: '...',
@@ -449,7 +449,7 @@ export abstract class BaseService<
    *
    * @example
    * ```typescript
-   * // Type-safe with @genfeedai/api-types
+   * // Type-safe with @genfeedai/contracts/api-types
    * const post = await postsService.patch(id, {
    *   description: 'Updated description',
    *   targetExecutionState: TargetExecutionState.SCHEDULED,

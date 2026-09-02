@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  APP_ROUTES,
-  createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import type { TableColumn } from '@props/ui/display/table.props';

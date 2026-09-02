@@ -2,7 +2,7 @@ import {
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@api/services/reply-bot/reply-bot-platform.util';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('reply-bot-platform.util', () => {

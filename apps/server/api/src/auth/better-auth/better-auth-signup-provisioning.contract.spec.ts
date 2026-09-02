@@ -9,7 +9,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';

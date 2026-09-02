@@ -1,12 +1,12 @@
 'use client';
 
-import { LUMA_ASPECT_RATIOS } from '@genfeedai/pricing';
 import type {
   GridPosition,
   LumaAspectRatio,
   ResizeNodeData,
-} from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
+import { LUMA_ASPECT_RATIOS } from '@genfeedai/pricing';
 import type { NodeProps } from '@xyflow/react';
 import { ImageIcon, LoaderCircle, RefreshCw, Video } from 'lucide-react';
 import Image from 'next/image';

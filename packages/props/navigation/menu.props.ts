@@ -1,8 +1,8 @@
-import type { AppContext, IIngredient } from '@genfeedai/interfaces';
+import type { AppContext, IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   MenuConfig,
   MenuItemConfig,
-} from '@genfeedai/interfaces/ui/menu-config.interface';
+} from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { ComponentType, ReactNode } from 'react';
 
 /**

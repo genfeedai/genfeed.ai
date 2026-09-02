@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import {
   generateMockPost,
   mockActiveSubscription,

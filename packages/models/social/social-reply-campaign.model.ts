@@ -2,7 +2,7 @@ import type {
   SocialPlatform,
   SocialReplyCampaign,
   SocialReplyCampaignStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialReplyCampaignModel implements SocialReplyCampaign {
   id!: string;

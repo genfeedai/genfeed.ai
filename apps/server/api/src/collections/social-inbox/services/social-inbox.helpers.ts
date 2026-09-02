@@ -8,7 +8,7 @@ import {
   LINKEDIN_DM_UNAVAILABLE_REASON,
 } from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;

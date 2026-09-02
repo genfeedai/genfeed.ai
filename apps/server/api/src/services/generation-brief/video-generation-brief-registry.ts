@@ -8,15 +8,15 @@ import { compileMinimaxH3GenerationBrief } from '@api/services/generation-brief/
 import { compilePrunaaiPVideoGenerationBrief } from '@api/services/generation-brief/compile-prunaai-p-video-generation-brief';
 import { compileRemainingVideoGenerationBrief } from '@api/services/generation-brief/compile-remaining-video-generation-brief';
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { GenerationBriefExemptionReason } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_COMPILER_ID,
   MINIMAX_H3_COMPILER_VERSION,
   PRUNAAI_P_VIDEO_COMPILER_ID,
   PRUNAAI_P_VIDEO_COMPILER_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_CAPABILITY_PROFILE_ID,
   MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
@@ -24,8 +24,8 @@ import {
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,
   PRUNAAI_P_VIDEO_MODEL_KEY,
-} from '@api-types/contracts/video-generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 export type VideoGenerationBriefDispatch = Record<string, unknown>;
 

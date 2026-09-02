@@ -12,12 +12,12 @@ import {
   SubscriptionStatus,
   SubscriptionTier,
   toPrismaSubscriptionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 

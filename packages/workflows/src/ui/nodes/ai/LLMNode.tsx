@@ -1,6 +1,6 @@
 'use client';
 
-import type { LLMNodeData, TextModel } from '@genfeedai/types';
+import type { LLMNodeData, TextModel } from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import { CircleAlert, Expand, RefreshCw } from 'lucide-react';

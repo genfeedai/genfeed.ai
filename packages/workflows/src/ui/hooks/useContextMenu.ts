@@ -1,4 +1,4 @@
-import type { WorkflowNodeData } from '@genfeedai/types';
+import type { WorkflowNodeData } from '@genfeedai/contracts/types';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback, useMemo, useRef } from 'react';
 import type { ContextMenuItemConfig } from '../components/context-menu';

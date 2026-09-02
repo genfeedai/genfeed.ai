@@ -9,7 +9,7 @@ import type {
   IAnalytics,
   MetricCardBlock,
   TopPostItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const DEFAULT_OPERATION: AgentDashboardOperation = 'replace';
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {

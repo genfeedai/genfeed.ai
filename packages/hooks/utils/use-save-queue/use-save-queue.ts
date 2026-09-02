@@ -1,4 +1,4 @@
-import type { SaveQueue } from '@genfeedai/interfaces/hooks/use-save-queue.interface';
+import type { SaveQueue } from '@genfeedai/contracts/interfaces/hooks/use-save-queue.interface';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**

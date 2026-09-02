@@ -1,4 +1,4 @@
-import type { IPublicYoutubeClipToolClaim } from '@genfeedai/interfaces';
+import type { IPublicYoutubeClipToolClaim } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

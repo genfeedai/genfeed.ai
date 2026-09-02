@@ -1,10 +1,10 @@
-import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import type {
   AgentPublishSettingField,
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { PostVisibility } from '@genfeedai/enums';
+import { PostVisibility } from '@genfeedai/contracts';
+import { validateChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 
 const VISIBILITY_VALUES = [
   PostVisibility.PRIVATE,

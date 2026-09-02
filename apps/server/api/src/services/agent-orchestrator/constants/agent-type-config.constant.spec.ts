@@ -1,9 +1,9 @@
+import { AgentType } from '@genfeedai/contracts';
 import {
   getAgentChatModel,
   isRetiredAgentChatModel,
-} from '@genfeedai/constants';
-import { AgentType } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import {
   AGENT_TYPE_CONFIGS,
   detectPlatformIntentSuffix,

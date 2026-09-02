@@ -4,7 +4,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AgentTeamMentionItem } from '@genfeedai/interfaces';
+import type { AgentTeamMentionItem } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

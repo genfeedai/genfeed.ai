@@ -1,6 +1,9 @@
-import { APP_ROUTES, createLibraryShelfRoute } from '@genfeedai/constants';
-import { LIBRARY_SHELF_LABELS, LibraryShelf } from '@genfeedai/enums';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { LIBRARY_SHELF_LABELS, LibraryShelf } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryShelfRoute,
+} from '@genfeedai/contracts/constants';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Archive,
   CircleCheck,

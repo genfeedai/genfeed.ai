@@ -3,8 +3,8 @@ import {
   ModelProvider,
   QualityTier,
   SpeedTier,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModelSelectorModelSpec from '@ui/dropdowns/model-selector/ModelSelectorModelSpec';
 import { transformModelsToOptions } from '@ui/dropdowns/model-selector/model-selector.utils';

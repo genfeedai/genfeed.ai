@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';

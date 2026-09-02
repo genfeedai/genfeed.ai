@@ -1,4 +1,7 @@
-import type { SelectedModel, WorkflowNodeData } from '@genfeedai/types';
+import type {
+  SelectedModel,
+  WorkflowNodeData,
+} from '@genfeedai/contracts/types';
 import { useCallback, useMemo } from 'react';
 import { extractEnumValues, supportsImageInput } from '../lib/schemaUtils';
 import type { SchemaInputs } from '../nodes/SchemaInputs';

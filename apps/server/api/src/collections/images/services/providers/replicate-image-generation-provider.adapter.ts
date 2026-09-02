@@ -23,8 +23,11 @@ import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import {
+  MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 const REPLICATE_IMAGE_MODELS: readonly string[] = [

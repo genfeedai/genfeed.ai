@@ -29,14 +29,14 @@ import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreac
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
-import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { ICampaignScope } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { getOutreachCapabilityRefusal } from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
+import type { ICampaignScope } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

@@ -1,11 +1,11 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   buildDayViewRows,
   formatClockTime,
   instantForClockTime,
-} from '@api-types/contracts/credential-posting-times.contract';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type {
   CalendarEventAction,

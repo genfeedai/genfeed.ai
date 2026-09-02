@@ -12,12 +12,12 @@ import {
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   FleetReviewStatus,
   IngredientStatus,
   LoraStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -1,10 +1,10 @@
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   ICredential,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { describe, expect, it } from 'vitest';
 import {

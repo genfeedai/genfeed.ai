@@ -3,7 +3,7 @@ import type {
   IDesktopAsset,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import {
   __desktopGenerationServiceTestUtils,
   DesktopGenerationService,

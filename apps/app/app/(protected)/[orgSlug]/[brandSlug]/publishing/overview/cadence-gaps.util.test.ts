@@ -1,9 +1,9 @@
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { buildCadenceGaps } from './cadence-gaps.util';
 

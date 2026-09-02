@@ -27,7 +27,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TemplateFilterUtil } from '@api/helpers/utils/template-filter/template-filter.util';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { TemplateSerializer } from '@genfeedai/serializers';
 import {
   Body,

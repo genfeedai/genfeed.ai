@@ -15,8 +15,8 @@ import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { buildFallbackThreadTitle } from '@api/services/agent-orchestrator/utils/agent-thread-title.util';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentMessageRole } from '@genfeedai/contracts';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 interface BatchGenerationDraft {

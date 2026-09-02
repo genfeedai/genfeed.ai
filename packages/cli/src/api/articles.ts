@@ -1,4 +1,4 @@
-import type { PersistedArticleStatus } from '@genfeedai/enums';
+import type { PersistedArticleStatus } from '@genfeedai/contracts';
 import { get, post } from './client';
 import {
   flattenCollection,
@@ -26,7 +26,7 @@ export interface Article {
   id: string;
   /**
    * `articles.status` is a Prisma enum, so a serialized article carries the
-   * persisted vocabulary. The app-level `ArticleStatus` in `@genfeedai/enums`
+   * persisted vocabulary. The app-level `ArticleStatus` in `@genfeedai/contracts`
    * is the lowercase query/write vocabulary and never appears on a read.
    *
    * @see .agents/memory/rules/enum_source_of_truth.md

@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant, type DropdownDirection } from '@genfeedai/enums';
+import { ButtonVariant, type DropdownDirection } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { ITag } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';

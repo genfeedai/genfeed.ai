@@ -7,7 +7,7 @@ import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbo
 import { buildXActivityCrcResponseBody } from '@api/services/reply-bot/x-activity-crc.util';
 import { extractInboundCandidatesFromXActivityPayload } from '@api/services/reply-bot/x-activity-event.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { toPrismaCredentialPlatform } from '@genfeedai/enums';
+import { toPrismaCredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

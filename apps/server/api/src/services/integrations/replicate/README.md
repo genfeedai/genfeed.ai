@@ -2929,7 +2929,7 @@ services/prompt-builder/
 
 - **Schema Mappings:** [replicate-prompt.builder.ts](../../../prompt-builder/builders/replicate-prompt.builder.ts)
 - **Universal Interface:** [prompt-builder-params.interface.ts](../../../prompt-builder/interfaces/prompt-builder-params.interface.ts)
-- **Model Enums:** `@genfeedai/enums` package ([model.enum.ts](../../../../../../packages.genfeed.ai/packages/common/enums/src/model.enum.ts))
+- **Model Enums:** `@genfeedai/contracts` package ([model.enum.ts](../../../../../../packages.genfeed.ai/packages/common/enums/src/model.enum.ts))
 
 ---
 

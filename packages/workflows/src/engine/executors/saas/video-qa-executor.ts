@@ -2,18 +2,18 @@ import type {
   VideoContinuityClipFinding,
   VideoContinuityQaReport,
   VideoContinuityQaSkipReason,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   createNotAssessedContinuityDimension,
   VIDEO_CONTINUITY_QA_SCHEMA_VERSION,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   VideoQaFailure,
   VideoQaFailureCode,
   VideoQaReport,
   VideoQaSegment,
   VideoQaStreamInfo,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,

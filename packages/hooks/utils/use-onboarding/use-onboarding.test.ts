@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetOnboardingService = vi.fn();
 const mockGetStatus = vi.fn();
 
-vi.mock('@genfeedai/enums', async (importOriginal) => {
+vi.mock('@genfeedai/contracts', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),

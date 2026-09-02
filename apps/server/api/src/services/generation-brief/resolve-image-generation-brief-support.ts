@@ -2,7 +2,7 @@ import {
   getImageGenerationBriefExemptionReason,
   getImageGenerationBriefRegistryEntry,
 } from '@api/services/generation-brief/image-generation-brief-registry';
-import type { GenerationBriefSupport } from '@api-types/contracts/generation-brief-compiler.contract';
+import type { GenerationBriefSupport } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 
 export function resolveImageGenerationBriefSupport(
   model: string,

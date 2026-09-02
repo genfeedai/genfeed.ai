@@ -3,7 +3,7 @@ import {
   DEFAULT_QUEUE,
   QueueDegradationReason,
   QueueDispatchStatus,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';

@@ -1,9 +1,9 @@
 'use client';
 
-import { createBrandAppRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

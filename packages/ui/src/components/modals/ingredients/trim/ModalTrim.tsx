@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useVideoTrim } from '@genfeedai/hooks/media/use-video-trim/use-video-trim';
 import type { ModalTrimProps } from '@genfeedai/props/modals/modal.props';

@@ -1,5 +1,5 @@
-import { fromPrismaCredentialPlatform } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
+import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 
 type ReplyBotCredentialPlatform = IReplyBotCredentialData['platform'];

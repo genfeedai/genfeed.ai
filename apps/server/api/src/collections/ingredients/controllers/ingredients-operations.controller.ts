@@ -22,8 +22,8 @@ import {
   categoryToPlural,
   FileInputType,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   IngredientSerializer,
   MetadataSerializer,

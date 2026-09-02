@@ -1,4 +1,4 @@
-import { isUserFacingAppPathname } from '@genfeedai/constants';
+import { isUserFacingAppPathname } from '@genfeedai/contracts/constants';
 
 const CALLBACK_RESOLUTION_ORIGIN = 'https://auth-callback.invalid';
 const DESKTOP_CALLBACK_PROTOCOL = 'genfeedai-desktop:';

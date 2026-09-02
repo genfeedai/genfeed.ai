@@ -2,15 +2,13 @@
   "dependencies": {
     "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@tanstack/react-query": "5.102.8",
-    "@tiptap/core": "3.30.5"
+    "@tiptap/core": "3.30.5",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared React contexts for Genfeed applications",
   "devDependencies": {

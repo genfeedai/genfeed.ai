@@ -1,9 +1,9 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import type {
   AgentClipRunIdentity,
   AgentClipRunIdentityField,
   AgentClipRunIdentitySource,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface ClipIdentityResolutionInput {
   avatarId?: string;

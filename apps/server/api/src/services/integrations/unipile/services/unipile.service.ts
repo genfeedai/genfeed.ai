@@ -17,7 +17,7 @@ import {
 } from '@api/services/integrations/unipile/interfaces/unipile.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
-import { IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationStatus } from '@genfeedai/contracts';
 import {
   getIntegrationProviderDefinition,
   IntegrationHttpClient,

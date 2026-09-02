@@ -1,5 +1,5 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { IVideo } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import { render } from '@testing-library/react';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import { describe, expect, it, vi } from 'vitest';

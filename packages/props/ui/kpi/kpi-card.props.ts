@@ -1,4 +1,4 @@
-import type { CardSize, CardVariant } from '@genfeedai/enums';
+import type { CardSize, CardVariant } from '@genfeedai/contracts';
 import type { ComponentType, ReactNode } from 'react';
 
 export interface KPICardProps {

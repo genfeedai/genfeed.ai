@@ -1,4 +1,4 @@
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

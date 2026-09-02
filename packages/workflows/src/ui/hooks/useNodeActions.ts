@@ -2,7 +2,7 @@ import type {
   WorkflowEdge,
   WorkflowNode,
   WorkflowNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 import { useWorkflowStore } from '../stores/workflow';

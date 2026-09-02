@@ -13,8 +13,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { GoogleSearchConsoleDimension } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { GoogleSearchConsoleDimension } from '@genfeedai/contracts/interfaces';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

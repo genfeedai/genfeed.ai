@@ -19,11 +19,11 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 import type {
   IReplyBotContentData,
   IReplyBotCredentialData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

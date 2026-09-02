@@ -1,10 +1,10 @@
 'use client';
 
 import { useAssetSelection } from '@contexts/ui/asset-selection.context';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IImage } from '@genfeedai/interfaces';
-import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IImage } from '@genfeedai/contracts/interfaces';
+import type { SocketResult } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import { buildGenerationEtaSnapshot } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';

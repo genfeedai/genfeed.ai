@@ -5,7 +5,7 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@api/services/campaign/campaign-dispatch-workflow-definition';
 import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
-import { CampaignType } from '@genfeedai/enums';
+import { CampaignType } from '@genfeedai/contracts';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH = 20;

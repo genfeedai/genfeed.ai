@@ -1,4 +1,4 @@
-import type { BrandKitAssetRole } from '@genfeedai/interfaces';
+import type { BrandKitAssetRole } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 /**

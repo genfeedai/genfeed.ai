@@ -92,8 +92,8 @@ vi.mock('next-intl', async () => {
 });
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IImage } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IImage } from '@genfeedai/contracts/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
 const defaultBrandContext = {

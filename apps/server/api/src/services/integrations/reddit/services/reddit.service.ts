@@ -3,11 +3,11 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
   type ChannelTargetSettings,
   readChannelSettingString,
-} from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

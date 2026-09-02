@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsSubscriptionPage from './content';
 import '@testing-library/jest-dom/vitest';
-import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
+import type { UseSubscriptionReturn } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 
 // PlansCard renders inside this page, so the catalog-backed stub keeps the
 // assertions on real copy without a NextIntlClientProvider.

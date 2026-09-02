@@ -1,8 +1,8 @@
 'use client';
 
-import type { PreviewMediaAspect } from '@genfeedai/constants/platform-limits.constant';
+import type { PreviewMediaAspect } from '@genfeedai/contracts/constants/platform-limits.constant';
+import type { IReleaseMediaReference } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IReleaseMediaReference } from '@genfeedai/interfaces';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 

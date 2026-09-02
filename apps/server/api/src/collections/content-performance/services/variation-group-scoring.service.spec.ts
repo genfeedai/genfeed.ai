@@ -1,7 +1,7 @@
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

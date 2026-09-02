@@ -1,4 +1,4 @@
-import type { IActivity } from '@genfeedai/interfaces';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';

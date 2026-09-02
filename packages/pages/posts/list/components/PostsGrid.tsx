@@ -1,14 +1,14 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   Platform,
   PostStatus,
-} from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import {
   getPostsPlatformLabel,
   getPublishingPostHref,

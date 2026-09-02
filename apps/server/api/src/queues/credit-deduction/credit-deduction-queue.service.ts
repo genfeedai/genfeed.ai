@@ -1,7 +1,7 @@
 import {
   CREDIT_DEDUCTION_QUEUE,
   CreditDeductionJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

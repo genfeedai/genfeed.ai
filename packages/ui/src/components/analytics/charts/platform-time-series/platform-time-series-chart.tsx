@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonVariant, formatPlatformLabel, Platform } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  formatPlatformLabel,
+  Platform,
+} from '@genfeedai/contracts';
 import {
   formatChartDate,
   formatCompactNumberIntl,

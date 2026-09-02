@@ -167,7 +167,7 @@ automatically available here.
 @utils/*         -> packages/utils/*
 @styles/*        -> packages/styles/*
 @config/*        -> packages/config/src/*
-@api-types/*     -> packages/api-types/src/*
+@genfeedai/contracts/api-types/* -> packages/contracts/src/api-types/*
 ```
 
 - `@components/` is **not** a wildcard in `apps/app` — `tsconfig.json` lists a
@@ -178,9 +178,9 @@ automatically available here.
   `@ui/*` and app-local components via `@app-components/*`.
 - `@ui/primitives/*` is covered by the `@ui/*` mapping
   (`packages/ui/src/primitives/*`); it is not a separate entry.
-- There is no `@constants/*`, `@enums/*`, or `@interfaces/*` alias here — use the
-  package specifiers `@genfeedai/constants`, `@genfeedai/enums`, and
-  `@genfeedai/interfaces`.
+- There is no `@constants/*`, `@enums/*`, or `@interfaces/*` alias here — use
+  `@genfeedai/contracts`, `@genfeedai/contracts/constants`, and
+  `@genfeedai/contracts/interfaces`.
 - Alias targets have no `src` segment unless shown above (`packages/hooks/*`, not
   `packages/hooks/src`).
 

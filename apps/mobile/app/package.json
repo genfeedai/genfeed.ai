@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "@expo/vector-icons": "15.1.1",
-    "@genfeedai/constants": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@react-native-async-storage/async-storage": "3.1.1",
     "@react-native-community/netinfo": "12.0.1",
@@ -32,7 +31,8 @@
     "react-native-safe-area-context": "5.9.1",
     "react-native-screens": "4.27.0",
     "react-native-web": "0.21.2",
-    "react-native-webview": "14.0.1"
+    "react-native-webview": "14.0.1",
+    "@genfeedai/contracts": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "8.0.1",

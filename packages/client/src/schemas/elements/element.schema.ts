@@ -1,11 +1,11 @@
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import type {
   IElementBlacklist,
   IElementMood,
   IElementStyle,
   IPreset,
   ISound,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { z } from 'zod';
 
 // Base element schema with common fields

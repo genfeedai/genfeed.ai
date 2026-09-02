@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { BrandKitAssetTileProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';

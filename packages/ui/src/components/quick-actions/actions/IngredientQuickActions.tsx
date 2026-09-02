@@ -1,13 +1,13 @@
 'use client';
 
-import { ComponentSize, IngredientCategory } from '@genfeedai/enums';
+import { ComponentSize, IngredientCategory } from '@genfeedai/contracts';
+import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import {
   BG_BLUR,
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';

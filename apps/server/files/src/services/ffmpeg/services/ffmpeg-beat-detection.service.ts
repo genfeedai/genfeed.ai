@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
-import { BeatSensitivity } from '@genfeedai/enums';
+import { BeatSensitivity } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

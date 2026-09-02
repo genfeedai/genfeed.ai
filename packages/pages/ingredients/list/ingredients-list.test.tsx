@@ -1,4 +1,4 @@
-import { FleetReviewStatus, IngredientCategory } from '@genfeedai/enums';
+import { FleetReviewStatus, IngredientCategory } from '@genfeedai/contracts';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

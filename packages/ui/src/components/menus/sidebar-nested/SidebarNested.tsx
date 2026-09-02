@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft } from 'lucide-react';

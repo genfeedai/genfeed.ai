@@ -1,7 +1,7 @@
 'use client';
 
-import type { ProviderType } from '@genfeedai/types';
-import { ProviderTypeEnum } from '@genfeedai/types';
+import type { ProviderType } from '@genfeedai/contracts/types';
+import { ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { PROVIDER_COLORS } from './model-browser-badges.constants';
 
 export { CapabilityBadge } from './CapabilityBadge';

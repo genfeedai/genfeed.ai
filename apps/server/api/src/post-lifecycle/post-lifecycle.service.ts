@@ -5,8 +5,8 @@ import {
   type ServerPrisma,
 } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
-import type { IChannelTargetError } from '@genfeedai/interfaces';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
+import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
 import {
   ConflictException,

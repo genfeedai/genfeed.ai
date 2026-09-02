@@ -1,5 +1,5 @@
 import { AnalyticsResponseProjection } from '@api/endpoints/analytics/analytics-response.projection';
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
+import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
 
 const projection = new AnalyticsResponseProjection();
 

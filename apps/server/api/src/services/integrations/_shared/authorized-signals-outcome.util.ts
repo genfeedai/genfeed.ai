@@ -1,4 +1,4 @@
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 
 export type GenfeedPublishOutcome =
   | 'scheduled'

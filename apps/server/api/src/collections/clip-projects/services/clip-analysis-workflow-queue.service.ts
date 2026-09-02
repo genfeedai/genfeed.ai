@@ -3,7 +3,7 @@ import {
   CLIP_ANALYSIS_WORKFLOW_ID,
 } from '@api/collections/clip-projects/services/clip-analysis-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import type { ClipAnalysisWorkflowInput } from '@genfeedai/interfaces';
+import type { ClipAnalysisWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

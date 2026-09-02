@@ -1,5 +1,5 @@
-import type { BotCommandType } from '@genfeedai/enums';
-import type { IBotResolvedUser } from '@genfeedai/interfaces';
+import type { BotCommandType } from '@genfeedai/contracts';
+import type { IBotResolvedUser } from '@genfeedai/contracts/interfaces';
 
 export const BOT_MEDIA_GENERATION_DISPATCHER = Symbol(
   'BOT_MEDIA_GENERATION_DISPATCHER',

@@ -12,7 +12,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   LibraryShelf,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';

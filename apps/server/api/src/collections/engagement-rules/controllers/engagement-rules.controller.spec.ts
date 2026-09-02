@@ -1,7 +1,7 @@
 import { EngagementRulesController } from '@api/collections/engagement-rules/controllers/engagement-rules.controller';
 import type { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 const MUTATION_SCOPES = [

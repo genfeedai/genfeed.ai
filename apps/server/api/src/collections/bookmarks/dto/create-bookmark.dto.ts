@@ -3,7 +3,7 @@ import {
   BookmarkCategory,
   BookmarkIntent,
   BookmarkPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

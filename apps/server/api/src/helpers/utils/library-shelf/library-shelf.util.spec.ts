@@ -4,7 +4,7 @@ import {
   IngredientStatus,
   LibraryShelf,
   QualityStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 describe('LibraryShelfUtil', () => {
   describe('buildShelfFilter', () => {

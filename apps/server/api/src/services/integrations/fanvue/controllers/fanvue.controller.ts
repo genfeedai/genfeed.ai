@@ -14,7 +14,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,

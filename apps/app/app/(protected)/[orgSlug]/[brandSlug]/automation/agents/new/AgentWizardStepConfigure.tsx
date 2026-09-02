@@ -1,13 +1,13 @@
 'use client';
 
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
   ButtonSize,
   ButtonVariant,
-} from '@genfeedai/enums';
-import type { IAgentWizardFormData } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/contracts/constants';
+import type { IAgentWizardFormData } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {

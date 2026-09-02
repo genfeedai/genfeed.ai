@@ -29,8 +29,8 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { WorkflowTrigger } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';

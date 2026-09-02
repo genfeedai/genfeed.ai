@@ -4,8 +4,11 @@ import {
   ReleaseStatus,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,

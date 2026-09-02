@@ -1,5 +1,5 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   getThreadStatusKey,

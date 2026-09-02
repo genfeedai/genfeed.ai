@@ -9,7 +9,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { scopedWhere } from '@api/index';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

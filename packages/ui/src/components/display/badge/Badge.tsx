@@ -1,4 +1,4 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { BadgeProps } from '@genfeedai/props/ui/display/badge.props';
 import { Badge as PrimitiveBadge } from '@ui/primitives/badge';

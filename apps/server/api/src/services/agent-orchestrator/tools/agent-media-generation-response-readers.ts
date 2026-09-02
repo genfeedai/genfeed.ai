@@ -1,5 +1,5 @@
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import type { JsonApiResult } from '@genfeedai/interfaces';
+import type { JsonApiResult } from '@genfeedai/contracts/interfaces';
 
 const LOCAL_ASSET_PATH_PREFIX = '/local/';
 const PRIVATE_ASSET_QUERY_PARAMETER_PATTERN =

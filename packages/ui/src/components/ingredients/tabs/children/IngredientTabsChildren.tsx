@@ -1,8 +1,8 @@
 'use client';
 
-import { TransformationCategory } from '@genfeedai/enums';
+import { TransformationCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IIngredient } from '@genfeedai/interfaces';
 import type { ExtendedIngredientTabsChildrenProps } from '@genfeedai/props/content/ingredient.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';

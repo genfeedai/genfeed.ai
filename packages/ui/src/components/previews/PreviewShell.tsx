@@ -1,6 +1,6 @@
 'use client';
 
-import type { PreviewMediaAspect } from '@genfeedai/constants/platform-limits.constant';
+import type { PreviewMediaAspect } from '@genfeedai/contracts/constants/platform-limits.constant';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type { TargetPreviewCredential } from '@genfeedai/props/ui/previews.props';

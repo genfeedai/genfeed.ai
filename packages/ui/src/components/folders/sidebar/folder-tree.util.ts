@@ -1,4 +1,4 @@
-import type { FolderTreeNode, IFolder } from '@genfeedai/interfaces';
+import type { FolderTreeNode, IFolder } from '@genfeedai/contracts/interfaces';
 
 function indexFoldersById(folders: IFolder[]): Map<string, IFolder> {
   return new Map(folders.map((folder) => [folder.id, folder]));

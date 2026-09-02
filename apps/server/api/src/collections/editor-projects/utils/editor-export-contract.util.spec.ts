@@ -2,11 +2,11 @@ import {
   EditorEffectType,
   EditorTrackType,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   EDITOR_EXPORT_CONTRACT_VERSION,
   type IEditorTrack,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   buildValidatedEditorExportContract,
   EditorExportContractValidationError,

@@ -1,7 +1,7 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { TagCategory } from '@genfeedai/enums';
+import { TagCategory } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { ITag } from '@genfeedai/interfaces';
 import type { DropdownTagsProps } from '@genfeedai/props/tags/dropdown-tags.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';
 import { logger } from '@genfeedai/services/core/logger.service';

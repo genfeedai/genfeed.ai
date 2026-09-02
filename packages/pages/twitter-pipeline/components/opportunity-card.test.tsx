@@ -1,4 +1,4 @@
-import type { ITwitterOpportunity } from '@genfeedai/interfaces';
+import type { ITwitterOpportunity } from '@genfeedai/contracts/interfaces';
 import OpportunityCard from '@pages/twitter-pipeline/components/opportunity-card';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

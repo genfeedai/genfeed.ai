@@ -6,7 +6,7 @@ import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-con
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
 

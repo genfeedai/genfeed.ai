@@ -5,8 +5,12 @@ import {
   ButtonVariant,
   IngredientStatus,
   ViewType,
-} from '@genfeedai/enums';
-import type { IImage, IMetadata, IVideo } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IImage,
+  IMetadata,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { StudioGenerateCardProps } from '@genfeedai/props/studio/studio-generate.props';

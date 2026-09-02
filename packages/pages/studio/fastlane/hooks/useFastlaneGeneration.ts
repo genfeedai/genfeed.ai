@@ -1,13 +1,13 @@
 'use client';
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import type {
   FastlaneAssetItem,
   FastlaneIdea,
   IImage,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {

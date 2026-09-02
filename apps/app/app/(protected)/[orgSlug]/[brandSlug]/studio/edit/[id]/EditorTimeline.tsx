@@ -1,7 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
-import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  EditorTrackType,
+} from '@genfeedai/contracts';
+import type {
+  IEditorClip,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import type { EditorTimelineProps } from '@props/studio/editor-timeline.props';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useRef, useState } from 'react';

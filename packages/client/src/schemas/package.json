@@ -1,8 +1,4 @@
 {
-  "dependencies": {
-    "@genfeedai/constants": "2.2.9",
-    "@genfeedai/enums": "2.3.2"
-  },
   "devDependencies": {
     "@typescript/native": "npm:typescript@7.0.2"
   },
@@ -15,5 +11,8 @@
     "clean": "rm -rf dist"
   },
   "types": "dist/index.d.ts",
-  "version": "2.2.2"
+  "version": "2.2.2",
+  "dependencies": {
+    "@genfeedai/contracts": "workspace:*"
+  }
 }

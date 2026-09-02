@@ -9,8 +9,11 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { toRouterPriority } from '@genfeedai/enums';
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import { toRouterPriority } from '@genfeedai/contracts';
+import {
+  AgentToolName,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =

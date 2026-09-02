@@ -1,5 +1,5 @@
-import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
-import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
+import type { IGenfeedDesktopBridge } from '@genfeedai/contracts/desktop';
+import { DESKTOP_IPC_CHANNELS } from '@genfeedai/contracts/desktop';
 import { contextBridge, ipcRenderer } from 'electron';
 import { isTrustedDesktopAppOrigin } from './main/app-shell-origin.util';
 

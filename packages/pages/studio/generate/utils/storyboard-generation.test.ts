@@ -1,6 +1,6 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
-import type { IImage, IModel } from '@genfeedai/interfaces';
+import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IImage, IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildStoryboardInterpolationPairs,

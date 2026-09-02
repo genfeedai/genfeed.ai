@@ -6,7 +6,7 @@ import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
 import type { ModalGalleryHeaderProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Badge from '@ui/display/badge/Badge';

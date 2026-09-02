@@ -7,8 +7,8 @@ import {
   EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
-} from '@genfeedai/enums';
-import type { IEngagementRule } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 import { useEngagementRules } from '@hooks/data/content/use-engagement-rules';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import type { ReleaseEngagementRulesProps } from '@props/scheduler/engagement-rules.props';

@@ -3,7 +3,11 @@ import { BATCH_MAX_RESUME_ATTEMPTS } from '@api/services/batch-generation/batch-
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

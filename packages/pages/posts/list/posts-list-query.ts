@@ -1,8 +1,8 @@
+import { type PageScope, PostStatus } from '@genfeedai/contracts';
 import {
   PUBLISHING_POSTS_PUBLICATION_STATES,
   type PublishingPostsPublicationState,
-} from '@genfeedai/constants';
-import { type PageScope, PostStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 export type PostsPublicationState = PublishingPostsPublicationState;
 export type PublishingPostsView =

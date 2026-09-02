@@ -6,7 +6,7 @@ import { GenfeedaiAvatarProvider } from '@api/services/avatar-video/providers/ge
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
-import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

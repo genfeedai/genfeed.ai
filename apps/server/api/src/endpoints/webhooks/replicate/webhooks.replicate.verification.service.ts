@@ -1,6 +1,6 @@
 import { CacheService } from '@api/services/cache/cache.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import type { ReplicatePredictionRecord } from '@genfeedai/interfaces';
+import type { ReplicatePredictionRecord } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

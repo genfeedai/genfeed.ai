@@ -1,5 +1,8 @@
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { AgentToolName, type AgentUiAction } from '@genfeedai/interfaces';
+import {
+  AgentToolName,
+  type AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Normalize empty/partial assistant content into a user-facing final string,

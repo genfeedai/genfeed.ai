@@ -5,9 +5,9 @@ import {
   ButtonVariant,
   CardVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import {
   clearErrorDebugInfo,

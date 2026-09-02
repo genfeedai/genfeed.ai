@@ -1,4 +1,4 @@
-import { ContentType, PostCategory } from '@genfeedai/enums';
+import { ContentType, PostCategory } from '@genfeedai/contracts';
 
 const CONTENT_TYPE_BY_POST_CATEGORY = {
   [PostCategory.ARTICLE]: ContentType.ARTICLE,

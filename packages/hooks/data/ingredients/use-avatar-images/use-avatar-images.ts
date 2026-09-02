@@ -1,7 +1,7 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IAvatar } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IAvatar } from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { isAvatarSourceImageIngredient } from '@genfeedai/utils/media/ingredient-type.util';

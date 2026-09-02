@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
 

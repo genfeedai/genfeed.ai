@@ -4,7 +4,7 @@ import {
   AssetScope,
   CredentialPlatform,
   LinkCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -14,7 +14,7 @@ import type {
   IOrganizationSetting,
   ISetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies

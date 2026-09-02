@@ -33,7 +33,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { Platform, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { Platform, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,

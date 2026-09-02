@@ -1,4 +1,4 @@
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 

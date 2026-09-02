@@ -1,4 +1,4 @@
-import { IntegrationPlatform, ParseMode } from '@genfeedai/enums';
+import { IntegrationPlatform, ParseMode } from '@genfeedai/contracts';
 import {
   BaseBotManager,
   type BotHttpAdapter,

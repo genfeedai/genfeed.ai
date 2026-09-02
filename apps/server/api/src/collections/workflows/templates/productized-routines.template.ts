@@ -3,7 +3,7 @@ import type {
   ProductizedRoutineMetadata,
   WorkflowTemplate,
 } from '@api/collections/workflows/templates/workflow-templates';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export type ProductizedRoutineWorkflowTemplate = WorkflowTemplate & {
   isScheduleEnabled: true;

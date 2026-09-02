@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowExecutionStats } from '@genfeedai/types';
+import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 
 interface RunStatsStripProps {
   isLoading: boolean;

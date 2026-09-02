@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { type LibraryPlace, LibraryShelf, PageScope } from '@genfeedai/enums';
+import {
+  type LibraryPlace,
+  LibraryShelf,
+  PageScope,
+} from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

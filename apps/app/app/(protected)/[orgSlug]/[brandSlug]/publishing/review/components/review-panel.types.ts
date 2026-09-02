@@ -1,4 +1,4 @@
-import type { IBatchItem } from '@genfeedai/interfaces';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 
 export type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;

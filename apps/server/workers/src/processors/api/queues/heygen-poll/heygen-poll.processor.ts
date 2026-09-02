@@ -22,7 +22,7 @@ import {
   HEYGEN_POLL_MAX_ATTEMPTS,
   HEYGEN_POLL_QUEUE,
   HeygenPollJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

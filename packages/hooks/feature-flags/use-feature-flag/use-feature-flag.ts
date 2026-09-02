@@ -1,4 +1,4 @@
-import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 
 export function useFeatureFlag(flagKey: string): boolean {

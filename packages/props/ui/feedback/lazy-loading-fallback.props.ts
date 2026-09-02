@@ -1,4 +1,4 @@
-import type { IngredientFormat } from '@genfeedai/enums';
+import type { IngredientFormat } from '@genfeedai/contracts';
 
 export interface LazyLoadingFallbackProps {
   variant?: string;

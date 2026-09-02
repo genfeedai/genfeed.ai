@@ -1,4 +1,4 @@
-import type { IBackgroundTaskUpdatePayload } from '@genfeedai/interfaces';
+import type { IBackgroundTaskUpdatePayload } from '@genfeedai/contracts/interfaces';
 import type { Ora } from 'ora';
 import { io, type Socket } from 'socket.io-client';
 import { getApiKey, getApiUrl } from '@/config/store';

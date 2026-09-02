@@ -3,7 +3,7 @@ import {
   NotificationEvent,
   NotificationsService,
 } from '@api/services/notifications/notifications.service';
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

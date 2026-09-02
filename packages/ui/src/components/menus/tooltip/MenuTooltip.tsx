@@ -1,6 +1,6 @@
 'use client';
 
-import type { TooltipPosition } from '@genfeedai/interfaces/ui/tooltip-position.interface';
+import type { TooltipPosition } from '@genfeedai/contracts/interfaces/ui/tooltip-position.interface';
 import type {
   MenuTooltipProps,
   TooltipWrapperProps,

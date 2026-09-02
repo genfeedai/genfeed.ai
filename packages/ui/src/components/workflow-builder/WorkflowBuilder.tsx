@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/enums';
-import { useWorkflowBuilder } from '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder';
+import { AlertCategory } from '@genfeedai/contracts';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
-} from '@genfeedai/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
+import { useWorkflowBuilder } from '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder';
 import type { WorkflowBuilderProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Alert from '@ui/feedback/alert/Alert';
 import ExecutionHistoryPanel from '@ui/workflow-builder/panels/ExecutionHistoryPanel';

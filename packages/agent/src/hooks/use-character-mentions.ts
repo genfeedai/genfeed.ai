@@ -1,6 +1,6 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import type { AgentCharacterMentionItem } from '@genfeedai/interfaces';
+import type { AgentCharacterMentionItem } from '@genfeedai/contracts/interfaces';
 import { useEffect, useState } from 'react';
 
 export function useCharacterMentions(apiService: AgentApiService | null): {

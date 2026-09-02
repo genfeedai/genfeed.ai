@@ -3,7 +3,7 @@ import type {
   AvatarVideoJobResult,
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
-import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { Injectable, NotImplementedException } from '@nestjs/common';
 
 @Injectable()

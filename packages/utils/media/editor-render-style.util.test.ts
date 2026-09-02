@@ -1,5 +1,5 @@
-import { EditorEffectType, EditorTransitionType } from '@genfeedai/enums';
-import type { IEditorClip } from '@genfeedai/interfaces';
+import { EditorEffectType, EditorTransitionType } from '@genfeedai/contracts';
+import type { IEditorClip } from '@genfeedai/contracts/interfaces';
 import {
   buildEditorCssFilter,
   buildEditorRenderStyle,

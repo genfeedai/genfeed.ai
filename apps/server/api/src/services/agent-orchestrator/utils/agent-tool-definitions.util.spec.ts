@@ -4,7 +4,7 @@ import {
   CLOUD_ONLY_ONBOARDING_TOOLS,
   resolveBlockedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function resolveToolNames(source?: string): AgentToolName[] {

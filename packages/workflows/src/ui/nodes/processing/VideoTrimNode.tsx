@@ -1,7 +1,7 @@
 'use client';
 
-import type { VideoTrimNodeData } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type { VideoTrimNodeData } from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,

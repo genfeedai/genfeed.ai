@@ -5,7 +5,7 @@ import {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 

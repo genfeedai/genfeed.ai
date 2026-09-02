@@ -1,15 +1,15 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IMetadata, IMusic } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IMetadata, IMusic } from '@genfeedai/interfaces';
 import type { ModalMusicProps } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { MusicsService } from '@genfeedai/services/ingredients/musics.service';

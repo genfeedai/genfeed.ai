@@ -2,8 +2,8 @@
 
 import PatternCard from '@app-components/performance-lab/PatternCard';
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import { AlertCategory } from '@genfeedai/enums';
-import type { PatternType } from '@genfeedai/interfaces';
+import { AlertCategory } from '@genfeedai/contracts';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { usePatternContext } from '@hooks/data/analytics/use-pattern-context/use-pattern-context';
 import type {
   PatternLabFilters,

@@ -19,13 +19,13 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { ModelLifecycle } from '@genfeedai/enums';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import type {
   IModelProviderContracts,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

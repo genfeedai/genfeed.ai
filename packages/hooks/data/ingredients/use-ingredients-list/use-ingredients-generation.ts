@@ -5,12 +5,12 @@ import {
   IngredientFormat,
   IngredientStatus,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IIngredient,
   ImageToVideoGenerationPayload,
   ITag,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';

@@ -15,7 +15,7 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { isCloudDeployment } from '@genfeedai/config';
-import type { OrganizationOption } from '@genfeedai/interfaces';
+import type { OrganizationOption } from '@genfeedai/contracts/interfaces';
 import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,

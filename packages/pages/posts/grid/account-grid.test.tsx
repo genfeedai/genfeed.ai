@@ -1,5 +1,5 @@
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountGrid from './account-grid';

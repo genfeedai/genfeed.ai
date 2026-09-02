@@ -1,4 +1,4 @@
-import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import { AgentAutonomyMode, RouterPriority } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 

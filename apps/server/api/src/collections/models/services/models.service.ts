@@ -7,11 +7,15 @@ import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/re
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';

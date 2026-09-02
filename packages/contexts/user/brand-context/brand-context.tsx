@@ -2,7 +2,7 @@ import type {
   ICredential,
   IFleetCapabilities,
   IOrganizationSetting,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';

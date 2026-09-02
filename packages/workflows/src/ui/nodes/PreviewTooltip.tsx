@@ -1,6 +1,6 @@
 'use client';
 
-import type { NodeType, WorkflowNodeData } from '@genfeedai/types';
+import type { NodeType, WorkflowNodeData } from '@genfeedai/contracts/types';
 import Image from 'next/image';
 import { useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';

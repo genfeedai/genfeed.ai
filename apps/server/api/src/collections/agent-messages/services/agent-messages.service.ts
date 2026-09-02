@@ -13,11 +13,11 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';
-import type { AgentMessageRole } from '@genfeedai/enums';
+import type { AgentMessageRole } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   ResolvedAgentArtifactReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

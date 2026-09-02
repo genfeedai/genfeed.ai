@@ -1,6 +1,6 @@
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AGENT_PROGRAM_TEMPLATES } from '@genfeedai/constants';
+import { AGENT_PROGRAM_TEMPLATES } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

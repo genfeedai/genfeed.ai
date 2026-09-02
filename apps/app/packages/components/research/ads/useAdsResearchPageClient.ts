@@ -1,5 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ViewType } from '@genfeedai/enums';
+import { ViewType } from '@genfeedai/contracts';
 import type {
   AdPack,
   AdsChannel,
@@ -13,7 +13,7 @@ import type {
   CampaignLaunchPrep,
   ISavedAd,
   SaveAdInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSavedAds } from '@hooks/data/analytics/use-saved-ads/use-saved-ads';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

@@ -1,4 +1,4 @@
-import type { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { WorkflowExecution as PrismaWorkflowExecution } from '@genfeedai/prisma';
 
 export type WorkflowNodeResult = {

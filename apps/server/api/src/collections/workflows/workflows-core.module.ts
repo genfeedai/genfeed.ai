@@ -2,7 +2,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

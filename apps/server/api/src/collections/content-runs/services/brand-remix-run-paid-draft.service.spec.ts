@@ -1,12 +1,12 @@
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import {
   ContentRunStatus,
   IngredientStatus,
   PersistedReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import type { PWAAppNameKey } from '@genfeedai/interfaces/pwa/pwa.interface';
+import type { PWAAppNameKey } from '@genfeedai/contracts/interfaces/pwa/pwa.interface';
 import { generatePWAMetadata } from '@ui/pwa/pwa.helper';
 import type { Metadata } from 'next';
 

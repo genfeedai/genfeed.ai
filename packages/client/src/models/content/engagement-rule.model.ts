@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IEngagementRule } from '@genfeedai/interfaces';
+import type { IEngagementRule } from '@genfeedai/contracts/interfaces';
 
 export class EngagementRule extends BaseEntity implements IEngagementRule {
   public declare actionPayload: IEngagementRule['actionPayload'];

@@ -1,6 +1,6 @@
 import { ConfigService } from '@files/config/config.service';
 import { YoutubeService } from '@files/services/youtube/youtube.service';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';

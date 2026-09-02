@@ -14,14 +14,14 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
+import type {
+  ClipReferenceFrameSet,
+  ClipSourceContract,
+} from '@genfeedai/contracts/interfaces';
 import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type {
-  ClipReferenceFrameSet,
-  ClipSourceContract,
-} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

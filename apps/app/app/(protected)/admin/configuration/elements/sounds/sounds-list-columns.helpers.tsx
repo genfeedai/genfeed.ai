@@ -1,6 +1,6 @@
 'use client';
 
-import type { ContentScope } from '@genfeedai/interfaces';
+import type { ContentScope } from '@genfeedai/contracts/interfaces';
 import type { Sound } from '@models/ingredients/sound.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import {

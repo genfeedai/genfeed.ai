@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, type VoiceProvider } from '@genfeedai/enums';
+import { ButtonVariant, type VoiceProvider } from '@genfeedai/contracts';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,

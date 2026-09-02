@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CaptionGeneratorButtonProps } from '@genfeedai/props/ai/generator-button.props';
 import { OptimizersService } from '@genfeedai/services/ai/optimizers.service';

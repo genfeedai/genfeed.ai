@@ -9,12 +9,12 @@ import {
   PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBatchSummary,
   IPublishApproval,
   VideoContinuityQaReport,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';

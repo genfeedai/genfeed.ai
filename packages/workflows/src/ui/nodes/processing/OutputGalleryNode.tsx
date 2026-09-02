@@ -1,6 +1,6 @@
 'use client';
 
-import type { OutputGalleryNodeData } from '@genfeedai/types';
+import type { OutputGalleryNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Copy, Download, X } from 'lucide-react';
 import NextImage from 'next/image';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import Card from '@ui/card/Card';

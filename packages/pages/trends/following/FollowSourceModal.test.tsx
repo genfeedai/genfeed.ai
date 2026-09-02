@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import {
   fireEvent,
   render,

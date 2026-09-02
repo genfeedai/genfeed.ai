@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Eye, Film, Play } from 'lucide-react';
 import Image from 'next/image';

@@ -5,8 +5,11 @@ import {
   extractThreadAssets,
   type ThreadAsset,
 } from '@genfeedai/agent/utils/extract-thread-assets';
-import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
-import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryAssetRoute,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {

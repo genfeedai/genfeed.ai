@@ -4,8 +4,12 @@ import {
   Platform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  ICredential,
+  IIngredient,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import { buildPostTargetPreview } from './post-detail-preview.helpers';

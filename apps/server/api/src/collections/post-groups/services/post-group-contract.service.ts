@@ -4,9 +4,21 @@ import type {
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
 import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  ReleaseStatus,
+  ReleaseTargetSource,
+  TargetAnalyticsCapability,
+  TargetAnalyticsCollectionState,
+  TargetAnalyticsFreshness,
+  TargetExecutionState,
+  TargetValidationState,
+} from '@genfeedai/contracts';
+import {
   type ChannelTargetValidationResult,
   validateChannelTargetSettings,
-} from '@api-types/contracts/channel-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import {
   type ChannelTargetInput,
   type CreateReleaseGroupInput,
@@ -19,21 +31,9 @@ import {
   type UpdateReleaseGroupInput,
   updateChannelTargetSchema,
   updateReleaseGroupSchema,
-} from '@api-types/contracts/scheduler.contract';
-import { getSchedulerAnalyticsCapability } from '@api-types/contracts/scheduler-analytics-collection.contract';
-import { buildReleaseAnalyticsComparison } from '@api-types/contracts/scheduler-analytics-comparison.contract';
-import {
-  CredentialPlatform,
-  PostCategory,
-  PostStatus,
-  ReleaseStatus,
-  ReleaseTargetSource,
-  TargetAnalyticsCapability,
-  TargetAnalyticsCollectionState,
-  TargetAnalyticsFreshness,
-  TargetExecutionState,
-  TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { getSchedulerAnalyticsCapability } from '@genfeedai/contracts/api-types/contracts/scheduler-analytics-collection.contract';
+import { buildReleaseAnalyticsComparison } from '@genfeedai/contracts/api-types/contracts/scheduler-analytics-comparison.contract';
 import type {
   IChannelTarget,
   IChannelTargetAnalyticsCollection,
@@ -45,7 +45,7 @@ import type {
   IReleaseTargetSummary,
   IScheduleStatusTransition,
   PostGroupCreateProvenance,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,

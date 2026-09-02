@@ -1,5 +1,5 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { Video } from '@models/ingredients/video.model';

@@ -3,7 +3,7 @@ import type {
   PWAAppNameKey,
   PWAManifestConfig,
   PWAMetadataConfig,
-} from '@genfeedai/interfaces/pwa/pwa.interface';
+} from '@genfeedai/contracts/interfaces/pwa/pwa.interface';
 import { PWA_APPS } from '@ui-constants/pwa/pwa-apps.constant';
 import type { Metadata, Viewport } from 'next';
 

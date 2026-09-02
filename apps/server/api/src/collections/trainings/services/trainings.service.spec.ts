@@ -9,8 +9,8 @@ import type { FileQueueService } from '@api/services/files-microservice/queue/fi
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';

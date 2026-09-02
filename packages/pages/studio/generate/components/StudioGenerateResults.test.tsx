@@ -1,4 +1,4 @@
-import { IngredientStatus, ViewType } from '@genfeedai/enums';
+import { IngredientStatus, ViewType } from '@genfeedai/contracts';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
 import { render, screen } from '@testing-library/react';

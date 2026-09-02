@@ -1,8 +1,8 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination.util';
-import { postExecutionStateReadFilter } from '@api-types/contracts';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import { campaignDispatchAllowedFilter } from '@workers/services/campaign-dispatch.filter';

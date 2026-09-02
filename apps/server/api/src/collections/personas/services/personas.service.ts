@@ -12,11 +12,11 @@ import {
   isPersonaHandle,
   normalizePersonaHandle,
   PersonaStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionItem,
   PopulateOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

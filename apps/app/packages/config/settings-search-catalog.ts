@@ -1,9 +1,9 @@
+import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-} from '@genfeedai/constants';
-import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import type {
   SettingsSearchCatalogOptions,
   SettingsSearchHrefContext,

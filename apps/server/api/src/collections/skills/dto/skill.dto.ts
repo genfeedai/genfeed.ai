@@ -6,7 +6,7 @@ import {
   SKILL_WORKFLOW_STAGES,
 } from '@api/collections/skills/schemas/skill.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ByokProvider, ContentSkillCategory } from '@genfeedai/enums';
+import { ByokProvider, ContentSkillCategory } from '@genfeedai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Equals,

@@ -2,7 +2,7 @@ import {
   type VideoCompletionEvent,
   VideoCompletionService,
 } from '@api/services/video-completion/video-completion.service';
-import { Status } from '@genfeedai/enums';
+import { Status } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

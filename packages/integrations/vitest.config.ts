@@ -9,12 +9,12 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../config/src'),
       },
       {
-        find: '@genfeedai/enums',
-        replacement: path.resolve(__dirname, '../enums/src'),
+        find: '@genfeedai/contracts',
+        replacement: path.resolve(__dirname, '../contracts/src/enums'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/enums/$1'),
       },
       {
         find: /^@genfeedai\/config\/(.*)$/,

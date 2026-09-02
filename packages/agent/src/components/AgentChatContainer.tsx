@@ -17,7 +17,7 @@ import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stabl
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import Alert from '@ui/feedback/alert/Alert';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 

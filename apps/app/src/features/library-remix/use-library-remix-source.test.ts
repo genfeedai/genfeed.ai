@@ -1,5 +1,5 @@
-import { AssetParent, IngredientCategory } from '@genfeedai/enums';
-import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import { AssetParent, IngredientCategory } from '@genfeedai/contracts';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryRemixSource } from './use-library-remix-source';

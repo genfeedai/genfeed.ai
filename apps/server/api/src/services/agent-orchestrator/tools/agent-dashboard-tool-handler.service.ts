@@ -11,7 +11,7 @@ import type {
   KPIGridBlock,
   TableBlock,
   TopPostsBlock,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 

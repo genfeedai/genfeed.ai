@@ -1,4 +1,4 @@
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 
 function createPopulate(path: string): PopulateOption {
   return { path };

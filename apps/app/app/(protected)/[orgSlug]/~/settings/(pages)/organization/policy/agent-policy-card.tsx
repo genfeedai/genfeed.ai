@@ -1,7 +1,7 @@
 'use client';
 
-import { AgentAutonomyMode } from '@genfeedai/enums';
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
+import { AgentAutonomyMode } from '@genfeedai/contracts';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import {
   Select,

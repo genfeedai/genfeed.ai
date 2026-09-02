@@ -3,7 +3,7 @@ import {
   JobResult,
   YoutubeJobData,
 } from '@files/shared/interfaces/job.interface';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { RedisService } from '@libs/redis/redis.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

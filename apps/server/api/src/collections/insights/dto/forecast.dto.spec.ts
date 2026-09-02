@@ -1,5 +1,5 @@
 import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 

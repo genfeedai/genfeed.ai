@@ -1,6 +1,6 @@
 import { Model } from '@genfeedai/client/models';
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IModelProviderContracts } from '@genfeedai/interfaces';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IModelProviderContracts } from '@genfeedai/contracts/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 

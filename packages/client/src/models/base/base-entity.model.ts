@@ -1,4 +1,4 @@
-import type { IBaseEntity } from '@genfeedai/interfaces';
+import type { IBaseEntity } from '@genfeedai/contracts/interfaces';
 
 export abstract class BaseEntity implements IBaseEntity {
   public id!: string;

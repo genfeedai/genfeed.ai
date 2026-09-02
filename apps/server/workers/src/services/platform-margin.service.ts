@@ -1,4 +1,4 @@
-import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
+import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
 import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

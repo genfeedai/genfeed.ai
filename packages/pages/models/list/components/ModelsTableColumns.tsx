@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant, ModelLifecycle } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ButtonVariant, ModelLifecycle } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';

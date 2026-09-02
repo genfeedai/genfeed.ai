@@ -11,7 +11,7 @@ import type {
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, MemberRole, PlatformRole } from '@genfeedai/enums';
+import { ActivitySource, MemberRole, PlatformRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

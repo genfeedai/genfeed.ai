@@ -11,7 +11,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { SortObject } from '@genfeedai/interfaces';
+import type { SortObject } from '@genfeedai/contracts/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

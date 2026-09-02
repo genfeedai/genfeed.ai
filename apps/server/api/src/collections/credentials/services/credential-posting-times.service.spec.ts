@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CredentialPostingTimesService } from './credential-posting-times.service';
 

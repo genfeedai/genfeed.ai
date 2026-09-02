@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, FontFamily } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, FontFamily } from '@genfeedai/contracts';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
   IBrandKitManualInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandDetailManualKitCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';

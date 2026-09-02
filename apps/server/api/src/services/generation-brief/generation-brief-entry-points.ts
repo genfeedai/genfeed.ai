@@ -1,7 +1,7 @@
 import type {
   GenerationBriefExemptionReason,
   GenerationBriefSurface,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 
 export interface GenerationBriefGenerativeEntryPoint {
   id: string;

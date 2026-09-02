@@ -3,7 +3,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AutoMergeService', () => {

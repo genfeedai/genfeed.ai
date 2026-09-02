@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import type { ProactiveWorkspaceResponse } from '@services/onboarding/onboarding.service';
 import Card from '@ui/card/Card';

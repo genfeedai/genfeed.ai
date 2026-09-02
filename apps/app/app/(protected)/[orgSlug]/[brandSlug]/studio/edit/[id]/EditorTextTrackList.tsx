@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IEditorTrack } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IEditorTrack } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 
 interface EditorTextTrackListProps {

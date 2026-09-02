@@ -4,7 +4,7 @@ import {
   SocialMessageDirection,
   SocialMessageType,
   SocialMessageWorkflowTriggerStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { socialMessageAttributes } from '@serializers/attributes/social/social-message.attributes';
 import { SocialMessageSerializer } from '@serializers/server/social/social-message.serializer';
 import { describe, expect, it, vi } from 'vitest';

@@ -13,8 +13,8 @@
     "feature request triage"
   ],
   "references": {
-    "nodeTypes": "packages/types/src/nodes.ts",
-    "cloudNodes": "cloud/packages/types/src/cloud-nodes.ts"
+    "nodeTypes": "packages/contracts/src/types/nodes.ts",
+    "cloudNodes": "cloud/packages/contracts/src/types/cloud-nodes.ts"
   },
   "outputs": ["text"],
   "tags": ["scope", "oss", "cloud", "contribution", "triage"]

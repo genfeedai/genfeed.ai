@@ -17,9 +17,12 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { LinkCategory } from '@genfeedai/enums';
-import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
+import { LinkCategory } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type {
+  FastlaneFormat,
+  FastlaneIdea,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

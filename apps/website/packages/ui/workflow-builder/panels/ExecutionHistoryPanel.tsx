@@ -5,7 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';

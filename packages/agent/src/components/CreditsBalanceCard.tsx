@@ -1,7 +1,7 @@
 'use client';
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { DollarSign } from 'lucide-react';
 import type { ReactElement } from 'react';

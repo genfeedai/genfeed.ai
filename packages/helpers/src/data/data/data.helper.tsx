@@ -1,4 +1,4 @@
-import { IngredientFormat, Status } from '@genfeedai/enums';
+import { IngredientFormat, Status } from '@genfeedai/contracts';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 
 export const status = Object.values(Status).map((s) => s.toLowerCase());

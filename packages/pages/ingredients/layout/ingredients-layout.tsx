@@ -2,11 +2,11 @@
 
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import Container from '@ui/layout/container/Container';
 import { Image } from 'lucide-react';

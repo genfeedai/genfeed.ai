@@ -27,7 +27,7 @@ interface ComfyUIQueuePromptResponse {
 
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,

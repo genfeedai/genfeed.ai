@@ -5,13 +5,13 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      '@genfeedai/constants': path.resolve(
+      '@genfeedai/contracts/constants': path.resolve(
         import.meta.dirname,
-        '../../packages/constants/src/index.ts',
+        '../../packages/contracts/src/constants/index.ts',
       ),
-      '@genfeedai/enums': path.resolve(
+      '@genfeedai/contracts': path.resolve(
         import.meta.dirname,
-        '../../packages/enums/src/index.ts',
+        '../../packages/contracts/src/enums/index.ts',
       ),
     },
   },

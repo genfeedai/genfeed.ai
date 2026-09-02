@@ -1,4 +1,4 @@
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import {

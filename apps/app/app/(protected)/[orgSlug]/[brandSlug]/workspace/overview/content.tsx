@@ -3,8 +3,8 @@
 import OperationalHomeContent from '@app/(protected)/home/content';
 import { DashboardOpenUIRenderer } from '@genfeedai/agent/components';
 import { hydrateLayout } from '@genfeedai/agent/dashboard';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IDashboardLayout } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IDashboardLayout } from '@genfeedai/contracts/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { Button } from '@ui/primitives/button';

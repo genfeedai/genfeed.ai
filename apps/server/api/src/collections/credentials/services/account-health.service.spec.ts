@@ -1,11 +1,11 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import {
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
   TIKTOK_SOCIAL_WARMUP_BLUEPRINT_VERSION,
-} from '@api-types/contracts/social-warmup-blueprint.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const now = new Date('2026-06-30T10:00:00.000Z');

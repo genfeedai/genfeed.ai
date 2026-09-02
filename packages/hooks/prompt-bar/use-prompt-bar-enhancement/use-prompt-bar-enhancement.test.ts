@@ -3,8 +3,9 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
-vi.mock('@genfeedai/constants', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/contracts/constants')>();
 
   return {
     ...actual,

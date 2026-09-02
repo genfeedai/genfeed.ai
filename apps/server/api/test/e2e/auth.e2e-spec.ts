@@ -4,6 +4,9 @@
  */
 
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+// Import services
+import { UsersService } from '@api/collections/users/services/users.service';
 import {
   createTestCredit,
   createTestMember,
@@ -19,9 +22,6 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-// Import services
-import { UsersService } from '@api/collections/users/services/users.service';
 
 describe('Authentication E2E Tests', () => {
   let app: INestApplication;

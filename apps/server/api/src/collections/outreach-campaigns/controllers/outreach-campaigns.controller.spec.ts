@@ -3,7 +3,7 @@ import { CampaignTargetsService } from '@api/collections/campaign-targets/servic
 import { OutreachCampaignsController } from '@api/collections/outreach-campaigns/controllers/outreach-campaigns.controller';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { CampaignStatus } from '@genfeedai/enums';
+import { CampaignStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';

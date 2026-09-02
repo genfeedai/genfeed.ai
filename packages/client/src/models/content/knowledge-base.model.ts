@@ -1,6 +1,9 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { KnowledgeBaseScope, KnowledgeBaseStatus } from '@genfeedai/enums';
-import type { KnowledgeBase as KnowledgeBaseInterface } from '@genfeedai/interfaces';
+import type {
+  KnowledgeBaseScope,
+  KnowledgeBaseStatus,
+} from '@genfeedai/contracts';
+import type { KnowledgeBase as KnowledgeBaseInterface } from '@genfeedai/contracts/interfaces';
 
 export class KnowledgeBase
   extends BaseEntity

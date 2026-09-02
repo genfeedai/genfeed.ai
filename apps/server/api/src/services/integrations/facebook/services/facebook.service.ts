@@ -3,16 +3,16 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
-import {
-  buildGrantedScopesCredentialPatch,
-  readOAuthTokenScopeField,
-} from '@genfeedai/helpers';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import type {
   FacebookInsight,
   FacebookPage,
   FacebookReaction,
-} from '@genfeedai/interfaces/integrations/facebook.interface';
+} from '@genfeedai/contracts/interfaces/integrations/facebook.interface';
+import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

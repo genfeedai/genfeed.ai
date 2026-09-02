@@ -19,14 +19,14 @@ import {
   SubscriptionPlan,
   SubscriptionStatus,
   toPrismaSubscriptionStatus,
-} from '@genfeedai/enums';
-import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';
 import type {
   ISubscriptionFindAllOptions,
   ISubscriptionFindAllResult,
   ISubscriptionOssReadModel,
   ISubscriptionsService,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -43,7 +43,7 @@ type SubscriptionsFindAllResult =
 /**
  * Organization (Stripe) subscriptions service, bound to `SUBSCRIPTIONS_SERVICE`
  * when organization billing is live at runtime. Its cross-module surface is
- * locked by {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}.
+ * locked by {@link import('@genfeedai/contracts/interfaces/billing').ISubscriptionsService}.
  * All returned records use canonical Prisma scalar foreign keys. The optional
  * `stripeCustomerId` is derived from the related customer for Stripe calls and
  * is not persisted on the subscription row.

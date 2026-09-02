@@ -1,4 +1,4 @@
-import { AssetParent } from '@genfeedai/enums';
+import { AssetParent } from '@genfeedai/contracts';
 
 export interface AssetParentColumns {
   parentArticleId: string | null;

@@ -1,4 +1,4 @@
-import { ReviewDecision } from '@genfeedai/enums';
+import { ReviewDecision } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { cloneBatchItems, resolveBatchItems } from './batch-generation.types';
 

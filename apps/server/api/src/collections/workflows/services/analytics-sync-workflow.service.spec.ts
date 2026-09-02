@@ -4,7 +4,7 @@ import {
   ANALYTICS_GENERIC_CHILD_WORKFLOWS,
   ANALYTICS_SYNC_WORKFLOW_TEMPLATES,
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AnalyticsSyncWorkflowService', () => {

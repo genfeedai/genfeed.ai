@@ -7,7 +7,7 @@ import {
   sortInstagramPosts,
 } from '@api/services/instagram-inspiration/instagram-inspiration.util';
 import type { ApifyInstagramPost } from '@api/services/integrations/apify/interfaces/apify.interfaces';
-import type { InstagramInspirationBrandContext } from '@genfeedai/interfaces';
+import type { InstagramInspirationBrandContext } from '@genfeedai/contracts/interfaces';
 
 const brand: InstagramInspirationBrandContext = {
   audience: ['founders'],

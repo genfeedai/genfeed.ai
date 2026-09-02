@@ -1,12 +1,12 @@
-import type { ReviewDecision } from '@genfeedai/enums';
+import type { ReviewDecision } from '@genfeedai/contracts';
 import type {
   IAnalytics,
   IBrand,
   IFleetCapabilities,
   IOrganizationSetting,
   IUser,
-} from '@genfeedai/interfaces';
-import type { IStreakSummary } from '@genfeedai/types';
+} from '@genfeedai/contracts/interfaces';
+import type { IStreakSummary } from '@genfeedai/contracts/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

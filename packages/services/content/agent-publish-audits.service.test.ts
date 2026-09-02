@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { AgentPublishAuditsService } from '@services/content/agent-publish-audits.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

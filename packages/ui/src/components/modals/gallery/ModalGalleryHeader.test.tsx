@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import ModalGalleryHeader from '@ui/modals/gallery/ModalGalleryHeader';
 import { describe, expect, it, vi } from 'vitest';

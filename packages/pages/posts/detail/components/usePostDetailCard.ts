@@ -1,7 +1,11 @@
 'use client';
 
-import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import {
+  CredentialPlatform,
+  PageScope,
+  PostStatus,
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';

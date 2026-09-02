@@ -2,7 +2,11 @@ import { CreateArticleDto } from '@api/collections/articles/dto/create-article.d
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { readNonEmptyString } from '@api/collections/articles/utils/article-input-boundary.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { ArticleCategory, ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleScope,
+  ArticleStatus,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

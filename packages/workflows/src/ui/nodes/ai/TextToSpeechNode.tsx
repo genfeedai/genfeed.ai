@@ -4,7 +4,7 @@ import type {
   TextToSpeechNodeData,
   TTSProvider,
   TTSVoice,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { Code } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import {

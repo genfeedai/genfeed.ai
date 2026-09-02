@@ -4,7 +4,7 @@ import type {
   MergedBrandAnalysis,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
+import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { BrandDataMapper } from './brand-data.mapper';
 

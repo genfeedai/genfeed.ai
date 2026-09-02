@@ -1,18 +1,21 @@
 import { createHash } from 'node:crypto';
 import { scopedWhere } from '@api/index';
 import {
-  expandCadenceOccurrences,
-  isWithinConsumptionTolerance,
-  MAX_CADENCE_SPAN_DAYS,
-} from '@api-types/contracts/cadence-expansion.contract';
-import {
   CadenceGenerateLanding,
   CalendarSlotItemType,
   CalendarSlotState,
   PostCategory,
   PostingCadenceStatus,
-} from '@genfeedai/enums';
-import type { ICalendarSlot, IPostingCadence } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  expandCadenceOccurrences,
+  isWithinConsumptionTolerance,
+  MAX_CADENCE_SPAN_DAYS,
+} from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
+import type {
+  ICalendarSlot,
+  IPostingCadence,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 import type {
   CadenceRecord,

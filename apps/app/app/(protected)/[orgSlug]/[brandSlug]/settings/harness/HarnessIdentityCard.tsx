@@ -4,7 +4,7 @@ import type {
   HarnessProfileScope,
   ICreateHarnessProfilePayload,
   IHarnessProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';

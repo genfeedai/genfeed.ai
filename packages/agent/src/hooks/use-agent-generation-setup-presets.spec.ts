@@ -1,6 +1,6 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { RouterPriority } from '@genfeedai/enums';
-import type { IStudioLook } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {

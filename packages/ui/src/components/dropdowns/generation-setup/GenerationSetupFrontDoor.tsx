@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupFrontDoorProps,

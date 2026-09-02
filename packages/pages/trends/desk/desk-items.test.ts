@@ -1,5 +1,5 @@
-import { SocialSourcePlatform } from '@genfeedai/enums';
-import type { ISourcePost, ITrendVideo } from '@genfeedai/interfaces';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
+import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { describe, expect, it } from 'vitest';
 import {

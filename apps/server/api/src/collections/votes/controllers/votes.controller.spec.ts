@@ -14,7 +14,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { VotesController } from '@api/collections/votes/controllers/votes.controller';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { VoteEntityModel } from '@genfeedai/enums';
+import { VoteEntityModel } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

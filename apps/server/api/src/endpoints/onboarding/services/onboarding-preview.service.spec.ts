@@ -6,8 +6,8 @@ import { OnboardingContentType } from '@api/endpoints/onboarding/dto/generate-pr
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

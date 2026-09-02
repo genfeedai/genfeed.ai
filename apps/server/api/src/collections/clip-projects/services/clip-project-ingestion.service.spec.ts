@@ -9,7 +9,7 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 describe('ClipProjectIngestionService', () => {

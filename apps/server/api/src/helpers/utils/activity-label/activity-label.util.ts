@@ -1,4 +1,4 @@
-import { ActivityKey } from '@genfeedai/enums';
+import { ActivityKey } from '@genfeedai/contracts';
 
 const LABEL_MAP: Record<string, string> = {
   [ActivityKey.VIDEO_GENERATED]: 'Video Generation',

@@ -2,12 +2,12 @@ import {
   assertRedactedGenerationBriefEvidence,
   assertRedactedVideoGenerationBriefEvidence,
 } from '@api/services/generation-brief/redact-generation-brief-evidence';
-import { FLUX_SCHNELL_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
+import { FLUX_SCHNELL_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import {
   PRUNAAI_P_VIDEO_COMPILER_ID,
   VIDEO_GENERATION_BRIEF_CONTRACT_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { PRUNAAI_P_VIDEO_MODEL_KEY } from '@api-types/contracts/video-generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { PRUNAAI_P_VIDEO_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
 import { describe, expect, it } from 'vitest';
 
 describe('assertRedactedGenerationBriefEvidence', () => {

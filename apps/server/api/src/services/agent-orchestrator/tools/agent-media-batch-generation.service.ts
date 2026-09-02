@@ -4,13 +4,13 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
-import { estimateBatchGenerationCredits } from '@genfeedai/constants';
 import {
   ActivitySource,
   ContentFormat,
   formatPlatformLabel,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { estimateBatchGenerationCredits } from '@genfeedai/contracts/constants';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 

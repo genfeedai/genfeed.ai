@@ -5,7 +5,7 @@ import {
   getToolDefinitions,
 } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {

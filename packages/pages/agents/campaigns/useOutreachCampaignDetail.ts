@@ -1,6 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { CampaignTargetStatus } from '@genfeedai/enums';
+import { CampaignTargetStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   type CampaignTarget,

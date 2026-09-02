@@ -1,4 +1,4 @@
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentRuntimeService } from './agent-runtime.service';
 

@@ -1,7 +1,10 @@
 'use client';
 
-import type { NodeCategory, NodeType } from '@genfeedai/types';
-import { CONNECTION_RULES, getNodesByCategory } from '@genfeedai/types';
+import type { NodeCategory, NodeType } from '@genfeedai/contracts/types';
+import {
+  CONNECTION_RULES,
+  getNodesByCategory,
+} from '@genfeedai/contracts/types';
 import { useReactFlow } from '@xyflow/react';
 import { Plus, Search } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';

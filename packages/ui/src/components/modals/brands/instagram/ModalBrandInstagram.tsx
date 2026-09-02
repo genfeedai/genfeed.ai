@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import {
   closeModal,

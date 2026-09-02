@@ -1,5 +1,5 @@
-import type { BrandRemixSourceSelector } from '@api-types/contracts/brand-remix-run.contract';
-import type { ISourcePost, ITrendVideo } from '@genfeedai/interfaces';
+import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 
 import type { TrendContentItem } from './trends-page.props';
 

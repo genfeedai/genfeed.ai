@@ -1,4 +1,4 @@
-import { LEGACY_APP_ROUTES } from '@genfeedai/constants';
+import { LEGACY_APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   APP_MENU_ITEMS,

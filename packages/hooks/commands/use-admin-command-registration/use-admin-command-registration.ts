@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICommandPaletteContext } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommandPaletteContext } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Settings } from 'lucide-react';
 import { useEffect } from 'react';

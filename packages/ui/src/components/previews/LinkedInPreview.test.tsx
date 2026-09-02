@@ -3,7 +3,7 @@ import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-import { ReleaseAttachmentKind } from '@genfeedai/enums';
+import { ReleaseAttachmentKind } from '@genfeedai/contracts';
 import LinkedInPreview from './LinkedInPreview';
 import {
   makeAttachment,

@@ -24,8 +24,8 @@ import { INVALID_ADS_INSIGHTS_DATE_RANGE_MESSAGE } from '@api/services/ads-gatew
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { AdsAdapterContext } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';

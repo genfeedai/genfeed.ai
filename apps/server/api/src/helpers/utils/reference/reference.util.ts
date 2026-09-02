@@ -1,6 +1,6 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
+import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 

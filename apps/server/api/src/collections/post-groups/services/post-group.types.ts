@@ -1,21 +1,21 @@
 import type {
-  ChannelTargetInput,
-  CreateReleaseGroupInput,
-  UpdateChannelTargetInput,
-} from '@api-types/contracts/scheduler.contract';
-import type {
   CredentialPlatform,
   PostCategory,
   PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  ChannelTargetInput,
+  CreateReleaseGroupInput,
+  UpdateChannelTargetInput,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   IPublishApproval,
   IReleaseGroup,
   PostGroupCreateProvenance,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 export type SchedulerTx = Prisma.TransactionClient;

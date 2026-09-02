@@ -1,8 +1,11 @@
 'use client';
 
-import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { type ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+} from '@genfeedai/contracts/constants';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@genfeedai/props/content/article-editor.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';

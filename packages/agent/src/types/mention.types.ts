@@ -1,5 +1,5 @@
+import type { AgentCharacterMentionItem } from '@genfeedai/contracts/interfaces';
 import type { CharacterMentionSubmitResult } from '@genfeedai/helpers/content/character-mention.util';
-import type { AgentCharacterMentionItem } from '@genfeedai/interfaces';
 import type { AnyExtension } from '@tiptap/core';
 import type { Ref } from 'react';
 
@@ -8,7 +8,7 @@ export type {
   AgentCharacterMentionItem as CharacterMentionItem,
   AgentContentMentionItem as ContentMentionItem,
   AgentTeamMentionItem as TeamMentionItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface MentionSuggestionListHandle {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;

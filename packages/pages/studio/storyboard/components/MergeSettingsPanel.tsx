@@ -1,6 +1,6 @@
 'use client';
 
-import { VideoTransition } from '@genfeedai/enums';
+import { VideoTransition } from '@genfeedai/contracts';
 import type { StoryboardMergeSettingsPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import FormRange from '@ui/primitives/range-field';
 import { Switch } from '@ui/primitives/switch';

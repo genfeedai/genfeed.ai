@@ -4,7 +4,7 @@ import type {
 } from '@api/collections/processed-tweets/schemas/processed-tweet.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ReplyBotType } from '@genfeedai/enums';
+import { ReplyBotType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,5 +1,5 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MetadataExtension as ApiMetadataExtension } from '@genfeedai/enums';
+import { MetadataExtension as ApiMetadataExtension } from '@genfeedai/contracts';
 import { MetadataExtension as PrismaMetadataExtension } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

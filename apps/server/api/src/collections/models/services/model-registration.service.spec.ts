@@ -2,7 +2,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ModelLifecycle } from '@genfeedai/enums';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';

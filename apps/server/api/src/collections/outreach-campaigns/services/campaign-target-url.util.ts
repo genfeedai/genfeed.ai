@@ -1,4 +1,4 @@
-import { CampaignPlatform, CampaignTargetType } from '@genfeedai/enums';
+import { CampaignPlatform, CampaignTargetType } from '@genfeedai/contracts';
 
 export interface ParsedCampaignTargetUrl {
   externalId: string;

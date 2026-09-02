@@ -24,7 +24,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { InsightSerializer } from '@genfeedai/serializers';
 import {
   Body,

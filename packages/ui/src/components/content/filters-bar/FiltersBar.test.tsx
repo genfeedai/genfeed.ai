@@ -1,5 +1,5 @@
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import FiltersBar from '@ui/content/filters-bar/FiltersBar';
 import { describe, expect, it, vi } from 'vitest';

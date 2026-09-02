@@ -4,7 +4,7 @@ import type {
   ISavedAd,
   SaveAdInput,
   UpdateSavedAdNoteInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { SavedAdsService } from '@services/ads/saved-ads.service';

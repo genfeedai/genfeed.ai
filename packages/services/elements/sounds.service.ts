@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Sound } from '@genfeedai/models/ingredients/sound.model';
 import { SoundSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

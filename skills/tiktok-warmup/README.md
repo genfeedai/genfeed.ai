@@ -37,7 +37,7 @@ npx skills add genfeedai/skills/tiktok-warmup
 | Gradual first uploads | 6–7 | First upload, outcome review, continued engagement, optional second upload |
 | Graduation | 5–7+ | Evidence-aware next action with no reach guarantee |
 
-The canonical machine-readable definition is `social-warmup.tiktok@1` in `@genfeedai/api-types`; `SKILL.md` remains the long-form guidance source.
+The canonical machine-readable definition is `social-warmup.tiktok@1` in `@genfeedai/contracts/api-types`; `SKILL.md` remains the long-form guidance source.
 
 ## License
 

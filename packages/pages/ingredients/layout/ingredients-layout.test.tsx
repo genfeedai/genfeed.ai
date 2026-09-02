@@ -1,4 +1,4 @@
-import { IngredientStatus, PageScope } from '@genfeedai/enums';
+import { IngredientStatus, PageScope } from '@genfeedai/contracts';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import { render, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';

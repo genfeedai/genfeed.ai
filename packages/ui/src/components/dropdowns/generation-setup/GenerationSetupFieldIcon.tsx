@@ -1,7 +1,7 @@
 'use client';
 
+import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupFieldIconProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import {

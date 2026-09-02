@@ -6,7 +6,7 @@ import {
   resolvePublishValidationMedia,
   toCanonicalChannelTarget,
 } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
-import { CredentialPlatform, PostVisibility } from '@genfeedai/enums';
+import { CredentialPlatform, PostVisibility } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('agent-publish-target.util', () => {

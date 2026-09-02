@@ -1,6 +1,6 @@
-import { ModelCategory } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
+import { ModelCategory } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import { FileText, Film, Image, Music } from 'lucide-react';
 
 export type DefaultModelMap = {

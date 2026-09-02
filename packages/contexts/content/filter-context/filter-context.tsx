@@ -5,7 +5,7 @@ import type {
   IFilterProviderProps,
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { createContext, useCallback, useMemo, useRef, useState } from 'react';
 
 const FilterContext = createContext<IFilterContextType | undefined>(undefined);

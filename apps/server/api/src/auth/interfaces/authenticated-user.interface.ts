@@ -1,5 +1,5 @@
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { ActionOrigin } from '@genfeedai/enums';
+import type { ActionOrigin } from '@genfeedai/contracts';
 
 export interface IAuthenticatedEmailAddress {
   emailAddress?: string | null;

@@ -1,4 +1,4 @@
-import type { IAuthPublicData } from '@genfeedai/interfaces';
+import type { IAuthPublicData } from '@genfeedai/contracts/interfaces';
 
 type AuthUserLike = {
   publicMetadata?: unknown;

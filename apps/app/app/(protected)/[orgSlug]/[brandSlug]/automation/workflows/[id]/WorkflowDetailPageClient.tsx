@@ -1,7 +1,7 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import type { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,

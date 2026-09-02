@@ -8,8 +8,8 @@ import {
   resolveConversationComposerDestinationHref,
 } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   AgentThreadContextRowProps,

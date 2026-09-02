@@ -7,8 +7,8 @@ import type {
   PricingType,
   QualityTier,
   SpeedTier,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 export class Model extends BaseEntity implements IModel {
   public declare label: string;

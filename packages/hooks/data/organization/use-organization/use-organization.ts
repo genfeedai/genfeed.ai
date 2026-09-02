@@ -1,7 +1,7 @@
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
-import type { UseOrganizationReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
+import type { UseOrganizationReturn } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

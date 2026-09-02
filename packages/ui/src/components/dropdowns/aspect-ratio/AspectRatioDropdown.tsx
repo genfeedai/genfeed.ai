@@ -1,6 +1,6 @@
 'use client';
 
-import type { DropdownDirection } from '@genfeedai/enums';
+import type { DropdownDirection } from '@genfeedai/contracts';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import type { ReactNode } from 'react';

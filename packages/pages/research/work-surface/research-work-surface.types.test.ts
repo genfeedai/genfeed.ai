@@ -1,4 +1,4 @@
-import type { AdsResearchItem } from '@genfeedai/interfaces';
+import type { AdsResearchItem } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { toAdsResearchFinding } from './research-work-surface.types';
 

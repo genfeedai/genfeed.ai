@@ -1,11 +1,11 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IAnalytics } from '@genfeedai/interfaces';
-import type { ContentScope } from '@genfeedai/interfaces/common/content-scope.interface';
+import { PageScope } from '@genfeedai/contracts';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
+import type { ContentScope } from '@genfeedai/contracts/interfaces/common/content-scope.interface';
 import type {
   AnalyticsCacheEntry,
   AnalyticsScopedOptions,
   AnalyticsScopedReturn,
-} from '@genfeedai/interfaces/hooks/hooks.interface';
+} from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { BrandsService } from '@genfeedai/services/social/brands.service';

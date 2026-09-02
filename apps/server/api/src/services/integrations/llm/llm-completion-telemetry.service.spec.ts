@@ -1,7 +1,7 @@
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import { LlmVendorCostLedgerService } from '@api/services/integrations/llm/llm-vendor-cost-ledger.service';
-import { LLM_GENERATION_TELEMETRY_EVENT } from '@genfeedai/constants';
-import type { ILlmCompletionTelemetryEvent } from '@genfeedai/interfaces';
+import { LLM_GENERATION_TELEMETRY_EVENT } from '@genfeedai/contracts/constants';
+import type { ILlmCompletionTelemetryEvent } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';

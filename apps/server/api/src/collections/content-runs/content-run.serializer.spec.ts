@@ -1,4 +1,4 @@
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import { ContentRunSerializer } from '@genfeedai/serializers';
 
 describe('ContentRunSerializer', () => {

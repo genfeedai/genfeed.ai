@@ -1,4 +1,4 @@
-import type { NodeStatus, ValidationResult } from '@genfeedai/types';
+import type { NodeStatus, ValidationResult } from '@genfeedai/contracts/types';
 
 // =============================================================================
 // DEBUG TYPES

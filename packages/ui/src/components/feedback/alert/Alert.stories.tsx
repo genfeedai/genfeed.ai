@@ -1,4 +1,4 @@
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Alert from '@ui/feedback/alert/Alert';
 import { Lightbulb } from 'lucide-react';

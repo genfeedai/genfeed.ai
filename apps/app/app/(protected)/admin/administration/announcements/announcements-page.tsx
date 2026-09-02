@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAnnouncement } from '@genfeedai/interfaces';
+import type { IAnnouncement } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AnnouncementComposeFormState,

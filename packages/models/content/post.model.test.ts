@@ -4,7 +4,7 @@ import {
   IngredientStatus,
   PostCategory,
   PostStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBrand,
   ICredential,
@@ -14,7 +14,7 @@ import type {
   IPost,
   ISetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies

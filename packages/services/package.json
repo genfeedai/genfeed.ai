@@ -1,14 +1,10 @@
 {
   "dependencies": {
-    "@genfeedai/api-types": "workspace:*",
     "@genfeedai/client": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
-    "@genfeedai/types": "workspace:*"
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {

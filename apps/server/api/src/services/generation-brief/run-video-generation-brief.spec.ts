@@ -1,6 +1,6 @@
 import { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';
-import { PRUNAAI_P_VIDEO_MODEL_KEY } from '@api-types/contracts/video-generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { PRUNAAI_P_VIDEO_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('runVideoGenerationBrief', () => {

@@ -1,4 +1,4 @@
-import { TemplateCategory } from '@genfeedai/enums';
+import { TemplateCategory } from '@genfeedai/contracts';
 import {
   IsArray,
   IsEnum,

@@ -1,4 +1,4 @@
-import type { ProviderModel, SelectedModel } from '@genfeedai/types';
+import type { ProviderModel, SelectedModel } from '@genfeedai/contracts/types';
 import { useEffect, useRef } from 'react';
 import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';
 

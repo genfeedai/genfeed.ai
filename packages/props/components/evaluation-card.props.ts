@@ -1,5 +1,5 @@
 import type { IEvaluation } from '@genfeedai/client/models';
-import type { ComponentSize, IngredientCategory } from '@genfeedai/enums';
+import type { ComponentSize, IngredientCategory } from '@genfeedai/contracts';
 
 export interface EvaluationCardProps {
   contentId: string;

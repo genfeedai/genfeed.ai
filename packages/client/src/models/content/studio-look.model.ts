@@ -1,9 +1,9 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { RouterPriority } from '@genfeedai/enums';
+import type { RouterPriority } from '@genfeedai/contracts';
 import type {
   IStudioLook,
   StudioLookAssetType,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 
 export class StudioLook extends BaseEntity implements IStudioLook {
   public declare aspectRatio?: string | null;

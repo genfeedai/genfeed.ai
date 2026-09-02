@@ -1,4 +1,4 @@
-import { CLIP_REFERENCE_FRAME_MAX_CANDIDATES } from '@genfeedai/constants';
+import { CLIP_REFERENCE_FRAME_MAX_CANDIDATES } from '@genfeedai/contracts/constants';
 import {
   CLIP_REFERENCE_FRAME_CANDIDATE_STATUSES,
   CLIP_REFERENCE_FRAME_DIAGNOSTIC_SEVERITIES,
@@ -10,7 +10,7 @@ import {
   type ClipReferenceFrameDiagnosticSeverity,
   type ClipReferenceFrameSet,
   type ClipReferenceFrameStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const candidateStatuses = new Set<string>(
   CLIP_REFERENCE_FRAME_CANDIDATE_STATUSES,

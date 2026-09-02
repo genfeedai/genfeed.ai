@@ -15,9 +15,9 @@ import {
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 /**

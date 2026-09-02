@@ -13,7 +13,7 @@ import type {
   IDesktopTrend,
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';

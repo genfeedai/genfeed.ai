@@ -1,4 +1,4 @@
-import type { CreditPackTier } from '@genfeedai/interfaces';
+import type { CreditPackTier } from '@genfeedai/contracts/interfaces';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AVATAR_CREDIT_COSTS,

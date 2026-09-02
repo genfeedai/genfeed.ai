@@ -1,7 +1,7 @@
 'use client';
 
 import DynamicBlockGrid from '@genfeedai/agent/components/blocks/DynamicBlockGrid';
-import type { CompositeBlock } from '@genfeedai/interfaces';
+import type { CompositeBlock } from '@genfeedai/contracts/interfaces';
 import type { ReactElement } from 'react';
 
 interface CompositeLayoutProps {

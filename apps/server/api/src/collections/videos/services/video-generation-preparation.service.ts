@@ -47,15 +47,6 @@ import {
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type {
-  GenerationBriefReference,
-  VideoGenerationBrief,
-} from '@api-types/contracts/generation-brief.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import {
-  getModelMaxVideoReferences,
-  hasVideoReferences,
-} from '@genfeedai/constants';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -63,7 +54,16 @@ import {
   ModelCategory,
   PromptCategory,
   PromptStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  GenerationBriefReference,
+  VideoGenerationBrief,
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import {
+  getModelMaxVideoReferences,
+  hasVideoReferences,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

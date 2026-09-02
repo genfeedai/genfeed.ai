@@ -1,7 +1,7 @@
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 class TestPromptBuilder extends BasePromptBuilder {

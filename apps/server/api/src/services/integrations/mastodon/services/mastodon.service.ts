@@ -4,7 +4,7 @@ import {
 } from '@api/server.dependencies';
 import { trimTrailingCharacter } from '@api/shared/utils/linear-string.util';
 import { assertHostNotPrivate } from '@api/shared/utils/ssrf.util';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

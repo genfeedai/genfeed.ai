@@ -4,16 +4,19 @@ import {
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
+import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/contracts';
 import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
-} from '@api-types/contracts/webhook-events.contract';
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@genfeedai/constants';
-import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+} from '@genfeedai/contracts/constants';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

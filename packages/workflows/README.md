@@ -45,7 +45,7 @@ Self-hosted users can connect their own ComfyUI or provider infrastructure. Mana
 
 ## Related Packages
 
-- `@genfeedai/types`
+- `@genfeedai/contracts/types`
 
 ## Build Faster with Genfeed
 

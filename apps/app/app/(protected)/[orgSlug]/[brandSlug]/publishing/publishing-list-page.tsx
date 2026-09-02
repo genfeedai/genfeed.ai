@@ -4,7 +4,11 @@ import {
   ServerQueryHydrationBoundary,
 } from '@app-server/query-hydration.server';
 import { loadReleasePostsPageData } from '@app-server/release-posts-page-data.server';
-import { PageScope, PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  PageScope,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import {
   parsePostsPublicationState,

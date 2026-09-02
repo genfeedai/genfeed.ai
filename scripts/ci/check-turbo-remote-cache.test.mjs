@@ -7,7 +7,7 @@ import {
 } from './check-turbo-remote-cache.mjs';
 
 const LIVE_LOG = [
-  '• Packages in scope: @genfeedai/enums, @genfeedai/prisma',
+  '• Packages in scope: @genfeedai/contracts, @genfeedai/prisma',
   '• Running type-check in 2 packages',
   '• Remote caching enabled',
   'Tasks:    2 successful, 2 total',

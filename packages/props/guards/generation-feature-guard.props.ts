@@ -1,4 +1,4 @@
-import type { IngredientCategory } from '@genfeedai/enums';
+import type { IngredientCategory } from '@genfeedai/contracts';
 import type { ReactNode } from 'react';
 
 export interface GenerationFeatureGuardProps {

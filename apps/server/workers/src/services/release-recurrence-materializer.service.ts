@@ -1,12 +1,12 @@
 import type { PublishApprovalsService } from '@api/index';
+import { ReleaseStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
   deriveReleaseStatusProjectionFromTargets,
   previewRecurrenceOccurrences,
   type RecurrenceInput,
   recurrenceInputSchema,
   resolvePostVisibility,
-} from '@api-types/contracts';
-import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

@@ -7,13 +7,13 @@ import {
   BotCommandType,
   BotResponseType,
   CredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBotCallbackContext,
   IBotMessage,
   IBotPlatformAdapter,
   IBotResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

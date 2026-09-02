@@ -4,13 +4,13 @@ import type {
   IStudioLook,
   StudioGenerateCapabilities,
   StudioGenerateType,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetup,
   GenerationSetupFieldKey,
   GenerationSetupSource,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { ReactNode, RefObject } from 'react';
 
 /** Look fields the customize panel renders from `useElements`-sourced options. */

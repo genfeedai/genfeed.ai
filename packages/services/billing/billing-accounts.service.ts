@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IBillingAccount } from '@genfeedai/interfaces';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IBillingAccount } from '@genfeedai/contracts/interfaces';
 import { BillingAccount } from '@genfeedai/models/billing/billing-account.model';
 import { BillingAccountSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

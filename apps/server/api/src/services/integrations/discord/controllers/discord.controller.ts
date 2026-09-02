@@ -4,7 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

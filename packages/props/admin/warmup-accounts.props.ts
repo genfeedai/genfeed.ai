@@ -1,7 +1,7 @@
 import type {
   IWarmupAccount,
   IWarmupAccountCreateRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface WarmupAccountFormState extends IWarmupAccountCreateRequest {
   guidance: string;

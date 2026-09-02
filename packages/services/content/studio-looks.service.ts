@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   StudioLookAssetType,
   StudioLookPayload,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { StudioLook } from '@genfeedai/models/content/studio-look.model';
 import { StudioLookSerializer } from '@genfeedai/serializers';
 import {

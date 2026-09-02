@@ -1,7 +1,7 @@
 'use client';
 
 import { signIn } from '@genfeedai/auth-client';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';

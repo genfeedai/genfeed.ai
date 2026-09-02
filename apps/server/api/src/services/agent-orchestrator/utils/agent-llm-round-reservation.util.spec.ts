@@ -1,5 +1,5 @@
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
-import { calculateAgentExactCredits } from '@genfeedai/constants';
+import { calculateAgentExactCredits } from '@genfeedai/contracts/constants';
 
 describe('runReservedAgentLlmRound', () => {
   it('holds the maximum and idempotently settles exact Auto cost', async () => {

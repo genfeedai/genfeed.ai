@@ -5,12 +5,12 @@ import {
   ButtonSize,
   ButtonVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { ModalTrainingNewProps } from '@genfeedai/interfaces/training/modal-training-new.interface';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

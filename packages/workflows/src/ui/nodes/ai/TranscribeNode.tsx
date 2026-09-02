@@ -1,7 +1,10 @@
 'use client';
 
-import type { TranscribeLanguage, TranscribeNodeData } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type {
+  TranscribeLanguage,
+  TranscribeNodeData,
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,

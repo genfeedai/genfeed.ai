@@ -1,5 +1,5 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import {
   Banknote,
   ChartColumn,

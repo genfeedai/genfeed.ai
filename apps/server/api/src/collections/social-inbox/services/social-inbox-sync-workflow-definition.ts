@@ -4,7 +4,7 @@ import type {
 } from '@api/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 
 export type SocialInboxSyncPlatform =
   | Platform.INSTAGRAM

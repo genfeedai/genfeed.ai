@@ -1,4 +1,4 @@
-import type { FileJobPriority } from '@genfeedai/queue-contracts';
+import type { FileJobPriority } from '@genfeedai/contracts/queue';
 
 /** Queue retry, retention, and priority defaults for a file-processing job. */
 export interface JobConfig {

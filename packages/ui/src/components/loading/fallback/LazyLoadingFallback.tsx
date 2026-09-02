@@ -1,4 +1,4 @@
-import { ComponentSize, IngredientFormat } from '@genfeedai/enums';
+import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LazyLoadingFallbackProps } from '@genfeedai/props/ui/feedback/lazy-loading-fallback.props';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';

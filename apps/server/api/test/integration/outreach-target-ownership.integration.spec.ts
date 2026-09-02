@@ -42,7 +42,7 @@ import {
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

@@ -1,5 +1,5 @@
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
-import { PersonaContentFormat } from '@genfeedai/enums';
+import { PersonaContentFormat } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentProductionWorkflowService atomic actions', () => {

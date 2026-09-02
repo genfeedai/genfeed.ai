@@ -4,7 +4,7 @@ import type { AvatarsService } from '@api/collections/avatars/services/avatars.s
 import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';

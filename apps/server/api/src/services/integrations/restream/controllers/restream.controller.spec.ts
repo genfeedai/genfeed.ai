@@ -1,5 +1,5 @@
 import { RestreamController } from '@api/services/integrations/restream/controllers/restream.controller';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

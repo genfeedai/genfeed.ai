@@ -1,5 +1,5 @@
-import type { ChannelTargetSettings } from '@genfeedai/api-types/contracts';
-import type { PostVisibility } from '@genfeedai/enums';
+import type { PostVisibility } from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 
 /** API-owned post fields required to publish a YouTube video. */
 export interface YoutubeUploadPostInput {

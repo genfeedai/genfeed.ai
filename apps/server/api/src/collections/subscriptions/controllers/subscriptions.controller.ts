@@ -15,12 +15,12 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { SubscriptionPlan } from '@genfeedai/enums';
+import { SubscriptionPlan } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   OrganizationCreditUsageResponse,
   SubscriptionChangePreview,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

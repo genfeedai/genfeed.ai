@@ -5,14 +5,14 @@ import type { CreateClipResultDto } from '@api/collections/clip-results/dto/crea
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
-import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   ClipGenerationReference,
   ClipReferenceProvenance,
   ClipResultMode,
   SupportedAvatarVideoProviderName,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

@@ -5,10 +5,10 @@ import {
   CredentialPlatform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
-import type { IImage, IVideo } from '@genfeedai/interfaces';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import {
   isImageIngredient,

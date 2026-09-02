@@ -11,7 +11,7 @@ export * from './generation';
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 
 export interface WorkflowJson {
   version: number;

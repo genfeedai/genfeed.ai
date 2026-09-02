@@ -5,7 +5,7 @@ import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
 import { formatAnimatedValue } from '@genfeedai/agent/components/blocks/metric-value-format.util';
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   AgentUIBlock,
   AgentUIBlockWidth,
@@ -23,7 +23,7 @@ import type {
   TableBlock,
   TextParagraphBlock,
   TopPostsBlock,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';

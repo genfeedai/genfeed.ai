@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ImageFormat, UpscaleFactor } from '@genfeedai/enums';
+import { ImageFormat, UpscaleFactor } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

@@ -1,4 +1,8 @@
-import { ActivityKey, IngredientCategory, PostStatus } from '@genfeedai/enums';
+import {
+  ActivityKey,
+  IngredientCategory,
+  PostStatus,
+} from '@genfeedai/contracts';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {

@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementStyle } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementStyle } from '@genfeedai/contracts/interfaces';
 
 export class ElementStyle extends BaseEntity implements IElementStyle {
   public declare key: string;

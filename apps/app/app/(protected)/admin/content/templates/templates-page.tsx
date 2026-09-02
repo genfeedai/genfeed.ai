@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { TemplateService } from '@services/content/template.service';
 import { logger } from '@services/core/logger.service';

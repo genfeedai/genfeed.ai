@@ -1,6 +1,6 @@
 'use client';
 
-import type { ActivityMessageFormatter } from '@genfeedai/enums';
+import type { ActivityMessageFormatter } from '@genfeedai/contracts';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 

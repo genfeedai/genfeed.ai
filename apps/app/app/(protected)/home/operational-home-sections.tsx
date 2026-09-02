@@ -2,21 +2,21 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  APP_ROUTES,
-  createBrandAppRoute,
-  createOrganizationAppRoute,
-} from '@genfeedai/constants';
-import {
   ButtonVariant,
   PageScope,
   TargetExecutionState,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   ICredential,
   IWorkflowExecution,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';

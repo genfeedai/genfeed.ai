@@ -1,8 +1,8 @@
-import type { RouterPriority, UploadStatus } from '@genfeedai/enums';
+import type { RouterPriority, UploadStatus } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   ResearchFindingReferenceKind,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { JSONContent } from '@tiptap/core';
 
 export interface ConversationComposerArtifactReference {

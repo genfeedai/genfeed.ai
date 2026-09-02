@@ -1,14 +1,14 @@
 import {
+  IngredientFormat,
+  VideoEaseCurve,
+  VideoTransition,
+} from '@genfeedai/contracts';
+import {
   DEFAULT_LABELS,
   VIDEO_DIMENSIONS,
   VIDEO_FORMAT_DIMENSIONS,
   VIDEO_MERGE_LIMITS,
-} from '@genfeedai/constants';
-import {
-  IngredientFormat,
-  VideoEaseCurve,
-  VideoTransition,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 
 /**

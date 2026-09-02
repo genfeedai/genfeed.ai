@@ -4,7 +4,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
-import { ListingType, PromptCategory } from '@genfeedai/enums';
+import { ListingType, PromptCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

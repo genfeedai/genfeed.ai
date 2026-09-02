@@ -1,6 +1,6 @@
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ErrorCode, ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ErrorCode, ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ReplicateVideoBuilder } from './replicate-video.builder';

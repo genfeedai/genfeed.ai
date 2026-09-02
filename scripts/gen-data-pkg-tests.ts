@@ -29,8 +29,8 @@ function ensureDir(d: string) {
 // 1. ENUMS
 // ═══════════════════════════════════════════════
 function generateEnumTests() {
-  const enumDir = path.join(root, '../packages/enums/src');
-  const testDir = path.join(root, '../packages/enums/__tests__');
+  const enumDir = path.join(root, '../packages/contracts/src/enums');
+  const testDir = path.join(root, '../packages/contracts/__tests__/enums');
   ensureDir(testDir);
 
   const enumFiles = fs
@@ -122,7 +122,7 @@ function generateEnumTests() {
 
   // vitest config
   fs.writeFileSync(
-    path.join(root, '../packages/enums/vitest.config.ts'),
+    path.join(root, '../packages/contracts/src/enums/vitest.config.ts'),
     `import { defineConfig } from 'vitest/config';
 
 export default defineConfig({

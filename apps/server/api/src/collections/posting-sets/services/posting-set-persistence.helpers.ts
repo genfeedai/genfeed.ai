@@ -1,3 +1,7 @@
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   PersistPostingSetInput,
   PersistPostingSignatureInput,
@@ -8,7 +12,7 @@ import type {
   PostingSignaturePlacement,
   UpdatePostingSetInput,
   UpdatePostingSignatureInput,
-} from '@api-types/contracts/posting-sets.contract';
+} from '@genfeedai/contracts/api-types/contracts/posting-sets.contract';
 import {
   persistPostingSetInputSchema,
   persistPostingSignatureInputSchema,
@@ -17,11 +21,7 @@ import {
   postingSignatureSchema,
   updatePostingSetInputSchema,
   updatePostingSignatureInputSchema,
-} from '@api-types/contracts/posting-sets.contract';
-import {
-  CredentialPlatform,
-  fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/posting-sets.contract';
 import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 

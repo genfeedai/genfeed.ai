@@ -1,6 +1,6 @@
 import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ContentType, CredentialPlatform } from '@genfeedai/enums';
+import { ContentType, CredentialPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,

@@ -12,7 +12,7 @@ import {
   billingControllers,
   subscriptionAttributionsServiceProvider,
 } from '@api/common/subscriptions/billing.providers';
-import { SUBSCRIPTION_ATTRIBUTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { SUBSCRIPTION_ATTRIBUTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { Module } from '@nestjs/common';
 
 @Module({

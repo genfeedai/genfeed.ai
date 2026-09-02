@@ -1,4 +1,4 @@
-import { TrendDirection } from '@genfeedai/enums';
+import { TrendDirection } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MetricCard } from '@ui/analytics/cards/metric/metric-card';
 import { ChartColumn } from 'lucide-react';

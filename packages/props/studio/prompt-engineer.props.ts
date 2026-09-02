@@ -1,4 +1,4 @@
-import { MediaType } from '@genfeedai/enums';
+import { MediaType } from '@genfeedai/contracts';
 
 export { MediaType };
 

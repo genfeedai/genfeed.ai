@@ -1,5 +1,5 @@
-import type { SocialSourcePlatform } from '@genfeedai/enums';
-import type { SourcePostMetrics } from '@genfeedai/interfaces';
+import type { SocialSourcePlatform } from '@genfeedai/contracts';
+import type { SourcePostMetrics } from '@genfeedai/contracts/interfaces';
 
 export interface SourcePostDocument {
   id: string;

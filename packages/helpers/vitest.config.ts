@@ -5,12 +5,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@constants': path.resolve(__dirname, '../ui/constants'),
-      '@genfeedai/constants': path.resolve(__dirname, '../constants/src'),
-      '@genfeedai/enums': path.resolve(__dirname, '../enums/src/index.ts'),
-      '@genfeedai/helpers': path.resolve(__dirname, './src/index.ts'),
-      '@genfeedai/interfaces': path.resolve(
+      '@genfeedai/contracts/constants': path.resolve(
         __dirname,
-        '../interfaces/src/index.ts',
+        '../contracts/src/constants',
+      ),
+      '@genfeedai/contracts': path.resolve(
+        __dirname,
+        '../contracts/src/index.ts',
+      ),
+      '@genfeedai/helpers': path.resolve(__dirname, './src/index.ts'),
+      '@genfeedai/contracts/interfaces': path.resolve(
+        __dirname,
+        '../contracts/src/interfaces/index.ts',
       ),
       '@helpers': path.resolve(__dirname, './src'),
       '@hooks': path.resolve(__dirname, '../hooks'),

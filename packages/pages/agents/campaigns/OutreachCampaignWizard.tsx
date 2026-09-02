@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, ArrowRight, Check, Rocket } from 'lucide-react';

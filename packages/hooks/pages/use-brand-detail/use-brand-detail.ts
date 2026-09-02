@@ -1,6 +1,5 @@
 'use client';
 
-import { createBrandAppRoute } from '@genfeedai/constants';
 import {
   useConfirmModal,
   useUploadModal,
@@ -12,8 +11,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
-} from '@genfeedai/enums';
-import { SocialUrlHelper } from '@genfeedai/helpers';
+} from '@genfeedai/contracts';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   IBrand,
@@ -21,7 +20,8 @@ import type {
   IImage,
   ILink,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';

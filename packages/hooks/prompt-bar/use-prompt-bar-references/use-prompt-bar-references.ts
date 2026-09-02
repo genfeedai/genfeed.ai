@@ -1,5 +1,5 @@
-import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
+import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
+import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
 import type {
   UsePromptBarReferencesOptions,
   UsePromptBarReferencesReturn,

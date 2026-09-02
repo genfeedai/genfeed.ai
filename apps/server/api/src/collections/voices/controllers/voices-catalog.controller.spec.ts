@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException, HttpStatus } from '@nestjs/common';

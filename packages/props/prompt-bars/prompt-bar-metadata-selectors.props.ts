@@ -9,7 +9,7 @@ import type {
   IElementStyle,
   IFontFamily,
   IPreset,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { PromptBarConfig } from '@props/studio/prompt-bar.props';
 import type { UseFormReturn } from 'react-hook-form';
 

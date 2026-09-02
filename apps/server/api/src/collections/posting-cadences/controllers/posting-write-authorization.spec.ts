@@ -2,7 +2,7 @@ import { PostingCadencesController } from '@api/collections/posting-cadences/con
 import { PostingSetsController } from '@api/collections/posting-sets/controllers/posting-sets.controller';
 import { PostingSignaturesController } from '@api/collections/posting-sets/controllers/posting-signatures.controller';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

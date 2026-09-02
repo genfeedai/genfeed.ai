@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import MetricCard from '@ui/cards/metric-card/MetricCard';

@@ -1,6 +1,6 @@
 'use client';
 
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   VideoUpscaleModelOption,

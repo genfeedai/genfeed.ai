@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, Platform } from '@genfeedai/enums';
+import { ButtonVariant, Platform } from '@genfeedai/contracts';
 import { usePlatformOAuthConnect } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';

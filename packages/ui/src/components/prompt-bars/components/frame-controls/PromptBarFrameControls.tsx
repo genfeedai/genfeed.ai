@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
+import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';

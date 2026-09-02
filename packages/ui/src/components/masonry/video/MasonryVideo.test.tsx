@@ -97,8 +97,8 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IVideo } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import MasonryVideo from '@ui/masonry/video/MasonryVideo';
 
 const mockVideo: IVideo = {

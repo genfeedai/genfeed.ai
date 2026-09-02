@@ -3,7 +3,7 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException } from '@nestjs/common';

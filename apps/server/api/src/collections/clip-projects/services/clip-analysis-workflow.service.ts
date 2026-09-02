@@ -28,18 +28,18 @@ import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
   CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
-} from '@genfeedai/constants';
-import {
-  normalizeClipReferenceFrameSet,
-  normalizeClipReferenceTimestamps,
-} from '@genfeedai/helpers';
+} from '@genfeedai/contracts/constants';
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipAnalysisWorkflowInput,
   type ClipAnalysisWorkflowResult,
   type ClipReferenceFrameSet,
   type ClipSourceArtifact,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import {
+  normalizeClipReferenceFrameSet,
+  normalizeClipReferenceTimestamps,
+} from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

@@ -1,7 +1,7 @@
 import {
   NOTIFICATION_DELIVERY_QUEUE,
   type NotificationDeliveryJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

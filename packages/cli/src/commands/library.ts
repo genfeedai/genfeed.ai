@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';

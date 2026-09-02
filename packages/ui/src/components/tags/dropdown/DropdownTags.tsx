@@ -1,6 +1,6 @@
 'use client';
 
-import { DropdownDirection } from '@genfeedai/enums';
+import { DropdownDirection } from '@genfeedai/contracts';
 import type { DropdownTagsProps } from '@genfeedai/props/tags/dropdown-tags.props';
 import { createPortal } from 'react-dom';
 import DropdownTagsPanel from './DropdownTagsPanel';

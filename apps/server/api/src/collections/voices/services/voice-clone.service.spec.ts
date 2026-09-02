@@ -11,7 +11,7 @@ import {
   IngredientStatus,
   VoiceCloneStatus,
   VoiceProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';

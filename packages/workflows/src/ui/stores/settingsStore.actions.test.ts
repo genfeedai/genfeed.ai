@@ -1,4 +1,4 @@
-import { ProviderTypeEnum } from '@genfeedai/types';
+import { ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { configureEdgeStyleMirror } from './edgeStyleMirror';
 import { configureSettingsSync, useSettingsStore } from './settingsStore';

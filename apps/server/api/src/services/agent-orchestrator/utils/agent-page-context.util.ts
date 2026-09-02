@@ -2,7 +2,7 @@ import type { AgentPageContext } from '@api/services/agent-orchestrator/interfac
 import {
   type AgentArtifactReference,
   RESEARCH_FINDING_REFERENCE_KINDS,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const MAX_PAGE_CONTEXT_ARTIFACT_REFERENCES = 20;

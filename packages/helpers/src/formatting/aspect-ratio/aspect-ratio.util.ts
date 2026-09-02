@@ -1,6 +1,6 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { calculateAspectRatio } from '@genfeedai/helpers';
-import type { IIngredient } from '@genfeedai/interfaces';
 
 const PORTRAIT_RATIOS = ['9:16', '3:4', '2:3', '4:5', '1:2'];
 

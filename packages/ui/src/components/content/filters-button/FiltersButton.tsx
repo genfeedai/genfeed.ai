@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import { Button } from '@ui/primitives/button';
 import { Funnel as Filter } from 'lucide-react';

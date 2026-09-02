@@ -31,7 +31,7 @@ vi.mock('@libs/logger/logger.service', () => ({
   LoggerService: class LoggerService {},
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   ActionOrigin: {
     UI: 'ui',
   },

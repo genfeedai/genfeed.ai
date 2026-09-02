@@ -6,8 +6,11 @@ import {
   ButtonVariant,
   CardVariant,
   PageScope,
-} from '@genfeedai/enums';
-import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IBatchItem,
+  IBatchSummary,
+} from '@genfeedai/contracts/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';

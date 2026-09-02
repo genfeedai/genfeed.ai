@@ -1,8 +1,8 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
-import type { ILink } from '@genfeedai/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';

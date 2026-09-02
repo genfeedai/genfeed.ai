@@ -10,14 +10,14 @@ import type { TriggerEvent } from '@api/collections/workflows/services/workflow-
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
   Platform,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/contracts/constants';
 import {
   buildTrendDigestHtml,
   buildTrendDigestItems,

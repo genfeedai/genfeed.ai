@@ -3,15 +3,6 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { type IPublisher, scopedWhere } from '@api/index';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
-import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
-import {
-  type EngagementCredentialEligibility,
-  type EngagementMetricSnapshot,
-  type EngagementRuleActionPayload,
-  engagementRuleActionPayloadSchema,
-  evaluateEngagementRule,
-} from '@api-types/contracts/engagement-rules.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   EngagementRuleAction,
@@ -22,7 +13,16 @@ import {
   ReleaseAttachmentKind,
   ReleaseStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  type EngagementCredentialEligibility,
+  type EngagementMetricSnapshot,
+  type EngagementRuleActionPayload,
+  engagementRuleActionPayloadSchema,
+  evaluateEngagementRule,
+} from '@genfeedai/contracts/api-types/contracts/engagement-rules.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

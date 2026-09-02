@@ -1,5 +1,5 @@
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { AdsPlatform } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 const ADS_CREDENTIAL_PLATFORMS: Record<AdsPlatform, CredentialPlatform> = {
   google: CredentialPlatform.GOOGLE_ADS,

@@ -7,7 +7,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ConnectMastodonCredentialDto } from '@api/services/integrations/mastodon/dto/connect-mastodon-credential.dto';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

@@ -1,5 +1,5 @@
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('CollectionFilterUtil', () => {

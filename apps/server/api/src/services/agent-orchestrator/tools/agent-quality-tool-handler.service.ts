@@ -9,12 +9,12 @@ import {
   IngredientCategory,
   IngredientStatus,
   VoteEntityModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AgentIngredientItem,
   AgentToolResult,
   AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

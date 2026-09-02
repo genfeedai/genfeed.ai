@@ -1,17 +1,17 @@
-import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import type {
   ICaption,
   IIngredient,
   IPost,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   IVideoEditParams,
   IVideoExtendParams,
   IVideoMergeParams,
   IVideoResizeParams,
   IVideoTextOverlayParams,
-} from '@genfeedai/interfaces/components/video-operations.interface';
+} from '@genfeedai/contracts/interfaces/components/video-operations.interface';
+import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import { Caption } from '@genfeedai/models/content/caption.model';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
 import {

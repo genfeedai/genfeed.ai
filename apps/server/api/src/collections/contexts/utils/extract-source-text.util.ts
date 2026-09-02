@@ -1,5 +1,5 @@
 import { inflateRawSync, inflateSync } from 'node:zlib';
-import { KnowledgeBaseCategory } from '@genfeedai/enums';
+import { KnowledgeBaseCategory } from '@genfeedai/contracts';
 import { safeFetch } from '@libs/security/destination-guard';
 import * as cheerio from 'cheerio';
 

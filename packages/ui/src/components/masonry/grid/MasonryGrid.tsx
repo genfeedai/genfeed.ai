@@ -1,11 +1,15 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { IngredientFormat, MediaType, TagCategory } from '@genfeedai/enums';
+import { IngredientFormat, MediaType, TagCategory } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
+import type {
+  IImage,
+  IIngredient,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useTags } from '@genfeedai/hooks/data/tags/use-tags/use-tags';
 import { useMasonryHoverController } from '@genfeedai/hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller';
-import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { Video } from '@genfeedai/models/ingredients/video.model';
 import type { IngredientListProps } from '@genfeedai/props/content/ingredient.props';
 import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';

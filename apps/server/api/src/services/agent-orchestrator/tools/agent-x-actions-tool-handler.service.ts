@@ -8,9 +8,9 @@ import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
 } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
-import { CredentialPlatform, Platform } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

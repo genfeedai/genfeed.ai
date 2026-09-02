@@ -1,8 +1,8 @@
 'use client';
 
-import { SETUP_CARD_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { SETUP_CARD_STEPS } from '@genfeedai/contracts/constants';
 import { useMemo } from 'react';
 
 export interface SetupCardStep {

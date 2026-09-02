@@ -5,7 +5,7 @@ import { buildAssetParentColumns } from '@api/collections/assets/utils/asset-par
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AssetParent } from '@genfeedai/enums';
+import { AssetParent } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

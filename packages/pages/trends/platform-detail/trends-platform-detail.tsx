@@ -1,12 +1,12 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonVariant, Platform } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, Platform } from '@genfeedai/contracts';
 import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
 import {

@@ -13,7 +13,7 @@ import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-g
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 

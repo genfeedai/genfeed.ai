@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { ModalCreateThreadPreviewProps } from '@genfeedai/props/modals/modal.props';
 import Badge from '@ui/display/badge/Badge';
 

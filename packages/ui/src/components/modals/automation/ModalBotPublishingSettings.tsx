@@ -1,5 +1,5 @@
-import { PublishingFrequency } from '@genfeedai/enums';
-import type { IPublishingBotSettings } from '@genfeedai/interfaces';
+import { PublishingFrequency } from '@genfeedai/contracts';
+import type { IPublishingBotSettings } from '@genfeedai/contracts/interfaces';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {

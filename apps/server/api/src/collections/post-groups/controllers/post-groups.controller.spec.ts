@@ -9,7 +9,7 @@ import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-g
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
+import { ApiKeyScope, ReleaseStatus } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 

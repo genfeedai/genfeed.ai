@@ -2,7 +2,7 @@ import {
   getDefaultPaginationOptions,
   transformPaginationFormat,
 } from '@api/shared/utils/pagination-transform/pagination-transform.util';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('pagination-transform.util', () => {

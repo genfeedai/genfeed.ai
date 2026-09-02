@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { Platform, Timeframe } from '@genfeedai/enums';
+import { Platform, Timeframe } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, StrictMode } from 'react';

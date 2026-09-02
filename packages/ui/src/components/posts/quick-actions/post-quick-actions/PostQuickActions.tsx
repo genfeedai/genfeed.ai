@@ -1,13 +1,13 @@
 'use client';
 
-import { POST_QUICK_ACTIONS } from '@genfeedai/constants';
 import {
   AI_ACTION_LABELS,
   AiActionType,
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { POST_QUICK_ACTIONS } from '@genfeedai/contracts/constants';
 import type { PostQuickActionsProps } from '@genfeedai/props/posts/post-quick-actions.props';
 import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
 import { logger } from '@genfeedai/services/core/logger.service';

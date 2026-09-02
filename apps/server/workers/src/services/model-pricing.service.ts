@@ -1,5 +1,5 @@
 import type { ServerModelRecord } from '@api/index';
-import { ModelCategory, PricingType } from '@genfeedai/enums';
+import { ModelCategory, PricingType } from '@genfeedai/contracts';
 import { applyMargin } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

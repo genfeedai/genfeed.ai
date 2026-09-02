@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 
 export interface ReplicateJsonSchema extends Record<string, unknown> {
   properties?: Record<string, Record<string, unknown>>;

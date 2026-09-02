@@ -1,6 +1,10 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { CaptionFormat } from '@genfeedai/enums';
-import type { ICaption, IIngredient, IUser } from '@genfeedai/interfaces';
+import type { CaptionFormat } from '@genfeedai/contracts';
+import type {
+  ICaption,
+  IIngredient,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 
 export class Caption extends BaseEntity implements ICaption {
   public declare ingredient: IIngredient | string;

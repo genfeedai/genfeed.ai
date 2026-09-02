@@ -1,12 +1,12 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Card from '@ui/card/Card';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';

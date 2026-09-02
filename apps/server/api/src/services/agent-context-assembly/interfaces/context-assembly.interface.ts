@@ -1,4 +1,4 @@
-import type { IBrandKitReadiness } from '@genfeedai/interfaces';
+import type { IBrandKitReadiness } from '@genfeedai/contracts/interfaces';
 
 export interface AssembleContextParams {
   organizationId: string;

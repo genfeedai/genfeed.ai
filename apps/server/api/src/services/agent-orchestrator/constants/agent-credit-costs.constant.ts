@@ -1,5 +1,5 @@
 import { getToolsForSurface } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
   getToolsForSurface('agent').map((tool) => [tool.name, tool.creditCost]),

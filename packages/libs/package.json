@@ -1,12 +1,11 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/storage": "workspace:*",
-    "jose": "^6.2.10"
+    "jose": "^6.2.10",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
   "exports": {

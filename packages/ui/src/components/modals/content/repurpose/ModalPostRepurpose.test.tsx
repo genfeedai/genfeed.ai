@@ -1,4 +1,4 @@
-import { Platform, PostRepurposeMode } from '@genfeedai/enums';
+import { Platform, PostRepurposeMode } from '@genfeedai/contracts';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';

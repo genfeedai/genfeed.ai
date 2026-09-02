@@ -1,5 +1,5 @@
-import { PageScope, Platform } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope, Platform } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
 import { fireEvent, render, screen } from '@testing-library/react';

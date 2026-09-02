@@ -27,7 +27,7 @@ Highest-impact attackers try to cross tenant or brand boundaries, exfiltrate int
 ## Known false-positives
 
 - `*.spec.ts`, `*.test.tsx`, fixtures, and mocks often contain fake tokens, webhook URLs, ObjectIds, and localhost URLs.
-- `packages/interfaces`, `packages/enums`, and contract-only packages define fields such as `organizationId`, `token`, or `secret` without performing access control.
+- `packages/contracts/src/interfaces`, `packages/contracts/src/enums`, and contract-only packages define fields such as `organizationId`, `token`, or `secret` without performing access control.
 - Open-source single-tenant code may intentionally omit organization filters; strict tenant enforcement is expected under `ee/`.
 - Docker examples, `.env.example`, docs, and setup guides may contain placeholder credentials or localhost URLs.
 - Public marketing/docs routes and intended webhook receiver endpoints should not be treated as authenticated user data APIs by default.

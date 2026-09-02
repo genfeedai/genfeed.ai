@@ -1,8 +1,4 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import {
-  getModelDefaultDuration,
-  getModelMaxOutputs,
-} from '@genfeedai/constants';
 import type { PromptBarInternalContextValue } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
 import type {
   IngredientCategory,
@@ -10,8 +6,11 @@ import type {
   ModelCategory,
   QualityTier,
   SubscriptionTier,
-} from '@genfeedai/enums';
-import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+} from '@genfeedai/contracts';
+import {
+  getModelDefaultDuration,
+  getModelMaxOutputs,
+} from '@genfeedai/contracts/constants';
 import type {
   FormDropdownOption as DropdownFieldOption,
   IAsset,
@@ -28,9 +27,10 @@ import type {
   IModel,
   IPreset,
   ITraining,
-} from '@genfeedai/interfaces';
-import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
+import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import type { StudioGenerationMeter } from '@genfeedai/props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {

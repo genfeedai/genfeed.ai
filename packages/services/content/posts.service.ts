@@ -1,13 +1,13 @@
-import type {
-  CreatePostRequest,
-  UpdatePostRequest,
-} from '@genfeedai/api-types';
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   type Platform,
   PostFormat,
   type PostRepurposeMode,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  CreatePostRequest,
+  UpdatePostRequest,
+} from '@genfeedai/contracts/api-types';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
   GenerateSourcePostVariationsInput,
@@ -15,7 +15,7 @@ import type {
   IPostVariationResult,
   ScoreSeoRequest,
   SocialGenerationFormat,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';
 import {
@@ -29,7 +29,7 @@ export type PostUpdateInput = UpdatePostRequest;
 /**
  * Service for managing posts (scheduled social media content)
  *
- * Uses typed request payloads from @genfeedai/api-types for compile-time safety.
+ * Uses typed request payloads from @genfeedai/contracts/api-types for compile-time safety.
  * The `post()` method requires `CreatePostRequest` and `patch()` requires `UpdatePostRequest`.
  *
  * @example

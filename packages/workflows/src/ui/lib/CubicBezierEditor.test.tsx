@@ -1,4 +1,4 @@
-import type { CubicBezier } from '@genfeedai/types';
+import type { CubicBezier } from '@genfeedai/contracts/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { CubicBezierEditor } from './CubicBezierEditor';

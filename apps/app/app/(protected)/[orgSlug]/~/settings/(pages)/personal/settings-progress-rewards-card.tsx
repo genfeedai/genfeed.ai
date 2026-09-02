@@ -1,6 +1,6 @@
 'use client';
 
-import type { IStreakMilestoneState } from '@genfeedai/types';
+import type { IStreakMilestoneState } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';

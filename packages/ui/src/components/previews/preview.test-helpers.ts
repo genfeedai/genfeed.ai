@@ -8,8 +8,11 @@ import {
   TargetAnalyticsFreshness,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseAttachment } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseAttachment,
+} from '@genfeedai/contracts/interfaces';
 import type {
   TargetPreviewCredential,
   TargetPreviewRelease,

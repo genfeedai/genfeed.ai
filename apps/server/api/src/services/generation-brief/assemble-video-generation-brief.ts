@@ -1,11 +1,11 @@
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   type GenerationBriefConstraint,
   type GenerationBriefProvenance,
   type GenerationBriefReference,
   type GenerationFidelityMode,
   videoGenerationBriefSchema,
-} from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { calculateAspectRatio } from '@genfeedai/helpers';
 
 export interface AssembleVideoGenerationBriefInput {

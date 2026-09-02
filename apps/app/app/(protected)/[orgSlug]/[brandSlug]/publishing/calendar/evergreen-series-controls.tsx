@@ -1,11 +1,14 @@
 'use client';
 
+import { ReleaseStatus } from '@genfeedai/contracts';
 import type {
   RecurrenceInput,
   RecurrencePreviewResult,
-} from '@api-types/contracts';
-import { ReleaseStatus } from '@genfeedai/enums';
-import type { IRecurrenceRule, IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts';
+import type {
+  IRecurrenceRule,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import {
   fromDateTimeLocalInput,
   toDateTimeLocalInput,

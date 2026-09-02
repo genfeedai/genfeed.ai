@@ -1,4 +1,4 @@
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import {
   buildSocialInboxSyncWorkflowDefinition,
   SOCIAL_INBOX_SYNC_ACTION_IDS,

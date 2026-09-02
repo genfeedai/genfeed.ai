@@ -6,7 +6,7 @@ import {
   getOrgSwitchHref,
   parseScopedAppPath,
   ROUTED_ORGANIZATION_STORAGE_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';

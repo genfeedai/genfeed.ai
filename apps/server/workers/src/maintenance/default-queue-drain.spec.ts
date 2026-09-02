@@ -2,7 +2,7 @@ import {
   DEFAULT_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import {
   drainDefaultQueue,
   parseDefaultQueueDrainArgs,

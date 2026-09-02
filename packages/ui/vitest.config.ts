@@ -20,12 +20,12 @@ const BETTER_AUTH_REACT_MOCK = path.resolve(
   './tests/__mocks__/better-auth-react.ts',
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
-const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
+const API_TYPES_SRC = path.resolve(__dirname, '../contracts/src/api-types');
 const AUTH_CLIENT_SRC = path.resolve(__dirname, '../auth-client/src');
-const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
 const CONFIG_SRC = path.resolve(__dirname, '../config/src');
-const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
-const INTERFACES_SRC = path.resolve(__dirname, '../interfaces/src');
+const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
+const INTERFACES_SRC = path.resolve(__dirname, '../contracts/src/interfaces');
 const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const AGENT_SRC = path.resolve(__dirname, '../agent/src');
@@ -131,11 +131,11 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../client/src/$1'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: CONSTANTS_SRC,
       },
       {
-        find: '@genfeedai/constants/model-brands.constant',
+        find: '@genfeedai/contracts/constants/model-brands.constant',
         replacement: path.resolve(CONSTANTS_SRC, 'model-brands.constant.ts'),
       },
       {
@@ -143,12 +143,12 @@ export default defineConfig({
         replacement: path.resolve(CONSTANTS_SRC, '$1'),
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: ENUMS_SRC,
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/enums/$1'),
       },
       {
         find: '@genfeedai/helpers',

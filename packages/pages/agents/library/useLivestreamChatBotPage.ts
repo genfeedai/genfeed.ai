@@ -5,7 +5,7 @@ import {
   BotPlatform,
   LivestreamTranscriptSource,
   Platform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { Bot, BotLivestreamSettings } from '@models/automation/bot.model';

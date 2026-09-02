@@ -6,14 +6,14 @@ import type {
   ITrendVideo,
   ResearchFindingReference,
   ResearchFindingReferenceKind,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 
 export {
   RESEARCH_FINDING_REFERENCE_KINDS,
   type ResearchFindingReference,
   type ResearchFindingReferenceKind,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface ResearchFindingMetadataItem {
   readonly label: string;

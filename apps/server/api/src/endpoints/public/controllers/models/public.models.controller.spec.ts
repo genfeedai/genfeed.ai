@@ -2,7 +2,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { modelCatalogAttributes } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

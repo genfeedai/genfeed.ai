@@ -10,8 +10,8 @@ import {
   type ServerPosts,
   type ServerSocialAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

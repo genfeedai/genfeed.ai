@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Bot } from '@genfeedai/models/automation/bot.model';
 import { LivestreamSession } from '@genfeedai/models/automation/livestream-session.model';
 import { BotSerializer } from '@genfeedai/serializers';

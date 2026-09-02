@@ -10,16 +10,15 @@ import {
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
-  type ChannelTargetSettings,
-  readChannelSettingBoolean,
-  readChannelSettingString,
-} from '@genfeedai/api-types/contracts';
-import {
   CredentialPlatform,
   OAuthGrantType,
   TikTokPublishStatus,
-} from '@genfeedai/enums';
-import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
+} from '@genfeedai/contracts';
+import {
+  type ChannelTargetSettings,
+  readChannelSettingBoolean,
+  readChannelSettingString,
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   ISocialTrend,
   ITikTokCreatorInfo,
@@ -27,7 +26,8 @@ import type {
   ITikTokPublishResponse,
   ITikTokPublishStatusData,
   ITikTokVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -4,4 +4,4 @@ export type {
   IListeningThemeDocument as ListeningThemeDocument,
   IListeningTopicDocument as ListeningTopicDocument,
   IListeningTopicSourceDocument as ListeningTopicSourceDocument,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';

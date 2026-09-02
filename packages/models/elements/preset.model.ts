@@ -1,5 +1,5 @@
 import { Preset as BasePreset } from '@genfeedai/client/models';
-import type { IPreset } from '@genfeedai/interfaces';
+import type { IPreset } from '@genfeedai/contracts/interfaces';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';
 

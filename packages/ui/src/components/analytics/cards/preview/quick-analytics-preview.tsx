@@ -1,10 +1,10 @@
 'use client';
 
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import {
   formatCompactNumberIntl,
   formatPercentage,
 } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { IAnalytics } from '@genfeedai/interfaces';
 import { ChartContainer } from '@ui/charts';
 import { ArrowRight, ChartNoAxesColumn, Eye, Heart } from 'lucide-react';
 import dynamic from 'next/dynamic';

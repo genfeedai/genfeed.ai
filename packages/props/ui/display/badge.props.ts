@@ -1,4 +1,4 @@
-import type { ComponentSize } from '@genfeedai/enums';
+import type { ComponentSize } from '@genfeedai/contracts';
 import type { ReactNode } from 'react';
 
 export interface BadgeBrandProps {

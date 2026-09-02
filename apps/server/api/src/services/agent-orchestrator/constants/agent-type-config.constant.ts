@@ -1,7 +1,7 @@
 import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { AgentType } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentType } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 export interface AgentTypeConfig {
   defaultDailyCreditBudget: number;
@@ -13,7 +13,7 @@ export interface AgentTypeConfig {
 /**
  * Per-type defaults, named by the job rather than the vendor so a catalogue
  * change is one edit here instead of a dozen literals. Both keys come from
- * `@genfeedai/constants`, which is also what the biller prices against.
+ * `@genfeedai/contracts/constants`, which is also what the biller prices against.
  *
  * Volume types run high-frequency, low-stakes turns; creative types write
  * copy and direct generation, where the better model pays for itself.

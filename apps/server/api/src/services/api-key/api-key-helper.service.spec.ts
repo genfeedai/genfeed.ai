@@ -1,4 +1,4 @@
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { ApiKeyHelperService } from './api-key-helper.service';
 

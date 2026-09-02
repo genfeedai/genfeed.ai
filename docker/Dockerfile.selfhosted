@@ -147,13 +147,10 @@ COPY apps/server/ apps/server/
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host
 # dist output, so this follows docker/Dockerfile.server's dependency order and
-# includes api-types because the self-hosted image also builds the Next.js app:
-# enums -> constants -> interfaces -> api-types -> pricing -> client, then config can build.
+# includes contracts because the self-hosted image also builds the Next.js app:
+# contracts -> pricing -> client, then config can build.
 RUN set -e; \
-    bun --filter @genfeedai/enums build; \
-    bun --filter @genfeedai/constants build; \
-    bun --filter @genfeedai/interfaces build; \
-    bun --filter @genfeedai/api-types build; \
+    bun --filter @genfeedai/contracts build; \
     bun --filter @genfeedai/pricing build; \
     bun --filter @genfeedai/client build
 
@@ -166,17 +163,14 @@ RUN set -e; \
 # b c` returned only c's status (swallowing a non-last failure). See the fuller
 # note in docker/Dockerfile.server.
 RUN set -e; \
-    pids=""; \
-    bun --filter @genfeedai/types build & pids="$pids $!"; \
-    bun --filter @genfeedai/config build & pids="$pids $!"; \
-    ec=0; for p in $pids; do wait "$p" || ec=1; done; [ "$ec" = 0 ]; \
+    bun --filter @genfeedai/config build; \
     bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
     bun --filter @genfeedai/workflows build:server
 
 # Bundle the pinned composition after shared package exports are built so
-# Remotion can resolve @genfeedai/interfaces and @genfeedai/utils.
+# Remotion can resolve @genfeedai/contracts/interfaces and @genfeedai/utils.
 RUN cd apps/server/files && \
     bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('src/remotion/index.tsx'),outDir:resolve('remotion-bundle'),publicDir:null,rootDir:resolve('.')});"
 

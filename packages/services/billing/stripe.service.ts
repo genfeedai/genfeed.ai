@@ -1,10 +1,10 @@
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import type {
   CreateCheckoutSessionDto,
   IAuthPublicData,
   IBillingPortalResponse,
   ICheckoutSessionResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { StripeCheckoutSerializer } from '@genfeedai/serializers';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';

@@ -1,6 +1,5 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
 import {
   ButtonSize,
@@ -12,8 +11,9 @@ import {
   type IngredientFormat,
   ModalEnum,
   PageScope,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
 import {
   getIngredientFailureReason,

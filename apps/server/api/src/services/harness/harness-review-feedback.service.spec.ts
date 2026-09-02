@@ -1,7 +1,7 @@
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
-import { ReviewDecision } from '@genfeedai/enums';
-import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/interfaces';
+import { ReviewDecision } from '@genfeedai/contracts';
+import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 
 function createHarnessProfilesService() {

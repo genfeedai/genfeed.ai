@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { describe, expect, it, vi } from 'vitest';
 import {

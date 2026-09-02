@@ -1,20 +1,20 @@
-import type {
-  EngagementRuleActionPayload,
-  PersistEngagementRuleInput,
-  UpdateEngagementRuleInput,
-} from '@api-types/contracts/engagement-rules.contract';
-import {
-  engagementRuleActionPayloadSchema,
-  persistEngagementRuleInputSchema,
-  updateEngagementRuleInputSchema,
-} from '@api-types/contracts/engagement-rules.contract';
 import {
   EngagementMetric,
   EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
-} from '@genfeedai/enums';
-import type { IEngagementMetricSnapshot } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  EngagementRuleActionPayload,
+  PersistEngagementRuleInput,
+  UpdateEngagementRuleInput,
+} from '@genfeedai/contracts/api-types/contracts/engagement-rules.contract';
+import {
+  engagementRuleActionPayloadSchema,
+  persistEngagementRuleInputSchema,
+  updateEngagementRuleInputSchema,
+} from '@genfeedai/contracts/api-types/contracts/engagement-rules.contract';
+import type { IEngagementMetricSnapshot } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 

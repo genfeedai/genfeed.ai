@@ -15,11 +15,11 @@ import {
   MetaGraphPaginationLimitError,
 } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform } from '@genfeedai/prisma';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {

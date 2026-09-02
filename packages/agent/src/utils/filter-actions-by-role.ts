@@ -1,5 +1,5 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-import type { MemberRole } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/contracts';
 
 export function filterActionsByRole(
   actions: SuggestedAction[],

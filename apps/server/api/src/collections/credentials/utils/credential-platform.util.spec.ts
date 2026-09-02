@@ -1,5 +1,5 @@
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('toCredentialPlatform', () => {

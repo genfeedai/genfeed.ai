@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, DropdownDirection } from '@genfeedai/enums';
+import { ButtonVariant, DropdownDirection } from '@genfeedai/contracts';
 import {
   BG_BLUR,
   BORDER_WHITE_30,

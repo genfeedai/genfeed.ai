@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { compileIdeogramCharacterGenerationBrief } from '@api/services/generation-brief/compile-ideogram-character-generation-brief';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import { assertRedactedGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
-import { imageGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { ideogramCharacterDispatchSchema } from '@api-types/contracts/generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { ideogramCharacterDispatchSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 const fixturesDir = join(

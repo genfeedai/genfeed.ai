@@ -7,7 +7,7 @@ import type {
   INotificationPreference,
   NotificationChannel,
   NotificationTopic,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { NotificationPreference } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 

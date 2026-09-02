@@ -1,5 +1,9 @@
-import { type AssetScope, formatEnumLabel } from '@genfeedai/enums';
-import type { ICredential, IImage, IIngredient } from '@genfeedai/interfaces';
+import { type AssetScope, formatEnumLabel } from '@genfeedai/contracts';
+import type {
+  ICredential,
+  IImage,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import type { RefObject } from 'react';

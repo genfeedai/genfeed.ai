@@ -1,7 +1,7 @@
-import { hasInterpolation } from '@genfeedai/constants';
-import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
-import type { IImage, IModel } from '@genfeedai/interfaces';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
+import { hasInterpolation } from '@genfeedai/contracts/constants';
+import type { IImage, IModel } from '@genfeedai/contracts/interfaces';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 
 export interface StoryboardInterpolationPair {
   startImageId: string;

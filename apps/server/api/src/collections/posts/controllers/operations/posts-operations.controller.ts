@@ -25,7 +25,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -36,8 +35,9 @@ import {
   PostCategory,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

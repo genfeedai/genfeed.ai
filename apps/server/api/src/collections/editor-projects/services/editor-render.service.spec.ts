@@ -17,8 +17,8 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
-} from '@genfeedai/enums';
-import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

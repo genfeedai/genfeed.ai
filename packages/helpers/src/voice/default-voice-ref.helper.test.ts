@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

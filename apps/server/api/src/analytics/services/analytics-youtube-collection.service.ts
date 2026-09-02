@@ -5,11 +5,11 @@ import {
   type ServerPostAnalytics,
   type ServerYouTubeAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   ServerAnalyticsCollectionState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   classifyAnalyticsCollectionError,

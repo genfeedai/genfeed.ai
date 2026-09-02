@@ -1,6 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   GhostImageUploadResponse,
   GhostPostResponse,
@@ -8,7 +8,7 @@ import type {
   GhostSiteApiResponse,
   GhostSiteInfo,
   GhostTag,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

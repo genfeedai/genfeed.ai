@@ -1,12 +1,15 @@
 import { FFmpegBeatSyncService } from '@files/services/ffmpeg/services/ffmpeg-beat-sync.service';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegMergeService } from '@files/services/ffmpeg/services/ffmpeg-merge.service';
-import { BeatSyncCutStrategy, BeatSyncTransitionType } from '@genfeedai/enums';
+import {
+  BeatSyncCutStrategy,
+  BeatSyncTransitionType,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// `@genfeedai/enums` is used as-is: a partial factory mock shadows every other
+// `@genfeedai/contracts` is used as-is: a partial factory mock shadows every other
 // export, and `@genfeedai/pricing` (pulled in transitively) throws on the
 // missing `SubscriptionTier` before a single test runs.
 

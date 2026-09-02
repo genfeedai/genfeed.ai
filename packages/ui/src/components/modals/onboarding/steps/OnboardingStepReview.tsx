@@ -1,6 +1,6 @@
 'use client';
 
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
+import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';

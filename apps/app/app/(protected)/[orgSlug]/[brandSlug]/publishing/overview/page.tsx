@@ -1,4 +1,4 @@
-import { createBrandAppRoute } from '@genfeedai/constants';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { getPublishingPostsStatusPath } from '@helpers/content/posts.helper';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';

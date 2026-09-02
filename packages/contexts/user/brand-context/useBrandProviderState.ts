@@ -1,9 +1,9 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { parseScopedAppPath } from '@genfeedai/constants';
+import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
-import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';

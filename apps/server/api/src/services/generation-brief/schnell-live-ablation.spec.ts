@@ -6,7 +6,7 @@ import {
   SCHNELL_GUIDED_LIFT_THRESHOLD,
   SCHNELL_UNBRANDED_REGRESSION_LIMIT,
 } from '@api/services/generation-brief/schnell-live-ablation';
-import { FLUX_SCHNELL_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
+import { FLUX_SCHNELL_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { describe, expect, it } from 'vitest';
 
 describe('Schnell live ablation corpus (#3470)', () => {

@@ -6,7 +6,7 @@ import type {
   AgentThreadUiActionRequest,
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const AGENT_INPUT_RESPONSE_WORKFLOW_ID = 'agent.thread.input-response';

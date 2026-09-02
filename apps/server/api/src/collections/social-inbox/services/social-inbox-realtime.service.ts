@@ -1,6 +1,6 @@
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { SocialInboxRealtimeEvent } from '@genfeedai/interfaces';
+import type { SocialInboxRealtimeEvent } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()

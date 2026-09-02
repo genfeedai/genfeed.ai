@@ -1,6 +1,6 @@
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
 import {
   HttpException,
   HttpStatus,

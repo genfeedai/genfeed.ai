@@ -1,4 +1,4 @@
-import type { IBrand } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 
 export interface ScheduleDrawerProps {
   isOpen: boolean;

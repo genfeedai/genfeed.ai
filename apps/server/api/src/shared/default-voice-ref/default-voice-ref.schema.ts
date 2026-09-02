@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import type { DefaultVoiceRefSource } from './default-voice-ref.constants';
 
 export interface DefaultVoiceRef {

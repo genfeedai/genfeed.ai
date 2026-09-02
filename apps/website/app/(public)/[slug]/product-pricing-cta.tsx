@@ -1,5 +1,5 @@
 import type { Product } from '@data/products.data';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { getPlanLabel } from '@genfeedai/pricing';
 import Card from '@ui/card/Card';

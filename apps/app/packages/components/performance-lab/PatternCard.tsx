@@ -1,7 +1,10 @@
 'use client';
 
 import UsePatternButton from '@app-components/performance-lab/UsePatternButton';
-import type { ICreativePattern, PatternType } from '@genfeedai/interfaces';
+import type {
+  ICreativePattern,
+  PatternType,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   PatternCardProps,

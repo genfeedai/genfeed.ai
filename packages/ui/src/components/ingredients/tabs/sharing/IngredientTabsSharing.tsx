@@ -1,7 +1,7 @@
 'use client';
 
-import { createLibraryAssetRoute } from '@genfeedai/constants';
-import { AssetScope, ButtonVariant } from '@genfeedai/enums';
+import { AssetScope, ButtonVariant } from '@genfeedai/contracts';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IngredientTabsSharingProps } from '@genfeedai/props/content/ingredient.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import type { IModel, ITraining } from '@genfeedai/interfaces';
+import type { IModel, ITraining } from '@genfeedai/contracts/interfaces';
 import {
   type PromptBarContextValue,
   usePromptBarContext,

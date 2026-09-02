@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import type { IModel } from '@genfeedai/interfaces';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import ModalModel from '@ui/modals/models/ModalModel';
 
 const imagenModel = {

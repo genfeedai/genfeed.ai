@@ -4,7 +4,7 @@ import {
   ButtonSize,
   ButtonVariant,
   LivestreamTranscriptSource,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';

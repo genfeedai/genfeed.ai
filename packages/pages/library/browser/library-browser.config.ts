@@ -1,9 +1,9 @@
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   IngredientCategory,
   LibraryPlace,
   LibraryShelf,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LibraryBrowserSortOption } from '@props/pages/library-browser.props';
 import {
   LIBRARY_ASSET_TYPES,

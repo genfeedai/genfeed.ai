@@ -10,14 +10,14 @@ import {
   CreditReservationStatus,
   CreditTransactionCategory,
   parseCreditReservationStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICreditReservation,
   ICreditWalletSnapshot,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

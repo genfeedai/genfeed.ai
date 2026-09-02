@@ -3,7 +3,7 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
-import { OAuthGrantType } from '@genfeedai/enums';
+import { OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

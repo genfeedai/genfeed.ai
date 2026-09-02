@@ -1,4 +1,7 @@
-import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces/core/api-key.interface';
+import type {
+  IApiKey,
+  IApiKeyAttributes,
+} from '@genfeedai/contracts/interfaces/core/api-key.interface';
 import { del, get, post } from './client';
 import {
   extractPagination,

@@ -1,5 +1,5 @@
-import { PageScope, SubscriptionTier } from '@genfeedai/enums';
-import type { ITraining } from '@genfeedai/interfaces';
+import { PageScope, SubscriptionTier } from '@genfeedai/contracts';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';

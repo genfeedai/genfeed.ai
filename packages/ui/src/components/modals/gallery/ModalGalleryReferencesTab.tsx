@@ -1,7 +1,7 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
-import type { IAsset } from '@genfeedai/interfaces';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { IAsset } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryReferencesTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import Spinner from '@ui/feedback/spinner/Spinner';

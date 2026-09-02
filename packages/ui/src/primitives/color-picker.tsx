@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { useMemo, useState } from 'react';
 import { type ColorResult, SketchPicker } from 'react-color';
 import { Button } from './button';

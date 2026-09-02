@@ -1,10 +1,10 @@
 'use client';
 
-import { SocialConversationType } from '@genfeedai/enums';
+import { SocialConversationType } from '@genfeedai/contracts';
 import type {
   SocialConversationStatus,
   SocialInboxReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import type { SocialMessagesService } from '@services/social/messages.service';

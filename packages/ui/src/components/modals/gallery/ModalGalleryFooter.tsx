@@ -4,8 +4,8 @@ import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
-} from '@genfeedai/enums';
-import type { IAsset } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IAsset } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryFooterProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

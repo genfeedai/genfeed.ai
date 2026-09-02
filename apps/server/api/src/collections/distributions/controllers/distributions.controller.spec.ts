@@ -3,7 +3,7 @@ import {
   DistributionContentType,
   DistributionPlatform,
   PublishStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,5 +1,5 @@
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
+import { ButtonVariant, formatEnumLabel } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';

@@ -20,6 +20,12 @@ import {
   resolveVideoPilotDuration,
   VIDEO_PILOT_PAID_RETRY_CEILING,
 } from '@genfeedai/agent/utils/video-pilot-gate.util';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  ModelCategory,
+  type RouterPriority,
+  toRouterPriority,
+} from '@genfeedai/contracts';
 import {
   getModelMaxVideoReferences,
   hasEndFrame,
@@ -27,18 +33,12 @@ import {
   hasVideoReferences,
   MODEL_KEYS,
   requiresFirstFrame,
-} from '@genfeedai/constants';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import {
-  ModelCategory,
-  type RouterPriority,
-  toRouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {

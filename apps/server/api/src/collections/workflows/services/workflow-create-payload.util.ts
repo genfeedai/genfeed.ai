@@ -1,6 +1,6 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
-import { WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowStatus } from '@genfeedai/contracts';
 
 export const WORKFLOW_CONFIG_FIELDS = [
   'comfyuiTemplate',

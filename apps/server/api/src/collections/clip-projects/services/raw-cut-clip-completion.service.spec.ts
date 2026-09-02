@@ -6,7 +6,7 @@ import type { ClipResultsService } from '@api/collections/clip-results/clip-resu
 import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { JobState, Status } from '@genfeedai/enums';
+import { JobState, Status } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 function makeClip(

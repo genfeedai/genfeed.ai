@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type {
+  IImage,
+  IIngredient,
+  IMetadata,
+} from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import { describe, expect, it, vi } from 'vitest';

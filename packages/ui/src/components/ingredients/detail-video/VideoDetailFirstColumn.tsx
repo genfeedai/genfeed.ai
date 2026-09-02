@@ -1,16 +1,16 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   formatEnumLabel,
   IngredientStatus,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IIngredient, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { IIngredient, IVideo } from '@genfeedai/interfaces';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';

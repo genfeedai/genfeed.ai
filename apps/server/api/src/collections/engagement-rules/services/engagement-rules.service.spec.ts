@@ -16,7 +16,7 @@ import {
   EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const context = {

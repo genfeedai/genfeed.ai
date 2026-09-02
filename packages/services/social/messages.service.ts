@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   SocialActionInput,
@@ -8,8 +8,8 @@ import type {
   SocialInboxSyncEnqueueResult,
   SocialMessage,
   SocialMessageQuery,
-} from '@genfeedai/interfaces';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import {

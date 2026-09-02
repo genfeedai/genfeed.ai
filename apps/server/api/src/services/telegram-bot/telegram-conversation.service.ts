@@ -15,7 +15,7 @@ import type {
 } from '@api/services/telegram-bot/telegram-bot.types';
 import { extractWorkflowInputs } from '@api/services/telegram-bot/telegram-workflow-loader';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode } from '@genfeedai/contracts';
 import { type Context, InlineKeyboard } from 'grammy';
 
 export class TelegramConversationService {

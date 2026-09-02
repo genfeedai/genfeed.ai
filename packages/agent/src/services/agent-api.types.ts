@@ -1,4 +1,4 @@
-import type { IModel } from '@genfeedai/interfaces';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 export interface CredentialMentionItem {
   id: string;

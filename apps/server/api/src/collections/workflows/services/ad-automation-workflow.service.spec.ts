@@ -3,7 +3,7 @@ import {
   AD_AUTOMATION_WORKFLOW_TEMPLATES,
   AD_SYNC_CHILD_WORKFLOWS,
 } from '@api/collections/workflows/templates/ad-automation-workflows.template';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 function createService() {

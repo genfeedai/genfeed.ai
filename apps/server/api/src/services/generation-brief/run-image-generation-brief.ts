@@ -4,21 +4,21 @@ import { getImageGenerationBriefRegistryEntry } from '@api/services/generation-b
 import { assertRedactedGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 import { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
+import { ImageTaskModel } from '@genfeedai/contracts';
 import type {
   GenerationFidelityMode,
   ImageGenerationBrief,
   ImageGenerationBriefReference,
-} from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefPersistedEvidence,
   GenerationBriefSurface,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   buildGenerationBriefCompileSource,
   buildGenerationBriefExemptionSource,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ImageTaskModel } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 export interface RunImageGenerationBriefInput {

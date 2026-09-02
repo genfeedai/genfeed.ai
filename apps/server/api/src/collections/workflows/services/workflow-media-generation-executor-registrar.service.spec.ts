@@ -1,8 +1,8 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
-import { QWEN_IMAGE_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   createExecutableActionNode,
   type INodeExecutor,

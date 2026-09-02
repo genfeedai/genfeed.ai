@@ -23,8 +23,8 @@ import {
   SocialSourcePlatform,
   SocialSourceType,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

@@ -1,7 +1,7 @@
 import type {
   IBrandKitAssetValue,
   IBrandKitSocialLink,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   type BrandKitSourceBrand,
   buildBrandKitDraftFromBrand,

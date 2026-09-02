@@ -1,26 +1,26 @@
 import {
-  type ChannelMediaKind,
-  type ChannelPublishMode,
-  getChannelCapability,
-  resolveChannelTargetSettings,
-  validateChannelTargetSettings,
-} from '@api-types/contracts/channel-capabilities.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   IngredientCategory,
   PostVisibility,
   parsePlatform,
   ReleaseAttachmentKind,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  type ChannelMediaKind,
+  type ChannelPublishMode,
+  getChannelCapability,
+  resolveChannelTargetSettings,
+  validateChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   AgentPublishSettingField,
   AgentPublishTargetMedia,
   AgentPublishTargetPayload,
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const CHANNEL_MEDIA_KINDS = new Set<ChannelMediaKind>([
   'carousel',

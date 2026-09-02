@@ -8,7 +8,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;

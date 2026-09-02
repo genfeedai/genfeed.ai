@@ -5,7 +5,7 @@ import {
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@genfeedai/serializers', () => {

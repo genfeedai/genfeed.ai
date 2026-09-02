@@ -1,6 +1,6 @@
 'use client';
 
-import type { DownloadNodeData } from '@genfeedai/types';
+import type { DownloadNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Clock, Download, LoaderCircle } from 'lucide-react';
 import Image from 'next/image';

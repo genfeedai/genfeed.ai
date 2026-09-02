@@ -24,22 +24,22 @@ import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ByokProvider,
+  ContentRunStatus,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
   brandRemixRunConfigSchema,
   type StartBrandRemixRun,
-} from '@api-types/contracts/brand-remix-run.contract';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import {
   AVATAR_GENERATION_CREDIT_COST,
   MODEL_KEYS,
-} from '@genfeedai/constants';
-import {
-  ByokProvider,
-  ContentRunStatus,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import {
   ConflictException,
   HttpException,

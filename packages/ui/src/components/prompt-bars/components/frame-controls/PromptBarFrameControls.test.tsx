@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { fireEvent, render, screen } from '@testing-library/react';

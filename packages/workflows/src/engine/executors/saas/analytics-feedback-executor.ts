@@ -2,7 +2,7 @@ import type {
   IReleaseAnalyticsComparison,
   IReleaseTargetAnalyticsComparison,
   IReleaseTargetAnalyticsMetrics,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,

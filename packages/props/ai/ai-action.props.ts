@@ -1,4 +1,8 @@
-import type { AiActionType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type {
+  AiActionType,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 
 export interface AiActionButtonProps {
   action: AiActionType;

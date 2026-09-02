@@ -6,7 +6,7 @@ import type {
   SocialPlatform,
   SocialReplyCampaignInput,
   SocialReplyCampaignQuery,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { SocialReplyCampaignModel } from '@genfeedai/models/social/social-reply-campaign.model';
 import type { ReplyCampaignEnrollableConversation } from '@genfeedai/props/social/reply-campaigns-panel.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

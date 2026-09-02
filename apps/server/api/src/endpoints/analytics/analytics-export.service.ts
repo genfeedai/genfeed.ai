@@ -11,7 +11,7 @@ import { PinterestService } from '@api/services/integrations/pinterest/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';

@@ -11,7 +11,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 const websiteDir = path.dirname(fileURLToPath(import.meta.url));
 const helpersRoot = path.resolve(websiteDir, '../../packages/helpers');
-const enumsRoot = path.resolve(websiteDir, '../../packages/enums');
+const enumsRoot = path.resolve(
+  websiteDir,
+  '../../packages/contracts/src/enums',
+);
 
 const config = createAppNextConfig({
   headers: async () => [
@@ -127,24 +130,26 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
-    '@genfeedai/constants': '../../packages/constants/src/index.ts',
-    '@genfeedai/enums': '../../packages/enums/src/index.ts',
+    '@genfeedai/contracts/constants':
+      '../../packages/contracts/src/constants/index.ts',
+    '@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
-    '@genfeedai/interfaces': '../../packages/interfaces/src/index.ts',
+    '@genfeedai/contracts/interfaces':
+      '../../packages/contracts/src/interfaces/index.ts',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
-    '@genfeedai/types': '../../packages/types/src/index.ts',
+    '@genfeedai/contracts/types': '../../packages/contracts/src/types/index.ts',
   },
   root: path.resolve(websiteDir, '../..'),
 };
 
 config.transpilePackages = [
   '@genfeedai/client',
-  '@genfeedai/types',
+  '@genfeedai/contracts/types',
   '@genfeedai/serializers',
-  '@genfeedai/constants',
-  '@genfeedai/enums',
+  '@genfeedai/contracts/constants',
+  '@genfeedai/contracts',
   '@genfeedai/helpers',
-  '@genfeedai/interfaces',
+  '@genfeedai/contracts/interfaces',
 ];
 
 const serializersRoot = path.resolve(websiteDir, '../../packages/serializers');
@@ -158,11 +163,11 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
-    '@genfeedai/enums': path.join(enumsRoot, 'src/index.ts'),
+    '@genfeedai/contracts': path.join(enumsRoot, 'src/index.ts'),
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
-    '@genfeedai/types': path.join(
+    '@genfeedai/contracts/types': path.join(
       websiteDir,
-      '../../packages/types/src/index.ts',
+      '../../packages/contracts/src/types/index.ts',
     ),
     '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
     '@serializers': path.join(serializersRoot, 'src'),

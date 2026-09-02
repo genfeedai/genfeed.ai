@@ -4,7 +4,7 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,

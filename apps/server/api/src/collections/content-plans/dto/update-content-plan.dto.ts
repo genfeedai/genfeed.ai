@@ -1,4 +1,4 @@
-import { ContentPlanStatus } from '@genfeedai/enums';
+import { ContentPlanStatus } from '@genfeedai/contracts';
 import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class UpdateContentPlanDto {

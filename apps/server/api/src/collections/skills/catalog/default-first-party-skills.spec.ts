@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { resolveDefaultFirstPartySkillSlugs } from './default-first-party-skills';

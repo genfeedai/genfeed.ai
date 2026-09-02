@@ -1,9 +1,9 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ISubscriptionPreview,
   OrganizationCreditUsageResponse,
   SubscriptionChangePreview,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Subscription } from '@genfeedai/models/billing/subscription.model';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

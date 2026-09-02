@@ -1,7 +1,7 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';

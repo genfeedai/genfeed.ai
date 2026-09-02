@@ -21,7 +21,7 @@ import {
   THREAD_SWITCH_DEBOUNCE_MS,
 } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import { AgentThreadStatus, type MemberRole } from '@genfeedai/enums';
+import { AgentThreadStatus, type MemberRole } from '@genfeedai/contracts';
 import {
   Briefcase,
   Calendar,

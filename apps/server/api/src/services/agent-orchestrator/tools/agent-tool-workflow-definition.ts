@@ -1,6 +1,6 @@
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-definition';
 import { createGenfeedActionNode, getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 export function agentToolWorkflowId(toolName: AgentToolName): string {
   return `agent.tool.${toolName}`;

@@ -1,4 +1,4 @@
-import { fromPrismaCredentialPlatform } from '@genfeedai/enums';
+import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 /**

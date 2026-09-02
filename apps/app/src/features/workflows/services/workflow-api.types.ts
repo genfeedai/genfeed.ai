@@ -1,11 +1,11 @@
 import type {
   IngredientStatus,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
 import type { Edge, Node } from '@xyflow/react';

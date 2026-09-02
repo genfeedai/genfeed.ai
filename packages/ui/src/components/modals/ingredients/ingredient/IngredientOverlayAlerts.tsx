@@ -3,8 +3,8 @@ import {
   ButtonSize,
   ButtonVariant,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';

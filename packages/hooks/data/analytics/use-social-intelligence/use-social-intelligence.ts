@@ -5,8 +5,8 @@ import type {
   ListeningInboxScope,
   ReviewListeningThemeState,
   SocialIntelligenceInboxState,
-} from '@genfeedai/interfaces';
-import type { IStructuredError } from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IStructuredError } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ListeningTopicsService } from '@services/social/listening-topics.service';
 import { useMutation, useQuery } from '@tanstack/react-query';

@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IMemberInvitation } from '@genfeedai/interfaces';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IMemberInvitation } from '@genfeedai/contracts/interfaces';
 import { Member } from '@genfeedai/models/organization/member.model';
 import { MemberSerializer } from '@genfeedai/serializers';
 import {

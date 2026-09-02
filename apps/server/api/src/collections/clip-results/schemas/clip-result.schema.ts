@@ -1,4 +1,4 @@
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   CLIP_RESULT_STATUSES,
   type ClipLibraryLinkStatus,
@@ -8,7 +8,7 @@ import {
   type ClipReferenceProvenance,
   type ClipResultMode,
   type ClipResultStatus as SharedClipResultStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ClipResult as PrismaClipResult } from '@genfeedai/prisma';
 
 export const ClipResultStatus = CLIP_RESULT_STATUSES;

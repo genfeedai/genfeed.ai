@@ -17,13 +17,13 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ListeningSourcePlatform } from '@genfeedai/enums';
+import { ListeningSourcePlatform } from '@genfeedai/contracts';
 import {
   type IAuthorizedListeningSource,
   type IListeningScope,
   type INormalizedListeningTopicContract,
   LISTENING_CONTRACT_VERSION,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   ConflictException,

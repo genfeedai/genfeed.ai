@@ -12,8 +12,8 @@ import type {
   AgentArtifactSerializer,
   AgentArtifactVersionPin,
   ResolvedAgentArtifactReference,
-} from '@genfeedai/interfaces';
-import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
 import type { ContentVersionPin, Prisma } from '@genfeedai/prisma';
 import {
   ArticleSerializer,

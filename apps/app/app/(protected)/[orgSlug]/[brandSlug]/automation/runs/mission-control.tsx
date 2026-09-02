@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';

@@ -1,4 +1,4 @@
-import { IngredientCategory, PageScope } from '@genfeedai/enums';
+import { IngredientCategory, PageScope } from '@genfeedai/contracts';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

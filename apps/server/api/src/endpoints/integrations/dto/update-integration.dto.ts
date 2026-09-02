@@ -1,5 +1,5 @@
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
-import { IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationStatus } from '@genfeedai/contracts';
 import { PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

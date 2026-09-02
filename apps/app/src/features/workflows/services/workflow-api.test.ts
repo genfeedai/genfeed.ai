@@ -1,4 +1,4 @@
-import { buildSystemWorkflowMetadata } from '@genfeedai/interfaces';
+import { buildSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   post: vi.fn(),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   API_ENDPOINTS: {
     WORKFLOW_EXECUTIONS: '/workflow-executions',
     WORKFLOWS: '/workflows',

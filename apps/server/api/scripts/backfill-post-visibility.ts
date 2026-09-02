@@ -11,7 +11,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,

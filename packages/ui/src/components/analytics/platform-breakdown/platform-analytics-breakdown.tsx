@@ -1,7 +1,7 @@
 'use client';
 
+import type { IPlatformStats } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { IPlatformStats } from '@genfeedai/interfaces';
 import type { PlatformAnalyticsBreakdownProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
 

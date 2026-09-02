@@ -1,13 +1,13 @@
-import type { VideoEaseCurve, VideoTransition } from '@genfeedai/enums';
+import type { VideoEaseCurve, VideoTransition } from '@genfeedai/contracts';
 import type {
   ClipReferenceFrameSet,
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   FileJobPriority as JobPriority,
   FileJobType as JobType,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 
 export interface BaseJobData {
   id: string;

@@ -6,7 +6,7 @@ import {
   ImportSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
-import { ContentSkillCategory } from '@genfeedai/enums';
+import { ContentSkillCategory } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';

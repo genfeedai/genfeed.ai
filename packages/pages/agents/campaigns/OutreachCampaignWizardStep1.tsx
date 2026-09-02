@@ -1,14 +1,14 @@
 'use client';
 
 import {
-  evaluateOutreachCapability,
-  isOutreachPairExecutable,
-} from '@api-types/contracts/outreach-capabilities.contract';
-import {
   ButtonVariant,
   CampaignPlatform,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import {
   InstagramIcon,
   RedditIcon,

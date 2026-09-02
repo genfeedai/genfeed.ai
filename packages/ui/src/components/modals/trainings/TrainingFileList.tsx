@@ -1,7 +1,7 @@
 'use client';
 
-import { UploadStatus } from '@genfeedai/enums';
-import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
+import { UploadStatus } from '@genfeedai/contracts';
+import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
 import Badge from '@ui/display/badge/Badge';
 
 type FileStatusVariant = 'success' | 'error' | 'info' | 'ghost';

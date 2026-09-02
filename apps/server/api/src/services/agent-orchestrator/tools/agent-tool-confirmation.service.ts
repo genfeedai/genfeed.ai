@@ -5,7 +5,10 @@ import {
   readPreparedCampaignTransition,
 } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import {
+  AgentToolName,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 
 export type PreparedAgentToolCall = {

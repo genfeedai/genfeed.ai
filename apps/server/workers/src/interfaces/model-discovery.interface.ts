@@ -2,7 +2,7 @@ import type {
   ModelCategory,
   ModelProvider,
   PricingType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 /**
  * Raw model data returned from Replicate API

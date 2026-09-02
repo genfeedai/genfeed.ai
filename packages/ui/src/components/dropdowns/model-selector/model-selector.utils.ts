@@ -1,16 +1,16 @@
 import {
-  COST_TIER_DISPLAY,
-  extractBrandFromKey,
-  getBrandConfig,
-} from '@genfeedai/constants';
-import {
   CostTier,
   ModelLifecycle,
   QualityTier,
   SpeedTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  COST_TIER_DISPLAY,
+  extractBrandFromKey,
+  getBrandConfig,
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import type { IModel } from '@genfeedai/interfaces';
 import type {
   ModelSelectorCapability,
   ModelSelectorOption,

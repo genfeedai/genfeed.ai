@@ -1,6 +1,7 @@
 'use client';
 
-import { IngredientCategory, MediaType } from '@genfeedai/enums';
+import { IngredientCategory, MediaType } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   UpscaleConfirmData,
@@ -10,7 +11,6 @@ import type {
   VideoExtendConfirmData,
   VideoExtendSelection,
 } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type { IIngredient } from '@genfeedai/interfaces';
 import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import VideoExtendConfirmControls, {
   getDefaultVideoExtendSelection,

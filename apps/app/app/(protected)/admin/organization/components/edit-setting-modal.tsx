@@ -2,7 +2,7 @@
 
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';

@@ -2,7 +2,7 @@ import {
   ButtonSize,
   ButtonVariant,
   type DropdownDirection,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
 export { ButtonSize, ButtonVariant };

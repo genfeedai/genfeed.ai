@@ -1,7 +1,7 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { CardVariant } from '@genfeedai/enums';
+import { CardVariant } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IAnalytics } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';

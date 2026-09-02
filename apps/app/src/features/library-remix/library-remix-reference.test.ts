@@ -1,4 +1,4 @@
-import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/interfaces';
+import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildLibraryArtifactReference,

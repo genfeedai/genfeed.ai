@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TEST_ID_LENGTH, testId, testIds } from './test-id.helper';
 
-// Mirrors the Prisma `cuid()` shape accepted by `isEntityId` in @genfeedai/api-types.
+// Mirrors the Prisma `cuid()` shape accepted by `isEntityId` in @genfeedai/contracts/api-types.
 const PRISMA_CUID_PATTERN = /^c[a-z0-9]{24}$/;
 
 function shannonEntropyBitsPerChar(value: string): number {

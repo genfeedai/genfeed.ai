@@ -3,8 +3,8 @@ import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
 } from '@genfeedai/actions';
-import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { ApiKeyScope, TargetExecutionState } from '@genfeedai/contracts';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { ForbiddenException } from '@nestjs/common';
 
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';

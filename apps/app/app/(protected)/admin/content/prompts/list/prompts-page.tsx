@@ -1,7 +1,11 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatEnumLabel,
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Prompt } from '@models/content/prompt.model';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TagBadgeProps } from '@genfeedai/props/tags/tag-badge.props';
 import { Button } from '@ui/primitives/button';

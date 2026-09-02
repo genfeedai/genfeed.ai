@@ -1,7 +1,7 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 
 type TagCellProps = {

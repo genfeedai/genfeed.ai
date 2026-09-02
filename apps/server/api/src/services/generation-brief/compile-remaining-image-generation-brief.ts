@@ -13,15 +13,15 @@ import type {
   RemainingImageFamilyDispatchSpec,
   RemainingImageGenerationBriefFamily,
 } from '@api/services/generation-brief/remaining-image-generation-brief-families';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
   RemainingImageDispatch,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { remainingImageDispatchSchema } from '@api-types/contracts/generation-brief-compiler.contract';
-import type { RemainingImageCapabilityProfile } from '@api-types/contracts/generation-capability-profile-remaining.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { remainingImageDispatchSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { RemainingImageCapabilityProfile } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile-remaining.contract';
 
 export interface CompileRemainingImageGenerationBriefInput {
   brief: ImageGenerationBrief;

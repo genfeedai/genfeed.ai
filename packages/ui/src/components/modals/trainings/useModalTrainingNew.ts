@@ -5,21 +5,21 @@ import {
   ModalEnum,
   TrainingCategory,
   UploadStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  IHttpInterceptorError,
+  IUploadProgressData,
+} from '@genfeedai/contracts/interfaces';
+import type { FileUploadStatus } from '@genfeedai/contracts/interfaces/modals/file-upload-status.interface';
+import type {
+  ModalTrainingNewProps,
+  TrainingStatusUpdate,
+} from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type {
-  IHttpInterceptorError,
-  IUploadProgressData,
-} from '@genfeedai/interfaces';
-import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
-import type {
-  ModalTrainingNewProps,
-  TrainingStatusUpdate,
-} from '@genfeedai/interfaces/training/modal-training-new.interface';
 import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';

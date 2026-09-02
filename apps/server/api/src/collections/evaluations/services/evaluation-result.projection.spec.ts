@@ -1,5 +1,5 @@
 import { EvaluationResultProjection } from '@api/collections/evaluations/services/evaluation-result.projection';
-import { Status } from '@genfeedai/enums';
+import { Status } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 const projection = new EvaluationResultProjection();

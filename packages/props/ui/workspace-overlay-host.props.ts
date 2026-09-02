@@ -2,7 +2,7 @@ import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRegistration,
   WorkspaceShellOverlayRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ReactNode, Ref, RefObject } from 'react';
 
 export interface WorkspaceOverlayHostProps {

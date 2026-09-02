@@ -1,11 +1,11 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
-import type { ChannelTargetSettings } from '@genfeedai/api-types/contracts';
 import {
   CredentialPlatform,
   PostCategory,
   type PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import type { Organization } from '@genfeedai/prisma';
 
 type PublisherRecordId = { toString(): string } | string;

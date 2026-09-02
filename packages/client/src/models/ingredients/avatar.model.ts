@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { IAvatar, IVoice } from '@genfeedai/interfaces';
+import type { IAvatar, IVoice } from '@genfeedai/contracts/interfaces';
 
 export class Avatar extends Ingredient implements IAvatar {
   public declare voice?: IVoice;

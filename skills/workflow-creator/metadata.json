@@ -14,8 +14,8 @@
     "workflow for creating"
   ],
   "references": {
-    "nodeTypes": "packages/types/src/nodes.ts",
-    "workflowSchema": "packages/types/src/workflow.ts",
+    "nodeTypes": "packages/contracts/src/types/nodes.ts",
+    "workflowSchema": "packages/contracts/src/types/workflow.ts",
     "sdkBuilder": "packages/sdk/src/node-builder.ts"
   },
   "outputs": ["json"],

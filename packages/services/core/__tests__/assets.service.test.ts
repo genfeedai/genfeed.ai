@@ -8,7 +8,7 @@ vi.mock('@genfeedai/serializers', () => ({
   AssetSerializer: { deserialize: vi.fn((d) => d), serialize: vi.fn((d) => d) },
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   API_ENDPOINTS: { ASSETS: 'assets' },
 }));
 

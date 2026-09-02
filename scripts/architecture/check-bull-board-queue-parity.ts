@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ALL_QUEUE_NAMES } from '../../packages/queue-contracts/src/queue-names.constant';
+import { ALL_QUEUE_NAMES } from '../../packages/contracts/src/queue/queue-names.constant';
 
 const DEFAULT_CONFIG_PATH =
   'apps/server/api/src/config/bull-board-queue-names.ts';

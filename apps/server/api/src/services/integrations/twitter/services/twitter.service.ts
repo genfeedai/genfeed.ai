@@ -9,17 +9,17 @@ import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
-import type { ChannelTargetSettings } from '@genfeedai/api-types/contracts';
 import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import {
   buildGrantedScopesCredentialPatch,
   SocialUrlHelper,
 } from '@genfeedai/helpers';
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

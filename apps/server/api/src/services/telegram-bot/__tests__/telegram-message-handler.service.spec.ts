@@ -8,7 +8,7 @@ import type {
 import { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import { TelegramMessageHandlerService } from '@api/services/telegram-bot/telegram-message-handler.service';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

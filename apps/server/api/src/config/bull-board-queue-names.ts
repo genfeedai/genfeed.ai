@@ -1,4 +1,4 @@
-import { ALL_QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { ALL_QUEUE_NAMES } from '@genfeedai/contracts/queue';
 
 /** Service-local queues that have not moved into the API/workers contract. */
 export const BULL_BOARD_AUXILIARY_QUEUE_NAMES = [

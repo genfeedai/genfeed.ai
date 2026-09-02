@@ -1,4 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { IPublisher } from './interfaces/publisher.interface';
 
 /** API-owned publisher registry consumed by server runtimes. */

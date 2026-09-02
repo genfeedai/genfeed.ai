@@ -1,6 +1,6 @@
-import type { AppContext } from '@genfeedai/interfaces';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/interfaces/ui/workspace-shell.interface';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import type { ComponentType, ReactNode } from 'react';
 

@@ -1,4 +1,4 @@
-import { PUBLIC_YOUTUBE_LONG_FORM_OUTPUT_TYPES } from '@genfeedai/interfaces';
+import { PUBLIC_YOUTUBE_LONG_FORM_OUTPUT_TYPES } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsString, IsUrl, MaxLength } from 'class-validator';
 

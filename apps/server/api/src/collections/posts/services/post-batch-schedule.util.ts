@@ -7,7 +7,7 @@ import { scopedWhere } from '@api/index';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
+import { PostCategory, TargetExecutionState } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 

@@ -10,7 +10,7 @@ import {
   ModelCategory,
   PromptTemplateKey,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

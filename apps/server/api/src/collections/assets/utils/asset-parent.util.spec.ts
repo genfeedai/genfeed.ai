@@ -3,7 +3,7 @@ import {
   getAssetParentId,
   getAssetParentIdField,
 } from '@api/collections/assets/utils/asset-parent.util';
-import { AssetParent } from '@genfeedai/enums';
+import { AssetParent } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('asset-parent.util', () => {

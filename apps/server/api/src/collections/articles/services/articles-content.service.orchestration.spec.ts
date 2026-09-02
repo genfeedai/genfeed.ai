@@ -21,8 +21,8 @@ import {
   ArticleStatus,
   PromptTemplateKey,
   SystemPromptKey,
-} from '@genfeedai/enums';
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

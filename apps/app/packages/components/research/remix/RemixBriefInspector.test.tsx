@@ -1,5 +1,5 @@
-import type { BrandRemixRunView } from '@api-types/contracts';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

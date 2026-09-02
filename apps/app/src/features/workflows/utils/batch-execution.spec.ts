@@ -2,7 +2,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
 import {
   toBatchExecution,

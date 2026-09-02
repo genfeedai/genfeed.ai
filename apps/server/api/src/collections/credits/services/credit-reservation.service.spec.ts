@@ -5,7 +5,7 @@ import { BusinessLogicException } from '@api/exceptions/business-logic.exception
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditReservationStatus } from '@genfeedai/enums';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {

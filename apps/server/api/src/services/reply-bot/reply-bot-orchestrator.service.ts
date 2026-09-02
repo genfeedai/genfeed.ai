@@ -48,8 +48,8 @@ import {
   ReplyLength,
   ReplyTone,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

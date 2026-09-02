@@ -1,4 +1,4 @@
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { describe, expect, it, vi } from 'vitest';

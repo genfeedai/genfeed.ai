@@ -25,7 +25,7 @@ import {
   CampaignPlatform,
   CampaignTargetType,
   ReplyBotPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

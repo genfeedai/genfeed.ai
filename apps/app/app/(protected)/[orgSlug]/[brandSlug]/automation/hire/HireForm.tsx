@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   CONTENT_TEAM_ROLE_PRESETS,
   type ContentTeamRolePreset,

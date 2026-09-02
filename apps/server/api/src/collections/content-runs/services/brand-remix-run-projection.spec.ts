@@ -8,8 +8,8 @@ import type {
   BrandRemixRunRecord,
   ResolvedBrandContext,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 

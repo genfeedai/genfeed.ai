@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
 import MergeProgressPanel from '@pages/studio/storyboard/components/MergeProgressPanel';
 import MergeSettingsPanel from '@pages/studio/storyboard/components/MergeSettingsPanel';

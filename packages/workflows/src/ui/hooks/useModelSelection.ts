@@ -1,4 +1,7 @@
-import type { ProviderModel, WorkflowNodeData } from '@genfeedai/types';
+import type {
+  ProviderModel,
+  WorkflowNodeData,
+} from '@genfeedai/contracts/types';
 import { useCallback } from 'react';
 import { getSchemaDefaults } from '../lib/schemaUtils';
 import { useWorkflowStore } from '../stores/workflow';

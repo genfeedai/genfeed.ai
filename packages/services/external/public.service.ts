@@ -1,4 +1,4 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type {
   IBrandOsPreview,
   IBrandOsPreviewRequest,
@@ -6,7 +6,7 @@ import type {
   IPublicYoutubeLongFormToolResult,
   IQueryParams,
   PublicYoutubeLongFormOutputType,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Post } from '@genfeedai/models/content/post.model';

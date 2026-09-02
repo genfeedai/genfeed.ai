@@ -1,5 +1,5 @@
-import { PUBLISHING_POSTS_QUERY_KEYS } from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
+import { PUBLISHING_POSTS_QUERY_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   applyRailSegment,

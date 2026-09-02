@@ -1,25 +1,25 @@
 import { restoreApprovalProvenance } from '@api/publish-approvals/publish-approval-action-origin';
 import {
+  CredentialPlatform,
+  PostStatus,
+  PublishApprovalStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import {
   type CreatePublishApprovalInput,
   createPublishApprovalSchema,
   publishApprovalDestinationSchema,
   publishApprovalPolicySchema,
   publishApprovalStatusSchema,
   publishScheduleIntentSchema,
-} from '@genfeedai/api-types/contracts';
-import {
-  CredentialPlatform,
-  PostStatus,
-  PublishApprovalStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   IPublishApproval,
   IPublishApprovalDestination,
   IPublishApprovalPolicy,
   IPublishApprovalStatusTransition,
   IPublishScheduleIntent,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 

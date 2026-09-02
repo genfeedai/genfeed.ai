@@ -5,7 +5,7 @@ import type {
   ICommandPaletteContext,
   ICommandPaletteProviderProps,
   ICommandPaletteState,
-} from '@genfeedai/interfaces/ui/command-palette.interface';
+} from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';

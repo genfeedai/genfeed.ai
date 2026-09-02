@@ -1,6 +1,6 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import { isSourcePostVariationPlatform, Platform } from '@genfeedai/enums';
-import type { IClipDraftHandoff } from '@genfeedai/interfaces';
+import { isSourcePostVariationPlatform, Platform } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IClipDraftHandoff } from '@genfeedai/contracts/interfaces';
 import type {
   TrendItem,
   TrendSourceItem,

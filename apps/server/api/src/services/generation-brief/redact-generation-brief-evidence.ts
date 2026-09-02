@@ -1,7 +1,7 @@
-import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
-import { generationBriefPersistedEvidenceSchema } from '@api-types/contracts/generation-brief-compiler.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { videoGenerationBriefPersistedEvidenceSchema } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { generationBriefPersistedEvidenceSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { videoGenerationBriefPersistedEvidenceSchema } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 
 const FORBIDDEN_EVIDENCE_KEYS = new Set([
   'apiKey',

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const CONTENT_DIGEST_PREFIX = 'sha256:v1:';
 const IDEMPOTENCY_KEY_PREFIX = 'content-version-pin:v1:';

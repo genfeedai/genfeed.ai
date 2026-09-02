@@ -1,5 +1,5 @@
 import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import {
   createCacheKey,

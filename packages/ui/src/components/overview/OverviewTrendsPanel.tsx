@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';

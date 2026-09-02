@@ -9,8 +9,8 @@ import {
   type CredentialPlatform,
   IngredientCategory,
   type Platform,
-} from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';

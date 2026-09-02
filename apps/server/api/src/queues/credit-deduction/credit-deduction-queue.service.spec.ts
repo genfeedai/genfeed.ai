@@ -1,6 +1,6 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import { ActivitySource } from '@genfeedai/enums';
-import type { CreditDeductionJobData } from '@genfeedai/queue-contracts';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Queue } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

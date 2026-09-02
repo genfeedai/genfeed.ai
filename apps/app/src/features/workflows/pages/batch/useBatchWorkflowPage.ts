@@ -3,8 +3,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';

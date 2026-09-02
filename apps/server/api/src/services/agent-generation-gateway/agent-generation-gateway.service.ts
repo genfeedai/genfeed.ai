@@ -40,18 +40,18 @@ import type {
   IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
   MemberRole,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiResult,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   ArticleSerializer,
   IngredientSerializer,

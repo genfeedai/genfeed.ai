@@ -1,4 +1,7 @@
-import type { IIngredient, PostQuickActionKey } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  PostQuickActionKey,
+} from '@genfeedai/contracts/interfaces';
 
 export type TweetTone =
   | 'professional'

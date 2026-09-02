@@ -2,7 +2,7 @@
 
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PlatformPreview, {
   type PlatformPreviewThreadSegment,

@@ -1,4 +1,4 @@
-import type { IPaginationParams } from '@genfeedai/interfaces';
+import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
 import {
   getDeserializer,
   isDeserializerRuntime,

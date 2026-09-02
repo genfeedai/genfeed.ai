@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, type Platform } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, type Platform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { Button } from '@ui/primitives/button';
 import { ExternalLink } from 'lucide-react';

@@ -9,7 +9,8 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
 
-const MARKETPLACE_CONTRACT_DIR = 'packages/interfaces/src/marketplace';
+const MARKETPLACE_CONTRACT_DIR =
+  'packages/contracts/src/interfaces/marketplace';
 
 const ALLOWED_MARKETPLACE_CONTRACT_FILES = new Set([
   `${MARKETPLACE_CONTRACT_DIR}/checkout.interface.ts`,

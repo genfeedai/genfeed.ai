@@ -1,7 +1,10 @@
 'use client';
 
-import type { VideoQaFailure, VideoQaNodeData } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type {
+  VideoQaFailure,
+  VideoQaNodeData,
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { LoaderCircle, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';

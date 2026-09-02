@@ -1,4 +1,4 @@
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';

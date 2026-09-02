@@ -1,4 +1,4 @@
-import { ModelCategory, RouterPriority } from '@genfeedai/enums';
+import { ModelCategory, RouterPriority } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

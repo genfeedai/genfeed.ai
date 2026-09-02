@@ -11,7 +11,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
+import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,

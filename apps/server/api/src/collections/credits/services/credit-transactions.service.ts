@@ -6,7 +6,7 @@ import { BusinessLogicException } from '@api/exceptions/business-logic.exception
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { CreditTransactionCategory } from '@genfeedai/enums';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

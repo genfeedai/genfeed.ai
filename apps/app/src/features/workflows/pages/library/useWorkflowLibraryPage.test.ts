@@ -1,5 +1,5 @@
-import { WorkflowLifecycle } from '@genfeedai/enums';
-import { buildSystemWorkflowMetadata } from '@genfeedai/interfaces';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
+import { buildSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';

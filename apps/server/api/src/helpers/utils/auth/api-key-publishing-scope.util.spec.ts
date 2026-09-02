@@ -2,7 +2,7 @@ import {
   assertApiKeyPublishingScope,
   isPublishingMcpApprovalTool,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 describe('API key publishing scope policy', () => {

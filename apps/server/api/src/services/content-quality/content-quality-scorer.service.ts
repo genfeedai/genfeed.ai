@@ -6,8 +6,8 @@ import type {
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { QualityStatus } from '@genfeedai/enums';
+import { QualityStatus } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

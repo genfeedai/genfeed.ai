@@ -4,8 +4,8 @@ import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generat
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
 import { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';
-import { imageGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 /**

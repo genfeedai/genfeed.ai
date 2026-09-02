@@ -18,7 +18,7 @@ import type {
   ContentRunAnalyticsSummary,
   ContentRunRecommendation,
   ContentRunVariant,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

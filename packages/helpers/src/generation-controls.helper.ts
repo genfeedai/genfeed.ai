@@ -1,9 +1,9 @@
+import { IngredientFormat, type ModelCategory } from '@genfeedai/contracts';
 import {
   getModelDefaultDuration,
   getModelDurations,
-} from '@genfeedai/constants';
-import { IngredientFormat, type ModelCategory } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 import {
   getAspectRatiosFromModel,

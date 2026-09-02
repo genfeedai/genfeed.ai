@@ -11,7 +11,7 @@ import {
   CredentialPlatform,
   ModalEnum,
   PostFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';

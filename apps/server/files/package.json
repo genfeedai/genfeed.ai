@@ -2,11 +2,7 @@
   "dependencies": {
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/storage": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@remotion/bundler": "4.0.518",
@@ -16,7 +12,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "remotion": "4.0.518",
-    "tsconfig-paths": "4.2.0"
+    "tsconfig-paths": "4.2.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Files Service",
   "devDependencies": {

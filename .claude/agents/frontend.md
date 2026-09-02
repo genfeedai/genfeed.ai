@@ -127,9 +127,9 @@ useEffect(() => {
 @ui/*            -> packages/ui/src
 @ui/primitives/* -> packages/ui/src/primitives/*
 @helpers/*       -> packages/helpers/src
-@constants/*     -> packages/constants/src
-@enums/*         -> packages/enums/src
-@interfaces/*    -> packages/interfaces/src
+@constants/*     -> packages/contracts/src/constants
+@enums/*         -> packages/contracts/src/enums
+@interfaces/*    -> packages/contracts/src/interfaces
 @props/*         -> packages/props/src
 ```
 

@@ -1,4 +1,4 @@
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 
 /** ClipRunStep — one step in the clip run lifecycle */
 export interface ClipRunStep {

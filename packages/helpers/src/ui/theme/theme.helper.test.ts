@@ -8,7 +8,7 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   DEFAULT_THEME: 'system',
   isThemePreference: (value: unknown) =>
     value === 'system' || value === 'light' || value === 'dark',

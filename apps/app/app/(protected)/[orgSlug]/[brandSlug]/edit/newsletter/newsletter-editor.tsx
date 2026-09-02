@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { NewsletterEditorProps } from '@props/content/artifact-editor.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

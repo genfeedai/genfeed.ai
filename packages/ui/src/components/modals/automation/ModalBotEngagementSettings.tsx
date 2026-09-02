@@ -1,5 +1,5 @@
-import { EngagementAction } from '@genfeedai/enums';
-import type { IEngagementBotSettings } from '@genfeedai/interfaces';
+import { EngagementAction } from '@genfeedai/contracts';
+import type { IEngagementBotSettings } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';

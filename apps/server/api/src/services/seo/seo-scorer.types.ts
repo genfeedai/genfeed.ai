@@ -1,7 +1,7 @@
 /**
  * SEO scorer types for the API.
  *
- * The core scorecard contract is canonical in `@genfeedai/interfaces`
+ * The core scorecard contract is canonical in `@genfeedai/contracts/interfaces`
  * (`content/seo-scorecard.interface.ts`) and re-exported here so the scorer
  * service/util keep a single local import surface. Only the API-internal
  * scoring types (input shape, LLM sub-scores, options) are defined here.
@@ -14,11 +14,11 @@ export type {
   SeoRating,
   SeoScorecard,
   SeoScorecardMeta,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 export {
   SEO_DIMENSION_MAX,
   SEO_DIMENSIONS,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Normalised, source-agnostic content the scorer operates on. Decoupled from

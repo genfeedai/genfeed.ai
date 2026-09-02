@@ -2,9 +2,9 @@ import type {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
-import { CampaignTargetType } from '@genfeedai/enums';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts';
+import { CampaignTargetType } from '@genfeedai/contracts';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,

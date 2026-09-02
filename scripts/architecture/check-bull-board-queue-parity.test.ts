@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { runCheckBullBoardQueueParity } from './check-bull-board-queue-parity';
 
 const canonicalConfig = `
-  import { ALL_QUEUE_NAMES } from '@genfeedai/queue-contracts';
+  import { ALL_QUEUE_NAMES } from '@genfeedai/contracts/queue';
   export const BULL_BOARD_AUXILIARY_QUEUE_NAMES = ['file-processing'] as const;
   export const BULL_BOARD_QUEUE_NAMES = [
     ...ALL_QUEUE_NAMES,

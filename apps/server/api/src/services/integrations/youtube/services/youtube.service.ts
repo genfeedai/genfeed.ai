@@ -4,7 +4,7 @@ import {
   type YoutubeUploadPostInput,
 } from '@api/server.dependencies';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
-import type { ChannelTargetSettings } from '@genfeedai/api-types/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';

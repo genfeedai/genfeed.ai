@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementMood } from '@genfeedai/models/elements/mood.model';
 import { MoodSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

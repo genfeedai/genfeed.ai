@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IRssSource } from '@genfeedai/interfaces';
+import type { IRssSource } from '@genfeedai/contracts/interfaces';
 
 export class RssSource extends BaseEntity implements IRssSource {
   public declare approvalMode: IRssSource['approvalMode'];

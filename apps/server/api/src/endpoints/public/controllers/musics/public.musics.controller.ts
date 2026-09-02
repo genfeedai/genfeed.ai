@@ -16,11 +16,11 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';

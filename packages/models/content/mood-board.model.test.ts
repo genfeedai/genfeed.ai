@@ -13,7 +13,7 @@ vi.mock('@genfeedai/client/models', () => ({
   },
 }));
 
-vi.mock('@genfeedai/interfaces', () => ({}));
+vi.mock('@genfeedai/contracts/interfaces', () => ({}));
 
 import { MoodBoard } from './mood-board.model';
 

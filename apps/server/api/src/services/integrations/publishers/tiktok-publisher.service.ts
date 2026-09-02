@@ -8,7 +8,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TIKTOK_APP_HANDOFF_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

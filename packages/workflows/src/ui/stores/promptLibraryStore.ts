@@ -3,7 +3,7 @@ import type {
   IPrompt,
   IQueryPrompts,
   PromptCategory,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { create } from 'zustand';
 import type { PromptLibraryService } from '../provider/types';
 

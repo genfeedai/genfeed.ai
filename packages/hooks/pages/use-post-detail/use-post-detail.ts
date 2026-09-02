@@ -1,13 +1,13 @@
 'use client';
 
-import type { PageScope, Platform } from '@genfeedai/enums';
+import type { PageScope, Platform } from '@genfeedai/contracts';
 import type {
   ICredential,
   IIngredient,
   IPost,
   PostQuickActionKey,
-} from '@genfeedai/interfaces';
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';

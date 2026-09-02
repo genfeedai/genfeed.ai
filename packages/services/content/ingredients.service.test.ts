@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';

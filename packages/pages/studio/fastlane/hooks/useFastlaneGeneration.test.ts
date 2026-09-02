@@ -1,4 +1,4 @@
-import type { FastlaneIdea } from '@genfeedai/interfaces';
+import type { FastlaneIdea } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

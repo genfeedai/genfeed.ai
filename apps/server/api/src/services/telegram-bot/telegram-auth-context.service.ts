@@ -6,7 +6,7 @@
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { ChatAuthContext } from '@api/services/telegram-bot/telegram-bot.types';
 import { extractCommandArgs } from '@api/services/telegram-bot/telegram-command-args.util';
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode } from '@genfeedai/contracts';
 import type { Context } from 'grammy';
 
 export class TelegramAuthContextService {

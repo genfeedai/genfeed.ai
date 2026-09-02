@@ -1,13 +1,13 @@
 /**
  * BatchStatus domain values must match Prisma/Postgres labels (SCREAMING_SNAKE).
  *
- * This mapper always emits literal Postgres labels so a stale `@genfeedai/enums`
+ * This mapper always emits literal Postgres labels so a stale `@genfeedai/contracts`
  * dist (lowercase `pending` / `generating`) cannot write invalid enum values.
  *
- * @see packages/enums/src/batch.enum.ts
+ * @see packages/contracts/src/enums/batch.enum.ts
  * @see packages/prisma/prisma/schema.prisma `enum BatchStatus`
  */
-import { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/contracts';
 import { BatchStatus as PrismaBatchStatus } from '@genfeedai/prisma';
 
 /** Postgres `BatchStatus` labels — never derived from a possibly-stale domain enum. */

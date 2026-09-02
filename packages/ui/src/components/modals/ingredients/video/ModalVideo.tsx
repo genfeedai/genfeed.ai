@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   ComponentSize,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ModalVideoProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Masonry from '@ui/display/masonry/Masonry';

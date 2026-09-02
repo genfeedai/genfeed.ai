@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IByokProviderStatus } from '@genfeedai/contracts/interfaces';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';

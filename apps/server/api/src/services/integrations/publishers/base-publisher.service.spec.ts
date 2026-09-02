@@ -16,7 +16,7 @@ import {
   CredentialPlatform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Mocked } from 'vitest';
 import { BasePublisherService } from './base-publisher.service';

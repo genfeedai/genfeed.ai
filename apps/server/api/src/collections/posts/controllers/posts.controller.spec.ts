@@ -10,7 +10,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
 const makeUser = (overrides: Partial<User> = {}): User =>

@@ -1,9 +1,3 @@
-import {
-  PostVisibility,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { PostLifecycleService } from '@api/index';
 import type {
   SchedulerPostTarget,
   SchedulerTx,
@@ -18,7 +12,13 @@ import {
 } from '@api/collections/post-groups/services/post-group-target.operations';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import type { PostLifecycleService } from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  PostVisibility,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 
 describe('applyReleaseTargetUpdates', () => {
   const contractService = new PostGroupContractService();

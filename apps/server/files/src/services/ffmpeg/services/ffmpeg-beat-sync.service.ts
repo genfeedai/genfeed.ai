@@ -4,7 +4,10 @@ import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegMergeService } from '@files/services/ffmpeg/services/ffmpeg-merge.service';
 import { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { BeatSyncCutStrategy, BeatSyncTransitionType } from '@genfeedai/enums';
+import {
+  BeatSyncCutStrategy,
+  BeatSyncTransitionType,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

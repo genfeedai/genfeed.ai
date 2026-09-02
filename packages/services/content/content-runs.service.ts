@@ -1,3 +1,4 @@
+import type { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixRunView,
   brandRemixRunViewSchema,
@@ -6,15 +7,14 @@ import {
   type ReviseBrandRemixRun,
   type StartBrandRemixRun,
   type SubmitBrandRemixRunForReview,
-} from '@api-types/contracts';
-import type { ContentRunStatus } from '@genfeedai/enums';
-import type { ContentRunBrief } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts';
+import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunPublishContext,
   ContentRunRecommendation,
   ContentRunVariant,
-} from '@genfeedai/interfaces/content/content-run.interface';
+} from '@genfeedai/contracts/interfaces/content/content-run.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

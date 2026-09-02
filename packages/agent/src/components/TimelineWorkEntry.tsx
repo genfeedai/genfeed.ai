@@ -7,7 +7,7 @@ import {
 import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-error.util';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { memo, type ReactElement, useState } from 'react';
 

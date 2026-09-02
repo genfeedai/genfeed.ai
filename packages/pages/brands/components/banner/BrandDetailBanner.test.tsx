@@ -1,4 +1,4 @@
-import type { IBrand } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

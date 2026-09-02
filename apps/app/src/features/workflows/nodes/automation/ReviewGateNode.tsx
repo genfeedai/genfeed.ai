@@ -4,7 +4,7 @@ import {
   NotificationChannel,
   ReviewGateStatus,
   WorkflowNodeStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

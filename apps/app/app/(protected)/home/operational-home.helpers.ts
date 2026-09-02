@@ -2,17 +2,17 @@ import {
   getBrandOrganizationId,
   getBrandOrganizationSlug,
 } from '@contexts/user/brand-context/brand-context.helpers';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
-} from '@genfeedai/constants';
-import { TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   IBrand,
   ICredential,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 
 interface ConnectGenfeedMetadata {

@@ -3,7 +3,7 @@
 import type {
   ICreateHarnessProfilePayload,
   IHarnessProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Label } from '@ui/primitives/label';
 import { Textarea } from '@ui/primitives/textarea';

@@ -1,7 +1,7 @@
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export function toCredentialPlatform(platform: unknown): CredentialPlatform {

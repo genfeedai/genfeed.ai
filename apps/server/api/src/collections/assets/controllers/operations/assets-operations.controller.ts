@@ -24,16 +24,16 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
-  CLOUD_QUALITY_IMAGE_MODEL_KEY,
-  LOWEST_COST_IMAGE_MODEL_KEY,
-} from '@genfeedai/constants';
-import {
   ActivitySource,
   AssetCategory,
   AssetParent,
   ModelCategory,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  CLOUD_QUALITY_IMAGE_MODEL_KEY,
+  LOWEST_COST_IMAGE_MODEL_KEY,
+} from '@genfeedai/contracts/constants';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

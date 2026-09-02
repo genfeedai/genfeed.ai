@@ -2,13 +2,13 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { PublishApprovalsService } from '@api/index';
-import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   PostCategory,
   type PostFrequency,
   TargetExecutionState,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

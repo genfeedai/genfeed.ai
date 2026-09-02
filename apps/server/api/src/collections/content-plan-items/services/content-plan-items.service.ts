@@ -12,7 +12,7 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentPlanItemStatus } from '@genfeedai/enums';
+import { ContentPlanItemStatus } from '@genfeedai/contracts';
 import {
   type ContentPlanItem as PrismaContentPlanItem,
   toPrismaJson,

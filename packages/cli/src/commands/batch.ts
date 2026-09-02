@@ -1,4 +1,4 @@
-import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
+import { BatchItemStatus, BatchStatus } from '@genfeedai/contracts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';

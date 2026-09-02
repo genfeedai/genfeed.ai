@@ -10,19 +10,19 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
-import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
-import { resolveSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
+import {
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { resolveSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import {
   evaluateSocialWarmupJourney,
   SOCIAL_WARMUP_TELEMETRY_EVENT,
   type SocialWarmupJourneyEvaluation,
   sanitizeSocialWarmupTelemetry,
-} from '@api-types/contracts/social-warmup-journey.contract';
-import {
-  CredentialPlatform,
-  fromPrismaCredentialPlatform,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
 import type {
   AccountHealthOverride,
   AccountHealthReconnect,
@@ -33,7 +33,7 @@ import type {
   AccountWarmupState,
   AssessAccountHealthRequest,
   ManualAccountHealthOverrideRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';

@@ -4,7 +4,7 @@
  * than hardcoding route-root string literals.
  *
  * The canonical route constants live in
- * `packages/constants/src/routes.constant.ts`. Restating a route as an inline
+ * `packages/contracts/src/constants/routes.constant.ts`. Restating a route as an inline
  * string (`href="/settings/api-keys"`, `push('/workspace/inbox/unread')`) means a
  * later route rename updates the constant but silently leaves the literal behind.
  *
@@ -32,7 +32,7 @@ import { globSync } from 'glob';
 import {
   APP_ROUTES,
   LEGACY_APP_ROUTES,
-} from '../packages/constants/src/routes.constant';
+} from '../packages/contracts/src/constants/routes.constant';
 
 const logger = {
   error: (message: string) =>
@@ -69,7 +69,7 @@ const EXCLUDE_GLOBS = [
 
 /**
  * Top-level route roots that have `APP_ROUTES.*` constants. Keep in sync with the
- * keys of `APP_ROUTES` in `packages/constants/src/routes.constant.ts`.
+ * keys of `APP_ROUTES` in `packages/contracts/src/constants/routes.constant.ts`.
  */
 const ROUTE_ROOTS = [
   'admin',
@@ -334,7 +334,7 @@ if (isMainModule()) {
     logger.error(
       'Hardcoded route-root literals found in navigation sinks. Use APP_ROUTES.*' +
         ' constants, or createBrandAppRoute / createOrganizationAppRoute for' +
-        ' org/brand-scoped links (both from @genfeedai/constants). Playwright' +
+        ' org/brand-scoped links (both from @genfeedai/contracts/constants). Playwright' +
         ' navigation calls must use the same route contract.',
     );
     for (const violation of violations) {

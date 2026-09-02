@@ -11,12 +11,12 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalsSnapshot,
   twitterAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/twitter-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

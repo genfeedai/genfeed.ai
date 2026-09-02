@@ -16,7 +16,7 @@ import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { FileInputType, ReferenceImageCategory } from '@genfeedai/enums';
+import { FileInputType, ReferenceImageCategory } from '@genfeedai/contracts';
 import type {
   BrandKitAssetRole,
   IBrandKitAssetImportCandidate,
@@ -26,7 +26,7 @@ import type {
   IBrandKitDiagnostic,
   IBrandKitResolvedAsset,
   IBrandKitResolvedAssets,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';

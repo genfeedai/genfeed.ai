@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonVariant, PageScope } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ButtonVariant, PageScope } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { TableAction } from '@props/ui/display/table.props';
 import { EmptyState } from '@ui/card/EmptyState';
 import AppTable from '@ui/display/table/Table';

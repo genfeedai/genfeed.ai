@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 
 export interface SavedVoiceMaterializationCandidate {
   externalVoiceId?: string | null;

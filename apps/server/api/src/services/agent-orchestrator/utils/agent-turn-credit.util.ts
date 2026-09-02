@@ -1,7 +1,7 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { ActivitySource } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /**
  * Credits burned by one LLM round, charged against the model that actually

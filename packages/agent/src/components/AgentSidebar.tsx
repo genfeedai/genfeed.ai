@@ -2,7 +2,7 @@ import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContain
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 

@@ -1,10 +1,10 @@
-import { ReferenceImageCategory } from '@genfeedai/enums';
+import { ReferenceImageCategory } from '@genfeedai/contracts';
 import type {
   BrandKitAssetRole,
   BrandKitSourceType,
   IBrandKitAssetImportCandidate,
   IBrandKitAssetImportRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

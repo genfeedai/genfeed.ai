@@ -1,4 +1,7 @@
-import { isThemePreference, type ThemePreference } from '@genfeedai/constants';
+import {
+  isThemePreference,
+  type ThemePreference,
+} from '@genfeedai/contracts/constants';
 import {
   Select,
   SelectContent,

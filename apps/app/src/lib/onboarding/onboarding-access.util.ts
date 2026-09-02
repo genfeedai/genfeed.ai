@@ -1,10 +1,10 @@
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import { extractBrandDomain } from '@genfeedai/helpers';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import type {
   DashboardPreferences,
   ISetting,
   OnboardingAccessMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { extractBrandDomain } from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';

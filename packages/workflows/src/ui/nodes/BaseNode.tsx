@@ -8,8 +8,8 @@ import type {
   VisualHandleDefinition,
   VisualNodeDefinition,
   WorkflowNodeData,
-} from '@genfeedai/types';
-import { NODE_DEFINITIONS, NodeStatusEnum } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS, NodeStatusEnum } from '@genfeedai/contracts/types';
 import {
   Handle,
   type NodeProps,

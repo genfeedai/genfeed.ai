@@ -1,10 +1,10 @@
-import type { LibraryViewMode } from '@genfeedai/constants';
 import type {
   IngredientCategory,
   LibraryPlace,
   LibraryShelf,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { LibraryViewMode } from '@genfeedai/contracts/constants';
 import type { ReactNode } from 'react';
 
 /**

@@ -2,7 +2,7 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IIngredient,
   IOrganization,
@@ -10,7 +10,7 @@ import type {
   IPrompt,
   ISetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

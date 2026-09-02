@@ -12,7 +12,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
   AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

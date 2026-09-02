@@ -1,10 +1,10 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IBulkDeleteRequest,
   IBulkDeleteResult,
   IIngredient,
   IPost,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { GIF } from '@genfeedai/models/ingredients/gif.model';

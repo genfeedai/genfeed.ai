@@ -5,7 +5,7 @@ import {
   LibraryShelf,
   parseLibraryShelf,
   QualityStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 /**
  * Statuses an asset can hold and still belong in the Library's default

@@ -8,7 +8,7 @@ import type {
   WorkflowFile,
   WorkflowNode,
   WorkflowNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type {
   Connection,
   EdgeChange,

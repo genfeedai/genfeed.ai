@@ -1,6 +1,6 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -13,7 +13,7 @@ const {
   mockGetSubscriptionTier: vi.fn(),
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   SubscriptionStatus: {
     ACTIVE: 'ACTIVE',
     CANCELLED: 'CANCELLED',

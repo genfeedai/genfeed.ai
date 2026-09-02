@@ -3,7 +3,7 @@ import type {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Activity } from '@genfeedai/prisma';
 
 export type { Activity } from '@genfeedai/prisma';

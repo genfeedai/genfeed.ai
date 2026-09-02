@@ -4,8 +4,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
-import type { IResizeBodyParams } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 

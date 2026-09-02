@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IBrand } from '@genfeedai/interfaces';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 
 const agentStrategySerializer: IServiceSerializer<AgentStrategy> = {

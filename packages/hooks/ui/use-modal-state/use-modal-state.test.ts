@@ -1,4 +1,4 @@
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { useModalState } from '@hooks/ui/use-modal-state/use-modal-state';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

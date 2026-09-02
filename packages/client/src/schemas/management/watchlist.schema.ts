@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const watchlistSchema = z.object({

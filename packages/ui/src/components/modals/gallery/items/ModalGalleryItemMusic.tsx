@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { formatDuration } from '@genfeedai/helpers';
-import type { IMetadata } from '@genfeedai/interfaces';
 import type { ModalGalleryItemMusicProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';

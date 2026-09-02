@@ -10,13 +10,13 @@ import {
   ReferralClaimStatus,
   ReferralRewardStatus,
   ReferralStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IReferralAdminReward,
   IReferralClaimResult,
   IReferralProgram,
   IReferralReward,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';

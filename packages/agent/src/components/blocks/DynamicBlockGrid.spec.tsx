@@ -1,5 +1,5 @@
 import DynamicBlockGrid from '@genfeedai/agent/components/blocks/DynamicBlockGrid';
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

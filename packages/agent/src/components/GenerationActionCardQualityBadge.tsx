@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';

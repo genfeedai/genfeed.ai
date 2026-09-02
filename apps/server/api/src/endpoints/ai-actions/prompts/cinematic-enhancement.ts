@@ -3,7 +3,7 @@ import {
   type CinematicLexiconCategory,
   type CinematicTechnique,
 } from '@api/endpoints/ai-actions/prompts/cinematic-lexicon';
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 
 export const ENHANCE_PROMPT_BASE = `You are an expert at writing prompts for AI image and video generation models. Enhance the user's prompt to be more detailed, descriptive, and effective for AI generation. Add specific details about lighting, composition, style, mood, and technical aspects. Return ONLY the enhanced prompt text, nothing else.`;
 

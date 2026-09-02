@@ -4,8 +4,8 @@ import {
   ButtonSize,
   ButtonVariant,
   formatPlatformLabel,
-} from '@genfeedai/enums';
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
+} from '@genfeedai/contracts';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import type {
   PlatformConnectionHealth,
   PlatformHomeContentProps,

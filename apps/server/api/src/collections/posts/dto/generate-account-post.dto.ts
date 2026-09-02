@@ -1,6 +1,6 @@
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { SocialGenerationFormat } from '@genfeedai/interfaces';
+import type { SocialGenerationFormat } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

@@ -12,20 +12,20 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@api-types/contracts/scheduler.contract';
-import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   IngredientSerializer,
   PublicPostSerializer,

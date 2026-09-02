@@ -1,5 +1,5 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { type FontFamilyRecord as FontFamily } from '@genfeedai/prisma';
 
 export class FontFamilyEntity extends BaseEntity implements FontFamily {

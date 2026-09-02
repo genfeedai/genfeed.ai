@@ -10,14 +10,14 @@ import {
   SocialSourcePlatform,
   SourcePostActionType,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ListeningPostAttributionInput,
   SourcePostDraftActionInput,
   SourcePostDraftActionResult,
   SourcePostMetrics,
-} from '@genfeedai/interfaces';
-import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

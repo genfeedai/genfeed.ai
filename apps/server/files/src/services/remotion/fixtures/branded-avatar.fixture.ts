@@ -3,12 +3,12 @@ import {
   EditorTrackType,
   EditorTransitionType,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   EDITOR_EXPORT_CONTRACT_VERSION,
   EDITOR_RENDERER_VERSION,
   type IEditorRenderJobParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export const BRANDED_AVATAR_RENDER_FIXTURE: IEditorRenderJobParams = {
   assetManifest: [

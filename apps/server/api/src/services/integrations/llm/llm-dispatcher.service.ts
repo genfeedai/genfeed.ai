@@ -10,9 +10,12 @@ import type {
   OpenRouterStreamTokenHandler,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { AGENT_CHAT_MODEL_KEYS, LLM_DEFAULTS } from '@genfeedai/constants';
-import { ByokProvider } from '@genfeedai/enums';
-import type { ILlmCompletionCallContext } from '@genfeedai/interfaces';
+import { ByokProvider } from '@genfeedai/contracts';
+import {
+  AGENT_CHAT_MODEL_KEYS,
+  LLM_DEFAULTS,
+} from '@genfeedai/contracts/constants';
+import type { ILlmCompletionCallContext } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

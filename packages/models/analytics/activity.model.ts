@@ -3,8 +3,8 @@ import {
   ActivityKey,
   formatActivityMessage,
   getActivityMessageDescriptor,
-} from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 
 function formatCreditLabel(

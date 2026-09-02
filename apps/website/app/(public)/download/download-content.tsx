@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, DesktopOs } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';

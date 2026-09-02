@@ -1,6 +1,6 @@
 'use client';
 
-import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
+import type { IGenfeedDesktopBridge } from '@genfeedai/contracts/desktop';
 
 type DesktopWindow = Window &
   typeof globalThis & {

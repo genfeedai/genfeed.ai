@@ -1,4 +1,3 @@
-import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
 import {
   useConfirmModal,
   usePostModal,
@@ -10,7 +9,12 @@ import {
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryAssetRoute,
+} from '@genfeedai/contracts/constants';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -20,7 +24,6 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { VideoUpscaleSelection } from '@genfeedai/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';

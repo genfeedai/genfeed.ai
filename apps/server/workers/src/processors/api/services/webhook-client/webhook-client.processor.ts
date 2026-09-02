@@ -6,12 +6,12 @@ import {
   type ValidatedWebhookEndpoint,
   WebhookEndpointValidationError,
 } from '@api/services/webhook-client/webhook-endpoint.validator';
-import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
-import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
+import { redactPublishWebhookText } from '@genfeedai/contracts/api-types/contracts/publish-webhook-events.contract';
+import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import {
   WEBHOOK_CLIENT_QUEUE,
   WebhookJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { HttpService } from '@nestjs/axios';

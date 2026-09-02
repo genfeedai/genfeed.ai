@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonRequestAccess from '@ui/buttons/request-access/button-request-access/ButtonRequestAccess';
 

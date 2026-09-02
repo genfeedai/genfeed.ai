@@ -64,8 +64,8 @@ const RETIRED_FLEET_CONTROL_PATHS = [
 const FLEET_CONTROL_REFERENCE_FILES = [
   'apps/app/packages/config/admin-menu-items.config.ts',
   'apps/app/src/lib/workspace-shell/workspace-shell-registry.ts',
-  'packages/constants/src/api.constant.ts',
-  'packages/constants/src/routes.constant.ts',
+  'packages/contracts/src/constants/api.constant.ts',
+  'packages/contracts/src/constants/routes.constant.ts',
   'playwright/e2e/fixtures/api-mocks.fixture.ts',
   'playwright/e2e/fixtures/test-data.fixture.ts',
   'playwright/e2e/pages/admin.page.ts',

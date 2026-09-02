@@ -6,8 +6,8 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useCallback, useMemo, useState } from 'react';
 

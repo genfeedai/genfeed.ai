@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

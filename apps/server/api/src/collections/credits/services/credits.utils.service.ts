@@ -14,7 +14,7 @@ import {
   ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAddCreditsOptions,
   ICreditReservation,
@@ -24,7 +24,7 @@ import type {
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

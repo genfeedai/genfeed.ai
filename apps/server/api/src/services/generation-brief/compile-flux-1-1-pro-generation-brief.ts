@@ -16,19 +16,19 @@ import {
   selectImageGenerationBriefReferences,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   Flux11ProDispatch,
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_IMAGE_COMPILER_ID,
   FLUX_1_1_PRO_IMAGE_COMPILER_VERSION,
   flux11ProDispatchSchema,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { FLUX_1_1_PRO_CAPABILITY_PROFILE } from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { FLUX_1_1_PRO_CAPABILITY_PROFILE } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 const FLUX_1_1_PRO_MODEL_LABEL = 'FLUX 1.1 Pro';
 

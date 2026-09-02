@@ -1,6 +1,6 @@
 import process from 'node:process';
 
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,

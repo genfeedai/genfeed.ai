@@ -37,7 +37,7 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import { UploadStatus, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { UploadStatus, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   AttachmentItem,
   ChatAttachment,

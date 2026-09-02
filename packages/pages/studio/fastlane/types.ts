@@ -4,7 +4,7 @@ import type {
   FastlaneFormat,
   FastlaneIdea,
   FastlaneScheduleTarget,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 // ────────────────────────────────────────────────────────────
 // Hook param / return interfaces

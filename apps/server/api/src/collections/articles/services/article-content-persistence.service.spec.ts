@@ -1,6 +1,10 @@
 import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
 import type { TagsService } from '@api/collections/tags/services/tags.service';
-import { ArticleCategory, ArticleStatus, TagCategory } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  TagCategory,
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 

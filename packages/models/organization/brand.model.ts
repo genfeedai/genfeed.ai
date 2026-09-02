@@ -1,10 +1,15 @@
 import { Brand as BaseBrand } from '@genfeedai/client/models';
-import { type AssetScope, CredentialPlatform } from '@genfeedai/enums';
+import { type AssetScope, CredentialPlatform } from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IBrand,
+  ICredential,
+  ILink,
+} from '@genfeedai/contracts/interfaces';
 import {
   getDeepLink,
   isMobileDevice,
 } from '@genfeedai/helpers/ui/mobile/mobile.helper';
-import type { IAsset, IBrand, ICredential, ILink } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { User } from '@models/auth/user.model';
 import { Asset } from '@models/ingredients/asset.model';

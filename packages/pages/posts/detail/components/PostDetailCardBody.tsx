@@ -1,7 +1,7 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+import { PostStatus } from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import HtmlContent from '@ui/display/html-content/HtmlContent';

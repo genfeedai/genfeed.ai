@@ -2,7 +2,7 @@ import type {
   ComfyUIHistoryEntry,
   ComfyUIPrompt,
   ComfyUIWorkflowTemplate,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { ComfyUIClient } from './client';
 
 /**

@@ -7,7 +7,7 @@ import {
   OUTREACH_TARGET_PLATFORM_MISMATCH_ERROR,
   type OutreachCapabilityClientError,
   type OutreachCapabilityInput,
-} from '@api-types/contracts/outreach-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import { BadRequestException } from '@nestjs/common';
 
 export function isCampaignOutreachPairExecutable(

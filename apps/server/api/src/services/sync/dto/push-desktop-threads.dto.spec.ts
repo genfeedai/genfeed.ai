@@ -3,7 +3,7 @@ import {
   DesktopThreadDto,
   PushDesktopThreadsDto,
 } from '@api/services/sync/dto/push-desktop-threads.dto';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_THREADS = 500;

@@ -1,12 +1,12 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
   ITraining,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Code } from '@genfeedai/ui';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { TableColumn } from '@props/ui/display/table.props';

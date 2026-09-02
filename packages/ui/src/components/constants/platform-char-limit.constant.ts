@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 
 export const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   [CredentialPlatform.TWITTER]: 280,

@@ -3,7 +3,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   OrganizationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import { CategoryPrismaUtil } from './category-prisma.util';
@@ -356,9 +356,9 @@ describe('CategoryPrismaUtil', () => {
    * Guard tests (#564 acceptance criterion):
    *
    * These tests are INTENTIONALLY exhaustive. They will FAIL if:
-   *   - A new member is added to @genfeedai/enums IngredientCategory without
+   *   - A new member is added to @genfeedai/contracts IngredientCategory without
    *     updating APP_TO_PRISMA_INGREDIENT_CATEGORY in category-prisma.util.ts.
-   *   - A new member is added to @genfeedai/enums OrganizationCategory without
+   *   - A new member is added to @genfeedai/contracts OrganizationCategory without
    *     updating APP_TO_PRISMA_ORGANIZATION_CATEGORY in category-prisma.util.ts.
    *   - A Prisma enum member is removed that the mapping still references.
    */

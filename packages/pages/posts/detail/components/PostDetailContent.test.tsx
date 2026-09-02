@@ -1,5 +1,5 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailContent, {
   type PostDetailContentProps,
 } from '@pages/posts/detail/components/PostDetailContent';

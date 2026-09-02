@@ -23,8 +23,11 @@ import {
   IngredientStatus,
   LibraryShelf,
   MetadataExtension,
-} from '@genfeedai/enums';
-import type { ILibrarySummary, PopulateOption } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  ILibrarySummary,
+  PopulateOption,
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

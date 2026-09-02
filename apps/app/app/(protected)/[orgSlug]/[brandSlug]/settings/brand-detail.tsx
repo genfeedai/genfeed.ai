@@ -1,15 +1,15 @@
 'use client';
 
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   AssetCategory,
   AssetScope,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
-import type { ILink } from '@genfeedai/interfaces';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';

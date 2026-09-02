@@ -6,7 +6,7 @@ import {
 } from '../lib/paletteTransfer';
 import { NodePalette } from './NodePalette';
 
-vi.mock('@genfeedai/types', () => ({
+vi.mock('@genfeedai/contracts/types', () => ({
   getNodesByCategory: () => ({
     ai: [],
     composition: [],

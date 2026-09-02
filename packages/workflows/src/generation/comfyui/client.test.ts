@@ -2,7 +2,7 @@ import type {
   ComfyUIHistoryEntry,
   ComfyUIPrompt,
   ComfyUIQueuePromptResponse,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComfyUIClient } from './client';
 

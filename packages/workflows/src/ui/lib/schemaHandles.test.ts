@@ -1,4 +1,4 @@
-import type { HandleDefinition } from '@genfeedai/types';
+import type { HandleDefinition } from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 
 import { generateHandlesFromSchema, isSchemaHandle } from './schemaHandles';

@@ -42,11 +42,11 @@ import {
   AgentThreadStatus,
   AgentType,
   toRouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   Injectable,

@@ -8,7 +8,7 @@ import {
   ReferralClaimStatus,
   ReferralRewardStatus,
   ReferralStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

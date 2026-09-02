@@ -1,4 +1,4 @@
-import type { IntegrationPlatform } from '@genfeedai/enums';
+import type { IntegrationPlatform } from '@genfeedai/contracts';
 
 /**
  * Redis event constants for integration hot-reload

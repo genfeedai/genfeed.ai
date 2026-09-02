@@ -1,5 +1,5 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
-import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
+import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
 import {
   getRuntimeMarginMultiplier,
   setRuntimeMarginMultiplier,

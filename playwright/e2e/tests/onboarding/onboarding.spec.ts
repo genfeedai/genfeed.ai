@@ -1,5 +1,5 @@
 import { brandPath, orgPath } from '@e2e/utils/app-chrome';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
 

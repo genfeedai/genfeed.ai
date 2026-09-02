@@ -18,8 +18,8 @@ import { scopedWhere } from '@api/index';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
-import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
-import { sourcePostVariationCredits } from '@genfeedai/constants';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import {
   BadGatewayException,
   BadRequestException,

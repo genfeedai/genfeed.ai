@@ -1,4 +1,4 @@
-import { categoryToPlural, IngredientCategory } from '@genfeedai/enums';
+import { categoryToPlural, IngredientCategory } from '@genfeedai/contracts';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 
 /** Calculates the WebSocket user room identifier. */

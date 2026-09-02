@@ -4,7 +4,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
-import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/enums';
+import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Req } from '@nestjs/common';
 

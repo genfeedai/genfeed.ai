@@ -1,4 +1,4 @@
-packages: @genfeedai/constants @genfeedai/enums
+packages: @genfeedai/contracts/constants @genfeedai/contracts
 
 Add explicit `posts:draft`, `posts:schedule`, `posts:approve`, and
 `posts:publish` API-key capabilities. MCP presets remain approval-first and do

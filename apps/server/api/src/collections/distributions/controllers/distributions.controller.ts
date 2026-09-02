@@ -10,7 +10,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
-import { DistributionPlatform } from '@genfeedai/enums';
+import { DistributionPlatform } from '@genfeedai/contracts';
 import { DistributionSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

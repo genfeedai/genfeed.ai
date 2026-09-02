@@ -10,7 +10,7 @@ import {
   type YoutubeOwnedUploadSignal,
   type YoutubeOwnedVideoAnalyticsSignal,
   youtubeAuthorizedSignalStatusValues,
-} from '@api-types/contracts/youtube-authorized-signals.contract';
+} from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 
 export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube';
 export const YOUTUBE_READONLY_SCOPE =

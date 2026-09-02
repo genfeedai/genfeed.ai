@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   InputVariableType,
   WorkflowInputVariable,
-} from '@genfeedai/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import type { VariablesPanelProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

@@ -1,4 +1,4 @@
-import type { AdsPlatform } from '@genfeedai/interfaces';
+import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 /**
  * The only campaign status this product writes to a paid-media provider.

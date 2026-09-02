@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import {
   Accordion,

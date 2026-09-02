@@ -2,7 +2,7 @@ import {
   PageScope,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   buildReleasePostsListQueryKey,

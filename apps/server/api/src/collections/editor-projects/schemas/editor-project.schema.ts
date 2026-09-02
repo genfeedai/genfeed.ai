@@ -1,8 +1,8 @@
-import type { EditorProjectStatus } from '@genfeedai/enums';
+import type { EditorProjectStatus } from '@genfeedai/contracts';
 import type {
   IEditorProjectSettings,
   IEditorTrack,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { EditorProject } from '@genfeedai/prisma';
 
 export type { EditorProject } from '@genfeedai/prisma';

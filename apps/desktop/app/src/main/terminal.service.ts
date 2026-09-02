@@ -9,7 +9,7 @@ import type {
   IDesktopTerminalDataEvent,
   IDesktopTerminalExitEvent,
   IDesktopTerminalSession,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import type { IDisposable, IPty } from 'node-pty';
 import { spawn } from 'node-pty';
 import type { DesktopWorkspaceService } from './workspace.service';

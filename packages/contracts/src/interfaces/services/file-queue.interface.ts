@@ -1,0 +1,108 @@
+/**
+ * File queue service interfaces
+ * Used by FileQueueService for type-safe job processing
+ */
+
+import type { JobState, PostVisibility } from '../..';
+import type {
+  IEditorRenderCorrelation,
+  IEditorRenderJobParams,
+} from '../editor/editor-export-contract.interface';
+
+export interface IFileProcessingJob {
+  id?: string;
+  type: string;
+  ingredientId: string;
+  userId: string;
+  organizationId: string;
+  room?: string;
+  priority?: number;
+  params?:
+    | IEditorFileProcessingParams
+    | IEditorRenderJobParams
+    | IFileProcessingParams;
+  url?: string;
+  filePath?: string;
+  delay?: number;
+  websocketUrl?: string;
+  s3Bucket?: string;
+}
+
+export interface IFileProcessingParams {
+  inputPath?: string;
+  outputPath?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  watermarkText?: string;
+  frames?: IFrameInput[];
+  musicId?: string;
+  isDeleteOutputEnabled?: boolean;
+  [key: string]: unknown;
+}
+
+export type IEditorFileProcessingParams = IEditorRenderJobParams & {
+  editorRender: IEditorRenderCorrelation;
+};
+
+export interface IFrameInput {
+  url: string;
+  duration?: number;
+  order?: number;
+}
+
+export interface IJobResponse {
+  jobId: string;
+  status: string;
+  type: string;
+  ingredientId: string;
+}
+
+/** Wire-level prefix for deterministic raw-cut media jobs. */
+export const RAW_CUT_JOB_PREFIX = 'raw-cut-' as const;
+
+export interface IJobCancellationResponse {
+  jobId: string;
+  requestedAt: string;
+  status: 'cancellation-requested';
+}
+
+export interface IJobStatusResponse {
+  jobId: string;
+  state: JobState;
+  progress?: number;
+  result?: unknown;
+  failedReason?: string;
+  timestamp?: string;
+}
+
+export interface IQueueStats {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
+
+export interface IYoutubeUploadData {
+  postId: string;
+  credentialId: string;
+  ingredientId: string;
+  userId: string;
+  organizationId: string;
+  brandId: string;
+  room?: string;
+  title: string;
+  description: string;
+  tags?: string[];
+  visibility: PostVisibility;
+  scheduledDate?: Date;
+  websocketUrl?: string;
+}
+
+export interface IYoutubeCredentialUpdate {
+  accessToken: string;
+  isConnected: boolean;
+  refreshToken?: string;
+  accessTokenExpiry?: Date;
+}

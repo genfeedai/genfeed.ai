@@ -25,8 +25,8 @@ import {
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
-import type { IResizeBodyParams } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -10,8 +10,8 @@ import type {
   StripeSubscription,
 } from '@api/services/integrations/stripe/services/stripe.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
-import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
+import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

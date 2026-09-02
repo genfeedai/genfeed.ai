@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   BRAND_KIT_ASSET_FIELD_KEYS,
   BRAND_KIT_FIELD_OWNERSHIP,
@@ -16,7 +16,7 @@ import {
   type IBrandKitDraft,
   type IBrandKitDraftField,
   type IBrandKitSourceEvidence,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
 import { logger } from '@services/core/logger.service';

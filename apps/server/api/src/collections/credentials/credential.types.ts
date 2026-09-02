@@ -1,4 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   Credential,
   CredentialPlatform as PrismaCredentialPlatform,

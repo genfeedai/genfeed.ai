@@ -15,12 +15,12 @@ import {
   parseBillingAccountOrganizationStatus,
   parseBillingAccountStatus,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBillingAccount,
   IBillingAccountCapabilities,
   IBillingAccountOrganizationLink,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,

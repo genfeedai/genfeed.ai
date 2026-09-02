@@ -1,4 +1,5 @@
-import { PLATFORM_COLORS } from '@genfeedai/constants';
+import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
+import type { ITrendPlatformConfig } from '@genfeedai/contracts/interfaces/analytics/platform-config.interface';
 import {
   DevIcon,
   FacebookIcon,
@@ -20,7 +21,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import { Newspaper, Star } from 'lucide-react';
 
 export const PLATFORM_CONFIGS: Record<string, ITrendPlatformConfig> = {

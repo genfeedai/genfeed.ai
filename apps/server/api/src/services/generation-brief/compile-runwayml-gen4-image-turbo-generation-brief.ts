@@ -20,19 +20,19 @@ import {
   selectImageGenerationBriefReferences,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
   RunwayGen4ImageTurboDispatch,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_ID,
   RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_VERSION,
   runwayGen4ImageTurboDispatchSchema,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE } from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 const RUNWAY_GEN4_IMAGE_TURBO_MODEL_LABEL = 'RunwayML Gen4 Image Turbo';
 const RUNWAY_GEN4_IMAGE_TURBO_IMPLICIT_OUTPUT_FORMAT = 'png';

@@ -13,7 +13,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { BaseService } from '@api/shared/services/base/base.service';
-import { CampaignStatus } from '@genfeedai/enums';
+import { CampaignStatus } from '@genfeedai/contracts';
 import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

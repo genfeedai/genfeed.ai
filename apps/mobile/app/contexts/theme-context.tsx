@@ -7,7 +7,7 @@ import {
   resolveThemePreference,
   THEME_STORAGE_KEY,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import {
   type NativeThemeColors,
   nativeThemeColors,

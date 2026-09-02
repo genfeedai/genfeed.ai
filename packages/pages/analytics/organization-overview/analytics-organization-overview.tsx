@@ -1,8 +1,8 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
+import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,

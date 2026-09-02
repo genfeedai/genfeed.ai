@@ -1,7 +1,7 @@
 'use client';
 
 import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import AnalyticsOrganizationsList from '@protected/overview/analytics/organizations/analytics-organizations-list';
 
 /**

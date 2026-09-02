@@ -1,4 +1,7 @@
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { permanentRedirect } from 'next/navigation';
 
 /** Legacy `/automation/new` → Add agent modal in custom mode. */

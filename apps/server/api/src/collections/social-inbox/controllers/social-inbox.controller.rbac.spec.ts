@@ -1,6 +1,6 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 
 describe('SocialInboxController RBAC', () => {
   it('should require owner, admin, or creator role for syncYoutubeComments', () => {

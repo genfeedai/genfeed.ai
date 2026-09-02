@@ -1,6 +1,6 @@
 import { MonitoredAccountFiltersDto } from '@api/collections/monitored-accounts/dto/monitored-account-filters.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

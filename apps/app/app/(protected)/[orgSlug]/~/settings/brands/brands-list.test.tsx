@@ -64,8 +64,9 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   })),
 }));
 
-vi.mock('@genfeedai/constants', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/contracts/constants')>();
   return {
     ...actual,
     createBrandAppRoute: vi.fn(

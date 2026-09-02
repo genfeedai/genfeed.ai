@@ -23,7 +23,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@genfeedai/constants', () => ({ ITEMS_PER_PAGE: 20 }));
+vi.mock('@genfeedai/contracts/constants', () => ({ ITEMS_PER_PAGE: 20 }));
 
 describe('InsightsService', () => {
   const mockToken = 'test-token-123';

@@ -12,7 +12,10 @@ import { PostingSetsService } from '@api/collections/posting-sets/services/posti
 import type { PostingSignaturesService } from '@api/collections/posting-sets/services/posting-signatures.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  TargetValidationState,
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const context = {

@@ -2,7 +2,10 @@ import {
   PostingSet as BasePostingSet,
   PostingSignature as BasePostingSignature,
 } from '@genfeedai/client/models';
-import type { IPostingSet, IPostingSignature } from '@genfeedai/interfaces';
+import type {
+  IPostingSet,
+  IPostingSignature,
+} from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

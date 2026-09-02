@@ -4,8 +4,8 @@ import type {
   VideoContinuityClipFinding,
   VideoContinuityDimensionFinding,
   VideoContinuityVerdict,
-} from '@genfeedai/interfaces';
-import { createNotAssessedContinuityDimension } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { createNotAssessedContinuityDimension } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 const VISION_FEATURES = new Set([

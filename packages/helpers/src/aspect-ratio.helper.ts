@@ -1,9 +1,9 @@
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
-} from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { getModelCapability } from './model-capability.helper';
 
 const CATEGORIES_WITHOUT_ASPECT_RATIO = new Set([

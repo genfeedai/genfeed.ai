@@ -9,8 +9,8 @@ import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/gener
 import { type ContentPlanDocument } from '@api/collections/content-plans/schemas/content-plan.schema';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
+import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

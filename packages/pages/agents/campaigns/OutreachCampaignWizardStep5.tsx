@@ -4,7 +4,7 @@ import {
   type CampaignPlatform,
   CampaignType,
   type ReplyTone,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
 

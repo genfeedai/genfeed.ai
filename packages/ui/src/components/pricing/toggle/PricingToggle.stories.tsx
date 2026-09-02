@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import PricingToggle from '@ui/pricing/toggle/PricingToggle';

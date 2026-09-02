@@ -16,7 +16,7 @@ import type {
   TopContentScore,
   ViewsByDateRow,
 } from '@api/collections/posts/services/analytics-aggregation.types';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 
 type TimeSeriesGroup = 'day' | 'week';
 

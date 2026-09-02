@@ -3,7 +3,7 @@ import {
   IngredientStatus,
   PostStatus,
   StatusDomain,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   ARTICLE_STATUS_METADATA,
   getStatusMeta,
@@ -422,7 +422,7 @@ describe('status.constant', () => {
 
     it('should have entries for all persisted article statuses', () => {
       // PROCESSING and FAILED are domain-only pipeline states that never reach
-      // an article badge — see packages/enums/src/article.enum.ts.
+      // an article badge — see packages/contracts/src/enums/article.enum.ts.
       const articleStatuses = [
         ArticleStatus.DRAFT,
         ArticleStatus.PUBLISHED,

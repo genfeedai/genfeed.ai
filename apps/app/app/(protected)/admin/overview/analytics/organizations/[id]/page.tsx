@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import type { AnalyticsDetailPageProps } from '@props/admin/analytics.props';

@@ -1,6 +1,6 @@
 import '@ui/tests/mocks/recharts.mock';
 
-import type { IAnalytics } from '@genfeedai/interfaces';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { QuickAnalyticsPreview } from '@ui/analytics/cards/preview/quick-analytics-preview';
 import { describe, expect, it, vi } from 'vitest';

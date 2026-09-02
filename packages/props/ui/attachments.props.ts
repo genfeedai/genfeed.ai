@@ -1,4 +1,4 @@
-import type { UploadStatus } from '@genfeedai/enums';
+import type { UploadStatus } from '@genfeedai/contracts';
 import type { DragEvent } from 'react';
 
 export interface AttachmentItem {

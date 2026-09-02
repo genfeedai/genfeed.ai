@@ -21,18 +21,18 @@ import type { RequestWithContext as Request } from '@api/common/middleware/reque
 import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import {
+  ContentIntelligencePlatform,
+  ContentRunStatus,
+} from '@genfeedai/contracts';
+import {
   type BrandRemixDraft,
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   brandRemixRunConfigSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import type { ImageGenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
-import { sourcePostVariationCredits } from '@genfeedai/constants';
-import {
-  ContentIntelligencePlatform,
-  ContentRunStatus,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()

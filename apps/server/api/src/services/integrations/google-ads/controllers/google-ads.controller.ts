@@ -13,7 +13,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
-import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

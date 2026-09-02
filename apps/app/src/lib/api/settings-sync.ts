@@ -1,4 +1,4 @@
-import type { EdgeStyle, ProviderType } from '@genfeedai/types';
+import type { EdgeStyle, ProviderType } from '@genfeedai/contracts/types';
 import type {
   SettingsSyncService,
   SyncableSettings,

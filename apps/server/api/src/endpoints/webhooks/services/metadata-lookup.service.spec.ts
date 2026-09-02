@@ -1,5 +1,5 @@
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MetadataLookupService', () => {

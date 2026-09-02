@@ -3,8 +3,8 @@ import type {
   NodeType,
   WorkflowEdge,
   WorkflowNode,
-} from '@genfeedai/types';
-import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
 import {
   applyEdgeChanges,

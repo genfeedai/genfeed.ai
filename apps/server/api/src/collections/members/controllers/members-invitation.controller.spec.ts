@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, RequestMethod } from '@nestjs/common';

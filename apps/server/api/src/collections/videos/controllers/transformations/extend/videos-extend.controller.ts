@@ -23,15 +23,15 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { hasNativeExtend } from '@genfeedai/constants';
 import {
   ActivitySource,
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
   WorkflowTrigger,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { hasNativeExtend } from '@genfeedai/contracts/constants';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowSerializer } from '@genfeedai/serializers';
 import { buildVideoExtensionTemplate } from '@genfeedai/workflows/engine';
 import {

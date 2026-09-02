@@ -19,7 +19,7 @@ import {
   type IEditorRenderCorrelation,
   type IEditorRenderJobParams,
   type IEditorRenderOutputMetadata,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';

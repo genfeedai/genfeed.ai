@@ -5,13 +5,13 @@ import {
   ButtonVariant,
   LinkCategory,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { ILink } from '@genfeedai/interfaces';
 import type { ModalBrandLinkProps } from '@genfeedai/props/modals/modal.props';
 import { LinksService } from '@genfeedai/services/social/links.service';
 import Alert from '@ui/feedback/alert/Alert';

@@ -58,12 +58,12 @@ import { IngredientCompletionService } from '@api/shared/services/poll-until/ing
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';

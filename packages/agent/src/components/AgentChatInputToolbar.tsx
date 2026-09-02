@@ -23,10 +23,10 @@ import {
   isAgentGenerationType,
 } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/enums';
-import type { IStudioLook } from '@genfeedai/interfaces';
-import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/contracts';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
+import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type {
   GenerationSetupFieldSetter,
   GenerationSetupLookOptions,

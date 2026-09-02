@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import type { ModelSelectorFilter } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import {
   MODEL_FILTER_ALL,

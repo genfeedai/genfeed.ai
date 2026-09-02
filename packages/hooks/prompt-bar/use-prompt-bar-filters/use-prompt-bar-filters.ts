@@ -1,4 +1,4 @@
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import type {
   UsePromptBarFiltersOptions,
   UsePromptBarFiltersReturn,

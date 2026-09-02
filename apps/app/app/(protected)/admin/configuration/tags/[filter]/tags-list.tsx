@@ -1,8 +1,8 @@
 'use client';
 
-import { EMPTY_STATES } from '@genfeedai/constants';
-import { ModalEnum } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import { ModalEnum } from '@genfeedai/contracts';
+import { EMPTY_STATES } from '@genfeedai/contracts/constants';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import type { TagsListProps } from '@props/tags/tags-list.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';

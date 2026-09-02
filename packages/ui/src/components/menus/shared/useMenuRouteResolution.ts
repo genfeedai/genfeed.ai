@@ -1,6 +1,6 @@
-import { createBrandAppRoute } from '@genfeedai/constants';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';

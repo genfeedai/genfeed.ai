@@ -8,7 +8,7 @@ import {
   createPinnedWebhookAgent,
 } from '@api/services/webhook-client/webhook-endpoint.validator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { NotificationChannel } from '@genfeedai/enums';
+import { NotificationChannel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

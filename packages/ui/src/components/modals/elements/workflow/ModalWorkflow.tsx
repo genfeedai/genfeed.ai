@@ -4,13 +4,13 @@ import {
   ButtonSize,
   ButtonVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IWorkflow } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IWorkflow } from '@genfeedai/interfaces';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { WorkflowsService } from '@genfeedai/services/automation/workflows.service';
 import Alert from '@ui/feedback/alert/Alert';

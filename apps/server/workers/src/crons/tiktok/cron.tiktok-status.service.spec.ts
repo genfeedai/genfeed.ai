@@ -2,7 +2,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));
 
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import {
   buildTiktokStatusReconcileDefinition,

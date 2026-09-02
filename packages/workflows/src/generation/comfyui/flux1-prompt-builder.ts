@@ -1,4 +1,4 @@
-import type { ComfyUIPrompt } from '@genfeedai/types';
+import type { ComfyUIPrompt } from '@genfeedai/contracts/types';
 
 // =============================================================================
 // FLUX DEV — text-to-image via FLUX.1 Dev checkpoint

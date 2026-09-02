@@ -13,7 +13,7 @@ const LEGACY_API_CONSUMERS = new Set([
   'package.json',
   'packages/errors/package.json',
   'packages/harness/package.json',
-  'packages/types/package.json',
+  'packages/contracts/src/types/package.json',
   'packages/workflows/package.json',
 ]);
 

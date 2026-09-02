@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import type {
   IDesktopSession,
   IDesktopSyncConsent,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import type { DesktopKeyValueStore } from './store.service';
 import {
   assertActiveSyncAccount,

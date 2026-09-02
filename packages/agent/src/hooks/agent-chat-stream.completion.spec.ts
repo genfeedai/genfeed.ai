@@ -1,7 +1,7 @@
 import { resolveStreamFromMessages } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
 import { STREAM_COMPLETION_GRACE_PERIOD_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { Effect } from 'effect';
 import { expect, it, vi } from 'vitest';
 

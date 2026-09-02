@@ -1,4 +1,4 @@
-import type { ChannelRepurposeAdjustment } from '@api-types/contracts/channel-repurpose.contract';
+import type { ChannelRepurposeAdjustment } from '@genfeedai/contracts/api-types/contracts/channel-repurpose.contract';
 import type { Post } from '@genfeedai/prisma';
 
 export type { Post } from '@genfeedai/prisma';

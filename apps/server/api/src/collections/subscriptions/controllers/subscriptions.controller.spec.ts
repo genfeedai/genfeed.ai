@@ -8,7 +8,7 @@ import type { RequestWithContext } from '@api/common/middleware/request-context.
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

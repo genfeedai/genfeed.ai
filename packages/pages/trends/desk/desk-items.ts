@@ -1,4 +1,4 @@
-import type { ISourcePost, ITrendVideo } from '@genfeedai/interfaces';
+import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 import {
   getSourcePostRemixAvailability,
   getTrendRemixAvailability,

@@ -1,6 +1,5 @@
 'use client';
 
-import { mapPostStatusToCanonicalWrite } from '@api-types/contracts/scheduler.contract';
 import {
   ArticleStatus,
   ButtonVariant,
@@ -8,10 +7,15 @@ import {
   IngredientStatus,
   PostStatus,
   StatusDomain,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { mapPostStatusToCanonicalWrite } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type {
+  IArticle,
+  IIngredient,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';

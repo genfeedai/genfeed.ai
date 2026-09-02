@@ -6,7 +6,7 @@ import {
   readCampaignScheduleVersion,
   requireScheduledBlastSchedule,
 } from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
-import { CampaignType } from '@genfeedai/enums';
+import { CampaignType } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 const FIXED_NOW = new Date('2026-08-24T12:00:00.000Z');

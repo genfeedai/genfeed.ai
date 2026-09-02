@@ -1,5 +1,5 @@
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 
 import { readStringList } from './string-list.util';
 

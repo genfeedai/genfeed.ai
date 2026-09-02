@@ -5,8 +5,8 @@ import type {
   ISocketErrorHandler,
   ISocketEventHandler,
   ISocketManagerConfig,
-} from '@genfeedai/interfaces';
-import type { SocketListener } from '@genfeedai/interfaces/services/socket-listener.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { SocketListener } from '@genfeedai/contracts/interfaces/services/socket-listener.interface';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import {

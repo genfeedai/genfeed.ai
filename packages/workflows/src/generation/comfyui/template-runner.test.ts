@@ -1,7 +1,7 @@
 import type {
   ComfyUIHistoryEntry,
   ComfyUIWorkflowTemplate,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { describe, expect, it, vi } from 'vitest';
 import type { ComfyUIClient } from './client';
 import { ComfyUITemplateRunner } from './template-runner';

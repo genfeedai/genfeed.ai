@@ -1,7 +1,7 @@
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { SchedulerTx } from '@api/collections/post-groups/services/post-group.types';
-import { formatPlatformLabel } from '@genfeedai/enums';
-import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
+import { formatPlatformLabel } from '@genfeedai/contracts';
+import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type SchedulerReadinessTarget = {

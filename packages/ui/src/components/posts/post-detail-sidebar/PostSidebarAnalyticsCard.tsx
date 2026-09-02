@@ -1,6 +1,6 @@
 'use client';
 
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import Card from '@ui/card/Card';
 
 type PostSidebarAnalyticsCardProps = {

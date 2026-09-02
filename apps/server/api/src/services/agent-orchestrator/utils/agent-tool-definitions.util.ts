@@ -10,9 +10,9 @@ import type {
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import { RouterPriority } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 const GEMINI_FUNCTION_SCHEMA_KEYS = new Set([
   '$defs',

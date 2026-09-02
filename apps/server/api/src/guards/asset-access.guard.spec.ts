@@ -2,7 +2,7 @@ import {
   AssetAccessGuard,
   normalizeAssetScope,
 } from '@api/guards/asset-access.guard';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

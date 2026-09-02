@@ -60,7 +60,6 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
     "@electron/notarize": "3.1.1",
-    "@genfeedai/desktop-contracts": "workspace:*",
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-prisma": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -71,7 +70,8 @@
     "electron-builder": "26.15.3",
     "electron-updater": "6.8.9",
     "esbuild": "0.28.2",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@genfeedai/contracts": "workspace:*"
   },
   "main": "dist/main.js",
   "name": "@genfeedai/desktop",

@@ -1,4 +1,4 @@
-import type { IHeyGen } from '@genfeedai/interfaces';
+import type { IHeyGen } from '@genfeedai/contracts/interfaces';
 import { HeyGenService as HeygenService } from '@services/ingredients/heygen.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

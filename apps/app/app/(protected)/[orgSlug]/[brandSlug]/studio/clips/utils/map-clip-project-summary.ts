@@ -1,4 +1,4 @@
-import { isClipResultMode } from '@genfeedai/interfaces';
+import { isClipResultMode } from '@genfeedai/contracts/interfaces';
 import type { ClipProjectSummary } from '@props/studio/clips.props';
 
 import { clipProjectTitle } from './youtube-thumbnail';

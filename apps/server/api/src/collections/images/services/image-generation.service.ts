@@ -39,19 +39,19 @@ import { IngredientCompletionService } from '@api/shared/services/poll-until/ing
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type {
-  ImageGenerationBrief,
-  ImageGenerationBriefReference,
-} from '@api-types/contracts/generation-brief.contract';
-import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   IngredientCategory,
   MetadataExtension,
   ModelCategory,
   PromptCategory,
   PromptStatus,
-} from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  ImageGenerationBrief,
+  ImageGenerationBriefReference,
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

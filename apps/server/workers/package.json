@@ -5,21 +5,18 @@
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/api": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
-    "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/axios": "12.0.0",
     "@nestjs/bullmq": "12.0.0",
     "@nestjs/event-emitter": "12.0.0",
     "bullmq": "6.3.2",
     "rxjs": "7.8.2",
-    "tsconfig-paths": "4.2.0"
+    "tsconfig-paths": "4.2.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed background jobs and recurring platform schedules",
   "devDependencies": {

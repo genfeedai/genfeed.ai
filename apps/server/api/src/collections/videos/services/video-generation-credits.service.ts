@@ -22,8 +22,8 @@ import {
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import type { ByokProvider } from '@genfeedai/enums';
+import type { ByokProvider } from '@genfeedai/contracts';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,

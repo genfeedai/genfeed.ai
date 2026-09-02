@@ -3,13 +3,13 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
-} from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Brand } from '@models/organization/brand.model';

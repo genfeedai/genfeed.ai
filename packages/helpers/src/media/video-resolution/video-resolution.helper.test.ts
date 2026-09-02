@@ -1,4 +1,4 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,

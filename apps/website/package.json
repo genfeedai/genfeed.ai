@@ -1,16 +1,11 @@
 {
   "dependencies": {
-    "@genfeedai/api-types": "*",
     "@genfeedai/auth-client": "*",
     "@genfeedai/config": "*",
-    "@genfeedai/constants": "*",
-    "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
-    "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",
     "@genfeedai/styles": "*",
-    "@genfeedai/types": "*",
     "@tiptap/core": "3.30.5",
     "@tiptap/extension-image": "3.30.5",
     "@tiptap/extension-link": "3.30.5",
@@ -26,7 +21,8 @@
     "posthog-js": "1.422.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwind-merge": "3.6.0"
+    "tailwind-merge": "3.6.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Website - Marketing site with landing pages, documentation, and public-facing content",
   "name": "@genfeedai/website",

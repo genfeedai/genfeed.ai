@@ -1,5 +1,5 @@
 import { PromptBarInternalContext } from '@genfeedai/contexts/ui/prompt-bar-internal-context';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
@@ -233,12 +233,12 @@ vi.mock('@ui-constants/media.constant', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/constants', async (importOriginal) => ({
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
   // Keep the real (pure) route helpers — createBrandAppRoute /
   // createOrganizationAppRoute are used via useOrgUrl to build the exact
   // brand-scoped routes these tests assert. Only the model-metadata lookups
   // are overridden with deterministic test values.
-  ...(await importOriginal<typeof import('@genfeedai/constants')>()),
+  ...(await importOriginal<typeof import('@genfeedai/contracts/constants')>()),
   getModelDefaultDuration: vi.fn().mockReturnValue(5),
   getModelDurations: vi.fn().mockReturnValue([5, 10]),
   getModelMaxOutputs: vi.fn().mockReturnValue(4),

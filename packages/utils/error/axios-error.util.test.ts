@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
  * This file focuses on axios-specific error patterns.
  */
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   ErrorCode: {
     ALREADY_EXISTS: 'ALREADY_EXISTS',
     CONFLICT: 'CONFLICT',

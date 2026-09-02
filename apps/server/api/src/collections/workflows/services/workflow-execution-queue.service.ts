@@ -15,9 +15,9 @@ import {
   type ActionOriginContext,
   type WorkflowExecutionStatus,
   WorkflowStatus,
-} from '@genfeedai/enums';
-import type { WorkflowTriggerQueueOptions } from '@genfeedai/interfaces';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts';
+import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interfaces';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

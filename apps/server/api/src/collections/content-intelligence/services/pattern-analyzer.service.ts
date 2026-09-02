@@ -8,13 +8,13 @@ import {
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
   ContentPatternType,
   CreatorAnalysisStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

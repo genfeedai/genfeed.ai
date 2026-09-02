@@ -22,7 +22,7 @@ import type {
   ContentSurface,
   IPublishingProviderReadiness,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   Body,
   Controller,

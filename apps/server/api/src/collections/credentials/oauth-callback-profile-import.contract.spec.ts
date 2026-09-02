@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));

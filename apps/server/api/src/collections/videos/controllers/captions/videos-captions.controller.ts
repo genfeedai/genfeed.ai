@@ -36,8 +36,8 @@ import {
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import {
   CaptionSerializer,
   IngredientSerializer,

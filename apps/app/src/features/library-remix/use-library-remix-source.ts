@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AssetParent } from '@genfeedai/enums';
-import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import { AssetParent } from '@genfeedai/contracts';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -6,7 +6,7 @@ import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { PublicYoutubeClipToolSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import {

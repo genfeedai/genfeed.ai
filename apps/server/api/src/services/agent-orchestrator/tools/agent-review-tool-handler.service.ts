@@ -5,8 +5,8 @@ import {
   formatPlatformLabel,
   isTerminalReviewDecision,
   normalizeReviewDecision,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**

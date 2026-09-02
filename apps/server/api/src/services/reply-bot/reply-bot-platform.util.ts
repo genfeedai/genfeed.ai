@@ -1,4 +1,4 @@
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 
 export function normalizeReplyBotPlatform(
   value: unknown,

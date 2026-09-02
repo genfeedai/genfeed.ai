@@ -6,8 +6,8 @@ import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/wor
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { supportsMultipleOutputs } from '@genfeedai/constants';
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
+import { supportsMultipleOutputs } from '@genfeedai/contracts/constants';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

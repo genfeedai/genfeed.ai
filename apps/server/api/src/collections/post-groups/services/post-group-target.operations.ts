@@ -1,30 +1,3 @@
-import {
-  type ChannelTargetValidationResult,
-  validateChannelTargetSettings,
-} from '@api-types/contracts/channel-capabilities.contract';
-import type {
-  ChannelTargetInput,
-  UpdateChannelTargetInput,
-  UpdateReleaseGroupInput,
-} from '@api-types/contracts/scheduler.contract';
-import {
-  CredentialPlatform,
-  PostCategory,
-  PublishApprovalStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type {
-  IPublishingProviderReadiness,
-  IReleaseGroup,
-  PostGroupCreateProvenance,
-} from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
-import {
-  type PostLifecycleMutation,
-  type PostLifecycleService,
-  scopedWhere,
-} from '@api/index';
-import { BadRequestException, ConflictException } from '@nestjs/common';
 import type {
   ManualRetryResolution,
   ResolveManualRetryParams,
@@ -41,7 +14,34 @@ import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
+  type PostLifecycleMutation,
+  type PostLifecycleService,
+  scopedWhere,
+} from '@api/index';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PublishApprovalStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import {
+  type ChannelTargetValidationResult,
+  validateChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type {
+  ChannelTargetInput,
+  UpdateChannelTargetInput,
+  UpdateReleaseGroupInput,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type {
+  IPublishingProviderReadiness,
+  IReleaseGroup,
+  PostGroupCreateProvenance,
+} from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 export type PostGroupTargetOperationDependencies = {
   contractService: PostGroupContractService;

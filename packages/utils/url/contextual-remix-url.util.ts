@@ -1,4 +1,4 @@
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 
 export const CONTEXTUAL_REMIX_SOURCE_QUERY_KEY = 'sourceArtifact';
 export const CONTEXTUAL_REMIX_SOURCE_VERSION_QUERY_KEY = 'sourceVersion';

@@ -7,11 +7,7 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
-import {
-  buildMediaProvenancePackage,
-  buildMediaWatermarkAttributionEvaluation,
-} from '@genfeedai/helpers';
+} from '@genfeedai/contracts';
 import type {
   IMediaProvenanceInput,
   IMediaProvenancePackage,
@@ -19,7 +15,11 @@ import type {
   IMetadataProvenanceRecord,
   IProvenanceScope,
   IVideoProvenanceRecord,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import {
+  buildMediaProvenancePackage,
+  buildMediaWatermarkAttributionEvaluation,
+} from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

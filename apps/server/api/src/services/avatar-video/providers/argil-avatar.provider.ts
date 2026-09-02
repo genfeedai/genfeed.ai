@@ -4,7 +4,7 @@ import type {
   AvatarVideoProvider,
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ArgilService } from '@api/services/integrations/argil/services/argil.service';
-import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import type { AvatarVideoProviderName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

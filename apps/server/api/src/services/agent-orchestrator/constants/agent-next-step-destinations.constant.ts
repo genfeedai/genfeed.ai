@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 
 export interface AgentNextStepDestination {
   /** Product-language label used when the model supplies no title. */

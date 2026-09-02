@@ -18,7 +18,7 @@
 
 import process from 'node:process';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import { PrismaClient } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,

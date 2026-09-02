@@ -1,6 +1,6 @@
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
 import { REPLY_INGESTION_ACTION_IDS } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyInboundProcessorService workflow boundary', () => {

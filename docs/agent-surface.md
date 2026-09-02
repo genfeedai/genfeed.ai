@@ -178,7 +178,7 @@ a `tools/list` round trip — the MCP SDK strips unknown keys from `annotations`
 
 ## API keys and scopes
 
-Presets are defined in `packages/constants/src/api-key-presets.constant.ts`:
+Presets are defined in `packages/contracts/src/constants/api-key-presets.constant.ts`:
 `read`, `content`, `mcp`, and `full`.
 
 The **`mcp` preset is approval-first**: it carries `posts:create`, `posts:draft`,
@@ -246,7 +246,7 @@ gf generate image "product shot on a concrete plinth"
 
 ## Typed packages
 
-- **`@genfeedai/api-types`** — types and Zod schemas generated from the OpenAPI
+- **`@genfeedai/contracts/api-types`** — types and Zod schemas generated from the OpenAPI
   document, plus hand-written contracts and helpers.
 - **`@genfeedai/client`** — shared request/response models and schemas.
 

@@ -16,7 +16,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { MastodonPublisherService } from '@api/services/integrations/publishers/mastodon-publisher.service';
-import { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

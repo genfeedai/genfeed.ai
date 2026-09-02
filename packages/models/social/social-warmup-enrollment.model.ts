@@ -7,7 +7,7 @@ import type {
   ISocialWarmupEnrollment,
   ISocialWarmupEvent,
   ISocialWarmupSignal,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Asset } from '@genfeedai/models/ingredients/asset.model';
 import { AssetSerializer } from '@genfeedai/serializers';
 import {

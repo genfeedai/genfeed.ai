@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 
 interface ParsedSentryDsn {
   endpoint: string;

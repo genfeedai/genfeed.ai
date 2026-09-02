@@ -1,5 +1,8 @@
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
-import { AgentToolName, type AgentUiAction } from '@genfeedai/interfaces';
+import {
+  AgentToolName,
+  type AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 
 describe('AgentCompletionCardBuilderService', () => {
   const service = new AgentCompletionCardBuilderService();

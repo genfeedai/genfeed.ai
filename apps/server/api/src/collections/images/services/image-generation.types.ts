@@ -6,9 +6,9 @@ import type { PromptsService } from '@api/collections/prompts/services/prompts.s
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type { GenerationBriefPersistedEvidence } from '@api-types/contracts/generation-brief-compiler.contract';
-import type { ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/contracts';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 
 export type ImageGenerationProvider =
   | 'genfeedai'

@@ -1,4 +1,4 @@
-import type { IPrompt } from '@genfeedai/types';
+import type { IPrompt } from '@genfeedai/contracts/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PromptLibraryService } from '../provider/types';
 import {

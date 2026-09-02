@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementCameraMovement } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementCameraMovement } from '@genfeedai/contracts/interfaces';
 
 export class ElementCameraMovement
   extends BaseEntity

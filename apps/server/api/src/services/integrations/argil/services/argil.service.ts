@@ -1,7 +1,7 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { ArgilWebhookTokenService } from '@api/services/integrations/argil/services/argil-webhook-token.service';
 import { isProviderWebhookReachable } from '@genfeedai/config';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

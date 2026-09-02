@@ -3,7 +3,7 @@ import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/man
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';

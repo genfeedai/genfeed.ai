@@ -115,7 +115,7 @@ Avoid: random memoization sweeps, package merges without a surface.
 ### Shipped in #2175
 - **P0:** soft-delete `isDeleted` (desktop + contracts); live Prisma scalar FK reads
 - **#519 complete:** tool executor ~9.1k → ~518 LOC, **0 local tool bodies**, 86 tools delegated to handlers
-- **Platform helpers:** `parsePlatform` / `formatPlatformLabel` / predicates in `@genfeedai/enums`
+- **Platform helpers:** `parsePlatform` / `formatPlatformLabel` / predicates in `@genfeedai/contracts`
 
 ### Do NOT continue on the same branch
 Open a **new branch from post-merge `master`** for the next god-file work. Keeps review/CI blast radius clean and avoids fighting merge conflicts on a already-large PR.

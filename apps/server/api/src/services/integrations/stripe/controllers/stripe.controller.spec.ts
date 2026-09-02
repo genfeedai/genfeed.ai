@@ -37,7 +37,7 @@ import {
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

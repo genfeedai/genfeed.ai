@@ -1,7 +1,7 @@
 'use client';
 
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
-import type { ISetting } from '@genfeedai/interfaces';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { User } from '@genfeedai/models/auth/user.model';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';

@@ -12,11 +12,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AssetScope, IngredientStatus } from '@genfeedai/enums';
+import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   ArticleSerializer,
   BrandSerializer,

@@ -1,4 +1,4 @@
-import type { CubicBezier, EasingPreset } from '@genfeedai/types';
+import type { CubicBezier, EasingPreset } from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 import {
   applySpeedCurve,

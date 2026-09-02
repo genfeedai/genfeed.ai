@@ -9,7 +9,7 @@
  */
 
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';

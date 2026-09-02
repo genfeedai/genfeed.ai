@@ -1,5 +1,5 @@
 import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
-import { ReferenceImageCategory } from '@genfeedai/enums';
+import { ReferenceImageCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('toBrandGenerationReferences', () => {

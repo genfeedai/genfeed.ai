@@ -1,6 +1,6 @@
 import { AgentPlanReviewCard } from '@genfeedai/agent/components/AgentPlanReviewCard';
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement, ReactNode } from 'react';
 

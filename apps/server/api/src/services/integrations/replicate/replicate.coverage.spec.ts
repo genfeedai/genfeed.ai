@@ -11,7 +11,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import {
   CONTEXT_EMBEDDING_DIMENSION,
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

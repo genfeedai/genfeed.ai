@@ -19,7 +19,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { MemberRole, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

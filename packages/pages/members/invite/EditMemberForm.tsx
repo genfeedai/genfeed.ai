@@ -1,8 +1,8 @@
 'use client';
 
 import type { MemberEditSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
-import type { IBrand, IMember } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import type { IBrand, IMember } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

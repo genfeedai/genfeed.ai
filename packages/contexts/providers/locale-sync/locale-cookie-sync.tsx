@@ -1,7 +1,7 @@
 'use client';
 
-import { resolvePreferredLocale } from '@genfeedai/constants';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { resolvePreferredLocale } from '@genfeedai/contracts/constants';
 import { writeLocaleCookie } from '@helpers/ui/locale/locale-cookie.helper';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useRouter } from 'next/navigation';

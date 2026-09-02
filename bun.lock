@@ -117,8 +117,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.11",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@google/design.md": "0.4.0",
         "@nestjs/cli": "12.0.0",
         "@nestjs/testing": "12.0.1",
@@ -173,15 +172,11 @@
         "@genfeedai/auth-client": "*",
         "@genfeedai/client": "*",
         "@genfeedai/config": "*",
-        "@genfeedai/constants": "*",
-        "@genfeedai/desktop-contracts": "*",
-        "@genfeedai/enums": "*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "*",
-        "@genfeedai/interfaces": "*",
         "@genfeedai/next-config": "*",
         "@genfeedai/pricing": "*",
         "@genfeedai/styles": "*",
-        "@genfeedai/types": "*",
         "@genfeedai/ui": "*",
         "@genfeedai/workflows": "*",
         "@remotion/player": "4.0.518",
@@ -228,7 +223,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.11",
         "@electron/notarize": "3.1.1",
-        "@genfeedai/desktop-contracts": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/desktop-core": "workspace:*",
         "@genfeedai/desktop-prisma": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -267,9 +262,8 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/next-config": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@genfeedai/utils": "workspace:*",
@@ -303,7 +297,7 @@
       "name": "extension-ide",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@sentry/node": "10.71.0",
       },
@@ -322,7 +316,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@expo/vector-icons": "15.1.1",
-        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@react-native-async-storage/async-storage": "3.1.1",
         "@react-native-community/netinfo": "12.0.1",
@@ -379,21 +373,16 @@
         "@better-auth/infra": "0.4.5",
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/agent": "workspace:*",
-        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/harness": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
-        "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/axios": "12.0.0",
@@ -450,7 +439,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "discord.js": "14.27.0",
@@ -465,12 +454,9 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/libs": "workspace:*",
-        "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/storage": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@remotion/bundler": "4.0.518",
@@ -493,9 +479,7 @@
       "dependencies": {
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@posthog/mcp": "0.12.0",
@@ -508,8 +492,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@slack/web-api": "8.1.1",
         "jose": "^6.2.10",
@@ -536,7 +519,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "grammy": "1.46.0",
@@ -555,14 +538,11 @@
         "@genfeedai/actions": "workspace:*",
         "@genfeedai/api": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/libs": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
-        "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/axios": "12.0.0",
         "@nestjs/bullmq": "12.0.0",
@@ -581,17 +561,13 @@
       "name": "@genfeedai/website",
       "version": "1.0.0",
       "dependencies": {
-        "@genfeedai/api-types": "*",
         "@genfeedai/auth-client": "*",
         "@genfeedai/config": "*",
-        "@genfeedai/constants": "*",
-        "@genfeedai/enums": "*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "*",
-        "@genfeedai/interfaces": "*",
         "@genfeedai/next-config": "*",
         "@genfeedai/pricing": "*",
         "@genfeedai/styles": "*",
-        "@genfeedai/types": "*",
         "@tiptap/core": "3.30.5",
         "@tiptap/extension-image": "3.30.5",
         "@tiptap/extension-link": "3.30.5",
@@ -631,9 +607,8 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/props": "workspace:*",
@@ -680,25 +655,11 @@
         "react-dom": ">=18",
       },
     },
-    "packages/api-types": {
-      "name": "@genfeedai/api-types",
-      "version": "1.0.1",
-      "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
-        "zod": "4.5.4",
-      },
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
-        "openapi-typescript": "7.13.0",
-        "tsc-alias": "1.9.2",
-      },
-    },
     "packages/auth-client": {
       "name": "@genfeedai/auth-client",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "better-auth": "1.6.29",
         "zod": "4.5.4",
       },
@@ -733,10 +694,8 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.11",
         "@genfeedai/actions": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/errors": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@types/bun": "1.4.0",
@@ -751,9 +710,7 @@
       "name": "@genfeedai/client",
       "version": "2.3.2",
       "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "zod": "4.5.4",
       },
       "devDependencies": {
@@ -774,26 +731,14 @@
         "@typescript/native": "npm:typescript@7.0.2",
       },
     },
-    "packages/constants": {
-      "name": "@genfeedai/constants",
-      "version": "2.2.10",
-      "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-      },
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
-      },
-    },
     "packages/contexts": {
       "name": "@genfeedai/contexts",
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
@@ -807,6 +752,27 @@
         "jsdom": "29.1.1",
         "react": "19.2.8",
         "react-dom": "19.2.8",
+        "vitest": "4.1.11",
+      },
+    },
+    "packages/contracts": {
+      "name": "@genfeedai/contracts",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.5.4",
+      },
+      "devDependencies": {
+        "@types/node": "24.13.3",
+        "@types/react": "19.2.18",
+        "@types/react-dom": "19.2.5",
+        "@typescript/native": "npm:typescript@7.0.2",
+        "@xyflow/react": "12.11.5",
+        "next": "16.3.3",
+        "openapi-typescript": "7.13.0",
+        "react": "19.2.8",
+        "react-dom": "19.2.8",
+        "react-hook-form": "7.87.0",
+        "typescript": "6.0.3",
         "vitest": "4.1.11",
       },
     },
@@ -826,10 +792,6 @@
         "vitest": "4.1.11",
       },
     },
-    "packages/desktop-contracts": {
-      "name": "@genfeedai/desktop-contracts",
-      "version": "0.1.0",
-    },
     "packages/desktop-core": {
       "name": "@genfeedai/desktop-core",
       "version": "0.1.0",
@@ -845,13 +807,6 @@
       },
       "devDependencies": {
         "prisma": "7.10.0",
-      },
-    },
-    "packages/enums": {
-      "name": "@genfeedai/enums",
-      "version": "2.3.3",
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
       },
     },
     "packages/errors": {
@@ -878,7 +833,7 @@
       "name": "@genfeedai/harness",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.13.3",
@@ -891,9 +846,7 @@
       "name": "@genfeedai/helpers",
       "version": "2.2.13",
       "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "clsx": "2.1.1",
         "lucide-react": "1.37.0",
         "sanitize-html": "2.17.7",
@@ -920,10 +873,8 @@
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
@@ -945,31 +896,12 @@
       "name": "@genfeedai/integrations",
       "version": "1.0.0",
       "dependencies": {
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.13.3",
         "@typescript/native": "npm:typescript@7.0.2",
-      },
-    },
-    "packages/interfaces": {
-      "name": "@genfeedai/interfaces",
-      "version": "2.3.21",
-      "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/node": "24.13.3",
-        "@types/react": "19.2.18",
-        "@types/react-dom": "19.2.5",
-        "@typescript/native": "npm:typescript@7.0.2",
-        "next": "16.3.3",
-        "react": "19.2.8",
-        "react-dom": "19.2.8",
-        "react-hook-form": "7.87.0",
       },
     },
     "packages/libs": {
@@ -977,9 +909,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/storage": "workspace:*",
         "jose": "^6.2.10",
@@ -990,10 +921,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/services": "workspace:*",
       },
       "devDependencies": {
@@ -1020,7 +949,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@tanstack/react-query": "5.102.8",
         "@tiptap/core": "3.30.5",
         "lucide-react": "1.37.0",
@@ -1035,8 +964,7 @@
       "name": "@genfeedai/pricing",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "24.13.3",
@@ -1061,36 +989,21 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/services": "workspace:*",
-        "@genfeedai/types": "workspace:*",
         "@tiptap/core": "3.30.5",
       },
       "devDependencies": {
         "vitest": "4.1.11",
       },
     },
-    "packages/queue-contracts": {
-      "name": "@genfeedai/queue-contracts",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
-      },
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
-      },
-    },
     "packages/serializers": {
       "name": "@genfeedai/serializers",
       "version": "2.3.1",
       "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "ts-jsonapi": "2.1.3",
       },
@@ -1103,15 +1016,11 @@
       "name": "@genfeedai/services",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/client": "workspace:*",
         "@genfeedai/config": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/types": "workspace:*",
       },
       "devDependencies": {
         "vitest": "4.1.11",
@@ -1138,29 +1047,13 @@
       "name": "@genfeedai/tsconfig",
       "version": "1.0.0",
     },
-    "packages/types": {
-      "name": "@genfeedai/types",
-      "version": "0.3.2",
-      "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-      },
-      "devDependencies": {
-        "@typescript/native": "npm:typescript@7.0.2",
-        "@xyflow/react": "12.11.5",
-        "tsup": "8.5.1",
-        "typescript": "6.0.3",
-      },
-    },
     "packages/ui": {
       "name": "@genfeedai/ui",
       "version": "2.0.1",
       "dependencies": {
-        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "@hookform/resolvers": "5.9.1",
         "@tanstack/react-query": "5.102.8",
@@ -1260,10 +1153,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
       },
@@ -1277,10 +1168,8 @@
       "dependencies": {
         "@dagrejs/dagre": "3.1.1",
         "@genfeedai/actions": "workspace:*",
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/contracts": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
-        "@genfeedai/types": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@radix-ui/react-checkbox": "1.3.11",
         "@radix-ui/react-label": "2.1.15",
@@ -1928,8 +1817,6 @@
 
     "@genfeedai/api": ["@genfeedai/api@workspace:apps/server/api"],
 
-    "@genfeedai/api-types": ["@genfeedai/api-types@workspace:packages/api-types"],
-
     "@genfeedai/app": ["@genfeedai/app@workspace:apps/app"],
 
     "@genfeedai/auth-client": ["@genfeedai/auth-client@workspace:packages/auth-client"],
@@ -1940,15 +1827,13 @@
 
     "@genfeedai/config": ["@genfeedai/config@workspace:packages/config"],
 
-    "@genfeedai/constants": ["@genfeedai/constants@workspace:packages/constants"],
-
     "@genfeedai/contexts": ["@genfeedai/contexts@workspace:packages/contexts"],
+
+    "@genfeedai/contracts": ["@genfeedai/contracts@workspace:packages/contracts"],
 
     "@genfeedai/create": ["@genfeedai/create@workspace:packages/create"],
 
     "@genfeedai/desktop": ["@genfeedai/desktop@workspace:apps/desktop/app"],
-
-    "@genfeedai/desktop-contracts": ["@genfeedai/desktop-contracts@workspace:packages/desktop-contracts"],
 
     "@genfeedai/desktop-core": ["@genfeedai/desktop-core@workspace:packages/desktop-core"],
 
@@ -1957,8 +1842,6 @@
     "@genfeedai/discord": ["@genfeedai/discord@workspace:apps/server/discord"],
 
     "@genfeedai/docs": ["@genfeedai/docs@workspace:apps/docs"],
-
-    "@genfeedai/enums": ["@genfeedai/enums@workspace:packages/enums"],
 
     "@genfeedai/errors": ["@genfeedai/errors@workspace:packages/errors"],
 
@@ -1975,8 +1858,6 @@
     "@genfeedai/hooks": ["@genfeedai/hooks@workspace:packages/hooks"],
 
     "@genfeedai/integrations": ["@genfeedai/integrations@workspace:packages/integrations"],
-
-    "@genfeedai/interfaces": ["@genfeedai/interfaces@workspace:packages/interfaces"],
 
     "@genfeedai/libs": ["@genfeedai/libs@workspace:packages/libs"],
 
@@ -1998,8 +1879,6 @@
 
     "@genfeedai/props": ["@genfeedai/props@workspace:packages/props"],
 
-    "@genfeedai/queue-contracts": ["@genfeedai/queue-contracts@workspace:packages/queue-contracts"],
-
     "@genfeedai/serializers": ["@genfeedai/serializers@workspace:packages/serializers"],
 
     "@genfeedai/services": ["@genfeedai/services@workspace:packages/services"],
@@ -2013,8 +1892,6 @@
     "@genfeedai/telegram": ["@genfeedai/telegram@workspace:apps/server/telegram"],
 
     "@genfeedai/tsconfig": ["@genfeedai/tsconfig@workspace:packages/tsconfig"],
-
-    "@genfeedai/types": ["@genfeedai/types@workspace:packages/types"],
 
     "@genfeedai/ui": ["@genfeedai/ui@workspace:packages/ui"],
 

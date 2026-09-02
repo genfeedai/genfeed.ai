@@ -21,7 +21,7 @@ vi.mock('next-themes', () => ({
   useTheme: useThemeMock,
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   DEFAULT_THEME: 'system',
   THEME_COOKIE_MAX_AGE: 31536000,
   THEME_COOKIE_NAME: 'theme',

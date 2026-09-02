@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IReferralProgram } from '@genfeedai/interfaces';
+import type { IReferralProgram } from '@genfeedai/contracts/interfaces';
 
 export class ReferralProgram extends BaseEntity implements IReferralProgram {
   public declare code: string;

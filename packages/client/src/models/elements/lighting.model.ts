@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementLighting } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementLighting } from '@genfeedai/contracts/interfaces';
 
 export class ElementLighting extends BaseEntity implements IElementLighting {
   public declare key: string;

@@ -23,14 +23,14 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   EDITOR_RENDERER_VERSION,
   type IEditorExportAssetReference,
   type IEditorRenderCorrelation,
   type IEditorRenderJobParams,
   type IValidatedEditorExportContract,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

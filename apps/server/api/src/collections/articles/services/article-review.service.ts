@@ -9,7 +9,7 @@ import type {
 } from '@api/collections/articles/services/articles-content.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { appendHarnessBriefToPrompt } from '@api/services/harness/harness-brief.util';
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
 import { Injectable } from '@nestjs/common';
 

@@ -2,7 +2,7 @@ import type {
   IngredientFormat,
   VideoEaseCurve,
   VideoTransition,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 interface SelectedMusic {
   metadataLabel?: string | null;

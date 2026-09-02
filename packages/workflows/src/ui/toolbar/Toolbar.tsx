@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowFile } from '@genfeedai/contracts/types';
 import {
   Bug,
   CircleAlert,

@@ -5,7 +5,7 @@ import {
   CampaignTargetStatus,
   CampaignType,
   formatEnumLabel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { CampaignTarget } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';

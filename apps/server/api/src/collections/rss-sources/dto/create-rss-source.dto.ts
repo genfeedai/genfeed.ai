@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { RssApprovalMode, RssImportPolicy } from '@genfeedai/enums';
+import { RssApprovalMode, RssImportPolicy } from '@genfeedai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

@@ -5,7 +5,10 @@ import {
   FileQueueService,
   JobResponse,
 } from '@api/services/files-microservice/queue/file-queue.service';
-import type { IFrameInput, IJobStatusResponse } from '@genfeedai/interfaces';
+import type {
+  IFrameInput,
+  IJobStatusResponse,
+} from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

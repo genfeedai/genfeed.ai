@@ -1,8 +1,8 @@
 'use client';
 
-import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
-import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -7,7 +7,7 @@ import {
   PostVisibility,
   type ReviewDecision,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface PostAnalyticsSummary {
   totalViews: number;

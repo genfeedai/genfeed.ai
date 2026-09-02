@@ -1,10 +1,10 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CompleteSocialWarmupItemInput,
   CreateSocialWarmupEnrollmentInput,
   ISocialWarmupEnrollment,
   UpsertSocialWarmupSignalInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { SocialWarmupEnrollment } from '@genfeedai/models/social/social-warmup-enrollment.model';
 import { SocialWarmupEnrollmentSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

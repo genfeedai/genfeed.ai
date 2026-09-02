@@ -13,7 +13,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
+import { IngredientCategory, VoiceProvider } from '@genfeedai/contracts';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()

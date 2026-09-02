@@ -40,9 +40,9 @@ const TSCONFIG_UPDATES: Record<string, Record<string, string[]>> = {
     '@genfeedai/agent': ['./src/index.ts'],
     '@genfeedai/agent/*': ['./src/*'],
   },
-  'packages/api-types/tsconfig.json': {
-    '@api-types/*': ['./src/*'],
-    '@genfeedai/api-types/*': ['./src/*'],
+  'packages/contracts/tsconfig.json': {
+    '@genfeedai/contracts': ['./src/index.ts'],
+    '@genfeedai/contracts/*': ['./src/*'],
   },
   'packages/helpers/tsconfig.json': {
     '@genfeedai/helpers/*': ['./src/*'],

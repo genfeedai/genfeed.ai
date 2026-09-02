@@ -1,10 +1,10 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import type {
   TemplateMetadata,
   TemplatePerformance,
-} from '@genfeedai/interfaces/content/template-ui.interface';
+} from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';

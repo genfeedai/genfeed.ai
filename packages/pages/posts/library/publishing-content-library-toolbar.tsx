@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { PublishingContentTypeFilter } from '@pages/posts/library/publishing-content-library.helpers';
 import { PUBLISHING_CONTENT_TYPES } from '@pages/posts/library/publishing-content-library.helpers';
 import FormSearchbar from '@ui/primitives/searchbar';

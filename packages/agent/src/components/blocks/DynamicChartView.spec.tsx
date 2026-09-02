@@ -1,5 +1,5 @@
 import DynamicChartView from '@genfeedai/agent/components/blocks/DynamicChartView';
-import type { ChartBlock } from '@genfeedai/interfaces';
+import type { ChartBlock } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

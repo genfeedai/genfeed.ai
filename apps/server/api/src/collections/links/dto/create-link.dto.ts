@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsString, IsUrl } from 'class-validator';
 

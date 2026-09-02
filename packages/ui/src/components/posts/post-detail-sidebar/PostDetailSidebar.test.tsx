@@ -3,7 +3,7 @@ import {
   PostCategory,
   PostStatus,
   ReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';

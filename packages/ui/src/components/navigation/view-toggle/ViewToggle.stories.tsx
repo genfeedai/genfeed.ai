@@ -1,4 +1,4 @@
-import { ViewType } from '@genfeedai/enums';
+import { ViewType } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { Calendar, LayoutGrid, List, Table } from 'lucide-react';

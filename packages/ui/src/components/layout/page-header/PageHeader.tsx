@@ -1,7 +1,7 @@
 'use client';
 
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PageHeaderProps } from '@genfeedai/props/layout/page-header.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';

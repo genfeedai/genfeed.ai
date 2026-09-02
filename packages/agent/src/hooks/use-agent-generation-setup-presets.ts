@@ -1,8 +1,8 @@
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentGenerationType } from '@genfeedai/agent/utils/agent-generation-setup.util';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { IStudioLook } from '@genfeedai/interfaces';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { StudioLooksService } from '@services/content/studio-looks.service';
 import { useCallback, useEffect, useRef, useState } from 'react';

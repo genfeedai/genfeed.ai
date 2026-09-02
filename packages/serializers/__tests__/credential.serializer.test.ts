@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { CredentialSerializer } from '@serializers/server/organizations/credential.serializer';
 import { describe, expect, it } from 'vitest';
 

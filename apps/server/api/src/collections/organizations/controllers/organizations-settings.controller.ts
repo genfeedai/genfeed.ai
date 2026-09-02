@@ -22,16 +22,16 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
-import { ByokProvider, MemberRole } from '@genfeedai/enums';
+import { ByokProvider, MemberRole } from '@genfeedai/contracts';
 import type {
   IByokProviderStatus,
   IWebhookDeliveryStatus,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import {
   FleetCapabilitiesSerializer,
   OrganizationSettingSerializer,

@@ -1,4 +1,8 @@
-import type { NodeGroup, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type {
+  NodeGroup,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/contracts/types';
 
 interface TemporalState {
   nodes: WorkflowNode[];

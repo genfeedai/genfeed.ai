@@ -15,7 +15,7 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import type {
   IAgentCampaignStatusResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { AgentCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

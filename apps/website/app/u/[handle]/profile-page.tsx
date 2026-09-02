@@ -1,4 +1,4 @@
-import type { ILink } from '@genfeedai/interfaces';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { Article } from '@models/content/article.model';

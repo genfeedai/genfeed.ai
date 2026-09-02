@@ -1,4 +1,4 @@
-import type { WorkflowNode } from '@genfeedai/types';
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 
 /**
  * Extract the scalar output value that corresponds to a specific handle type.

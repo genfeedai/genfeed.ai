@@ -1,10 +1,13 @@
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   type IngredientFormat,
   ModelCategory,
   QualityTier,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 import { isAspectRatioSupported } from './aspect-ratio.helper';
 import { getModelCapability } from './model-capability.helper';

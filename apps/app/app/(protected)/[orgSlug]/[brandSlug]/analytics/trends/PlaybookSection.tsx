@@ -1,6 +1,6 @@
 'use client';
 
-import type { ITrendPlaybook } from '@genfeedai/interfaces';
+import type { ITrendPlaybook } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Heading } from '@ui/typography/heading';

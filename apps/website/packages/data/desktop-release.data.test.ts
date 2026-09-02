@@ -1,4 +1,4 @@
-import { DesktopOs } from '@genfeedai/enums';
+import { DesktopOs } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DESKTOP_RELEASES_URL,

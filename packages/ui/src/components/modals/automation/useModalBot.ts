@@ -15,14 +15,14 @@ import {
   MonitoringAlertType,
   Platform,
   PublishingFrequency,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IBot } from '@genfeedai/contracts/interfaces';
 import {
   TwitchIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IBot } from '@genfeedai/interfaces';
 import type { ModalBotProps } from '@genfeedai/props/modals/modal.props';
 import { BotsService } from '@genfeedai/services/automation/bots.service';
 import { Bell, Heart, Megaphone, MessageSquare } from 'lucide-react';

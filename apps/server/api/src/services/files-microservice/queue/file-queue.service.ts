@@ -2,7 +2,7 @@ import type { UpdateCredentialDto } from '@api/collections/credentials/dto/updat
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
-import { JobState } from '@genfeedai/enums';
+import { JobState } from '@genfeedai/contracts';
 import type {
   IFileProcessingJob,
   IFrameInput,
@@ -12,7 +12,7 @@ import type {
   IQueueStats,
   IVideoDimensions,
   IYoutubeUploadData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

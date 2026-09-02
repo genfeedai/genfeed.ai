@@ -3,7 +3,7 @@ import type {
   ISocialWarmupEnrollment,
   ISocialWarmupEvent,
   ISocialWarmupSignal,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialWarmupEvent
   extends BaseEntity

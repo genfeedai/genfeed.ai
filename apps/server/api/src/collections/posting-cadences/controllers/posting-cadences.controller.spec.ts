@@ -1,7 +1,7 @@
 import { PostingCadencesController } from '@api/collections/posting-cadences/controllers/posting-cadences.controller';
 import { PostingCadencesService } from '@api/collections/posting-cadences/services/posting-cadences.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 

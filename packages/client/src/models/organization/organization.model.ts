@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { AssetScope, OrganizationCategory } from '@genfeedai/enums';
+import type { AssetScope, OrganizationCategory } from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -7,7 +7,7 @@ import type {
   IOrganization,
   IOrganizationSetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Organization extends BaseEntity implements IOrganization {
   public declare label: string;

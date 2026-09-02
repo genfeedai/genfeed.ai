@@ -1,7 +1,7 @@
 import type {
   JsonApiCollectionResponse,
   JsonApiMeta,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface SkillsProRegistryEntryDto {
   category: string;

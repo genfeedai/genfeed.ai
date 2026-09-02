@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import type { ModalGenerateIllustrationProps } from '@genfeedai/props/modals/modal.props';
 import Modal from '@ui/modals/modal/Modal';
 import IllustrationActions from './IllustrationActions';

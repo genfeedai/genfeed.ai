@@ -2,8 +2,11 @@
 
 import { useAssetSelection } from '@contexts/ui/asset-selection.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IGenerationItem, IIngredient } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type {
+  IGenerationItem,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
 import { type ReactNode, useCallback, useMemo } from 'react';
 import {
   type ProductWorkspaceSurfaceAdapter,

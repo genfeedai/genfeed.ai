@@ -1,7 +1,7 @@
 import type {
   MenuConfig,
   MenuItemConfig,
-} from '@genfeedai/interfaces/ui/menu-config.interface';
+} from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 
 export interface ShellAction {
   id: string;

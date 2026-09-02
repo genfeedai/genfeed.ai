@@ -1,5 +1,5 @@
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
-import { ContentPlanItemStatus } from '@genfeedai/enums';
+import { ContentPlanItemStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentPlanItemsService scalar filters', () => {

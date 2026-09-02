@@ -25,11 +25,11 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { AssetCategory, AssetParent } from '@genfeedai/enums';
+import { AssetCategory, AssetParent } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import {
   Body,

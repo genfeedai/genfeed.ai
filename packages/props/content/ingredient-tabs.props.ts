@@ -1,4 +1,4 @@
-import type { IIngredient, ITag } from '@genfeedai/interfaces';
+import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
 
 export interface ExtendedIngredientTabsTagsProps {
   ingredient: IIngredient;

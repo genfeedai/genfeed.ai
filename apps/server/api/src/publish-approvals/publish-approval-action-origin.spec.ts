@@ -1,5 +1,5 @@
 import { runWithActionOrigin } from '@api/action-origin/action-origin.context';
-import { ActionOrigin } from '@genfeedai/enums';
+import { ActionOrigin } from '@genfeedai/contracts';
 import {
   buildApprovalProvenance,
   readApprovalOrigin,

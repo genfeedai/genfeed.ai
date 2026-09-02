@@ -7,7 +7,7 @@ import type {
   VideoGenNodeData,
   VideoInputNodeData,
   WorkflowNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 
 export interface MediaInfo {
   url: string | null;

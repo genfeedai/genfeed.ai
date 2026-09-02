@@ -3,7 +3,7 @@ import {
   SocialConversationStatus,
   SocialConversationType,
   SocialInboxPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { SocialConversationSerializer } from '@serializers/server/social/social-conversation.serializer';
 import { describe, expect, it, vi } from 'vitest';
 

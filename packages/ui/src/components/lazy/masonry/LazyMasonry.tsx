@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import type {
   MasonryImageProps,
   MasonryVideoProps,

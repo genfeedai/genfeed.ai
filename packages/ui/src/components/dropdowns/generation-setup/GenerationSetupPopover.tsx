@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IStudioLook } from '@genfeedai/interfaces';
 import type {
   GenerationSetupCustomizeSectionId,
   GenerationSetupPopoverProps,

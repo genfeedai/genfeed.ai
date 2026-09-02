@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/constants';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
+import { APP_ROUTES, getOrgSwitchHref } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Building2, TriangleAlert } from 'lucide-react';

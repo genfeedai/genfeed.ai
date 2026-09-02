@@ -1,5 +1,5 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Check, Image } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';

@@ -12,10 +12,14 @@
       // below, so their own workspace imports must be mapped too — otherwise
       // tsc type-checks their `src/` against unresolvable module specifiers and
       // every exported signature degrades to `any`.
-      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
-      "@genfeedai/desktop-contracts": [
-        "../../../packages/desktop-contracts/src/index.ts"
+      "@genfeedai/contracts/constants": [
+        "../../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../../packages/contracts/src/constants/*"
+      ],
+      "@genfeedai/contracts/desktop": [
+        "../../../packages/contracts/src/desktop/index.ts"
       ],
       "@genfeedai/desktop-core": [
         "../../../packages/desktop-core/src/index.ts"
@@ -23,12 +27,16 @@
       "@genfeedai/desktop-prisma": [
         "../../../packages/desktop-prisma/src/index.ts"
       ],
-      "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
+      "@genfeedai/contracts": ["../../../packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../../../packages/contracts/src/*"],
       "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
-      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../packages/contracts/src/interfaces/*"
+      ],
       "@genfeedai/pricing": ["../../../packages/pricing/src/index.ts"],
       "@genfeedai/pricing/*": ["../../../packages/pricing/src/*"],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],

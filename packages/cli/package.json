@@ -19,10 +19,8 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
     "@genfeedai/actions": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/contracts": "workspace:*",
     "@genfeedai/errors": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@types/bun": "1.4.0",

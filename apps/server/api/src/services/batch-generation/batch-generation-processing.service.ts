@@ -35,8 +35,8 @@ import {
   PostVisibility,
   TargetExecutionState,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

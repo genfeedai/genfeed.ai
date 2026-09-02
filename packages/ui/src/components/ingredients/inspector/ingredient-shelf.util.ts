@@ -3,8 +3,8 @@ import {
   IngredientStatus,
   LibraryShelf,
   QualityStatus,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
 /** Statuses that count as usable inventory on the Unsorted shelf. */
 const UNSORTED_STATUSES: readonly IngredientStatus[] = [

@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-/** Platform brand colors (kept in sync with packages/constants/src/platform-colors.ts) */
+/** Platform brand colors (kept in sync with packages/contracts/src/constants/platform-colors.ts) */
 export const PLATFORM_COLORS = {
   beehiiv: '#FCD34D',
   devto: '#0A0A0A',

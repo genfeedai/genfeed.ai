@@ -32,7 +32,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { GenerationWebhookOutput } from '@api-types/contracts/generation-webhook-events.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -41,7 +40,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { GenerationWebhookOutput } from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

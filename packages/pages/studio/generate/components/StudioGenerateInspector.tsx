@@ -1,8 +1,12 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateInspectorProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

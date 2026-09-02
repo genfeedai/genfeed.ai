@@ -9,7 +9,7 @@
  * app module is imported, so calling the gate from `@Module()` metadata is
  * safe — the same pattern `CreditsModule` uses for `usesMeteredCredits()`.
  *
- * Every string token (see `@genfeedai/interfaces/billing` `billing.tokens.ts`)
+ * Every string token (see `@genfeedai/contracts/interfaces/billing` `billing.tokens.ts`)
  * binds to the real Stripe-backed service when organization billing is live,
  * and to the colocated community stub otherwise. The stubs honour the
  * contract's behavioural split: always-on webhook/read paths return
@@ -24,7 +24,7 @@ import {
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import type { Provider, Type } from '@nestjs/common';
 import { OssSubscriptionAttributionsService } from './oss-subscription-attributions.service';
 import { OssSubscriptionsService } from './oss-subscriptions.service';

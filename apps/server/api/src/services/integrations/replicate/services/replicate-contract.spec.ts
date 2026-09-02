@@ -3,7 +3,7 @@ import {
   extractReplicateEndpointSchemas,
   isReplicateSchemaFamilyCompatible,
 } from '@api/services/integrations/replicate/services/replicate-contract';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 
 describe('Replicate provider contracts', () => {
   const openapi = {

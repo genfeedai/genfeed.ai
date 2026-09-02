@@ -1,5 +1,12 @@
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { LibraryPlace, PageScope, parseLibraryShelf } from '@genfeedai/enums';
+import {
+  LibraryPlace,
+  PageScope,
+  parseLibraryShelf,
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import {
   CampaignDetailOverview,
   CampaignDetailShell,

@@ -6,7 +6,7 @@ import {
   FFmpegProgress,
   FFprobeStream,
 } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { VideoEaseCurve } from '@genfeedai/enums';
+import { VideoEaseCurve } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

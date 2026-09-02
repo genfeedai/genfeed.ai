@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import HeroProofRail from '@ui/marketing/HeroProofRail';

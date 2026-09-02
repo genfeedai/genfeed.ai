@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { buildClipDraftAgentHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

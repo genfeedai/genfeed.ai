@@ -3,7 +3,7 @@ import {
   SKILL_MODALITIES,
   SKILL_WORKFLOW_STAGES,
 } from '@api/collections/skills/schemas/skill.schema';
-import { ContentSkillCategory } from '@genfeedai/enums';
+import { ContentSkillCategory } from '@genfeedai/contracts';
 
 import type { FirstPartySkillMetadata } from './first-party-skill.types';
 

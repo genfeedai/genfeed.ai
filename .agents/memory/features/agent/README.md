@@ -32,8 +32,8 @@ The agent system is a multi-turn LLM chat orchestrator with tool execution, even
 
 ### Shared
 - `packages/actions/src/registry/` -- canonical tool definitions (`source.agent.ts`, `source.mcp.ts`, `tool-registry.ts`)
-- `packages/interfaces/src/ai/agent-tool.interface.ts` -- AgentToolName, AgentToolDefinition, AgentToolResult
-- `packages/enums/src/agent-*.enum.ts` -- AgentType, AgentThreadStatus, AgentMessageRole, etc.
+- `packages/contracts/src/interfaces/ai/agent-tool.interface.ts` -- AgentToolName, AgentToolDefinition, AgentToolResult
+- `packages/contracts/src/enums/agent-*.enum.ts` -- AgentType, AgentThreadStatus, AgentMessageRole, etc.
 
 ### Frontend
 - `packages/agent/src/` -- full React package (components, hooks, stores, services)

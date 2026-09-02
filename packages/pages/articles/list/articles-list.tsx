@@ -1,11 +1,11 @@
 'use client';
 
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
-} from '@genfeedai/constants';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import type { IQueryParams } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';

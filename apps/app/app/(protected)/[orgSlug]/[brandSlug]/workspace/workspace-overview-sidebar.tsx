@@ -1,13 +1,13 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   normalizeReviewDecision,
   ReviewDecision,
-} from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task, TasksService } from '@services/management/tasks.service';

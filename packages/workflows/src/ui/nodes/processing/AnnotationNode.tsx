@@ -1,6 +1,6 @@
 'use client';
 
-import type { AnnotationNodeData } from '@genfeedai/types';
+import type { AnnotationNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Pencil, Shapes } from 'lucide-react';
 import Image from 'next/image';

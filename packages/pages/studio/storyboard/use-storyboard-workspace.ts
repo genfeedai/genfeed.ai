@@ -12,13 +12,13 @@ import {
   type Storyboard,
   type StoryboardFrame,
 } from '@genfeedai/client/schemas';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
-import type { IImage, IVideo } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import type { IImage, IVideo } from '@genfeedai/contracts/interfaces';
 import type {
   IStoryboardMergeSettings,
   IStoryboardSceneProgress,
-} from '@genfeedai/interfaces/components/storyboard.interface';
-import type { IVideoMergeParams } from '@genfeedai/interfaces/components/video-operations.interface';
+} from '@genfeedai/contracts/interfaces/components/storyboard.interface';
+import type { IVideoMergeParams } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useMergeProgress } from '@hooks/storyboard/use-merge-progress/use-merge-progress';

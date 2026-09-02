@@ -8,7 +8,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty.util';
-import { CreatorAnalysisStatus } from '@genfeedai/enums';
+import { CreatorAnalysisStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

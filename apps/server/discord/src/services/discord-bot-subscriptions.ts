@@ -1,4 +1,4 @@
-import { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
   type DiscordSendToChannelEvent,
   type IntegrationEvent,

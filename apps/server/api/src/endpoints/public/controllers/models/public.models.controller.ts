@@ -5,7 +5,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { ModelCatalogSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';

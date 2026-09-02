@@ -1,5 +1,5 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { CaptionFormat, CaptionLanguage } from '@genfeedai/enums';
+import { CaptionFormat, CaptionLanguage } from '@genfeedai/contracts';
 import { type Caption } from '@genfeedai/prisma';
 
 export class CaptionEntity extends BaseEntity implements Caption {

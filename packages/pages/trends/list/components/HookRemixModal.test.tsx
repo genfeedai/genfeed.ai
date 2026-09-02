@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import type { ITrendVideo } from '@genfeedai/interfaces';
+import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';

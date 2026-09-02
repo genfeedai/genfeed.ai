@@ -2,10 +2,10 @@
   "dependencies": {
     "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "grammy": "1.46.0",
-    "tsconfig-paths": "4.2.0"
+    "tsconfig-paths": "4.2.0",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed Telegram Service",
   "devDependencies": {

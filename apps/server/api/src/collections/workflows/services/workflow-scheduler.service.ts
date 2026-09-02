@@ -11,7 +11,7 @@ import {
 import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

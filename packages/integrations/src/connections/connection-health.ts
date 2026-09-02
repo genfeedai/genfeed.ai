@@ -1,12 +1,12 @@
-import {
-  buildPublishingProviderReadiness,
-  type PublishingReadinessInput,
-} from '@genfeedai/helpers';
 import type {
   CredentialTokenPublishingReadinessInput,
   IPublishingDiagnostic,
   IPublishingProviderReadiness,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import {
+  buildPublishingProviderReadiness,
+  type PublishingReadinessInput,
+} from '@genfeedai/helpers';
 
 export type IntegrationConnectionHealthStatus =
   | 'disconnected'

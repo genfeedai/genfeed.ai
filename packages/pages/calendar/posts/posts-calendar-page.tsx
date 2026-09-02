@@ -1,7 +1,11 @@
 'use client';
 
-import { PLATFORM_COLORS } from '@genfeedai/constants';
-import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PageScope,
+  PostStatus,
+} from '@genfeedai/contracts';
+import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';

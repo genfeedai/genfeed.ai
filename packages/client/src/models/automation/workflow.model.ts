@@ -1,11 +1,11 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { WorkflowStatus } from '@genfeedai/enums';
+import type { WorkflowStatus } from '@genfeedai/contracts';
 import type {
   IWorkflow,
   WorkflowEdge,
   WorkflowInputVariable,
   WorkflowVisualNode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Workflow extends BaseEntity implements IWorkflow {
   public declare label: string;

@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuLabelProps } from '@genfeedai/props/navigation/menu.props';
 import { Button } from '@ui/primitives/button';
 

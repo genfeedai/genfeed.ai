@@ -9,15 +9,15 @@
 
 import { randomUUID } from 'node:crypto';
 import process from 'node:process';
+import { AgentArtifactReferenceService } from '@api/index';
 import {
   PersistedReviewDecision,
   PostCategory,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService } from '@api/index';
 import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,

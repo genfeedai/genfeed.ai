@@ -1,4 +1,4 @@
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -7,7 +7,7 @@ import type {
 import type {
   FileJobPriority as JobPriority,
   FileJobType as JobType,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 
 export interface ProcessVideoRequestBody {
   id?: string;

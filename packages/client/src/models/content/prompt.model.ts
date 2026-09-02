@@ -1,6 +1,10 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { AssetScope } from '@genfeedai/enums';
-import type { IIngredient, IPrompt, ITag } from '@genfeedai/interfaces';
+import type { AssetScope } from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  IPrompt,
+  ITag,
+} from '@genfeedai/contracts/interfaces';
 
 export class Prompt extends BaseEntity implements IPrompt {
   public declare userId: string;

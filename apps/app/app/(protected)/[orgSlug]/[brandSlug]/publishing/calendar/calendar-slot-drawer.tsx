@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, CalendarSlotState } from '@genfeedai/enums';
-import type { ICalendarSlot } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CalendarSlotState,
+} from '@genfeedai/contracts';
+import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {

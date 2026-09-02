@@ -19,12 +19,12 @@ import {
   requireRelationId,
   resolveEntityId,
 } from '@api/shared/utils/relation-id/relation-id.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

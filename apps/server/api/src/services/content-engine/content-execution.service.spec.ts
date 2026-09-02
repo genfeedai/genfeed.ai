@@ -5,7 +5,7 @@ import {
   ContentPlanStatus,
   ImageTaskModel,
   VideoTaskModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 // ---------------------------------------------------------------------------

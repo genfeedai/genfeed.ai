@@ -12,13 +12,13 @@ import type {
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
-import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

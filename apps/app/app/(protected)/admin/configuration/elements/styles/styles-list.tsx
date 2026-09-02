@@ -1,9 +1,12 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModalEnum, PageScope } from '@genfeedai/enums';
-import type { IElementStyle, IQueryParams } from '@genfeedai/interfaces';
-import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
+import { ModalEnum, PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type {
+  IElementStyle,
+  IQueryParams,
+} from '@genfeedai/contracts/interfaces';
+import type { IElementContentProps } from '@genfeedai/contracts/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementStyle } from '@models/elements/style.model';

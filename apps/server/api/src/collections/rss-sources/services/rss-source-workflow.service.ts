@@ -13,7 +13,7 @@ import {
 } from '@api/collections/rss-sources/services/rss-sweep-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';

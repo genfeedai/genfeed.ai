@@ -1,4 +1,4 @@
-import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
+import type { IBackgroundTaskUpdateEvent } from '@genfeedai/contracts/interfaces';
 
 export type StructuredProgressStatus =
   | 'pending'

@@ -11,12 +11,12 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalsSnapshot,
   instagramAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

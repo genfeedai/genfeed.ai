@@ -15,7 +15,7 @@ import type {
   IDesktopTrend,
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 
 const AGENT_RUN_STATUSES = new Set<IDesktopAgentRun['status']>([
   'completed',

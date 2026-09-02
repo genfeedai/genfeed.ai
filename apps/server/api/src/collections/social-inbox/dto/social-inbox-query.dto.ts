@@ -5,7 +5,7 @@ import {
   SocialConversationStatus,
   SocialConversationType,
   SocialInboxPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';

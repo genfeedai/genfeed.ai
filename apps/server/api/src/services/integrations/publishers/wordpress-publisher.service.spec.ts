@@ -4,7 +4,7 @@ import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WordpressPublisherService } from '@api/services/integrations/publishers/wordpress-publisher.service';
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';

@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { PushDesktopAssetsDto } from '@api/services/sync/dto/push-desktop-assets.dto';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_ASSETS = 500;

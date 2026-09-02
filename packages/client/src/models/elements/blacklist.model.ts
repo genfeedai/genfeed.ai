@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementBlacklist } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementBlacklist } from '@genfeedai/contracts/interfaces';
 
 export class ElementBlacklist extends BaseEntity implements IElementBlacklist {
   public declare key: string;

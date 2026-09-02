@@ -13,7 +13,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { IPlatformAnalyticsTotals } from '@genfeedai/interfaces';
+import type { IPlatformAnalyticsTotals } from '@genfeedai/contracts/interfaces';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

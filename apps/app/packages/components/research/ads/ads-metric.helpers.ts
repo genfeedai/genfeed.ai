@@ -3,7 +3,7 @@ import type {
   AdsResearchLongevity,
   AdsResearchMetric,
   AdsResearchPlatform,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export function formatMetric(value?: number): string {
   if (typeof value !== 'number' || Number.isNaN(value)) {

@@ -10,8 +10,8 @@ import {
   isOnlyImagenModels,
   isReferencesMandatory,
   supportsMultipleReferences as modelSupportsMultipleReferences,
-} from '@genfeedai/constants';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
   UsePromptBarModelsOptions,
   UsePromptBarModelsReturn,

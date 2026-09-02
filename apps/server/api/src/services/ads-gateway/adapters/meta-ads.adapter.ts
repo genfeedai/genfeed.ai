@@ -23,7 +23,7 @@ import type {
   UnifiedCampaign,
   UnifiedInsights,
   UpdateCampaignInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()

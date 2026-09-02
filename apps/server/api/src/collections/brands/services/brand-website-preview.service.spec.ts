@@ -1,6 +1,6 @@
 import { BrandWebsitePreviewService } from '@api/collections/brands/services/brand-website-preview.service';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 
 describe('BrandWebsitePreviewService', () => {

@@ -5,7 +5,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';

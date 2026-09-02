@@ -6,7 +6,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Header, Param } from '@nestjs/common';
 

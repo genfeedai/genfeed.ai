@@ -1,20 +1,23 @@
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   MINIMAX_H3_COMPILER_ID,
   MINIMAX_H3_COMPILER_VERSION,
   PRUNAAI_P_VIDEO_COMPILER_ID,
   PRUNAAI_P_VIDEO_COMPILER_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_CAPABILITY_PROFILE_ID,
   MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
   MINIMAX_H3_MODEL_KEY,
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
   PRUNAAI_P_VIDEO_MODEL_KEY,
-} from '@api-types/contracts/video-generation-capability-profile.contract';
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile.contract';
+import {
+  MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 const VIDEO_MODEL_KEYS = Object.entries(MODEL_OUTPUT_CAPABILITIES)

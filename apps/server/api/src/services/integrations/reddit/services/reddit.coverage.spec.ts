@@ -34,7 +34,7 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';

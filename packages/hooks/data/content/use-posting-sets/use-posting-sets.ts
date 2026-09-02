@@ -1,8 +1,11 @@
 'use client';
 
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import type { CreatePostingSetInput, IPostingSet } from '@genfeedai/interfaces';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type {
+  CreatePostingSetInput,
+  IPostingSet,
+} from '@genfeedai/contracts/interfaces';
 import { PostingSetsService } from '@genfeedai/services/content/posting-sets.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

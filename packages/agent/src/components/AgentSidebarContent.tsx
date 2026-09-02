@@ -1,6 +1,6 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';

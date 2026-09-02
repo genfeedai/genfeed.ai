@@ -3,8 +3,8 @@ import { BrandRemixRunExecutionService } from '@api/collections/content-runs/ser
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');

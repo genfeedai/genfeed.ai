@@ -1,7 +1,7 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { UnipileService } from '@api/services/integrations/unipile/services/unipile.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

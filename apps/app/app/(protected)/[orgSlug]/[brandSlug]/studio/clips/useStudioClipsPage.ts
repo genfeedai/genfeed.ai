@@ -1,7 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { GenerationType } from '@genfeedai/enums';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { GenerationType } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type ClipProcessingFlow,
   type ClipProjectReadResponse,
@@ -9,7 +8,8 @@ import {
   type IBrand,
   type IOrganizationSetting,
   isClipResultMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';

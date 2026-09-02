@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers';
 import {
   FacebookIcon,
@@ -10,7 +11,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { ICredential } from '@genfeedai/interfaces';
 import { Star } from 'lucide-react';
 import type { ComponentType, ReactElement } from 'react';
 import { Button } from './button';

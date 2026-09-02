@@ -14,7 +14,7 @@ import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflo
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

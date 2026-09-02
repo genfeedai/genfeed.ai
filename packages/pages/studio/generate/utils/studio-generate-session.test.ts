@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {

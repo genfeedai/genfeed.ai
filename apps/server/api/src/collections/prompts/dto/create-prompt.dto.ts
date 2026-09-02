@@ -1,6 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
-import { AssetScope, PromptCategory, PromptStatus } from '@genfeedai/enums';
+import { AssetScope, PromptCategory, PromptStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

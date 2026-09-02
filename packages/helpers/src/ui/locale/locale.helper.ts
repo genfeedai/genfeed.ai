@@ -4,7 +4,7 @@ import {
   isSupportedLocale,
   LOCALE_COOKIE_NAME,
   resolveLocaleFromLanguage,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { cookies, headers } from 'next/headers';
 
 /**

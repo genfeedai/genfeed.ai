@@ -1,6 +1,6 @@
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 @Injectable()

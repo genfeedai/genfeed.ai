@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementScene } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementScene } from '@genfeedai/contracts/interfaces';
 
 export class ElementScene extends BaseEntity implements IElementScene {
   public declare key: string;

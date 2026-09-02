@@ -12,7 +12,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   VARIATION_PROMPT_PRESETS: [
     { key: 'preset-1', label: 'Preset 1', prompt: 'Prompt for preset 1' },
     { key: 'preset-2', label: 'Preset 2', prompt: 'Prompt for preset 2' },

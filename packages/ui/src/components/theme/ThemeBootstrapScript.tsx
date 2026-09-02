@@ -3,7 +3,7 @@ import {
   DEFAULT_THEME,
   THEME_PREFERENCES,
   THEME_STORAGE_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
 
 type ThemeStorageBootstrapScriptProps = Pick<

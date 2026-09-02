@@ -5,7 +5,7 @@ import {
   isThemePreference,
   resolveThemePreference,
   THEME_STORAGE_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { useEffect } from 'react';
 
 /**

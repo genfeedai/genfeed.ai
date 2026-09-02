@@ -1,6 +1,6 @@
 import Dagre from '@dagrejs/dagre';
-import type { NodeType } from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+import type { NodeType } from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import type { Edge, Node } from '@xyflow/react';
 
 interface LayoutOptions {

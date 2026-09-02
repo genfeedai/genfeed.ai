@@ -20,7 +20,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { PostSerializer, VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';

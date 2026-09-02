@@ -15,9 +15,9 @@ import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/too
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { RouterPriority, Status } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { RouterPriority, Status } from '@genfeedai/contracts';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import type { NodesByCategory } from '@genfeedai/interfaces/automation/workflow-builder.interface';
+import type { NodesByCategory } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import NodePalette from '@ui/workflow-builder/panels/NodePalette';
 

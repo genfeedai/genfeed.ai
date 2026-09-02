@@ -6,8 +6,8 @@ import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/c
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
-import { parsePlatform, TargetExecutionState } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { parsePlatform, TargetExecutionState } from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

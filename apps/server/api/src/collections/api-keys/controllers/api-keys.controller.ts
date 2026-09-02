@@ -15,13 +15,13 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,

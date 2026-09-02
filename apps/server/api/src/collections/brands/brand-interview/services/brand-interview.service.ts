@@ -7,8 +7,7 @@ import { InsufficientCreditsException } from '@api/exceptions/business-logic.exc
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, BrandInterviewStatus } from '@genfeedai/enums';
-import { computeBrandCompleteness } from '@genfeedai/helpers';
+import { ActivitySource, BrandInterviewStatus } from '@genfeedai/contracts';
 import type {
   BrandInterviewAnswerValue,
   IActiveBrandInterview,
@@ -18,7 +17,8 @@ import type {
   IBrandInterviewQuestion,
   IBrandInterviewStartResult,
   IBrandInterviewStep,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type { BrandInterview, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

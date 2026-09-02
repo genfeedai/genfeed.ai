@@ -1,12 +1,12 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   IShopifyProduct,
   IShopifyProductCreateResponse,
   IShopifyProductQueryResponse,
   IShopifyProductUpdateResponse,
   IShopifyTokenResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

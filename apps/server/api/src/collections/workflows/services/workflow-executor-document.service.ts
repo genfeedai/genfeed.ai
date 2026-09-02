@@ -16,7 +16,7 @@ import {
 import { hydrateWorkflowDefinition } from '@api/collections/workflows/workflow-version-definition';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
 
 export class RetiredWorkflowExecutionError extends Error {
   constructor(workflowId: string, workflowVersionId: string) {

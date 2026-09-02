@@ -5,7 +5,7 @@ import {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { BaseEntity } from '@api/entities/base.entity';
-import { WorkflowRecurrenceType } from '@genfeedai/enums';
+import { WorkflowRecurrenceType } from '@genfeedai/contracts';
 
 export class WorkflowRecurrenceEntity {
   type!: WorkflowRecurrenceType;

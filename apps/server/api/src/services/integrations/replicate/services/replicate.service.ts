@@ -2,7 +2,7 @@ import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

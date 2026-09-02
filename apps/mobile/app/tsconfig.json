@@ -2,14 +2,26 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./*"],
-      "@api-types/*": ["../../../packages/api-types/src/*"],
-      "@genfeedai-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../../packages/contracts/src/api-types/*"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../../packages/contracts/src/types/*"
+      ],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
-      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
-      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/contracts/constants": [
+        "../../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../../packages/contracts/src/constants/*"
+      ],
+      "@genfeedai/contracts/interfaces": [
+        "../../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../packages/contracts/src/interfaces/*"
+      ],
       "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],
       "@genfeedai/ui/*": ["../../../packages/ui/src/*"],
       "@ui/*": ["../../../packages/ui/src/*"]

@@ -1,4 +1,7 @@
-import type { ICredential, ICredentialOAuth } from '@genfeedai/interfaces';
+import type {
+  ICredential,
+  ICredentialOAuth,
+} from '@genfeedai/contracts/interfaces';
 import {
   Credential,
   CredentialOAuth,

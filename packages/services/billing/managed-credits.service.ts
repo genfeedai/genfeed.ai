@@ -2,14 +2,14 @@ import type {
   CreateManagedCreditsCheckoutInput,
   ManagedCreditsCheckoutResult,
   ManagedCreditsProvisioningResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export type {
   CreateManagedCreditsCheckoutInput,
   ManagedCreditsCheckoutResult,
   ManagedCreditsProvisioningResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class ManagedCreditsApiError extends Error {
   constructor(

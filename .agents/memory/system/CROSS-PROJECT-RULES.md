@@ -19,8 +19,8 @@ Repo root MUST have: `AGENTS.md`, `CLAUDE.md`. These are required for the Agenti
 | File Type | Location |
 |-----------|----------|
 | Component props | `packages/props/[category]/*.props.ts` |
-| State/helper interfaces | `packages/interfaces/[category]/*.interface.ts` |
-| Enums | `packages/enums/` (`@genfeedai/enums`) |
+| State/helper interfaces | `packages/contracts/src/interfaces/[category]/*.interface.ts` |
+| Enums | `packages/contracts/src/enums/` (`@genfeedai/contracts`) |
 | Serializers | `packages/serializers/` |
 | Shared types | Self-contain until 3+ consumers, then canonical in `packages/` |
 

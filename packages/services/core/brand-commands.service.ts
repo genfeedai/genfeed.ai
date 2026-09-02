@@ -3,8 +3,8 @@
  * Generates dynamic commands for brand switching in the command palette
  */
 
-import type { IBrand } from '@genfeedai/interfaces';
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { CircleUser } from 'lucide-react';
 

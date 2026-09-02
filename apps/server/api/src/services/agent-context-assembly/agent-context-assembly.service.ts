@@ -15,11 +15,11 @@ import type {
 import { CacheService } from '@api/services/cache/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import {
   type BrandKitSourceBrand,
   computeBrandKitReadiness,
 } from '@genfeedai/helpers';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import {

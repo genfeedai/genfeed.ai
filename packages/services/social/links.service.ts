@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Link } from '@genfeedai/models/social/link.model';
 import { LinkSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

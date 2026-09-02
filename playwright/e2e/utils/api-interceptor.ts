@@ -1,4 +1,4 @@
-import { ActivityKey, type IngredientCategory } from '@genfeedai/enums';
+import { ActivityKey, type IngredientCategory } from '@genfeedai/contracts';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -188,7 +188,7 @@ export function generateMockBrand(
     links: [],
     name: 'Brand 1',
     // The real IBrand contract always nests a full organization relation
-    // (packages/interfaces/src/organization/brand.interface.ts). Without it,
+    // (packages/contracts/src/interfaces/organization/brand.interface.ts). Without it,
     // getBrandOrganizationSlug() in brand-context.helpers.ts can never resolve
     // a slug, which permanently fails any page's org/brand scope-match guard
     // (nightly full tier, #2982).

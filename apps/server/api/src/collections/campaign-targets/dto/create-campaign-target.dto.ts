@@ -4,7 +4,7 @@ import {
   CampaignPlatform,
   CampaignTargetStatus,
   CampaignTargetType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

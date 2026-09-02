@@ -2,7 +2,7 @@ import {
   DEFAULT_THEME,
   isThemePreference,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { apiRequest } from '@/services/api/base-http.service';
 
 interface SettingsResponse {

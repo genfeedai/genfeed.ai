@@ -1,10 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
-} from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@services/core/environment.service';

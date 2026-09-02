@@ -4,7 +4,7 @@ import {
   ModalEnum,
   type QualityTier,
   type SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   DEFAULT_QUALITY_TIER,
   hasQualityAccess,

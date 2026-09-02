@@ -154,7 +154,7 @@ vi.mock('../ui/button', () => ({
 }));
 
 // Mock NODE_DEFINITIONS and NodeStatusEnum
-vi.mock('@genfeedai/types', () => ({
+vi.mock('@genfeedai/contracts/types', () => ({
   NODE_DEFINITIONS: {
     imageGen: {
       category: 'ai',

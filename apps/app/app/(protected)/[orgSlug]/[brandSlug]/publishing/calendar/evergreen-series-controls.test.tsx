@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import type { RecurrencePreviewResult } from '@api-types/contracts';
-import { ReleaseStatus } from '@genfeedai/enums';
+import { ReleaseStatus } from '@genfeedai/contracts';
+import type { RecurrencePreviewResult } from '@genfeedai/contracts/api-types/contracts';
 import {
   act,
   fireEvent,

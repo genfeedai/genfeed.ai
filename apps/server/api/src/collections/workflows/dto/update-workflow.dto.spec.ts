@@ -1,5 +1,5 @@
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
-import { WorkflowLifecycle } from '@genfeedai/enums';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 

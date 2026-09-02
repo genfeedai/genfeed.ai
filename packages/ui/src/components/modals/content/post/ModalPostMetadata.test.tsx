@@ -1,5 +1,5 @@
-import { Platform, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { Platform, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModalPostMetadata from '@ui/modals/content/post/ModalPostMetadata';
 import type { PropsWithChildren, ReactNode } from 'react';

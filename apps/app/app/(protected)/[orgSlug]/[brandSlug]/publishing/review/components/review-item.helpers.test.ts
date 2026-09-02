@@ -1,4 +1,4 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

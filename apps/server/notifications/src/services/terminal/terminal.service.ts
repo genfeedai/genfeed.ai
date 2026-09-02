@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { isCloudDeployment } from '@genfeedai/config';
-import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
+import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/contracts/interfaces';
 import {
   createBetterAuthJwksVerifierOptions,
   resolveBetterAuthBaseUrlFromConfig,

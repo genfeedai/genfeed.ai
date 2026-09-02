@@ -8,8 +8,8 @@ import type {
   AgentTurnAcknowledgement,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
+import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

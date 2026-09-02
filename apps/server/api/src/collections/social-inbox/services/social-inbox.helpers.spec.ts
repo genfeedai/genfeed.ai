@@ -6,7 +6,7 @@ import {
   readAvailability,
   sanitizeBody,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 

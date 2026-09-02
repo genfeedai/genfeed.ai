@@ -1,4 +1,4 @@
-import { MusicSourceType } from '@genfeedai/enums';
+import { MusicSourceType } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MUSIC_SOURCE_DATA } from './music-source';
 

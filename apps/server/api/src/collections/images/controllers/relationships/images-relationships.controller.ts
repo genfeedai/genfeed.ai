@@ -12,7 +12,7 @@ import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { ImageSerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';

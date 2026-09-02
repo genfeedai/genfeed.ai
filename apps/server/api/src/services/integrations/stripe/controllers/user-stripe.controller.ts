@@ -19,11 +19,11 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { OrganizationCategory } from '@genfeedai/enums';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import {
   type IUserSubscriptionsService,
   USER_SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -5,8 +5,8 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getPostPlatformTabs } from '@helpers/content/posts.helper';
 import Container from '@ui/layout/container/Container';
 import { Newspaper } from 'lucide-react';

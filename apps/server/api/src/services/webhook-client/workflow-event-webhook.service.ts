@@ -1,15 +1,15 @@
 import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/contracts';
+import {
   classifyWorkflowWebhookError,
   createWorkflowWebhookEventId,
   redactWorkflowWebhookText,
   WORKFLOW_WEBHOOK_SCHEMA_VERSION,
   type WorkflowWebhookPayload,
   workflowWebhookPayloadSchema,
-} from '@api-types/contracts/workflow-webhook-events.contract';
-import {
-  WorkflowExecutionStatus,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/workflow-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import {

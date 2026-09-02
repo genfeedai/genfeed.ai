@@ -1,4 +1,4 @@
-import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
+import { AssetCategory, IngredientCategory } from '@genfeedai/contracts';
 import ModalUpload from '@ui/modals/ingredients/upload/ModalUpload';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

@@ -4,7 +4,7 @@
  * that identity is missing (#3839).
  */
 import { createTestPost, generateIdString } from '@api-test/e2e/e2e-test.utils';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import {
   createDraftRelease,
   createIsolatedPublishHarness,

@@ -26,7 +26,7 @@ import {
   SocialReplyCampaignRecipientStatus,
   SocialReplyCampaignStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

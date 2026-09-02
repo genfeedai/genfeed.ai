@@ -1,4 +1,3 @@
-import { MAX_CADENCE_SPAN_DAYS } from '@api-types/contracts/cadence-expansion.contract';
 import {
   ApiKeyScope,
   CalendarSlotItemType,
@@ -6,7 +5,8 @@ import {
   PostCategory,
   PostingCadenceStatus,
   ReleaseStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MAX_CADENCE_SPAN_DAYS } from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
 import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PostingCadenceCopyService } from './posting-cadence-copy.service';

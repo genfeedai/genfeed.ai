@@ -8,7 +8,7 @@ import {
   ButtonVariant,
   ComponentSize,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   hasFormErrors,
   parseFormErrors,

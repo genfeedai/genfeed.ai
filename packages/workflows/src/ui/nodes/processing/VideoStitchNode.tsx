@@ -4,8 +4,8 @@ import type {
   AudioCodec,
   TransitionType,
   VideoStitchNodeData,
-} from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Layers, LoaderCircle, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';

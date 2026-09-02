@@ -12,13 +12,13 @@ import {
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { canTransitionPublishApprovalStatus } from '@genfeedai/api-types/contracts';
 import {
   PersistedReviewDecision,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { canTransitionPublishApprovalStatus } from '@genfeedai/contracts/api-types/contracts';
 import type {
   ClaimPublishExecutionParams,
   CompletePublishExecutionParams,
@@ -27,7 +27,7 @@ import type {
   IPublishApproval,
   IPublishScheduleIntent,
   PublishExecutionClaim,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import {
   ConflictException,
@@ -42,7 +42,7 @@ export type {
   CreateCurrentPostPublishApprovalParams,
   CreatePostPublishApprovalParams,
   PublishExecutionClaim,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 class PublishApprovalNotFoundException extends HttpException {
   constructor(resource: string, identifier: string) {

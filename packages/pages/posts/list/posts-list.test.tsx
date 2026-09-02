@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { PageScope, Platform, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope, Platform, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostsList from '@pages/posts/list/posts-list';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -11,7 +11,7 @@ import type {
 } from '@api/services/telegram-bot/telegram-bot.types';
 import { TELEGRAM_SYSTEM_WORKFLOW_PREFIX } from '@api/services/telegram-bot/telegram-workflow-loader';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ParseMode, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { ParseMode, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 

@@ -1,4 +1,4 @@
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   getGenerationPreparationRedirect,

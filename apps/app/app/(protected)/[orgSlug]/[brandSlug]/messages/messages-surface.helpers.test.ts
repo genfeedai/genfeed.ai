@@ -1,4 +1,7 @@
-import type { SocialConversation, SocialMessage } from '@genfeedai/interfaces';
+import type {
+  SocialConversation,
+  SocialMessage,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   createMessagesIdempotencyKey,

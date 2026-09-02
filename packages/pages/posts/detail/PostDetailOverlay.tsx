@@ -1,7 +1,7 @@
 'use client';
 
-import type { PageScope } from '@genfeedai/enums';
-import { ButtonVariant } from '@genfeedai/enums';
+import type { PageScope } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

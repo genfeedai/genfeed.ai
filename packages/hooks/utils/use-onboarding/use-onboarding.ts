@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import {
   OnboardingService,

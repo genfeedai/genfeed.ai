@@ -28,15 +28,15 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@api-types/contracts/scheduler.contract';
-import {
   ModelCategory,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { BrandInterviewStatus } from '@genfeedai/enums';
+import { BrandInterviewStatus } from '@genfeedai/contracts';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

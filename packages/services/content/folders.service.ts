@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { Folder } from '@genfeedai/models/content/folder.model';
 import { FolderSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

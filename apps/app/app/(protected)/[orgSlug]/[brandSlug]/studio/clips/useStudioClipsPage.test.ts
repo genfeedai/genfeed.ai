@@ -1,4 +1,7 @@
-import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
+import type {
+  IBrand,
+  IOrganizationSetting,
+} from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -24,16 +24,19 @@ describe('npm release plan', () => {
   });
 
   it('requires every publishable package to be enrolled or excluded explicitly', () => {
-    writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
+    writePackage('enums', publicManifest('@genfeedai/contracts', '2.3.3'));
     writePackage('actions', publicManifest('@genfeedai/actions', '0.1.4'));
-    writeEnrollment({ enrolled: ['packages/enums'], excluded: {} });
+    writeEnrollment({
+      enrolled: ['packages/contracts/src/enums'],
+      excluded: {},
+    });
 
     expect(validate().violations).toEqual([
       'scripts/npm-release-enrollment.json: packages/actions is publishable but is neither enrolled nor excluded; decide explicitly',
     ]);
 
     writeEnrollment({
-      enrolled: ['packages/enums'],
+      enrolled: ['packages/contracts/src/enums'],
       excluded: { 'packages/actions': 'Not ready for the public registry.' },
     });
     expect(validate().violations).toEqual([]);
@@ -56,31 +59,34 @@ describe('npm release plan', () => {
   });
 
   it('rejects contradictory and unknown enrollment entries', () => {
-    writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
+    writePackage('enums', publicManifest('@genfeedai/contracts', '2.3.3'));
     writePackage('agent', {
       name: '@genfeedai/agent',
       private: true,
       version: '1.0.0',
     });
     writeEnrollment({
-      enrolled: ['packages/enums', 'packages/agent'],
-      excluded: { 'packages/enums': 'contradiction', 'packages/ghost': '' },
+      enrolled: ['packages/contracts/src/enums', 'packages/agent'],
+      excluded: {
+        'packages/contracts/src/enums': 'contradiction',
+        'packages/ghost': '',
+      },
     });
 
     expect(validate().violations).toEqual([
       'scripts/npm-release-enrollment.json: packages/agent is enrolled but is not a public package under packages/',
-      'scripts/npm-release-enrollment.json: packages/enums is both enrolled and excluded',
+      'scripts/npm-release-enrollment.json: packages/contracts/src/enums is both enrolled and excluded',
       'scripts/npm-release-enrollment.json: packages/ghost must document why it is excluded',
       'scripts/npm-release-enrollment.json: packages/ghost is excluded but is not a public package under packages/',
     ]);
   });
 
   it('plans only the enrolled versions npm has never seen', () => {
-    writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
+    writePackage('enums', publicManifest('@genfeedai/contracts', '2.3.3'));
     writePackage('cli', publicManifest('@genfeedai/cli', '0.6.0'));
     writePackage('harness', publicManifest('@genfeedai/harness', '0.1.0'));
     writeEnrollment({
-      enrolled: ['packages/cli', 'packages/enums'],
+      enrolled: ['packages/cli', 'packages/contracts/src/enums'],
       excluded: { 'packages/harness': 'Never published.' },
     });
 
@@ -89,7 +95,7 @@ describe('npm release plan', () => {
       inventory: readPackageInventory(root),
       publishedVersions: new Map([
         ['@genfeedai/cli', new Set(['0.4.0'])],
-        ['@genfeedai/enums', new Set(['2.3.2', '2.3.3'])],
+        ['@genfeedai/contracts', new Set(['2.3.2', '2.3.3'])],
       ]),
     });
 
@@ -97,7 +103,11 @@ describe('npm release plan', () => {
       { name: '@genfeedai/cli', path: 'packages/cli', version: '0.6.0' },
     ]);
     expect(plan.upToDate).toEqual([
-      { name: '@genfeedai/enums', path: 'packages/enums', version: '2.3.3' },
+      {
+        name: '@genfeedai/contracts',
+        path: 'packages/contracts/src/enums',
+        version: '2.3.3',
+      },
     ]);
     expect(plan.bootstrapRequired).toEqual([]);
     expect(plan.excluded).toEqual([
@@ -106,13 +116,18 @@ describe('npm release plan', () => {
   });
 
   it('plans nothing when every enrolled version is already on npm', () => {
-    writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
-    writeEnrollment({ enrolled: ['packages/enums'], excluded: {} });
+    writePackage('enums', publicManifest('@genfeedai/contracts', '2.3.3'));
+    writeEnrollment({
+      enrolled: ['packages/contracts/src/enums'],
+      excluded: {},
+    });
 
     const plan = planNpmRelease({
       enrollment: readEnrollment(root),
       inventory: readPackageInventory(root),
-      publishedVersions: new Map([['@genfeedai/enums', new Set(['2.3.3'])]]),
+      publishedVersions: new Map([
+        ['@genfeedai/contracts', new Set(['2.3.3'])],
+      ]),
     });
 
     expect(plan.publish).toEqual([]);

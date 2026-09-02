@@ -1,4 +1,4 @@
-import { MusicTaskModel } from '@genfeedai/enums';
+import { MusicTaskModel } from '@genfeedai/contracts';
 import { GenerateMusicTask } from '@workers/crons/workflows/task-types/generate-music.task';
 
 describe('GenerateMusicTask', () => {

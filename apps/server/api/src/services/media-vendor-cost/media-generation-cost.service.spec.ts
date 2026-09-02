@@ -2,8 +2,8 @@ import type { ModelsService } from '@api/collections/models/services/models.serv
 import type { ByokService } from '@api/services/byok/byok.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('MediaGenerationCostService', () => {

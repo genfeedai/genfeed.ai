@@ -12,7 +12,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { LaunchCopyController } from '@api/collections/launch-copy/controllers/launch-copy.controller';
 import type { GenerateLaunchCopyDto } from '@api/collections/launch-copy/dto/generate-launch-copy.dto';
 import { LaunchCopyGeneratorService } from '@api/collections/launch-copy/services/launch-copy-generator.service';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

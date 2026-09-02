@@ -7,7 +7,7 @@ import { WhatsappService } from '@api/services/integrations/whatsapp/services/wh
 import type {
   IWhatsappSendMessageParams,
   IWhatsappSendTemplateParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';

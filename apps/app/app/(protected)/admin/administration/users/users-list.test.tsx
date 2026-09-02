@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { PlatformRole } from '@genfeedai/enums';
-import type { IUser } from '@genfeedai/interfaces';
+import { PlatformRole } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

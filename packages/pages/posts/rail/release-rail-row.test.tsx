@@ -4,8 +4,11 @@ import {
   ReleaseStatus,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

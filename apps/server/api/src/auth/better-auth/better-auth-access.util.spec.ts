@@ -1,5 +1,5 @@
 import { isPlatformSuperAdmin } from '@api/auth/better-auth/better-auth-access.util';
-import { PlatformRole } from '@genfeedai/enums';
+import { PlatformRole } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('isPlatformSuperAdmin', () => {

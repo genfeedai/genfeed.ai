@@ -10,7 +10,7 @@ import type { BetterAuthIdentityCacheService } from '@api/common/services/better
 import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
+import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 

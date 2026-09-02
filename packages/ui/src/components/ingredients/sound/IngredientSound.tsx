@@ -1,6 +1,6 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAudioPlayer } from '@genfeedai/hooks/media/use-audio-player/use-audio-player';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { IngredientSoundProps } from '@genfeedai/props/content/ingredient.props';
 import { logger } from '@genfeedai/services/core/logger.service';

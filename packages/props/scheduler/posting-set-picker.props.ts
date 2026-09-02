@@ -2,7 +2,7 @@ import type {
   IPostingSet,
   IPostingSignature,
   PostingSetReferenceState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface PostingSetPickerTarget {
   credentialId: string;

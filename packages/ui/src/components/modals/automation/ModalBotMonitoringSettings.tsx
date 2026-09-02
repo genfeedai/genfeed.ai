@@ -1,5 +1,5 @@
-import { MonitoringAlertType } from '@genfeedai/enums';
-import type { IMonitoringBotSettings } from '@genfeedai/interfaces';
+import { MonitoringAlertType } from '@genfeedai/contracts';
+import type { IMonitoringBotSettings } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';

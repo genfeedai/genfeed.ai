@@ -11,7 +11,7 @@ import {
   createIngredientDocumentFixture,
   createMetadataDocumentFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
-import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
+import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

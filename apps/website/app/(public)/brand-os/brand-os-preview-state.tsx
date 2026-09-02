@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IBrandKitDiagnostic,
   IBrandKitDraft,
   IBrandKitSourceEvidence,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';

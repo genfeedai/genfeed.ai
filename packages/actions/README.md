@@ -30,7 +30,7 @@ OpenAPI generation documents the HTTP API and is intentionally independent.
 
 ## Related Packages
 
-- `@genfeedai/interfaces`
+- `@genfeedai/contracts/interfaces`
 
 ## Build Faster with Genfeed
 

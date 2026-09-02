@@ -1,7 +1,7 @@
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { RemotionRenderCancellationService } from '@files/services/remotion/remotion-render-cancellation.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
-import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,

@@ -1,12 +1,12 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IDesktopBootstrap,
   IDesktopGeneratedContent,
   IDesktopWorkspace,
-} from '@genfeedai/desktop-contracts';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+} from '@genfeedai/contracts/desktop';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';

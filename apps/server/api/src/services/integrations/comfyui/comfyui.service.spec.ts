@@ -16,7 +16,7 @@ vi.mock('@genfeedai/workflows/generation/comfyui', () => ({
 
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,

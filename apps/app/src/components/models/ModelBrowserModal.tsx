@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   ModelCapability,
   ProviderModel,
   ProviderType,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { ExternalLink, Search, Sparkles, TriangleAlert, X } from 'lucide-react';

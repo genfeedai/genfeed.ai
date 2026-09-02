@@ -9,19 +9,19 @@ export default defineConfig({
     alias: [
       {
         find: /^@genfeedai\/constants$/,
-        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+        replacement: path.resolve(__dirname, '../contracts/src/constants/index.ts'),
       },
       {
         find: /^@genfeedai\/constants\/(.*)$/,
-        replacement: path.resolve(__dirname, '../constants/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/constants/$1'),
       },
       {
         find: /^@genfeedai\/enums$/,
-        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/enums/$1'),
       },
       {
         find: /^@genfeedai\/errors$/,
@@ -37,7 +37,7 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
-        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
       },
       {
         find: /^@genfeedai\/pricing$/,

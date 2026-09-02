@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import IngredientsLayoutToolbar from '@pages/ingredients/layout/ingredients-layout-toolbar';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

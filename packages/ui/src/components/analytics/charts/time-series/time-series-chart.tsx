@@ -1,6 +1,6 @@
 'use client';
 
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/enums';
+import { AnalyticsMetric, ButtonVariant } from '@genfeedai/contracts';
 import {
   formatChartDate,
   formatCompactNumberIntl,
