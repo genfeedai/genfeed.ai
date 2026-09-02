@@ -4,6 +4,7 @@ import {
   type ExecutableNode,
   type ExecutionRunResult,
   getExecutableNodeOperationId,
+  topologicalSort,
 } from '@genfeedai/workflows/engine';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
 
@@ -34,46 +35,7 @@ export class WorkflowExecutionGraphService {
   }
 
   topologicalSort(nodes: ExecutableNode[], edges: ExecutableEdge[]): string[] {
-    const inDegree = new Map<string, number>();
-    const adjList = new Map<string, string[]>();
-
-    for (const node of nodes) {
-      inDegree.set(node.id, 0);
-      adjList.set(node.id, []);
-    }
-
-    for (const edge of edges) {
-      inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
-      const adj = adjList.get(edge.source) ?? [];
-      adj.push(edge.target);
-      adjList.set(edge.source, adj);
-    }
-
-    const queue: string[] = [];
-    for (const [nodeId, degree] of inDegree) {
-      if (degree === 0) {
-        queue.push(nodeId);
-      }
-    }
-
-    const result: string[] = [];
-    let queueHead = 0;
-    while (queueHead < queue.length) {
-      const current = queue[queueHead];
-      queueHead += 1;
-      if (!current) continue;
-      result.push(current);
-
-      for (const neighbor of adjList.get(current) ?? []) {
-        const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-        inDegree.set(neighbor, newDegree);
-        if (newDegree === 0) {
-          queue.push(neighbor);
-        }
-      }
-    }
-
-    return result;
+    return topologicalSort(nodes, edges);
   }
 
   gatherInputs(

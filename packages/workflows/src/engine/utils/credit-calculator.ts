@@ -1,4 +1,5 @@
 import { ALL_ACTIONS } from '@genfeedai/actions';
+import { topologicalSort } from '../execution/topological-sort';
 import type {
   CreditCostConfig,
   CreditEstimate,
@@ -98,59 +99,41 @@ export function filterByBudget(
   customCosts: Partial<CreditCostConfig> = {},
 ): ExecutableNode[] {
   const costs = { ...DEFAULT_CREDIT_COSTS, ...customCosts };
-  const inDegree = new Map<string, number>();
-  const adjList = new Map<string, string[]>();
-
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const parents = new Map<string, string[]>();
   for (const node of nodes) {
-    inDegree.set(node.id, 0);
-    adjList.set(node.id, []);
+    parents.set(node.id, []);
   }
-
   for (const edge of edges) {
-    if (inDegree.has(edge.target)) {
-      inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
+    if (!nodeById.has(edge.source) || !nodeById.has(edge.target)) {
+      continue;
     }
-    if (adjList.has(edge.source)) {
-      adjList.get(edge.source)?.push(edge.target);
-    }
-  }
-
-  const queue: string[] = [];
-  for (const [nodeId, degree] of inDegree) {
-    if (degree === 0) {
-      queue.push(nodeId);
-    }
+    const list = parents.get(edge.target) ?? [];
+    list.push(edge.source);
+    parents.set(edge.target, list);
   }
 
   const result: ExecutableNode[] = [];
-  let remainingCredits = availableCredits;
   const included = new Set<string>();
+  let remainingCredits = availableCredits;
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (!currentId) {
-      continue;
-    }
-    const node = nodes.find((n) => n.id === currentId);
+  for (const nodeId of topologicalSort(nodes, edges)) {
+    const node = nodeById.get(nodeId);
     if (!node) {
       continue;
     }
-
-    const cost = costs[getExecutableNodeOperationId(node)] ?? 0;
-
-    if (cost <= remainingCredits) {
-      result.push(node);
-      included.add(node.id);
-      remainingCredits -= cost;
-
-      for (const neighbor of adjList.get(currentId) ?? []) {
-        const newDegree = (inDegree.get(neighbor) ?? 0) - 1;
-        inDegree.set(neighbor, newDegree);
-        if (newDegree === 0) {
-          queue.push(neighbor);
-        }
-      }
+    if (
+      (parents.get(nodeId) ?? []).some((parentId) => !included.has(parentId))
+    ) {
+      continue;
     }
+    const cost = costs[getExecutableNodeOperationId(node)] ?? 0;
+    if (cost > remainingCredits) {
+      continue;
+    }
+    result.push(node);
+    included.add(node.id);
+    remainingCredits -= cost;
   }
 
   return result;

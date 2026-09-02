@@ -86,6 +86,7 @@ describe('WorkflowExecutorService', () => {
   const engineAdapter = {
     applyRuntimeInputValues: vi.fn(),
     convertToExecutableWorkflow: vi.fn(),
+    executeNode: vi.fn(),
     executeWorkflow: vi.fn(),
   };
   const executionsService = {
@@ -251,7 +252,10 @@ describe('WorkflowExecutorService', () => {
 
   it('executes a multi-node manual workflow through persistence and completion', async () => {
     const firstOutput = { draft: 'Ready to publish' };
-    const executedWorkflows: ExecutableWorkflow[] = [];
+    const executedNodes: Array<{
+      inputs: Map<string, unknown>;
+      node: ExecutableNode;
+    }> = [];
     const executableWorkflow: ExecutableWorkflow = {
       edges: [
         {
@@ -319,15 +323,10 @@ describe('WorkflowExecutorService', () => {
       metadata: {},
     });
 
-    engineAdapter.executeWorkflow.mockImplementation(
-      async (workflow: ExecutableWorkflow) => {
-        executedWorkflows.push(workflow);
-        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
-        if (!node) {
-          throw new Error('Expected one executable node');
-        }
-
-        const nodeResult: NodeExecutionResult = {
+    engineAdapter.executeNode.mockImplementation(
+      async (node: ExecutableNode, inputs: Map<string, unknown>) => {
+        executedNodes.push({ inputs, node });
+        return {
           completedAt: new Date(),
           creditsUsed: node.id === 'draft-node' ? 2 : 1,
           nodeId: node.id,
@@ -337,17 +336,7 @@ describe('WorkflowExecutorService', () => {
               : { published: true, source: firstOutput.draft },
           retryCount: 0,
           startedAt: new Date(),
-          status: 'completed',
-        };
-
-        return {
-          completedAt: new Date(),
-          nodeResults: new Map([[node.id, nodeResult]]),
-          runId: 'execution-1',
-          startedAt: new Date(),
           status: 'completed' as const,
-          totalCreditsUsed: nodeResult.creditsUsed,
-          workflowId: workflow.id,
         };
       },
     );
@@ -374,27 +363,14 @@ describe('WorkflowExecutorService', () => {
         status: WorkflowExecutionStatus.COMPLETED,
       }),
     ]);
-    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(2);
-    const publishWorkflow = executedWorkflows.find((workflow) =>
-      workflow.nodes.some(
-        (candidate) => candidate.id === 'publish-node' && !candidate.isLocked,
-      ),
+    expect(engineAdapter.executeNode).toHaveBeenCalledTimes(2);
+    const publishCall = executedNodes.find(
+      (entry) => entry.node.id === 'publish-node',
     );
-    if (!publishWorkflow) {
-      throw new Error('Expected the publish-node execution workflow');
+    if (!publishCall) {
+      throw new Error('Expected the publish-node execution');
     }
-    expect(
-      publishWorkflow.nodes.find(
-        (candidate) => candidate.id === '__input_content',
-      )?.cachedOutput,
-    ).toEqual(firstOutput);
-    expect(publishWorkflow.edges).toContainEqual(
-      expect.objectContaining({
-        source: '__input_content',
-        target: 'publish-node',
-        targetHandle: 'content',
-      }),
-    );
+    expect(publishCall.inputs.get('content')).toEqual(firstOutput);
     expect(executionsService.createExecution).toHaveBeenCalledWith(
       'user-1',
       'org-1',
@@ -438,7 +414,7 @@ describe('WorkflowExecutorService', () => {
       topic: 'second run',
     });
 
-    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(4);
+    expect(engineAdapter.executeNode).toHaveBeenCalledTimes(4);
   });
 
   it('tenant-scopes status updates when manual execution fails', async () => {
@@ -590,25 +566,16 @@ describe('WorkflowExecutorService', () => {
       id: 'execution-sys',
       metadata: {},
     });
-    engineAdapter.executeWorkflow.mockImplementation(
-      async (workflow: ExecutableWorkflow) => {
-        const nodeResult: NodeExecutionResult = {
+    engineAdapter.executeNode.mockImplementation(
+      async (node: ExecutableNode) => {
+        return {
           completedAt: new Date(),
           creditsUsed: 0,
-          nodeId: 'generate-node',
+          nodeId: node.id,
           output: { ingredientId: 'ingredient-1' },
           retryCount: 0,
           startedAt: new Date(),
-          status: 'completed',
-        };
-        return {
-          completedAt: new Date(),
-          nodeResults: new Map([['generate-node', nodeResult]]),
-          runId: 'execution-sys',
-          startedAt: new Date(),
           status: 'completed' as const,
-          totalCreditsUsed: 0,
-          workflowId: workflow.id,
         };
       },
     );
@@ -705,41 +672,19 @@ describe('WorkflowExecutorService', () => {
       metadata: {},
     });
 
-    engineAdapter.executeWorkflow.mockImplementation(
-      async (workflow: ExecutableWorkflow) => {
-        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
-        if (!node) {
-          return {
-            completedAt: new Date(),
-            nodeResults: new Map(),
-            runId: 'execution-prompt',
-            startedAt: new Date(),
-            status: 'completed' as const,
-            totalCreditsUsed: 0,
-            workflowId: workflow.id,
-          };
-        }
-
-        const nodeResult: NodeExecutionResult = {
+    engineAdapter.executeNode.mockImplementation(
+      async (node: ExecutableNode) => {
+        return {
           completedAt: new Date(),
           creditsUsed: 0,
           nodeId: node.id,
           output: String(
-            (node.config.parameters as Record<string, unknown>).prompt ?? '',
+            (node.config.parameters as Record<string, unknown> | undefined)
+              ?.prompt ?? '',
           ),
           retryCount: 0,
           startedAt: new Date(),
-          status: 'completed',
-        };
-
-        return {
-          completedAt: new Date(),
-          nodeResults: new Map([[node.id, nodeResult]]),
-          runId: 'execution-prompt',
-          startedAt: new Date(),
           status: 'completed' as const,
-          totalCreditsUsed: 0,
-          workflowId: workflow.id,
         };
       },
     );
@@ -758,7 +703,7 @@ describe('WorkflowExecutorService', () => {
         status: WorkflowExecutionStatus.COMPLETED,
       }),
     ]);
-    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(1);
+    expect(engineAdapter.executeNode).toHaveBeenCalledTimes(1);
     expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
       'execution-prompt',
       // Node results record the action id, not the shared envelope type.
@@ -826,15 +771,8 @@ describe('WorkflowExecutorService', () => {
       startedAt,
     });
     executionsService.updateNodeResult.mockResolvedValue({ progress: 55 });
-    engineAdapter.executeWorkflow.mockImplementation(
-      async (workflow: ExecutableWorkflow) => {
-        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
-        if (!node) {
-          throw new Error('Expected one executable node');
-        }
-
-        // The delay node suspends the run, so the execution stays RUNNING and
-        // is never completed on this pass.
+    engineAdapter.executeNode.mockImplementation(
+      async (node: ExecutableNode) => {
         const output =
           node.id === 'pause-node'
             ? {
@@ -842,24 +780,14 @@ describe('WorkflowExecutorService', () => {
                 resumeAt: new Date(startedAt.getTime() + 60_000).toISOString(),
               }
             : { published: true };
-
         return {
-          nodeResults: new Map([
-            [
-              node.id,
-              {
-                completedAt: new Date(),
-                creditsUsed: 0,
-                nodeId: node.id,
-                output,
-                retryCount: 0,
-                startedAt,
-                status: 'completed',
-              },
-            ],
-          ]),
-          status: 'completed',
-          totalCreditsUsed: 0,
+          completedAt: new Date(),
+          creditsUsed: 0,
+          nodeId: node.id,
+          output,
+          retryCount: 0,
+          startedAt,
+          status: 'completed' as const,
         };
       },
     );
@@ -970,7 +898,7 @@ describe('WorkflowExecutorService', () => {
       'exec-1',
       'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
     );
-    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+    expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
   it('rejects stale agent scope before loading or executing a workflow', async () => {
@@ -1012,7 +940,7 @@ describe('WorkflowExecutorService', () => {
     ).rejects.toThrow('Agent context is stale.');
 
     expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
-    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+    expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
   it('revalidates durable agent scope before a delayed workflow resumes', async () => {
@@ -1077,7 +1005,7 @@ describe('WorkflowExecutorService', () => {
       }),
     ).rejects.toThrow('Agent context is stale.');
 
-    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+    expect(engineAdapter.executeNode).not.toHaveBeenCalled();
   });
 
   describe('continueExistingExecution (#2359)', () => {
@@ -1148,7 +1076,7 @@ describe('WorkflowExecutorService', () => {
         'exec-1',
         'Workflow workflow-1 is retired and cannot resume pinned version workflow-version-1',
       );
-      expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+      expect(engineAdapter.executeNode).not.toHaveBeenCalled();
     });
 
     it('no-ops when the prior execution already completed', async () => {
@@ -1247,14 +1175,14 @@ describe('WorkflowExecutorService', () => {
         id: 'exec-pending',
         progress: 100,
       });
-      engineAdapter.executeWorkflow.mockResolvedValue({
+      engineAdapter.executeNode.mockResolvedValue({
         completedAt: new Date(),
-        nodeResults: new Map(),
-        runId: 'exec-pending',
+        creditsUsed: 0,
+        nodeId: 'pending-node',
+        output: {},
+        retryCount: 0,
         startedAt: new Date(),
         status: 'completed',
-        totalCreditsUsed: 0,
-        workflowId: 'workflow-1',
       });
       executionsService.completeExecution.mockResolvedValue({
         id: 'exec-pending',
@@ -1322,28 +1250,15 @@ describe('WorkflowExecutorService', () => {
         id: 'exec-1',
         progress: 100,
       });
-      engineAdapter.executeWorkflow.mockResolvedValue({
+      engineAdapter.executeNode.mockResolvedValue({
         completedAt: new Date(),
-        nodeResults: new Map([
-          [
-            'publish-node',
-            {
-              completedAt: new Date(),
-              creditsUsed: 0,
-              nodeId: 'publish-node',
-              output: { ok: true },
-              retryCount: 0,
-              startedAt: new Date(),
-              status: 'completed',
-            } satisfies NodeExecutionResult,
-          ],
-        ]),
-        runId: 'exec-1',
+        creditsUsed: 0,
+        nodeId: 'publish-node',
+        output: { ok: true },
+        retryCount: 0,
         startedAt: new Date(),
         status: 'completed',
-        totalCreditsUsed: 0,
-        workflowId: 'workflow-1',
-      });
+      } satisfies NodeExecutionResult);
       executionsService.completeExecution.mockResolvedValue({
         id: 'exec-1',
         metadata: {},

@@ -9,7 +9,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowNodeGraphRunnerService — lost-lease catch path (#4307)', () => {
-  const engineAdapter = { executeWorkflow: vi.fn() };
+  const engineAdapter = { executeNode: vi.fn(), executeWorkflow: vi.fn() };
   const progressService = { trackNodeResult: vi.fn() };
   const nodeProgressTracker = {
     injectTriggerNode: vi.fn(),
