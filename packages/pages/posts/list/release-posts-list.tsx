@@ -26,6 +26,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePublishingPostsViewPreference } from '@hooks/utils/use-publishing-posts-view-preference/use-publishing-posts-view-preference';
+import ReleaseBoard from '@pages/posts/board/release-board';
 import { useRailKeys } from '@pages/posts/rail/hooks/use-rail-keys';
 import ReleaseRailAccounts from '@pages/posts/rail/release-rail-accounts';
 import ReleaseRailRow from '@pages/posts/rail/release-rail-row';
@@ -465,7 +466,15 @@ export default function ReleasePostsList({
         </p>
       ) : null}
 
-      {isLoading && data.releases.length === 0 ? (
+      {viewMode === 'board' ? (
+        <ReleaseBoard
+          browserTimezone={browserTimezone}
+          isLoading={isLoading}
+          loadError={!!error}
+          onRefetch={() => void refetch()}
+          releases={data.releases}
+        />
+      ) : isLoading && data.releases.length === 0 ? (
         <Loading isFullSize={false} />
       ) : data.releases.length === 0 ? (
         <CardEmpty
@@ -488,7 +497,7 @@ export default function ReleasePostsList({
         </div>
       )}
 
-      {data.releases.length > 0 ? (
+      {viewMode === 'list' && data.releases.length > 0 ? (
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-foreground/45">
           <span className="flex items-center gap-1">
             <Kbd>j</Kbd>

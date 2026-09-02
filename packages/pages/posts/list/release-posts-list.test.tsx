@@ -74,4 +74,14 @@ describe('ReleasePostsList', () => {
     expect(source).toContain('ViewType.KANBAN');
     expect(source).not.toContain('ViewType.GRID');
   });
+
+  it('renders the Kanban board only in board view mode, leaving list view untouched', () => {
+    expect(source).toContain(
+      "import ReleaseBoard from '@pages/posts/board/release-board'",
+    );
+    expect(source).toContain("viewMode === 'board'");
+    expect(source).toContain('<ReleaseBoard');
+    expect(source).toContain('releases={data.releases}');
+    expect(source).toContain("viewMode === 'list' && data.releases.length > 0");
+  });
 });
