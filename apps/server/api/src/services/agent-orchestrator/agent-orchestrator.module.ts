@@ -26,6 +26,7 @@ import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UsersModule } from '@api/collections/users/users.module';
+import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
@@ -165,6 +166,7 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
     SocialInboxModule,
     TrendsModule,
     UsersModule,
+    VideosCoreModule,
     VoicesModule,
     VotesModule,
     WorkflowExecutionsModule,

@@ -17,6 +17,7 @@ import {
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
 } from '@genfeedai/types';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -33,10 +34,19 @@ import { OrganizationSettingsService } from '@server/collections/organization-se
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { UsersService } from '@server/collections/users/services/users.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import {
+  AGENT_GENERATION_GATEWAY,
+  type IAgentGenerationGateway,
+} from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import {
+  readMediaResponseString,
+  readUsableCdnAssetUrl,
+  toMediaResponseRecord,
+} from '@server/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { Effect } from 'effect';
 
 /**
@@ -84,12 +94,14 @@ interface ContentGeneratorTextServiceLike {
 export class AgentOnboardingToolHandler {
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly configService: ConfigService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly postsService: PostsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly contentGeneratorService: ContentGeneratorService,
-    private readonly internalApi: AgentToolInternalApiService,
+    @Inject(AGENT_GENERATION_GATEWAY)
+    private readonly generationGateway: IAgentGenerationGateway,
     @Optional()
     private readonly credentialsService?: CredentialsService,
     @Optional()
@@ -100,6 +112,8 @@ export class AgentOnboardingToolHandler {
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional()
     private readonly usersService?: UsersService,
+    @Optional()
+    private readonly videosService?: VideosService,
     @Optional()
     private readonly streamPublisher?: AgentStreamPublisherService,
   ) {}
@@ -556,11 +570,11 @@ export class AgentOnboardingToolHandler {
               organizationId,
             })
           : null,
-        this.internalApi.callInternalFindOne(
-          '/v1/videos',
-          organizationId,
-          ctx.authToken,
-        ),
+        this.videosService
+          ? this.videosService.findOne({
+              organizationId,
+            })
+          : null,
         this.postsService.findOne(
           {
             organizationId,
@@ -1281,32 +1295,21 @@ export class AgentOnboardingToolHandler {
     };
 
     try {
-      const response = await this.internalApi.callInternalApi(
-        'POST',
-        '/v1/images',
-        body,
-        ctx,
+      const response = toMediaResponseRecord(
+        await this.generationGateway.generateImage({
+          body,
+          principal: {
+            brandId: ctx.brandId,
+            organizationId: ctx.organizationId,
+            userId: ctx.userId,
+          },
+        }),
       );
-      const data =
-        response.data && typeof response.data === 'object'
-          ? (response.data as Record<string, unknown>)
-          : response;
-      const id =
-        typeof data.id === 'string'
-          ? data.id
-          : typeof (data.attributes as Record<string, unknown> | undefined)
-                ?.id === 'string'
-            ? String((data.attributes as Record<string, unknown>).id)
-            : undefined;
-      const url =
-        typeof data.cdnUrl === 'string'
-          ? data.cdnUrl
-          : typeof data.url === 'string'
-            ? data.url
-            : typeof (data.attributes as Record<string, unknown> | undefined)
-                  ?.cdnUrl === 'string'
-              ? String((data.attributes as Record<string, unknown>).cdnUrl)
-              : undefined;
+      const id = readMediaResponseString(response, 'id');
+      const url = readUsableCdnAssetUrl(
+        response,
+        this.configService.ingredientsEndpoint,
+      );
 
       if (id) {
         await this.completeJourneyMission(ctx, 'generate_first_image');
