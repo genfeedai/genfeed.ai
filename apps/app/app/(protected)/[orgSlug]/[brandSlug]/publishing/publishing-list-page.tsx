@@ -34,9 +34,11 @@ export type PostsListSearchParams = Promise<{
  * no caller forces a lifecycle.
  */
 export async function renderPostsListPage({
+  campaignId,
   searchParams,
   scope = PageScope.PUBLISHING,
 }: {
+  campaignId?: string;
   searchParams: PostsListSearchParams;
   scope?: PageScope;
 }) {
@@ -91,6 +93,7 @@ export async function renderPostsListPage({
   prefetchServerQuery({
     queryFn: async () => {
       const pageData = await loadReleasePostsPageData({
+        campaignId,
         contentTypes,
         credentialIds,
         currentPage,
@@ -108,6 +111,7 @@ export async function renderPostsListPage({
     },
     queryKey: buildReleasePostsListQueryKey({
       brandId,
+      campaignId,
       contentTypes,
       credentialIds,
       currentPage,
@@ -124,6 +128,7 @@ export async function renderPostsListPage({
   return (
     <ServerQueryHydrationBoundary>
       <ReleasePostsList
+        campaignId={campaignId}
         contentTypes={contentTypes}
         credentialIds={credentialIds}
         executionStates={executionStates}

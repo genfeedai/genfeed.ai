@@ -130,8 +130,10 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
     publishingSegmentIndex === -1
       ? []
       : pathSegments.slice(publishingSegmentIndex + 1);
-  // Content desk (`/publishing/posts/:id`) skips list chrome.
-  const isDetailRoute = routeSuffix[0] === 'posts' && routeSuffix.length === 2;
+  // Content desk (`/publishing/posts/:id`) and Campaigns own their chrome.
+  const isDetailRoute =
+    (routeSuffix[0] === 'posts' && routeSuffix.length === 2) ||
+    routeSuffix[0] === 'campaigns';
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {

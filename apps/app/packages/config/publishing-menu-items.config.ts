@@ -4,6 +4,7 @@ import {
   Calendar,
   ClipboardCheck,
   Files,
+  Flag,
   LayoutDashboard,
   Rows3,
 } from 'lucide-react';
@@ -11,16 +12,15 @@ import {
 /**
  * Publishing owns the content desk + go-live lifecycle.
  *
- * Flat bar: Overview · Posts · Content · Review · Calendar.
+ * Flat bar: Overview · Posts · Content · Review · Calendar · Campaigns.
  * Posts is the single social-post lifecycle list — every lifecycle state
  * (draft, scheduled, pending, processing, published, failed) is a query-param
  * filter on that one route (see `createPublishingPostsFilterRoute`), never a
  * dedicated nav item. Content is the type-aware library (posts + articles +
  * newsletters). Review is the approval queue, a distinct surface from the
- * Posts draft filter.
+ * Posts draft filter. Campaigns are named content programs over those desks.
  *
  * Agent Programs → Automation. Outreach / reply drip → Messages.
- * Marketer multi-platform content Campaigns → Publishing (P1).
  * Remix → Discovery/Library action only.
  * Newsletter writing → Agent; only its go-live lifecycle belongs here.
  */
@@ -65,5 +65,16 @@ export const PUBLISHING_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.PUBLISHING.CALENDAR],
     outline: Calendar,
     solid: Calendar,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.PUBLISHING.CAMPAIGNS,
+    label: 'Campaigns',
+    matchPaths: [
+      APP_ROUTES.PUBLISHING.CAMPAIGNS,
+      APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW,
+    ],
+    outline: Flag,
+    solid: Flag,
   },
 ];

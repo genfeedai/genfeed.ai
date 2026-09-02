@@ -34,6 +34,7 @@ import {
  */
 export interface ReleaseGroupListQuery {
   brandId?: string;
+  campaignId?: string;
   contentType?: PostCategory[];
   credentialId?: string[];
   endDate?: string;

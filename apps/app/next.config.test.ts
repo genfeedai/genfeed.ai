@@ -343,19 +343,20 @@ describe('app next.config', () => {
     });
   });
 
-  it('permanently hard-cuts Publishing agent-program routes into Automation and outreach into Messages', async () => {
+  it('does not redirect Publish Campaigns into Automation Programs', async () => {
+    const redirects = await config.redirects?.();
+    const sources = (redirects ?? []).map((redirect) => redirect.source);
+
+    expect(sources).not.toContain('/publishing/campaigns');
+    expect(sources).not.toContain('/publishing/campaigns/:path*');
+    expect(sources).not.toContain(
+      createBrandAppRoute(':orgSlug', ':brandSlug', '/publishing/campaigns'),
+    );
+  });
+
+  it('permanently hard-cuts outreach into Messages', async () => {
     const redirects = await config.redirects?.();
 
-    expect(redirects).toContainEqual({
-      destination: APP_ROUTES.AUTOMATION.CAMPAIGNS,
-      permanent: true,
-      source: '/publishing/campaigns',
-    });
-    expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.AUTOMATION.CAMPAIGNS}/:path*`,
-      permanent: true,
-      source: '/publishing/campaigns/:path*',
-    });
     expect(redirects).toContainEqual({
       destination: APP_ROUTES.MESSAGES.OUTREACH,
       permanent: true,
@@ -375,19 +376,6 @@ describe('app next.config', () => {
       destination: APP_ROUTES.MESSAGES.REPLIES,
       permanent: true,
       source: '/automation/replies',
-    });
-    expect(redirects).toContainEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.AUTOMATION.CAMPAIGNS,
-      ),
-      permanent: true,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        '/publishing/campaigns',
-      ),
     });
   });
 

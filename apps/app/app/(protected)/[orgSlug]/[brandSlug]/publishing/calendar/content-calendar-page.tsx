@@ -131,7 +131,11 @@ function mutationErrorMessage(error: unknown): string {
     : 'The schedule change could not be saved.';
 }
 
-export default function ContentCalendarPage(): React.JSX.Element {
+export default function ContentCalendarPage({
+  campaignId,
+}: {
+  campaignId?: string;
+} = {}): React.JSX.Element {
   const { brandId, credentials, selectedBrand } = useBrand();
   const { push } = useRouter();
   const { href } = useOrgUrl();
@@ -224,6 +228,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         const releasesQuery: ReleaseGroupListQuery = {
           ...window,
           ...(brandId ? { brandId } : {}),
+          ...(campaignId ? { campaignId } : {}),
           ...(filters.credentialId.length
             ? { credentialId: filters.credentialId }
             : {}),
@@ -241,9 +246,9 @@ export default function ContentCalendarPage(): React.JSX.Element {
           fetchedSlots,
           fetchedCadences,
         ] = await Promise.all([
-          articlesService.findAll(window),
+          campaignId ? Promise.resolve([]) : articlesService.findAll(window),
           releaseGroupsService.findAll(releasesQuery, controller.signal),
-          brandId
+          brandId && !campaignId
             ? cadencesService.listSlots(
                 {
                   brandId,
@@ -253,7 +258,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
                 controller.signal,
               )
             : Promise.resolve([]),
-          brandId
+          brandId && !campaignId
             ? cadencesService.list(brandId, controller.signal)
             : Promise.resolve([]),
         ]);
@@ -285,6 +290,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
   }, [
     dateRange,
     brandId,
+    campaignId,
     filters,
     getArticlesService,
     getPostingCadencesService,

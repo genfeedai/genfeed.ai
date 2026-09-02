@@ -62,6 +62,21 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
+  it('lets Campaigns own their chrome instead of the Posts New content menu', () => {
+    usePathnameMock.mockReturnValue('/acme/moonrise/publishing/campaigns');
+
+    render(
+      <PublishingLayoutContent>
+        <div>campaign desk</div>
+      </PublishingLayoutContent>,
+    );
+
+    expect(screen.getByText('campaign desk')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /new content/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders list actions without route-level status tabs', () => {
     render(
       <PublishingLayoutContent>

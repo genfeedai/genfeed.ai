@@ -1,5 +1,11 @@
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { LibraryPlace, PageScope, parseLibraryShelf } from '@genfeedai/enums';
+import {
+  CampaignDetailOverview,
+  CampaignDetailShell,
+  CampaignFormPage,
+  CampaignsListPage,
+} from '@pages/campaigns';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';
 import { LIBRARY_TYPE_PRESETS } from '@pages/library/browser/library-browser.config';
@@ -9,8 +15,12 @@ import { notFound, redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import LibraryCaptionsPage from '../../../[brandSlug]/library/captions/page';
 import LibraryVoicesPage from '../../../[brandSlug]/library/voices/library-voices-page';
+import ContentCalendarPage from '../../../[brandSlug]/publishing/calendar/content-calendar-page';
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
-import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
+import {
+  type PostsListSearchParams,
+  renderPostsListPage,
+} from '../../../[brandSlug]/publishing/publishing-list-page';
 import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
@@ -41,14 +51,7 @@ type OrgRootAppPageProps = {
     orgSlug: string;
     segments?: string[];
   }>;
-  searchParams?: Promise<{
-    execution?: string;
-    page?: string;
-    platform?: string;
-    search?: string;
-    sort?: string;
-    status?: string;
-  }>;
+  searchParams?: PostsListSearchParams;
 };
 
 function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
@@ -109,6 +112,78 @@ async function renderStudioEditSurface(section?: string) {
   }
 
   return <EditorProjectsPage />;
+}
+
+async function renderOrgCampaignSurface({
+  campaignId,
+  campaignSection,
+  searchParams,
+}: {
+  campaignId?: string;
+  campaignSection?: string;
+  searchParams: PostsListSearchParams;
+}) {
+  if (!campaignId) {
+    return (
+      <Suspense fallback={null}>
+        <CampaignsListPage />
+      </Suspense>
+    );
+  }
+
+  if (campaignId === 'new') {
+    return (
+      <Suspense fallback={null}>
+        <CampaignFormPage />
+      </Suspense>
+    );
+  }
+
+  if (!campaignSection) {
+    return (
+      <Suspense fallback={null}>
+        <CampaignDetailShell campaignId={campaignId} section="overview">
+          <CampaignDetailOverview campaignId={campaignId} />
+        </CampaignDetailShell>
+      </Suspense>
+    );
+  }
+
+  if (campaignSection === 'edit') {
+    return (
+      <Suspense fallback={null}>
+        <CampaignFormPage campaignId={campaignId} />
+      </Suspense>
+    );
+  }
+
+  if (campaignSection === 'content') {
+    const postsListPage = await renderPostsListPage({
+      campaignId,
+      searchParams,
+      scope: PageScope.ORGANIZATION,
+    });
+
+    return (
+      <Suspense fallback={null}>
+        <CampaignDetailShell campaignId={campaignId} section="content">
+          {postsListPage}
+        </CampaignDetailShell>
+      </Suspense>
+    );
+  }
+
+  if (campaignSection === 'calendar') {
+    return (
+      <Suspense fallback={null}>
+        <CampaignDetailShell campaignId={campaignId} section="calendar">
+          <ContentCalendarPage campaignId={campaignId} />
+        </CampaignDetailShell>
+      </Suspense>
+    );
+  }
+
+  notFound();
 }
 
 export default async function OrgRootAppPage({
@@ -176,18 +251,32 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'publishing') {
-    const segment = segments?.[0];
+    const [section, campaignId, campaignSection] = segments ?? [];
 
-    if (segment && segment !== 'overview' && segment !== 'posts') {
-      notFound();
+    if (!section || section === 'overview' || section === 'posts') {
+      const postsListPage = await renderPostsListPage({
+        searchParams: searchParams ?? Promise.resolve({}),
+        scope: PageScope.ORGANIZATION,
+      });
+
+      return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
     }
 
-    const postsListPage = await renderPostsListPage({
-      searchParams: searchParams ?? Promise.resolve({}),
-      scope: PageScope.ORGANIZATION,
-    });
+    if (section === 'campaigns') {
+      return (
+        <PublishingLayoutContent>
+          {
+            await renderOrgCampaignSurface({
+              campaignId,
+              campaignSection,
+              searchParams: searchParams ?? Promise.resolve({}),
+            })
+          }
+        </PublishingLayoutContent>
+      );
+    }
 
-    return <PublishingLayoutContent>{postsListPage}</PublishingLayoutContent>;
+    notFound();
   }
 
   notFound();

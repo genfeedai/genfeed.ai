@@ -71,6 +71,7 @@ type ReleaseListPagination = {
 };
 
 export interface ReleasePostsListProps extends ContentProps {
+  campaignId?: string;
   contentTypes?: PostCategory[];
   credentialIds?: string[];
   executionStates?: TargetExecutionState[];
@@ -129,6 +130,7 @@ const VIEW_TYPE_TO_MODE: Partial<Record<ViewType, PublishingPostsViewMode>> = {
 };
 
 export default function ReleasePostsList({
+  campaignId,
   contentTypes,
   credentialIds,
   executionStates,
@@ -174,6 +176,7 @@ export default function ReleasePostsList({
   const [drawerError, setDrawerError] = useState<string | null>(null);
   const queryKey = buildReleasePostsListQueryKey({
     brandId,
+    campaignId,
     contentTypes,
     credentialIds,
     currentPage,
@@ -219,6 +222,7 @@ export default function ReleasePostsList({
         brandId
           ? { brandId }
           : {}),
+        ...(campaignId ? { campaignId } : {}),
         ...(contentTypes?.length ? { contentType: contentTypes } : {}),
         ...(credentialIds?.length ? { credentialId: credentialIds } : {}),
         ...(executionStates?.length ? { executionState: executionStates } : {}),
