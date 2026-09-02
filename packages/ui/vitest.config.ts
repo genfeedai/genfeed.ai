@@ -425,14 +425,22 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30_000,
-    // Memory hygiene: the forks pool reuses one worker across every file,
-    // and isolate:true does not reclaim retained React/DOM trees. Without
-    // this the CI Test Packages job OOMs after the suite (~3.8 GB, #4337
-    // maxWorkers=2 was not enough). Match apps/app.
+    // Memory hygiene: isolate:true keeps a module graph per file and the
+    // forks pool never returns that RAM. Studio reproduced the CI OOM
+    // after 2561 passing tests at ~4 GB with a single worker. Share the
+    // module cache, reclaim mocks, and give the fork an 8 GB ceiling so
+    // teardown can finish.
     clearMocks: true,
     fileParallelism: false,
+    isolate: false,
     maxWorkers: 1,
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        execArgv: ['--max-old-space-size=8192'],
+        singleFork: true,
+      },
+    },
     unstubEnvs: true,
     unstubGlobals: true,
   },
