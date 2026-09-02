@@ -396,7 +396,6 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       toolPayload,
       {
         apiKeyContext: params.context.apiKeyContext,
-        authToken: params.context.authToken,
         brandId: params.context.scope?.brandId,
         generationModelOverride: overrides.generationModelOverride,
         generationPriority:

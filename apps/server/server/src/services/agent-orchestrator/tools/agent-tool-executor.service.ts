@@ -63,7 +63,6 @@ export interface ToolExecutionContext {
   userId: string;
   organizationId: string;
   threadId?: string;
-  authToken?: string;
   /** Router request vocabulary — map the persisted setting with `toRouterPriority`. */
   generationPriority?: RouterPriority;
   generationMode?: AgentGenerationMode;

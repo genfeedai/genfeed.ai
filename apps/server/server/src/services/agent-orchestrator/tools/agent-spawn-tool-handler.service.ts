@@ -46,7 +46,6 @@ export class AgentSpawnToolHandler {
       agentType,
       credentialId,
       parentContext: {
-        authToken: ctx.authToken,
         generationPriority: ctx.generationPriority,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
@@ -106,7 +105,6 @@ export class AgentSpawnToolHandler {
       const result = await this.agentSpawnService.spawnSubAgent({
         agentType,
         parentContext: {
-          authToken: ctx.authToken,
           executionId: ctx.runId,
           generationPriority: ctx.generationPriority,
           organizationId: ctx.organizationId,

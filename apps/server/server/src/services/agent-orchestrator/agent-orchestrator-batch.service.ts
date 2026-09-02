@@ -122,7 +122,6 @@ export class AgentOrchestratorBatchService {
       toolParams,
       {
         apiKeyContext: params.context.apiKeyContext,
-        authToken: params.context.authToken,
         autonomyMode: params.policy.autonomyMode,
         brandId: params.policy.brandId,
         creditGovernance: params.policy.creditGovernance,

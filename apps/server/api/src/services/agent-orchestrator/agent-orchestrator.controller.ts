@@ -11,7 +11,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   Optional,
   Param,
@@ -50,12 +49,8 @@ export class AgentOrchestratorController {
   @Post('threads/turns')
   @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
   @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
-  async createTurn(
-    @Body() body: AgentChatBodyDto,
-    @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
-  ) {
-    return this.runAgentTurn(body, user, authorization);
+  async createTurn(@Body() body: AgentChatBodyDto, @CurrentUser() user: User) {
+    return this.runAgentTurn(body, user);
   }
 
   @Post('threads/:threadId/turns')
@@ -65,9 +60,8 @@ export class AgentOrchestratorController {
     @Param('threadId') threadId: string,
     @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
   ) {
-    return this.runAgentTurn(body, user, authorization, threadId);
+    return this.runAgentTurn(body, user, threadId);
   }
 
   @Post('threads/turns/stream')
@@ -79,9 +73,8 @@ export class AgentOrchestratorController {
   async createTurnStream(
     @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
   ) {
-    return this.runAgentTurnStream(body, user, authorization);
+    return this.runAgentTurnStream(body, user);
   }
 
   @Post('threads/:threadId/turns/stream')
@@ -92,15 +85,13 @@ export class AgentOrchestratorController {
     @Param('threadId') threadId: string,
     @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
-    @Headers('authorization') authorization?: string,
   ) {
-    return this.runAgentTurnStream(body, user, authorization, threadId);
+    return this.runAgentTurnStream(body, user, threadId);
   }
 
   private async runAgentTurn(
     body: AgentChatBodyDto,
     user: User,
-    authorization?: string,
     routeThreadId?: string,
   ) {
     try {
@@ -113,11 +104,9 @@ export class AgentOrchestratorController {
         organization,
         dbUserId,
       );
-      const authToken = authorization?.replace('Bearer ', '');
 
       const result = await this.orchestratorService.chat(authorizedRequest, {
         apiKeyContext: user,
-        authToken,
         organizationId: organization,
         userId: dbUserId,
       });
@@ -131,7 +120,6 @@ export class AgentOrchestratorController {
   private async runAgentTurnStream(
     body: AgentChatBodyDto,
     user: User,
-    authorization?: string,
     routeThreadId?: string,
   ) {
     try {
@@ -144,13 +132,11 @@ export class AgentOrchestratorController {
         organization,
         dbUserId,
       );
-      const authToken = authorization?.replace('Bearer ', '');
 
       const result = await this.orchestratorService.acceptChatStream(
         authorizedRequest,
         {
           apiKeyContext: user,
-          authToken,
           organizationId: organization,
           userId: dbUserId,
         },

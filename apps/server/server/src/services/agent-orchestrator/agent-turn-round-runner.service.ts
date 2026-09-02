@@ -536,7 +536,6 @@ export class AgentTurnRoundRunnerService {
         {
           apiKeyContext: context.apiKeyContext,
           attachmentUrls,
-          authToken: context.authToken,
           autonomyMode: policy.autonomyMode,
           brandId: policy.brandId,
           creditGovernance: policy.creditGovernance,
