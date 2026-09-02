@@ -425,22 +425,14 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30_000,
-    // Memory hygiene: isolate:true keeps a module graph per file and the
-    // forks pool never returns that RAM. Studio reproduced the CI OOM
-    // after 2561 passing tests at ~4 GB with a single worker. Share the
-    // module cache, reclaim mocks, and give the fork an 8 GB ceiling so
-    // teardown can finish.
+    // Memory hygiene: one fork, no file parallelism, reclaim mocks. Isolate
+    // stays on — sharing the module cache pollutes vi.mock across files.
+    // The suite still OOMs a single process after ~2500 tests, so `package.json`
+    // runs two sequential vitest shards so each process can exit.
     clearMocks: true,
     fileParallelism: false,
-    isolate: false,
     maxWorkers: 1,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        execArgv: ['--max-old-space-size=8192'],
-        singleFork: true,
-      },
-    },
     unstubEnvs: true,
     unstubGlobals: true,
   },
