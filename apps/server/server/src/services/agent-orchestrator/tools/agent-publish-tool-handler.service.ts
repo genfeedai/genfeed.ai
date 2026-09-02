@@ -576,6 +576,69 @@ export class AgentPublishToolHandler {
     return { payloads, targets };
   }
 
+  private readPublishRequest(params: Record<string, unknown>): {
+    caption: string | undefined;
+    platforms: string[];
+    requestedScheduledAt: string | undefined;
+    requestedTargets: ReturnType<typeof parseAgentPublishTargetPayloads>;
+  } {
+    const caption =
+      typeof params.caption === 'string'
+        ? params.caption.trim()
+        : typeof params.content === 'string'
+          ? params.content.trim()
+          : typeof params.textContent === 'string'
+            ? params.textContent.trim()
+            : undefined;
+    const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
+    const platforms = this.normalizePlatforms(
+      requestedTargets.length > 0
+        ? requestedTargets.map((target) => target.platform)
+        : Array.isArray(params.platforms)
+          ? params.platforms
+          : typeof params.platform === 'string'
+            ? [params.platform]
+            : [],
+    );
+    const requestedScheduledAt =
+      typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
+        ? params.scheduledAt.trim()
+        : undefined;
+
+    return { caption, platforms, requestedScheduledAt, requestedTargets };
+  }
+
+  // Only a resumed publish card needs its sourceActionId verified against a
+  // persisted confirmation; an auto-publish-permitted call never showed one.
+  private async rejectUnverifiedPublishCard(
+    sourceActionId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult | null> {
+    if (!this.cacheService) {
+      throw new InternalServerErrorException(
+        'Publish confirmation persistence is unavailable.',
+      );
+    }
+    const isVerifiedConfirmation = await verifyPendingToolConfirmation(
+      this.cacheService,
+      {
+        organizationId: ctx.organizationId,
+        sourceActionId,
+        threadId: ctx.threadId ?? '',
+        toolName: AgentToolName.CREATE_POST,
+      },
+    );
+    if (isVerifiedConfirmation) {
+      return null;
+    }
+
+    return {
+      creditsUsed: 0,
+      error: 'sourceActionId does not match a persisted publish card.',
+      success: false,
+    };
+  }
+
   private readOptionalString(value: unknown): string | undefined {
     return typeof value === 'string' && value.trim().length > 0
       ? value.trim()
@@ -834,28 +897,8 @@ export class AgentPublishToolHandler {
           : undefined;
 
     if (contentId) {
-      const caption =
-        typeof params.caption === 'string'
-          ? params.caption.trim()
-          : typeof params.content === 'string'
-            ? params.content.trim()
-            : typeof params.textContent === 'string'
-              ? params.textContent.trim()
-              : undefined;
-      const requestedTargets = parseAgentPublishTargetPayloads(params.targets);
-      const platforms = this.normalizePlatforms(
-        requestedTargets.length > 0
-          ? requestedTargets.map((target) => target.platform)
-          : Array.isArray(params.platforms)
-            ? params.platforms
-            : typeof params.platform === 'string'
-              ? [params.platform]
-              : [],
-      );
-      const requestedScheduledAt =
-        typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
-          ? params.scheduledAt.trim()
-          : undefined;
+      const { caption, platforms, requestedScheduledAt, requestedTargets } =
+        this.readPublishRequest(params);
       const scheduledDate = requestedScheduledAt
         ? new Date(requestedScheduledAt)
         : undefined;
@@ -866,12 +909,8 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      // Confirmation is a server-owned fact: a model-supplied `confirmed`
-      // parameter is stripped upstream in AgentToolConfirmationService, so
-      // the only trustworthy signal that the operator actually clicked the
-      // publish card is `ctx.confirmationOrigin`, set exclusively by the
-      // card-button resume path in
-      // AgentOrchestratorUiActionConfirmedToolService.
+      // Model-supplied `confirmed` is stripped upstream; only the card-button
+      // resume path sets `ctx.confirmationOrigin`, so it is the trusted signal.
       const isCardConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
       if (!isCardConfirmed) {
         const policy = evaluateAgentAutoPublishPolicies({
@@ -932,30 +971,13 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      // Only a resumed publish card needs its sourceActionId verified
-      // against a persisted confirmation — an auto-publish-permitted call
-      // never showed a card, so there is nothing pending to match against.
       if (isCardConfirmed) {
-        if (!this.cacheService) {
-          throw new InternalServerErrorException(
-            'Publish confirmation persistence is unavailable.',
-          );
-        }
-        const isVerifiedConfirmation = await verifyPendingToolConfirmation(
-          this.cacheService,
-          {
-            organizationId: ctx.organizationId,
-            sourceActionId,
-            threadId: ctx.threadId ?? '',
-            toolName: AgentToolName.CREATE_POST,
-          },
+        const rejection = await this.rejectUnverifiedPublishCard(
+          sourceActionId,
+          ctx,
         );
-        if (!isVerifiedConfirmation) {
-          return {
-            creditsUsed: 0,
-            error: 'sourceActionId does not match a persisted publish card.',
-            success: false,
-          };
+        if (rejection) {
+          return rejection;
         }
       }
 

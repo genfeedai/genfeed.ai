@@ -50,10 +50,13 @@ export function readPendingToolConfirmation(
   const candidate = value as Record<string, unknown>;
   const organizationId = readNonEmptyString(candidate.organizationId);
   const sourceActionId = readNonEmptyString(candidate.sourceActionId);
-  const threadId = readNonEmptyString(candidate.threadId);
+  // Publish cards raised outside a thread persist an empty threadId; only
+  // the shape has to hold, the equality check in verify still binds it.
+  const threadId =
+    typeof candidate.threadId === 'string' ? candidate.threadId : null;
   const toolName = readNonEmptyString(candidate.toolName);
 
-  if (!organizationId || !sourceActionId || !threadId || !toolName) {
+  if (!organizationId || !sourceActionId || threadId === null || !toolName) {
     return null;
   }
 
