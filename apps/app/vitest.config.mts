@@ -30,10 +30,10 @@ export default mergeConfig(
           ),
         },
         {
-          find: /^@components\/lazy\/LazyModal$/,
+          find: /^@components\/lazy\/lazy-modal.admin$/,
           replacement: path.resolve(
             __dirname,
-            './packages/components/admin/lazy/LazyModal.ts',
+            './packages/components/admin/lazy/lazy-modal.admin.ts',
           ),
         },
         {

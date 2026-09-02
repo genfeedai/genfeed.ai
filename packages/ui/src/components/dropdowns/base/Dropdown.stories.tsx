@@ -1,12 +1,12 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { Copy, Download, EllipsisVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 /**
- * DropdownBase component provides a reusable dropdown menu with consistent styling,
+ * Dropdown component provides a reusable dropdown menu with consistent styling,
  * auto-positioning, and portal support.
  */
 const meta = {
@@ -40,7 +40,7 @@ const meta = {
       description: 'Render dropdown in portal (avoids overflow clipping)',
     },
   },
-  component: DropdownBase,
+  component: Dropdown,
   parameters: {
     docs: {
       description: {
@@ -51,8 +51,8 @@ const meta = {
     layout: 'centered',
   },
   tags: ['autodocs'],
-  title: 'Components/Dropdowns/DropdownBase',
-} satisfies Meta<typeof DropdownBase>;
+  title: 'Components/Dropdowns/Dropdown',
+} satisfies Meta<typeof Dropdown>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -74,7 +74,7 @@ function ControlledDropdownStory() {
           onClick={() => setIsOpen(false)}
         />
       </div>
-      <DropdownBase
+      <Dropdown
         trigger={
           <Button label="Controlled" variant={ButtonVariant.SECONDARY} />
         }
@@ -82,14 +82,20 @@ function ControlledDropdownStory() {
         onOpenChange={setIsOpen}
       >
         <div className="space-y-1">
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Controlled Option 1
           </button>
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Controlled Option 2
           </button>
         </div>
-      </DropdownBase>
+      </Dropdown>
     </div>
   );
 }
@@ -100,24 +106,33 @@ function ControlledDropdownStory() {
 export const Default: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   render: () => (
-    <DropdownBase
+    <Dropdown
       trigger={<Button label="Open Dropdown" variant={ButtonVariant.DEFAULT} />}
     >
       <div className="space-y-1">
-        <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+        >
           Option 1
         </button>
-        <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+        >
           Option 2
         </button>
-        <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+        >
           Option 3
         </button>
       </div>
-    </DropdownBase>
+    </Dropdown>
   ),
 };
 
@@ -127,36 +142,51 @@ export const Default: Story = {
 export const IconTrigger: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   render: () => (
-    <DropdownBase
+    <Dropdown
       trigger={
-        <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
+        <button
+          type="button"
+          className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+        >
           <EllipsisVertical size={16} />
         </button>
       }
     >
       <div className="space-y-1">
-        <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm"
+        >
           <Pencil size={16} />
           Edit
         </button>
-        <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm"
+        >
           <Copy size={16} />
           Copy
         </button>
-        <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm"
+        >
           <Download size={16} />
           Download
         </button>
         <div className="border-t border-white/[0.08] my-1" />
-        <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm text-error">
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm text-error"
+        >
           <Trash2 size={16} />
           Delete
         </button>
       </div>
-    </DropdownBase>
+    </Dropdown>
   ),
 };
 
@@ -166,7 +196,7 @@ export const IconTrigger: Story = {
 export const Controlled: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   parameters: {
     layout: 'padded',
@@ -180,10 +210,10 @@ export const Controlled: Story = {
 export const CustomWidth: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   render: () => (
-    <DropdownBase
+    <Dropdown
       trigger={<Button label="Wide Dropdown" variant={ButtonVariant.DEFAULT} />}
       minWidth="300px"
       maxWidth="400px"
@@ -191,14 +221,20 @@ export const CustomWidth: Story = {
       <div className="space-y-1">
         <div className="px-3 py-2 text-sm font-semibold">Custom Width</div>
         <div className="border-t border-white/[0.08]" />
-        <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+        >
           This dropdown has a minimum width of 300px and maximum of 400px
         </button>
-        <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+        <button
+          type="button"
+          className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+        >
           Option 2
         </button>
       </div>
-    </DropdownBase>
+    </Dropdown>
   ),
 };
 
@@ -208,7 +244,7 @@ export const CustomWidth: Story = {
 export const WithPortal: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   parameters: {
     layout: 'padded',
@@ -218,24 +254,33 @@ export const WithPortal: Story = {
       <p className="text-sm text-zinc-600 mb-4">
         This container has overflow hidden, but the dropdown uses a portal:
       </p>
-      <DropdownBase
+      <Dropdown
         trigger={
           <Button label="Portal Dropdown" variant={ButtonVariant.DEFAULT} />
         }
         usePortal={true}
       >
         <div className="space-y-1">
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Portal Option 1
           </button>
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Portal Option 2
           </button>
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Portal Option 3
           </button>
         </div>
-      </DropdownBase>
+      </Dropdown>
     </div>
   ),
 };
@@ -246,59 +291,80 @@ export const WithPortal: Story = {
 export const Multiple: Story = {
   args: {
     children: <div>Content</div>,
-    trigger: <button>Trigger</button>,
+    trigger: <button type="button">Trigger</button>,
   },
   parameters: {
     layout: 'padded',
   },
   render: () => (
     <div className="flex gap-4 p-8">
-      <DropdownBase
+      <Dropdown
         trigger={<Button label="Dropdown 1" variant={ButtonVariant.DEFAULT} />}
       >
         <div className="space-y-1">
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Option 1
           </button>
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Option 2
           </button>
         </div>
-      </DropdownBase>
+      </Dropdown>
 
-      <DropdownBase
+      <Dropdown
         trigger={
           <Button label="Dropdown 2" variant={ButtonVariant.SECONDARY} />
         }
       >
         <div className="space-y-1">
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Action 1
           </button>
-          <button className="w-full text-left px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full text-left px-3 py-2 hover:bg-background text-sm"
+          >
             Action 2
           </button>
         </div>
-      </DropdownBase>
+      </Dropdown>
 
-      <DropdownBase
+      <Dropdown
         trigger={
-          <button className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground">
+          <button
+            type="button"
+            className="h-8 px-3 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+          >
             <EllipsisVertical size={16} />
           </button>
         }
       >
         <div className="space-y-1">
-          <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm"
+          >
             <Pencil size={16} />
             Edit
           </button>
-          <button className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm">
+          <button
+            type="button"
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-background text-sm"
+          >
             <Trash2 size={16} />
             Delete
           </button>
         </div>
-      </DropdownBase>
+      </Dropdown>
     </div>
   ),
 };

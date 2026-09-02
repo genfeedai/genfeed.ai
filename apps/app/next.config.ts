@@ -589,8 +589,8 @@ config.turbopack = {
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     '@components/cards/KpiCard':
       './packages/components/admin/cards/KpiCard.tsx',
-    '@components/lazy/LazyModal':
-      './packages/components/admin/lazy/LazyModal.ts',
+    '@components/lazy/lazy-modal.admin':
+      './packages/components/admin/lazy/lazy-modal.admin.ts',
     '@components/lazy/modal/LazyModal':
       '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
     '@components/loading/fallback/LazyLoadingFallback':

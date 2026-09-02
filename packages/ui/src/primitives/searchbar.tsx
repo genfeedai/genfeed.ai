@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import { Search, X } from 'lucide-react';
 import type {
   ChangeEvent,
@@ -9,8 +10,6 @@ import type {
   ReactElement,
   RefObject,
 } from 'react';
-
-import { cn } from '../lib/utils';
 import { Button } from './button';
 
 const SIZE_CLASSES: Record<ComponentSize, string> = {

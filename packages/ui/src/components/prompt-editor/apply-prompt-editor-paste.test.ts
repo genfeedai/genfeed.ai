@@ -1,9 +1,9 @@
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { afterEach, describe, expect, it } from 'vitest';
-import { applyComposerPasteText } from './apply-composer-paste.util';
+import { applyPromptEditorPasteText } from './apply-prompt-editor-paste';
 
-describe('applyComposerPasteText', () => {
+describe('applyPromptEditorPasteText', () => {
   let editor: Editor | null = null;
 
   afterEach(() => {
@@ -20,7 +20,7 @@ describe('applyComposerPasteText', () => {
   }
 
   function paste(instance: Editor, text: string): void {
-    instance.view.dispatch(applyComposerPasteText(instance.state, text));
+    instance.view.dispatch(applyPromptEditorPasteText(instance.state, text));
   }
 
   it('collapses after replacing a highlight so the next paste appends', () => {

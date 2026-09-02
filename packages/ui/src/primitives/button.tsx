@@ -1,4 +1,5 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import type {
@@ -8,7 +9,6 @@ import type {
   ReactElement,
   ReactNode,
 } from 'react';
-import { cn } from '../lib/utils';
 import {
   type ButtonStyleProps,
   buttonVariants,

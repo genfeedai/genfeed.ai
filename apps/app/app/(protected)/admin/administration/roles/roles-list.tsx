@@ -1,7 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { LazyModalRole } from '@components/lazy/LazyModal';
+import { LazyModalRole } from '@components/lazy/lazy-modal.admin';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IRole } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';

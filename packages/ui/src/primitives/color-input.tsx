@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers';
 import type { InputHTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 
 export interface ColorInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {

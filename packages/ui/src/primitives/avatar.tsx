@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 function Avatar({
   ref,

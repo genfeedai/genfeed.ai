@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type { HandleProps } from '@xyflow/react';
 import { Handle } from '@xyflow/react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '../lib/utils';
 
 const flowHandleVariants = cva(
   'flow-handle border border-background shadow-sm',

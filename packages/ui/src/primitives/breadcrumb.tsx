@@ -1,7 +1,7 @@
+import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
 import { ChevronRight, Ellipsis } from 'lucide-react';
 import type { ComponentProps, ComponentPropsWithRef, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 
 function Breadcrumb({
   ref,

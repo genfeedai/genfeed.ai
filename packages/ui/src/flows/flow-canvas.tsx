@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type { Edge, Node } from '@xyflow/react';
 import {
   Background,
@@ -12,7 +13,6 @@ import {
   ReactFlow,
   type ReactFlowProps,
 } from '@xyflow/react';
-import { cn } from '../lib/utils';
 
 export type FlowCanvasProps<
   NodeType extends Node = Node,

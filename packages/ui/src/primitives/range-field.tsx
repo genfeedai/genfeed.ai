@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import type { ChangeEvent, ReactElement } from 'react';
 import { useCallback } from 'react';
 import {
@@ -6,7 +7,6 @@ import {
   type Path,
   useController,
 } from 'react-hook-form';
-import { cn } from '../lib/utils';
 import { Slider } from './slider';
 
 export interface RangeFieldProps<T extends FieldValues = FieldValues> {

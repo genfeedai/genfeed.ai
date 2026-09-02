@@ -1,6 +1,6 @@
+import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 import { preVariants } from './pre.variants';
 
 export interface PreProps

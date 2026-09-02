@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as TogglePrimitive from '@radix-ui/react-toggle';
 import type { VariantProps } from 'class-variance-authority';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 import { toggleVariants } from './toggle.variants';
 
 function Toggle({

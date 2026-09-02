@@ -1,10 +1,10 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { X } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
 const Sheet: typeof SheetPrimitive.Root = SheetPrimitive.Root;

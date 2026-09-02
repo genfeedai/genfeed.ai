@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import Image from 'next/image';
 import type { KeyboardEvent } from 'react';
-import { cn } from '../lib/utils';
 import { Badge } from './badge';
 import type { DropdownFieldOption } from './dropdown-field';
 

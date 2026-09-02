@@ -1,11 +1,10 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
-
-import { cn } from '../lib/utils';
 import { Button } from './button';
 import { Calendar } from './calendar';
 import Field from './field';

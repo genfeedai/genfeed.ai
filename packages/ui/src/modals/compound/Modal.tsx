@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import {
@@ -10,7 +11,6 @@ import {
   use,
   useMemo,
 } from 'react';
-import { cn } from '../../lib/utils';
 import { useModalContentGlobalSideEffectCleanup } from '../../utils/modal-global-side-effects';
 
 /**

@@ -307,13 +307,6 @@ export default defineConfig({
         replacement: path.resolve(UI_COMPONENTS_SRC, './styles/$1'),
       },
       {
-        find: '@ui/dropdowns/base/DropdownBase',
-        replacement: path.resolve(
-          UI_COMPONENTS_SRC,
-          './dropdowns/base/DropdownBase.tsx',
-        ),
-      },
-      {
         find: '@ui/styles',
         replacement: path.resolve(UI_COMPONENTS_SRC, './styles'),
       },

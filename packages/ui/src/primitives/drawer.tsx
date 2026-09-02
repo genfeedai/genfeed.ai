@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type { ComponentProps, HTMLAttributes } from 'react';
 import { Drawer as DrawerPrimitive } from 'vaul';
-import { cn } from '../lib/utils';
 import { useModalContentGlobalSideEffectCleanup } from '../utils/modal-global-side-effects';
 
 const Drawer = ({

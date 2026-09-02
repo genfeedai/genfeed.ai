@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import { Check } from 'lucide-react';
 import type {
@@ -9,7 +10,6 @@ import type {
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
-import { cn } from '../lib/utils';
 
 type CheckboxBaseProps = Omit<
   ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,

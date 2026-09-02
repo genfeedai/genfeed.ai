@@ -1,6 +1,6 @@
+import { cn } from '@genfeedai/helpers';
 import { Pencil } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { cn } from '../lib/utils';
 
 export interface EditableTextProps {
   value?: string;

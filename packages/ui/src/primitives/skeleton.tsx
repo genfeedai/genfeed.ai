@@ -1,7 +1,7 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type { ComponentPropsWithoutRef } from 'react';
-import { cn } from '../lib/utils';
 
 function Skeleton({ className, ...props }: ComponentPropsWithoutRef<'output'>) {
   return (

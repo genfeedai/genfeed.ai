@@ -10,33 +10,6 @@ import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/dropdowns/base/DropdownBase', () => ({
-  Dropdown: ({
-    trigger,
-    children,
-  }: {
-    trigger: ReactNode;
-    children: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="dropdown-trigger">{trigger}</div>
-      <div data-testid="dropdown-content">{children}</div>
-    </div>
-  ),
-  default: ({
-    trigger,
-    children,
-  }: {
-    trigger: ReactNode;
-    children: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="dropdown-trigger">{trigger}</div>
-      <div data-testid="dropdown-content">{children}</div>
-    </div>
-  ),
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,

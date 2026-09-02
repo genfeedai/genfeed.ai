@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 import { overlayMenuSurfaceClassName } from './field-control';
 
 const Popover: typeof PopoverPrimitive.Root = PopoverPrimitive.Root;

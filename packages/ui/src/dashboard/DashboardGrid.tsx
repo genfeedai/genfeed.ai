@@ -1,6 +1,5 @@
+import { cn } from '@genfeedai/helpers';
 import type { ReactNode } from 'react';
-
-import { cn } from '../lib/utils';
 
 interface DashboardGridProps {
   cols?: 2 | 3 | 4;

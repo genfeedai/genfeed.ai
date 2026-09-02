@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers';
 import type { ComponentType, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 import { StatusIcon } from './StatusIcon';
 
 interface IssueRowProps {

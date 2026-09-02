@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 function ScrollArea({
   ref,

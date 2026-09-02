@@ -150,37 +150,31 @@ export default function ReleaseRailRow({
         >
           <ExternalLink className="size-4" />
         </Link>
-        {visible.some(
-          (target) =>
-            isSourcePostVariationPlatform(target.platform) &&
-            target.executionState === TargetExecutionState.PUBLISHED,
-        )
-          ? visible
-              .filter(
-                (target) =>
-                  isSourcePostVariationPlatform(target.platform) &&
-                  target.executionState === TargetExecutionState.PUBLISHED,
-              )
-              .map((target) => (
-                <Link
-                  aria-label={translate('open')}
-                  className={buttonVariants({
-                    size: ButtonSize.ICON,
-                    variant: ButtonVariant.SECONDARY,
-                  })}
-                  href={href(
-                    buildSourcePostVariationsHref({
-                      platform: target.platform,
-                      postId: target.id,
-                    }),
-                  )}
-                  key={target.id}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <Sparkles className="size-4" />
-                </Link>
-              ))
-          : null}
+        {visible
+          .filter(
+            (target) =>
+              isSourcePostVariationPlatform(target.platform) &&
+              target.executionState === TargetExecutionState.PUBLISHED,
+          )
+          .map((target) => (
+            <Link
+              aria-label={translate('open')}
+              className={buttonVariants({
+                size: ButtonSize.ICON,
+                variant: ButtonVariant.SECONDARY,
+              })}
+              href={href(
+                buildSourcePostVariationsHref({
+                  platform: target.platform,
+                  postId: target.id,
+                }),
+              )}
+              key={target.id}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <Sparkles className="size-4" />
+            </Link>
+          ))}
       </div>
     </div>
   );

@@ -190,7 +190,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       (option) =>
         option.lifecycle === ModelLifecycle.RECOMMENDED &&
         option.model.isFree !== true &&
-        typeof option.model.cost === 'number' &&
         option.model.cost > 0 &&
         (!option.model.isDiscovered ||
           option.model.reviewStatus === 'approved'),
