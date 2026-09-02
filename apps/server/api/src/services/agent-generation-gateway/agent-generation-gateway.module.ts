@@ -1,8 +1,11 @@
+import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
+import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
@@ -16,6 +19,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 import { AGENT_GENERATION_GATEWAY } from '@server/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
@@ -38,6 +42,8 @@ import { AGENT_GENERATION_GATEWAY } from '@server/services/agent-orchestrator/ga
     AgentGenerationGatewayService,
   ],
   imports: [
+    ActivitiesModule,
+    ArticlesModule,
     ByokModule,
     ConfigModule,
     CreditsModule,
@@ -45,6 +51,8 @@ import { AGENT_GENERATION_GATEWAY } from '@server/services/agent-orchestrator/ga
     MembersModule,
     ModelsModule,
     MusicsModule,
+    NotificationsPublisherModule,
+    OrganizationSettingsModule,
     RequestContextModule,
     VideoGenerationModule,
     VideosCoreModule,

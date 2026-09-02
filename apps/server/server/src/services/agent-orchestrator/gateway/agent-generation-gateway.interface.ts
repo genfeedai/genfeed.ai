@@ -1,5 +1,8 @@
 import type { ActivitySource } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type {
+  JsonApiResult,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
 import type { GenerationPlaceholderCreatedCallback } from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
 
 /**
@@ -58,6 +61,7 @@ export interface AgentGenerationResourceInput extends AgentGenerationInput {
  * responses through the shared media response readers.
  */
 export interface IAgentGenerationGateway {
+  generateArticle(input: AgentGenerationInput): Promise<JsonApiResult>;
   generateAvatarVideo(
     input: AgentGenerationInput,
   ): Promise<JsonApiSingleResponse>;

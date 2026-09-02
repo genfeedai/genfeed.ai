@@ -1,4 +1,4 @@
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiResult } from '@genfeedai/interfaces';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 
 const AWS_S3_PUBLIC_HOST_PATTERN =
@@ -49,7 +49,7 @@ export function readArticleResource(
  * loose record shape every reader in this file consumes.
  */
 export function toMediaResponseRecord(
-  response: JsonApiSingleResponse,
+  response: JsonApiResult,
 ): Record<string, unknown> {
   return isPlainMediaResponseRecord(response) ? response : { data: null };
 }
