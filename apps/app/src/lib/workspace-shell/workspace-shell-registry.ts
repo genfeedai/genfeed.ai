@@ -180,8 +180,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/messages/outreach': 'Outreach sequences',
   '/:orgSlug/:brandSlug/messages/outreach/new': 'New outreach sequence',
   '/:orgSlug/:brandSlug/messages/outreach/:id': 'Outreach sequence',
-  '/:orgSlug/:brandSlug/discovery/:platform': ':platform',
-  '/:orgSlug/~/discovery/:platform': ':platform',
   '/:orgSlug/:brandSlug/platforms/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
   '/:orgSlug/:brandSlug/settings/usage': 'Cost & Usage',
@@ -235,14 +233,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/discovery/ads/google': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/meta': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/tiktok': 'Ads',
-  '/:orgSlug/:brandSlug/discovery/ads/x': 'Ads',
-  '/:orgSlug/~/discovery/ads/google': 'Ads',
-  '/:orgSlug/~/discovery/ads/meta': 'Ads',
-  '/:orgSlug/~/discovery/ads/tiktok': 'Ads',
-  '/:orgSlug/~/discovery/ads/x': 'Ads',
   // Content desk lives under Posts, not Overview.
   '/:orgSlug/:brandSlug/publishing/posts/:id': 'Posts',
   '/:orgSlug/:brandSlug/automation/agents/:agentId': 'Team',
@@ -526,18 +516,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     telemetryClass: 'product',
   }),
   ...registerRoutes(
-    [
-      '/:orgSlug/~/discovery/overview',
-      '/:orgSlug/~/discovery/discovery',
-      '/:orgSlug/~/discovery/following',
-      '/:orgSlug/~/discovery/socials',
-      '/:orgSlug/~/discovery/ads',
-      '/:orgSlug/~/discovery/ads/google',
-      '/:orgSlug/~/discovery/ads/meta',
-      '/:orgSlug/~/discovery/ads/tiktok',
-      '/:orgSlug/~/discovery/ads/x',
-      '/:orgSlug/~/discovery/:platform',
-    ],
+    ['/:orgSlug/~/discovery/overview', '/:orgSlug/~/discovery/ads'],
     {
       adapter: { key: 'discovery', status: 'embedded' },
       fallback: '/:orgSlug/~/discovery/overview',
@@ -746,15 +725,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/discovery/overview',
-      '/:orgSlug/:brandSlug/discovery/discovery',
-      '/:orgSlug/:brandSlug/discovery/following',
-      '/:orgSlug/:brandSlug/discovery/socials',
       '/:orgSlug/:brandSlug/discovery/ads',
-      '/:orgSlug/:brandSlug/discovery/ads/google',
-      '/:orgSlug/:brandSlug/discovery/ads/meta',
-      '/:orgSlug/:brandSlug/discovery/ads/tiktok',
-      '/:orgSlug/:brandSlug/discovery/ads/x',
-      '/:orgSlug/:brandSlug/discovery/:platform',
     ],
     {
       adapter: { key: 'discovery', status: 'embedded' },
