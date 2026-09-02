@@ -44,6 +44,7 @@ import type {
   DiscoveryDeskSort,
   DiscoveryDeskSource,
 } from '@props/trends/discovery-desk.props';
+import type { ViewOption } from '@props/ui/navigation/view-toggle.props';
 import { NotificationsService } from '@services/core/notifications.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
@@ -308,7 +309,7 @@ export default function DiscoveryDesk() {
     [filteredBySearch, state.selection],
   );
 
-  const viewOptions = useMemo(
+  const viewOptions = useMemo<ViewOption<ViewType.TABLE | ViewType.GRID>[]>(
     () => [
       {
         ariaLabel: translateDesk('viewToggle.desk'),
