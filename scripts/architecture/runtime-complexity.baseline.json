@@ -150,24 +150,6 @@
     "symbol": "PostGroupPersistenceService.createPostGroup"
   },
   {
-    "actual": 1295,
-    "file": "apps/server/server/src/collections/post-groups/services/post-groups.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/server/src/collections/post-groups/services/post-groups.service.ts"
-  },
-  {
-    "actual": 173,
-    "file": "apps/server/server/src/collections/post-groups/services/post-groups.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostGroupsService.scheduleTargetAt"
-  },
-  {
-    "actual": 158,
-    "file": "apps/server/server/src/collections/post-groups/services/post-groups.service.ts",
-    "metric": "method-lines",
-    "symbol": "PostGroupsService.updateTarget"
-  },
-  {
     "actual": 1020,
     "file": "apps/server/server/src/collections/posts/services/post-analytics.service.ts",
     "metric": "file-lines",
