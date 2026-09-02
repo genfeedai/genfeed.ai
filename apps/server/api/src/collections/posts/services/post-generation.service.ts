@@ -1,8 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -11,20 +7,11 @@ import {
   GenerateTweetsDto,
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
-import { type PostDocument } from '@server/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -44,7 +31,20 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import { type PostDocument } from '@server/collections/posts/post.schema';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
@@ -463,64 +463,13 @@ export class PostGenerationService {
       ) {
         const post = createdPosts[i];
         const postText = generatedLines[i];
-        const postId = String(post.id);
-
-        try {
-          const updatedPost = await this.postsService.patch(
-            postId,
-            {
-              description: postText,
-              label: this.extractLabelFromTweet(postText),
-              targetExecutionState: TargetExecutionState.DRAFT,
-            },
-            [
-              { path: 'ingredients', select: ['id', 'cdnUrl'] },
-              {
-                path: 'credential',
-                select: ['id', 'label', 'externalHandle'],
-              },
-            ],
-          );
-
-          await this.websocketService.emit(WebSocketPaths.post(postId), {
-            result: updatedPost,
-            status: Status.COMPLETED,
-          });
-
-          await this.activitiesService.create(
-            new ActivityEntity({
-              brandId: identity.brandId,
-              entityId: postId,
-              entityModel: ActivityEntityModel.POST,
-              key: ActivityKey.POST_GENERATED,
-              organizationId: identity.organizationId,
-              source: ActivitySource.POST_GENERATION,
-              userId: identity.userId,
-              value: postId,
-            }),
-          );
-
-          try {
-            await this.recordGeneratedPostLineage({
-              draftType: dto.format === 'thread' ? 'thread' : 'tweet',
-              dto,
-              platform: context.account.platform,
-              postId,
-              prompt: dto.topic,
-              identity,
-            });
-          } catch (lineageError) {
-            this.logger.warn('Failed to record post remix lineage', {
-              error:
-                lineageError instanceof Error
-                  ? lineageError.message
-                  : String(lineageError),
-              postId,
-            });
-          }
-        } catch (error) {
-          await this.handleGeneratedPostFailure(postId, error);
-        }
+        await this.completeGeneratedAccountPost(
+          dto,
+          post,
+          postText,
+          identity,
+          context,
+        );
       }
 
       for (let i = generatedLines.length; i < createdPosts.length; i++) {
@@ -557,6 +506,70 @@ export class PostGenerationService {
       for (const post of createdPosts) {
         await this.handleGeneratedPostFailure(String(post.id), error);
       }
+    }
+  }
+
+  private async completeGeneratedAccountPost(
+    dto: GenerateAccountPostDto,
+    post: PostDocument,
+    postText: string,
+    identity: GenerationMetadata,
+    context: AccountPublishingContext,
+  ): Promise<void> {
+    const postId = String(post.id);
+    try {
+      const updatedPost = await this.postsService.patch(
+        postId,
+        {
+          description: postText,
+          label: this.extractLabelFromTweet(postText),
+          targetExecutionState: TargetExecutionState.DRAFT,
+        },
+        [
+          { path: 'ingredients', select: ['id', 'cdnUrl'] },
+          {
+            path: 'credential',
+            select: ['id', 'label', 'externalHandle'],
+          },
+        ],
+      );
+      await this.websocketService.emit(WebSocketPaths.post(postId), {
+        result: updatedPost,
+        status: Status.COMPLETED,
+      });
+      await this.activitiesService.create(
+        new ActivityEntity({
+          brandId: identity.brandId,
+          entityId: postId,
+          entityModel: ActivityEntityModel.POST,
+          key: ActivityKey.POST_GENERATED,
+          organizationId: identity.organizationId,
+          source: ActivitySource.POST_GENERATION,
+          userId: identity.userId,
+          value: postId,
+        }),
+      );
+
+      try {
+        await this.recordGeneratedPostLineage({
+          draftType: dto.format === 'thread' ? 'thread' : 'tweet',
+          dto,
+          platform: context.account.platform,
+          postId,
+          prompt: dto.topic,
+          identity,
+        });
+      } catch (lineageError) {
+        this.logger.warn('Failed to record post remix lineage', {
+          error:
+            lineageError instanceof Error
+              ? lineageError.message
+              : String(lineageError),
+          postId,
+        });
+      }
+    } catch (error) {
+      await this.handleGeneratedPostFailure(postId, error);
     }
   }
 
