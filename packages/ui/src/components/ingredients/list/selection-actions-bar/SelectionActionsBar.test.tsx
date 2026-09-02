@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import SelectionActionsBar from '@ui/ingredients/list/selection-actions-bar/SelectionActionsBar';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 describe('SelectionActionsBar', () => {
   it('should render without crashing', () => {
     const { container } = render(<SelectionActionsBar />);
