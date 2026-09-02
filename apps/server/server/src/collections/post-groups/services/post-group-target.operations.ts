@@ -5,6 +5,7 @@ import {
 import type {
   ChannelTargetInput,
   UpdateChannelTargetInput,
+  UpdateReleaseGroupInput,
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
@@ -27,6 +28,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import type {
   ManualRetryResolution,
   ResolveManualRetryParams,
+  SchedulerPostTarget,
   SchedulerTx,
 } from '@server/collections/post-groups/services/post-group.types';
 import type { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
@@ -55,6 +57,21 @@ export type PostGroupTargetOperationDependencies = {
   publishApprovalsService: PublishApprovalsService;
   readinessService: PostGroupReadinessService;
   scheduledPostWorkflowQueue: ScheduledPostWorkflowQueueService;
+};
+
+export const GROUP_ACTION_STATES = new Set<string>([
+  TargetExecutionState.DRAFT,
+  TargetExecutionState.SCHEDULED,
+  TargetExecutionState.PAUSED,
+  TargetExecutionState.FAILED,
+]);
+
+export type ReleaseTargetUpdateContext = {
+  currentTargets: readonly SchedulerPostTarget[];
+  groupId: string;
+  input: UpdateReleaseGroupInput;
+  organizationId: string;
+  userId: string;
 };
 
 type SchedulePostGroupTargetParams = {
@@ -534,4 +551,53 @@ async function resolveManualRetry(
   return isDurableRetry
     ? { isManualRetry, manualRetryApproval: approval }
     : { isManualRetry };
+}
+
+export async function applyReleaseTargetUpdates(
+  tx: SchedulerTx,
+  context: ReleaseTargetUpdateContext,
+  dependencies: PostGroupTargetOperationDependencies,
+): Promise<void> {
+  const targetUpdate: PostLifecycleMutation = {};
+  if (context.input.baseContent !== undefined) {
+    targetUpdate.description = context.input.baseContent;
+  }
+  if (context.input.scheduledDate !== undefined) {
+    targetUpdate.scheduledDate = dependencies.contractService.toDate(
+      context.input.scheduledDate,
+    );
+  }
+  if (context.input.timezone !== undefined) {
+    targetUpdate.timezone = context.input.timezone;
+  }
+  if (context.input.status !== undefined) {
+    const nextState = dependencies.contractService.toTargetState(
+      context.input.status,
+    );
+    for (const target of context.currentTargets) {
+      if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+        continue;
+      }
+      await dependencies.postLifecycleService.transition(
+        {
+          actorId: context.userId,
+          groupId: context.groupId,
+          mutation: targetUpdate,
+          nextState,
+          organizationId: context.organizationId,
+          postId: target.id,
+          reason: 'Release lifecycle updated',
+        },
+        tx,
+      );
+    }
+  } else if (Object.keys(targetUpdate).length > 0) {
+    await tx.post.updateMany({
+      data: targetUpdate,
+      where: scopedWhere(context.organizationId, {
+        groupId: context.groupId,
+        targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
+      }),
+    });
+  }
 }
