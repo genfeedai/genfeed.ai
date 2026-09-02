@@ -92,8 +92,6 @@ function buildWorkspaceSourceAliases(): Record<string, string> {
   aliases['@serializers'] = path.join(PACKAGES_ROOT, 'serializers/src');
   aliases['@api-types'] = path.join(PACKAGES_ROOT, 'api-types/src');
   aliases['@genfeedai-types'] = path.join(PACKAGES_ROOT, 'types/src');
-  aliases['@workflow-engine'] = path.join(PACKAGES_ROOT, 'workflow-engine/src');
-  aliases['@workflow-saas'] = path.join(PACKAGES_ROOT, 'workflow-saas/src');
   aliases['@api-root'] = path.join(SERVER_ROOT, 'api');
 
   return aliases;
@@ -116,7 +114,6 @@ function shouldBundleImport(id: string): boolean {
   if (id.startsWith('@serializers/')) return true;
   if (id.startsWith('@api-types')) return true;
   if (id.startsWith('@genfeedai-types')) return true;
-  if (id.startsWith('@workflow-')) return true;
   if (id.startsWith('@files/')) return true;
   if (id.startsWith('@workers/')) return true;
   if (id.startsWith('@notifications/')) return true;

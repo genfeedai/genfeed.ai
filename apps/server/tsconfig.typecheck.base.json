@@ -14,7 +14,6 @@
       "@api-test/*": ["./api/test/*"],
       "@api-types/*": ["../../packages/api-types/dist/*"],
       "@api/*": ["./api/src/*"],
-      "@clips/*": ["./clips/src/*"],
       "@cloud-types/*": ["../../packages/types/dist/*"],
       "@config/*": ["../../packages/config/dist/*"],
       "@discord/*": ["./discord/src/*"],

@@ -76,8 +76,6 @@ module.exports = function createWebpackConfig({
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
     '@libs': path.resolve(cloudPackagesRoot, 'libs'),
     '@serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
-    '@workflow-engine': path.resolve(cloudPackagesRoot, 'workflow-engine/src'),
-    '@workflow-saas': path.resolve(cloudPackagesRoot, 'workflow-saas/src'),
   };
   const nodePtyExternal = (() => {
     try {
@@ -144,13 +142,6 @@ module.exports = function createWebpackConfig({
           /^@mcp\//,
           /^@discord\//,
           /^@telegram\//,
-          /^@images\//,
-          /^@videos\//,
-          /^@voices\//,
-          /^@clips\//,
-          /^@fanvue\//,
-          /^@workflow-engine\//,
-          /^@workflow-saas\//,
           /^@cloud-types\//,
         ],
         modulesDir: nodeModulesDir,
@@ -330,16 +321,12 @@ module.exports = function createWebpackConfig({
         // Ignore all apps except current one to prevent watching everything
         ...[
           'api',
-          'clips',
           'discord',
           'files',
-          'images',
           'mcp',
           'notifications',
           'slack',
           'telegram',
-          'videos',
-          'voices',
           'workers',
         ]
           .filter((app) => app !== appName)

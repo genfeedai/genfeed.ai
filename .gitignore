@@ -4,6 +4,7 @@ package-lock.json
 yarn.lock
 __pycache__/
 dist/
+# covers apps/server/dist and every other package emit. Do not track build output.
 packages/prisma/generated/
 packages/desktop-prisma/generated/
 .next/

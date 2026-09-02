@@ -1,6 +1,6 @@
 # System Patterns — Genfeed.ai
 
-**last_verified: 2026-07-26** · Auto-loaded every request. Patterns only — the flat rules
+**last_verified: 2026-09-02** · Auto-loaded every request. Patterns only — the flat rules
 (no `any`, no `console.log`, `isDeleted` soft deletes, `ConfigService` over `process.env`,
 `@ui/primitives` over raw HTML) live in CLAUDE.md and are not repeated here.
 
@@ -14,9 +14,11 @@ Attributes via `createEntityAttributes()` (adds timestamps + `isDeleted`); confi
 via `buildSerializer('server', config)`. Never return a raw Prisma record.
 
 **Modules** — `createServiceModule()` factory (pulls in ConfigModule + LoggerModule).
-Do not wrap a module import in `forwardRef`. Persistence/service leaves live
-in `*CoreModule`; HTTP/collection modules import those cores one-way.
-`module-graph.spec.ts` requires zero wrappers and zero cycles.
+Do not add `forwardRef`. Persistence/service leaves live in `*CoreModule`;
+HTTP/collection modules import those cores one-way. `module-graph.spec.ts`
+requires zero wrappers and zero cycles on the API graph. Workers cron modules
+still wrap some API imports in `forwardRef` (11 files); that is leftover, not
+the target.
 
 **Multi-tenancy** — a SaaS *product* boundary, enforced in the API by design: the global
 `CombinedAuthGuard` (APP_GUARD, `apps/server/api/src/helpers/guards/combined-auth/`) plus inline
