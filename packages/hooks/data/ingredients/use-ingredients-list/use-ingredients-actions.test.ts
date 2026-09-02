@@ -1,6 +1,7 @@
 import {
   AssetScope,
   IngredientCategory,
+  IngredientFormat,
   ModalEnum,
   PageScope,
   WebSocketEventStatus,
@@ -24,6 +25,7 @@ interface IngredientActionsOptions {
   onDeleteIngredient: (ingredient: IIngredient) => void;
   onPublishIngredient: (ingredient: IIngredient) => void;
   onRefresh: () => void;
+  onReprompt: (ingredient: IIngredient) => void | Promise<void>;
   onSeeDetails: (ingredient: IIngredient) => void;
   onUpdateParent: (
     ingredient: IIngredient,
@@ -110,17 +112,40 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   })),
 }));
 
-const mockIngredientsServiceDelete = vi.fn();
+const {
+  mockImagesPost,
+  mockImagesServiceInstance,
+  mockIngredientsServiceDelete,
+  mockIngredientsServiceInstance,
+  mockPostMerge,
+  mockVideosPost,
+  mockVideosServiceInstance,
+} = vi.hoisted(() => {
+  const mockIngredientsServiceDelete = vi.fn();
+  const mockPostMerge = vi.fn();
+  const mockVideosPost = vi.fn();
+  const mockImagesPost = vi.fn();
+
+  return {
+    mockImagesPost,
+    mockImagesServiceInstance: { post: mockImagesPost },
+    mockIngredientsServiceDelete,
+    mockIngredientsServiceInstance: { delete: mockIngredientsServiceDelete },
+    mockPostMerge,
+    mockVideosPost,
+    mockVideosServiceInstance: {
+      post: mockVideosPost,
+      postMerge: mockPostMerge,
+    },
+  };
+});
+
 const mockBulkPatch = vi.fn();
 const mockBulkDelete = vi.fn();
-const mockPostMerge = vi.fn();
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() =>
-    vi.fn().mockImplementation(async () => ({
-      delete: mockIngredientsServiceDelete,
-      postMerge: mockPostMerge,
-    })),
+  useAuthedService: vi.fn(
+    (factory: (token: string) => unknown) => async () => factory('mock-token'),
   ),
 }));
 
@@ -139,11 +164,17 @@ vi.mock(
 );
 
 vi.mock('@genfeedai/services/content/ingredients.service', () => ({
-  IngredientsService: { getInstance: vi.fn() },
+  IngredientsService: {
+    getInstance: vi.fn(() => mockIngredientsServiceInstance),
+  },
 }));
 
 vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
-  VideosService: { getInstance: vi.fn() },
+  VideosService: { getInstance: vi.fn(() => mockVideosServiceInstance) },
+}));
+
+vi.mock('@genfeedai/services/ingredients/images.service', () => ({
+  ImagesService: { getInstance: vi.fn(() => mockImagesServiceInstance) },
 }));
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
@@ -233,6 +264,8 @@ describe('useIngredientsActions', () => {
     mockBulkPatch.mockResolvedValue({});
     mockPostMerge.mockResolvedValue({ id: 'video-1' });
     mockIngredientsServiceDelete.mockResolvedValue(undefined);
+    mockImagesPost.mockResolvedValue({ id: 'image-2' });
+    mockVideosPost.mockResolvedValue({ id: 'video-2' });
     mockSubscribe.mockReturnValue(vi.fn());
   });
 
@@ -802,5 +835,109 @@ describe('useIngredientsActions', () => {
       ingredient,
     );
     expect(mockFindAll).toHaveBeenCalledWith(true);
+  });
+
+  it('reposts a rebuilt image generation payload on reprompt', async () => {
+    renderHook(() => useIngredientsActions(baseProps));
+
+    const ingredient = createIngredient({
+      category: IngredientCategory.IMAGE,
+      format: IngredientFormat.SQUARE,
+      height: 1024,
+      id: 'ing-image-1',
+      modelUsed: 'flux-schnell',
+      text: 'a neon cityscape at night',
+      width: 1024,
+    });
+
+    await act(async () => {
+      await ingredientActionsState.lastOptions?.onReprompt(ingredient);
+    });
+
+    expect(mockImagesPost).toHaveBeenCalledWith({
+      category: IngredientCategory.IMAGE,
+      format: IngredientFormat.SQUARE,
+      height: 1024,
+      model: 'flux-schnell',
+      text: 'a neon cityscape at night',
+      width: 1024,
+    });
+    expect(mockVideosPost).not.toHaveBeenCalled();
+    expect(mockNotificationsService.success).toHaveBeenCalledWith(
+      'Reprompt started',
+    );
+    expect(mockFindAll).toHaveBeenCalledWith(true);
+  });
+
+  it('falls back to metadata dimensions and promptText for a video reprompt', async () => {
+    renderHook(() => useIngredientsActions(baseProps));
+
+    const ingredient = createIngredient({
+      category: IngredientCategory.VIDEO,
+      id: 'ing-video-1',
+      metadataHeight: 720,
+      metadataWidth: 1280,
+      modelUsed: 'p-video',
+      promptText: 'a drone shot of the coastline',
+    });
+
+    await act(async () => {
+      await ingredientActionsState.lastOptions?.onReprompt(ingredient);
+    });
+
+    expect(mockVideosPost).toHaveBeenCalledWith({
+      category: IngredientCategory.VIDEO,
+      format: undefined,
+      height: 720,
+      model: 'p-video',
+      text: 'a drone shot of the coastline',
+      width: 1280,
+    });
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(mockNotificationsService.success).toHaveBeenCalledWith(
+      'Reprompt started',
+    );
+    expect(mockFindAll).toHaveBeenCalledWith(true);
+  });
+
+  it('notifies without posting when the ingredient has no usable prompt', async () => {
+    renderHook(() => useIngredientsActions(baseProps));
+
+    const ingredient = createIngredient({
+      category: IngredientCategory.IMAGE,
+      id: 'ing-image-2',
+      promptText: '   ',
+      text: undefined,
+    });
+
+    await act(async () => {
+      await ingredientActionsState.lastOptions?.onReprompt(ingredient);
+    });
+
+    expect(mockImagesPost).not.toHaveBeenCalled();
+    expect(mockVideosPost).not.toHaveBeenCalled();
+    expect(mockNotificationsService.error).toHaveBeenCalledWith(
+      'No prompt available to reprompt this ingredient',
+    );
+    expect(mockFindAll).not.toHaveBeenCalledWith(true);
+  });
+
+  it('notifies when the reprompt generation request fails', async () => {
+    mockImagesPost.mockRejectedValue(new Error('boom'));
+    renderHook(() => useIngredientsActions(baseProps));
+
+    const ingredient = createIngredient({
+      category: IngredientCategory.IMAGE,
+      id: 'ing-image-3',
+      text: 'a neon cityscape at night',
+    });
+
+    await act(async () => {
+      await ingredientActionsState.lastOptions?.onReprompt(ingredient);
+    });
+
+    expect(mockNotificationsService.error).toHaveBeenCalledWith(
+      'Failed to reprompt ingredient',
+    );
   });
 });

@@ -363,12 +363,13 @@ export interface IngredientFilters {
  * Selection actions bar props
  */
 export interface SelectionActionsBarProps {
-  count: number;
   canMerge?: boolean;
   canPublishCampaign?: boolean;
+  count: number;
   isMerging?: boolean;
-  onClear: () => void;
   onBulkDelete: () => void;
+  onClear: () => void;
+  onDownload?: () => void;
   onMerge?: () => void;
   onPublishCampaign?: () => void;
 }

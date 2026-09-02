@@ -12,10 +12,13 @@ import {
   PageScope,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
@@ -171,6 +174,30 @@ export default function IngredientsList({
         ingredient.campaign === selectedCampaign,
     );
 
+  const handleBulkDownload = useCallback(async () => {
+    const results = await Promise.allSettled(
+      selectedIngredients.map((ingredient) => downloadIngredient(ingredient)),
+    );
+    const failures = results.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+
+    for (const failure of failures) {
+      logger.error('Failed to download ingredient', failure.reason);
+    }
+
+    if (failures.length === 0) {
+      NotificationsService.getInstance().success('Download started');
+      return;
+    }
+
+    NotificationsService.getInstance().error(
+      failures.length === selectedIngredients.length
+        ? 'Download'
+        : `Download for ${failures.length} of ${selectedIngredients.length} assets`,
+    );
+  }, [selectedIngredients]);
+
   const cachedLabel = useMemo(() => {
     if (!cachedAt) {
       return '';
@@ -209,6 +236,7 @@ export default function IngredientsList({
         isMerging={isMerging}
         onClearSelection={handleClearSelection}
         onBulkDelete={handleBulkDelete}
+        onDownload={handleBulkDownload}
         onMerge={handleMerge}
         onPublishCampaign={() => {
           if (canPublishCampaign) {

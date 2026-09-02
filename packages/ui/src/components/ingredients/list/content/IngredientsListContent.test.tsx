@@ -1,7 +1,13 @@
-import { IngredientCategory, ModalEnum, PageScope } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  ModalEnum,
+  PageScope,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
+import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -145,6 +151,35 @@ const musicIngredient = {
   metadataLabel: 'Opening Theme',
   status: 'GENERATED',
   updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+// A local, non-UTC-parsed Date so `format(createdAt, ...)` below and the
+// component's own `format(new Date(ingredient.createdAt), ...)` always agree,
+// regardless of the machine's timezone — both derive from the same instant.
+const ledgerCreatedAt = new Date(2026, 0, 15, 9, 30);
+
+const ledgerIngredient = {
+  ...baseIngredient,
+  createdAt: ledgerCreatedAt.toISOString(),
+  id: 'ledger-1',
+  metadataHeight: 1080,
+  metadataWidth: 1920,
+  modelUsed: 'Nano Banana Pro',
+  provider: 'genfeedai',
+} as unknown as IIngredient;
+
+const failedIngredient = {
+  ...baseIngredient,
+  generationError: 'Provider rejected the prompt for a policy violation.',
+  id: 'failed-1',
+  status: IngredientStatus.FAILED,
+} as unknown as IIngredient;
+
+const staleErrorIngredient = {
+  ...baseIngredient,
+  generationError: 'Stale error from a prior failed attempt.',
+  id: 'stale-error-1',
+  status: IngredientStatus.GENERATED,
 } as unknown as IIngredient;
 
 describe('IngredientsListContent', () => {
@@ -308,5 +343,74 @@ describe('IngredientsListContent inspector handoff', () => {
 
     expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('IngredientsListContent generation ledger columns', () => {
+  it('renders the seven ledger column headers in order', () => {
+    renderContent({ viewMode: 'list' });
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+
+    // The first header is the selectable checkbox column, owned by AppTable
+    // itself — the ledger contract is the remaining seven.
+    expect(headers.slice(1)).toEqual([
+      '',
+      'Asset',
+      'Type',
+      'Model',
+      'Size',
+      'Created',
+      'Status',
+    ]);
+  });
+
+  it("shows a normal asset's model, size, and created date", () => {
+    renderContent({
+      filteredIngredients: [ledgerIngredient],
+      viewMode: 'list',
+    });
+
+    expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
+    expect(screen.getByText('genfeedai')).toBeInTheDocument();
+    expect(screen.getByText('1920 × 1080')).toBeInTheDocument();
+    expect(
+      screen.getByText(format(ledgerCreatedAt, 'd MMM yyyy')),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces the failure reason for a FAILED asset', () => {
+    renderContent({
+      filteredIngredients: [failedIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByTestId(`ingredient-failure-reason-${failedIngredient.id}`),
+    ).toHaveTextContent('Provider rejected the prompt for a policy violation.');
+  });
+
+  it('does not surface a stale generationError on a non-failed asset', () => {
+    renderContent({
+      filteredIngredients: [staleErrorIngredient],
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.queryByTestId(
+        `ingredient-failure-reason-${staleErrorIngredient.id}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Stale error from a prior failed attempt.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders an em dash when model and size are unavailable', () => {
+    renderContent({ viewMode: 'list' });
+
+    expect(screen.getAllByText('—')).toHaveLength(2);
   });
 });

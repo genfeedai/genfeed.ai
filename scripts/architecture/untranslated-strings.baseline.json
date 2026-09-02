@@ -455,7 +455,6 @@
     "packages/ui/src/components/ingredients/children-manager/ChildrenPickerDropdown.tsx": 4,
     "packages/ui/src/components/ingredients/detail-video/VideoDetailFirstColumn.tsx": 3,
     "packages/ui/src/components/ingredients/detail/shared/IngredientWorkspacePanel.tsx": 1,
-    "packages/ui/src/components/ingredients/list/selection-actions-bar/SelectionActionsBar.tsx": 2,
     "packages/ui/src/components/ingredients/parents-manager/ParentsList.tsx": 2,
     "packages/ui/src/components/ingredients/parents-manager/ParentsPickerDropdown.tsx": 4,
     "packages/ui/src/components/ingredients/tabs/captions/IngredientTabsCaptions.tsx": 4,

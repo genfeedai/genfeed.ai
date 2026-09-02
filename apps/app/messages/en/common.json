@@ -140,6 +140,11 @@
       "title": "Start from a template"
     }
   },
+  "selectionActions": {
+    "count": "{count} selected",
+    "download": "Download",
+    "merge": "Merge"
+  },
   "settings": {
     "search": {
       "empty": "No settings found",

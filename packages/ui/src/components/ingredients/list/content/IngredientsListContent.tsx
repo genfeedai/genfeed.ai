@@ -14,6 +14,12 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
+import {
+  getIngredientFailureReason,
+  getIngredientModelLabel,
+  getIngredientProviderLabel,
+  getIngredientSizeLabel,
+} from '@genfeedai/utils/media/ingredient-ledger.util';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';
 import {
   getIngredientDisplayLabel,
@@ -29,6 +35,7 @@ import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { format } from 'date-fns';
 import { Eye, Film, ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -88,6 +95,45 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
               'size-3.5 text-white' /* design-system-allow-content-color -- media overlay */
             }
           />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The list view is a ledger, so a row says what the asset is and — when the
+ * generation failed — why. A red status chip with no reason forces the operator
+ * back into the modal to find out what the provider actually said.
+ */
+function IngredientLedgerAssetCell({
+  ingredient,
+}: {
+  ingredient: IIngredient;
+}) {
+  const label = getIngredientDisplayLabel(ingredient);
+  const failureReason = getIngredientFailureReason(ingredient);
+  const promptText = ingredient.promptText?.trim();
+
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-sm font-medium" title={label || undefined}>
+        {label || 'Untitled asset'}
+      </span>
+      {failureReason ? (
+        <span
+          className="truncate text-xs text-destructive"
+          data-testid={`ingredient-failure-reason-${ingredient.id}`}
+          title={failureReason}
+        >
+          {failureReason}
+        </span>
+      ) : promptText ? (
+        <span
+          className="truncate text-xs text-foreground/45"
+          title={promptText}
+        >
+          {promptText}
         </span>
       ) : null}
     </div>
@@ -165,6 +211,7 @@ export default function IngredientsListContent({
   const columns = useMemo(
     () => [
       {
+        className: 'w-14',
         header: '',
         key: 'ingredientUrl',
         render: (ingredient: IIngredient) => (
@@ -172,34 +219,98 @@ export default function IngredientsListContent({
         ),
       },
       {
-        header: 'Label',
+        header: 'Asset',
         key: 'metadataLabel',
-        render: (ingredient: IIngredient) =>
-          getIngredientDisplayLabel(ingredient),
-      },
-      {
-        header: 'Category',
-        key: 'category',
         render: (ingredient: IIngredient) => (
-          <LibraryAssetTypeBadge category={ingredient.category} />
+          <IngredientLedgerAssetCell ingredient={ingredient} />
         ),
       },
       {
-        header: 'Format',
-        key: 'ingredientFormat',
+        className: 'w-40',
+        header: 'Type',
+        key: 'category',
         render: (ingredient: IIngredient) => {
           const format =
             ingredient.ingredientFormat || ingredient.format || undefined;
-          const label = formatEnumLabel(format);
+          const formatLabel = formatEnumLabel(format);
 
-          if (!label) {
-            return null;
+          return (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <LibraryAssetTypeBadge category={ingredient.category} />
+              {formatLabel ? (
+                <Badge size={ComponentSize.SM} variant="slate">
+                  {formatLabel}
+                </Badge>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-52',
+        header: 'Model',
+        key: 'model',
+        render: (ingredient: IIngredient) => {
+          const modelLabel = getIngredientModelLabel(ingredient);
+
+          if (!modelLabel) {
+            return <span className="text-foreground/35">—</span>;
+          }
+
+          const providerLabel = getIngredientProviderLabel(ingredient);
+
+          return (
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm" title={modelLabel}>
+                {modelLabel}
+              </span>
+              {providerLabel ? (
+                <span className="truncate text-xs text-foreground/45">
+                  {providerLabel}
+                </span>
+              ) : null}
+            </div>
+          );
+        },
+      },
+      {
+        className: 'w-28',
+        header: 'Size',
+        key: 'metadataSize',
+        render: (ingredient: IIngredient) => {
+          const sizeLabel = getIngredientSizeLabel(ingredient);
+
+          if (!sizeLabel) {
+            return <span className="text-foreground/35">—</span>;
           }
 
           return (
-            <Badge size={ComponentSize.SM} variant="slate">
-              {label}
-            </Badge>
+            <span className="text-sm tabular-nums text-foreground/70">
+              {sizeLabel}
+            </span>
+          );
+        },
+      },
+      {
+        className: 'w-28',
+        header: 'Created',
+        key: 'createdAt',
+        render: (ingredient: IIngredient) => {
+          const createdAt = ingredient.createdAt
+            ? new Date(ingredient.createdAt)
+            : null;
+
+          if (!createdAt || Number.isNaN(createdAt.getTime())) {
+            return <span className="text-foreground/35">—</span>;
+          }
+
+          return (
+            <time
+              className="text-sm tabular-nums text-foreground/70"
+              dateTime={createdAt.toISOString()}
+            >
+              {format(createdAt, 'd MMM yyyy')}
+            </time>
           );
         },
       },

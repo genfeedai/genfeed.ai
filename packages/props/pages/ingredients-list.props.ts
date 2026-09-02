@@ -42,6 +42,7 @@ export interface IngredientsListHeaderProps {
   isMerging: boolean;
   onClearSelection: () => void;
   onBulkDelete: () => void;
+  onDownload?: () => void;
   onMerge: () => void;
   onPublishCampaign?: () => void;
 }
