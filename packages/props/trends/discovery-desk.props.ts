@@ -56,3 +56,27 @@ export interface DiscoveryDeskItem {
     | { kind: 'source_post'; post: ISourcePost }
     | { kind: 'viral_video'; video: ITrendVideo };
 }
+
+export interface DeskLightTableViewProps {
+  cursorKey: string | null;
+  href: (path: string) => string;
+  items: DiscoveryDeskItem[];
+  onCursor: (key: string) => void;
+  onSelectFinding?: (item: DiscoveryDeskItem) => void;
+  onToggleSelect: (key: string) => void;
+  selection: Set<string>;
+}
+
+export interface DeskSelectionBarProps {
+  items: DiscoveryDeskItem[];
+  onClear: () => void;
+}
+
+export interface UseDeskKeyboardOptions {
+  cursorKey: string | null;
+  onClearSelection: () => void;
+  onMoveCursor: (direction: 1 | -1) => void;
+  onRemix: (item: DiscoveryDeskItem) => void;
+  onToggleSelect: (key: string) => void;
+  selectedItem: DiscoveryDeskItem | null;
+}

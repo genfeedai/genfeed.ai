@@ -24,6 +24,7 @@ export interface DiscoveryDeskState {
 
 export type DiscoveryDeskAction =
   | { type: 'TOGGLE_PLATFORM'; platform: string }
+  | { type: 'SET_PLATFORMS'; platforms: Set<string> }
   | { type: 'SET_SOURCE'; source: DiscoveryDeskSource | 'all' }
   | {
       type: 'SET_CONTENT_TYPE';
@@ -96,6 +97,11 @@ export function discoveryDeskReducer(
           ...state.filters,
           platforms: toggleSetMember(state.filters.platforms, action.platform),
         },
+      };
+    case 'SET_PLATFORMS':
+      return {
+        ...state,
+        filters: { ...state.filters, platforms: action.platforms },
       };
     case 'SET_SOURCE':
       return {
