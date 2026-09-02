@@ -1,13 +1,13 @@
+import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
 import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import type { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import type { UsersService } from '@server/collections/users/services/users.service';
 import type { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
-import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 const identity = vi.hoisted(() => ({
   metadataUserId: 'cuser000000000000000000001',
@@ -101,7 +101,7 @@ describe('AgentOrchestratorController', () => {
         threadId: 'conv-1',
       };
 
-      await controller.createTurn(body, user, 'Bearer token123');
+      await controller.createTurn(body, user);
 
       expect(service.chat).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -109,7 +109,6 @@ describe('AgentOrchestratorController', () => {
           source: 'onboarding',
         }),
         expect.objectContaining({
-          authToken: 'token123',
           userId: expect.any(String),
         }),
       );
@@ -138,7 +137,6 @@ describe('AgentOrchestratorController', () => {
           threadId: 'conv-1',
         },
         user,
-        'Bearer token123',
       );
 
       expect(service.chat).toHaveBeenCalledWith(
@@ -149,29 +147,6 @@ describe('AgentOrchestratorController', () => {
         }),
       );
       expect(usersService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('should strip Bearer prefix from auth header', async () => {
-      const user = {
-        id: 'authProvider_456',
-        organizationId: 'org',
-        userId: 'usr',
-      } as unknown as User;
-      usersService.findOne.mockResolvedValue({
-        id: identity.organizationId,
-      });
-      service.chat.mockResolvedValue({} as never);
-
-      await controller.createTurn(
-        { content: 'hi', source: 'onboarding', threadId: 'c1' },
-        user,
-        'Bearer mytoken',
-      );
-
-      expect(service.chat).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({ authToken: 'mytoken' }),
-      );
     });
 
     it('should trust the guard-resolved user id before calling chat', async () => {
@@ -614,7 +589,6 @@ describe('AgentOrchestratorController', () => {
       const result = await controller.createTurnStream(
         { content: 'stream', source: 'agent', threadId: 'thread-stream' },
         user,
-        'Bearer token123',
       );
 
       expect(service.acceptChatStream).toHaveBeenCalledWith(
@@ -645,7 +619,6 @@ describe('AgentOrchestratorController', () => {
         'thread-stream',
         { content: 'stream', source: 'agent' },
         user,
-        'Bearer token123',
       );
 
       expect(service.acceptChatStream).toHaveBeenCalledWith(

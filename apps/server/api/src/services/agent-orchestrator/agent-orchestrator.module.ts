@@ -59,7 +59,6 @@ import {
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { BotsService } from '@server/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
@@ -107,7 +106,6 @@ import { AgentSpawnToolHandler } from '@server/services/agent-orchestrator/tools
 import { AgentToolCatalogHandler } from '@server/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { AgentToolConfirmationService } from '@server/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { AgentTransferToolHandler } from '@server/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolCreateService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
@@ -150,7 +148,6 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
     CredentialsCoreModule,
     CreditsModule,
     DashboardLayoutsModule,
-    HttpModule,
     ImagesCoreModule,
     IngredientsModule,
     InstagramInspirationModule,
@@ -187,7 +184,6 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
     AgentMediaGenerationToolHandler,
     AgentMediaTextGenerationService,
     AgentOnboardingToolHandler,
-    AgentToolInternalApiService,
     AgentTransferToolHandler,
     AgentWorkflowToolCreateService,
     AgentWorkflowToolExecuteService,
