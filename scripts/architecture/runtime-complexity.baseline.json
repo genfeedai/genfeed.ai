@@ -198,18 +198,6 @@
     "symbol": "apps/server/server/src/services/agent-campaign/content-engine.service.ts"
   },
   {
-    "actual": 236,
-    "file": "apps/server/server/src/services/agent-context-assembly/agent-context-assembly.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentContextAssemblyService.assembleContext"
-  },
-  {
-    "actual": 229,
-    "file": "apps/server/server/src/services/agent-context-assembly/agent-context-assembly.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentContextAssemblyService.buildSystemPrompt"
-  },
-  {
     "actual": 191,
     "file": "apps/server/server/src/services/agent-orchestrator/agent-completion-card-builder.service.ts",
     "metric": "method-lines",
