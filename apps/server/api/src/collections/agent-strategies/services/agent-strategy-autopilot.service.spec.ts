@@ -3,7 +3,7 @@ import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-s
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
-import { AgentAutonomyMode, Platform } from '@genfeedai/enums';
+import { AgentAutonomyMode, Platform } from '@genfeedai/contracts';
 
 describe('AgentStrategyAutopilotService', () => {
   // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,

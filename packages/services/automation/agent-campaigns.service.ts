@@ -1,10 +1,10 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IAgentCampaign,
   IAgentCampaignContentRotation,
   IAgentCampaignStatusResponse,
-} from '@genfeedai/interfaces';
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 
 const agentCampaignSerializer: IServiceSerializer<AgentCampaign> = {

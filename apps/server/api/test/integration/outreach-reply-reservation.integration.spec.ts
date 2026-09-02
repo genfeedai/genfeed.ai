@@ -28,6 +28,8 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
+import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,
@@ -41,11 +43,9 @@ import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 type StoredRateLimits = {
   currentDayCount?: number;

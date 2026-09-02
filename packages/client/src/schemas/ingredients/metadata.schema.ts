@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const metadataSchema = z.object({

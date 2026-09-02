@@ -1,4 +1,4 @@
-import type { IUser } from '@genfeedai/interfaces';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import AppTable from '@ui/display/table/Table';
 import { Eye, Pencil, Trash2 } from 'lucide-react';

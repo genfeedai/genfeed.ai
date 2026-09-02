@@ -1,4 +1,4 @@
-import type { IAgentCampaignMessage } from '@genfeedai/interfaces';
+import type { IAgentCampaignMessage } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';

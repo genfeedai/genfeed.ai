@@ -22,8 +22,8 @@ import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/consta
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import type { AgentType } from '@genfeedai/enums';
-import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
+import type { AgentType } from '@genfeedai/contracts';
+import type { IAgentCampaignContentRotation } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 

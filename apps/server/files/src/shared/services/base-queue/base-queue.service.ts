@@ -3,7 +3,7 @@ import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   type FileJobPriority as JobPriority,
   type FileJobType as JobType,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { Logger } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 

@@ -2,7 +2,7 @@ import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

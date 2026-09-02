@@ -2,7 +2,7 @@ import type {
   ButtonVariant,
   CardEmptySize,
   CardVariant,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ComponentType, ReactNode } from 'react';
 
 export interface CardEmptyAction {

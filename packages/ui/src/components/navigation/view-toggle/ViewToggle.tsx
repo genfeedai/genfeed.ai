@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, type ViewType } from '@genfeedai/enums';
+import { ComponentSize, type ViewType } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ViewToggleProps } from '@genfeedai/props/ui/navigation/view-toggle.props';
 import {

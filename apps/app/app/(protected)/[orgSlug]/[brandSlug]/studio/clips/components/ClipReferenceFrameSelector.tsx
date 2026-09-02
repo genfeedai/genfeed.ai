@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   ClipReferenceFrameCandidate,
   ClipReferenceFrameDiagnostic,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ClipReferenceFrameSelectorProps } from '@props/studio/clips.props';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';

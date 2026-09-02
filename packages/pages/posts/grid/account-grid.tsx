@@ -4,13 +4,13 @@ import {
   ButtonSize,
   ButtonVariant,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
   IClockTime,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';

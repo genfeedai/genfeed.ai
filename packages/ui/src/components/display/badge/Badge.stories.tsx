@@ -1,4 +1,4 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Badge from '@ui/display/badge/Badge';
 import { CircleAlert, CircleCheck, Clock, Flame, Star } from 'lucide-react';

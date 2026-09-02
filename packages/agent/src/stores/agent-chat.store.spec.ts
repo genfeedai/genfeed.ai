@@ -4,7 +4,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('agent-chat.store finalizeStream', () => {

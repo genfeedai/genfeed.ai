@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';

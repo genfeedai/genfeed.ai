@@ -1,11 +1,11 @@
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   ChannelCapability,
   ChannelMediaKind,
   ChannelPublishMode,
   ChannelTargetValidationResult,
-} from '@api-types/contracts';
-import type { CredentialPlatform } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { ComponentType } from 'react';
 
 export type PlatformPreviewMedia = {

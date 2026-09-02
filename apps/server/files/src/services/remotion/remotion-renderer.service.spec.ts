@@ -45,7 +45,7 @@ import {
 import {
   EDITOR_RENDER_TIMEOUT_MS,
   EDITOR_RENDERER_VERSION,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';

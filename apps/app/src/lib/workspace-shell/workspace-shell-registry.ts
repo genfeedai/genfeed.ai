@@ -1,4 +1,4 @@
-import { APP_DISPLAY_LABELS } from '@genfeedai/constants';
+import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
@@ -12,7 +12,7 @@ import type {
   WorkspaceShellRouteRegistration,
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 export type {
   ResolvedWorkspaceShellRoute,
@@ -31,7 +31,7 @@ export type {
   WorkspaceShellScopeRequirement,
   WorkspaceShellSurfaceKey,
   WorkspaceShellSurfaceMode,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
   readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];

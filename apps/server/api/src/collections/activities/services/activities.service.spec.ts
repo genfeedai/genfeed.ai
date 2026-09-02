@@ -1,6 +1,10 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { runWithActionOrigin } from '@api/index';
-import { ActionOrigin, ActivityKey, ActivitySource } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  ActivityKey,
+  ActivitySource,
+} from '@genfeedai/contracts';
 
 describe('ActivitiesService action origin', () => {
   const logger = {

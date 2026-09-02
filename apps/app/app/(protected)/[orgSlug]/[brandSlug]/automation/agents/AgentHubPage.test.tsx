@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

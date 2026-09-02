@@ -1,4 +1,4 @@
-import { AlertFrequency, MonitoringAlertType } from '@genfeedai/enums';
+import { AlertFrequency, MonitoringAlertType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMinSize,

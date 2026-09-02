@@ -3,8 +3,8 @@ import {
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
   TargetAnalyticsFreshness,
-} from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';

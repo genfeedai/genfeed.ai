@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { Ingredient } from '@models/content/ingredient.model';

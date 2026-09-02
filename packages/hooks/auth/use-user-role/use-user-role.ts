@@ -1,4 +1,4 @@
-import type { MemberRole } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/contracts';
 import {
   getAuthPublicData,
   getPlaywrightAuthState,

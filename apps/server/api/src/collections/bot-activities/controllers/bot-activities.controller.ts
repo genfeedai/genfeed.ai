@@ -11,7 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { BotActivitySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';

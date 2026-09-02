@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import { FalModelContractSyncService } from '@workers/services/fal-model-contract-sync.service';
 import { hashProviderContract } from '@workers/services/provider-contract.util';

@@ -6,7 +6,7 @@ import {
   type ContentPlanInput,
   PersonaContentPlanService,
 } from '@api/services/persona-content/persona-content-plan.service';
-import { PersonaContentFormat, PostCategory } from '@genfeedai/enums';
+import { PersonaContentFormat, PostCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

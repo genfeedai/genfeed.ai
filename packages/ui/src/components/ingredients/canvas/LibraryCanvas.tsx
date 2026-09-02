@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IMoodBoardLayoutItem } from '@genfeedai/contracts/interfaces';
 import { useMoodBoard } from '@genfeedai/hooks/data/content/use-mood-board/use-mood-board';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
-import type { IMoodBoardLayoutItem } from '@genfeedai/interfaces';
 import type { LibraryCanvasProps } from '@genfeedai/props/content/library-canvas.props';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { Button } from '@ui/primitives/button';

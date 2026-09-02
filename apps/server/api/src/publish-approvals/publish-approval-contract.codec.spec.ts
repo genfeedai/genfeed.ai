@@ -3,7 +3,7 @@ import {
   PublishApprovalPolicyId,
   PublishApprovalStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
   type ApprovalPost,

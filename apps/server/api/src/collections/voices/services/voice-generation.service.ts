@@ -12,7 +12,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

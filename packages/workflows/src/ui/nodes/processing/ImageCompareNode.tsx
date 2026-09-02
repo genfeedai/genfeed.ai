@@ -1,6 +1,6 @@
 'use client';
 
-import type { ImageCompareNodeData } from '@genfeedai/types';
+import type { ImageCompareNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useMemo } from 'react';
 import {

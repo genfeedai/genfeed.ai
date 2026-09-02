@@ -20,7 +20,7 @@ import {
   createBrandAppRoute,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';

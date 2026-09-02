@@ -14,7 +14,7 @@ import type {
   MetricCardBlock,
   PersistedDashboardLayoutDocument,
   TopPostItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const DASHBOARD_OPENUI_VERSION = 'genfeed.dashboard.openui.v1' as const;
 const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {

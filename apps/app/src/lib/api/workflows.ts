@@ -1,4 +1,7 @@
-import type { WorkflowFile, WorkflowInterface } from '@genfeedai/types';
+import type {
+  WorkflowFile,
+  WorkflowInterface,
+} from '@genfeedai/contracts/types';
 import type {
   WorkflowData as PersistenceWorkflowData,
   WorkflowSaveInput,
@@ -7,7 +10,7 @@ import type {
 import { apiClient } from './client';
 
 /**
- * Workflow export format — uses canonical WorkflowFile from @genfeedai/types.
+ * Workflow export format — uses canonical WorkflowFile from @genfeedai/contracts/types.
  */
 export type WorkflowExport = WorkflowFile;
 

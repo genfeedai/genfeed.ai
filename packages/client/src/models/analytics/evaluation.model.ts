@@ -1,4 +1,7 @@
-import type { IEvaluation, IEvaluationData } from '@genfeedai/interfaces';
+import type {
+  IEvaluation,
+  IEvaluationData,
+} from '@genfeedai/contracts/interfaces';
 
 export type {
   IActualPerformance,
@@ -13,7 +16,7 @@ export type {
   IEvaluationScores,
   IExternalContentData,
   ITechnicalScores,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Evaluation implements IEvaluation {
   public declare id: string;

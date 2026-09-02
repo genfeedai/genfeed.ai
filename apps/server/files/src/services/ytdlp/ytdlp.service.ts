@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
-import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/constants';
+import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { resolveContainedPath } from '@libs/security';
 import { BadRequestException, Injectable } from '@nestjs/common';

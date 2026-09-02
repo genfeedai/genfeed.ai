@@ -3,7 +3,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 const PLATFORM_VALUES = new Set<string>(Object.values(Platform));
 const POST_STATUS_VALUES = new Set<string>(Object.values(PostStatus));

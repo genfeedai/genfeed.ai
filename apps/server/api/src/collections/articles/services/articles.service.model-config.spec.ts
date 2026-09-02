@@ -20,7 +20,7 @@ import type { OrganizationSettingsService } from '@api/collections/organization-
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';

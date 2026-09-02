@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
 

@@ -3,19 +3,19 @@ import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { BrandKitSourceBrand } from '@genfeedai/helpers';
-import {
-  buildBrandKitDraftFromBrand,
-  buildBrandKitDraftFromManualInput,
-  buildBrandKitDraftFromWebsiteScrape,
-} from '@genfeedai/helpers';
 import type {
   BrandKitFieldKey,
   IBrandKitDraft,
   IBrandOsDraftHandoff,
   IBrandOsPreview,
   IBrandOsPreviewRequest,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import type { BrandKitSourceBrand } from '@genfeedai/helpers';
+import {
+  buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromManualInput,
+  buildBrandKitDraftFromWebsiteScrape,
+} from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {

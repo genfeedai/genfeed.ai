@@ -3,7 +3,7 @@ import type {
   IListeningEvidence,
   IListeningTopic,
   IListeningTopicSource,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class ListeningTopicSource
   extends BaseEntity

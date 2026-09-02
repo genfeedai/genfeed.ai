@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IMetadata, IPrompt, ITag } from '@genfeedai/interfaces';
+import type { IMetadata, IPrompt, ITag } from '@genfeedai/contracts/interfaces';
 
 export class Metadata extends BaseEntity implements IMetadata {
   public declare label: string;

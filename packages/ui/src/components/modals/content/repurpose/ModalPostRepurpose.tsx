@@ -6,7 +6,7 @@ import {
   ModalEnum,
   Platform,
   PostRepurposeMode,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { getPlatformIconComponent } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';

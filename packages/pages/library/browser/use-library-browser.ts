@@ -1,21 +1,21 @@
 'use client';
 
 import {
-  LIBRARY_QUERY_KEYS,
-  LIBRARY_VIEW_MODES,
-  type LibraryViewMode,
-} from '@genfeedai/constants';
-import {
   IngredientCategory,
   LibraryPlace,
   PageScope,
   parseIngredientCategory,
-} from '@genfeedai/enums';
-import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
+} from '@genfeedai/contracts';
+import {
+  LIBRARY_QUERY_KEYS,
+  LIBRARY_VIEW_MODES,
+  type LibraryViewMode,
+} from '@genfeedai/contracts/constants';
+import type { IIngredientsContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';

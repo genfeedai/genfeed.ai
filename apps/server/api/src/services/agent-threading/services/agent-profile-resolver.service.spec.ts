@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

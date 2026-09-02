@@ -2,20 +2,20 @@
 
 import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
 import {
-  ITEMS_PER_PAGE,
-  LIBRARY_ASSETS_REFRESH_EVENT,
-} from '@genfeedai/constants';
-import {
   IngredientCategory,
   IngredientStatus,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  ITEMS_PER_PAGE,
+  LIBRARY_ASSETS_REFRESH_EVENT,
+} from '@genfeedai/contracts/constants';
 import type {
   IFilters,
   IFolder,
   IIngredient,
   IQueryParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';

@@ -1,4 +1,4 @@
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import type { ComponentType, ReactNode } from 'react';
 
 export interface OverviewContentProps {

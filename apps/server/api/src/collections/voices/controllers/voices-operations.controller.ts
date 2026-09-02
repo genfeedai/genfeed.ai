@@ -16,8 +16,8 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ActivitySource } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
 import {
   Body,

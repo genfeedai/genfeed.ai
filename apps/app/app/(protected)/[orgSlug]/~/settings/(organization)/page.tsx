@@ -1,4 +1,7 @@
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import { redirect } from 'next/navigation';
 
 export default async function OrganizationSettingsIndexPage({

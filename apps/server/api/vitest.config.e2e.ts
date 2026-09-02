@@ -48,7 +48,7 @@ export default defineConfig({
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/api-types/src/$1',
+          '../../../packages/contracts/src/api-types/$1',
         ),
       },
       {
@@ -68,15 +68,18 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../files/src'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/constants/src',
+          '../../../packages/contracts/src/constants',
         ),
       },
       {
-        find: '@genfeedai/enums',
-        replacement: path.resolve(serviceDir, '../../../packages/enums/src'),
+        find: '@genfeedai/contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/enums',
+        ),
       },
       {
         find: '@genfeedai/helpers',
@@ -98,21 +101,24 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/prisma/src'),
       },
       {
-        find: '@genfeedai/types',
-        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+        find: '@genfeedai/contracts/types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/types',
+        ),
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src/$1',
+          '../../../packages/contracts/src/interfaces/$1',
         ),
       },
       {
-        find: '@genfeedai/interfaces',
+        find: '@genfeedai/contracts/interfaces',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src',
+          '../../../packages/contracts/src/interfaces',
         ),
       },
       {

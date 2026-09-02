@@ -4,7 +4,7 @@ import {
   buildLifecycleSystemEmailAction,
   type LifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminSystemEmailsService } from '@services/admin/system-emails.service';
 import { EnvironmentService } from '@services/core/environment.service';

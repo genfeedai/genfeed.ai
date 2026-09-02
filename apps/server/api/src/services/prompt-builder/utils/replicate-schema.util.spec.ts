@@ -8,8 +8,8 @@ import {
   resolveModelSchema,
   schemaHasField,
 } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('ReplicateSchemaUtil', () => {

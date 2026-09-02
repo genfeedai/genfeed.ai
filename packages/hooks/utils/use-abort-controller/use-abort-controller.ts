@@ -1,7 +1,7 @@
 import type {
   IAbortControllerConfig,
   IUseAbortController,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { DependencyList } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';

@@ -1,4 +1,4 @@
-import { PlatformRole } from '@genfeedai/enums';
+import { PlatformRole } from '@genfeedai/contracts';
 import type { BetterAuthOptions, RateLimit } from 'better-auth';
 import { parseUserInput } from 'better-auth/db';
 import { describe, expect, it, vi } from 'vitest';

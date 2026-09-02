@@ -1,11 +1,11 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import type {
   IAgentRuntimeStartTurnInput,
   IAgentRuntimeTurnHandle,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

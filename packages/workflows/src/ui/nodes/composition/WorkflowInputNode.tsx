@@ -1,6 +1,9 @@
 'use client';
 
-import type { HandleType, WorkflowInputNodeData } from '@genfeedai/types';
+import type {
+  HandleType,
+  WorkflowInputNodeData,
+} from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { useWorkflowStore } from '../../stores/workflow';

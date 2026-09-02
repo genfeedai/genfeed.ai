@@ -6,11 +6,11 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailedTarget,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';

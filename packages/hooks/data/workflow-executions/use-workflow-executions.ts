@@ -1,12 +1,12 @@
 'use client';
 
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
-import { WorkflowExecutionsService } from '@genfeedai/services/automation/workflow-executions.service';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type {
   WorkflowExecutionListQueryParams,
   WorkflowExecutionStats,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { WorkflowExecutionsService } from '@genfeedai/services/automation/workflow-executions.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useQuery } from '@tanstack/react-query';

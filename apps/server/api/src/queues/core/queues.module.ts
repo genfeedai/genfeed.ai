@@ -18,7 +18,7 @@ import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

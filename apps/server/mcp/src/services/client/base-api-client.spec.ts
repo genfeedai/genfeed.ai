@@ -1,4 +1,4 @@
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import { BaseApiClient } from './base-api-client';
 
 describe('BaseApiClient MCP origin proof', () => {

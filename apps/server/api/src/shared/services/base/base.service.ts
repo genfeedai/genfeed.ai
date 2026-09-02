@@ -16,7 +16,7 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

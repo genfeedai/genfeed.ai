@@ -1,6 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {

@@ -1,11 +1,11 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { OnboardingType, PlatformRole } from '@genfeedai/enums';
+import type { OnboardingType, PlatformRole } from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
   ISetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class User extends BaseEntity implements IUser {
   public declare organization?: IOrganization;

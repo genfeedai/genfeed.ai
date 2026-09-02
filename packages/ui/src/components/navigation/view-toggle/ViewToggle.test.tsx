@@ -1,4 +1,4 @@
-import { ViewType } from '@genfeedai/enums';
+import { ViewType } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { describe, expect, it, vi } from 'vitest';

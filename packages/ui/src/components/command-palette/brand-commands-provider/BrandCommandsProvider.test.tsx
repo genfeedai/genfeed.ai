@@ -30,7 +30,7 @@ vi.mock(
   },
 );
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   PLATFORM_COLORS: {
     tiktok: '#000000',
     youtube: '#FF0000',

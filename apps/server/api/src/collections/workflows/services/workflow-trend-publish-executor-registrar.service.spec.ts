@@ -1,7 +1,7 @@
 import type { PostAccountTarget } from '@api/collections/posts/services/post-account-fanout.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
-import { CredentialPlatform, Platform } from '@genfeedai/enums';
+import { CredentialPlatform, Platform } from '@genfeedai/contracts';
 import {
   createExecutableActionNode,
   type INodeExecutor,

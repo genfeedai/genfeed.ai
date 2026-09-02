@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { ModelSerializer } from '@genfeedai/serializers';
 
 function serializedAttributes(

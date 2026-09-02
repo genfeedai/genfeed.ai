@@ -1,5 +1,5 @@
 import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
-import { ContentSkillCategory } from '@genfeedai/enums';
+import { ContentSkillCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('inferFirstPartySkillTaxonomy', () => {

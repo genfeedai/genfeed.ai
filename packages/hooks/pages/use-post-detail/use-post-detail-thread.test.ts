@@ -1,5 +1,5 @@
-import { Status } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { Status } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';

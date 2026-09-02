@@ -1,21 +1,21 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   IngredientCategory,
   type IngredientFormat,
   IngredientStatus,
-} from '@genfeedai/enums';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IAsset,
   IImage,
   IMusic,
   IQueryParams,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   UseModalGalleryProps,
   UseModalGalleryReturn,

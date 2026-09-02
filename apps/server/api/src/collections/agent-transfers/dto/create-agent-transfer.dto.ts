@@ -1,6 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AgentTransferDeliveryMode } from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import { AgentTransferDeliveryMode } from '@genfeedai/contracts';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,

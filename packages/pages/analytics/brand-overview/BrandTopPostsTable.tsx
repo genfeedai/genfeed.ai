@@ -1,6 +1,6 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import {
   formatCompactNumberIntl,

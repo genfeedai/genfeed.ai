@@ -13,7 +13,7 @@ import {
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

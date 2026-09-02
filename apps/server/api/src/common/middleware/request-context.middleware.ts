@@ -10,11 +10,11 @@ import {
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Inject, Injectable, type NestMiddleware } from '@nestjs/common';

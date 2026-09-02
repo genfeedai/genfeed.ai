@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Film } from 'lucide-react';
 import type { ReactElement } from 'react';

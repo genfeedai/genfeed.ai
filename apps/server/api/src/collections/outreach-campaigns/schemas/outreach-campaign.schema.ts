@@ -4,7 +4,7 @@ import type {
   CampaignType,
   ReplyLength,
   ReplyTone,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { OutreachCampaign } from '@genfeedai/prisma';
 
 export type { OutreachCampaign } from '@genfeedai/prisma';

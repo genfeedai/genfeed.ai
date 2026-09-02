@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { SocialUrlHelper } from './social-url.helper';

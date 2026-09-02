@@ -3,7 +3,7 @@ import type {
   IChannelTarget,
   IEngagementRule,
   UpdateEngagementRuleInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface ReleaseEngagementRulesProps {
   postGroupId: string;

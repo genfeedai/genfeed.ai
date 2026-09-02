@@ -1,15 +1,15 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  GenerationPriority,
+  TrendNotificationFrequency,
+} from '@genfeedai/contracts';
+import {
   DEFAULT_LOCALE,
   DEFAULT_THEME,
   SUPPORTED_LOCALES,
   THEME_PREFERENCES,
   type ThemePreference,
-} from '@genfeedai/constants';
-import {
-  GenerationPriority,
-  TrendNotificationFrequency,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

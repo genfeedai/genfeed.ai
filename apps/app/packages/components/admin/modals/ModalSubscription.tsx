@@ -4,8 +4,8 @@ import {
   type SubscriptionSchema,
   subscriptionSchema,
 } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

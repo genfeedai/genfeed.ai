@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { PersistedDashboardLayoutDocument } from '@genfeedai/interfaces';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { PersistedDashboardLayoutDocument } from '@genfeedai/contracts/interfaces';
 import { DashboardLayout } from '@genfeedai/models/content/dashboard-layout.model';
 import { DashboardLayoutSerializer } from '@genfeedai/serializers';
 import {

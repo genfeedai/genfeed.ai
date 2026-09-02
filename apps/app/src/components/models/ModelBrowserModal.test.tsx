@@ -1,4 +1,4 @@
-import type { ProviderModel } from '@genfeedai/types';
+import type { ProviderModel } from '@genfeedai/contracts/types';
 import {
   act,
   fireEvent,

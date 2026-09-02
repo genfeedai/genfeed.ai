@@ -1,7 +1,7 @@
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/enums';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

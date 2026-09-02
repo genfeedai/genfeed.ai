@@ -17,7 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ActivitySource, ModelCategory } from '@genfeedai/enums';
+import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
 import { AnalyticSerializer, VideoSerializer } from '@genfeedai/serializers';
 import {
   Body,

@@ -26,7 +26,7 @@ import type {
   UnifiedCampaign,
   UnifiedInsights,
   UpdateCampaignInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

@@ -1,4 +1,4 @@
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 

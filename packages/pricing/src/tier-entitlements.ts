@@ -16,11 +16,11 @@
  *   - rate limiting:  apps/server/api/src/collections/api-keys/services/api-keys.service.ts
  *
  * The map is keyed on the canonical runtime enum `SubscriptionTier`
- * (@genfeedai/enums) — the same value persisted on
+ * (@genfeedai/contracts) — the same value persisted on
  * `OrganizationSetting.subscriptionTier` — so no tier can be silently missed
  * (the `Record<SubscriptionTier, …>` is exhaustive and TS-enforced).
  */
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 
 export type TierLimit = number | null;
 

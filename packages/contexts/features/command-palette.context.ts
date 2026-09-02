@@ -1,4 +1,4 @@
-import type { ICommandPaletteContext } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommandPaletteContext } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { createContext } from 'react';
 
 export const CommandPaletteContext =

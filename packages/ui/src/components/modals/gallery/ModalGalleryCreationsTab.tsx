@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, IngredientFormat } from '@genfeedai/enums';
+import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
 import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import Spinner from '@ui/feedback/spinner/Spinner';

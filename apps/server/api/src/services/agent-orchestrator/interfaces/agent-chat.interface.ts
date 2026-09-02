@@ -1,5 +1,5 @@
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import type { AgentType, RouterPriority } from '@genfeedai/enums';
+import type { AgentType, RouterPriority } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   AnalyticsQueryReference,
@@ -7,8 +7,8 @@ import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
   ValidatedAgentScope,
-} from '@genfeedai/interfaces';
-import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+} from '@genfeedai/contracts/interfaces';
+import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 
 export interface AgentChatAttachment {
   ingredientId: string;

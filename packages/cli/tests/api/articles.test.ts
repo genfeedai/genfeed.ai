@@ -1,4 +1,4 @@
-import { PersistedArticleStatus } from '@genfeedai/enums';
+import { PersistedArticleStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateArticle, getArticle } from '@/api/articles';
 

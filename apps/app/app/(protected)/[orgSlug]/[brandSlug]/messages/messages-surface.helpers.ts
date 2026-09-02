@@ -2,7 +2,7 @@ import type {
   SocialConversation,
   SocialInboxReference,
   SocialMessage,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type MessagesActionKind =
   | 'approve'

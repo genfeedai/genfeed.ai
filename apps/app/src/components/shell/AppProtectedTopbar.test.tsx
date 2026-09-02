@@ -24,12 +24,12 @@ const workspaceInspectorState = vi.hoisted(() => ({
 }));
 const originalLocation = window.location;
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
     agent: 'Agent',

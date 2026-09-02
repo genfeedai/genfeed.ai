@@ -11,7 +11,6 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
-import type { ContentHarnessContribution } from '@genfeedai/harness';
 import type {
   HarnessProfileScope,
   HarnessProfileStatus,
@@ -20,7 +19,8 @@ import type {
   IHarnessProfileStructure,
   IHarnessProfileThesis,
   IHarnessProfileVoice,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import type { ContentHarnessContribution } from '@genfeedai/harness';
 import { type Profile as PrismaProfile, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

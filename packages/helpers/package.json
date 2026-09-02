@@ -1,13 +1,11 @@
 {
   "dependencies": {
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "clsx": "2.1.1",
     "lucide-react": "1.37.0",
     "sanitize-html": "2.17.7",
     "tailwind-merge": "3.6.0",
-    "ts-jsonapi": "2.1.3"
+    "ts-jsonapi": "2.1.3",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared helpers for Genfeed clients and services",
   "devDependencies": {

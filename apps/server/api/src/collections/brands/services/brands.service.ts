@@ -55,7 +55,7 @@ import type {
   IBrandKitDraft,
   IBrandKitResolvedAssets,
   IBrandOsDraftHandoff,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

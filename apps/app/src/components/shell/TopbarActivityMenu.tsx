@@ -1,13 +1,13 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ActivityKey,
   ButtonSize,
   ButtonVariant,
   PageScope,
-} from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {

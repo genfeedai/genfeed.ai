@@ -10,7 +10,7 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

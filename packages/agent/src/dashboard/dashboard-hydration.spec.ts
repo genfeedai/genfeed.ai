@@ -4,7 +4,7 @@ import {
   isResolvableSourceKey,
   sanitizeLayoutForPersistence,
 } from '@genfeedai/agent/dashboard/dashboard-hydration';
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 const persistableLayout: AgentUIBlock[] = [

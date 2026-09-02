@@ -1,5 +1,5 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
-import { WorkflowLifecycle } from '@genfeedai/enums';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

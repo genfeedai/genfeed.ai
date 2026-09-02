@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HorizontalCarouselProps } from '@genfeedai/props/ui/ui.props';
 import { Button } from '@ui/primitives/button';

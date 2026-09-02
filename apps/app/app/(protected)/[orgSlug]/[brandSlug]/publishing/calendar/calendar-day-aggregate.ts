@@ -1,5 +1,5 @@
-import { CalendarSlotState } from '@genfeedai/enums';
-import type { ICalendarSlot } from '@genfeedai/interfaces';
+import { CalendarSlotState } from '@genfeedai/contracts';
+import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 
 export type CalendarDayAggregate = {
   dayKey: string;

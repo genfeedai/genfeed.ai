@@ -23,6 +23,7 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
+import { ContentFormat, ContentRunStatus } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   type BrandRemixExecution,
@@ -30,8 +31,7 @@ import {
   type BrandRemixRunView,
   brandRemixRunConfigSchema,
   type SubmitBrandRemixRunForReview,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { ContentFormat, ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import {
   ConflictException,
   Inject,

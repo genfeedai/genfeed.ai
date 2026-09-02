@@ -3,20 +3,20 @@ import { PublishingProviderSetupService } from '@api/collections/publishing-setu
 import { scopedWhere } from '@api/index';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { getRequiredPublishScopes } from '@genfeedai/constants';
 import {
   type CredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import { resolvePermissionScopeReadiness } from '@genfeedai/helpers';
-import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
+} from '@genfeedai/contracts';
+import { getRequiredPublishScopes } from '@genfeedai/contracts/constants';
 import type {
   IPublishingDiagnostic,
   IPublishingProviderReadiness,
   IPublishingProviderSetupSignals,
   PermissionScopeReadinessResult,
   PublishingSetupCheckStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { resolvePermissionScopeReadiness } from '@genfeedai/helpers';
+import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

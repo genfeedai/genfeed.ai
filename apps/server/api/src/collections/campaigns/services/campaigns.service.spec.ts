@@ -5,7 +5,7 @@ import {
   ContentCampaignItemOutcomeStatus,
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ORG_ID = 'org-1';

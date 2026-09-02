@@ -24,7 +24,7 @@ import type {
   TextParagraphBlock,
   TopPostItem,
   TopPostsBlock,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const DASHBOARD_OPENUI_VERSION = 'genfeed.dashboard.openui.v1';
 const MAX_TOP_LEVEL_BLOCKS = 24;

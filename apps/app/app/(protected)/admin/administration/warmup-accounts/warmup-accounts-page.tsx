@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IWarmupAccount,
   IWarmupAccountStatus,
   IWarmupInvitationStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   WarmupAccountDetailProps,

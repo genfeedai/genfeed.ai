@@ -3,7 +3,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 describe('ContentIntelligenceService Prisma boundary', () => {
   const create = vi.fn();

@@ -1,11 +1,11 @@
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   type GenerationBriefConstraint,
   type GenerationBriefProvenance,
   type GenerationFidelityMode,
   type ImageGenerationBriefReference,
   imageGenerationBriefSchema,
-} from '@api-types/contracts/generation-brief.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { calculateAspectRatio } from '@genfeedai/helpers';
 
 export interface AssembleImageGenerationBriefInput {

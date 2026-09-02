@@ -2,7 +2,7 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getActionDefinition } from '@genfeedai/actions';
 import { canReceiveProviderWebhooks } from '@genfeedai/config';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,

@@ -8,8 +8,8 @@ import type {
   PublishStatus,
   ReviewGateStatus,
   WorkflowNodeStatus,
-} from '@genfeedai/enums';
-import type { BaseNodeData } from '@genfeedai/types/nodes';
+} from '@genfeedai/contracts';
+import type { BaseNodeData } from '@genfeedai/contracts/types/nodes';
 
 // =============================================================================
 // PLATFORM EXPORT TYPES

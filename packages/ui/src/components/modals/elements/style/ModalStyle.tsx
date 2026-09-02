@@ -2,19 +2,19 @@ import {
   type ElementStyleSchema,
   elementStyleSchema,
 } from '@genfeedai/client/schemas';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IElementStyle } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IElementStyle } from '@genfeedai/interfaces';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { StylesService } from '@genfeedai/services/elements/styles.service';
 import Alert from '@ui/feedback/alert/Alert';

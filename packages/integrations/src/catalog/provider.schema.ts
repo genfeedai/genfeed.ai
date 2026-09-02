@@ -1,4 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 
 export type IntegrationProviderKey =
   | 'google_ads'

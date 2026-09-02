@@ -188,7 +188,7 @@ packages/
 ### TypeScript Config
 
 ```json
-// packages/typescript-config/package.json
+// packages/contracts/src/typescript-config/package.json
 {
   "name": "@repo/typescript-config",
   "exports": {

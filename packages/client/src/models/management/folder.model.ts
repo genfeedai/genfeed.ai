@@ -4,7 +4,7 @@ import type {
   IFolder,
   IOrganization,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Folder extends BaseEntity implements IFolder {
   public declare organization: IOrganization;

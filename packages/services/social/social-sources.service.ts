@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CreateSocialSourceInput,
   SocialPostImportResult,
@@ -7,7 +7,7 @@ import type {
   SocialSourcesResponse,
   SocialSourceValidationResult,
   UpdateSocialSourceInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { SocialSource } from '@genfeedai/models/social/social-source.model';
 import { SocialSourceSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

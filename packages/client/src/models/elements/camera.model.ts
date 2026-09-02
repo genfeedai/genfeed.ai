@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IElementCamera } from '@genfeedai/interfaces';
+import type { IElementCamera } from '@genfeedai/contracts/interfaces';
 
 export class ElementCamera extends BaseEntity implements IElementCamera {
   public declare key: string;

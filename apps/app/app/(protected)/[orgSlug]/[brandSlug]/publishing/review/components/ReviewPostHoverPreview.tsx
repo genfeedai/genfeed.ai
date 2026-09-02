@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

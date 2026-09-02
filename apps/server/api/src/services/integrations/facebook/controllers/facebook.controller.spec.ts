@@ -4,7 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -157,21 +157,21 @@ export default defineConfig({
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/api-types/src/$1',
+          '../../../packages/contracts/src/api-types/$1',
         ),
       },
       {
-        find: '@genfeedai/api-types/contracts',
+        find: '@genfeedai/contracts/api-types/contracts',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/api-types/src/contracts',
+          '../../../packages/contracts/src/api-types/contracts',
         ),
       },
       {
-        find: '@genfeedai/api-types',
+        find: '@genfeedai/contracts/api-types',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/api-types/src',
+          '../../../packages/contracts/src/api-types',
         ),
       },
       {
@@ -183,36 +183,42 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../files/src'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/constants/src',
+          '../../../packages/contracts/src/constants',
         ),
       },
       {
-        find: '@genfeedai/enums',
-        replacement: path.resolve(serviceDir, '../../../packages/enums/src'),
+        find: '@genfeedai/contracts',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/enums',
+        ),
       },
       {
-        find: '@genfeedai/types',
-        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+        find: '@genfeedai/contracts/types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/types',
+        ),
       },
       {
         // api now imports billing DI tokens (value exports, not just types) from
-        // @genfeedai/interfaces/billing. The package only ships a dist exports
+        // @genfeedai/contracts/interfaces/billing. The package only ships a dist exports
         // map, so point vitest at src like every other @genfeedai/* workspace
         // alias. Subpath regex must precede the bare alias so subpaths win.
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src/$1',
+          '../../../packages/contracts/src/interfaces/$1',
         ),
       },
       {
-        find: '@genfeedai/interfaces',
+        find: '@genfeedai/contracts/interfaces',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src',
+          '../../../packages/contracts/src/interfaces',
         ),
       },
       {
@@ -241,14 +247,14 @@ export default defineConfig({
         find: /^@genfeedai\/queue-contracts\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/queue-contracts/src/$1',
+          '../../../packages/contracts/src/queue/$1',
         ),
       },
       {
-        find: '@genfeedai/queue-contracts',
+        find: '@genfeedai/contracts/queue',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/queue-contracts/src',
+          '../../../packages/contracts/src/queue',
         ),
       },
       {

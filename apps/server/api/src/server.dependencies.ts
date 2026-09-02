@@ -1,4 +1,4 @@
-import type { ByokProvider } from '@genfeedai/enums';
+import type { ByokProvider } from '@genfeedai/contracts';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type {

@@ -1,11 +1,11 @@
 import type {
   INotificationPayloadTypes,
   NotificationType,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * The real dispatcher (apps/server/api/src/services/notifications/notifications.service.ts)
- * publishes `INotificationEvent` from `@genfeedai/interfaces` onto the `notifications` Redis
+ * publishes `INotificationEvent` from `@genfeedai/contracts/interfaces` onto the `notifications` Redis
  * channel. That shared type's `NotificationType` union is `'telegram' | 'discord' | 'email' | 'bot'`
  * and does not include `'slack'` or `'chatbot'` — but this handler's dispatch table has always
  * keyed on `'slack'` and `'chatbot'` as well (see `handleEvent`). No current producer publishes

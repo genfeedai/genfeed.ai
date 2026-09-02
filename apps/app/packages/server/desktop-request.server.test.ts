@@ -1,4 +1,4 @@
-import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const headersMock = vi.hoisted(() => ({

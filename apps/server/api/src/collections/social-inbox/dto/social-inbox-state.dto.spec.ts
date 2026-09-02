@@ -4,7 +4,7 @@ import {
   SocialConversationType,
   SocialInboxPlatform,
   SocialMessageType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import {

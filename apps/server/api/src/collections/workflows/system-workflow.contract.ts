@@ -4,7 +4,7 @@ export type {
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
   SystemWorkflowUpgradeStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 export {
   buildHiddenSystemWorkflowMetadata,
   buildSystemWorkflowDuplicateMetadata,
@@ -23,4 +23,4 @@ export {
   SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';

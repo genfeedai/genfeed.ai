@@ -1,5 +1,5 @@
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
-import { MusicSourceType } from '@genfeedai/enums';
+import { MusicSourceType } from '@genfeedai/contracts';
 
 export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
   category: 'generation',

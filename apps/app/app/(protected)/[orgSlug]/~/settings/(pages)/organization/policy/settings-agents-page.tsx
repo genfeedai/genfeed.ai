@@ -4,8 +4,11 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentAutonomyMode,
   normalizeAgentAutonomyMode,
-} from '@genfeedai/enums';
-import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IModel,
+  IOrganizationSetting,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { ModelsService } from '@services/ai/models.service';

@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';

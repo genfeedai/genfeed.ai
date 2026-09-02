@@ -1,4 +1,4 @@
-import type { IconType } from '@genfeedai/interfaces';
+import type { IconType } from '@genfeedai/contracts/interfaces';
 import {
   AnthropicIcon,
   ArgilIcon,

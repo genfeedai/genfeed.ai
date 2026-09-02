@@ -9,7 +9,7 @@ import {
   type ISubscriptionAttributionsService,
   type ISubscriptionOssReadModel,
   SUBSCRIPTION_ATTRIBUTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 

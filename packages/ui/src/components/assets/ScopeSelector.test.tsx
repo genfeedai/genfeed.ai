@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import { describe, expect, it, vi } from 'vitest';

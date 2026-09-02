@@ -1,7 +1,7 @@
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 

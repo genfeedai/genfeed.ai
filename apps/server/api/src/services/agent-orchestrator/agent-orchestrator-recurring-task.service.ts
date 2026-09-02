@@ -32,8 +32,11 @@ import {
   getRuntimeBindingEffect,
   upsertRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
+import { AgentMessageRole } from '@genfeedai/contracts';
+import {
+  AgentToolName,
+  type ValidatedAgentScope,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';

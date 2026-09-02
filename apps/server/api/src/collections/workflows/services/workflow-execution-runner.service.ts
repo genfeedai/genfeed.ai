@@ -20,8 +20,8 @@ import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
-} from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import type {
   ExecutableWorkflow,
   ExecutionRunResult,

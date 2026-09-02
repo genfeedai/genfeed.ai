@@ -13,13 +13,13 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientStatus,
   ModelCategory,
   ModelProvider,
   PromptStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

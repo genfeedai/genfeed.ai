@@ -1,6 +1,6 @@
 'use client';
 
-import type { ISocialSource } from '@genfeedai/interfaces';
+import type { ISocialSource } from '@genfeedai/contracts/interfaces';
 import DeskSourcesMenu from '@pages/trends/desk/desk-sources-menu';
 import type { DiscoveryDeskContentTypeFilter } from '@pages/trends/desk/desk-state';
 import type {

@@ -9,7 +9,7 @@ import type {
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()

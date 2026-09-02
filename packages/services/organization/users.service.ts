@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBrand,
   INotificationPreference,
@@ -6,7 +6,7 @@ import type {
   IQueryParams,
   ISetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Setting } from '@genfeedai/models/analytics/setting.model';
 import { User } from '@genfeedai/models/auth/user.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';

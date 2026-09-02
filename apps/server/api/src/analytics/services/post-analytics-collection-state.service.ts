@@ -1,13 +1,13 @@
 import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { TargetAnalyticsCollectionState } from '@genfeedai/enums';
+import { TargetAnalyticsCollectionState } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailedTarget,
   AnalyticsCollectionFailure,
   AnalyticsCollectionTargetRef,
   ServerAnalyticsCollectionState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import {

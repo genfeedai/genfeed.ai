@@ -1,7 +1,11 @@
 'use client';
 
-import { createLibraryAssetRoute } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, IngredientFormat } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientFormat,
+} from '@genfeedai/contracts';
+import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IngredientTabsProps } from '@genfeedai/props/content/ingredient.props';

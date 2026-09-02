@@ -4,7 +4,7 @@ import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/web
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { assertWebhookToken } from '@api/webhooks/webhook-token.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';

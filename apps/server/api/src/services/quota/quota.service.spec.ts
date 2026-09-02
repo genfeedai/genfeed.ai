@@ -4,7 +4,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

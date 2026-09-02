@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 
 export const DEFAULT_VOICE_REF_SOURCES = ['catalog', 'cloned'] as const;
 

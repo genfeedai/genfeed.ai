@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { render } from '@testing-library/react';

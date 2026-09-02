@@ -1,7 +1,7 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
 import type { ServerModelRecord } from '@api/index';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';

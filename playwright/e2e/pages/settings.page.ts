@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { orgSettingsRoute } from '../utils/app-chrome';

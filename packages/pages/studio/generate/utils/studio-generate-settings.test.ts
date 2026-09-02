@@ -2,7 +2,7 @@ import {
   ContentTemplateKey,
   IngredientFormat,
   RouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { buildBaseGenerationPayload } from './generation-payloads';
 import {

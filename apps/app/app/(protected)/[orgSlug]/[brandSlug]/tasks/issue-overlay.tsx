@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

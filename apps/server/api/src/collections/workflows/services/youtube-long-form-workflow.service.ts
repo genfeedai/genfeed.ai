@@ -16,7 +16,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -26,7 +25,8 @@ import {
   MetadataExtension,
   PromptCategory,
   PromptStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

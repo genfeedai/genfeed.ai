@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { isPublicAssetScope } from './asset-scope.helper';
 

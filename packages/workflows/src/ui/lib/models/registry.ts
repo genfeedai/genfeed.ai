@@ -3,7 +3,7 @@ import type {
   LipSyncModel,
   TextModel,
   VideoModel,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 
 // =============================================================================
 // IMAGE MODELS

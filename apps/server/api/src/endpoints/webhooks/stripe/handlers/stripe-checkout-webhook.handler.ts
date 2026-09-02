@@ -33,13 +33,13 @@ import {
   ApiKeyCategory,
   OrganizationCategory,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   type IUserSubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';

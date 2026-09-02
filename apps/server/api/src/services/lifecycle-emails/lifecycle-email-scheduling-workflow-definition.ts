@@ -3,7 +3,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import type {
   LifecycleEmailSequence,
   LifecycleEmailStep,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type LifecycleSchedulingRequest =
   | { operation: 'checkout-completed'; checkoutSessionId: string }

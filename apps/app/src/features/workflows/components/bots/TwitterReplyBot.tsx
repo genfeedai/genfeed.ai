@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { XIcon } from '@genfeedai/helpers/ui/icons/brands';
 import BotToggle from '@/features/workflows/components/bots/BotToggle';
 

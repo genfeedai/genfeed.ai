@@ -5,14 +5,14 @@ import {
   hasUsableServerAuthToken,
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   type CredentialPlatform,
   PageScope,
   type PostCategory,
   type TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import type {
   ReleasePostsPublicationState,
   ReleasePostsSort,

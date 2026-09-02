@@ -1,5 +1,5 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
+import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,

@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { NodeConfigField } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { NodeConfigField } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import type { NodeConfigPanelProps } from '@genfeedai/props/automation/workflow-builder.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';

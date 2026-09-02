@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "paths": {
-      "@api-types/*": ["../../packages/api-types/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../packages/contracts/src/api-types/*"
+      ],
       "@app-components/*": ["./packages/components/*"],
       "@app-config/*": ["./packages/config/*"],
       "@app-server/*": ["./packages/server/*"],
@@ -41,7 +43,7 @@
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],
       "@app-tests/*": ["./tests/*"],
-      "@cloud-types/*": ["../../packages/types/src/*"],
+      "@cloud-types/*": ["../../packages/contracts/src/types/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
       "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
@@ -50,14 +52,18 @@
       "@genfeedai/contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/config": ["../../packages/config/src/index.ts"],
       "@genfeedai/config/*": ["../../packages/config/src/*"],
-      "@genfeedai/desktop-contracts": [
-        "../../packages/desktop-contracts/src/index.ts"
+      "@genfeedai/contracts/desktop": [
+        "../../packages/contracts/src/desktop/index.ts"
       ],
-      "@genfeedai/desktop-contracts/*": [
-        "../../packages/desktop-contracts/src/*"
+      "@genfeedai/contracts/desktop/*": [
+        "../../packages/contracts/src/desktop/*"
       ],
-      "@genfeedai/interfaces": ["../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../packages/contracts/src/interfaces/*"
+      ],
       "@genfeedai/models": ["../../packages/models/index.ts"],
       "@genfeedai/models/*": ["../../packages/models/*"],
       "@genfeedai/pages": ["../../packages/pages/index.ts"],
@@ -70,8 +76,10 @@
       "@genfeedai/services/*": ["../../packages/services/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
-      "@genfeedai/types": ["../../packages/types/src/index.ts"],
-      "@genfeedai/types/*": ["../../packages/types/src/*"],
+      "@genfeedai/contracts/types": [
+        "../../packages/contracts/src/types/index.ts"
+      ],
+      "@genfeedai/contracts/types/*": ["../../packages/contracts/src/types/*"],
       "@genfeedai/utils": ["../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
@@ -89,10 +97,14 @@
         "../../packages/client/src/schemas/*/index",
         "../../packages/client/src/schemas/*"
       ],
-      "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../../packages/enums/src/*"],
-      "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../../packages/constants/src/*"],
+      "@genfeedai/contracts": ["../../packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../../packages/contracts/src/*"],
+      "@genfeedai/contracts/constants": [
+        "../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../packages/contracts/src/constants/*"
+      ],
       "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],

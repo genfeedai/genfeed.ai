@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 
 export type DefaultFirstPartySkillContext = {
   agentType?: string;

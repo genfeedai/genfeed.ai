@@ -45,12 +45,12 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 
 ### Type safety
 - No `any` — define proper interfaces
-- No inline interfaces — use `packages/props/` or `packages/interfaces/`
+- No inline interfaces — use `packages/props/` or `packages/contracts/src/interfaces/`
 - No `console.log` — use the project LoggerService
 - Booleans take an `is`/`has` prefix: `isActive`, `hasPermission`
 
 ### Imports
-- Path aliases (`@genfeedai/enums`, `@components/`, `@ui/`) over relative imports
+- Path aliases (`@genfeedai/contracts`, `@components/`, `@ui/`) over relative imports
 - Order: external → `@genfeedai/*` → path aliases → same-directory relative
 
 ### Serializers

@@ -1,8 +1,8 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
-import type { IQueryParams } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Caption } from '@models/content/caption.model';

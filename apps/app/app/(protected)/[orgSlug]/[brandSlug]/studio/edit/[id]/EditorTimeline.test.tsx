@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { EditorTrackType } from '@genfeedai/enums';
+import { EditorTrackType } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

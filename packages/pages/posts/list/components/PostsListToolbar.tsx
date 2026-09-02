@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize, PostStatus } from '@genfeedai/enums';
+import { ComponentSize, PostStatus } from '@genfeedai/contracts';
 import type { PublishingPostsView } from '@pages/posts/list/posts-list-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import FormSearchbar from '@ui/primitives/searchbar';

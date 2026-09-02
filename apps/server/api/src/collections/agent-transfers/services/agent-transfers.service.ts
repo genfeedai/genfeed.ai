@@ -14,8 +14,8 @@ import {
   AgentTransferDeliveryMode,
   AgentTransferStatus,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,

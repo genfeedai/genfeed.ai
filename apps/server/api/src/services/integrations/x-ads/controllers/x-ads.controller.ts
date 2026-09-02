@@ -12,7 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
-import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

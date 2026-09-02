@@ -1,5 +1,5 @@
 import { Readable } from 'node:stream';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';

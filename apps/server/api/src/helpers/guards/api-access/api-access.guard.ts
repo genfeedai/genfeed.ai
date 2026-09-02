@@ -4,7 +4,7 @@ import {
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { isCloudDeployment } from '@genfeedai/config';
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

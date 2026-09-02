@@ -1,7 +1,7 @@
 'use client';
 
-import type { DesktopGenerationProviderKind } from '@genfeedai/desktop-contracts';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

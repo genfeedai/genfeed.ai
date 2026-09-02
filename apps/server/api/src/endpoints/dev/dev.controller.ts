@@ -1,7 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { categoryToPlural, IngredientCategory } from '@genfeedai/enums';
+import { categoryToPlural, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

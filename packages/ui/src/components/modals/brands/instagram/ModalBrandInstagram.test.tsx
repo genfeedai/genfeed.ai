@@ -1,5 +1,5 @@
 import { useAuth } from '@genfeedai/auth-client/react';
-import type { ICredential, IUser } from '@genfeedai/interfaces';
+import type { ICredential, IUser } from '@genfeedai/contracts/interfaces';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';

@@ -1,9 +1,9 @@
-import { AGENT_PROGRAM_TEMPLATES } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { AGENT_PROGRAM_TEMPLATES } from '@genfeedai/contracts/constants';
 import type { CreateAgentStrategyInput } from '@services/automation/agent-strategies.service';
 
 /**

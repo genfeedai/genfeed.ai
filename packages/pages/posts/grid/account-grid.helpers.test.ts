@@ -2,12 +2,12 @@ import {
   CredentialPlatform,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   accountLabel,

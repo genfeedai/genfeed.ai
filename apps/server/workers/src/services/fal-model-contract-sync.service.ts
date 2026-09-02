@@ -4,7 +4,7 @@ import {
   extractFalEndpointSchemas,
   type FalEndpointSchemas,
 } from '@api/services/integrations/fal/services/fal-contract';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import {

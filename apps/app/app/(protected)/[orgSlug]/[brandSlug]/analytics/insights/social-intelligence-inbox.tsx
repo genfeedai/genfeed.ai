@@ -4,14 +4,14 @@ import {
   ButtonSize,
   ButtonVariant,
   SourcePostActionType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IListeningEvidence,
   IListeningSignal,
   IListeningTheme,
   ISocialIntelligenceTopicBundle,
   ReviewListeningThemeState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocialIntelligence } from '@hooks/data/analytics/use-social-intelligence/use-social-intelligence';
 import { ContentRunsService } from '@services/content/content-runs.service';

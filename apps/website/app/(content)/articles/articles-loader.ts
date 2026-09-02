@@ -1,4 +1,4 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Article } from '@models/content/article.model';
 import { PublicService } from '@services/external/public.service';
 import { cache } from 'react';

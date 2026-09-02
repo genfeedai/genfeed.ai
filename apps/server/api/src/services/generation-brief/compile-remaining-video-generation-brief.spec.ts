@@ -1,8 +1,8 @@
 import { compileRemainingVideoGenerationBrief } from '@api/services/generation-brief/compile-remaining-video-generation-brief';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
-import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { videoGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 function familyFor(modelKey: string) {

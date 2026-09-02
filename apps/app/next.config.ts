@@ -8,7 +8,7 @@ import {
   createOrganizationAppRoute,
   LEGACY_APP_ROUTES,
   PERSONAL_SETTINGS_CHILD_SEGMENTS,
-} from '@genfeedai/constants/routes.constant';
+} from '@genfeedai/contracts/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -604,12 +604,14 @@ config.turbopack = {
     '@genfeedai/actions': '../../packages/actions/src/index.ts',
     '@genfeedai/agent': '../../packages/agent/src/index.ts',
     '@genfeedai/client': '../../packages/client/src/index.ts',
-    '@genfeedai/constants': '../../packages/constants/src/index.ts',
-    '@genfeedai/enums': '../../packages/enums/src/index.ts',
+    '@genfeedai/contracts/constants':
+      '../../packages/contracts/src/constants/index.ts',
+    '@genfeedai/contracts': '../../packages/contracts/src/enums/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
-    '@genfeedai/interfaces': '../../packages/interfaces/src/index.ts',
+    '@genfeedai/contracts/interfaces':
+      '../../packages/contracts/src/interfaces/index.ts',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
-    '@genfeedai/types': '../../packages/types/src/index.ts',
+    '@genfeedai/contracts/types': '../../packages/contracts/src/types/index.ts',
     '@genfeedai/ui': '../../packages/ui/src/index.ts',
     '@genfeedai/workflows/nodes': '../../packages/workflows/src/nodes/index.ts',
     '@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts',
@@ -646,10 +648,10 @@ config.transpilePackages = [
   ...(config.transpilePackages ?? []),
   'fullcalendar',
   '@genfeedai/actions',
-  '@genfeedai/desktop-contracts',
+  '@genfeedai/contracts/desktop',
   '@genfeedai/hooks',
   '@genfeedai/serializers',
-  '@genfeedai/types',
+  '@genfeedai/contracts/types',
 ];
 
 // E2E code-coverage runs against a production build need browser source maps so

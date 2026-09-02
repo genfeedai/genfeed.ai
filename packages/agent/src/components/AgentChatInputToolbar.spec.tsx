@@ -2,7 +2,7 @@ import type {
   AgentApiService,
   GenerationModel,
 } from '@genfeedai/agent/services/agent-api.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

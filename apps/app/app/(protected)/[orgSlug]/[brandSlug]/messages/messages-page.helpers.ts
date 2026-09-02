@@ -2,7 +2,7 @@ import type {
   IPaginatedResponse,
   SocialActionProvenance,
   SocialAutomationState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 
 export type MessagesPaginationState = Omit<

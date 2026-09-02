@@ -1,11 +1,11 @@
 'use client';
 
-import { PageScope, type Platform } from '@genfeedai/enums';
+import { PageScope, type Platform } from '@genfeedai/contracts';
 import type {
   IIngredient,
   IPost,
   PostQuickActionKey,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import PostDetailPostList from '@pages/posts/detail/components/PostDetailPostList';
 import PostDetailThreadExtras from '@pages/posts/detail/components/PostDetailThreadExtras';
 import type { PostsService } from '@services/content/posts.service';

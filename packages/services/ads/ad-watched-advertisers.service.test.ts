@@ -1,4 +1,4 @@
-import type { AdWatchedAdvertiser } from '@genfeedai/interfaces';
+import type { AdWatchedAdvertiser } from '@genfeedai/contracts/interfaces';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
 import type { JsonApiResponseDocument } from '@services/core/json-api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -2,7 +2,7 @@ import { VideoProvenanceService } from '@api/collections/videos/services/video-p
 import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 const publicMediaPath = (assetId: string): string => `/public/media/${assetId}`;

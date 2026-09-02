@@ -16,7 +16,7 @@ import {
   MockBetterAuthGuard,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
-import { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationPlatform } from '@genfeedai/contracts';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';

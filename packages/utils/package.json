@@ -1,12 +1,10 @@
 {
   "dependencies": {
     "@genfeedai/client": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/services": "workspace:*"
+    "@genfeedai/services": "workspace:*",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 const mockLimits = vi.hoisted(() => ({
@@ -6,7 +6,7 @@ const mockLimits = vi.hoisted(() => ({
   tiktok: { max: 35, min: 2, name: 'TikTok' },
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   CAROUSEL_LIMITS: mockLimits,
 }));
 

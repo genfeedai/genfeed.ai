@@ -1,4 +1,8 @@
-import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

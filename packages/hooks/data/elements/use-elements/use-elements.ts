@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -14,7 +14,7 @@ import type {
   ISound,
   ITag,
   ITraining,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { useElementsContext } from '@providers/elements/elements.context';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.context';

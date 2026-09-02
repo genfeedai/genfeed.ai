@@ -13,7 +13,7 @@ import {
 import type {
   InstagramMediaPerformanceSignal,
   InstagramOwnedMediaSignal,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
+} from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 

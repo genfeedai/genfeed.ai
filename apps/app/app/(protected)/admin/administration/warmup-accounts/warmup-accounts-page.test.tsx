@@ -3,7 +3,7 @@ import type {
   IWarmupAccount,
   IWarmupInvitation,
   IWarmupInvitationStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   act,
   fireEvent,

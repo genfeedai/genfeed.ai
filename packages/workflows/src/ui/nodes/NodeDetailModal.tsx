@@ -4,8 +4,8 @@ import type {
   NodeType,
   PromptNodeData,
   WorkflowNodeData,
-} from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import {
   ChevronLeft,
   ChevronRight,

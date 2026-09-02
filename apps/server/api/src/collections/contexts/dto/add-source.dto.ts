@@ -1,4 +1,4 @@
-import { KnowledgeBaseCategory } from '@genfeedai/enums';
+import { KnowledgeBaseCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

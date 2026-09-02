@@ -2,13 +2,13 @@
 
 import { DashboardOpenUIRenderer } from '@genfeedai/agent/components/blocks';
 import { useAgentDashboardPersistence } from '@genfeedai/agent/hooks/use-agent-dashboard-persistence';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AgentUIBlock,
   DashboardPreferenceScope,
   DashboardScopePreferences,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 
 interface AnalyticsAgentDashboardProps {

@@ -3,7 +3,7 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -11,7 +11,7 @@ import type {
   IMetadata,
   IPrompt,
   ITag,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';

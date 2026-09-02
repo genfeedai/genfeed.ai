@@ -1,10 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  IImage,
+  IIngredient,
+  ITag,
+} from '@genfeedai/contracts/interfaces';
+import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type { IImage, IIngredient, ITag } from '@genfeedai/interfaces';
-import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
 import type { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
 import { Button } from '@ui/primitives/button';

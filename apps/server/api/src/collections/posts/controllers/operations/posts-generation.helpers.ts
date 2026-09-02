@@ -1,4 +1,4 @@
-import { isTwitterPlatform } from '@genfeedai/enums';
+import { isTwitterPlatform } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 export function isAccountThreadFormat(format: string | undefined): boolean {

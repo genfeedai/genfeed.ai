@@ -1,6 +1,6 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Type } from '@nestjs/common';

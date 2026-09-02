@@ -9,8 +9,8 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { AgentTransferPresentation } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AgentTransferPresentation } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {

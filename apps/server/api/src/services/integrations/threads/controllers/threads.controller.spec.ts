@@ -16,7 +16,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

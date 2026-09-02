@@ -32,11 +32,11 @@ import {
   ActivityKey,
   ActivitySource,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';

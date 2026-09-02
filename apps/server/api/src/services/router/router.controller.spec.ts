@@ -7,7 +7,7 @@ import type {
 } from '@api/services/router/interfaces/router.interfaces';
 import { RouterController } from '@api/services/router/router.controller';
 import { RouterService } from '@api/services/router/router.service';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

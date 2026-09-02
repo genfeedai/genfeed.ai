@@ -1,4 +1,4 @@
-import type { CardEmptySize, CardVariant } from '@genfeedai/enums';
+import type { CardEmptySize, CardVariant } from '@genfeedai/contracts';
 import type { CardEmptyAction } from '@genfeedai/props/ui/cards/card-empty.props';
 import type { ComponentType } from 'react';
 

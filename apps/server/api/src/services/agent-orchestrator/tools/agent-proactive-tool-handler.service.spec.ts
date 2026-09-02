@@ -1,7 +1,7 @@
 import { AgentProactiveToolHandler } from '@api/services/agent-orchestrator/tools/agent-proactive-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 const context: ToolExecutionContext = {

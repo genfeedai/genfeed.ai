@@ -1,5 +1,5 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
-import { EditorProjectStatus } from '@genfeedai/enums';
+import { EditorProjectStatus } from '@genfeedai/contracts';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsArray,

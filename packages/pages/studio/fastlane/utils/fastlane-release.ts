@@ -1,5 +1,9 @@
-import type { CreateReleaseGroupInput } from '@api-types/contracts';
-import { PostVisibility, parsePlatform, ReleaseStatus } from '@genfeedai/enums';
+import {
+  PostVisibility,
+  parsePlatform,
+  ReleaseStatus,
+} from '@genfeedai/contracts';
+import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts';
 import type { FastlaneReleaseBuildParams } from '../types';
 
 export function buildFastlaneReleaseInput(

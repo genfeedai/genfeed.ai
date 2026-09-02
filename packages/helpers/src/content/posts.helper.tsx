@@ -1,13 +1,13 @@
 import {
-  APP_ROUTES,
-  createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import {
   Platform,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createPublishingPostsFilterRoute,
+} from '@genfeedai/contracts/constants';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
   DiscordIcon,

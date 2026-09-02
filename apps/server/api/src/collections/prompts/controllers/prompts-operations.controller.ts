@@ -31,7 +31,7 @@ import {
   ReplyLength,
   ReplyTone,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

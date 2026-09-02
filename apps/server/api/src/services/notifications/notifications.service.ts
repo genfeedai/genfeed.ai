@@ -9,7 +9,7 @@ import type {
   INotificationEvent,
   ITelegramMessageOptions,
   IUserCreatedPayload,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

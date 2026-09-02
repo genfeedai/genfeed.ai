@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, Platform } from '@genfeedai/enums';
+import { AlertCategory, Platform } from '@genfeedai/contracts';
 import {
   getPostLifecycleOptions,
   getPostVisibilityOptions,

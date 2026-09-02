@@ -13,12 +13,12 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
 import { isCloudDeployment } from '@genfeedai/config';
+import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
 import {
   DEFAULT_CONTEXT_EMBEDDING_MODEL,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   MODEL_KEYS,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelLifecycle } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';

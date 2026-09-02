@@ -3,7 +3,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 
 const WEBSITE_ORIGIN = 'https://genfeed.ai';
 const MCP_ENDPOINT = 'https://mcp.genfeed.ai/mcp';

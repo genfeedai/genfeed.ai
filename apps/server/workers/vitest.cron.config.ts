@@ -27,39 +27,45 @@ export default defineConfig({
       },
       { find: '@files', replacement: path.resolve(serviceDir, '../files/src') },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/constants/src/index.ts',
+          '../../../packages/contracts/src/constants/index.ts',
         ),
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/enums/src/index.ts',
+          '../../../packages/contracts/src/enums/index.ts',
         ),
       },
       {
-        find: '@genfeedai/types',
-        replacement: path.resolve(serviceDir, '../../../packages/types/src'),
+        find: '@genfeedai/contracts/types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/types',
+        ),
       },
       {
         find: /^@genfeedai\/types\/(.*)$/,
-        replacement: path.resolve(serviceDir, '../../../packages/types/src/$1'),
-      },
-      {
-        find: '@genfeedai/interfaces',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src',
+          '../../../packages/contracts/src/types/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/contracts/interfaces',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/contracts/src/interfaces',
         ),
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/interfaces/src/$1',
+          '../../../packages/contracts/src/interfaces/$1',
         ),
       },
       {
@@ -74,24 +80,24 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/queue-contracts',
+        find: '@genfeedai/contracts/queue',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/queue-contracts/src',
+          '../../../packages/contracts/src/queue',
         ),
       },
       {
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/api-types/src/$1',
+          '../../../packages/contracts/src/api-types/$1',
         ),
       },
       {
         find: /^@genfeedai\/queue-contracts\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/queue-contracts/src/$1',
+          '../../../packages/contracts/src/queue/$1',
         ),
       },
       {

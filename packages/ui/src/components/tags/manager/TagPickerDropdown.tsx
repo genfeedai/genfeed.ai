@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

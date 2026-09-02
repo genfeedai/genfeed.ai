@@ -1,5 +1,5 @@
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SourceCollectorService', () => {

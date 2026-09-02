@@ -1,4 +1,4 @@
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock EnvironmentService
@@ -11,7 +11,7 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
   },
 }));
 
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   getCategoryFromRoute,
   getConfigForCategoryType,

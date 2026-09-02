@@ -7,7 +7,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConflictException, HttpStatus } from '@nestjs/common';
 
 const target = {

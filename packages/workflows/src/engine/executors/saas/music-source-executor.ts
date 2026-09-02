@@ -1,4 +1,4 @@
-import { MusicSourceType } from '@genfeedai/enums';
+import { MusicSourceType } from '@genfeedai/contracts';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,

@@ -1,6 +1,6 @@
 'use client';
 
-import { CampaignType, ReplyLength, ReplyTone } from '@genfeedai/enums';
+import { CampaignType, ReplyLength, ReplyTone } from '@genfeedai/contracts';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';

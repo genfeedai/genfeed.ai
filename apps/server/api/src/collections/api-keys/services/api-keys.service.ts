@@ -10,13 +10,13 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/constants';
 import {
   ActionOrigin,
   API_KEY_ACTION_ORIGIN_METADATA_KEY,
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { IHighlight } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';

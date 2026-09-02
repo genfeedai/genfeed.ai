@@ -4,7 +4,7 @@ import {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {

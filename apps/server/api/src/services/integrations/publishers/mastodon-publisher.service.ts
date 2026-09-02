@@ -8,13 +8,13 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { readChannelSettingString } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

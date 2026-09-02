@@ -1,4 +1,4 @@
-import type { ICostReportEntry } from '@genfeedai/interfaces/billing';
+import type { ICostReportEntry } from '@genfeedai/contracts/interfaces/billing';
 import { buildCostReportCsv } from './cost-reporting-export.util';
 
 describe('buildCostReportCsv', () => {

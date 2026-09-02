@@ -15,7 +15,7 @@ const sourceFilePattern = /\.(ts|tsx)$/;
 const testFilePattern = /(?:\.test|\.spec)\.tsx?$/;
 const redirectSourceFiles = new Set([
   'apps/app/next.config.ts',
-  'packages/constants/src/routes.constant.ts',
+  'packages/contracts/src/constants/routes.constant.ts',
 ]);
 const legacyCollectionDir = join(
   repoRoot,

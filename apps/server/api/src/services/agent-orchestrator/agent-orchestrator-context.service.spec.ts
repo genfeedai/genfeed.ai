@@ -16,7 +16,7 @@ import type {
 import { composeAgentGuardrails } from '@api/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { UNTRUSTED_USER_DATA_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { AgentMessageRole, AgentType } from '@genfeedai/enums';
+import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

@@ -19,13 +19,6 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  type ParsedRssFeedItem,
-  parseRssFeed,
-  type RssTargetChannel,
-  rssItemDedupeKey,
-} from '@api-types/contracts/rss-sources.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import {
   PostVisibility,
   parseRssApprovalMode,
   parseRssImportPolicy,
@@ -34,7 +27,14 @@ import {
   RssApprovalMode,
   RssFeedItemStatus,
   RssImportPolicy,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  type ParsedRssFeedItem,
+  parseRssFeed,
+  type RssTargetChannel,
+  rssItemDedupeKey,
+} from '@genfeedai/contracts/api-types/contracts/rss-sources.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

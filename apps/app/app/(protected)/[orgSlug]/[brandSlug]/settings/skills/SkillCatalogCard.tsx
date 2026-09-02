@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { Skill } from '@services/content/skills.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';

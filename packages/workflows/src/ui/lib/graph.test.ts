@@ -1,4 +1,4 @@
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 
 import { getConnectedInputsForNode, getUpstreamNodeIds } from './graph';

@@ -2,7 +2,7 @@
 
 import { isSaaS } from '@genfeedai/config/deployment';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';

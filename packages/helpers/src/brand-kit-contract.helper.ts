@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import {
   BRAND_KIT_FIELD_OWNERSHIP,
   type BrandKitAssetRole,
@@ -16,7 +16,7 @@ import {
   type IBrandKitSocialLink,
   type IBrandKitSourceEvidence,
   type IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 interface BrandKitAssetSource {
   id?: string;

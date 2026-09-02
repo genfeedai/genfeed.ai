@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { BrandDetailSocialSummaryCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

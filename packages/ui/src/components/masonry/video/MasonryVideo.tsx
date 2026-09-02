@@ -1,7 +1,7 @@
 'use client';
 
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
 import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';

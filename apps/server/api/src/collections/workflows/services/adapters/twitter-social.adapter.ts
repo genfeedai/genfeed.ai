@@ -1,6 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   DmSender,
   EngagementChecker,

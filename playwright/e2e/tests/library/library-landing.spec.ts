@@ -1,5 +1,8 @@
-import { APP_ROUTES, createLibraryShelfRoute } from '@genfeedai/constants';
-import { LibraryShelf } from '@genfeedai/enums';
+import { LibraryShelf } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryShelfRoute,
+} from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
   mockContentLibrary,

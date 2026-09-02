@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { PushDesktopSyncOpsDto } from '@api/services/sync/dto/push-desktop-sync-ops.dto';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_SYNC_OPS = 500;

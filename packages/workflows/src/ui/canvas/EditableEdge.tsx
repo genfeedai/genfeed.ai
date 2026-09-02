@@ -1,6 +1,6 @@
 'use client';
 
-import type { HandleType } from '@genfeedai/types';
+import type { HandleType } from '@genfeedai/contracts/types';
 import type { EdgeProps } from '@xyflow/react';
 import { BaseEdge, getBezierPath } from '@xyflow/react';
 import { Pause } from 'lucide-react';

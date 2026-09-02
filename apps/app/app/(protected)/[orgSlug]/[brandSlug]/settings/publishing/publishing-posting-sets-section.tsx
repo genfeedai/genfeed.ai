@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { ICredential, IPostingSet } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ICredential, IPostingSet } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import type { PublishingPostingSetsSectionProps } from '@props/scheduler/posting-set-picker.props';

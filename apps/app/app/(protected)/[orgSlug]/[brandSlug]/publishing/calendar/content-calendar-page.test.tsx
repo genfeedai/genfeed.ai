@@ -7,12 +7,12 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICalendarSlot,
   IChannelTarget,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   CalendarEventAction,
   CalendarEventBadge,

@@ -11,15 +11,17 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/constants": ["../constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/contracts/constants": ["../contracts/src/constants/index.ts"],
+      "@genfeedai/contracts/constants/*": ["../contracts/src/constants/*"],
       "@genfeedai/serializers": ["../serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../serializers/src/*"],
-      "@genfeedai/enums": ["../enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/contracts": ["../contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../contracts/src/*"],
       "@genfeedai/helpers/*": ["./src/*"],
-      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": ["../contracts/src/interfaces/*"],
       "@helpers/*": ["./src/*"],
       "@hooks/*": ["../hooks/*"],
       "@utils/*": ["../utils/*"]
@@ -42,13 +44,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../constants/tsconfig.json"
-    },
-    {
-      "path": "../enums/tsconfig.json"
-    },
-    {
-      "path": "../interfaces/tsconfig.json"
+      "path": "../contracts/tsconfig.json"
     }
   ]
 }

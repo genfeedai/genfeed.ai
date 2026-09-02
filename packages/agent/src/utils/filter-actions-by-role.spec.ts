@@ -1,5 +1,5 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { filterActionsByRole } from './filter-actions-by-role';
 

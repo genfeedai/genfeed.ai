@@ -2,8 +2,8 @@ import {
   IngredientCategory,
   IngredientFormat,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

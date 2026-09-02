@@ -1,6 +1,6 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useOnboarding } from '@genfeedai/hooks/utils/use-onboarding/use-onboarding';
 import ModalOnboarding from '@ui/modals/onboarding/ModalOnboarding';

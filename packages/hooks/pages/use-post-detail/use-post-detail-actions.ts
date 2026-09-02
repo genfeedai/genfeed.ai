@@ -1,8 +1,11 @@
 'use client';
 
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { TargetExecutionState } from '@genfeedai/enums';
-import type { IPost, PostQuickActionKey } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import type {
+  IPost,
+  PostQuickActionKey,
+} from '@genfeedai/contracts/interfaces';
 import type {
   PostsService,
   PostUpdateInput,

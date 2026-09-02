@@ -1,6 +1,6 @@
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IFormat, IIngredient } from '@genfeedai/interfaces';
-import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IFormat, IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { useCallback, useMemo, useState } from 'react';
 import { useBrand } from '../user/brand-context/brand-context';

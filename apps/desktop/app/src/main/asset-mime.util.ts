@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { DesktopAssetKind } from '@genfeedai/desktop-contracts';
+import type { DesktopAssetKind } from '@genfeedai/contracts/desktop';
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   '.avif': 'image/avif',

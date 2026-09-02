@@ -19,7 +19,7 @@ import {
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { StudioLookSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

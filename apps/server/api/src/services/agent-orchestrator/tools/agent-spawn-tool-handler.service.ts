@@ -1,7 +1,7 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
-import { AgentType } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentType } from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

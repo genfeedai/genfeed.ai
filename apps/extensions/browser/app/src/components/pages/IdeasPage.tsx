@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Storage } from '@plasmohq/storage';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';

@@ -1,5 +1,5 @@
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { Status } from '@genfeedai/enums';
+import { Status } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { RedisService } from '@libs/redis/redis.service';
 

@@ -1,4 +1,4 @@
-import type { ITrendVideo } from '@genfeedai/interfaces';
+import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 
 export interface HookRemixFormData {
   brandId: string;

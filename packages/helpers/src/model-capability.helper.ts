@@ -1,3 +1,4 @@
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   type EmbeddingModelCapability,
   type ImageEditModelCapability,
@@ -11,9 +12,8 @@ import {
   type VideoModelCapability,
   type VideoUpscaleModelCapability,
   type VoiceModelCapability,
-} from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 
 const DEFAULT_MAX_OUTPUTS = 4;
 const DEFAULT_MAX_REFERENCES = 1;

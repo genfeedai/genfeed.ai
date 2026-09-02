@@ -12,7 +12,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentThreadStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';

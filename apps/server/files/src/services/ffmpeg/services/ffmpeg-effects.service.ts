@@ -8,7 +8,7 @@ import {
 } from '@files/services/ffmpeg/helpers/ease-curves.helper';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { FFmpegProgress } from '@files/shared/interfaces/ffmpeg.interfaces';
-import { VideoEaseCurve } from '@genfeedai/enums';
+import { VideoEaseCurve } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

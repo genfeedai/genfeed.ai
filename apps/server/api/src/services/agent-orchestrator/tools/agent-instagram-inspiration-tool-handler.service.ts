@@ -4,16 +4,16 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   InstagramInspirationBrandContext,
   InstagramInspirationMediaType,
   InstagramInspirationSort,
   InstagramRemixMode,
-} from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 function readOptionalNumber(value: unknown): number | undefined {

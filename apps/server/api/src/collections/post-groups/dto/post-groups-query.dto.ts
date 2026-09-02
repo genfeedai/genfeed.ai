@@ -5,7 +5,7 @@ import {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {

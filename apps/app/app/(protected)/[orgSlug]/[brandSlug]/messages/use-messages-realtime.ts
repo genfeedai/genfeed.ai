@@ -1,6 +1,6 @@
 'use client';
 
-import type { SocialInboxRealtimeEvent } from '@genfeedai/interfaces';
+import type { SocialInboxRealtimeEvent } from '@genfeedai/contracts/interfaces';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef } from 'react';

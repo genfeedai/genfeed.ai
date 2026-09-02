@@ -4,7 +4,7 @@ import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 describe('DmCampaignExecutorService workflow boundary', () => {
   const runner = {

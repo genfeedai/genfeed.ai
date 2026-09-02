@@ -1,5 +1,5 @@
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
-import { BotStatus, WorkflowStatus } from '@genfeedai/enums';
+import { BotStatus, WorkflowStatus } from '@genfeedai/contracts';
 
 describe('AnalyticsAdminSummaryService', () => {
   const botsService = { findAll: vi.fn() };

@@ -9,7 +9,7 @@ import {
   BookmarkCategory,
   BookmarkIntent,
   BookmarkPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

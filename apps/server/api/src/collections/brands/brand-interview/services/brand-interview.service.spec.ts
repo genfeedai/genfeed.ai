@@ -18,7 +18,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BrandInterviewStatus } from '@genfeedai/enums';
+import { BrandInterviewStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

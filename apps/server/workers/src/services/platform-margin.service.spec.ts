@@ -1,4 +1,4 @@
-import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
+import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
 import {
   getRuntimeMarginMultiplier,
   setRuntimeMarginMultiplier,

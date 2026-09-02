@@ -1,4 +1,4 @@
-import type { SocialSourcePlatform } from '@genfeedai/enums';
+import type { SocialSourcePlatform } from '@genfeedai/contracts';
 
 /**
  * Provider-agnostic post collected for Following / social sources.

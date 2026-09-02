@@ -8,7 +8,7 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
   shouldUseLowestCostModelDefaults,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 const LOCAL_DEVELOPMENT_HOSTNAMES = new Set([
   '127.0.0.1',

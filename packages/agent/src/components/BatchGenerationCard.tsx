@@ -1,12 +1,12 @@
 import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant, ContentFormat } from '@genfeedai/contracts';
 import {
   DEFAULT_BATCH_CONTENT_MIX,
   estimateBatchGenerationCredits,
   formatBatchPricingHint,
   resolveBatchPricingOptions,
-} from '@genfeedai/constants';
-import { ButtonVariant, ContentFormat } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

@@ -1,5 +1,5 @@
+import type { IBrand, ILink } from '@genfeedai/contracts/interfaces';
 import { SocialUrlHelper } from '@genfeedai/helpers';
-import type { IBrand, ILink } from '@genfeedai/interfaces';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 

@@ -12,9 +12,9 @@ import type {
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
 import { Injectable } from '@nestjs/common';
 

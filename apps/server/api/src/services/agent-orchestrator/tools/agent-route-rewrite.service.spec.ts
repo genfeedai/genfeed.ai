@@ -1,5 +1,5 @@
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
 describe('AgentRouteRewriteService', () => {
   const loggerService = {

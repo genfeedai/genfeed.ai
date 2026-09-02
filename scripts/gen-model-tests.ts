@@ -115,7 +115,7 @@ for (const modelFile of modelFiles) {
     tc += `}));\n\n`;
   }
 
-  // Mock @genfeedai/enums if needed
+  // Mock @genfeedai/contracts if needed
   // Don't mock enums - they're simple values that work fine
 
   // Mock @models/* dependencies
@@ -148,7 +148,7 @@ for (const modelFile of modelFiles) {
       .map((s) => s.trim())
       .filter((s) => !s.startsWith('type '));
     if (enumNames.length > 0) {
-      tc += `import { ${enumNames.join(', ')} } from '@genfeedai/enums';\n`;
+      tc += `import { ${enumNames.join(', ')} } from '@genfeedai/contracts';\n`;
     }
   }
 

@@ -21,7 +21,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import { ArticleScope, ArticleStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 

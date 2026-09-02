@@ -10,7 +10,7 @@ import {
   isSupportedAvatarVideoProviderName,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

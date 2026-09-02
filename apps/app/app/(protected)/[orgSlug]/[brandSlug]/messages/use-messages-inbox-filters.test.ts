@@ -1,4 +1,4 @@
-import { SocialConversationType } from '@genfeedai/enums';
+import { SocialConversationType } from '@genfeedai/contracts';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ALL_BRANDS_FILTER } from './messages-page.helpers';

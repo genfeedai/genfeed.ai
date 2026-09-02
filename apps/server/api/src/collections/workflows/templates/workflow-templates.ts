@@ -4,7 +4,7 @@ import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templa
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export type RoutineReviewDefaults = {
   autoApproveIfNoResponse: boolean;

@@ -5,7 +5,7 @@ import { bootstrap } from '@libs/bootstrap';
 bootstrap({ app: 'workers' });
 
 import process from 'node:process';
-import { DEFAULT_QUEUE, type QueueName } from '@genfeedai/queue-contracts';
+import { DEFAULT_QUEUE, type QueueName } from '@genfeedai/contracts/queue';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,

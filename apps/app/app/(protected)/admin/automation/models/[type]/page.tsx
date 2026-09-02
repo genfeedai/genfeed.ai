@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import ModelsList from '@pages/models/list/models-list';
 import { Suspense } from 'react';
 

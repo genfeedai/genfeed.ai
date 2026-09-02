@@ -5,7 +5,7 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';

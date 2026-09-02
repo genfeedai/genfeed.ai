@@ -1,7 +1,7 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

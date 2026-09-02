@@ -1,5 +1,5 @@
-import { TagCategory } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
+import { TagCategory } from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import { render } from '@testing-library/react';
 import TagBadge from '@ui/tags/badge/TagBadge';
 import { describe, expect, it } from 'vitest';

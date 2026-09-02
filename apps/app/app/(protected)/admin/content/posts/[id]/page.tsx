@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import PostDetail from '@pages/posts/detail/post-detail';
 import type { DetailPageProps } from '@props/pages/page.props';

@@ -6,7 +6,7 @@ import {
   type PageScope,
   PostRepurposeMode,
   PostStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';

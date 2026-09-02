@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { IFieldOption } from '@genfeedai/interfaces';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { IFieldOption } from '@genfeedai/contracts/interfaces';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';

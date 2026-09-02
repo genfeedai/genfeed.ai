@@ -2,8 +2,8 @@ import {
   BatchItemStatus,
   normalizeReviewDecision,
   ReviewDecision,
-} from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 
 export function isApproved(item: IBatchItem): boolean {
   return (

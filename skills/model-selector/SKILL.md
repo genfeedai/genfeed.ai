@@ -399,8 +399,8 @@ Music                  → Suno v4
 
 ## Genfeed Integration
 
-- Reference `MODEL_OUTPUT_CAPABILITIES` from `@genfeedai/constants` for supported features per model
-- Use `ModelKey` enum values from `@genfeedai/enums` for precise model identification
+- Reference `MODEL_OUTPUT_CAPABILITIES` from `@genfeedai/contracts/constants` for supported features per model
+- Use `ModelKey` enum values from `@genfeedai/contracts` for precise model identification
 - Check `model-aspect-ratios.constant.ts` for supported aspect ratios per model
 - Model seeds in the database have `provider: 'genfeed-ai'` for self-hosted models
 - ComfyUI service handles self-hosted model queuing and output retrieval

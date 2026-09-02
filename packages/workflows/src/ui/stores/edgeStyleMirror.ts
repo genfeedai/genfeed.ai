@@ -1,4 +1,4 @@
-import type { EdgeStyle } from '@genfeedai/types';
+import type { EdgeStyle } from '@genfeedai/contracts/types';
 
 // =============================================================================
 // Module-level edge-style mirror

@@ -1,5 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
-import type { ITikTokMediaAnalytics } from '@genfeedai/interfaces';
+import type { ITikTokMediaAnalytics } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

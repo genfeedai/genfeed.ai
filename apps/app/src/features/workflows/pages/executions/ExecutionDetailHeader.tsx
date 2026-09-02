@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 

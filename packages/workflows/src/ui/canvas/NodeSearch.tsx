@@ -1,7 +1,7 @@
 'use client';
 
-import type { WorkflowNode } from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+import type { WorkflowNode } from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { Kbd } from '@genfeedai/ui';
 import { useReactFlow } from '@xyflow/react';
 import { Search, X } from 'lucide-react';

@@ -1,6 +1,6 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
-import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
+import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -12,7 +12,7 @@ import type {
   AgentCharacterMentionItem as CharacterMentionItem,
   AgentContentMentionItem as ContentMentionItem,
   AgentTeamMentionItem as TeamMentionItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Effect } from 'effect';
 
 // fetchJsonEffect trusts whatever JSON a 2xx carries, so a proxy or error

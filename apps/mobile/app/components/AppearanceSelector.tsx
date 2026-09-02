@@ -1,4 +1,7 @@
-import { THEME_PREFERENCES, type ThemePreference } from '@genfeedai/constants';
+import {
+  THEME_PREFERENCES,
+  type ThemePreference,
+} from '@genfeedai/contracts/constants';
 import type { NativeThemeColors } from '@genfeedai/ui/semantic/mobile';
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';

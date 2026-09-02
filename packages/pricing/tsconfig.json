@@ -11,10 +11,12 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/enums": ["../enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../enums/src/*"],
-      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../interfaces/src/*"]
+      "@genfeedai/contracts": ["../contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../contracts/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": ["../contracts/src/interfaces/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,
@@ -23,8 +25,5 @@
   },
   "exclude": ["node_modules", "dist", "src/**/*.spec.ts", "src/**/*.test.ts"],
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../enums/tsconfig.json" },
-    { "path": "../interfaces/tsconfig.json" }
-  ]
+  "references": [{ "path": "../contracts/tsconfig.json" }]
 }

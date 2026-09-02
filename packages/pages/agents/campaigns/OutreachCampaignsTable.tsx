@@ -6,7 +6,7 @@ import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   InstagramIcon,
   RedditIcon,

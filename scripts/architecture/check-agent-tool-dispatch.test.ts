@@ -9,7 +9,8 @@ import {
 } from './check-agent-tool-dispatch';
 
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
-const ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
+const ENUM_PATH =
+  'packages/contracts/src/interfaces/ai/agent-tool.interface.ts';
 const AGENT_TYPE_CONFIG_PATH =
   'apps/server/api/src/services/agent-orchestrator/constants/agent-type-config.constant.ts';
 const BRANDLESS_TOOLS_PATH =

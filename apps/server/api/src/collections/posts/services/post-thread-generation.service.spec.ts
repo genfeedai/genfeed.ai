@@ -11,7 +11,7 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { PostStatus, Status, TargetExecutionState } from '@genfeedai/enums';
+import { PostStatus, Status, TargetExecutionState } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

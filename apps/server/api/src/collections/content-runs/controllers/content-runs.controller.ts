@@ -23,7 +23,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource, ContentRunStatus } from '@genfeedai/enums';
+import { ActivitySource, ContentRunStatus } from '@genfeedai/contracts';
 import { ContentRunSerializer } from '@genfeedai/serializers';
 import {
   Body,

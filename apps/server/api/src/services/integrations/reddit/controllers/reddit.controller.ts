@@ -10,7 +10,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

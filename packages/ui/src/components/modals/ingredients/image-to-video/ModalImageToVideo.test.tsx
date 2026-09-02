@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModalImageToVideo from '@ui/modals/ingredients/image-to-video/ModalImageToVideo';
 import type { PropsWithChildren } from 'react';

@@ -14,7 +14,7 @@ import {
   isRetiredAgentChatModel,
   type ModelCatalogSeedEntry,
   shouldUseLowestCostModelDefaults,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

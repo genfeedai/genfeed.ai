@@ -1,10 +1,10 @@
-import type { IModel } from '@genfeedai/interfaces';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { usePromptBarModels } from '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock the constants module
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   getModelMaxReferences: vi.fn((modelKey: string) => {
     if (modelKey === 'model-multi-ref') {
       return 5;

@@ -1,7 +1,7 @@
 'use client';
 
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';

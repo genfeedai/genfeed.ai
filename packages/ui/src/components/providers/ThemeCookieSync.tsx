@@ -7,7 +7,7 @@ import {
   THEME_COOKIE_NAME,
   THEME_STORAGE_KEY,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
 import { useTheme } from 'next-themes';
 import { useEffect } from 'react';

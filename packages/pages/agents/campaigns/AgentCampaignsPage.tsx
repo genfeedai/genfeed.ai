@@ -1,8 +1,8 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';

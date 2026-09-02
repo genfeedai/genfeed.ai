@@ -1,15 +1,15 @@
-import {
-  evaluateOutreachCapability,
-  isOutreachPairExecutable,
-} from '@api-types/contracts/outreach-capabilities.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   CampaignPlatform,
   CampaignType,
   ReplyLength,
   ReplyTone,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  evaluateOutreachCapability,
+  isOutreachPairExecutable,
+} from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { OutreachCampaignsService } from '@services/automation/outreach-campaigns.service';

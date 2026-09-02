@@ -3,7 +3,7 @@ import type {
   IHeyGen,
   IHeyGenAvatar,
   IHeyGenVoice,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class HeyGen extends BaseEntity implements IHeyGen {
   public declare provider: string;

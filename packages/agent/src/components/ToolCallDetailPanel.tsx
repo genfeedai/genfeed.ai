@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { Button } from '@ui/primitives/button';

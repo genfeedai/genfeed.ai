@@ -2,9 +2,12 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
-import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
+import { ByokBillingStatus, ByokProvider } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type {
+  IByokKeyEntry,
+  IByokProviderStatus,
+} from '@genfeedai/contracts/interfaces';
 import {
   type Prisma,
   type PrismaClient,

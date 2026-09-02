@@ -5,7 +5,7 @@ import {
   AiActionType,
   ButtonVariant,
   ComponentSize,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { RichTextEditorAiConfig } from '@genfeedai/props/components/rich-text-editor.props';
 import type { Editor } from '@tiptap/react';
 import Spinner from '@ui/feedback/spinner/Spinner';

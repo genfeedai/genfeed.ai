@@ -5,7 +5,7 @@ import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/upda
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SoundCategory } from '@genfeedai/enums';
+import { SoundCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

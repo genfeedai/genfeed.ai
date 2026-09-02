@@ -1,6 +1,6 @@
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { CacheService } from '@api/services/cache/cache.service';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 

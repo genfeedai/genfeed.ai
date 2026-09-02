@@ -1,6 +1,6 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { toStudioGenerateJob } from '@pages/studio/generate/utils/studio-generate-asset';

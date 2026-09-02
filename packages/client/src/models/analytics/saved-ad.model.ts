@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ISavedAd } from '@genfeedai/interfaces';
+import type { ISavedAd } from '@genfeedai/contracts/interfaces';
 
 export class SavedAd extends BaseEntity implements ISavedAd {
   public declare organizationId: string;

@@ -1,4 +1,8 @@
-import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetScope,
+} from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const articleFormSchema = z.object({

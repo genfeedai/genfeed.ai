@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { BotActivityStatus, ReplyBotType } from '@genfeedai/enums';
+import { BotActivityStatus, ReplyBotType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,

@@ -1,5 +1,5 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 
 const UPSCALE_MODELS = [

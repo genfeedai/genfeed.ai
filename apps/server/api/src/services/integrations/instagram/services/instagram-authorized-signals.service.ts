@@ -19,14 +19,14 @@ import {
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,
   type InstagramAuthorizedSignalsSnapshot,
   instagramAuthorizedSignalStatusValues,
   instagramAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/instagram-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

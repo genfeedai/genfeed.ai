@@ -6,7 +6,7 @@ import {
   APP_ROUTES,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 

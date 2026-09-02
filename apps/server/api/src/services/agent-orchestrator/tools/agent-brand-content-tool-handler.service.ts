@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   IBrandAgentPrompting,
   IBrandConversationStarter,
   IGeneratedBrandProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 

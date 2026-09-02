@@ -35,17 +35,17 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   PromptStatus,
   Status,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PromptSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

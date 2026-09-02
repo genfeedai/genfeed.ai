@@ -12,7 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type {
   ClipReferenceApplication,
   HookClipApprovalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ClipGenerationResult } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

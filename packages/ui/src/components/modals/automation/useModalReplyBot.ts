@@ -7,12 +7,12 @@ import {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
-} from '@genfeedai/enums';
-import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+} from '@genfeedai/contracts';
 import type {
   IReplyBotConfig,
   IReplyBotRateLimits,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { type ChangeEvent, useEffect } from 'react';

@@ -28,7 +28,7 @@ import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,5 +1,8 @@
-import { ReleaseAttachmentKind } from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseAttachment } from '@genfeedai/interfaces';
+import { ReleaseAttachmentKind } from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseAttachment,
+} from '@genfeedai/contracts/interfaces';
 import type {
   TargetPreviewCredential,
   TargetPreviewRelease,

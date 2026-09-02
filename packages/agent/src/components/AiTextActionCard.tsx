@@ -1,6 +1,6 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Check, FileText } from 'lucide-react';
 import { type ReactElement, useCallback, useState } from 'react';

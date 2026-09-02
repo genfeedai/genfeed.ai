@@ -5,8 +5,8 @@ import {
   ModalEnum,
   PageScope,
   WebSocketEventStatus,
-} from '@genfeedai/enums';
-import type { IFolder, IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

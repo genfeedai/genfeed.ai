@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { platformColors, platformIcons } from './platform-map.constants';
 

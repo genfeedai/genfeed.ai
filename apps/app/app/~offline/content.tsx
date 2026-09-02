@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';

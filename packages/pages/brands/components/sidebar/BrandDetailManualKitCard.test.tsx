@@ -1,4 +1,4 @@
-import type { IBrandKitDraft } from '@genfeedai/interfaces';
+import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';
 import type { BrandDetailManualKitCardProps } from '@props/pages/brand-detail.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

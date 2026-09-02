@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
 export interface MediaLightboxProps {
   items: IIngredient[];

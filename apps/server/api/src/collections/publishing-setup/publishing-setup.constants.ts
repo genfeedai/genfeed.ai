@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 
 /**
  * Declarative map of the OAuth app-level environment a publishing provider

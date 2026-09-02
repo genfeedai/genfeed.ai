@@ -1,7 +1,7 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { WorkflowLifecycle } from '@genfeedai/enums';
-import type { IPaginationParams } from '@genfeedai/interfaces';
-import { getSystemWorkflowMetadata } from '@genfeedai/interfaces';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
+import { getSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
 import {
   deserializeCollection,
   deserializeResource,

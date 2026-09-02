@@ -1,4 +1,4 @@
-import type { IModelProviderContracts } from '@genfeedai/interfaces';
+import type { IModelProviderContracts } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModelProviderContractDetails from '@ui/modals/models/ModelProviderContractDetails';
 import { describe, expect, it, vi } from 'vitest';

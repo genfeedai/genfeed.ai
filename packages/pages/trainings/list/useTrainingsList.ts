@@ -1,5 +1,5 @@
-import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/enums';
-import type { ITraining } from '@genfeedai/interfaces';
+import { ModalEnum, PageScope, TrainingStatus } from '@genfeedai/contracts';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -11,7 +11,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,

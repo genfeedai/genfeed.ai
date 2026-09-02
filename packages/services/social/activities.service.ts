@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IBulkOperationResult,
   IBulkPatchData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Activity } from '@genfeedai/models/analytics/activity.model';
 import {
   ActivityBulkPatchSerializer,

@@ -2,7 +2,7 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

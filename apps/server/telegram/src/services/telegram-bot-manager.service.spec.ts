@@ -34,8 +34,8 @@ vi.mock('rxjs', () => ({
 // re-exports `schemas/stripe.schema.ts` → `@genfeedai/pricing` →
 // `tier-entitlements`, which reads `SubscriptionTier` from here. Spreading the
 // real module keeps every other export intact while still pinning `ParseMode`.
-vi.mock('@genfeedai/enums', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@genfeedai/enums')>()),
+vi.mock('@genfeedai/contracts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts')>()),
   ParseMode: { MARKDOWN: 'Markdown' },
 }));
 

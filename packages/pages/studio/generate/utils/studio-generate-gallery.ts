@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type { StudioGenerateFilter } from '@genfeedai/props/studio/studio-generate.props';
 import {
   getStudioGenerateTypeConfig,

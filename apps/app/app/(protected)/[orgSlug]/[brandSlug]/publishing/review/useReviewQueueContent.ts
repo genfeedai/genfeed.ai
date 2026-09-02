@@ -1,5 +1,5 @@
-import { BatchStatus } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import { BatchStatus } from '@genfeedai/contracts';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { BatchesService } from '@services/batch/batches.service';

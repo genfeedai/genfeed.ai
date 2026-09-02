@@ -1,4 +1,4 @@
-import type { HandleType, NodeType } from '@genfeedai/types';
+import type { HandleType, NodeType } from '@genfeedai/contracts/types';
 import { nanoid } from 'nanoid';
 import { getNodeDefinition } from '../../../../nodes/registry/merged-registry';
 

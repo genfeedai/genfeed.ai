@@ -45,11 +45,11 @@ import {
   IngredientCategory,
   MemberRole,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import {

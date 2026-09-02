@@ -1,6 +1,6 @@
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMenuRouteResolution } from './useMenuRouteResolution';

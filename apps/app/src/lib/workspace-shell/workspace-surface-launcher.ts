@@ -4,13 +4,13 @@ import type {
   WorkspaceShellRouteMode,
   WorkspaceShellSurfaceKey,
   WorkspaceSurfaceLaunch,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import { resolveWorkspaceShellRoute } from './workspace-shell-registry';
 
 export type {
   ResolveWorkspaceSurfaceLaunchParams,
   WorkspaceSurfaceLaunch,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 const INTERNAL_ORIGIN = 'https://workspace.genfeed.invalid';
 

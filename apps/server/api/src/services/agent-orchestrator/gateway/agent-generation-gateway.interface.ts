@@ -1,9 +1,9 @@
 import type { GenerationPlaceholderCreatedCallback } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
-import type { ActivitySource } from '@genfeedai/enums';
+import type { ActivitySource } from '@genfeedai/contracts';
 import type {
   JsonApiResult,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * DI token for the in-process generation gateway.

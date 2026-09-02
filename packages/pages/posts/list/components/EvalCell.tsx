@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { Button } from '@ui/primitives/button';

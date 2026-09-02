@@ -44,7 +44,7 @@ export function parseSelectedCredits(
   return parsed;
 }
 
-export { buildOnboardingResumeHref } from '@genfeedai/constants';
+export { buildOnboardingResumeHref } from '@genfeedai/contracts/constants';
 
 export function appendCheckoutReturnParams(
   href: string,

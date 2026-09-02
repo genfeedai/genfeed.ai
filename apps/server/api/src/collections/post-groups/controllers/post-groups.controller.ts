@@ -11,7 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ReleaseGroupSerializer } from '@genfeedai/serializers';
 import {
   Body,

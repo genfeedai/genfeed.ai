@@ -1,4 +1,4 @@
-import type { IFolder } from '@genfeedai/interfaces';
+import type { IFolder } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import FolderCard from '@ui/folders/card/FolderCard';
 import { describe, expect, it, vi } from 'vitest';

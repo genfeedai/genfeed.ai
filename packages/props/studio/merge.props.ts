@@ -1,5 +1,5 @@
 import type { StoryboardFrame } from '@genfeedai/client/schemas';
-import type { IngredientFormat } from '@genfeedai/enums';
+import type { IngredientFormat } from '@genfeedai/contracts';
 
 export interface MergeFramesGridProps {
   frames: StoryboardFrame[];

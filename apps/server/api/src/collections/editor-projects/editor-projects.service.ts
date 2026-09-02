@@ -8,13 +8,13 @@ import {
   findOrThrow,
   findUniqueOrThrow,
 } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { EditorProjectStatus } from '@genfeedai/enums';
+import { EditorProjectStatus } from '@genfeedai/contracts';
 import type {
   IEditorRenderCorrelation,
   IEditorRenderFailure,
   IEditorRenderOutputMetadata,
   IEditorRenderProvenance,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';

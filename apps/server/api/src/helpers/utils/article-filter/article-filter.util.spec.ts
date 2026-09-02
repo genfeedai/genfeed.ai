@@ -5,7 +5,7 @@ import {
   ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS,
   ArticleFilterUtil,
 } from '@api/helpers/utils/article-filter/article-filter.util';
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/contracts';
 
 const SERVER_SRC_ROOT = join(
   dirname(fileURLToPath(import.meta.url)),

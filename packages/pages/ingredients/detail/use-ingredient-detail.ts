@@ -1,6 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import {
   createCacheKey,
   createLocalStorageCache,

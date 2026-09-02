@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
 import { MessageSquare } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';

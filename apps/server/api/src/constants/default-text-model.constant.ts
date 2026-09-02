@@ -1,4 +1,4 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 export const DEFAULT_TEXT_MODEL =
   MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET;

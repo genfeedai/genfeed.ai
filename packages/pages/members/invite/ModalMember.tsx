@@ -7,8 +7,8 @@ import {
   type MemberEditSchema,
   memberEditSchema,
 } from '@genfeedai/client/schemas';
-import { ModalEnum } from '@genfeedai/enums';
-import type { IBrand, IRole } from '@genfeedai/interfaces';
+import { ModalEnum } from '@genfeedai/contracts';
+import type { IBrand, IRole } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

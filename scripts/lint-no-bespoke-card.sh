@@ -7,7 +7,7 @@
 # content card and should use the shared component instead:
 #
 #     import Card from '@ui/card/Card';
-#     import { CardVariant } from '@genfeedai/enums';
+#     import { CardVariant } from '@genfeedai/contracts';
 #     <Card variant={CardVariant.DEFAULT} bodyClassName="...">…</Card>
 #
 # Canonical component: packages/ui/src/components/card/Card.tsx
@@ -150,7 +150,7 @@ if [[ "$violations" -gt 0 ]]; then
   echo ""
   echo "    packages/ui/src/components/card/Card.tsx"
   echo "    import Card from '@ui/card/Card';"
-  echo "    import { CardVariant } from '@genfeedai/enums';"
+  echo "    import { CardVariant } from '@genfeedai/contracts';"
   echo "    <Card variant={CardVariant.DEFAULT} bodyClassName=\"…\">…</Card>"
   echo ""
   echo "  If this surface is a legitimate non-card (editor chrome, a"

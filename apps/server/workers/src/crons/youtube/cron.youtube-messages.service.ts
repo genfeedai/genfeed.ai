@@ -1,6 +1,6 @@
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

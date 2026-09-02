@@ -24,7 +24,10 @@ import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AnalyticsMetric, toPrismaCredentialPlatform } from '@genfeedai/enums';
+import {
+  AnalyticsMetric,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import {
   Prisma,
   CredentialPlatform as PrismaCredentialPlatform,

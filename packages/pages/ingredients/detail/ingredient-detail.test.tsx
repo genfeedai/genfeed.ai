@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import IngredientDetail from '@pages/ingredients/detail/ingredient-detail';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';

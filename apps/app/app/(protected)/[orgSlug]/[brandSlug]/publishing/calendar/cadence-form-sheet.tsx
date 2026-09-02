@@ -5,8 +5,8 @@ import {
   ButtonVariant,
   CadenceGenerateLanding,
   PostCategory,
-} from '@genfeedai/enums';
-import type { IPostingCadence } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IPostingCadence } from '@genfeedai/contracts/interfaces';
 import type { CreatePostingCadenceInput } from '@services/content/posting-cadences.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

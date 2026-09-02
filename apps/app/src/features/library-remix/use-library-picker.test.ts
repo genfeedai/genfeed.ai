@@ -1,5 +1,5 @@
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLibraryPicker } from './use-library-picker';

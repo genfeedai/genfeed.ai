@@ -4,7 +4,7 @@ import type {
   AgentThreadStatus,
   PostVisibility,
   RouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
@@ -15,7 +15,7 @@ import type {
   AnalyticsQueryReference,
   ScopedResearchFindingReference,
   SocialInboxReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 
@@ -118,7 +118,7 @@ export type {
   AgentPublishTargetProposal,
   AgentPublishValidationIssue,
   AgentUiActionHandler,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * One choice the agent offers. Every option carries its own CTAs so a

@@ -413,8 +413,8 @@ jobs:
       - name: Spec Typecheck Guard Tests
         if: steps.scope.outputs.run_any == 'true'
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
-      # The typecheck base config resolves @genfeedai/enums and
-      # @genfeedai/constants to their dist output, so the package graph has to
+      # The typecheck base config resolves @genfeedai/contracts and
+      # @genfeedai/contracts/constants to their dist output, so the package graph has to
       # exist before any program is created.
       - name: Build packages
         if: steps.scope.outputs.run_any == 'true'

@@ -1,4 +1,4 @@
-import type { GenerationFidelityMode } from '@api-types/contracts/generation-brief.contract';
+import type { GenerationFidelityMode } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 
 export function resolveImageGenerationFidelityMode(input: {
   brandingMode?: 'off' | 'brand';

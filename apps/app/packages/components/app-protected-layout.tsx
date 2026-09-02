@@ -14,7 +14,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';

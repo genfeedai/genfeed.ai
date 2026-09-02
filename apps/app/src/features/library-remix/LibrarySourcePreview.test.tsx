@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';

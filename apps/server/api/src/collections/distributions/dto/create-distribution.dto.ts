@@ -1,7 +1,7 @@
 import {
   DistributionContentType,
   DistributionPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,

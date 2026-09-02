@@ -1,4 +1,4 @@
-import type { PromptFormat, PromptJsonValue } from '@genfeedai/types';
+import type { PromptFormat, PromptJsonValue } from '@genfeedai/contracts/types';
 
 /**
  * Executor payload for prompt-constructor nodes.

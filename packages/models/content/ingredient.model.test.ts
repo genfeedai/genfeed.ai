@@ -6,8 +6,7 @@ import {
   IngredientFormat,
   IngredientStatus,
   TagCategory,
-} from '@genfeedai/enums';
-import { testId } from '@genfeedai/helpers/testing/test-id.helper';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -19,7 +18,8 @@ import type {
   ISetting,
   ITag,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const localCdnIngredientId = testId('ingredient');

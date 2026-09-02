@@ -3,7 +3,7 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentTransferDeliveryMode,
   AgentTransferStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

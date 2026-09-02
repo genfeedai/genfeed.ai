@@ -1,5 +1,5 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { render, screen, within } from '@testing-library/react';
 import ModelSelectorTrigger from '@ui/dropdowns/model-selector/ModelSelectorTrigger';
 import { describe, expect, it } from 'vitest';

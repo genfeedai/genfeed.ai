@@ -1,9 +1,9 @@
+import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn';
-import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { Skeleton } from '@ui/primitives/skeleton';
 import { DashboardGrid } from './DashboardGrid';
 
-export type { SurfaceSummaryItem } from '@genfeedai/interfaces';
+export type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 
 /**
  * Inline strips render *inside* the agent conversation thread, where a surface

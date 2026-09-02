@@ -9,7 +9,11 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
 import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';

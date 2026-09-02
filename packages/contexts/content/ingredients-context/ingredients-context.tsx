@@ -3,7 +3,7 @@
 import type {
   IIngredientsContextValue,
   IProviderWithValue,
-} from '@genfeedai/interfaces/providers/providers.interface';
+} from '@genfeedai/contracts/interfaces/providers/providers.interface';
 import { createContext, use } from 'react';
 
 const IngredientsContext = createContext<IIngredientsContextValue | undefined>(

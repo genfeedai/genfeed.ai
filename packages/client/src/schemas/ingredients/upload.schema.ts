@@ -3,7 +3,7 @@ import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPTED_VIDEO_TYPES,
   MAX_FILE_SIZE,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { z } from 'zod';
 
 const fileSizeSchema = z

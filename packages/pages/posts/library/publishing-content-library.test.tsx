@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { ArticleCategory, Platform, PostStatus } from '@genfeedai/enums';
+import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';

@@ -26,12 +26,12 @@ import {
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EditorProjectSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

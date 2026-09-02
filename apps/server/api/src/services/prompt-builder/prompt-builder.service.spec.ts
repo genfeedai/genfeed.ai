@@ -2,8 +2,8 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

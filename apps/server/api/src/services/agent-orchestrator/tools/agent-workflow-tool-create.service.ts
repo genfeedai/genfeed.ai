@@ -16,10 +16,10 @@ import type {
   RecurringTaskContentType,
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { WorkflowTrigger } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 

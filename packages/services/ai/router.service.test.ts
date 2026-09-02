@@ -1,4 +1,4 @@
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import {
   type ModelRecommendation,
   RouterService,

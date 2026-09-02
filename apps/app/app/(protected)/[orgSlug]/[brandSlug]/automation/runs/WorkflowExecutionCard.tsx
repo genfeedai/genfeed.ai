@@ -4,8 +4,8 @@ import {
   ButtonSize,
   ButtonVariant,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';

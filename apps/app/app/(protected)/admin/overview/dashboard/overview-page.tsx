@@ -1,8 +1,8 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAdminStats } from '@hooks/data/analytics/use-admin-stats/use-admin-stats';
 import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';

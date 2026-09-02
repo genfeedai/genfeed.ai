@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Button from '@ui/buttons/base/Button';
 import { describe, expect, it, vi } from 'vitest';

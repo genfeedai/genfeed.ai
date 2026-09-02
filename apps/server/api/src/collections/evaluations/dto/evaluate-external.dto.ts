@@ -1,4 +1,4 @@
-import { ExternalPlatform } from '@genfeedai/enums';
+import { ExternalPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsUrl } from 'class-validator';
 

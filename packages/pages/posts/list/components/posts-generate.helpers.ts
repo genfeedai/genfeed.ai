@@ -1,5 +1,5 @@
-import type { Platform } from '@genfeedai/enums';
-import type { ICredential } from '@genfeedai/interfaces';
+import type { Platform } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import {
   getPostsPlatformLabel,
   isPostPlatform,

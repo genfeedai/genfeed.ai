@@ -4,8 +4,8 @@ import type {
   SubtitleNodeData,
   SubtitlePosition,
   SubtitleStyle,
-} from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Captions, LoaderCircle, RefreshCw } from 'lucide-react';
 import { memo, useCallback } from 'react';

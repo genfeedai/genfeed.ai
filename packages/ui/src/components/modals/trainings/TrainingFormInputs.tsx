@@ -1,7 +1,7 @@
 'use client';
 
 import type { TrainingSchema } from '@genfeedai/client/schemas';
-import { ButtonVariant, TrainingCategory } from '@genfeedai/enums';
+import { ButtonVariant, TrainingCategory } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';

@@ -3,10 +3,10 @@ import type {
   IngredientFormat,
   VideoEaseCurve,
   VideoTransition,
-} from '@genfeedai/enums';
-import type { IImage } from '@genfeedai/interfaces';
-import type { IStoryboardMergeSettings } from '@genfeedai/interfaces/components/storyboard.interface';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+} from '@genfeedai/contracts';
+import type { IImage } from '@genfeedai/contracts/interfaces';
+import type { IStoryboardMergeSettings } from '@genfeedai/contracts/interfaces/components/storyboard.interface';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import type { MergeProgressStep } from './merge.props';
 
 export interface EaseCurveSelectorProps {

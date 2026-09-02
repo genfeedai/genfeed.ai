@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
 

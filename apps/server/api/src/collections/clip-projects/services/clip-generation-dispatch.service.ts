@@ -12,8 +12,8 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import type { ClipReferenceApplication } from '@genfeedai/interfaces';
-import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
+import type { ClipReferenceApplication } from '@genfeedai/contracts/interfaces';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/contracts/interfaces';
 import {
   type ClipGenerationResult,
   serializeClipGenerationResult,

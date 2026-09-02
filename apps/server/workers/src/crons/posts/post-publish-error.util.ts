@@ -6,8 +6,8 @@ import {
   ActivityKey,
   ActivitySource,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IChannelTargetError } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 

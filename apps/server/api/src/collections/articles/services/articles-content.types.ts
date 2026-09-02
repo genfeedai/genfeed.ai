@@ -9,9 +9,9 @@ import type {
   ArticleCategory,
   PromptTemplateKey,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ArticleCreatePayload } from '@genfeedai/contracts/interfaces/content/article.interface';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
-import type { ArticleCreatePayload } from '@genfeedai/interfaces/content/article.interface';
 
 /**
  * Billing charge emitted after a text-generation model call.

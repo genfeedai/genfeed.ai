@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { createMarkup } from '@genfeedai/helpers';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { ClipboardService } from '@services/core/clipboard.service';

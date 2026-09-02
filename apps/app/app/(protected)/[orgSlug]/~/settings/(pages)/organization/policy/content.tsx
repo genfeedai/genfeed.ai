@@ -1,6 +1,6 @@
 'use client';
 
-import { AgentReplyStyle } from '@genfeedai/enums';
+import { AgentReplyStyle } from '@genfeedai/contracts';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';

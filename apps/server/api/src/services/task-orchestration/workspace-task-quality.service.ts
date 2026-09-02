@@ -1,5 +1,5 @@
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -4,9 +4,9 @@ import {
   ComponentSize,
   formatEnumLabel,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';

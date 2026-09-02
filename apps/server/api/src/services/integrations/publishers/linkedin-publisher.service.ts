@@ -7,7 +7,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
 import {
   getIntegrationProviderDefinition,
   type IntegrationProviderCapability,

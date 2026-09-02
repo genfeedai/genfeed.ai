@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 
 type ExternalImageOutputResult = {
   kind: 'external-id';

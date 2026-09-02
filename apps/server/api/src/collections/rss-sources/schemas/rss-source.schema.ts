@@ -2,7 +2,7 @@ export type {
   IRssFeedItemDocument as RssFeedItemDocument,
   IRssSourceDocument as RssSourceDocument,
   IRssTargetChannel as RssTargetChannel,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type RssSourceScope = {
   brandId?: string;

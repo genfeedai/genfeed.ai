@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendDirection } from '@genfeedai/enums';
+import { TrendDirection } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumberIntl,

@@ -4,7 +4,7 @@ import type {
   HandleDefinition,
   WorkflowInterface,
   WorkflowRefNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {

@@ -5,13 +5,15 @@
     "moduleResolution": "bundler",
     "outDir": "dist",
     "paths": {
-      "@genfeedai/enums": ["../enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/contracts": ["../contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../contracts/src/*"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/integrations/*": ["./src/*"],
-      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": ["../contracts/src/interfaces/*"],
       "@integrations/*": ["./src/*"]
     },
     "rootDir": "src",
@@ -22,13 +24,10 @@
   "include": ["src/**/*"],
   "references": [
     {
-      "path": "../enums/tsconfig.json"
+      "path": "../contracts/tsconfig.json"
     },
     {
       "path": "../helpers/tsconfig.json"
-    },
-    {
-      "path": "../interfaces/tsconfig.json"
     }
   ]
 }

@@ -1,19 +1,19 @@
-import type {
-  PersistRssSourceInput,
-  RssTargetChannel,
-  UpdateRssSourceInput,
-} from '@api-types/contracts/rss-sources.contract';
-import {
-  persistRssSourceInputSchema,
-  rssTargetChannelSchema,
-  updateRssSourceInputSchema,
-} from '@api-types/contracts/rss-sources.contract';
 import {
   CredentialPlatform,
   parsePlatform,
   RssApprovalMode,
   RssImportPolicy,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  PersistRssSourceInput,
+  RssTargetChannel,
+  UpdateRssSourceInput,
+} from '@genfeedai/contracts/api-types/contracts/rss-sources.contract';
+import {
+  persistRssSourceInputSchema,
+  rssTargetChannelSchema,
+  updateRssSourceInputSchema,
+} from '@genfeedai/contracts/api-types/contracts/rss-sources.contract';
 import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 

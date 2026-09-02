@@ -2,7 +2,7 @@ import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AgentStrategyDialogProps,
   AgentStrategyFormState,

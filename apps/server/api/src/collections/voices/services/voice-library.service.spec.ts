@@ -3,7 +3,7 @@ import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dt
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { HttpStatus } from '@nestjs/common';
 

@@ -8,7 +8,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { ByokService } from '@api/services/byok/byok.service';
 import { getDefaultModel } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

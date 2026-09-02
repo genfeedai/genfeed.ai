@@ -23,18 +23,22 @@ import {
 describe('publish package release planning', () => {
   it('requires exact PR-merged versions and rejects live bump requests', () => {
     const inventory = inventoryFor([
-      packageEntry('packages/enums', '@genfeedai/enums', '2.3.2'),
+      packageEntry(
+        'packages/contracts/src/enums',
+        '@genfeedai/contracts',
+        '2.3.2',
+      ),
     ]);
 
     expect(() =>
       normalizeReleaseRequests(
-        [{ bump: 'patch', path: 'packages/enums' }],
+        [{ bump: 'patch', path: 'packages/contracts/src/enums' }],
         inventory,
       ),
     ).toThrow('version changes must merge through a PR');
     expect(() =>
       normalizeReleaseRequests(
-        [{ path: 'packages/enums', version: '2.3.3' }],
+        [{ path: 'packages/contracts/src/enums', version: '2.3.3' }],
         inventory,
       ),
     ).toThrow('master contains 2.3.2');
@@ -51,20 +55,24 @@ describe('publish package release planning', () => {
   });
 
   it('sorts requests dependency-first regardless of input order', () => {
-    const enums = packageEntry('packages/enums', '@genfeedai/enums', '2.3.2');
+    const enums = packageEntry(
+      'packages/contracts/src/enums',
+      '@genfeedai/contracts',
+      '2.3.2',
+    );
     const constants = packageEntry(
-      'packages/constants',
-      '@genfeedai/constants',
+      'packages/contracts/src/constants',
+      '@genfeedai/contracts/constants',
       '2.2.9',
-      { '@genfeedai/enums': 'workspace:*' },
+      { '@genfeedai/contracts': 'workspace:*' },
     );
     const interfaces = packageEntry(
-      'packages/interfaces',
-      '@genfeedai/interfaces',
+      'packages/contracts/src/interfaces',
+      '@genfeedai/contracts/interfaces',
       '2.3.20',
       {
-        '@genfeedai/constants': 'workspace:*',
-        '@genfeedai/enums': 'workspace:*',
+        '@genfeedai/contracts/constants': 'workspace:*',
+        '@genfeedai/contracts': 'workspace:*',
       },
     );
     const inventory = inventoryFor([interfaces, constants, enums]);
@@ -80,9 +88,9 @@ describe('publish package release planning', () => {
     expect(
       sortReleaseRequests(requests, inventory).map((entry) => entry.name),
     ).toEqual([
-      '@genfeedai/enums',
-      '@genfeedai/constants',
-      '@genfeedai/interfaces',
+      '@genfeedai/contracts',
+      '@genfeedai/contracts/constants',
+      '@genfeedai/contracts/interfaces',
     ]);
   });
 
@@ -112,15 +120,15 @@ describe('publish package release planning', () => {
 
   it('validates resolved workspace versions and packed entry points', () => {
     const dependency = packageEntry(
-      'packages/enums',
-      '@genfeedai/enums',
+      'packages/contracts/src/enums',
+      '@genfeedai/contracts',
       '2.3.2',
     );
     const request = packageEntry(
-      'packages/constants',
-      '@genfeedai/constants',
+      'packages/contracts/src/constants',
+      '@genfeedai/contracts/constants',
       '2.2.9',
-      { '@genfeedai/enums': 'workspace:*' },
+      { '@genfeedai/contracts': 'workspace:*' },
     );
     const inventory = inventoryFor([dependency, request]);
 
@@ -134,7 +142,7 @@ describe('publish package release planning', () => {
         ],
         inventory,
         packedManifest: {
-          dependencies: { '@genfeedai/enums': 'workspace:*' },
+          dependencies: { '@genfeedai/contracts': 'workspace:*' },
           exports: {
             '.': {
               default: './dist/index.js',
@@ -154,7 +162,11 @@ describe('publish package release planning', () => {
   });
 
   it('requires a license payload in every tarball', () => {
-    const request = packageEntry('packages/enums', '@genfeedai/enums', '2.3.2');
+    const request = packageEntry(
+      'packages/contracts/src/enums',
+      '@genfeedai/contracts',
+      '2.3.2',
+    );
     const inventory = inventoryFor([request]);
 
     expect(() =>
@@ -175,7 +187,11 @@ describe('publish package release planning', () => {
   });
 
   it('rejects platform metadata from repacked tarballs', () => {
-    const request = packageEntry('packages/enums', '@genfeedai/enums', '2.3.2');
+    const request = packageEntry(
+      'packages/contracts/src/enums',
+      '@genfeedai/contracts',
+      '2.3.2',
+    );
     const inventory = inventoryFor([request]);
 
     expect(() =>

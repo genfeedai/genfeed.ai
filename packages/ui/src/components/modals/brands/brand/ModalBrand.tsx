@@ -7,7 +7,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';

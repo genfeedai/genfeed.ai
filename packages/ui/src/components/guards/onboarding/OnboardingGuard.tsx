@@ -5,14 +5,14 @@ import {
   isDesktopClient,
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   APP_ROUTES,
   getResumeStep,
   hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
-} from '@genfeedai/constants';
-import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+} from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';

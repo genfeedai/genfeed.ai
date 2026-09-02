@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, IngredientFormat } from '@genfeedai/enums';
+import { ButtonVariant, IngredientFormat } from '@genfeedai/contracts';
 import type { ModalGalleryUploadsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';

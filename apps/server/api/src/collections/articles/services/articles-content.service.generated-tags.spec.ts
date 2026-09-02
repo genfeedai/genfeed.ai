@@ -10,7 +10,7 @@ import type { ArticleCreateFn } from '@api/collections/articles/services/article
 import type { TagsService } from '@api/collections/tags/services/tags.service';
 import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { ArticleCategory, TagCategory } from '@genfeedai/enums';
+import { ArticleCategory, TagCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

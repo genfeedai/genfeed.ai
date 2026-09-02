@@ -36,16 +36,16 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { ApiKeyScope, TargetExecutionState } from '@genfeedai/contracts';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
   resolveDefaultTargetExecutionState,
-} from '@api-types/contracts/scheduler.contract';
-import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

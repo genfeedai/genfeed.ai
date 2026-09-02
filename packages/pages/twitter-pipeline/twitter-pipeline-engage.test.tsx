@@ -1,7 +1,7 @@
 import type {
   ITwitterOpportunity,
   ITwitterSearchResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import TwitterPipelineEngage from '@pages/twitter-pipeline/twitter-pipeline-engage';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

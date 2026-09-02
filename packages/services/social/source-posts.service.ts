@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   SourcePostDraftActionInput,
   SourcePostDraftActionResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { SourcePost } from '@genfeedai/models/social/source-post.model';
 import { SourcePostSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

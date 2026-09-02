@@ -42,7 +42,6 @@ import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
-import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -51,11 +50,12 @@ import {
   ReplyLength,
   ReplyTone,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { getOutreachCapabilityRefusal } from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import type {
   ICampaignScope,
   IReplyBotCredentialData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

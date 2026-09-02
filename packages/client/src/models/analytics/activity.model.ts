@@ -1,6 +1,10 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ActionOrigin, ActivityStatus } from '@genfeedai/enums';
-import type { IActivity, IOrganization, IUser } from '@genfeedai/interfaces';
+import type { ActionOrigin, ActivityStatus } from '@genfeedai/contracts';
+import type {
+  IActivity,
+  IOrganization,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 
 export class Activity extends BaseEntity implements IActivity {
   public declare user: IUser;

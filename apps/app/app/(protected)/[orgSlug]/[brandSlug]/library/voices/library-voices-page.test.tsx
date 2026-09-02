@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { PageScope, VoiceProvider } from '@genfeedai/enums';
-import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import { PageScope, VoiceProvider } from '@genfeedai/contracts';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { Voice } from '@models/ingredients/voice.model';

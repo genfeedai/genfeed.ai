@@ -20,7 +20,7 @@ import {
   VIDEO_CONTINUITY_QA_SCHEMA_VERSION,
   type VideoContinuityClipFinding,
   type VideoContinuityQaReport,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

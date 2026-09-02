@@ -1,10 +1,10 @@
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
-import { VideoTransition } from '@genfeedai/enums';
+import { VideoTransition } from '@genfeedai/contracts';
 import {
   FILE_JOB_TYPES as JOB_TYPES,
   type FileJobType as JobType,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import type { Job } from 'bullmq';
 
 const createJobData = (

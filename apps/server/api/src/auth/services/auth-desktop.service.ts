@@ -15,7 +15,11 @@ import {
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  ApiKeyCategory,
+  ApiKeyScope,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

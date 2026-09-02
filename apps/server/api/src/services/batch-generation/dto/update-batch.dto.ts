@@ -1,4 +1,4 @@
-import { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/contracts';
 import { IsEnum, IsOptional } from 'class-validator';
 
 export class UpdateBatchDto {

@@ -1,14 +1,14 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientStatus } from '@genfeedai/contracts';
 import type {
   BrandRemixDraft,
   BrandRemixDraftEdits,
   BrandRemixRunConfig,
   BrandRemixSourceSnapshot,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
 export const GENERATION_READY_STATUSES = new Set<string>([

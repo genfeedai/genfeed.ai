@@ -1,4 +1,4 @@
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import {
   hasFormErrors,
   parseFormErrors,

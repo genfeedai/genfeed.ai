@@ -1,5 +1,10 @@
-import type { AssetScope } from '@genfeedai/enums';
-import type { IImage, IIngredient, ITag, IVideo } from '@genfeedai/interfaces';
+import type { AssetScope } from '@genfeedai/contracts';
+import type {
+  IImage,
+  IIngredient,
+  ITag,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
 /**

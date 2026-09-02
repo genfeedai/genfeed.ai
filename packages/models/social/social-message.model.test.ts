@@ -3,7 +3,7 @@ import {
   SocialMessageDirection,
   SocialMessageType,
   SocialMessageWorkflowTriggerStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { SocialMessageModel } from '@models/social/social-message.model';
 import { describe, expect, it } from 'vitest';
 

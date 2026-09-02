@@ -1,6 +1,6 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type { IImage, IModel } from '@genfeedai/interfaces';
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import type { IImage, IModel } from '@genfeedai/contracts/interfaces';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 
 export interface UseStoryboardGenerationParams {
   brandId: string;
@@ -32,7 +32,7 @@ export interface UseStoryboardGenerationReturn {
   setFrames: React.Dispatch<React.SetStateAction<IImage[]>>;
 }
 
-// The Studio-generate domain shapes live in `@genfeedai/interfaces` so the
+// The Studio-generate domain shapes live in `@genfeedai/contracts/interfaces` so the
 // props package can reference them without depending on `@genfeedai/pages`.
 export type {
   StudioGenerateCapabilities,
@@ -42,4 +42,4 @@ export type {
   StudioGenerateSettings,
   StudioGenerateType,
   StudioGenerateTypeConfig,
-} from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';

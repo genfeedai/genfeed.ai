@@ -48,7 +48,9 @@ test('classifies direct and shared pull-request surfaces conservatively', () => 
     },
   );
   assert.deepEqual(
-    classifyChangedFiles(['packages/interfaces/src/example.interface.ts']),
+    classifyChangedFiles([
+      'packages/contracts/src/interfaces/example.interface.ts',
+    ]),
     {
       api: true,
       app: true,
@@ -194,12 +196,12 @@ test('extracts affected Turbo test tasks and rejects malformed plans', () => {
     parseTurboDryRun(
       JSON.stringify({
         tasks: [
-          { package: '@genfeedai/interfaces', task: 'test' },
+          { package: '@genfeedai/contracts/interfaces', task: 'test' },
           { package: '@genfeedai/serializers', task: 'test' },
         ],
       }),
     ),
-    ['@genfeedai/interfaces#test', '@genfeedai/serializers#test'],
+    ['@genfeedai/contracts/interfaces#test', '@genfeedai/serializers#test'],
   );
   assert.deepEqual(parseTurboDryRun('{"tasks":[]}'), []);
   assert.throws(
@@ -211,12 +213,12 @@ test('extracts affected Turbo test tasks and rejects malformed plans', () => {
 test('creates a fail-closed plan with explicit applicability', () => {
   const plan = createPrTestPlan({
     base: 'base-sha',
-    changedFiles: ['packages/interfaces/src/index.ts'],
+    changedFiles: ['packages/contracts/src/interfaces/index.ts'],
     appTests: Array.from({ length: 76 }, (_, index) => `app-${index}.test.ts`),
     apiTests: Array.from({ length: 251 }, (_, index) => `api-${index}.test.ts`),
     turboTasks: {
       extensions: [],
-      packages: ['@genfeedai/interfaces#test'],
+      packages: ['@genfeedai/contracts/interfaces#test'],
       server: [],
       web: ['@genfeedai/website#test'],
     },

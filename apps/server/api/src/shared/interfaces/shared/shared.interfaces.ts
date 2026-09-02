@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 /**
- * ServiceModuleOptions stays local — depends on NestJS types not available in packages/interfaces.
+ * ServiceModuleOptions stays local — depends on NestJS types not available in packages/contracts/src/interfaces.
  */
 export interface ServiceModuleOptions {
   /**

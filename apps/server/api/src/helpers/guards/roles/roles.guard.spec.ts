@@ -1,7 +1,7 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,

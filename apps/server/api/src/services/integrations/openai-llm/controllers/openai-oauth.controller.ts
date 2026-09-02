@@ -3,7 +3,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

@@ -42,14 +42,14 @@ import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentWorkflowToolInstallService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   ApiKeyScope,
   IngredientCategory,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

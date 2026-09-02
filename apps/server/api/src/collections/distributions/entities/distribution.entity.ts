@@ -4,7 +4,7 @@ import type {
   DistributionContentType,
   DistributionPlatform,
   PublishStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export class DistributionEntity extends BaseEntity implements Distribution {
   declare readonly organizationId: string;

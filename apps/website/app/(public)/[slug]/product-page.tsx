@@ -1,5 +1,5 @@
 import { getRelatedProducts, type Product } from '@data/products.data';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import HeroProofRail from '@ui/marketing/HeroProofRail';

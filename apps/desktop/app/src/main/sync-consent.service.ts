@@ -3,7 +3,7 @@ import type {
   IDesktopSession,
   IDesktopSyncConsent,
   IDesktopSyncConsentInput,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import type { DesktopKeyValueStore } from './store.service';
 
 const SYNC_CONSENT_KEY_PREFIX = 'desktop.sync.consent.';

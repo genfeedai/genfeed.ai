@@ -15,11 +15,11 @@ import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

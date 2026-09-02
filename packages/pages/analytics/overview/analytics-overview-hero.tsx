@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { CircleCheck, Info, TrendingUp } from 'lucide-react';
 import Link from 'next/link';

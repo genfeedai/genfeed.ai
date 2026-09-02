@@ -1,5 +1,5 @@
-import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
-import type { IPaginationParams } from '@genfeedai/interfaces';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   toBrandListParams,

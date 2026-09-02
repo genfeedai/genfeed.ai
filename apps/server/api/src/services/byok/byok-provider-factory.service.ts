@@ -1,6 +1,6 @@
 import { ByokService } from '@api/services/byok/byok.service';
-import { ByokProvider } from '@genfeedai/enums';
-import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { ByokProvider } from '@genfeedai/contracts';
+import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 

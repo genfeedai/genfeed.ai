@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { describe, expect, it } from 'vitest';
 import {

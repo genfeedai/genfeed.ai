@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, OrganizationCategory } from '@genfeedai/enums';
+import { ButtonVariant, OrganizationCategory } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Briefcase, CircleUser, Users } from 'lucide-react';
 

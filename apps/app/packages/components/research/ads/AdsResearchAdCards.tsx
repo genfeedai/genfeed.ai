@@ -1,7 +1,10 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { AdsResearchItem, AdsResearchMetric } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type {
+  AdsResearchItem,
+  AdsResearchMetric,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

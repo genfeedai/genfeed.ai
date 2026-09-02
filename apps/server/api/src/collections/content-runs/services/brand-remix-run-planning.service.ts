@@ -21,21 +21,21 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  AssetCategory,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import {
   type BrandRemixDraft,
   type BrandRemixDraftEdits,
   type BrandRemixReadiness,
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
   brandRemixDraftSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import type { GenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationBriefSchema } from '@api-types/contracts/generation-brief.contract';
-import {
-  AssetCategory,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { GenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()

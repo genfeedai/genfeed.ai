@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   ComponentSize,
   ViewType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

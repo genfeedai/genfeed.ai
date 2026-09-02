@@ -2,7 +2,7 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAudio,
   ICredential,
@@ -10,7 +10,7 @@ import type {
   IIngredient,
   IPost,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 
 export interface IngredientListProps<T extends IIngredient = IIngredient> {

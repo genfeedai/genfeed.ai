@@ -1,5 +1,5 @@
-import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 
 function generationRoleForCategory(
   category?: 'FACE' | 'PRODUCT' | 'STYLE' | 'LOGO',

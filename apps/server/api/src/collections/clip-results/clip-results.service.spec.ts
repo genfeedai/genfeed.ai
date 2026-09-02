@@ -13,7 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
+import type { ClipReferenceProvenance } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

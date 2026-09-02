@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IPublicYoutubeClipRecommendation,
   IPublicYoutubeClipToolSession,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';

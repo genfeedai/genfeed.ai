@@ -1,5 +1,5 @@
-import { APP_ROUTES, MAX_PAGE_SIZE } from '@genfeedai/constants';
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES, MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   createLibraryFolderQuery,

@@ -1,4 +1,4 @@
-import { LibraryPlace, PageScope } from '@genfeedai/enums';
+import { LibraryPlace, PageScope } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';

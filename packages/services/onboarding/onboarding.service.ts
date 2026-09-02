@@ -1,10 +1,10 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IGeneratePreviewResponse,
   IPost,
   OnboardingAccessMode,
   OnboardingRuntimeAccessMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

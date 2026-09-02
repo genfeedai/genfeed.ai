@@ -54,12 +54,12 @@ import {
   ModelCategory,
   PromptTemplateKey,
   SystemPromptKey,
-} from '@genfeedai/enums';
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import type {
   ArticleGenerationResponse,
   GeneratedArticleData,
-} from '@genfeedai/interfaces/content/article.interface';
+} from '@genfeedai/contracts/interfaces/content/article.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

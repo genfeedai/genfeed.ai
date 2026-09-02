@@ -5,7 +5,7 @@ import type {
   WorkflowInputVariable,
   WorkflowNodeData,
   WorkflowVisualNode,
-} from '@genfeedai/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

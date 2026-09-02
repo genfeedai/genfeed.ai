@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import type { NodesByCategory } from '@genfeedai/interfaces/automation/workflow-builder.interface';
+import type { NodesByCategory } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import NodePalette from '@ui/workflow-builder/panels/NodePalette';
 import { describe, expect, it, vi } from 'vitest';

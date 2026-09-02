@@ -11,8 +11,8 @@ import type {
   IFontFamily,
   IPreset,
   IWorkflow,
-} from '@genfeedai/interfaces';
-import type { ModalTrainingNewProps } from '@genfeedai/interfaces/training/modal-training-new.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { ModalTrainingNewProps } from '@genfeedai/contracts/interfaces/training/modal-training-new.interface';
 import type {
   BrandOverlayProps,
   IngredientOverlayProps,

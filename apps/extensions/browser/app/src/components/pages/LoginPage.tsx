@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { ThemeSelector } from '~components/settings/ThemeSelector';

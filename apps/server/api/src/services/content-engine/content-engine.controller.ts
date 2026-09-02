@@ -11,7 +11,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import {
   ContentPlanItemSerializer,
   ContentPlanSerializer,

@@ -16,7 +16,7 @@ import {
   type ListeningInsufficiencyReason,
   type ListeningSignalType,
   type SourcePostMetrics,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MAX_WINDOW_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;

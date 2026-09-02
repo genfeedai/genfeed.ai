@@ -1,7 +1,7 @@
 import type {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 /**
  * Trigger event payload that initiates workflow execution.

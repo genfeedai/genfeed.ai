@@ -34,11 +34,11 @@ import {
   MemberRole,
   Platform,
   SocialConversationType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   SocialConversationSerializer,
   SocialMessageSerializer,

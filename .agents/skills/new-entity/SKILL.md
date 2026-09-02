@@ -44,7 +44,7 @@ Scaffold a new Prisma entity across all 13 layers of the monorepo.
 Before writing any file:
 1. Confirm `packages/prisma/prisma/schema.prisma` has no existing `model <EntityName>`
 2. Confirm `apps/server/api/src/collections/<plural-kebab>/` does not exist
-3. Confirm `packages/enums/src/<kebab>.enum.ts` does not exist (if enums needed)
+3. Confirm `packages/contracts/src/enums/<kebab>.enum.ts` does not exist (if enums needed)
 4. Ask user: brand-scoped or org-only? Full ownership chain (user+org+brand) or subset?
 
 ## Layer 1: Prisma Schema
@@ -93,7 +93,7 @@ cd packages/prisma && bunx prisma migrate dev --name "add_<snake_case>_model"
 
 ## Layer 2: TypeScript Enum
 
-**File:** `packages/enums/src/<kebab>.enum.ts` (skip if no enums)
+**File:** `packages/contracts/src/enums/<kebab>.enum.ts` (skip if no enums)
 
 ```typescript
 export enum <EntityName>Status {
@@ -103,14 +103,14 @@ export enum <EntityName>Status {
 }
 ```
 
-**Barrel:** Add `export * from './<kebab>.enum';` to `packages/enums/src/index.ts`.
+**Barrel:** Add `export * from './<kebab>.enum';` to `packages/contracts/src/enums/index.ts`.
 
 ## Layer 3: Interface
 
-**File:** `packages/interfaces/src/<domain>/<name>.interface.ts`
+**File:** `packages/contracts/src/interfaces/<domain>/<name>.interface.ts`
 
 ```typescript
-import type { <EntityName>Status } from '@genfeedai/enums';
+import type { <EntityName>Status } from '@genfeedai/contracts';
 import type { IBaseEntity, IBrand, IOrganization, IUser } from '../index';
 
 export interface I<EntityName> extends IBaseEntity {
@@ -121,7 +121,7 @@ export interface I<EntityName> extends IBaseEntity {
 }
 ```
 
-**Barrel:** Add to `packages/interfaces/src/<domain>/index.ts` and `packages/interfaces/src/index.ts`.
+**Barrel:** Add to `packages/contracts/src/interfaces/<domain>/index.ts` and `packages/contracts/src/interfaces/index.ts`.
 
 ## Layer 4: Client Model
 
@@ -129,7 +129,7 @@ export interface I<EntityName> extends IBaseEntity {
 
 ```typescript
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { I<EntityName>, IBrand, IOrganization, IUser } from '@genfeedai/interfaces';
+import type { I<EntityName>, IBrand, IOrganization, IUser } from '@genfeedai/contracts/interfaces';
 
 export class <EntityName> extends BaseEntity implements I<EntityName> {
   public declare user: IUser;
@@ -164,7 +164,7 @@ describe('<EntityName>', () => {
 
 ```typescript
 import { <EntityName> as Base<EntityName> } from '@genfeedai/client/models';
-import type { I<EntityName> } from '@genfeedai/interfaces';
+import type { I<EntityName> } from '@genfeedai/contracts/interfaces';
 import { Brand } from '@models/organization/brand.model';
 import { User } from '@models/auth/user.model';
 
@@ -241,7 +241,7 @@ export const { <PascalName>Serializer } = buildSerializer('client', <camelName>S
 
 ## Layer 9: API Endpoint Constant
 
-**File:** `packages/constants/src/api.constant.ts`
+**File:** `packages/contracts/src/constants/api.constant.ts`
 
 Add alphabetically to `API_ENDPOINTS`:
 ```typescript
@@ -385,7 +385,7 @@ Add to `imports` array (alphabetical):
 **File:** `packages/services/<domain>/<plural-kebab>.service.ts`
 
 ```typescript
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { <EntityName> } from '@genfeedai/models/<domain>/<name>.model';
 import { <PascalName>Serializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
@@ -409,7 +409,7 @@ export class <EntityName>Service extends BaseService<<EntityName>> {
 'use client';
 
 import { <EntityName>Service } from '@genfeedai/services/<domain>/<plural-kebab>.service';
-import type { I<EntityName> } from '@genfeedai/interfaces';
+import type { I<EntityName> } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useAuth } from '@genfeedai/auth-client/react';
@@ -461,12 +461,10 @@ npx biome check --write .
 bun type-check
 
 # Test changed packages
-bun run test --filter=@genfeedai/enums
-bun run test --filter=@genfeedai/interfaces
+bun run test --filter=@genfeedai/contracts
 bun run test --filter=@genfeedai/client
 bun run test --filter=@genfeedai/models
 bun run test --filter=@genfeedai/serializers
-bun run test --filter=@genfeedai/constants
 bun run test --filter=@genfeedai/api
 ```
 
@@ -474,14 +472,14 @@ bun run test --filter=@genfeedai/api
 
 ```
 1. schema.prisma + prisma migrate dev
-2. packages/enums (if needed)
-3. packages/interfaces
+2. packages/contracts/src/enums (if needed)
+3. packages/contracts/src/interfaces
 4. packages/client/models
 5. packages/models
 6. packages/serializers/attributes
 7. packages/serializers/configs
 8. packages/serializers/server + client
-9. packages/constants
+9. packages/contracts/src/constants
 10. apps/server/api/collections
 11. apps/server/api/app.module.ts
 12. packages/services

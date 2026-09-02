@@ -25,8 +25,8 @@ import {
   Status,
   SystemPromptKey,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { AccountPublishingConstraints } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AccountPublishingConstraints } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

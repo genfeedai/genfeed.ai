@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import type { SetupCardStep } from '@hooks/utils/use-setup-card/use-setup-card';
 import Card from '@ui/card/Card';

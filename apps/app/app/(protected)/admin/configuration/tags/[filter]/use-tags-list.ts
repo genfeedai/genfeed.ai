@@ -1,8 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { ModalEnum } from '@genfeedai/enums';
-import type { ContentScope, IQueryParams, ITag } from '@genfeedai/interfaces';
+import type { ModalEnum } from '@genfeedai/contracts';
+import type {
+  ContentScope,
+  IQueryParams,
+  ITag,
+} from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TagsListProps } from '@props/tags/tags-list.props';

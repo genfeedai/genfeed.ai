@@ -1,7 +1,7 @@
 import type {
   AdWatchedAdvertiser,
   AdWatchlistPlatformReadiness,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

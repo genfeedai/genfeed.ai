@@ -1,7 +1,7 @@
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import type { SocialContentData } from '@api/services/reply-bot/social-monitor.service';
-import type { ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type { ReplyBotPlatform, ReplyBotType } from '@genfeedai/contracts';
+import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export interface ReplyCandidate extends SocialContentData {

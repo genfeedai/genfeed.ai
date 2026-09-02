@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { TagCategory } from '@genfeedai/enums';
-import type { IQueryParams, ITag } from '@genfeedai/interfaces';
+import type { TagCategory } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IQueryParams, ITag } from '@genfeedai/contracts/interfaces';
 import { Tag } from '@genfeedai/models/content/tag.model';
 import { TagSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

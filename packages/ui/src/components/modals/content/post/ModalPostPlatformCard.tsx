@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, PostVisibility } from '@genfeedai/enums';
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  PostVisibility,
+} from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';

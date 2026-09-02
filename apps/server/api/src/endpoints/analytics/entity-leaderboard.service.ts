@@ -19,7 +19,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { IEntityAnalyticsStats } from '@genfeedai/interfaces';
+import type { IEntityAnalyticsStats } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

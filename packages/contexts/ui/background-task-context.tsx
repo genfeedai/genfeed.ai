@@ -5,7 +5,7 @@ import type {
   IBackgroundTask,
   IBackgroundTaskContextType,
   IBackgroundTaskUpdateEvent,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   buildGenerationEtaSnapshot,

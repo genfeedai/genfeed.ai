@@ -36,8 +36,8 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import {
   type ActionOriginContext,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,

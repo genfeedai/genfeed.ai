@@ -3,7 +3,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

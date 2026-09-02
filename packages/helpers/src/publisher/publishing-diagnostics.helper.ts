@@ -5,7 +5,7 @@ import type {
   PublishingReadinessState,
   PublishingSetupCheckStatus,
   PublishingSetupFailureClassification,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 import { redactSensitiveValue } from '../security/redact-sensitive-value.helper';
 

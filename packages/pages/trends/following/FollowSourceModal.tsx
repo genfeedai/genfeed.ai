@@ -7,11 +7,11 @@ import {
   formatPlatformLabel,
   parseSocialPostUrl,
   SocialSourcePlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ISocialSource,
   SocialSourceValidationResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -30,11 +30,11 @@ import {
   EvaluationType,
   IngredientCategory,
   Status,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IEvaluationComparisonResult,
   IEvaluationTrend,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

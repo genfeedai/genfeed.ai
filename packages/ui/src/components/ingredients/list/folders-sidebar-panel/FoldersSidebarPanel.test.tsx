@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import { render } from '@testing-library/react';
 import type { FoldersSidebarPanelProps } from '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
 import FoldersSidebarPanel from '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';

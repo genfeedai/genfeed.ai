@@ -1,5 +1,5 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';

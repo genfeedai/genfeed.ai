@@ -1,5 +1,5 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   generateMockPost,
   mockActiveSubscription,

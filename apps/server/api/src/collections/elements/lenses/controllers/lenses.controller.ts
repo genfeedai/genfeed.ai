@@ -12,7 +12,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

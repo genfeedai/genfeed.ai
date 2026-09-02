@@ -1,9 +1,9 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   type AnalyticsMetric,
   IngredientCategory,
   type OrganizationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   IActivity,
   IAnalytics,
@@ -20,7 +20,7 @@ import type {
   ISubscription,
   IWebhookDeliveryStatus,
   UpdateMemberData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Avatar } from '@genfeedai/models/ai/avatar.model';
 import { Activity } from '@genfeedai/models/analytics/activity.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';

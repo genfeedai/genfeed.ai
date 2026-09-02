@@ -12,7 +12,7 @@ import type {
   IDesktopSyncOp,
   IDesktopSyncOpAck,
   IDesktopSyncState,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import type { DesktopAsset, PrismaClient } from '@genfeedai/desktop-prisma';
 import { inferDesktopAssetKind } from './asset-mime.util';
 import { toDesktopAsset } from './desktop-asset.util';

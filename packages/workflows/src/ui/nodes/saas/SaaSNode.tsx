@@ -1,6 +1,6 @@
 'use client';
 
-import type { VisualNodeDefinition } from '@genfeedai/types';
+import type { VisualNodeDefinition } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import {

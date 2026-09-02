@@ -1,8 +1,8 @@
 'use client';
 
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IBrand } from '@genfeedai/interfaces';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';

@@ -24,7 +24,7 @@ import {
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

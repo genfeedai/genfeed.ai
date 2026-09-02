@@ -10,8 +10,8 @@ import {
   isApifyAccountLimitError,
 } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
-import { ByokProvider } from '@genfeedai/enums';
-import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { ByokProvider } from '@genfeedai/contracts';
+import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

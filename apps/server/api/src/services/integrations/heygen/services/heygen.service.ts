@@ -1,7 +1,7 @@
 import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

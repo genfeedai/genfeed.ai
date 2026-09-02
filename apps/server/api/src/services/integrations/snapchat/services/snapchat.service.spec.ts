@@ -1,6 +1,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

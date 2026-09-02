@@ -1,4 +1,4 @@
-import type { ISubscription } from '@genfeedai/interfaces';
+import type { ISubscription } from '@genfeedai/contracts/interfaces';
 import type { PricingPlanProps } from '@props/content/subscription.props';
 
 export interface PricingCardProps {

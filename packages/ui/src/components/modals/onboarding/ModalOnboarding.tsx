@@ -6,11 +6,11 @@ import {
   ButtonVariant,
   ModalEnum,
   OnboardingStep,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';

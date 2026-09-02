@@ -1,4 +1,4 @@
-import { ImageTaskModel, VideoTaskModel } from '@genfeedai/enums';
+import { ImageTaskModel, VideoTaskModel } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { buildContentPipelineWorkflowDefinition } from './content-pipeline-workflow-definition';
 

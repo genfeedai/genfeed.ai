@@ -1,4 +1,4 @@
-import { VideoEaseCurve } from '@genfeedai/enums';
+import { VideoEaseCurve } from '@genfeedai/contracts';
 
 /**
  * Generate FFmpeg expression for ease curve functions

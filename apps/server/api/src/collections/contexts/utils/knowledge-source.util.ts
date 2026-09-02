@@ -1,4 +1,7 @@
-import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
+import {
+  KnowledgeBaseCategory,
+  KnowledgeBaseStatus,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 export const KNOWLEDGE_BASE_PURPOSE = 'knowledge-base';

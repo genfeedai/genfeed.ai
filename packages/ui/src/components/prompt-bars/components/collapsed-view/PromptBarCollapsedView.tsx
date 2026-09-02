@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarCollapsedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

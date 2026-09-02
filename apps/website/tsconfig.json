@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
     "paths": {
-      "@api-types/*": ["../../packages/api-types/src/*"],
-      "@cloud-types/*": ["../../packages/types/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../packages/contracts/src/api-types/*"
+      ],
+      "@cloud-types/*": ["../../packages/contracts/src/types/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
-      "@genfeedai/interfaces": ["../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../packages/contracts/src/interfaces/*"
+      ],
       "@genfeedai/contexts": ["../../packages/contexts/index.ts"],
       "@genfeedai/contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/models": ["../../packages/models/index.ts"],
@@ -15,8 +21,10 @@
       "@genfeedai/props/*": ["../../packages/props/*"],
       "@genfeedai/services": ["../../packages/services/index.ts"],
       "@genfeedai/services/*": ["../../packages/services/*"],
-      "@genfeedai/types": ["../../packages/types/src/index.ts"],
-      "@genfeedai/types/*": ["../../packages/types/src/*"],
+      "@genfeedai/contracts/types": [
+        "../../packages/contracts/src/types/index.ts"
+      ],
+      "@genfeedai/contracts/types/*": ["../../packages/contracts/src/types/*"],
       "@genfeedai/utils": ["../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@configs/*": ["../../packages/next-config/*"],
@@ -30,12 +38,16 @@
         "../../packages/client/src/schemas/index.ts"
       ],
       "@genfeedai/client/schemas/*": ["../../packages/client/src/schemas/*"],
-      "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../../packages/enums/src/*"],
+      "@genfeedai/contracts": ["../../packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["../../packages/contracts/src/*"],
       "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
       "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
-      "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
-      "@genfeedai/constants/*": ["../../packages/constants/src/*"],
+      "@genfeedai/contracts/constants": [
+        "../../packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "../../packages/contracts/src/constants/*"
+      ],
       "@genfeedai/config": ["../../packages/config/src/index.ts"],
       "@genfeedai/config/*": ["../../packages/config/src/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],

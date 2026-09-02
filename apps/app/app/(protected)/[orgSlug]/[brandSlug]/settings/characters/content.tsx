@@ -8,13 +8,13 @@ import {
   isPersonaHandle,
   normalizePersonaHandle,
   QualityTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   BrandCharacterCandidate,
   BrandCharacterListItem,
   BrandCharacterSheetStep,
   IImage,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { PersonasService } from '@services/content/personas.service';

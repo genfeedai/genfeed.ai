@@ -6,7 +6,7 @@ import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/wor
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,7 +1,7 @@
 'use client';
 
-import { formatEnumLabel, IngredientCategory } from '@genfeedai/enums';
-import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import { formatEnumLabel, IngredientCategory } from '@genfeedai/contracts';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ImageIcon } from 'lucide-react';

@@ -3,7 +3,7 @@ import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.s
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-// `@genfeedai/enums` is used as-is: mocking it would shadow other exports and
+// `@genfeedai/contracts` is used as-is: mocking it would shadow other exports and
 // break transitive imports (see ffmpeg-beat-sync.service.spec.ts).
 
 vi.mock('@files/helpers/utils/security/security.util', () => ({

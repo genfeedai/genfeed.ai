@@ -1,7 +1,7 @@
 'use client';
 
-import { TrendNotificationFrequency } from '@genfeedai/enums';
-import type { ISetting } from '@genfeedai/interfaces';
+import { TrendNotificationFrequency } from '@genfeedai/contracts';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import type { TrendNotificationSettingsProps } from '@genfeedai/props/settings/notifications.props';
 import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';

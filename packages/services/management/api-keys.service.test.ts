@@ -1,4 +1,4 @@
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import {
   ApiKeysService,

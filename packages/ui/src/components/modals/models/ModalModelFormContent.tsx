@@ -5,12 +5,15 @@ import {
   ButtonVariant,
   type ModelCategory,
   type ModelProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type {
+  IModel,
+  IModelProviderContracts,
+} from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { IModel, IModelProviderContracts } from '@genfeedai/interfaces';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';

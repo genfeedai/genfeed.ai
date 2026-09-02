@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { PostingSignaturePickerProps } from '@genfeedai/props/publisher/posting-set-picker.props';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';

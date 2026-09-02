@@ -1,4 +1,4 @@
-import type { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Key, ReactNode } from 'react';
 
 export interface TableColumn<T> {

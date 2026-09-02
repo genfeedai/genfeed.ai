@@ -1,6 +1,6 @@
 'use client';
 
-import { CardVariant } from '@genfeedai/enums';
+import { CardVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {

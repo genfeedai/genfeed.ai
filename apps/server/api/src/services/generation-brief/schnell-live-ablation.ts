@@ -1,14 +1,14 @@
 import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
-import type { GenerationFidelityMode } from '@api-types/contracts/generation-brief.contract';
+import type { GenerationFidelityMode } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   FLUX_SCHNELL_IMAGE_COMPILER_ID,
   FLUX_SCHNELL_IMAGE_COMPILER_VERSION,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
   FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
   FLUX_SCHNELL_MODEL_KEY,
-} from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 /**
  * Public synthetic brand kit for #3470. Not a private harness pack.

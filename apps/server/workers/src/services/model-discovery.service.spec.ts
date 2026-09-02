@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/enums', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+vi.mock('@genfeedai/contracts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/contracts')>();
 
   return {
     ...actual,
@@ -38,7 +38,7 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
 });
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';

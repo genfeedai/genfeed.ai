@@ -5,7 +5,7 @@ import {
   type ProviderContinuationIdentity,
   WorkflowNodeContinuationService,
 } from '@api/collections/workflows/services/workflow-node-continuation.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

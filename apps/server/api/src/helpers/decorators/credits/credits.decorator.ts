@@ -1,4 +1,4 @@
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { SetMetadata } from '@nestjs/common';
 
 export const CREDITS_KEY = 'credits';

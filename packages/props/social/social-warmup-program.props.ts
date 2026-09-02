@@ -1,10 +1,10 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   ISocialWarmupEnrollment,
   ISocialWarmupSignal,
   SocialWarmupEventProvenance,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
 
 export type SocialWarmupProgramView = 'today' | 'full';

@@ -1,5 +1,5 @@
 import { Organization as BaseOrganization } from '@genfeedai/client/models';
-import type { IOrganization } from '@genfeedai/interfaces';
+import type { IOrganization } from '@genfeedai/contracts/interfaces';
 import { Credit } from '@models/billing/credit.model';
 import { OrganizationSetting } from '@models/organization/organization-setting.model';
 

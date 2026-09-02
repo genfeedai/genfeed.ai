@@ -12,12 +12,12 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
   brandRemixRunConfigSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';
 

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { ClientService } from '@mcp/services/client.service';

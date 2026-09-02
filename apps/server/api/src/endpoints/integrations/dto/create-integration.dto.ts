@@ -1,4 +1,4 @@
-import { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

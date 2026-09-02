@@ -6,7 +6,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import type { AggregatePaginateResult } from '@api/helpers/types/aggregate-paginate-result';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';

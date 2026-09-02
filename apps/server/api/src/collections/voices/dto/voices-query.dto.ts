@@ -1,5 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { AssetScope, VoiceProvider } from '@genfeedai/enums';
+import { AssetScope, VoiceProvider } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {

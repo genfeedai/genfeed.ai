@@ -1,4 +1,4 @@
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 
 /**
  * Coerce an unknown array into AgentUIBlock[].

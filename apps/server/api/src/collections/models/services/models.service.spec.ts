@@ -7,7 +7,11 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ModelsService } from '@api/collections/models/services/models.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockModelDelegate = {

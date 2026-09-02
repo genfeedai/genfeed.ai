@@ -9,7 +9,7 @@ import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/tra
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
-import { WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

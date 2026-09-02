@@ -38,8 +38,8 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/enums', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+vi.mock('@genfeedai/contracts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/contracts')>();
   return {
     ...actual,
     AlertCategory: {

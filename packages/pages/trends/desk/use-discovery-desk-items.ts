@@ -4,7 +4,7 @@ import type {
   ISocialSource,
   ITrendVideo,
   SocialSourcesResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { SocialSourcesService } from '@genfeedai/services/social/social-sources.service';
 import { TrendsService } from '@genfeedai/services/social/trends.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

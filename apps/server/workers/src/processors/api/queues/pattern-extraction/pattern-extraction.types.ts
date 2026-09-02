@@ -1,4 +1,4 @@
-import type { PatternType } from '@genfeedai/interfaces';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 
 export type PatternSourceKind = 'ad' | 'organic';
 

@@ -35,19 +35,19 @@ import {
   selectImageGenerationBriefReferences,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
   Seedream5ProDispatch,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   SEEDREAM_5_PRO_IMAGE_COMPILER_ID,
   SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION,
   seedream5ProDispatchSchema,
-} from '@api-types/contracts/generation-brief-compiler.contract';
-import { SEEDREAM_5_PRO_CAPABILITY_PROFILE } from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { SEEDREAM_5_PRO_CAPABILITY_PROFILE } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 const SEEDREAM_5_PRO_IMPLICIT_OUTPUT_FORMAT = 'png';
 const SEEDREAM_5_PRO_MODEL_LABEL = 'SeeDream 5 Pro';

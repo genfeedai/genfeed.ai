@@ -3,7 +3,7 @@ import {
   buildFailureValue,
   parseActivityValue,
 } from '@api/helpers/utils/activity-value/activity-value.util';
-import { ActivityKey } from '@genfeedai/enums';
+import { ActivityKey } from '@genfeedai/contracts';
 
 describe('ActivityValueUtil', () => {
   describe('buildCompletionValue', () => {

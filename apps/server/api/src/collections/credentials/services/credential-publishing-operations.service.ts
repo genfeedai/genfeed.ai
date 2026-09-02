@@ -2,8 +2,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import type { CredentialPlatform } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { CredentialPlatform } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export interface CredentialMentionItem {

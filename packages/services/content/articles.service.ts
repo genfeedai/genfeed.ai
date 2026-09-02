@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { type ArticleCategory, ArticleStatus } from '@genfeedai/enums';
-import type { ScoreSeoRequest } from '@genfeedai/interfaces';
+import { type ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { ScoreSeoRequest } from '@genfeedai/contracts/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import {

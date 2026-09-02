@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialPlatform, parsePlatform } from '@genfeedai/enums';
+import { CredentialPlatform, parsePlatform } from '@genfeedai/contracts';
 import type { TargetPreviewProps } from '@genfeedai/props/ui/previews.props';
 import { useTranslations } from 'next-intl';
 import type { ComponentType } from 'react';

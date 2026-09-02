@@ -12,9 +12,9 @@ const customLogger = createVitestWarningLogger();
 
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const HELPERS_SRC = path.resolve(__dirname, '../helpers/src');
-const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
-const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
-const INTERFACES_SRC = path.resolve(__dirname, '../interfaces/src');
+const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
+const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
+const INTERFACES_SRC = path.resolve(__dirname, '../contracts/src/interfaces');
 const CLIENT_SERIALIZERS_MOCK = path.resolve(
   __dirname,
   '../services/__mocks__/client-serializers.mock.ts',
@@ -69,19 +69,19 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../config/src/$1'),
       },
       {
-        find: /^@genfeedai\/constants$/,
+        find: /^@genfeedai\/contracts\/constants$/,
         replacement: path.join(CONSTANTS_SRC, 'index.ts'),
       },
       {
-        find: /^@genfeedai\/constants\/(.*)$/,
+        find: /^@genfeedai\/contracts\/constants\/(.*)$/,
         replacement: path.join(CONSTANTS_SRC, '$1'),
       },
       {
-        find: /^@genfeedai\/enums$/,
+        find: /^@genfeedai\/contracts$/,
         replacement: path.join(ENUMS_SRC, 'index.ts'),
       },
       {
-        find: /^@genfeedai\/enums\/(.*)$/,
+        find: /^@genfeedai\/contracts\/enums\/(.*)$/,
         replacement: path.join(ENUMS_SRC, '$1'),
       },
       {
@@ -105,11 +105,11 @@ export default defineConfig({
         replacement: path.join(HELPERS_SRC, '$1'),
       },
       {
-        find: /^@genfeedai\/interfaces$/,
+        find: /^@genfeedai\/contracts\/interfaces$/,
         replacement: path.join(INTERFACES_SRC, 'index.ts'),
       },
       {
-        find: /^@genfeedai\/interfaces\/(.*)$/,
+        find: /^@genfeedai\/contracts\/interfaces\/(.*)$/,
         replacement: path.join(INTERFACES_SRC, '$1'),
       },
       {
@@ -129,12 +129,12 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contexts/$1'),
       },
       {
-        find: '@genfeedai/enums',
-        replacement: path.resolve(__dirname, '../enums/dist/index'),
+        find: '@genfeedai/contracts',
+        replacement: path.resolve(__dirname, '../contracts/dist/index'),
       },
       {
-        find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/dist/$1'),
+        find: /^@genfeedai\/contracts\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/dist/enums/$1'),
       },
       {
         find: '@genfeedai/helpers',

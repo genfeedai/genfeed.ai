@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICreativePattern } from '@genfeedai/interfaces';
+import type { ICreativePattern } from '@genfeedai/contracts/interfaces';
 import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
 import { CreativePatternsService } from '@genfeedai/services/analytics/creative-patterns.service';
 import { logger } from '@genfeedai/services/core/logger.service';

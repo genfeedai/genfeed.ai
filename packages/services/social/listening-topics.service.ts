@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CreateListeningTopicInput,
   IListeningEvidence,
@@ -9,7 +9,7 @@ import type {
   ListeningInboxScope,
   ReviewListeningThemeState,
   UpdateListeningTopicInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   ListeningEvidence,
   ListeningTopic,

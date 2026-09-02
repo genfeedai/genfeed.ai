@@ -1,7 +1,7 @@
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { brandPath } from '../utils/app-chrome';

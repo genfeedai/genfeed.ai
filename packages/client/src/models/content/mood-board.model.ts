@@ -1,5 +1,8 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IMoodBoard, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IMoodBoard,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 
 export class MoodBoard extends BaseEntity implements IMoodBoard {
   public declare brandId: string;

@@ -1,4 +1,4 @@
-import type { WatchlistPlatform } from '@genfeedai/enums';
+import type { WatchlistPlatform } from '@genfeedai/contracts';
 import { Watchlist } from '@genfeedai/models/analytics/watchlist.model';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

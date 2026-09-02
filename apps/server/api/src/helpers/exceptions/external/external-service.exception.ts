@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type ExternalError = {

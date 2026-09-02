@@ -39,8 +39,8 @@ vi.mock('@genfeedai/helpers', async () => ({
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { TrainedModelInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,

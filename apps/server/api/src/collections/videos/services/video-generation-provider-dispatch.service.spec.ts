@@ -4,8 +4,8 @@ import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/s
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('VideoGenerationProviderDispatchService', () => {

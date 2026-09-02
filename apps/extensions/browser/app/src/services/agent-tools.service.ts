@@ -1,4 +1,7 @@
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import {
+  AgentToolName,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '~services/environment.service';
 import { HTTPBaseService } from '~services/http-base.service';
 

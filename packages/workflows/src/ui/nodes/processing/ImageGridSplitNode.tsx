@@ -3,8 +3,8 @@
 import type {
   GridOutputFormat,
   ImageGridSplitNodeData,
-} from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, LoaderCircle, RefreshCw } from 'lucide-react';
 import Image from 'next/image';

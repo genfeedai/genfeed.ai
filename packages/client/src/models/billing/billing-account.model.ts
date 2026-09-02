@@ -2,14 +2,14 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   BillingAccountMemberRole,
   BillingAccountStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBillingAccount,
   IBillingAccountCapabilities,
   IBillingAccountMember,
   IBillingAccountOrganizationLink,
   IBillingAccountWallet,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class BillingAccount extends BaseEntity implements IBillingAccount {
   public declare label: string | null;

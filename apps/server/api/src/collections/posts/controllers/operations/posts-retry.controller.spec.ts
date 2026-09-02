@@ -7,7 +7,7 @@ import { PostsRetryController } from '@api/collections/posts/controllers/operati
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { PostSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

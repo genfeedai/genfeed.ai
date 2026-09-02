@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ModalCreateThreadPostsListProps } from '@genfeedai/props/modals/modal.props';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';

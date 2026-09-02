@@ -1,12 +1,12 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientFormat,
   ModelCategory,
   ModelProvider,
   RouterPriority,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import type { PromptBarModelControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

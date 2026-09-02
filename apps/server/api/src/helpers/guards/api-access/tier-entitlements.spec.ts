@@ -1,4 +1,4 @@
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import {
   FREE_SEAT_LIMIT,
   getApiEntitlementForTier,

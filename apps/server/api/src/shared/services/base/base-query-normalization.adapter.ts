@@ -1,5 +1,5 @@
 import { ValidationException } from '@api/exceptions/validation.exception';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
 import { getModelMeta } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';

@@ -3,7 +3,7 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/enums';
+import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

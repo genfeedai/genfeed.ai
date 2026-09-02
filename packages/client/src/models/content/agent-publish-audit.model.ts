@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { IAgentPublishAudit } from '@genfeedai/interfaces';
+import type { IAgentPublishAudit } from '@genfeedai/contracts/interfaces';
 
 export class AgentPublishAudit
   extends BaseEntity

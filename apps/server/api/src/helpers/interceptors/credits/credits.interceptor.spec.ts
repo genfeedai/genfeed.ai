@@ -1,8 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import { ActivitySource } from '@genfeedai/enums';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import type { StudioGeneratePersistedState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-generate-types';

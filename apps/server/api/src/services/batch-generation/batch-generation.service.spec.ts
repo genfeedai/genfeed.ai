@@ -14,7 +14,11 @@ import { BatchGenerationReviewService } from '@api/services/batch-generation/bat
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

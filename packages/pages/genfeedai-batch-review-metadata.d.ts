@@ -1,6 +1,6 @@
-import '@genfeedai/interfaces';
+import '@genfeedai/contracts/interfaces';
 
-declare module '@genfeedai/interfaces' {
+declare module '@genfeedai/contracts/interfaces' {
   interface IBatchItem {
     gateOverallScore?: number;
     gateReasons?: string[];

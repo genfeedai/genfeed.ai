@@ -4,9 +4,9 @@ import {
   IngredientCategory,
   IngredientFormat,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IImage } from '@genfeedai/contracts/interfaces';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { IImage } from '@genfeedai/interfaces';
 import type { ModalGalleryProps } from '@genfeedai/props/modals/modal.props';
 import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import { PagesService } from '@genfeedai/services/content/pages.service';

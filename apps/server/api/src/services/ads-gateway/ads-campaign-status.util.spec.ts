@@ -5,7 +5,7 @@ import {
   resolveProviderPausedStatus,
   UNIFIED_PAUSED_CAMPAIGN_STATUS,
 } from '@api/services/ads-gateway/ads-campaign-status.util';
-import type { AdsPlatform } from '@genfeedai/interfaces';
+import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 describe('ads-campaign-status.util', () => {
   describe('isPausedCampaignStatus', () => {

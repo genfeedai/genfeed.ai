@@ -7,8 +7,11 @@ import {
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  IPostPlatformConfig,
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import ModalPostPlatformsTab, {
   buildComposerPreviewTargets,

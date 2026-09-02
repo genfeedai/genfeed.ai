@@ -1,5 +1,13 @@
-import type { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
-import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+} from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IImage,
+  IMusic,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import type { ComponentType, Dispatch, SetStateAction } from 'react';
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
 import { TriangleAlert } from 'lucide-react';

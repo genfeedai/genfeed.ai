@@ -5,7 +5,7 @@ import type {
   SocialConversationStatus,
   SocialInboxQuery,
   SocialPlatform,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useCallback, useMemo, useReducer } from 'react';
 import type {
   MessagesInboxView,

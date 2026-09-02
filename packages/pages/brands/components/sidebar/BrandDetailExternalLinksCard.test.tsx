@@ -1,4 +1,4 @@
-import { CredentialPlatform, LinkCategory } from '@genfeedai/enums';
+import { CredentialPlatform, LinkCategory } from '@genfeedai/contracts';
 import BrandDetailExternalLinksCard from '@pages/brands/components/sidebar/BrandDetailExternalLinksCard';
 import type {
   BrandDetailExternalLinksCardProps,

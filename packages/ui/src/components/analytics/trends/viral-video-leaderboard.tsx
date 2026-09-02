@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonVariant, Timeframe } from '@genfeedai/enums';
+import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import type { ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { ITrendVideo } from '@genfeedai/interfaces';
 import type { ViralVideoLeaderboardProps } from '@genfeedai/props/analytics/trends.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';

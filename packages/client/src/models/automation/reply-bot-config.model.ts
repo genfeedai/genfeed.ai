@@ -3,14 +3,14 @@ import type {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IReplyBotConfig,
   IReplyBotDmConfig,
   IReplyBotFilters,
   IReplyBotRateLimits,
   IReplyBotSchedule,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class ReplyBotConfig extends BaseEntity implements IReplyBotConfig {
   public declare organizationId: string;

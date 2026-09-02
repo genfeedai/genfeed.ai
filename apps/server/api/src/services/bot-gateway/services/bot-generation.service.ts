@@ -7,11 +7,11 @@ import {
   BotCommandType,
   CredentialPlatform,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBotCallbackContext,
   IBotResolvedUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';

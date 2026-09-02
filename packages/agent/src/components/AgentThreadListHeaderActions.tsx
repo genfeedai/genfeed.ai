@@ -1,4 +1,8 @@
-import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  AgentThreadStatus,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,

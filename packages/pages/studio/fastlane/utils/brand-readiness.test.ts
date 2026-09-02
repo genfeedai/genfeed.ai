@@ -1,4 +1,4 @@
-import type { IBrand, ICredential } from '@genfeedai/interfaces';
+import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { isBrandReadyForFastlane } from './brand-readiness';
 

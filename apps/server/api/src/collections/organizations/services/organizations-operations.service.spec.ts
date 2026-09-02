@@ -18,7 +18,7 @@ import { OrganizationsOperationsService } from '@api/collections/organizations/s
 import type { RolesService } from '@api/collections/roles/services/roles.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

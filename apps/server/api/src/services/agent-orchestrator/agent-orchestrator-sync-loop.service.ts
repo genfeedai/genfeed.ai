@@ -42,8 +42,8 @@ import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole, type RouterPriority } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ScopeBadgeProps,

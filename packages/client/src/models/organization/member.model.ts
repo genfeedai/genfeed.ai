@@ -5,7 +5,7 @@ import type {
   IOrganization,
   IRole,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Member extends BaseEntity implements IMember {
   public declare organizationId: string;

@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CreatePostingSignatureInput,
   UpdatePostingSignatureInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PostingSignature } from '@genfeedai/models/content/posting-set.model';
 import { PostingSignatureSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

@@ -1,6 +1,6 @@
 'use client';
 
-import type { VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ExternalVoice } from '@models/elements/external-voice.model';
 import { logger } from '@services/core/logger.service';

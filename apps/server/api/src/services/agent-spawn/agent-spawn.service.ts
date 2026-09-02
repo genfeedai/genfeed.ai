@@ -4,8 +4,8 @@ import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn-system-prompt.constant';
-import { AgentType } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentType } from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

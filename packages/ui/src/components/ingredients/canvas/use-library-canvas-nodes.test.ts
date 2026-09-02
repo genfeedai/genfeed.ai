@@ -1,4 +1,7 @@
-import type { IIngredient, IMoodBoardLayoutItem } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  IMoodBoardLayoutItem,
+} from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {

@@ -1,7 +1,7 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { YoutubeUploadCompletionService } from '@api/services/integrations/youtube/services/modules/youtube-upload-completion.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

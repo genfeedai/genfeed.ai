@@ -19,8 +19,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { MemberRole } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   WorkflowExecutionSerializer,
   WorkflowSerializer,

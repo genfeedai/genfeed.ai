@@ -1,4 +1,8 @@
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
+import type {
+  IAsset,
+  IImage,
+  IIngredient,
+} from '@genfeedai/contracts/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
 

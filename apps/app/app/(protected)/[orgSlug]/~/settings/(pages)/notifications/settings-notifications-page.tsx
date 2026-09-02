@@ -3,8 +3,8 @@
 // biome-ignore assist/source/organizeImports: React and external packages precede package imports and path aliases.
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { ISetting } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';

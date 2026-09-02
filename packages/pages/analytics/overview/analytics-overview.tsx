@@ -1,13 +1,13 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonVariant,
   CardVariant,
   PageScope,
   Platform,
-} from '@genfeedai/enums';
-import type { IAnalytics } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';

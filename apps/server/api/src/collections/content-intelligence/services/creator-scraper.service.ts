@@ -4,7 +4,7 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   extractBoolean,
   extractFirstString,

@@ -2,7 +2,7 @@
 
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import ModelsList from '@pages/models/list/models-list';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 

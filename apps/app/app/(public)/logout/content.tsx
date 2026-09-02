@@ -1,7 +1,7 @@
 'use client';
 
 import { signOut } from '@genfeedai/auth-client';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { resetAnalytics } from '@/lib/analytics';

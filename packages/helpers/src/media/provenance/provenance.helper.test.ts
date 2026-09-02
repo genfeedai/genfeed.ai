@@ -1,4 +1,4 @@
-import type { IMediaProvenanceInput } from '@genfeedai/interfaces';
+import type { IMediaProvenanceInput } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildMediaProvenancePackage,

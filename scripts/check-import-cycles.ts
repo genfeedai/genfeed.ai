@@ -17,7 +17,7 @@ const EXCLUDED_WORKSPACES = new Set([
   // Generated Prisma client output has intentional internal cycles.
   'packages/generated',
   // Type-only interface barrels produce noisy Madge cycles with no runtime edge.
-  'packages/interfaces',
+  'packages/contracts/src/interfaces',
 ]);
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
 const DEFAULT_MADGE_TIMEOUT_MS = 60_000;

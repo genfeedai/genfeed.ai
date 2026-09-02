@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { sanitizeHtml } from '@genfeedai/helpers';
 import type { XArticleSectionCardProps } from '@genfeedai/props/content/x-article.props';
 import { Blockquote } from '@genfeedai/ui';

@@ -1,4 +1,4 @@
-import { ArticleStatus, CalendarSlotState } from '@genfeedai/enums';
+import { ArticleStatus, CalendarSlotState } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   CALENDAR_DEFAULT_EVENT_COLOR,

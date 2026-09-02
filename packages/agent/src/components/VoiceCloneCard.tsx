@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { CircleAlert, Mic } from 'lucide-react';

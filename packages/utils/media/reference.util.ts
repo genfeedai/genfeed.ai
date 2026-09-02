@@ -1,4 +1,4 @@
-import type { IAsset } from '@genfeedai/interfaces';
+import type { IAsset } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
 /**

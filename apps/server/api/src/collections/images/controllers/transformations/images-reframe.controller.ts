@@ -17,9 +17,9 @@ import {
   RateLimit,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, ModelCategory } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -1,4 +1,4 @@
 export type {
   IPostingSetDocument as PostingSetDocument,
   IPostingSignatureDocument as PostingSignatureDocument,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';

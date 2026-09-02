@@ -1,4 +1,4 @@
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import { getWebviewNonce } from '@views/webview.util';

@@ -23,10 +23,10 @@ import {
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
-import { SettingsSurface } from '@genfeedai/enums';
-import type { AppContext } from '@genfeedai/interfaces';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { SettingsSurface } from '@genfeedai/contracts';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';

@@ -1,4 +1,4 @@
-import { ActivityKey, formatActivityMessage } from '@genfeedai/enums';
+import { ActivityKey, formatActivityMessage } from '@genfeedai/contracts';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,8 +27,9 @@ vi.mock('@/hooks/i18n/useActivityMessageFormatter', () => ({
   useActivityMessageFormatter: () => formatActivityMessage,
 }));
 
-vi.mock('@genfeedai/constants', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/contracts/constants')>();
 
   return {
     ...actual,
@@ -42,7 +43,7 @@ vi.mock('@genfeedai/constants', async (importOriginal) => {
   };
 });
 
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import TopbarActivityMenu, {
   TOPBAR_ACTIVITY_LIMIT,
 } from './TopbarActivityMenu';

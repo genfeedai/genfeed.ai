@@ -8,7 +8,7 @@ import {
   type LifecycleEmailDeliveryState,
 } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
+import type { LifecycleEmailWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export const LIFECYCLE_EMAIL_ACTION_IDS = {

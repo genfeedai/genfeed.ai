@@ -10,8 +10,8 @@ import {
   type AdsInsightsDateQuery,
   parseAdsInsightsQuery,
 } from '@api/services/ads-gateway/ads-insights-range.util';
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
-import type { AdsInsightsParams } from '@genfeedai/interfaces';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import type { AdsInsightsParams } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

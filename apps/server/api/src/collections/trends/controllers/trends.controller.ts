@@ -25,7 +25,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { TrendSerializer } from '@genfeedai/serializers';
 import {
   Body,

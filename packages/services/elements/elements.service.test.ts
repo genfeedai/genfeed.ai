@@ -5,7 +5,7 @@ vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai' },
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   API_ENDPOINTS: { ELEMENTS: '/elements' },
 }));
 

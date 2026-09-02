@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import LibraryAssetTypeBadge from './library-asset-type-badge';

@@ -7,7 +7,7 @@ import type { AgentChatModelRegistryService } from '@api/services/agent-orchestr
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const identity = vi.hoisted(() => ({

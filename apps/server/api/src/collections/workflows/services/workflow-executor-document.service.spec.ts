@@ -9,7 +9,7 @@ import {
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutorDocumentService', () => {

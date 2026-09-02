@@ -1,9 +1,9 @@
-import { DEFAULT_LOCALE, PSEUDO_LOCALE } from '@genfeedai/constants';
 import {
   ACTIVITY_MESSAGE_ID_BY_KEY,
   ActivityKey,
   getActivityMessageDescriptor,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { DEFAULT_LOCALE, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { loadMessages, mergeMessagesWithEnglish } from './messages';
 import { pseudoLocalizeMessage } from './pseudo';

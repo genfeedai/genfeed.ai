@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   ClipsWorkspaceProps,

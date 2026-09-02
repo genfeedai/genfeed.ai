@@ -5,7 +5,7 @@ import {
   WorkspaceTaskQualityAssessmentResult,
   WorkspaceTaskQualityService,
 } from '@api/services/task-orchestration/workspace-task-quality.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

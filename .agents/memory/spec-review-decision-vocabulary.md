@@ -22,7 +22,7 @@ review independent from publish lifecycle.
 
 ## Interfaces
 
-- `ReviewDecision` in `@genfeedai/enums` is the canonical lowercase contract.
+- `ReviewDecision` in `@genfeedai/contracts` is the canonical lowercase contract.
 - `PersistedReviewDecision` contains only the three uppercase Postgres labels
   retained for database wire compatibility.
 - `parseReviewDecision` recognizes canonical values, nullable unset values, and

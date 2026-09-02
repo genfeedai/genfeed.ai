@@ -1,4 +1,4 @@
-import type { IBrand } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { getBrandOrganizationId } from './brand-context.helpers';
 

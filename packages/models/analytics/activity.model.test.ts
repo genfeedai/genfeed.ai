@@ -1,5 +1,9 @@
-import { ActivityKey } from '@genfeedai/enums';
-import type { IActivity, ISetting, IUser } from '@genfeedai/interfaces';
+import { ActivityKey } from '@genfeedai/contracts';
+import type {
+  IActivity,
+  ISetting,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

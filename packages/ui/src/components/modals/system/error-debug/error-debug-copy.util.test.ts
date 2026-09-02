@@ -1,4 +1,4 @@
-import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
+import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
 import { describe, expect, it } from 'vitest';
 import {
   formatErrorDebugForAgent,

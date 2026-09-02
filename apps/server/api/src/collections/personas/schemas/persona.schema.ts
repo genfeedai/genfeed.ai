@@ -1,4 +1,4 @@
-import type { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
+import type { AvatarProvider, VoiceProvider } from '@genfeedai/contracts';
 import type { Persona as PrismaPersona } from '@genfeedai/prisma';
 
 export interface PersonaDocument

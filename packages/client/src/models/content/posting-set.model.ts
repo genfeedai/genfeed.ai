@@ -4,7 +4,7 @@ import type {
   IPostingSetLifecycleValidation,
   IPostingSetTarget,
   IPostingSignature,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class PostingSignature extends BaseEntity implements IPostingSignature {
   public declare body: string;

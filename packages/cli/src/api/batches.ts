@@ -1,4 +1,4 @@
-import { type BatchItemStatus, BatchStatus } from '@genfeedai/enums';
+import { type BatchItemStatus, BatchStatus } from '@genfeedai/contracts';
 import { get, patch, post } from './client';
 import {
   flattenCollection,

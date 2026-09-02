@@ -1,4 +1,4 @@
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/contracts';
 import { Article } from '@genfeedai/models/content/article.model';
 import {
   axiosResponse,

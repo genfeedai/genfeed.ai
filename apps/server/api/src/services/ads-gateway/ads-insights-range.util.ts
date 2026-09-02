@@ -2,7 +2,7 @@ import type {
   AdsInsightsParams,
   AdsPlatform,
   UnifiedInsights,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export const ADS_INSIGHTS_PRESETS = [
   'today',

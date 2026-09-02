@@ -1,4 +1,4 @@
-import type { IDateRange } from '@genfeedai/interfaces';
+import type { IDateRange } from '@genfeedai/contracts/interfaces';
 import {
   axiosResponse,
   collectionDocument,

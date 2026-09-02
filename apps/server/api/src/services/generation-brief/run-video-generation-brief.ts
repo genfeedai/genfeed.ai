@@ -7,12 +7,12 @@ import type {
   GenerationBriefReference,
   GenerationFidelityMode,
   VideoGenerationBrief,
-} from '@api-types/contracts/generation-brief.contract';
-import type { GenerationBriefSurface } from '@api-types/contracts/generation-brief-compiler.contract';
-import { buildGenerationBriefCompileSource } from '@api-types/contracts/generation-brief-compiler.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { buildVideoGenerationBriefExemptionSource } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { GenerationBriefSurface } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { buildGenerationBriefCompileSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { buildVideoGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ServiceUnavailableException } from '@nestjs/common';
 
 export interface RunVideoGenerationBriefInput {

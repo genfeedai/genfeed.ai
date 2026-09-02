@@ -1,4 +1,8 @@
-import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetScope,
+} from '@genfeedai/contracts';
 import type {
   IArticle,
   IBrand,
@@ -7,7 +11,7 @@ import type {
   ISetting,
   ITag,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

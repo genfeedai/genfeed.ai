@@ -1,4 +1,4 @@
-import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
+import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 

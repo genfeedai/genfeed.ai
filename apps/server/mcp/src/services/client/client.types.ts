@@ -1,4 +1,4 @@
-import type { AdsPlatform } from '@genfeedai/interfaces';
+import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 
 /**
  * Shared types and constants for the MCP API client family.

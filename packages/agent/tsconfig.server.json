@@ -8,8 +8,10 @@
     "paths": {
       "@genfeedai/agent": ["./src/index.ts"],
       "@genfeedai/agent/*": ["./src/*"],
-      "@genfeedai/interfaces": ["../interfaces/dist/index.d.ts"],
-      "@genfeedai/interfaces/*": ["../interfaces/dist/*"]
+      "@genfeedai/contracts/interfaces": [
+        "../contracts/dist/interfaces/index.d.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": ["../contracts/dist/interfaces/*"]
     },
     "rootDir": "./src"
   },

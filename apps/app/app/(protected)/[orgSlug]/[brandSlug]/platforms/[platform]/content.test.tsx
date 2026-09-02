@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 
 import '@testing-library/jest-dom/vitest';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';

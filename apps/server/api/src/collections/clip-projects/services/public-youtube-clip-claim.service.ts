@@ -6,7 +6,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CLIP_SOURCE_SCHEMA_VERSION } from '@genfeedai/interfaces';
+import { CLIP_SOURCE_SCHEMA_VERSION } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException, GoneException, Injectable } from '@nestjs/common';
 

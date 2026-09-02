@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { CreditEntityModel } from '@genfeedai/enums';
-import type { ICredit } from '@genfeedai/interfaces';
+import type { CreditEntityModel } from '@genfeedai/contracts';
+import type { ICredit } from '@genfeedai/contracts/interfaces';
 
 export class Credit extends BaseEntity implements ICredit {
   public declare entity: string;

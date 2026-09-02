@@ -8,7 +8,7 @@ import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/rep
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { IngredientStatus, TrainingStatus } from '@genfeedai/enums';
+import { IngredientStatus, TrainingStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';

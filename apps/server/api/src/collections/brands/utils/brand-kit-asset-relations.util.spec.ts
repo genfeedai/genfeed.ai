@@ -1,6 +1,6 @@
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
-import { ReferenceImageCategory } from '@genfeedai/enums';
-import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
+import { ReferenceImageCategory } from '@genfeedai/contracts';
+import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 describe('toBrandKitAssetRelations', () => {

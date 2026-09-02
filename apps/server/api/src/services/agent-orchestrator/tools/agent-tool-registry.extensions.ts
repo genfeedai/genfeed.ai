@@ -1,6 +1,6 @@
 import { ADS_AGENT_TOOL_EXTENSIONS } from '@api/services/agent-orchestrator/tools/agent-tool-registry.ads-extensions';
-import type { AgentToolDefinition } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import type { AgentToolDefinition } from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /**
  * Ordered cloud-only schema and prompt overrides for reviewed catalog actions.

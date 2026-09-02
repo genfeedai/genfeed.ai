@@ -9,7 +9,7 @@ import {
   BaseService,
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
-import { AgentStrategyRunStatus } from '@genfeedai/enums';
+import { AgentStrategyRunStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

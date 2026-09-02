@@ -1,4 +1,4 @@
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ModalPostContent from '@ui/modals/content/post/ModalPostContent';

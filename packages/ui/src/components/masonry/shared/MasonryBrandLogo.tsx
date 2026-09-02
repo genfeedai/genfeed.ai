@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';

@@ -19,15 +19,15 @@ import { PostingSignaturesService } from '@api/collections/posting-sets/services
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { TargetValidationState } from '@genfeedai/contracts';
 import {
   expandPostingSetTargets,
   expandPostingSetTargetsInputSchema,
   type PostingSignatureInput,
   validatePostingSetLifecycle,
-} from '@api-types/contracts/posting-sets.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import { TargetValidationState } from '@genfeedai/enums';
-import type { IPostingSetScope } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/posting-sets.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type { IPostingSetScope } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

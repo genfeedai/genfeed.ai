@@ -97,6 +97,6 @@ import type { PromptsService } from '@api/collections/prompts/services/prompts.s
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import type { ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/contracts';
+import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';

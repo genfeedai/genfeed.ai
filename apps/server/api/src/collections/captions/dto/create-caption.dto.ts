@@ -1,7 +1,7 @@
 import { resolveIngredientIdAlias } from '@api/helpers/dto/ingredient-id-alias.transform';
 import { RESOLVE_QUERY_ALIASES } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { CaptionFormat } from '@genfeedai/enums';
+import { CaptionFormat } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsString } from 'class-validator';
 

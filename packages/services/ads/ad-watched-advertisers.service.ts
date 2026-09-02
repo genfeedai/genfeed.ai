@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   AdWatchedAdvertiser,
   CreateAdWatchedAdvertiserInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

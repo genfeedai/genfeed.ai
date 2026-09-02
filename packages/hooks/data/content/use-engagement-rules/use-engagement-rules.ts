@@ -4,7 +4,7 @@ import type {
   CreateEngagementRuleInput,
   IEngagementRule,
   UpdateEngagementRuleInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {

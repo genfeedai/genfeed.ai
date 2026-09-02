@@ -4,7 +4,7 @@ import {
   type AgentDraftSuggestionPayload,
   useAgentDraftContext,
 } from '@genfeedai/agent';
-import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import type { Article } from '@genfeedai/models/content/article.model';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

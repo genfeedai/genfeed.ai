@@ -28,12 +28,6 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
-import {
-  projectLegacyPostStatus,
-  resolveDefaultTargetExecutionState,
-  resolvePostVisibility,
-} from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -43,13 +37,19 @@ import {
   parsePlatform,
   TargetExecutionState,
   type TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  projectLegacyPostStatus,
+  resolveDefaultTargetExecutionState,
+  resolvePostVisibility,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   AgentContentMentionItem,
   PopulateOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import type { IOnboardingJourneyMissionState } from '@genfeedai/contracts/types';
 import type { Prisma } from '@genfeedai/prisma';
-import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';

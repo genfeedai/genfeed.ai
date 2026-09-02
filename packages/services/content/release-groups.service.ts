@@ -1,20 +1,23 @@
 import type {
+  CredentialPlatform,
+  PostCategory,
+  ReleaseStatus,
+  ReleaseTargetSource,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import type {
   CreateReleaseGroupInput,
   RecurrencePreviewInput,
   RecurrencePreviewResult,
   UpdateChannelTargetInput,
   UpdateRecurrenceSeriesInput,
   UpdateReleaseGroupInput,
-} from '@api-types/contracts';
-import { API_ENDPOINTS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
-  CredentialPlatform,
-  PostCategory,
-  ReleaseStatus,
-  ReleaseTargetSource,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IPaginatedResponse, IReleaseGroup } from '@genfeedai/interfaces';
+  IPaginatedResponse,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

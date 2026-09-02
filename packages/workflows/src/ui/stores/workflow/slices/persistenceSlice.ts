@@ -7,8 +7,8 @@ import type {
   WorkflowNode,
   WorkflowNodeData,
   WorkflowRefNodeData,
-} from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import type { StateCreator } from 'zustand';
 import {
   calculateWorkflowCost,

@@ -8,11 +8,11 @@ import {
   ModalEnum,
   ModelCategory,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IPreset } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IPreset } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';

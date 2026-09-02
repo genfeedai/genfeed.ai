@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';

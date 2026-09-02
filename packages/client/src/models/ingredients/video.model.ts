@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { IVideo } from '@genfeedai/interfaces';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 
 export class Video extends Ingredient implements IVideo {
   public declare duration?: number;

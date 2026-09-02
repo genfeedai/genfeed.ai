@@ -1,4 +1,4 @@
-import type { ActivityMessageFormatter } from '@genfeedai/enums';
+import type { ActivityMessageFormatter } from '@genfeedai/contracts';
 import {
   ActivityKey,
   ActivityKeys,
@@ -9,8 +9,8 @@ import {
   IngredientCategory,
   Platform,
   parseActivityKey,
-} from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 
 /**
  * Background / media-ish tasks that show progress UI.

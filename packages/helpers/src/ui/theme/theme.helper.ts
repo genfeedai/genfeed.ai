@@ -3,7 +3,7 @@ import {
   isThemePreference,
   THEME_COOKIE_NAME,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { cookies } from 'next/headers';
 
 export async function resolveRequestTheme(): Promise<ThemePreference> {

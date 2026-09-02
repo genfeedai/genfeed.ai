@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional } from 'class-validator';

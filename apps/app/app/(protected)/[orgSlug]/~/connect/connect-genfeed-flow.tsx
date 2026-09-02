@@ -5,13 +5,13 @@ import {
   getDeployment,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
-import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type {
   ConnectGenfeedClient,
   ConnectGenfeedVerificationResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';

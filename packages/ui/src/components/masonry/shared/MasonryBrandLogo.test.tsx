@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render } from '@testing-library/react';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import { describe, expect, it } from 'vitest';

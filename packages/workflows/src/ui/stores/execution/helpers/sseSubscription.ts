@@ -1,5 +1,5 @@
-import type { NodeStatus } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type { NodeStatus } from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { StoreApi } from 'zustand';
 import { getWorkflowLogger } from '../../executionLogger';
 import { useUIStore } from '../../uiStore';

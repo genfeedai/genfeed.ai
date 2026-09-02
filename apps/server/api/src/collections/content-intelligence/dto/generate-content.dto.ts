@@ -3,7 +3,7 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
   TemplateCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

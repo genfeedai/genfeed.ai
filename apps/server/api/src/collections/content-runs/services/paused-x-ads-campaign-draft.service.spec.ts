@@ -1,6 +1,6 @@
 import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CapturedWorkflowAction = (request: {

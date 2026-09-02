@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

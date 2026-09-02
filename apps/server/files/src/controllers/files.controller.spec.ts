@@ -19,9 +19,9 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
-import { IngredientFormat } from '@genfeedai/enums';
-import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
-import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
+import { IngredientFormat } from '@genfeedai/contracts';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, StreamableFile } from '@nestjs/common';

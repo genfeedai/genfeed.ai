@@ -17,7 +17,7 @@ import {
   type ClipLibraryLinkStatus,
   type ClipReferenceProvenance,
   type ClipTerminalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import type { ITag } from '@genfeedai/interfaces';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 
 export interface TagInputProps {
   tags: ITag[];

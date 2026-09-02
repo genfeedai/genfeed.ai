@@ -1,4 +1,4 @@
-import { normalizeReviewDecision } from '@genfeedai/enums';
+import { normalizeReviewDecision } from '@genfeedai/contracts';
 import { buildSingleSerializer } from '@serializers/builders';
 import {
   postListSerializerConfig,

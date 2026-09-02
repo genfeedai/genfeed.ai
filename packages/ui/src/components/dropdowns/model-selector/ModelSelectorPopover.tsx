@@ -4,7 +4,7 @@ import {
   ButtonVariant,
   ModelLifecycle,
   RouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModelSelectorFilter,

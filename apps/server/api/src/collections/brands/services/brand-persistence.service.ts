@@ -5,12 +5,12 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory } from '@genfeedai/contracts';
 import type {
   IExtractedBrandData,
   IExtractedSocialLinks,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

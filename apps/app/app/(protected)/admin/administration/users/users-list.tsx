@@ -1,9 +1,9 @@
 'use client';
 
 import { authClient } from '@genfeedai/auth-client';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { PlatformRole } from '@genfeedai/enums';
-import type { IUser } from '@genfeedai/interfaces';
+import { PlatformRole } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';

@@ -1,5 +1,5 @@
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { QualityStatus } from '@genfeedai/enums';
+import { QualityStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {

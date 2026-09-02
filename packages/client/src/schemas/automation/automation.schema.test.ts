@@ -22,7 +22,7 @@ import {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('automation schemas', () => {

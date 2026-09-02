@@ -2,7 +2,7 @@ import {
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 function createLifecycleService(

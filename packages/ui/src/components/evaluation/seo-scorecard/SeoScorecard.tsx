@@ -1,12 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   SeoCheck,
   SeoDimension,
   SeoScorecardSnapshot,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';

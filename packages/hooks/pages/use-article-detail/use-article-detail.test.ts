@@ -1,4 +1,4 @@
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/contracts';
 import { useArticleDetail } from '@hooks/pages/use-article-detail/use-article-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

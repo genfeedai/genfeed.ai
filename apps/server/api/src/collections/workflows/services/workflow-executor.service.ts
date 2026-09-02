@@ -43,9 +43,9 @@ import {
   ActionOrigin,
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import type { ICredential, IIngredient } from '@genfeedai/interfaces';
-import type { PostCardProps } from '@genfeedai/interfaces/content/publication-card.interface';
+import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
+import type { PostCardProps } from '@genfeedai/contracts/interfaces/content/publication-card.interface';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import Card from '@ui/card/Card';

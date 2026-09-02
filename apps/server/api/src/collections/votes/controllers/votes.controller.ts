@@ -6,7 +6,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { VoteSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

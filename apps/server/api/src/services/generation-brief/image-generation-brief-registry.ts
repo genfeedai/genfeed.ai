@@ -25,11 +25,11 @@ import { compileSeedream45GenerationBrief } from '@api/services/generation-brief
 import { compileSeedream4GenerationBrief } from '@api/services/generation-brief/compile-seedream-4-generation-brief';
 import { compileSeedream5ProGenerationBrief } from '@api/services/generation-brief/compile-seedream-5-pro-generation-brief';
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefExemptionReason,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_IMAGE_COMPILER_ID,
   FLUX_1_1_PRO_IMAGE_COMPILER_VERSION,
@@ -63,7 +63,7 @@ import {
   SEEDREAM_4_IMAGE_COMPILER_VERSION,
   SEEDREAM_5_PRO_IMAGE_COMPILER_ID,
   SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_CAPABILITY_PROFILE_ID,
   FLUX_1_1_PRO_CAPABILITY_PROFILE_VERSION,
@@ -135,8 +135,8 @@ import {
   SEEDREAM_5_PRO_CAPABILITY_PROFILE_ID,
   SEEDREAM_5_PRO_CAPABILITY_PROFILE_VERSION,
   SEEDREAM_5_PRO_MODEL_KEY,
-} from '@api-types/contracts/generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 /** Structural dispatch payload — each family's compiler returns its own
  * strict, provider-shaped dispatch type; this widens it for registry-level

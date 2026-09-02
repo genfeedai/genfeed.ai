@@ -1,9 +1,9 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
-import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
-import type { IVideoEditParams } from '@genfeedai/interfaces/components/video-operations.interface';
-import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { IngredientCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { IImageEditParams } from '@genfeedai/contracts/interfaces/components/image-edit.interface';
+import type { IVideoEditParams } from '@genfeedai/contracts/interfaces/components/video-operations.interface';
+import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import type { VideosService } from '@genfeedai/services/ingredients/videos.service';

@@ -5,7 +5,7 @@
     "": {
       "name": "@genfeedai/ui",
       "devDependencies": {
-        "@genfeedai/enums": "^2.3.2",
+        "@genfeedai/contracts": "^2.3.2",
         "@types/react": "^19.2.14",
         "react": "^19.2.4",
         "react-day-picker": "^9.14.0",
@@ -60,7 +60,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
-    "@genfeedai/enums": ["@genfeedai/enums@2.3.2", "", {}, "sha512-4isNND8HaJo8TaI8A7jZOO/Cy1r3HBsFKnGYi1hYRAuzecNatzrxpcODmOxUNVznSV/H2MpJW9l1r7oG5mpeoA=="],
+    "@genfeedai/contracts": ["@genfeedai/contracts@2.3.2", "", {}, "sha512-4isNND8HaJo8TaI8A7jZOO/Cy1r3HBsFKnGYi1hYRAuzecNatzrxpcODmOxUNVznSV/H2MpJW9l1r7oG5mpeoA=="],
 
     "@nodelib/fs.scandir": ["@nodelib/fs.scandir@2.1.5", "", { "dependencies": { "@nodelib/fs.stat": "2.0.5", "run-parallel": "^1.1.9" } }, "sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g=="],
 

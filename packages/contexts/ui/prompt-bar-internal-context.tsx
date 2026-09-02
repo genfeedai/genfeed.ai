@@ -7,7 +7,7 @@ import type {
   ModelCategory,
   QualityTier,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   FormDropdownOption as DropdownFieldOption,
   IAsset,
@@ -24,9 +24,9 @@ import type {
   IModel,
   IPreset,
   ITraining,
-} from '@genfeedai/interfaces';
-import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
+import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
 import type { StudioGenerationMeter } from '@genfeedai/props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {

@@ -3,7 +3,7 @@
 import {
   PUBLISHING_POSTS_VIEW_MODES,
   type PublishingPostsViewMode,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { useCallback } from 'react';
 
 const STORAGE_KEY_PREFIX = 'genfeed:publishing:posts-view';

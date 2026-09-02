@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ReplyBotPlatform } from '@genfeedai/enums';
-import type { IMonitoredAccount } from '@genfeedai/interfaces';
+import type { ReplyBotPlatform } from '@genfeedai/contracts';
+import type { IMonitoredAccount } from '@genfeedai/contracts/interfaces';
 
 export class MonitoredAccount extends BaseEntity implements IMonitoredAccount {
   public declare organizationId: string;

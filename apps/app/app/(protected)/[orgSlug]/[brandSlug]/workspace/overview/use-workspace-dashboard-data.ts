@@ -1,11 +1,11 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
+import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
 import type {
   DashboardPresetData,
   ITimeSeriesApiDataPoint,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';

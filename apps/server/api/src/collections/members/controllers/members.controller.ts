@@ -19,8 +19,8 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { scopedWhere } from '@api/index';
-import { MemberRole } from '@genfeedai/enums';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import { MemberRole } from '@genfeedai/contracts';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import {
   MemberInvitationSerializer,
   MemberSerializer,

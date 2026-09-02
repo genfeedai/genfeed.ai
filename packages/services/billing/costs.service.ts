@@ -3,7 +3,7 @@ import type {
   ICostReportEntry,
   ICostReportQuery,
   ICostReportSummary,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

@@ -2,7 +2,7 @@ import {
   DEFAULT_THEME,
   isThemePreference,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 export const EXTENSION_SETTINGS_STORAGE_KEY = 'genfeed-settings';
 

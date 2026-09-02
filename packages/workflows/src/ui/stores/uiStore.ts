@@ -1,4 +1,4 @@
-import type { HandleType } from '@genfeedai/types';
+import type { HandleType } from '@genfeedai/contracts/types';
 import { create } from 'zustand';
 
 export type ModalType =

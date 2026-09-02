@@ -1,4 +1,4 @@
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import {
   buildContextualRemixHref,
   encodeContextualRemixSource,

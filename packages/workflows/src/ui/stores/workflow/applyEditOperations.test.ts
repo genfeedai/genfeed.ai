@@ -1,4 +1,4 @@
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   configureApplyEditOperations,

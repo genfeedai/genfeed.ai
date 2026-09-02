@@ -29,7 +29,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { hasInterpolation } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -42,7 +41,8 @@ import {
   ModelCategory,
   PromptCategory,
   PromptStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { hasInterpolation } from '@genfeedai/contracts/constants';
 import { BatchInterpolationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

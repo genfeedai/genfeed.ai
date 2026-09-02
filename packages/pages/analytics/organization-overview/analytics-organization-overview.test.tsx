@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import type { IAnalytics } from '@genfeedai/interfaces';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import { render, screen, waitFor } from '@testing-library/react';

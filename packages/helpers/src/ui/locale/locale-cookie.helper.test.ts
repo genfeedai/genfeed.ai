@@ -1,4 +1,4 @@
-import { LOCALE_COOKIE_MAX_AGE } from '@genfeedai/constants';
+import { LOCALE_COOKIE_MAX_AGE } from '@genfeedai/contracts/constants';
 import {
   buildLocaleCookie,
   readLocaleCookie,

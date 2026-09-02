@@ -19,9 +19,9 @@ import {
   RATE_LIMIT_KEY,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, ModelCategory } from '@genfeedai/enums';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';

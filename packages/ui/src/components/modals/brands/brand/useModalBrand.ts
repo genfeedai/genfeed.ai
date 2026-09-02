@@ -1,6 +1,5 @@
 'use client';
 
-import { createBrandAppRoute, MODEL_KEYS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import {
   useConfirmModal,
@@ -14,7 +13,16 @@ import {
   ModalEnum,
   PromptCategory,
   SystemPromptKey,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  createBrandAppRoute,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
+import type {
+  IBrand,
+  ILink,
+  IStructuredError,
+} from '@genfeedai/contracts/interfaces';
 import {
   closeModal,
   openModal,
@@ -27,7 +35,6 @@ import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
-import type { IBrand, ILink, IStructuredError } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
 import type { Link } from '@genfeedai/models/social/link.model';

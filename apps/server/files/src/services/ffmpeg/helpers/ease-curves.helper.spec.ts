@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   VideoEaseCurve: {
     EASE_IN_EXPO_OUT_CUBIC: 'ease-in-expo-out-cubic',
     EASE_IN_OUT_CUBIC: 'ease-in-out-cubic',
@@ -11,7 +11,7 @@ vi.mock('@genfeedai/enums', () => ({
   },
 }));
 
-import { VideoEaseCurve } from '@genfeedai/enums';
+import { VideoEaseCurve } from '@genfeedai/contracts';
 import {
   getBlendExpression,
   getEaseCurveExpression,

@@ -15,8 +15,8 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { PersonaStatus } from '@genfeedai/enums';
-import type { AgentCharacterMentionsResponse } from '@genfeedai/interfaces';
+import { PersonaStatus } from '@genfeedai/contracts';
+import type { AgentCharacterMentionsResponse } from '@genfeedai/contracts/interfaces';
 import { PersonaSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

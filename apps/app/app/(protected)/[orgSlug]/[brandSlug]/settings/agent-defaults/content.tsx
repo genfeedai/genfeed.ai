@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailDefaultModelsCard from '@pages/brands/components/sidebar/BrandDetailDefaultModelsCard';

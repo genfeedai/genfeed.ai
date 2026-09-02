@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { listChannelCapabilities } from '@api-types/contracts/channel-capabilities.contract';
+import { listChannelCapabilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { serializeOpenApiDocument } from '../src/helpers/utils/openapi/openapi-document.util';
 import { validateOpenApiSpec } from '../src/helpers/utils/openapi/openapi-spec-validation.util';

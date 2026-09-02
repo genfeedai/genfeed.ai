@@ -3,8 +3,8 @@ import {
   CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { ICredential, IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import ModalPostBatch from '@ui/modals/content/batch/ModalPostBatch';
 import { describe, expect, it, vi } from 'vitest';

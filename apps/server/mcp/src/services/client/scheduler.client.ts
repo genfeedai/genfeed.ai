@@ -1,7 +1,7 @@
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { BaseApiClient } from './base-api-client';
 
 export type ScheduledReleaseControlAction =

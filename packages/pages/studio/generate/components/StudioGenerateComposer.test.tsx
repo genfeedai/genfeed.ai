@@ -1,5 +1,5 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';

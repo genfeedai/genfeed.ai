@@ -11,7 +11,7 @@ import { ContextsService } from '@api/collections/contexts/services/contexts.ser
 import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { KnowledgeBaseCategory } from '@genfeedai/enums';
+import { KnowledgeBaseCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

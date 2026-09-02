@@ -11,7 +11,7 @@ import {
   EvaluationType,
   ExternalPlatform,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

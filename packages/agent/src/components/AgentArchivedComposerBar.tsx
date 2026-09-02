@@ -1,5 +1,5 @@
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';

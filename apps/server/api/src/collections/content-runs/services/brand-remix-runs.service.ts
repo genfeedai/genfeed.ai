@@ -11,6 +11,7 @@ import { projectBrandRemixRun } from '@api/collections/content-runs/services/bra
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   BRAND_REMIX_RUN_VERSION,
@@ -21,8 +22,7 @@ import {
   reviseBrandRemixRunSchema,
   startBrandRemixRunSchema,
   submitBrandRemixRunForReviewSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**

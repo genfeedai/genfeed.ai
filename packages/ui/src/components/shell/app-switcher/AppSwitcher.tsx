@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_DISPLAY_LABELS,
   APP_ROUTES,
@@ -7,11 +8,10 @@ import {
   type AppSwitcherFeatureFlagKey,
   createBrandAppRoute,
   createOrganizationAppRoute,
-} from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
+import type { AppSwitcherItemConfig } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
-import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type {
   AppSwitcherNavigationTarget,
   AppSwitcherProps,

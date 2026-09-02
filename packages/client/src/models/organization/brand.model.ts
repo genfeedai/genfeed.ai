@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { AssetScope } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
@@ -8,7 +8,7 @@ import type {
   ILink,
   IOrganization,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Brand extends BaseEntity implements IBrand {
   public declare user: IUser;

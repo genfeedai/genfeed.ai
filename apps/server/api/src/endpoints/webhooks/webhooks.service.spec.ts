@@ -28,8 +28,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
-import type { IFileMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IFileMetadata } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

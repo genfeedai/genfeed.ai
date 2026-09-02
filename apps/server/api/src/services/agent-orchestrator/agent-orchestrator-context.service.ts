@@ -42,8 +42,8 @@ import { ThreadContextCompressorService } from '@api/services/agent-threading/se
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { AgentMessageRole, AgentType } from '@genfeedai/enums';
-import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import { AgentMessageRole, AgentType } from '@genfeedai/contracts';
+import type { ResolvedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

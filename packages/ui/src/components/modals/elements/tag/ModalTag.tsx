@@ -4,13 +4,13 @@ import {
   ButtonVariant,
   ModalEnum,
   TagCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ITag } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { ITag } from '@genfeedai/interfaces';
 import type { Tag } from '@genfeedai/models/content/tag.model';
 import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
 import { TagsService } from '@genfeedai/services/content/tags.service';

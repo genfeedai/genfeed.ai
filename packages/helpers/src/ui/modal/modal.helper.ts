@@ -1,4 +1,4 @@
-import type { ModalEnum } from '@genfeedai/enums';
+import type { ModalEnum } from '@genfeedai/contracts';
 
 const logError = (message: string, meta?: Record<string, unknown>) => {
   void message;

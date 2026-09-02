@@ -1,4 +1,4 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import Modal from '@ui/modals/modal/Modal';

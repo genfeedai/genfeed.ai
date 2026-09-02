@@ -10,11 +10,11 @@ import type { WorkflowExecutionDocument } from '@api/collections/workflow-execut
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 

@@ -8,7 +8,7 @@ import {
   BaseIntegrationController,
   type OAuthUrlResult,
 } from '@api/shared/controllers/base-integration/base-integration.controller';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

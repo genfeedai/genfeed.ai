@@ -2,7 +2,7 @@ import type {
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
 import Link from 'next/link';

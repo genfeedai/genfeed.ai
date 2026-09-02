@@ -19,8 +19,8 @@ import {
   CredentialPlatform,
   SystemPromptKey,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

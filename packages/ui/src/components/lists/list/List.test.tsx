@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import List from '@ui/lists/list/List';
 import { describe, expect, it, vi } from 'vitest';

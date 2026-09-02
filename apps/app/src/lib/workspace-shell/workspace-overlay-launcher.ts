@@ -2,7 +2,7 @@ import type {
   ResolveWorkspaceOverlayLaunchParams,
   WorkspaceOverlayLaunch,
   WorkspaceShellOverlayRequest,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import {
   buildWorkspaceShellHref,
   resolveWorkspaceShellOverlayRequest,
@@ -15,7 +15,7 @@ import {
 export type {
   ResolveWorkspaceOverlayLaunchParams,
   WorkspaceOverlayLaunch,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 const INTERNAL_ORIGIN = 'https://workspace.genfeed.invalid';
 

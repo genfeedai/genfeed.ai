@@ -220,7 +220,7 @@ packages/
 ```
 
 ```json
-// packages/typescript-config/base.json
+// packages/contracts/src/typescript-config/base.json
 {
   "compilerOptions": {
     "strict": true,

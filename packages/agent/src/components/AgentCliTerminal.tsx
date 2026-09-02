@@ -20,7 +20,7 @@ import {
   type TerminalSessionKind,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { Button } from '@ui/primitives/button';

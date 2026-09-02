@@ -5,7 +5,7 @@ import type {
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { AUTHOR_REPLY_WORKFLOW_IDS } from '@api/services/reply-bot/author-reply-workflow-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type { Platform } from '@genfeedai/enums';
+import type { Platform } from '@genfeedai/contracts';
 
 export type ReplyInboundSource = 'manual' | 'poll' | 'post-watch' | 'xaa';
 

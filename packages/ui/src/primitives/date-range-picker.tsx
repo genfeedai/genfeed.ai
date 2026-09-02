@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant, Timeframe } from '@genfeedai/enums';
+import { ButtonVariant, Timeframe } from '@genfeedai/contracts';
+import type { DateRange as AnalyticsDateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { cn } from '@genfeedai/helpers';
-import type { DateRange as AnalyticsDateRange } from '@genfeedai/interfaces/utils/date.interface';
 import { subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';

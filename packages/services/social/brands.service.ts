@@ -1,6 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ReferenceImageCategory } from '@genfeedai/enums';
-import type { DefaultVoiceRef } from '@genfeedai/helpers/voice/default-voice-ref.helper';
+import type { ReferenceImageCategory } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   FastlaneGenerateIdeasRequest,
   FastlaneIdea,
@@ -24,8 +23,9 @@ import type {
   IPost,
   IQueryParams,
   IVideo,
-} from '@genfeedai/interfaces';
-import type { BrandQueryParams } from '@genfeedai/interfaces/utils/query.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { BrandQueryParams } from '@genfeedai/contracts/interfaces/utils/query.interface';
+import type { DefaultVoiceRef } from '@genfeedai/helpers/voice/default-voice-ref.helper';
 import { Activity } from '@genfeedai/models/analytics/activity.model';
 import { Credential } from '@genfeedai/models/auth/credential.model';
 import { Article } from '@genfeedai/models/content/article.model';

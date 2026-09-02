@@ -4,8 +4,11 @@ import {
   BotInteractionType,
   BotResponseType,
   CredentialPlatform,
-} from '@genfeedai/enums';
-import type { IBotMessage, IBotPlatformAdapter } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IBotMessage,
+  IBotPlatformAdapter,
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PostingSetPickerProps } from '@genfeedai/props/publisher/posting-set-picker.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

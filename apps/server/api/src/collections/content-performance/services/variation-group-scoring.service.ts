@@ -6,7 +6,7 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

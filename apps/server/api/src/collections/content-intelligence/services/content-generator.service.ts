@@ -17,11 +17,11 @@ import {
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';

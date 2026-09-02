@@ -3,7 +3,7 @@ import type { PatternPlaybookDocument } from '@api/collections/content-intellige
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentIntelligencePlatform } from '@genfeedai/enums';
+import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('PlaybookBuilderService', () => {

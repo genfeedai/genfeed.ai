@@ -1,6 +1,6 @@
 'use client';
 
-import type { AudioInputNodeData } from '@genfeedai/types';
+import type { AudioInputNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, Music, Upload, X } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';

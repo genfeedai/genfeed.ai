@@ -1,4 +1,4 @@
-import type { IHarnessProfile } from '@genfeedai/interfaces';
+import type { IHarnessProfile } from '@genfeedai/contracts/interfaces';
 import type { Profile as PrismaProfile } from '@genfeedai/prisma';
 
 export type HarnessProfileData = Omit<

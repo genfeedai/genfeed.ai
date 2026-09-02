@@ -1,4 +1,4 @@
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 
 /** One Kanban column. Status → column mapping lives in `release-board.tsx`. */
 export type ReleaseBoardColumnId =

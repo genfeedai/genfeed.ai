@@ -25,11 +25,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { TrainingStage } from '@genfeedai/prisma';
 import {
   IngredientSerializer,

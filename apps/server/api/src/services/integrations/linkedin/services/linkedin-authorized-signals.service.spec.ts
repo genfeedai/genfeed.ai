@@ -11,12 +11,12 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type LinkedinAuthorizedSignalEvidence,
   type LinkedinAuthorizedSignalsSnapshot,
   linkedinAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/linkedin-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

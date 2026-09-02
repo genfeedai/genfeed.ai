@@ -1,7 +1,7 @@
 import {
   RESEARCH_FINDING_REFERENCE_KINDS,
   type ScopedResearchFindingReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const ANALYTICS_METRICS = [
   'comments',

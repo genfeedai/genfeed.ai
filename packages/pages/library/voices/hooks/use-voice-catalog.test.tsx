@@ -27,7 +27,7 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 
 import { useVoiceCatalog } from './use-voice-catalog';
 

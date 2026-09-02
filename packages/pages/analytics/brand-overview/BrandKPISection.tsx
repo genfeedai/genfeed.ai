@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAnalytics } from '@genfeedai/interfaces';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { ChartColumn, Eye, Flame, Globe, Heart, Video } from 'lucide-react';

@@ -10,7 +10,7 @@ import {
   TrendResponseDto,
   ViralVideoResponseDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
-import { Platform, Timeframe } from '@genfeedai/enums';
+import { Platform, Timeframe } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';

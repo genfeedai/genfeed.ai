@@ -12,7 +12,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

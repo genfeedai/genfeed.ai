@@ -3,7 +3,7 @@ import type {
   IEditorEffect,
   IEditorRenderStyle,
   IEditorTransition,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const CSS_FILTER_BUILDERS: Partial<
   Record<IEditorEffect['type'], (intensity: number) => string>

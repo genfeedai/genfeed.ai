@@ -12,12 +12,12 @@ import {
   REMAINING_IMAGE_COMPILER_VERSION,
   SDXL_IMAGE_COMPILER_ID,
   Z_IMAGE_TURBO_IMAGE_COMPILER_ID,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   buildRemainingImageCapabilityProfile,
   type RemainingImageCapabilityProfile,
-} from '@api-types/contracts/generation-capability-profile-remaining.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile-remaining.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 export interface RemainingImageFamilyDispatchSpec {
   aspectRatioField?: 'aspect_ratio';

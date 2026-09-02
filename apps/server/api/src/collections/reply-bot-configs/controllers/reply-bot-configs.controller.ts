@@ -21,7 +21,7 @@ import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loo
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

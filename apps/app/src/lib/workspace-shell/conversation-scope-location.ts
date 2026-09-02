@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 interface BuildConversationScopeHrefParams {

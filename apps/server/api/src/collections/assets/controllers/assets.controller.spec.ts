@@ -7,7 +7,7 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { AssetCategory, AssetParent } from '@genfeedai/enums';
+import { AssetCategory, AssetParent } from '@genfeedai/contracts';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

@@ -1,6 +1,6 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IMetadata } from '@genfeedai/interfaces';
 import type { ListRowSoundProps } from '@genfeedai/props/content/list.props';
 import { Button } from '@ui/primitives/button';
 import { CONTENT_ICON_CLASS } from '@ui-constants/shell-chrome.constant';

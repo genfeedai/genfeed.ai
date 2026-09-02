@@ -1,4 +1,4 @@
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 
 import { createIdMap, createTargetMap } from './lookups';
 import { getNodeOutputForHandle } from './nodeOutputs';

@@ -1,5 +1,5 @@
 import { Model as BaseModel } from '@genfeedai/client/models';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 
 export class Model extends BaseModel {
   public get categoryBadgeClass(): string {

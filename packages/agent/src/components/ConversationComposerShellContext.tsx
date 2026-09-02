@@ -6,7 +6,7 @@ import type {
   ConversationComposerContextReference,
   ConversationComposerDispatchResult,
 } from '@genfeedai/agent/models/conversation-composer.model';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import {
   createContext,
   type ReactElement,

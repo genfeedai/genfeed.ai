@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { getStatusIcon } from '@/features/workflows/utils/status-helpers';

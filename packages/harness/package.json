@@ -1,7 +1,4 @@
 {
-  "dependencies": {
-    "@genfeedai/interfaces": "workspace:*"
-  },
   "devDependencies": {
     "@types/node": "24.13.3",
     "tsup": "8.5.1",
@@ -39,5 +36,8 @@
   "sideEffects": false,
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "dependencies": {
+    "@genfeedai/contracts": "workspace:*"
+  }
 }

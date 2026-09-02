@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   GoogleColorIcon,
   YoutubeIcon,

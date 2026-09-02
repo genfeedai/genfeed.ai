@@ -1,4 +1,4 @@
-import type { WorkflowNodeData } from '@genfeedai/interfaces/automation/workflow-builder.interface';
+import type { WorkflowNodeData } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import NodeConfigPanel from '@ui/workflow-builder/panels/NodeConfigPanel';
 import type { Node } from '@xyflow/react';

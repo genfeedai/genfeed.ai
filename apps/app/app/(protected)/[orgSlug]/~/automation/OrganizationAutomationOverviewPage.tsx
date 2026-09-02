@@ -2,12 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@contexts/user/brand-context/brand-context.helpers';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_DISPLAY_LABELS,
   APP_ROUTES,
   createBrandAppRoute,
-} from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';

@@ -5,7 +5,7 @@ import {
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {

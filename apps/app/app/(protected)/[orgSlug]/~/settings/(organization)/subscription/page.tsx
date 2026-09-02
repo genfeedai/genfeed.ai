@@ -1,5 +1,8 @@
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
 import SettingsSubscriptionPage from '../../(pages)/organization/subscription/content';

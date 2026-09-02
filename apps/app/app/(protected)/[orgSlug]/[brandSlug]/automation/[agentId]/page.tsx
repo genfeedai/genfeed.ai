@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { permanentRedirect } from 'next/navigation';
 
 /** Legacy `/automation/:agentId` → nested `/automation/agents/:agentId`. */

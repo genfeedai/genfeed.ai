@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   AVATAR_CREDIT_COSTS,

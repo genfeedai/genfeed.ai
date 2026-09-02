@@ -10,7 +10,7 @@ import type {
   SmartAlertSeverity,
   SmartAlertType,
   TrendDirection,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface Insight {
   id: string;

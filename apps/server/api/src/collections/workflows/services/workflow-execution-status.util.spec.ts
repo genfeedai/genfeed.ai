@@ -1,5 +1,5 @@
 import { mapEngineNodeStatus } from '@api/collections/workflows/services/workflow-execution-status.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('mapEngineNodeStatus', () => {

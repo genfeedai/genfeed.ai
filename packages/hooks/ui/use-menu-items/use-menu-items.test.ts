@@ -1,4 +1,4 @@
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

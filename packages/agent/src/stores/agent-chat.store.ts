@@ -80,7 +80,7 @@ function persistSessionsByThread(map: TerminalSessionsByThread): void {
   }
 }
 
-// Inlined from @genfeedai/types to avoid turbopack resolution issues
+// Inlined from @genfeedai/contracts/types to avoid turbopack resolution issues
 const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
 const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
 

@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';

@@ -1,5 +1,5 @@
-import { ArticleCategory, Platform, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 import {

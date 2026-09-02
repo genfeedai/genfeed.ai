@@ -7,7 +7,8 @@ import {
   ButtonVariant,
   ModalEnum,
   ReplyBotPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IMonitoredAccount } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -20,7 +21,6 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import type { ModalMonitoredAccountProps } from '@genfeedai/props/modals/modal.props';
 import { MonitoredAccountsService } from '@genfeedai/services/automation/monitored-accounts.service';
 import Alert from '@ui/feedback/alert/Alert';

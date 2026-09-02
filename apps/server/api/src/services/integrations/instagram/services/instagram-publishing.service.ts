@@ -1,5 +1,5 @@
-import { InstagramMediaType } from '@genfeedai/enums';
-import type { InstagramCredentialResponse } from '@genfeedai/interfaces/integrations/instagram.interface';
+import { InstagramMediaType } from '@genfeedai/contracts';
+import type { InstagramCredentialResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

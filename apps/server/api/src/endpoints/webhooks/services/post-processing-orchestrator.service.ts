@@ -2,7 +2,7 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
-import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';

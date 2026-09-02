@@ -4,7 +4,7 @@ import {
   PostFormat,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { validate } from 'class-validator';
 

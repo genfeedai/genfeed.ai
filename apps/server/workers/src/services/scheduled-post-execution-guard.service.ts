@@ -6,7 +6,7 @@ import {
 import {
   AGENT_SCOPE_SOURCES,
   type AgentScopeSource,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 

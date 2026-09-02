@@ -11,12 +11,12 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeAuthorizedSignalsService } from '@api/services/integrations/youtube/services/youtube-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalsSnapshot,
   youtubeAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/youtube-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

@@ -1,5 +1,5 @@
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   ConflictException,

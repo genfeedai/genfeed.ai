@@ -9,7 +9,7 @@ import type {
   IDesktopGenerationProviderTestResult,
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkflowGenerationResult,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import { sleep } from '@genfeedai/helpers';
 import {
   buildWorkflowGenerationMessages,

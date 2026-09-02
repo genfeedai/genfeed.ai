@@ -1,6 +1,6 @@
 'use client';
 
-import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/constants';
+import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { useEffect, useState } from 'react';
 import {
   isAnalyticsEnabled,

@@ -1,13 +1,13 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import { redactSensitiveString } from '@genfeedai/helpers';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type {
   AccountPublishingContext,
   ICredential,
   PublishingReadinessState,
   PublishingSetupCheckStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { redactSensitiveString } from '@genfeedai/helpers';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';

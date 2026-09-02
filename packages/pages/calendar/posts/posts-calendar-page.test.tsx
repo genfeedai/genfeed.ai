@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import PostsCalendarPage from '@pages/calendar/posts/posts-calendar-page';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';

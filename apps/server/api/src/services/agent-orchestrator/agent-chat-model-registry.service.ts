@@ -1,20 +1,24 @@
 /**
  * Runtime agent-chat model catalogue — reads the `models` registry only.
  *
- * Seed input still lives in `@genfeedai/constants` (`AGENT_CHAT_MODELS` →
+ * Seed input still lives in `@genfeedai/contracts/constants` (`AGENT_CHAT_MODELS` →
  * `UNIFIED_MODEL_CATALOG` → ModelCatalogSeedService). After seed, pickers,
  * defaults, round costs, and key resolution must not re-read that list.
  */
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
+import {
   AGENT_CHAT_CAPABILITY,
   AGENT_CHAT_MODEL_KEYS,
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelLifecycle, ModelProvider } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 

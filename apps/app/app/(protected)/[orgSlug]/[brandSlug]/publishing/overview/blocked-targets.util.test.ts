@@ -1,5 +1,8 @@
-import { TargetExecutionState } from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildBlockedTargetGroups,

@@ -1,5 +1,5 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import ModelsList from '@pages/models/list/models-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

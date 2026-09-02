@@ -2,13 +2,13 @@
 
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonVariant,
   PageScope,
   VoiceProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,

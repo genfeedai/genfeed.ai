@@ -3,7 +3,7 @@
 import type {
   IReleaseTargetAnalyticsMetrics,
   SchedulerAnalyticsComparisonMetric,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ReleaseAnalyticsTableProps } from '@props/publisher/release-calendar.props';
 import { Badge } from '@ui/primitives/badge';
 import {

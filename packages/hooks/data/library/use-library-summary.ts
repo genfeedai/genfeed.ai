@@ -1,6 +1,6 @@
 'use client';
 
-import type { ILibrarySummary } from '@genfeedai/interfaces';
+import type { ILibrarySummary } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';

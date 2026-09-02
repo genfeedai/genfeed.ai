@@ -13,7 +13,6 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -25,7 +24,8 @@ import {
   PromptCategory,
   PromptStatus,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

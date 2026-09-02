@@ -48,6 +48,12 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
@@ -61,7 +67,13 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestMember,
   createTestOrganization,
@@ -78,28 +90,16 @@ import {
   createMockKlingAIImageService,
   createMockReplicateService,
 } from '@api-test/mocks/external-services.mocks';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   CreditReservationStatus,
   CreditTransactionCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 const ORG = 'org-generation-decrement';
 const RESOLVED_BRAND = 'brand-resolved';

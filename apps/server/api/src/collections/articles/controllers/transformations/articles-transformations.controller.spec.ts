@@ -11,7 +11,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { RouterService } from '@api/services/router/router.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { ArticleCategory, AssetScope } from '@genfeedai/enums';
+import { ArticleCategory, AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

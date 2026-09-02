@@ -7,7 +7,7 @@ import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
 import type { SlideText } from '@files/shared/interfaces/caption.interface';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import type { FileFrame } from '@files/shared/interfaces/job.interface';
-import { MetadataExtension } from '@genfeedai/enums';
+import { MetadataExtension } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

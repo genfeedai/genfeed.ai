@@ -1,7 +1,7 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
-import type { ContentScope } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { ContentScope } from '@genfeedai/contracts/interfaces';
 import type { Preset } from '@models/elements/preset.model';
 import { LazyModalPreset } from '@ui/lazy/modal/LazyModal';
 

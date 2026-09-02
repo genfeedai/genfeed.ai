@@ -7,8 +7,12 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, ByokProvider, ModelProvider } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  ByokProvider,
+  ModelProvider,
+} from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';

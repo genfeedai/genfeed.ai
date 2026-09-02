@@ -2,11 +2,11 @@ import type { ServerPrisma } from '@api/server.dependencies';
 import {
   CredentialPlatform,
   TargetAnalyticsCollectionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailure,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { PostAnalyticsCollectionStateService } from './post-analytics-collection-state.service';
 

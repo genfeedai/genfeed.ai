@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { TrendingHashtagsProps } from '@genfeedai/props/analytics/trends.props';
 import Card from '@ui/card/Card';

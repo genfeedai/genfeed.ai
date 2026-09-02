@@ -7,7 +7,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { DashboardLayoutSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -4,8 +4,8 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
   createArtifactEditorRoute,
   ITEMS_PER_PAGE,
-} from '@genfeedai/constants';
-import type { IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {

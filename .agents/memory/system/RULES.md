@@ -4,7 +4,7 @@ Mandatory coding standards for Genfeed development. For cross-repo rules (no `an
 
 ## TypeScript Standards
 
-- Interfaces: component props -> `packages/props/[category]/*.props.ts`, state/helpers -> `packages/interfaces/[category]/*.interface.ts`
+- Interfaces: component props -> `packages/props/[category]/*.props.ts`, state/helpers -> `packages/contracts/src/interfaces/[category]/*.interface.ts`
 - Use `type` for unions/intersections/primitives, `interface` for object shapes/classes
 - Strict null checks -- handle null/undefined explicitly
 - Booleans: `is[Property]` or `has[Property]` prefix always (`isActive`, `hasPermission`)

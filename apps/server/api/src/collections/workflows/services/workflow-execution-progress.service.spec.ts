@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { ExecutableWorkflow } from '@genfeedai/workflows/engine';
 import { precomputeWorkflowEtaPlan } from '@helpers/generation-eta.helper';
 import { WorkflowExecutionProgressService } from './workflow-execution-progress.service';

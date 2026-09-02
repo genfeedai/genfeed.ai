@@ -13,7 +13,7 @@ last_verified: 2026-08-07
 - Product / posts / UI id: `Platform` (lowercase values, e.g. `instagram`, `devto`)
 - Domain re-export: `CredentialPlatform` === `Platform` (still lowercase — **not** the Prisma enum)
 - Prisma column `credentials.platform`: SCREAMING labels (`INSTAGRAM`, `DEVTO`)
-- Display label: `formatPlatformLabel()` from `@genfeedai/enums`
+- Display label: `formatPlatformLabel()` from `@genfeedai/contracts`
 - Parse free text / aliases: `parsePlatform()` (`x` → twitter, `meta` → facebook)
 - **Credential boundary:** `toPrismaCredentialPlatform()` / `fromPrismaCredentialPlatform()`
 - Predicates: `isTwitterPlatform`, `isYouTubePlatform`, …
@@ -29,4 +29,4 @@ last_verified: 2026-08-07
 - Use `as never` to force platform enum writes
 - Re-harmonize `posts.platform` (String) into SCREAMING to match credentials
 
-**Helpers:** `packages/enums/src/platform.util.ts`, `packages/enums/src/platform-prisma.mapper.ts` (exported from package index)
+**Helpers:** `packages/contracts/src/enums/platform.util.ts`, `packages/contracts/src/enums/platform-prisma.mapper.ts` (exported from package index)

@@ -3,8 +3,8 @@ import {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-} from '@genfeedai/enums';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
 import type {
   UsePromptBarSyncOptions,
   UsePromptBarSyncReturn,

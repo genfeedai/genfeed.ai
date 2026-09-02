@@ -19,7 +19,7 @@ import type {
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import {

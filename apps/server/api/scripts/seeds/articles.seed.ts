@@ -28,8 +28,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { isEntityId } from '@api-types/helpers/entity-id';
-import { ArticleScope } from '@genfeedai/enums';
+import { ArticleScope } from '@genfeedai/contracts';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import {
   ArticleStatus,
   getMissingArticleColumns,

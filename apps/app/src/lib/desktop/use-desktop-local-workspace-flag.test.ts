@@ -1,4 +1,4 @@
-import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/constants';
+import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDesktopLocalWorkspaceFlag } from './use-desktop-local-workspace-flag';

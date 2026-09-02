@@ -5,8 +5,8 @@ import {
   ButtonVariant,
   formatActivityMessage,
   IngredientCategory,
-} from '@genfeedai/enums';
-import type { IActivity, IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import type { ActivitiesListProps } from '@props/content/activities.props';
 import type { TableAction, TableRowLink } from '@props/ui/display/table.props';

@@ -1,6 +1,6 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
+import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
 export const MEDIA_TYPE_CONFIGS: Partial<

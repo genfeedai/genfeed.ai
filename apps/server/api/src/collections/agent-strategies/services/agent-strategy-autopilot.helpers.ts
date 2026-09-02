@@ -5,7 +5,7 @@ import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
   AgentAutonomyMode,
   normalizeAgentAutonomyMode,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;

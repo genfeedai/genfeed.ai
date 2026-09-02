@@ -4,11 +4,11 @@ import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
   AgentArtifactReferenceReadContext,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   AGENT_ARTIFACT_RECORD_KINDS,
   AGENT_ARTIFACT_SERIALIZER_BY_KIND,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 
 const MAX_AGENT_ARTIFACT_REFERENCES_PER_WRITE = 100;

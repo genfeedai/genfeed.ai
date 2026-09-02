@@ -1,11 +1,11 @@
 'use client';
 
-import type { ChannelValidationIssue } from '@api-types/contracts';
 import {
   ButtonVariant,
   CredentialPlatform,
   TargetValidationState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelValidationIssue } from '@genfeedai/contracts/api-types/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   FacebookIcon,

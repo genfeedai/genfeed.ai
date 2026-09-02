@@ -1,13 +1,13 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { IFolder, IQueryParams } from '@genfeedai/interfaces';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type { IFolder, IQueryParams } from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Folder } from '@models/content/folder.model';

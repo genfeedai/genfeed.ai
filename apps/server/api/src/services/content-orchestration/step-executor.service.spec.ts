@@ -10,7 +10,7 @@ import {
   ImageTaskModel,
   MusicTaskModel,
   VideoTaskModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('StepExecutorService', () => {

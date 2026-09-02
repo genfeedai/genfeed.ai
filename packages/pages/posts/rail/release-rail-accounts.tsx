@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { AccountHealthSummary } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';

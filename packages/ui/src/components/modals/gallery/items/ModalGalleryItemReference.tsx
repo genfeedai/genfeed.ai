@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';

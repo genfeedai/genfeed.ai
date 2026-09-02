@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AgentPanelShell from './AgentPanelShell';
 
-// Mock Button — avoids deep @genfeedai/enums + CVA dependency chain
+// Mock Button — avoids deep @genfeedai/contracts + CVA dependency chain
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({
     children,
@@ -27,7 +27,7 @@ vi.mock('lucide-react', () => ({
 }));
 
 // Mock enums used by Button
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { DEFAULT: 'default', ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', SOFT: 'soft' },
 }));

@@ -18,8 +18,8 @@ import {
   PostVisibility,
   TargetExecutionState,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { IChannelTargetError } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IChannelTargetError } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';

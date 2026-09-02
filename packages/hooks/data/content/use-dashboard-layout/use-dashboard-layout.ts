@@ -1,6 +1,6 @@
 'use client';
 
-import type { IDashboardLayout } from '@genfeedai/interfaces';
+import type { IDashboardLayout } from '@genfeedai/contracts/interfaces';
 import { DashboardLayoutsService } from '@genfeedai/services/content/dashboard-layouts.service';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

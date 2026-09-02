@@ -3,7 +3,7 @@ import { ImageQueueService } from '@files/queues/image-queue.service';
 import { TaskQueueService } from '@files/queues/task-queue.service';
 import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

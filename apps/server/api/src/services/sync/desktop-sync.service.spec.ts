@@ -18,7 +18,7 @@ vi.mock('@genfeedai/config', () => ({
   isSelfHostedDeployment: () => false,
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   FileInputType: {
     BUFFER: 'buffer',
   },

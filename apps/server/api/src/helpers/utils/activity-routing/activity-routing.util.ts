@@ -3,7 +3,7 @@ import {
   ActivitySource,
   IngredientCategory,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface ActivityRouting {
   activityKey: ActivityKey;

@@ -5,12 +5,12 @@ import {
   ButtonVariant,
   formatPlatformLabel,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   fromDateTimeLocalInput,

@@ -3,7 +3,7 @@ import {
   BatchAction,
   BatchActionDto,
 } from '@api/services/batch-generation/dto/batch-action.dto';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const MAX_BATCH_ACTION_ITEMS = 100;

@@ -5,7 +5,7 @@ import { VideoProcessor } from '@files/processors/video.processor';
 import { YoutubeProcessor } from '@files/processors/youtube.processor';
 import { ServicesModule } from '@files/services/services.module';
 import { YoutubeModule } from '@files/services/youtube/youtube.module';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';

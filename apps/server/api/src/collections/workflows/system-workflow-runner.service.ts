@@ -42,7 +42,7 @@ import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import {
   buildActionExecutionInput,

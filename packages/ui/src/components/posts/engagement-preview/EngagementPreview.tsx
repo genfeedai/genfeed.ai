@@ -1,7 +1,7 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { ChartColumn } from 'lucide-react';
 

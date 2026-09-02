@@ -12,7 +12,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { XAdsController } from '@api/services/integrations/x-ads/controllers/x-ads.controller';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {

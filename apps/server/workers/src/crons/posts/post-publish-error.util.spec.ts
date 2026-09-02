@@ -3,7 +3,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   createChannelTargetError,
   createFailedPublishResult,

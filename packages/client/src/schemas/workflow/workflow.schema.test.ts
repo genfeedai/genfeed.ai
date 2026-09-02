@@ -7,7 +7,7 @@ import {
   trainingEditSchema,
   trainingSchema,
 } from '@genfeedai/client/schemas/workflow/training.schema';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('workflow schemas', () => {

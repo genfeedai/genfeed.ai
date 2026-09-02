@@ -20,8 +20,8 @@ import type {
   GenerationSetupFieldKey,
   GenerationSetupRecommendation,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
-import type { StudioGenerateType } from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import type { StudioGenerateType } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 

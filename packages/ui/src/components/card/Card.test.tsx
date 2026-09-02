@@ -1,4 +1,4 @@
-import { CardVariant } from '@genfeedai/enums';
+import { CardVariant } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Card from '@ui/card/Card';

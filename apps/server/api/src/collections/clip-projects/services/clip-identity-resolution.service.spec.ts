@@ -1,6 +1,6 @@
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 
 describe('ClipIdentityResolutionService', () => {
   const organizationId = 'org-1';

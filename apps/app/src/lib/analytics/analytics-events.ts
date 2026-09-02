@@ -1,4 +1,4 @@
-import type { GenerationType } from '@genfeedai/enums';
+import type { GenerationType } from '@genfeedai/contracts';
 
 /**
  * PostHog product-analytics event taxonomy for the studio app.

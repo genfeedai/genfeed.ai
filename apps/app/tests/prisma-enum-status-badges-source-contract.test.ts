@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BotStatus } from '@genfeedai/enums';
+import { BotStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 /**

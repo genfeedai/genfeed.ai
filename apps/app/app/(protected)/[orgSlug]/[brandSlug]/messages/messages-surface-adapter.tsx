@@ -1,11 +1,11 @@
 'use client';
 
 import { useAgentChatStore } from '@genfeedai/agent';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   SocialConversation,
   SocialInboxReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Link, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';

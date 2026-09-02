@@ -1,6 +1,9 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**

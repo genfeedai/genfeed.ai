@@ -1,16 +1,16 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { webhookSettingsSchema } from '@genfeedai/client/schemas/integrations/webhook.schema';
+import type { ButtonVariant } from '@genfeedai/contracts';
 import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
-} from '@api-types/contracts';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { webhookSettingsSchema } from '@genfeedai/client/schemas/integrations/webhook.schema';
-import type { ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   IOrganizationSetting,
   IWebhookDeliveryStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

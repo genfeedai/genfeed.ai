@@ -8,7 +8,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
-import { DistributionContentType } from '@genfeedai/enums';
+import { DistributionContentType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

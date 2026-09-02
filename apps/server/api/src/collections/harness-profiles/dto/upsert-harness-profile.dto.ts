@@ -1,4 +1,4 @@
-import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/interfaces';
+import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
 import {
   IsArray,
   IsBoolean,

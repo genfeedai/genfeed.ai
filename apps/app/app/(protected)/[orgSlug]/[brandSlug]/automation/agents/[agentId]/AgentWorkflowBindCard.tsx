@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';

@@ -9,7 +9,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { GoalSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Param, Patch, Post, Req } from '@nestjs/common';

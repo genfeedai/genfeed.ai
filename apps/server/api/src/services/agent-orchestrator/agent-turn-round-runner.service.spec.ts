@@ -7,8 +7,8 @@ import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfac
 import { buildCampaignPreparationCacheKey } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { RouterPriority } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentTurnRoundRunnerService campaign confirmations', () => {

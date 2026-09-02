@@ -1,10 +1,14 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { ContentRating, IngredientStatus } from '@genfeedai/enums';
+import { ContentRating, IngredientStatus } from '@genfeedai/contracts';
+import type {
+  IImage,
+  IIngredient,
+  IMetadata,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
 import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';

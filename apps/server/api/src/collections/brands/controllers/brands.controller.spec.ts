@@ -28,7 +28,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import type { IBrandOsDraftHandoff } from '@genfeedai/interfaces';
+import type { IBrandOsDraftHandoff } from '@genfeedai/contracts/interfaces';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,

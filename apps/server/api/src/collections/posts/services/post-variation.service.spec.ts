@@ -13,7 +13,7 @@ import type { CacheInvalidationService } from '@api/common/services/cache-invali
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentIntelligencePlatform } from '@genfeedai/enums';
+import { ContentIntelligencePlatform } from '@genfeedai/contracts';
 
 describe('PostVariationService', () => {
   const contentGeneratorService = { generateContent: vi.fn() };

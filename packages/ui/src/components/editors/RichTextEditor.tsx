@@ -1,6 +1,6 @@
 'use client';
 
-import type { AiActionType } from '@genfeedai/enums';
+import type { AiActionType } from '@genfeedai/contracts';
 import type { RichTextEditorProps } from '@genfeedai/props/components/rich-text-editor.props';
 import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
 import { logger } from '@genfeedai/services/core/logger.service';

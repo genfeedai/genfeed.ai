@@ -8,7 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentPublishDecision } from '@genfeedai/enums';
+import { AgentPublishDecision } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeRow(overrides: Record<string, unknown> = {}) {

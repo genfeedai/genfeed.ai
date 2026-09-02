@@ -3,7 +3,7 @@ import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 

@@ -15,8 +15,8 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
-import { getAgentProgramTemplate } from '@genfeedai/constants';
-import { AgentAutonomyMode, AgentRunFrequency } from '@genfeedai/enums';
+import { AgentAutonomyMode, AgentRunFrequency } from '@genfeedai/contracts';
+import { getAgentProgramTemplate } from '@genfeedai/contracts/constants';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

@@ -4,7 +4,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';

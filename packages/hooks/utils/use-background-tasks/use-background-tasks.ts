@@ -1,8 +1,11 @@
 'use client';
 
-import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
-import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+} from '@genfeedai/contracts/constants';
+import type { IBackgroundTaskUpdateEvent } from '@genfeedai/contracts/interfaces';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

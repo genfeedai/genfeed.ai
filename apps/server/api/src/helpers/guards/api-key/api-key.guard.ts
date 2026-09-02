@@ -1,6 +1,6 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
 import {
   CanActivate,
   ExecutionContext,

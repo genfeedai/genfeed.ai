@@ -5,7 +5,7 @@ import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
 } from '@api/services/public-clip-tool/public-clip-tool-store.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 

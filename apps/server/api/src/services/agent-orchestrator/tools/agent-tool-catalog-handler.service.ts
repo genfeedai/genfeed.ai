@@ -8,7 +8,7 @@ import {
   type ToolCategory,
   type ToolRequiredRole,
 } from '@genfeedai/actions';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';

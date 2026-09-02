@@ -1,5 +1,5 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IFolder } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IFolder } from '@genfeedai/contracts/interfaces';
 import { render, screen, waitFor } from '@testing-library/react';
 import ModalFolder from '@ui/modals/content/folder/ModalFolder';
 import type { PropsWithChildren } from 'react';

@@ -8,14 +8,14 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunSource, ContentRunStatus } from '@genfeedai/contracts';
 import type {
   ContentRunBrief,
   ContentRunPublishContext,
   ContentRunVariant,
   CreateContentRunInput,
   UpdateContentRunInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

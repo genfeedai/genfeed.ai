@@ -1,4 +1,4 @@
-import { MAX_CREDENTIAL_POSTING_TIMES } from '@api-types/contracts/credential-posting-times.contract';
+import { MAX_CREDENTIAL_POSTING_TIMES } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

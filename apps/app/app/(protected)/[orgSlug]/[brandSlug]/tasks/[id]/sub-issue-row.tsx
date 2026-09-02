@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

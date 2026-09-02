@@ -13,7 +13,7 @@ import {
 import { CreateBeehiivSubscribersDto } from '@api/services/integrations/beehiiv/dto/create-beehiiv-subscribers.dto';
 import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   BeehiivSubscriberOutcomeSerializer,
   CredentialSerializer,

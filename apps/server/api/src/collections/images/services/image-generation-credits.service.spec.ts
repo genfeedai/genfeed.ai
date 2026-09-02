@@ -1,8 +1,8 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ByokProvider, ModelProvider } from '@genfeedai/enums';
-import type { IReserveCreditsInput } from '@genfeedai/interfaces/billing';
+import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

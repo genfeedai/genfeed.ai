@@ -1,5 +1,5 @@
-import { AssetScope, IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { AssetScope, IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
 import { describe, expect, it, vi } from 'vitest';

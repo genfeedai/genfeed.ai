@@ -11,7 +11,7 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import { AgentAutonomyMode, RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 

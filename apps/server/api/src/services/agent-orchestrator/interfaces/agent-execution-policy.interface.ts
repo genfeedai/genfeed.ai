@@ -1,5 +1,5 @@
-import type { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type { AgentAutonomyMode, RouterPriority } from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 
 export type AgentQualityTier = 'budget' | 'balanced' | 'high_quality';
 

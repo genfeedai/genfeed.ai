@@ -3,7 +3,7 @@ import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

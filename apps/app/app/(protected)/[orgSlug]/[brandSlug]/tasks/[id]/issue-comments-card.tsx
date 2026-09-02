@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IssueComment } from '@services/management/issue-comments.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';

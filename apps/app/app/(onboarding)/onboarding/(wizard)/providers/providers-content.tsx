@@ -3,10 +3,10 @@
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { IDesktopLocalToolReadiness } from '@genfeedai/desktop-contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IDesktopLocalToolReadiness } from '@genfeedai/contracts/desktop';
+import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { OnboardingAccessMode } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';

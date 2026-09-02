@@ -1,4 +1,4 @@
-import { ONBOARDING_STEPS } from '@genfeedai/constants';
+import { ONBOARDING_STEPS } from '@genfeedai/contracts/constants';
 import { render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

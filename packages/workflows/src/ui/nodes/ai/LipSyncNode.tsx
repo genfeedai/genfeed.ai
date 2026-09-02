@@ -4,7 +4,7 @@ import type {
   LipSyncMode,
   LipSyncModel,
   LipSyncNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, LoaderCircle, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';

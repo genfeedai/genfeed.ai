@@ -3,7 +3,7 @@ import {
   type PublishContext,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';

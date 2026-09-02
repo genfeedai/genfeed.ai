@@ -3,7 +3,7 @@ import type {
   IBrandAgentPrompting,
   IBrandPromptSeed,
   IGeneratedBrandProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const ALLOWED_PROMPT_FORMATS = new Set([
   'article',

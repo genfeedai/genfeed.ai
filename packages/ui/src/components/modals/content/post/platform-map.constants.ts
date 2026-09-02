@@ -1,11 +1,11 @@
-import { PromptCategory, SystemPromptKey } from '@genfeedai/enums';
+import { PromptCategory, SystemPromptKey } from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   InstagramIcon,
   TiktokIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 
 export const platformIcons: Record<string, IconType> = {
   instagram: InstagramIcon,

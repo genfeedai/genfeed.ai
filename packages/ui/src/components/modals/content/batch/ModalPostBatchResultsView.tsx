@@ -1,8 +1,8 @@
 'use client';
 
-import { AlertCategory, ButtonVariant, PostStatus } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, PostStatus } from '@genfeedai/contracts';
+import type { PlatformSubmissionStatus } from '@genfeedai/contracts/interfaces/modals/platform-submission-status.interface';
 import { getPublishingPostsHref } from '@genfeedai/helpers/content/posts.helper';
-import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';

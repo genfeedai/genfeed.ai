@@ -12,12 +12,12 @@ import type {
 import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import type {
   AgentScopePayload,
   AgentTransferPresentation,
   IAgentTransfer,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Effect } from 'effect';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';

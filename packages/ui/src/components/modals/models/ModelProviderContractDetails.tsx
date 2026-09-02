@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { useTranslations } from 'next-intl';
 

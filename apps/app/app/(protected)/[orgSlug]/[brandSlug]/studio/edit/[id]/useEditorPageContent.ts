@@ -1,11 +1,14 @@
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
-import type { IEditorProject, IEditorTrack } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  IEditorProject,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {

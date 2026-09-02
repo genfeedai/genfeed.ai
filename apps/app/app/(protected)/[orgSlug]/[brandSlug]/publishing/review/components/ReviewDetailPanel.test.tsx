@@ -1,5 +1,5 @@
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';

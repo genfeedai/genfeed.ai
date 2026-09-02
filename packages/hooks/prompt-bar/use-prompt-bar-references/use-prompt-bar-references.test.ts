@@ -1,4 +1,4 @@
-import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
+import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
 import { usePromptBarReferences } from '@hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

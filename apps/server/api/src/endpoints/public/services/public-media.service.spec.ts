@@ -1,6 +1,6 @@
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
-import type { IMediaProvenancePackage } from '@genfeedai/interfaces';
+import type { IMediaProvenancePackage } from '@genfeedai/contracts/interfaces';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const mediaPackage = {

@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';

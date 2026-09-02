@@ -1,5 +1,5 @@
-import { TargetValidationState } from '@genfeedai/enums';
-import type { IPostingSet } from '@genfeedai/interfaces';
+import { TargetValidationState } from '@genfeedai/contracts';
+import type { IPostingSet } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

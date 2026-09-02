@@ -1,7 +1,7 @@
 import type { ImageGenerationProviderRequest } from '@api/collections/images/services/image-generation.types';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 describe('HiggsFieldImageGenerationProviderAdapter', () => {
   function buildAdapter(higgsFieldService: Partial<HiggsFieldService>) {

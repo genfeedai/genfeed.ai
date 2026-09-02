@@ -5,7 +5,7 @@ import type {
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';

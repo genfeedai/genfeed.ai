@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { ITextOverlayErrors } from '@genfeedai/contracts/interfaces/ui/text-overlay-errors.interface';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { ITextOverlayErrors } from '@genfeedai/interfaces/ui/text-overlay-errors.interface';
 import type { ModalTextOverlayProps } from '@genfeedai/props/modals/modal.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

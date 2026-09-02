@@ -1,15 +1,15 @@
-import type { AnalyticsMetric } from '@genfeedai/enums';
+import type { AnalyticsMetric } from '@genfeedai/contracts';
 import type {
   IAnalytics,
   IBrandWithStats,
   IOrgLeaderboardItem,
   IOrganizationWithStats as IOrgWithStats,
   IQueryParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
-} from '@genfeedai/interfaces/analytics/viral-hooks.interface';
+} from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -22,7 +22,7 @@ export type {
   IBrandWithStats,
   IOrganizationWithStats as IOrgWithStats,
   IOrgLeaderboardItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface IPaginatedOrgsResponse {
   data: IOrgWithStats[];

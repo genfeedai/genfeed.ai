@@ -1,4 +1,4 @@
-import type { GrantedScopesCredentialPatch } from '@genfeedai/interfaces';
+import type { GrantedScopesCredentialPatch } from '@genfeedai/contracts/interfaces';
 
 const SCOPE_SEPARATOR = /[,\s]+/;
 

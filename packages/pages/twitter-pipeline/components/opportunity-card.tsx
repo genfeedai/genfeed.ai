@@ -1,10 +1,10 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';

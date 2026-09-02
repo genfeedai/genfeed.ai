@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   formatEnumLabel,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';

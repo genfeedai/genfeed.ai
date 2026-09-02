@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,

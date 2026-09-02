@@ -8,8 +8,11 @@ import { AgentScopeContextService } from '@api/index';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/contracts';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**

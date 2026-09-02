@@ -1,5 +1,5 @@
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 
 describe('PromptParser', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IViralHookAnalysis } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
+import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 

@@ -4,7 +4,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { ANNOUNCEMENT_BROADCAST_ACTION_IDS } from '@api/endpoints/admin/announcements/announcement-broadcast-workflow-definition';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

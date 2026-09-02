@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
 import type { ReactNode } from 'react';

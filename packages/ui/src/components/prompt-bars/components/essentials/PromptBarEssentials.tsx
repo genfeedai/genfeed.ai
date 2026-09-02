@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { PromptBarEssentialsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';

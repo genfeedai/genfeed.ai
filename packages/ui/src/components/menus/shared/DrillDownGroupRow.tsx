@@ -1,8 +1,8 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, FileText } from 'lucide-react';

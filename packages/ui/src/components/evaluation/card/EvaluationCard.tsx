@@ -6,7 +6,7 @@ import {
   EvaluationSeverity,
   IngredientCategory,
   Status,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { EvaluationCardProps } from '@genfeedai/props/components/evaluation-card.props';
 import Card from '@ui/card/Card';

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { BrandDetailSystemPromptProps } from '@props/pages/brand-detail.props';
 import { Button } from '@ui/primitives/button';
 import { Copy } from 'lucide-react';

@@ -1,4 +1,4 @@
-import type { SeoScorecardSnapshot } from '@genfeedai/interfaces';
+import type { SeoScorecardSnapshot } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import SeoScorecard from '@ui/evaluation/seo-scorecard/SeoScorecard';
 import { describe, expect, it, vi } from 'vitest';

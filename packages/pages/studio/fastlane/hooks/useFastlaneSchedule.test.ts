@@ -1,7 +1,7 @@
 import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -4,7 +4,7 @@ import {
   type ScheduledPostWorkflowInput,
 } from '@api/collections/posts/services/scheduled-post-workflow-definition';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

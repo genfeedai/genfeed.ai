@@ -2,7 +2,7 @@ import { RssSourcesController } from '@api/collections/rss-sources/controllers/r
 import type { RssSourceWorkflowService } from '@api/collections/rss-sources/services/rss-source-workflow.service';
 import type { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
 
 const MUTATION_SCOPES = [

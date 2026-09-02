@@ -1,13 +1,13 @@
 'use client';
 
 import type { IEvaluation } from '@genfeedai/client/models';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type { IImage, IMetadata, ITag } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import { useIngredientMetadata } from '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
 import { useIngredientSharing } from '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
-import type { IImage, IMetadata, ITag } from '@genfeedai/interfaces';
 import type { IngredientDetailImageProps } from '@genfeedai/props/content/ingredient.props';
 import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

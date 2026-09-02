@@ -1,4 +1,4 @@
-import type { CampaignPlatform } from '@genfeedai/enums';
+import type { CampaignPlatform } from '@genfeedai/contracts';
 import type { CampaignTarget } from '@genfeedai/prisma';
 
 export type { CampaignTarget } from '@genfeedai/prisma';

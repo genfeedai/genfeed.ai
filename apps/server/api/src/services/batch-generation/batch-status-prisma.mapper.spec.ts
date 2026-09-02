@@ -1,4 +1,4 @@
-import { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/contracts';
 import { BatchStatus as PrismaBatchStatus } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 import {

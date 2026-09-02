@@ -10,11 +10,27 @@
 const describeWithDatabase =
   process.env.SKIP_PRISMA_DB === 'true' ? describe.skip : describe;
 
+import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
 import { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
+import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import {
+  AgentArtifactReferenceService,
+  PostLifecycleService,
+  PublishApprovalsService,
+} from '@api/index';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -35,27 +51,11 @@ import {
   SourcePostActionType,
   TargetExecutionState,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import {
-  AgentArtifactReferenceService,
-  PostLifecycleService,
-  PublishApprovalsService,
-} from '@api/index';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
-import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 type Fixture = {
   brandId: string;

@@ -3,9 +3,9 @@ import {
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { IElementMood } from '@genfeedai/contracts/interfaces';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IElementMood } from '@genfeedai/interfaces';
 import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
 import { MoodsService } from '@genfeedai/services/elements/moods.service';
 import ModalActions from '@ui/modals/actions/ModalActions';

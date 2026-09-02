@@ -1,11 +1,11 @@
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import {
   type ImageModelCapability,
   MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
   type VideoModelCapability,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 import {
   calculateAspectRatio,

@@ -2,7 +2,7 @@ import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGeneration
 import {
   estimateBatchGenerationCredits,
   resolveBatchPricingOptions,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

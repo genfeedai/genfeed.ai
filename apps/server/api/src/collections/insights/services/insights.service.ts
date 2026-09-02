@@ -17,9 +17,9 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { scopedWhere } from '@api/index';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { Timeframe } from '@genfeedai/enums';
-import type { InsightGenerationWorkflowInput } from '@genfeedai/interfaces';
+import { Timeframe } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { InsightGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

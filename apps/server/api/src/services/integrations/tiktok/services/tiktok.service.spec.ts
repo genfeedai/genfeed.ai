@@ -138,7 +138,7 @@ describe('TiktokService', () => {
       vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
         publicly_available_post_id: ['post-123'],
         status: 'PUBLISH_COMPLETE',
-      } as unknown as import('@genfeedai/interfaces').ITikTokPublishStatusData);
+      } as unknown as import('@genfeedai/contracts/interfaces').ITikTokPublishStatusData);
 
       const res = await service.uploadVideo(
         'org-id',
@@ -181,7 +181,7 @@ describe('TiktokService', () => {
       vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
         publicly_available_post_id: ['post-123'],
         status: 'PUBLISH_COMPLETE',
-      } as unknown as import('@genfeedai/interfaces').ITikTokPublishStatusData);
+      } as unknown as import('@genfeedai/contracts/interfaces').ITikTokPublishStatusData);
 
       await service.uploadVideo(
         'org-id',
@@ -340,7 +340,7 @@ describe('TiktokService', () => {
       vi.spyOn(service, 'getPublishStatus').mockResolvedValue({
         publicly_available_post_id: ['post-123'],
         status: 'PUBLISH_COMPLETE',
-      } as unknown as import('@genfeedai/interfaces').ITikTokPublishStatusData);
+      } as unknown as import('@genfeedai/contracts/interfaces').ITikTokPublishStatusData);
     };
 
     const postInfoOf = () =>

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CreditReservationStatus } from '@genfeedai/enums';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import { CreditReservationStatus } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 
 // Media settlement retries for seven days. Keep the hold alive for one extra
 // day so the expiry sweep cannot race the final worker retry.

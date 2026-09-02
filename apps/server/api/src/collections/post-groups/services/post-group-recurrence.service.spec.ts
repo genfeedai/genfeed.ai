@@ -1,10 +1,10 @@
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
 import {
   PostFrequency,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const organizationId = 'org-1';

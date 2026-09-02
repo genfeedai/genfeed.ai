@@ -1,18 +1,18 @@
 import {
-  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
-  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
-  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
-} from '@api-types/contracts/social-warmup-blueprint.contract';
-import {
   CredentialPlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  LINKEDIN_SOCIAL_WARMUP_BLUEPRINT_ID,
+  TIKTOK_SOCIAL_WARMUP_BLUEPRINT_ID,
+  YOUTUBE_SOCIAL_WARMUP_BLUEPRINT_ID,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
 import type {
   AccountHealthSummary,
   ISocialWarmupEnrollment,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

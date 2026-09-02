@@ -1,10 +1,13 @@
 import type { GenerationActionCardStatus } from '@genfeedai/agent/components/useGenerationActionCard';
-import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createLibraryAssetRoute,
+} from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import { Check, ImagePlus, Paintbrush, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';

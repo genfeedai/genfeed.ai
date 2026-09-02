@@ -1,7 +1,7 @@
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 
 /**

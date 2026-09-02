@@ -9,7 +9,7 @@ import { appendHarnessBriefToPrompt } from '@api/services/harness/harness-brief.
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { ModelCategory, SystemPromptKey } from '@genfeedai/enums';
+import { ModelCategory, SystemPromptKey } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
 

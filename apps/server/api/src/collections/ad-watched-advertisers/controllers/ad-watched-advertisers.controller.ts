@@ -14,7 +14,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { AdWatchedAdvertiserSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

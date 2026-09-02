@@ -23,9 +23,12 @@ import type {
 } from '@api/services/agent-orchestrator/tools/agent-workflow-tool.types';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import { WorkflowTrigger } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  AgentToolName,
+  type AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { ConfigService } from '@libs/config/config.service';

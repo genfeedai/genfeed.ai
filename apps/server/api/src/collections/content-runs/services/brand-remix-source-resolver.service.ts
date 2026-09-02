@@ -19,9 +19,9 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { BrandRemixSourceSelector } from '@api-types/contracts/brand-remix-run.contract';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { AdsResearchDetail } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { BrandRemixSourceSelector } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 @Injectable()

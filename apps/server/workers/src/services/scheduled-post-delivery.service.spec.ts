@@ -13,8 +13,8 @@ import {
   CredentialPlatform,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {

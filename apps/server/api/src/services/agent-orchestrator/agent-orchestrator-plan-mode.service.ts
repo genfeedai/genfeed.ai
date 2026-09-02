@@ -30,8 +30,8 @@ import type {
   OpenRouterMessage,
   OpenRouterPlugin,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import { AgentMessageRole } from '@genfeedai/enums';
+import { AgentMessageRole } from '@genfeedai/contracts';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 /**

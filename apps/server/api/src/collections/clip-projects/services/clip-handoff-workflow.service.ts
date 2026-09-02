@@ -15,8 +15,8 @@ import {
 } from '@api/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
-import type { ClipReadyAction } from '@genfeedai/interfaces';
+import { EditorTrackType, IngredientFormat } from '@genfeedai/contracts';
+import type { ClipReadyAction } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

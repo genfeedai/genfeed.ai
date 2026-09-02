@@ -1,7 +1,7 @@
 'use client';
 
 import { authClient } from '@genfeedai/auth-client';
-import type { IAuthPublicData } from '@genfeedai/interfaces';
+import type { IAuthPublicData } from '@genfeedai/contracts/interfaces';
 import {
   getPlaywrightAuthState,
   normalizeAuthAvatarUrl,

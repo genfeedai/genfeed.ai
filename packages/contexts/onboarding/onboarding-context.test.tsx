@@ -67,7 +67,7 @@ vi.mock('next/navigation', () => ({
 import OnboardingProvider, {
   useOnboarding,
 } from '@genfeedai/contexts/onboarding/onboarding-context';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 
 function StepCompleteControl() {

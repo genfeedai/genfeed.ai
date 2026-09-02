@@ -1,5 +1,5 @@
 import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
-import type { InstagramInspirationBrandContext } from '@genfeedai/interfaces';
+import type { InstagramInspirationBrandContext } from '@genfeedai/contracts/interfaces';
 
 const brand: InstagramInspirationBrandContext = {
   audience: ['founders'],

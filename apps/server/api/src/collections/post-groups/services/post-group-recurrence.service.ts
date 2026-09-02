@@ -3,18 +3,18 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ReleaseStatus } from '@genfeedai/contracts';
 import {
   previewRecurrenceOccurrences,
   type RecurrencePreviewInput,
   type RecurrencePreviewResult,
-} from '@api-types/contracts/recurrence-preview.contract';
+} from '@genfeedai/contracts/api-types/contracts/recurrence-preview.contract';
 import {
   type RecurrenceInput,
   type UpdateRecurrenceSeriesInput,
   updateRecurrenceSeriesSchema,
-} from '@api-types/contracts/scheduler.contract';
-import { ReleaseStatus } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   ConflictException,

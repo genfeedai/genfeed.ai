@@ -2,7 +2,7 @@ import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
 import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
-import type { AdsAdapterContext } from '@genfeedai/interfaces';
+import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

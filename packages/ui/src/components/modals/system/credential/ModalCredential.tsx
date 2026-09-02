@@ -2,14 +2,14 @@ import {
   type CredentialSchema,
   credentialSchema,
 } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { ICredential } from '@genfeedai/interfaces';
 import type { ModalCredentialProps } from '@genfeedai/props/modals/modal.props';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import Alert from '@ui/feedback/alert/Alert';

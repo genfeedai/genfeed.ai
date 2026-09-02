@@ -1,4 +1,4 @@
-import type { ThemePreference } from '@genfeedai/constants';
+import type { ThemePreference } from '@genfeedai/contracts/constants';
 import type { ReactNode } from 'react';
 
 export interface AppProvidersProps {

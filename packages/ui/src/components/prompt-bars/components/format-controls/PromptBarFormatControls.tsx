@@ -1,6 +1,6 @@
 'use client';
 
-import type { IngredientFormat } from '@genfeedai/enums';
+import type { IngredientFormat } from '@genfeedai/contracts';
 import { isAspectRatioSupported } from '@genfeedai/helpers/aspect-ratio.helper';
 import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
 import {

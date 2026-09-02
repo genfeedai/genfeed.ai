@@ -1,6 +1,6 @@
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
-import { ReviewDecision } from '@genfeedai/enums';
-import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/interfaces';
+import { ReviewDecision } from '@genfeedai/contracts';
+import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

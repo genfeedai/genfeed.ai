@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';

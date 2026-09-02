@@ -1,4 +1,4 @@
-import type { AdsPlatform } from '@genfeedai/interfaces';
+import type { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import type { AdsGatewayInsightsParams } from '@mcp/services/client/client.types';
 import type { ClientService } from '@mcp/services/client.service';
 

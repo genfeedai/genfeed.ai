@@ -2,7 +2,7 @@ import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import OutreachCampaignDetail from '@pages/agents/campaigns/OutreachCampaignDetail';
 import { useOutreachCampaignDetail } from '@pages/agents/campaigns/useOutreachCampaignDetail';
 import { render, screen } from '@testing-library/react';

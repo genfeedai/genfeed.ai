@@ -5,14 +5,14 @@ import type {
   GoogleSearchConsoleSitesResponse,
 } from '@api/services/integrations/google-search-console/interfaces/google-search-console.interface';
 import { GoogleSearchConsoleOAuthService } from '@api/services/integrations/google-search-console/services/google-search-console-oauth.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   GoogleSearchConsoleDimension,
   GoogleSearchConsoleSearchAnalyticsParams,
   GoogleSearchConsoleSearchAnalyticsResult,
   GoogleSearchConsoleSearchAnalyticsRow,
   GoogleSearchConsoleSite,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

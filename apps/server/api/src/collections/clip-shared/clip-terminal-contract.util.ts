@@ -1,8 +1,8 @@
-import type { ClipReadinessContract } from '@genfeedai/interfaces';
+import type { ClipReadinessContract } from '@genfeedai/contracts/interfaces';
 import {
   CLIP_PROJECT_TERMINAL_STATUSES,
   CLIP_TERMINAL_STATUSES,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const terminalStatuses = new Set<string>(CLIP_TERMINAL_STATUSES);
 const projectTerminalStatuses = new Set<string>(CLIP_PROJECT_TERMINAL_STATUSES);

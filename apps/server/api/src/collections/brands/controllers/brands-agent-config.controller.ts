@@ -22,8 +22,8 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ActivitySource } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,

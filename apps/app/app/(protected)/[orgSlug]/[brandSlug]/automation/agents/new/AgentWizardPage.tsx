@@ -1,14 +1,17 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
   Platform,
-} from '@genfeedai/enums';
-import type { IAgentWizardFormData, IBrand } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type {
+  IAgentWizardFormData,
+  IBrand,
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isBrandResourceReady,

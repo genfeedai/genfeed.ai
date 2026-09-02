@@ -10,7 +10,7 @@ import { ApifyService } from '@api/services/integrations/apify/services/apify.se
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

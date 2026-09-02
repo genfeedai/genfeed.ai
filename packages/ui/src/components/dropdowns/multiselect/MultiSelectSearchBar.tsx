@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import FormSearchbar from '@ui/primitives/searchbar';
 import type { ChangeEvent, RefObject } from 'react';
 

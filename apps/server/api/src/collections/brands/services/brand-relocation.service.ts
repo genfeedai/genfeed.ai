@@ -13,7 +13,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

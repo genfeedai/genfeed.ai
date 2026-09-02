@@ -1,6 +1,6 @@
 'use client';
 
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,

@@ -3,7 +3,7 @@ import type {
   ModelUseCase,
   ProviderModel,
   ProviderType,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';

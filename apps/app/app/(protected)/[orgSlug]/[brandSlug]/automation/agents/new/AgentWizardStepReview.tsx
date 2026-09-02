@@ -1,7 +1,7 @@
 'use client';
 
-import { AgentAutonomyMode, ButtonVariant } from '@genfeedai/enums';
-import type { IAgentWizardFormData } from '@genfeedai/interfaces';
+import { AgentAutonomyMode, ButtonVariant } from '@genfeedai/contracts';
+import type { IAgentWizardFormData } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { ArrowLeft, Check } from 'lucide-react';

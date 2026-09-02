@@ -1,7 +1,7 @@
 'use client';
 
 import { useTraining } from '@contexts/content/training-context/training-context';
-import { PageScope, TrainingStatus } from '@genfeedai/enums';
+import { PageScope, TrainingStatus } from '@genfeedai/contracts';
 import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Image } from '@models/ingredients/image.model';

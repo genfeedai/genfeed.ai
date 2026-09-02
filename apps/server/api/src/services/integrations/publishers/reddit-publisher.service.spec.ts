@@ -13,13 +13,13 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
-import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

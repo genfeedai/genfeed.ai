@@ -24,17 +24,17 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, './src/config'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/constants/src/index.ts',
+          '../../../packages/contracts/src/constants/index.ts',
         ),
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/enums/src/index.ts',
+          '../../../packages/contracts/src/enums/index.ts',
         ),
       },
       {

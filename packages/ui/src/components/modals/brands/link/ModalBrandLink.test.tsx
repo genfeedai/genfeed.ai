@@ -1,5 +1,5 @@
-import { LinkCategory, ModalEnum } from '@genfeedai/enums';
-import type { ILink } from '@genfeedai/interfaces';
+import { LinkCategory, ModalEnum } from '@genfeedai/contracts';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalBrandLink from '@ui/modals/brands/link/ModalBrandLink';
 import type { PropsWithChildren } from 'react';

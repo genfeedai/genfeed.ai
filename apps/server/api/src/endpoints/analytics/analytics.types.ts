@@ -1,12 +1,12 @@
 /**
  * Shared types for the analytics endpoint services.
  *
- * Colocated here instead of packages/interfaces to avoid touching shared
+ * Colocated here instead of packages/contracts/src/interfaces to avoid touching shared
  * barrel exports while other agents are concurrently editing the workspace.
  */
 
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { IEntityAnalyticsStats } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { IEntityAnalyticsStats } from '@genfeedai/contracts/interfaces';
 
 // ---------------------------------------------------------------------------
 // Admin summary

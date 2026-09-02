@@ -14,15 +14,15 @@ import {
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
   shouldUseLowestCostModelDefaults,
-} from '@genfeedai/constants';
-import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+} from '@genfeedai/contracts/constants';
+import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { BillingAccountStatus } from '@genfeedai/enums';
+import { BillingAccountStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { BillingAccount } from './billing-account.model';
 

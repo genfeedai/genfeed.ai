@@ -1,6 +1,6 @@
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { BatchProcessOptions } from '@api/services/batch-generation/batch-generation.types';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

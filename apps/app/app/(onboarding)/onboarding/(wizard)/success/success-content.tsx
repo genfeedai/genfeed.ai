@@ -2,9 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
+import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';

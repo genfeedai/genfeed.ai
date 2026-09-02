@@ -5,7 +5,7 @@
  * loudness) plus advisory vision continuity against canonical references.
  */
 
-import type { VideoQaNodeData } from '@genfeedai/types';
+import type { VideoQaNodeData } from '@genfeedai/contracts/types';
 
 export const DEFAULT_VIDEO_QA_DATA: Partial<VideoQaNodeData> = {
   blackDurationSeconds: 0.5,

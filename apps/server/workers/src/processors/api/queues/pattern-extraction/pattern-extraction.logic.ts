@@ -1,4 +1,4 @@
-import type { PatternType } from '@genfeedai/interfaces';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 import {
   PATTERN_EXTRACTION_MIN_ORGS_FOR_PUBLIC,
   PATTERN_EXTRACTION_MIN_SCORE,

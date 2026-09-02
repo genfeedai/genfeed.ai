@@ -8,7 +8,7 @@ import type {
   IBrandInterviewAnswerResult,
   IBrandInterviewCompleteness,
   IBrandInterviewStartResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { BrandInterview } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -7,8 +7,8 @@ import {
   ComponentSize,
   Platform,
   SocialConversationType,
-} from '@genfeedai/enums';
-import type { SocialPlatform } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { SocialPlatform } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import {
   type ConversationSidebarFilter,

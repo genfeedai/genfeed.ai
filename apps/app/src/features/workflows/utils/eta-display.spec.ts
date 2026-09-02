@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@helpers/generation-eta.helper', () => ({

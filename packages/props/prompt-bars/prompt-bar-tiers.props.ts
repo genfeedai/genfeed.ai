@@ -5,7 +5,7 @@ import type {
   ModelCategory,
   QualityTier,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   FormDropdownOption as DropdownFieldOption,
   IAsset,
@@ -13,8 +13,8 @@ import type {
   IImage,
   IModel,
   ITraining,
-} from '@genfeedai/interfaces';
-import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
 import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {

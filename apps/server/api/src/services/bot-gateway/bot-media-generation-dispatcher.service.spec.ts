@@ -1,6 +1,6 @@
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
 import { BotMediaGenerationDispatcherService } from '@api/services/bot-gateway/bot-media-generation-dispatcher.service';
-import { ActivitySource, BotCommandType } from '@genfeedai/enums';
+import { ActivitySource, BotCommandType } from '@genfeedai/contracts';
 import {
   BadRequestException,
   InternalServerErrorException,

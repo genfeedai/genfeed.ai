@@ -15,7 +15,7 @@ import {
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('social-warmup-enrollment helpers', () => {

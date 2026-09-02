@@ -22,7 +22,7 @@ import {
   VIRAL_POST_MIN_ENGAGEMENT_RATE,
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

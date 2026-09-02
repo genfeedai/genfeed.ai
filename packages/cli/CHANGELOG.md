@@ -100,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The CLI moved from the standalone `genfeedai/cli` repository into the `genfeed.ai` monorepo at
-  `packages/cli`, published as `@genfeedai/cli`. Shared code (`@genfeedai/constants`, `errors`,
+  `packages/cli`, published as `@genfeedai/cli`. Shared code (`@genfeedai/contracts/constants`, `errors`,
   `interfaces`, `serializers`, `tools`) is now consumed as workspace dependencies, and releases ride
   monorepo tags rather than per-repo tags.
 

@@ -10,8 +10,8 @@ import {
 import type {
   AgentDashboardOperation,
   AgentUIBlock,
-} from '@genfeedai/interfaces';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 

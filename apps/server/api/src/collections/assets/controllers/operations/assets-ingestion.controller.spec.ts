@@ -8,7 +8,7 @@ import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dt
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { AssetCategory, AssetParent } from '@genfeedai/enums';
+import { AssetCategory, AssetParent } from '@genfeedai/contracts';
 import { AssetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';

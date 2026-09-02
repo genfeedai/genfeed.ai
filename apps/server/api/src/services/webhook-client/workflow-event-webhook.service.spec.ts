@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 import type { WebhookDispatchService } from './webhook-dispatch.service';

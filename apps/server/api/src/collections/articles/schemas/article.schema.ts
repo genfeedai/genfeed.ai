@@ -1,4 +1,4 @@
-import type { ArticleCategory, ArticleScope } from '@genfeedai/enums';
+import type { ArticleCategory, ArticleScope } from '@genfeedai/contracts';
 import type { Article as PrismaArticle } from '@genfeedai/prisma';
 
 export interface ArticleViralityAnalysis {

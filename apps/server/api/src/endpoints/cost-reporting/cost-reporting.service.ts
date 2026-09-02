@@ -1,6 +1,6 @@
 import { resolveCostReportRange } from '@api/endpoints/cost-reporting/cost-reporting-query.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CreditTransactionCategory } from '@genfeedai/enums';
+import { CreditTransactionCategory } from '@genfeedai/contracts';
 import type {
   CostReportEntryType,
   ICostReportBrandTotals,
@@ -11,7 +11,7 @@ import type {
   ICostReportQuery,
   ICostReportSummary,
   ICostReportTotals,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

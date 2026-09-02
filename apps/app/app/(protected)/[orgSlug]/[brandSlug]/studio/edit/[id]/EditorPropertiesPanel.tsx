@@ -1,7 +1,14 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
-import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  EditorTrackType,
+} from '@genfeedai/contracts';
+import type {
+  IEditorClip,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Slider } from '@ui/primitives/slider';

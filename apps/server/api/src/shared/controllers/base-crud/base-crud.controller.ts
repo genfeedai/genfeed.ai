@@ -29,7 +29,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   PopulateOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

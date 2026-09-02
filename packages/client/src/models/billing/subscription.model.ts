@@ -2,13 +2,13 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   SubscriptionCategory,
   SubscriptionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
   ISubscription,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Subscription extends BaseEntity implements ISubscription {
   public declare organization: IOrganization;

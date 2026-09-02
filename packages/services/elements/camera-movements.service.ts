@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementCameraMovement } from '@genfeedai/models/elements/camera-movement.model';
 import { CameraMovementSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

@@ -13,7 +13,7 @@ import {
   type FalJsonSchema,
   type FalSchemaFamily,
 } from '@api/services/integrations/fal/services/fal-contract';
-import type { ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 const GEMINI_OMNI_FLASH_ENDPOINT = 'google/gemini-omni-flash';

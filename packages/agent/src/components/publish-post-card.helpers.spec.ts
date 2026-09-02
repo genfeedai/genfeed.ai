@@ -1,4 +1,4 @@
-import { PostVisibility } from '@genfeedai/enums';
+import { PostVisibility } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   readPublishTargetProposals,

@@ -1,11 +1,11 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   formatClockTime,
   parseClockTime,
-} from '@api-types/contracts/credential-posting-times.contract';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IClockTime } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
+import type { IClockTime } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';

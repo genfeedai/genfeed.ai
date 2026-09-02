@@ -1,6 +1,6 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { IngredientsListFooterProps } from '@genfeedai/props/pages/ingredients-list.props';
 import MediaLightbox from '@ui/layouts/lightbox/MediaLightbox';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';

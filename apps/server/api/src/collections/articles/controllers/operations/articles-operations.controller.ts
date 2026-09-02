@@ -46,7 +46,7 @@ import {
   ActivityKey,
   ActivitySource,
   ModelCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

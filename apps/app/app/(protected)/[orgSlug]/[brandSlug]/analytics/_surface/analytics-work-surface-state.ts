@@ -5,8 +5,8 @@ import type {
   AnalyticsQueryMetric,
   AnalyticsQueryReference,
   AnalyticsQuerySelectedResource,
-} from '@genfeedai/interfaces';
-import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { getDefaultDateRange } from '@helpers/utils/date-range.util';
 
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

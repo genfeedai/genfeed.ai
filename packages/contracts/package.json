@@ -1,0 +1,145 @@
+{
+  "dependencies": {
+    "zod": "4.5.4"
+  },
+  "description": "Shared contracts for Genfeed enums, constants, interfaces, API types, queues, and desktop IPC",
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "@xyflow/react": "12.11.5",
+    "next": "16.3.3",
+    "openapi-typescript": "7.13.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.87.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./enums": {
+      "types": "./dist/enums/index.d.ts",
+      "import": "./dist/enums/index.js",
+      "default": "./dist/enums/index.js"
+    },
+    "./enums/*": {
+      "types": "./dist/enums/*.d.ts",
+      "import": "./dist/enums/*.js",
+      "default": "./dist/enums/*.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js",
+      "default": "./dist/constants/index.js"
+    },
+    "./constants/*": {
+      "types": "./dist/constants/*.d.ts",
+      "import": "./dist/constants/*.js",
+      "default": "./dist/constants/*.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js",
+      "default": "./dist/interfaces/index.js"
+    },
+    "./interfaces/*": {
+      "types": "./dist/interfaces/*.d.ts",
+      "import": "./dist/interfaces/*.js",
+      "default": "./dist/interfaces/*.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./types/comfyui": {
+      "types": "./dist/types/comfyui/index.d.ts",
+      "import": "./dist/types/comfyui/index.js",
+      "default": "./dist/types/comfyui/index.js"
+    },
+    "./types/nodes": {
+      "types": "./dist/types/nodes/index.d.ts",
+      "import": "./dist/types/nodes/index.js",
+      "default": "./dist/types/nodes/index.js"
+    },
+    "./types/replicate": {
+      "types": "./dist/types/replicate/index.d.ts",
+      "import": "./dist/types/replicate/index.js",
+      "default": "./dist/types/replicate/index.js"
+    },
+    "./types/replicate/schemas.json": "./src/types/replicate/schemas.json",
+    "./types/workflow": {
+      "types": "./dist/types/workflow.d.ts",
+      "import": "./dist/types/workflow.js",
+      "default": "./dist/types/workflow.js"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts",
+      "import": "./dist/types/*.js",
+      "default": "./dist/types/*.js"
+    },
+    "./api-types": {
+      "types": "./dist/api-types/index.d.ts",
+      "import": "./dist/api-types/index.js",
+      "default": "./dist/api-types/index.js"
+    },
+    "./api-types/contracts": {
+      "types": "./dist/api-types/contracts/index.d.ts",
+      "import": "./dist/api-types/contracts/index.js",
+      "default": "./dist/api-types/contracts/index.js"
+    },
+    "./api-types/*": {
+      "types": "./dist/api-types/*.d.ts",
+      "import": "./dist/api-types/*.js",
+      "default": "./dist/api-types/*.js"
+    },
+    "./queue": {
+      "types": "./dist/queue/index.d.ts",
+      "import": "./dist/queue/index.js",
+      "default": "./dist/queue/index.js"
+    },
+    "./queue/*": {
+      "types": "./dist/queue/*.d.ts",
+      "import": "./dist/queue/*.js",
+      "default": "./dist/queue/*.js"
+    },
+    "./desktop": {
+      "types": "./dist/desktop/index.d.ts",
+      "import": "./dist/desktop/index.js",
+      "default": "./dist/desktop/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/types/replicate/schemas.json"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/contracts",
+  "private": true,
+  "repository": {
+    "directory": "packages/contracts",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
+  },
+  "scripts": {
+    "build": "tsc --build && bun run verify:compiled-contracts && mkdir -p dist/api-types/generated dist/types/replicate && cp src/api-types/generated/api.d.ts dist/api-types/generated/api.d.ts && cp src/types/replicate/schemas.json dist/types/replicate/schemas.json",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "generate": "bun run scripts/generate.ts --skip-on-error",
+    "generate:strict": "bun run scripts/generate.ts",
+    "test": "vitest run --config vitest.config.ts",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
+    "verify:compiled-contracts": "bun run scripts/verify-compiled-contracts.ts"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
+}

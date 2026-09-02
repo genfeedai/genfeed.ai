@@ -11,15 +11,16 @@ import {
 import { scopedWhere } from '@api/index';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isCloudDeployment } from '@genfeedai/config';
+import { ActivitySource } from '@genfeedai/contracts';
 import {
   isWithinConsumptionTolerance,
   MAX_CADENCE_SPAN_DAYS,
-} from '@api-types/contracts/cadence-expansion.contract';
+} from '@genfeedai/contracts/api-types/contracts/cadence-expansion.contract';
 import {
   buildCadenceSlotGeneratePrompt,
   MAX_SCHEDULED_CAMPAIGN_ITEMS,
-} from '@api-types/contracts/cadence-slot-generate.contract';
-import { isCloudDeployment } from '@genfeedai/config';
+} from '@genfeedai/contracts/api-types/contracts/cadence-slot-generate.contract';
 import {
   AGENT_CREDIT_MARGIN_MULTIPLIER,
   AGENT_CREDIT_USD,
@@ -27,9 +28,8 @@ import {
   getAgentChatModel,
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   shouldUseLowestCostModelDefaults,
-} from '@genfeedai/constants';
-import { ActivitySource } from '@genfeedai/enums';
-import type { ICalendarSlot } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { ICalendarSlot } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   BrandContextRow,

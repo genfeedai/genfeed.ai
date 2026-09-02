@@ -1,8 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { chargeBatchGenerationCredits } from '@genfeedai/constants';
-import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/contracts';
+import { chargeBatchGenerationCredits } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';

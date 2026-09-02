@@ -26,7 +26,7 @@ import {
   convertToFormData,
   videoMergeSchema,
 } from '@genfeedai/client/schemas/ingredients/video-merge.schema';
-import { AssetScope, IngredientFormat } from '@genfeedai/enums';
+import { AssetScope, IngredientFormat } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('ingredient schemas', () => {

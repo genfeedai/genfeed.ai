@@ -1,5 +1,9 @@
-import { Platform, PostCategory, PostStatus } from '@genfeedai/enums';
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+import { Platform, PostCategory, PostStatus } from '@genfeedai/contracts';
+import type {
+  ICredential,
+  IIngredient,
+  IPost,
+} from '@genfeedai/contracts/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import PostCard from '@web-components/content/post-card/PostCard';
 

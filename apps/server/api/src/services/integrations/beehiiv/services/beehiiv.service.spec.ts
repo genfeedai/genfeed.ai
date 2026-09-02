@@ -8,7 +8,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { SERVER_TOKENS } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

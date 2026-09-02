@@ -1,4 +1,4 @@
-import type { ArtifactEditorType } from '@genfeedai/constants';
+import type { ArtifactEditorType } from '@genfeedai/contracts/constants';
 
 export type PublishingContentKind = ArtifactEditorType;
 

@@ -11,7 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WatchlistPlatform } from '@genfeedai/enums';
+import { WatchlistPlatform } from '@genfeedai/contracts';
 import { WatchlistSerializer } from '@genfeedai/serializers';
 import {
   Body,

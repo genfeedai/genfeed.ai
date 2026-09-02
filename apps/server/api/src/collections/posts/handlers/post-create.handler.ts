@@ -9,8 +9,6 @@ import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
-import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
-import { resolveDefaultTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -21,7 +19,9 @@ import {
   PostCategory,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

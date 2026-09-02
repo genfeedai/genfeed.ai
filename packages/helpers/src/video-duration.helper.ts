@@ -1,7 +1,7 @@
 import {
   getModelDefaultDuration,
   getModelDurations,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 export function formatDuration(seconds?: number | null): string {
   if (!seconds) {

@@ -2,7 +2,7 @@ import { WorkflowNotificationDeliveryService } from '@api/services/notifications
 import {
   NOTIFICATION_DELIVERY_QUEUE,
   type NotificationDeliveryJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 

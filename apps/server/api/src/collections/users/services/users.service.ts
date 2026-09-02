@@ -7,7 +7,7 @@ import {
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

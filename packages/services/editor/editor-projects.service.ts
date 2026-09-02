@@ -1,10 +1,10 @@
-import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
+import { EditorProjectStatus, IngredientFormat } from '@genfeedai/contracts';
 import type {
   ICreateEditorProjectDto,
   IEditorProject,
   IEditorProjectSettings,
   IUpdateEditorProjectDto,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';

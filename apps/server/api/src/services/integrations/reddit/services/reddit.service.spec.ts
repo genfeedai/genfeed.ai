@@ -2,7 +2,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';

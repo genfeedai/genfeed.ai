@@ -27,7 +27,7 @@ import {
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   BadRequestException,
   Injectable,

@@ -1,8 +1,8 @@
+import { ContentRunStatus } from '@genfeedai/contracts';
 import type {
   BrandRemixRunView,
   BrandRemixSourceSelector,
-} from '@api-types/contracts';
-import { ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts';
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,7 +1,7 @@
 import type {
   BrandRemixDraftEdits,
   BrandRemixSourceSelector,
-} from '@api-types/contracts/brand-remix-run.contract';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

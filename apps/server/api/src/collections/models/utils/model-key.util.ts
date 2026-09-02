@@ -1,5 +1,5 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 export function baseModelKey(key?: string): string | undefined {
   if (!key || typeof key !== 'string') {

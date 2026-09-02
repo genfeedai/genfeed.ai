@@ -29,12 +29,6 @@ import {
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
 import { CacheService } from '@api/services/cache/cache.service';
-import { evaluateAgentAutoPublishPolicies } from '@api-types/contracts/agent-auto-publish.contract';
-import {
-  type AgentPublishPolicyResult,
-  evaluateAgentPublishPolicy,
-} from '@api-types/contracts/agent-publish-policy.contract';
-import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
   AgentAutonomyMode,
@@ -47,7 +41,13 @@ import {
   parsePlatform,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { evaluateAgentAutoPublishPolicies } from '@genfeedai/contracts/api-types/contracts/agent-auto-publish.contract';
+import {
+  type AgentPublishPolicyResult,
+  evaluateAgentPublishPolicy,
+} from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
   type AgentPublishTargetPayload,
@@ -56,7 +56,7 @@ import {
   type AgentUiAction,
   type PublishConfirmedContentInput,
   type ScheduleCanonicalPostInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,

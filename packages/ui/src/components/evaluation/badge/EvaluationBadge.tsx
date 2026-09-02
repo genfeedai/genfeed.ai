@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import type { EvaluationBadgeProps } from '@genfeedai/props/components/evaluation-card.props';
 
 const getScoreColor = (score: number) => {

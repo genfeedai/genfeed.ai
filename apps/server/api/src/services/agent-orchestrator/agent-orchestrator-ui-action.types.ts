@@ -6,11 +6,11 @@ import type {
   ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import type { RouterPriority } from '@genfeedai/enums';
+import type { RouterPriority } from '@genfeedai/contracts';
 import type {
   AgentDashboardOperation,
   AgentUiAction,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type AgentOrchestratorUiActionHost = {
   executeSynchronousChatLoop: (params: {

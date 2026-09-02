@@ -4,7 +4,7 @@ import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   type AuthorizedResearchFinding,
   isSameResearchFindingReference,

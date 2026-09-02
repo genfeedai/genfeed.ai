@@ -1,6 +1,5 @@
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -8,8 +7,9 @@ import {
   IngredientCategory,
   PostVisibility,
   ReleaseStatus,
-} from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 function confirmedContext(brandId: string): ToolExecutionContext {

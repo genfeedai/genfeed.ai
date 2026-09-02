@@ -1,4 +1,4 @@
-import type { WorkflowNodeStatus } from '@genfeedai/enums';
+import type { WorkflowNodeStatus } from '@genfeedai/contracts';
 
 export function getStatusColor(status: WorkflowNodeStatus): string {
   switch (status) {

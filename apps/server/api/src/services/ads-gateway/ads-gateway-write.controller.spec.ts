@@ -9,7 +9,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
-import type { AdsAdapterContext, AdsPlatform } from '@genfeedai/interfaces';
+import type {
+  AdsAdapterContext,
+  AdsPlatform,
+} from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 

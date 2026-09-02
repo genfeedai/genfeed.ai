@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type { IFolder, IOrganization, IUser } from '@genfeedai/interfaces';
+import type {
+  IFolder,
+  IOrganization,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 import { render } from '@testing-library/react';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';
 import { useForm } from 'react-hook-form';

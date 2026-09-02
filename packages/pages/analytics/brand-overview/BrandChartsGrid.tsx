@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, parsePlatform } from '@genfeedai/enums';
+import { ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformComparisonData } from '@props/analytics/analytics.props';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';

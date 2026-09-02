@@ -1,7 +1,7 @@
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameSet,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,

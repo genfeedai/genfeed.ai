@@ -1,4 +1,4 @@
-import type { IFolder, IIngredient } from '@genfeedai/interfaces';
+import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 
 export interface FoldersSidebarProps {
   folders: IFolder[];

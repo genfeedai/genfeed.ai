@@ -1,4 +1,7 @@
-import { CredentialPlatform, ReleaseAttachmentKind } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  ReleaseAttachmentKind,
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

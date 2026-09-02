@@ -7,7 +7,7 @@ import {
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ReleaseCalendarFilters as CalendarFilters,
   ReleaseCalendarFilterOption,

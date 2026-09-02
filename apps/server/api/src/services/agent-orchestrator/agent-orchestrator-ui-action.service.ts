@@ -30,8 +30,8 @@ import {
   getRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import { AgentThreadStatus } from '@genfeedai/contracts';
+import type { ValidatedAgentScope } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   Injectable,

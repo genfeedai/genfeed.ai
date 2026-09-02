@@ -1,4 +1,4 @@
-import { ArticleStatus, IngredientStatus } from '@genfeedai/enums';
+import { ArticleStatus, IngredientStatus } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 

@@ -1,5 +1,5 @@
-import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/enums';
-import type { IBrand } from '@genfeedai/interfaces';
+import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/contracts';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

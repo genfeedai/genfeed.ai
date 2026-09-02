@@ -1,5 +1,5 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/enums';
+import { SETTINGS_SURFACE_LABELS, SettingsSurface } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { PERSONAL_SETTINGS_ANCHOR } from './personal-settings-anchor';
 import {

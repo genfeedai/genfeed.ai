@@ -2,7 +2,7 @@ import {
   LIBRARY_SHELF_LABELS,
   PageScope,
   parseLibraryShelf,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import LibraryBrowser from '@pages/library/browser/library-browser';

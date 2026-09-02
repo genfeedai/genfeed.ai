@@ -1,5 +1,5 @@
-import { PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

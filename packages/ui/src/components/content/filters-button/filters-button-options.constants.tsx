@@ -1,4 +1,4 @@
-import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
+import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 
 export const DEFAULT_STATUS_OPTIONS = [

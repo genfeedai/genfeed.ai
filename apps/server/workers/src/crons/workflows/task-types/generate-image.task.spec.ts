@@ -1,4 +1,4 @@
-import { ImageTaskModel } from '@genfeedai/enums';
+import { ImageTaskModel } from '@genfeedai/contracts';
 import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
 
 describe('GenerateImageTask', () => {

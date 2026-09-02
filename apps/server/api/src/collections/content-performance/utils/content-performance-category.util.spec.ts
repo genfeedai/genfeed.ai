@@ -1,4 +1,4 @@
-import { ContentType, PostCategory } from '@genfeedai/enums';
+import { ContentType, PostCategory } from '@genfeedai/contracts';
 import { mapPostCategoryToContentType } from './content-performance-category.util';
 
 describe('mapPostCategoryToContentType', () => {

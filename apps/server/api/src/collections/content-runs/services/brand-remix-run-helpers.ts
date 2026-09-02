@@ -3,7 +3,7 @@ import {
   type GenerationDimensions,
   MAX_ERROR_LENGTH,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import type { BrandRemixSourceSnapshot } from '@api-types/contracts/brand-remix-run.contract';
+import type { BrandRemixSourceSnapshot } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';

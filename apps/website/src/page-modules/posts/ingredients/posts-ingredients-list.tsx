@@ -1,6 +1,6 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Ingredient } from '@models/content/ingredient.model';
 import { logger } from '@services/core/logger.service';
 import { PublicService } from '@services/external/public.service';

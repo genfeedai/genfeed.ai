@@ -1,7 +1,7 @@
 import { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { ContentType, CredentialPlatform } from '@genfeedai/enums';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import { ContentType, CredentialPlatform } from '@genfeedai/contracts';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 

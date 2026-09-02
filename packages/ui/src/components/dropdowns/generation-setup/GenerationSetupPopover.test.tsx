@@ -1,10 +1,14 @@
-import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelProvider,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import type {
   IModel,
   IStudioLook,
   StudioGenerateCapabilities,
-} from '@genfeedai/interfaces';
-import type { GenerationSetup } from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { GenerationSetup } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { GenerationSetupTypeOption } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

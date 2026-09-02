@@ -25,7 +25,7 @@ apps/app/packages/**/*.js.map
 !apps/desktop/app/src/shared/*.d.ts
 !apps/server/api/src/helpers/test/*.d.ts
 !apps/server/api/src/types/*.d.ts
-!packages/api-types/src/generated/*.d.ts
+!packages/contracts/src/api-types/generated/*.d.ts
 !packages/ui/src/css.d.ts
 !packages/workflow-ui/src/css.d.ts
 .env

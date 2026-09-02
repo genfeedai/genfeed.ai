@@ -1,5 +1,5 @@
 import { RssSource as BaseRssSource } from '@genfeedai/client/models';
-import type { IRssSource } from '@genfeedai/interfaces';
+import type { IRssSource } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

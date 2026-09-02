@@ -8,7 +8,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import {

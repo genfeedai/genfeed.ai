@@ -9,7 +9,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';

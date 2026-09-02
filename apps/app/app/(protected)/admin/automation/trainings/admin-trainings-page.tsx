@@ -1,6 +1,6 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import TrainingsList from '@pages/trainings/list/trainings-list';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';

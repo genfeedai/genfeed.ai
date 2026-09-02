@@ -1,5 +1,5 @@
 import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 const MAX_TOP_LEVEL_BLOCKS = 24;

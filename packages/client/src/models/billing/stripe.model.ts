@@ -1,4 +1,4 @@
-import type { IStripePrice, IStripeUrl } from '@genfeedai/interfaces';
+import type { IStripePrice, IStripeUrl } from '@genfeedai/contracts/interfaces';
 
 export class StripePrice implements IStripePrice {
   public declare id: string;

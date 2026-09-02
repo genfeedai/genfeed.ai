@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import * as authUtil from '@api/helpers/utils/auth/auth.util';
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type ExecutionContext,

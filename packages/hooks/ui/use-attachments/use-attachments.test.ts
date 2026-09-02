@@ -1,4 +1,4 @@
-import { UploadStatus } from '@genfeedai/enums';
+import { UploadStatus } from '@genfeedai/contracts';
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { DragEvent } from 'react';

@@ -1,5 +1,5 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import { CREDIT_DEDUCTION_QUEUE } from '@genfeedai/queue-contracts';
+import { CREDIT_DEDUCTION_QUEUE } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

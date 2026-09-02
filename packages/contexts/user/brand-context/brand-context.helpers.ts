@@ -1,4 +1,4 @@
-import type { IBrand } from '@genfeedai/interfaces';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import type { BrandContextType } from './brand-context';
 
 export const BRAND_CONTEXT_CACHE_TTL_MS = 60_000;

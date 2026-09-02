@@ -1,4 +1,4 @@
-import type { ComfyUIPrompt } from '@genfeedai/types';
+import type { ComfyUIPrompt } from '@genfeedai/contracts/types';
 
 export type {
   FluxDevParams,

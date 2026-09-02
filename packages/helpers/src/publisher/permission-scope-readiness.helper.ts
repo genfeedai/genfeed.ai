@@ -2,7 +2,7 @@ import type {
   IPublishingDiagnostic,
   PermissionScopeReadinessInput,
   PermissionScopeReadinessResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 function missingRequiredScopes(
   grantedScopes: readonly string[],

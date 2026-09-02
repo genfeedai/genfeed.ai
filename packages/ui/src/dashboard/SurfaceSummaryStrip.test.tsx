@@ -1,4 +1,4 @@
-import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
+import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { SurfaceSummaryStrip } from './SurfaceSummaryStrip';

@@ -27,7 +27,7 @@ import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflow
 import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

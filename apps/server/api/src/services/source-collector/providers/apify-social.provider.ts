@@ -5,8 +5,8 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
-import type { SocialPostUrlReference } from '@genfeedai/enums';
-import { SocialSourcePlatform } from '@genfeedai/enums';
+import type { SocialPostUrlReference } from '@genfeedai/contracts';
+import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 /**

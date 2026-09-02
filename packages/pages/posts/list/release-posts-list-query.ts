@@ -2,7 +2,7 @@ import {
   type PageScope,
   PostCategory,
   type TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export type ReleasePostsPublicationState = 'posted' | 'not-posted';
 

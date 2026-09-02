@@ -2,8 +2,8 @@ import type { AgentCreditsInfo } from '@genfeedai/agent/models/agent-chat.model'
 import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.types';
 import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import { Effect } from 'effect';
 
 export function getCreditsInfoEffect(

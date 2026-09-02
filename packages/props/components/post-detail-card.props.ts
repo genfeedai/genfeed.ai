@@ -1,9 +1,9 @@
-import type { CredentialPlatform, PageScope } from '@genfeedai/enums';
+import type { CredentialPlatform, PageScope } from '@genfeedai/contracts';
 import type {
   IIngredient,
   IPost,
   PostQuickActionKey,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MutableRefObject } from 'react';

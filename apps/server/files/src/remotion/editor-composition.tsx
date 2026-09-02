@@ -1,7 +1,7 @@
 import type {
   IEditorClip,
   IEditorExportCompositionSnapshot,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { buildEditorRenderStyle } from '@genfeedai/utils/media/editor-render-style.util';
 import type { CSSProperties, ReactNode } from 'react';
 import {

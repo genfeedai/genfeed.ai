@@ -1,5 +1,5 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
-import type { ICredential } from '@genfeedai/interfaces';
+import type { CredentialPlatform } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 export interface BrandQuickActionsProps {
   brand: Brand;

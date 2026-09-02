@@ -1,0 +1,49 @@
+import type { OrganizationCategory } from '../..';
+import type {
+  IAsset,
+  IBaseEntity,
+  ICredit,
+  IOrganizationSetting,
+  IUser,
+} from '../index';
+
+export interface IOrganization extends IBaseEntity {
+  user: IUser;
+  settings: IOrganizationSetting;
+  credits?: ICredit;
+  logo?: IAsset;
+  banner?: IAsset;
+  label: string;
+  isSelected: boolean;
+  balance?: number;
+  category?: OrganizationCategory;
+  accountType?: OrganizationCategory;
+}
+
+export interface UpdateMemberData {
+  brandIds?: string[];
+}
+
+export interface IOrganizationSettings {
+  id: string;
+  organization: string;
+
+  isWhitelabelEnabled: boolean;
+  isVoiceControlEnabled: boolean;
+  isWatermarkEnabled: boolean;
+  isVerifyScriptEnabled: boolean;
+  isVerifyIngredientEnabled: boolean;
+  isVerifyVideoEnabled: boolean;
+  isNotificationsDiscordEnabled: boolean;
+  isNotificationsTelegramEnabled: boolean;
+  isNotificationsEmailEnabled: boolean;
+
+  seatsLimit: number;
+  brandsLimit: number;
+  timezone: string;
+
+  quotaYoutube: number;
+  quotaTiktok: number;
+  quotaTwitter: number;
+  quotaInstagram: number;
+}

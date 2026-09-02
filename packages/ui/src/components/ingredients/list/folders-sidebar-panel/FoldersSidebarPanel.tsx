@@ -1,5 +1,5 @@
-import { PageScope } from '@genfeedai/enums';
-import type { IFolder, IIngredient } from '@genfeedai/interfaces';
+import { PageScope } from '@genfeedai/contracts';
+import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 import FoldersSidebar from '@ui/folders/sidebar/FoldersSidebar';
 
 export interface FoldersSidebarPanelProps {

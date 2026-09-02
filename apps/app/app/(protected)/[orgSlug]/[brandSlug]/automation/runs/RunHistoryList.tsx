@@ -1,6 +1,6 @@
 'use client';
 
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import WorkflowExecutionCard from './WorkflowExecutionCard';
 
 interface RunHistoryListProps {

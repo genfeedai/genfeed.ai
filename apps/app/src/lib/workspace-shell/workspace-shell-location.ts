@@ -7,7 +7,7 @@ import type {
   WorkspaceShellOverlayResolution,
   WorkspaceShellReferenceKind,
   WorkspaceShellTypedReference,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import {
   getWorkspaceShellOverlayRegistration,
@@ -23,7 +23,7 @@ export type {
   WorkspaceShellRestorationFailure,
   WorkspaceShellState,
   WorkspaceShellTypedReference,
-} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+} from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 
 export const WORKSPACE_SHELL_QUERY_KEYS = [
   'overlay',

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { PricingCardProps } from '@genfeedai/props/content/pricing.props';
 import type { PricingPlanProps } from '@genfeedai/props/content/subscription.props';
 import Card from '@ui/card/Card';

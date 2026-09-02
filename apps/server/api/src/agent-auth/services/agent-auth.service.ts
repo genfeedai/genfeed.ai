@@ -4,8 +4,8 @@ import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import { ApiKeyCategory, PlatformRole } from '@genfeedai/enums';
+import { ApiKeyCategory, PlatformRole } from '@genfeedai/contracts';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import {

@@ -1,6 +1,6 @@
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 
 const READ_METHODS = [
   'getAdAccounts',

@@ -15,7 +15,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { IngredientUploadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

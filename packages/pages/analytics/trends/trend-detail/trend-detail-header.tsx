@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';

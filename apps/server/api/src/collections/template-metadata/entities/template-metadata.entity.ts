@@ -1,5 +1,5 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { TemplateDifficulty } from '@genfeedai/enums';
+import { TemplateDifficulty } from '@genfeedai/contracts';
 import { type TemplateMetadata } from '@genfeedai/prisma';
 
 export class TemplateMetadataEntity

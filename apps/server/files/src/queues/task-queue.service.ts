@@ -7,7 +7,7 @@ import {
   type FileJobPriority as JobPriority,
   type FileJobType as JobType,
   FILE_QUEUE_NAMES as QUEUE_NAMES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';

@@ -1,4 +1,7 @@
-import type { CostBreakdown, NodeCostEstimate } from '@genfeedai/types';
+import type {
+  CostBreakdown,
+  NodeCostEstimate,
+} from '@genfeedai/contracts/types';
 import Replicate from 'replicate';
 
 // Initialize Replicate client

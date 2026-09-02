@@ -20,7 +20,7 @@ import { Readable } from 'node:stream';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { AssetScope, IngredientCategory } from '@genfeedai/enums';
+import { AssetScope, IngredientCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';

@@ -1,10 +1,6 @@
 'use client';
 
 import {
-  getModelDefaultDuration,
-  getModelDurations,
-} from '@genfeedai/constants';
-import {
   useGalleryModal,
   useUploadModal,
 } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
@@ -17,7 +13,11 @@ import {
   ModelCategory,
   type QualityTier,
   type SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  getModelDefaultDuration,
+  getModelDurations,
+} from '@genfeedai/contracts/constants';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,

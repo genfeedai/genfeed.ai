@@ -4,7 +4,7 @@ import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboardi
 import OnboardingProvider, {
   useOnboarding,
 } from '@contexts/onboarding/onboarding-context';
-import { ONBOARDING_STEPS } from '@genfeedai/constants';
+import { ONBOARDING_STEPS } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { EnvironmentService } from '@services/core/environment.service';

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandSettingsCharactersPage from './content';

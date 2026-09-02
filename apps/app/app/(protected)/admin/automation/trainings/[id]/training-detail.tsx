@@ -2,15 +2,15 @@
 
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   ModalEnum,
-} from '@genfeedai/enums';
-import type { IBrand } from '@genfeedai/interfaces';
-import type { TrainingLayoutContentProps } from '@genfeedai/interfaces/training/training-layout-content.interface';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
+import type { TrainingLayoutContentProps } from '@genfeedai/contracts/interfaces/training/training-layout-content.interface';
 import { Code } from '@genfeedai/ui';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

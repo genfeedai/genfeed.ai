@@ -1,4 +1,4 @@
-import { formatEnumLabel } from '@genfeedai/enums';
+import { formatEnumLabel } from '@genfeedai/contracts';
 
 export const TOOL_LABELS: Record<string, string> = {
   ai_action: 'AI Action',

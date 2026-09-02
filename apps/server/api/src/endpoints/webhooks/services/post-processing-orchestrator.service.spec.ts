@@ -3,7 +3,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import type { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
-import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

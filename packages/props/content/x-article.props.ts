@@ -1,7 +1,7 @@
 import type {
   IXArticleMetadata,
   IXArticleSection,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
 
 export interface XArticleSectionCardProps {

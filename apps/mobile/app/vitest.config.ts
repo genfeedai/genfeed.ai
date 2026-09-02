@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 const mobileAppDir = path.dirname(fileURLToPath(import.meta.url));
 const constantsDir = path.resolve(
   mobileAppDir,
-  '../../../packages/constants/src',
+  '../../../packages/contracts/src/constants',
 );
 const uiDir = path.resolve(mobileAppDir, '../../../packages/ui/src');
 

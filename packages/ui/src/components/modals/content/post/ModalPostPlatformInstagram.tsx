@@ -1,7 +1,7 @@
 'use client';
 
-import { PostCategory } from '@genfeedai/enums';
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
+import { PostCategory } from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 
 type Props = {

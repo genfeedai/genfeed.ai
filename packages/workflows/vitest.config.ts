@@ -6,19 +6,22 @@ export default defineConfig({
     alias: [
       {
         find: /^@genfeedai\/enums$/,
-        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/enums/$1'),
       },
       {
         find: /^@genfeedai\/interfaces$/,
-        replacement: path.resolve(__dirname, '../interfaces/src/index.ts'),
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/interfaces/index.ts',
+        ),
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
-        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
       },
       {
         find: /^@genfeedai\/pricing$/,
@@ -30,11 +33,11 @@ export default defineConfig({
       },
       {
         find: /^@genfeedai\/types$/,
-        replacement: path.resolve(__dirname, '../types/src/index.ts'),
+        replacement: path.resolve(__dirname, '../contracts/src/types/index.ts'),
       },
       {
         find: /^@genfeedai\/types\/(.*)$/,
-        replacement: path.resolve(__dirname, '../types/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/types/$1'),
       },
       // NOTE: do NOT alias @genfeedai/ui to its src — its source uses an internal
       // `@ui/*` alias the /ui specs can't resolve. Let it resolve via node_modules

@@ -1,4 +1,4 @@
-import type { IHarnessProfile } from '@genfeedai/interfaces';
+import type { IHarnessProfile } from '@genfeedai/contracts/interfaces';
 
 export class HarnessProfile implements IHarnessProfile {
   public id!: string;

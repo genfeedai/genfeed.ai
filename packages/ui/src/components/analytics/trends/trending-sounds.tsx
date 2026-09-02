@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import { TiktokIcon } from '@genfeedai/helpers/ui/icons/brands';
 import type { TrendingSoundsProps } from '@genfeedai/props/analytics/trends.props';

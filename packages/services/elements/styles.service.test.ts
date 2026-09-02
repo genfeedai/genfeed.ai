@@ -19,7 +19,7 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', () => ({
   API_ENDPOINTS: {
     STYLES: '/styles',
   },

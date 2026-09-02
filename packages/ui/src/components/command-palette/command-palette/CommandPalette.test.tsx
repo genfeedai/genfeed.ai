@@ -1,4 +1,4 @@
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { render } from '@testing-library/react';
 import { CommandPalette } from '@ui/command-palette/command-palette/CommandPalette';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

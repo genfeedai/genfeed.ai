@@ -3,7 +3,7 @@ import { ReviewGateNotificationService } from '@api/collections/workflows/servic
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { NotificationChannel } from '@genfeedai/enums';
+import { NotificationChannel } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { ModuleRef } from '@nestjs/core';

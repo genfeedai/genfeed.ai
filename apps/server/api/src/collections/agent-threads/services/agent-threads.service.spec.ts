@@ -9,7 +9,7 @@ import type { AgentMessagesService } from '@api/collections/agent-messages/servi
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type AgentThreadDelegate = {

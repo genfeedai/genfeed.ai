@@ -1,10 +1,14 @@
 'use client';
 
-import type { AssetScope } from '@genfeedai/enums';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  IIngredient,
+  ITag,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
+import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IIngredient, ITag, IVideo } from '@genfeedai/interfaces';
-import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { ThumbsUp } from 'lucide-react';

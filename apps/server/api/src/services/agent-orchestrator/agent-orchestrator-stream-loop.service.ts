@@ -52,8 +52,11 @@ import {
   AgentType,
   type RouterPriority,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import { AgentToolName, type AgentUIBlocksEvent } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  AgentToolName,
+  type AgentUIBlocksEvent,
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

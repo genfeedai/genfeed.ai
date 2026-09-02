@@ -3,7 +3,7 @@ import { SocialReplyCampaignController } from '@api/collections/social-inbox/con
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

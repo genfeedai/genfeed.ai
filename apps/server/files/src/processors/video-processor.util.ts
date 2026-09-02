@@ -1,5 +1,5 @@
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
-import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
 import type { Job } from 'bullmq';
 
 const YOUTUBE_HOSTS = new Set([

@@ -1,6 +1,6 @@
-import type { ValidateChannelTargetSettingsInput } from '@api-types/contracts';
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ValidateChannelTargetSettingsInput } from '@genfeedai/contracts/api-types/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();

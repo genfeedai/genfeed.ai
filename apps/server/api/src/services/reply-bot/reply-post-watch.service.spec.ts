@@ -1,6 +1,6 @@
 import { REPLY_INGESTION_ACTION_IDS } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyPostWatchService workflow boundary', () => {

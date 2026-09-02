@@ -16,12 +16,12 @@ import {
   type StoredPublicYoutubeClipSession,
 } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import { JobState } from '@genfeedai/enums';
+import { JobState } from '@genfeedai/contracts';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   IPublicYoutubeClipRecommendation,
   IPublicYoutubeClipToolSession,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

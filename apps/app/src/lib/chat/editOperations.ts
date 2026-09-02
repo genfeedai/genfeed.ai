@@ -3,8 +3,8 @@ import type {
   WorkflowEdge,
   WorkflowNode,
   WorkflowNodeData,
-} from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 
 /**
  * Edit operation types for workflow modifications.

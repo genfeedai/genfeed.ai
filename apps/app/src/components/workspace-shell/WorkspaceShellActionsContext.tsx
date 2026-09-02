@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkspaceShellOverlayRequest } from '@genfeedai/interfaces';
+import type { WorkspaceShellOverlayRequest } from '@genfeedai/contracts/interfaces';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
 type WorkspaceShellActionsContextValue = {

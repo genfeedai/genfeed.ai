@@ -19,13 +19,13 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { ChannelTargetValidationResult } from '@api-types/contracts/channel-capabilities.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import { ReleaseAttachmentKind, ReleaseStatus } from '@genfeedai/enums';
+import { ReleaseAttachmentKind, ReleaseStatus } from '@genfeedai/contracts';
+import type { ChannelTargetValidationResult } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   IPublishingProviderReadiness,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

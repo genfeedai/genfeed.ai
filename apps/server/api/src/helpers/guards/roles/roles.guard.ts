@@ -10,7 +10,7 @@ import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-ke
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
 import {
   CanActivate,
   ExecutionContext,

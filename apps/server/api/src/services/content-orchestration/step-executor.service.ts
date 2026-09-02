@@ -12,13 +12,13 @@ import { FalService } from '@api/services/integrations/fal/services/fal.service'
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import {
   ByokProvider,
   ImageTaskModel,
   MusicTaskModel,
   VideoTaskModel,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';

@@ -8,7 +8,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FailedGenerationService', () => {

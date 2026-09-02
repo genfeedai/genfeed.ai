@@ -12,7 +12,7 @@ import {
   ActionOrigin,
   WorkflowExecutionStatus,
   WorkflowStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {

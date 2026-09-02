@@ -1,5 +1,5 @@
-import { ActivityKey, PageScope } from '@genfeedai/enums';
-import type { IActivity } from '@genfeedai/interfaces';
+import { ActivityKey, PageScope } from '@genfeedai/contracts';
+import type { IActivity } from '@genfeedai/contracts/interfaces';
 import ActivitiesList from '@pages/activities/activities-list';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

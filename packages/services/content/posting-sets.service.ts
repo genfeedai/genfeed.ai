@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CreatePostingSetInput,
   UpdatePostingSetInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PostingSet } from '@genfeedai/models/content/posting-set.model';
 import { PostingSetSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

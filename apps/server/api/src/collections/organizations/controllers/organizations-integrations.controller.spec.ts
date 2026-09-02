@@ -9,7 +9,7 @@ import { OrganizationsIntegrationsController } from '@api/collections/organizati
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

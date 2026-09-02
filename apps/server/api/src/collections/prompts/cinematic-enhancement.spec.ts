@@ -6,7 +6,7 @@ import {
   translateNaiveCinematicLanguage,
 } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { CINEMATIC_LEXICON } from '@api/endpoints/ai-actions/prompts/cinematic-lexicon';
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 
 const NAIVE_PROMPT_BENCHMARK: ReadonlyArray<{
   prompt: string;

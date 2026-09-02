@@ -1,4 +1,4 @@
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { ArrayMaxSize, IsArray, IsEnum, IsString } from 'class-validator';
 
 export class GetForecastDto {

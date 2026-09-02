@@ -1,12 +1,12 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonVariant,
   ContentRunStatus,
-} from '@genfeedai/enums';
-import type { ContentRunBrief } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {

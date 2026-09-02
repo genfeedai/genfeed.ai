@@ -1,5 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { ReplyBotActionType, ReplyBotType } from '@genfeedai/enums';
+import { ReplyBotActionType, ReplyBotType } from '@genfeedai/contracts';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';

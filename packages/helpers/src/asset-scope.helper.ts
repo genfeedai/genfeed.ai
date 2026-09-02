@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 
 /**
  * Whether a persisted scope value means "visible to everyone".

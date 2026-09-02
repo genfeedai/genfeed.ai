@@ -3,7 +3,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,

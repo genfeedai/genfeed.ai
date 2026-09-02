@@ -8,7 +8,7 @@ import {
   createIngredientDocumentFixture,
   createPaginatedFixture,
 } from '@api-test/fixtures/ingredient-document.fixture';
-import { AssetScope, IngredientStatus } from '@genfeedai/enums';
+import { AssetScope, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

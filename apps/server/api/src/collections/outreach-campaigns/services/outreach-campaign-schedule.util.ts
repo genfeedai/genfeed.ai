@@ -1,6 +1,6 @@
 import { OutreachCampaignScheduleDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-schedule.dto';
 import type { CampaignSchedule } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { CampaignType } from '@genfeedai/enums';
+import { CampaignType } from '@genfeedai/contracts';
 import {
   resolveScheduledBlastDueTime,
   type ScheduledBlastDueTime,

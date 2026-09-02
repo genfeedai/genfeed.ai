@@ -3,7 +3,7 @@ import type {
   WorkflowEdge,
   WorkflowNode,
   WorkflowNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { XYPosition } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
 import { getNodeDefinition } from '../../../../nodes/registry/merged-registry';

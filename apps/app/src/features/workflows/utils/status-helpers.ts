@@ -10,7 +10,10 @@
  * @see .agents/memory/rules/enum_source_of_truth.md
  */
 
-import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowLifecycle,
+} from '@genfeedai/contracts';
 import type { WorkflowLifecycle as WorkflowLifecycleContract } from '@genfeedai/workflows/contracts';
 
 /**

@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import {
   IsBoolean,
   IsEnum,

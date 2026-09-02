@@ -1,6 +1,6 @@
 'use client';
 
-import type { CubicBezier } from '@genfeedai/types';
+import type { CubicBezier } from '@genfeedai/contracts/types';
 import { memo, useCallback, useRef, useState } from 'react';
 
 interface CubicBezierEditorProps {

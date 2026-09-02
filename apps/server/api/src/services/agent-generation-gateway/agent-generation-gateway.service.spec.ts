@@ -18,7 +18,7 @@ import type { AgentEndpoint } from '@api/services/agent-generation-gateway/agent
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
 import type { AgentGenerationResourceInput } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
-import type { MemberRole } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Type } from '@nestjs/common';
 import {

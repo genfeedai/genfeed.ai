@@ -7,7 +7,7 @@ import {
   ActivitySource,
   IngredientCategory,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 describe('ActivityRoutingUtil', () => {
   describe('getActivityRouting', () => {

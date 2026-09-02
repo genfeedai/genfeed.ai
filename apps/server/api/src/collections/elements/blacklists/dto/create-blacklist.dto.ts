@@ -1,5 +1,5 @@
 import { ElementDto } from '@api/shared/dto/element/element.dto';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 

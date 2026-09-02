@@ -1,4 +1,4 @@
-import { TagCategory } from '@genfeedai/enums';
+import { TagCategory } from '@genfeedai/contracts';
 
 export const TAG_SCOPE_COLORS: Record<
   string,

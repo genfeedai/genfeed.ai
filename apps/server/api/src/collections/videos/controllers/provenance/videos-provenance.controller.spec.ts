@@ -5,7 +5,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type {
   IMediaProvenancePackage,
   IMediaWatermarkAttributionEvaluation,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const mockUser = {

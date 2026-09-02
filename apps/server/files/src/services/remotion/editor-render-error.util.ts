@@ -5,7 +5,7 @@ import {
 import {
   EDITOR_RENDER_PUBLIC_MESSAGES,
   type EditorRenderTerminalReason,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 
 export interface ClassifiedEditorRenderError {

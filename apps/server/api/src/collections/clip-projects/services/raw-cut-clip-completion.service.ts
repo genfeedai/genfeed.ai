@@ -11,12 +11,12 @@ import { isTerminalClipStatus } from '@api/collections/clip-shared/clip-terminal
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { JobState, Status } from '@genfeedai/enums';
+import { JobState, Status } from '@genfeedai/contracts';
 import type {
   ClipRawCutFramingContract,
   ClipRawCutMediaValidationContract,
   IJobStatusResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

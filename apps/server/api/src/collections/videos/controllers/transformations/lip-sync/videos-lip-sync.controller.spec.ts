@@ -33,7 +33,7 @@ import { HeyGenService } from '@api/services/integrations/heygen/services/heygen
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

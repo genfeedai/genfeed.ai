@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementCamera } from '@genfeedai/models/elements/camera.model';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

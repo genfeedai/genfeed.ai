@@ -1,9 +1,9 @@
+import { IngredientCategory } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createLibraryAssetRoute,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import { IngredientCategory } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 
 const LEGACY_GALLERY_CATEGORY: Readonly<Record<string, IngredientCategory>> = {
   audio: IngredientCategory.AUDIO,

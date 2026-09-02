@@ -1,10 +1,10 @@
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   InstagramIcon,
   LinkedinIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import {
   BrainCircuit,
   Code,

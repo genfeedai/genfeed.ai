@@ -2,7 +2,7 @@ import { ContentRunRecommendationsService } from '@api/collections/content-runs/
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

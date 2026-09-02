@@ -13,8 +13,8 @@ import {
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
-} from '@genfeedai/enums';
-import type { IResizeBodyParams } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

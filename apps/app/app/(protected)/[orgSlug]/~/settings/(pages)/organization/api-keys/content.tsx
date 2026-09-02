@@ -2,12 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
   APP_ROUTES,
-} from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';

@@ -1,5 +1,9 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type { IFolder, IOrganization, IUser } from '@genfeedai/interfaces';
+import type {
+  IFolder,
+  IOrganization,
+  IUser,
+} from '@genfeedai/contracts/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';
 import type { ComponentProps } from 'react';

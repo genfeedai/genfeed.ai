@@ -1,5 +1,5 @@
-import { AssetScope } from '@genfeedai/enums';
-import type { IBrand } from '@genfeedai/interfaces';
+import { AssetScope } from '@genfeedai/contracts';
+import type { IBrand } from '@genfeedai/contracts/interfaces';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 

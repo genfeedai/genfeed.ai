@@ -1,7 +1,10 @@
 import { scopedWhere } from '@api/index';
 import { BATCH_ITEM_UPSERT_CHUNK_SIZE } from '@api/services/batch-generation/batch-generation.constants';
 import type { BatchItemFull } from '@api/services/batch-generation/batch-generation.types';
-import { BatchItemStatus, toPersistedReviewDecision } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  toPersistedReviewDecision,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 
 export type BatchItemRowWriter = {

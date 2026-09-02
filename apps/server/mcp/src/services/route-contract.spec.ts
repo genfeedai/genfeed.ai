@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getToolsForSurface } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 /**
  * Route-contract test (PR 5/6). The MCP server is a thin HTTP proxy: every tool

@@ -11,11 +11,11 @@ import {
 } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { ActivitySource, ModelCategory } from '@genfeedai/enums';
+import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
 import type {
   CreditsConfig,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, RequestMethod } from '@nestjs/common';
 import {

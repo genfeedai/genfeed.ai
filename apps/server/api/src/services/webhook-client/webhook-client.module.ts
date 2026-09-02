@@ -5,7 +5,7 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/publish
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
 import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
-import { WEBHOOK_CLIENT_QUEUE } from '@genfeedai/queue-contracts';
+import { WEBHOOK_CLIENT_QUEUE } from '@genfeedai/contracts/queue';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';

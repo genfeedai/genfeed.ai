@@ -5,7 +5,7 @@ import {
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {

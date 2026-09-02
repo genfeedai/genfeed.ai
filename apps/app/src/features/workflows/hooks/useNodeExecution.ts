@@ -1,6 +1,9 @@
 'use client';
 
-import { WorkflowExecutionStatus, WorkflowNodeStatus } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowNodeStatus,
+} from '@genfeedai/contracts';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

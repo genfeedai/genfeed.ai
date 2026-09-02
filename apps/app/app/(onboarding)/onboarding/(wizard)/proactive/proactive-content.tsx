@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';

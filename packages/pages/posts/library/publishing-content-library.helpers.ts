@@ -2,8 +2,8 @@ import {
   ArticleCategory,
   formatPlatformLabel,
   Platform,
-} from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 

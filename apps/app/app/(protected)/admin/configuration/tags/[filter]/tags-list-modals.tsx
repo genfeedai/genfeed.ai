@@ -1,7 +1,7 @@
 'use client';
 
-import { PageScope, TagCategory } from '@genfeedai/enums';
-import type { ContentScope, ITag } from '@genfeedai/interfaces';
+import { PageScope, TagCategory } from '@genfeedai/contracts';
+import type { ContentScope, ITag } from '@genfeedai/contracts/interfaces';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 
 type TagsListModalsProps = {

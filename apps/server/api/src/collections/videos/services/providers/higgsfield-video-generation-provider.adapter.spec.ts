@@ -1,7 +1,7 @@
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { BadRequestException } from '@nestjs/common';
 
 function buildParams(

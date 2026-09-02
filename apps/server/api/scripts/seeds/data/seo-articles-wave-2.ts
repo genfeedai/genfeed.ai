@@ -1,4 +1,4 @@
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import { buildSeoArticle, type SeoArticleBrief } from './seo-article-builder';
 
 const genfeedLinks = [

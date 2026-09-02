@@ -1,4 +1,4 @@
-import type { ModalEnum } from '@genfeedai/enums';
+import type { ModalEnum } from '@genfeedai/contracts';
 import type { BaseService } from '@genfeedai/services/core/base.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

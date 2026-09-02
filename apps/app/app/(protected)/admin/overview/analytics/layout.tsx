@@ -5,8 +5,8 @@ import {
   AnalyticsProvider,
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import DateRangePicker from '@ui/primitives/date-range-picker';

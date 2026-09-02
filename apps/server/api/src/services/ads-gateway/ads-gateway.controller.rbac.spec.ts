@@ -5,7 +5,7 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 
 const READ_HANDLERS = [
   'comparePlatforms',

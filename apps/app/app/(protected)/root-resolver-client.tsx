@@ -3,6 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
+import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -10,8 +11,7 @@ import {
   hasCompletedBrandOnboardingStep,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
-} from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';

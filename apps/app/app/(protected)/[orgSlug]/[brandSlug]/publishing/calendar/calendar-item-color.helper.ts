@@ -1,4 +1,4 @@
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/contracts';
 
 export const CALENDAR_DEFAULT_EVENT_COLOR = '#8b5cf6';
 export const CALENDAR_SLOT_EVENT_COLOR = '#64748b';

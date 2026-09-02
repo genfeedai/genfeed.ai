@@ -6,7 +6,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type { CreditEstimate } from '@genfeedai/workflows/engine';
 import {
   calculateCreditEstimate,

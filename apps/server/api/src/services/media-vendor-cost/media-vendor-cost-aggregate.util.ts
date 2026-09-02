@@ -1,7 +1,7 @@
 import type {
   IMediaVendorCostGroupRow,
   IMediaVendorCostModelAggregate,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 function readSum(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;

@@ -13,8 +13,8 @@ import {
   LOCALE_LABELS,
   THEME_PREFERENCES,
   type ThemePreference,
-} from '@genfeedai/constants';
-import type { ISetting } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { PERSONAL_SETTINGS_ANCHOR } from '@app-config/personal-settings-anchor';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';

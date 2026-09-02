@@ -22,7 +22,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import {
   AnalyticSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,

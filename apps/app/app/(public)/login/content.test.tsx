@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   act,
   fireEvent,

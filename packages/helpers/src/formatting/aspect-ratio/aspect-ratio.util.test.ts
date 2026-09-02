@@ -1,4 +1,4 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import { describe, expect, it } from 'vitest';
 

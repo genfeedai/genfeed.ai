@@ -14,7 +14,7 @@
  * Consumed by `scripts/seeds/articles.seed.ts`, which upserts on `slug`.
  */
 
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import { articleArtwork } from './article-artwork';
 
 export type SeedArticle = {

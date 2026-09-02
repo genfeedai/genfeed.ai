@@ -33,8 +33,8 @@ import {
 import { RouterService } from '@api/services/router/router.service';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import { ActivitySource, ModelCategory } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { ActivitySource, ModelCategory } from '@genfeedai/contracts';
+import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

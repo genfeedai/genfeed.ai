@@ -1,4 +1,4 @@
-import { CampaignSkipReason, CampaignTargetStatus } from '@genfeedai/enums';
+import { CampaignSkipReason, CampaignTargetStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 

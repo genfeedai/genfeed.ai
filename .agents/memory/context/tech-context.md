@@ -74,6 +74,6 @@ Backend ports start at `3010`, grouped by runtime role:
 
 ## Compiled Packages (dist/ required)
 
-- `@genfeedai/types` — uses `dist/` exports, must build before API webpack
+- `@genfeedai/contracts/types` — uses `dist/` exports, must build before API webpack
 - `@genfeedai/workflows` — uses `dist/` exports, must build before API webpack
 - Both need vitest aliases pointing to `src/` (not `dist/`)

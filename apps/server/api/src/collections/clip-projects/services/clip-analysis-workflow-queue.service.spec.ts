@@ -1,5 +1,5 @@
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import type { ClipAnalysisWorkflowInput } from '@genfeedai/interfaces';
+import type { ClipAnalysisWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { ClipAnalysisWorkflowQueueService } from './clip-analysis-workflow-queue.service';
 
 describe('ClipAnalysisWorkflowQueueService', () => {

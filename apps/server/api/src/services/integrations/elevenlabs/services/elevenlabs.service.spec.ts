@@ -1,6 +1,6 @@
 import type { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ApiKeyCategory, FileInputType } from '@genfeedai/enums';
+import { ApiKeyCategory, FileInputType } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IOrganizationCreditUsage } from '@genfeedai/interfaces';
+import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { SubscriptionsService } from '@services/billing/subscriptions.service';

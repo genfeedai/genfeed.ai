@@ -6,15 +6,15 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
-  postExecutionStateReadFilter,
-  postVisibilityReadFilter,
-} from '@api-types/contracts/scheduler.contract';
-import {
   AssetScope,
   IngredientStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

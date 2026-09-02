@@ -1,22 +1,3 @@
-import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import {
-  CredentialPlatform,
-  PostCategory,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type {
-  IReleaseGroup,
-  PostGroupCreateProvenance,
-} from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
-import { PostLifecycleService, scopedWhere } from '@api/index';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
@@ -38,7 +19,26 @@ import {
   assertApiKeyPublishingScope,
   type PublishingCapability,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { PostLifecycleService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  CredentialPlatform,
+  PostCategory,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { validateChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import type {
+  IReleaseGroup,
+  PostGroupCreateProvenance,
+} from '@genfeedai/contracts/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 function publishingCapabilityForReleaseStatus(
   status: ReleaseStatus,

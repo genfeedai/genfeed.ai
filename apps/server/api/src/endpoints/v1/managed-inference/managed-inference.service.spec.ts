@@ -38,7 +38,7 @@ import { LeonardoAIService } from '@api/services/integrations/leonardoai/service
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('ManagedInferenceService', () => {

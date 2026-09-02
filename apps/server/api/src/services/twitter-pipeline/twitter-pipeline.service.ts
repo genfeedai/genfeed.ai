@@ -4,15 +4,18 @@ import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-crede
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { CredentialPlatform, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type {
   IReplyBotCredentialData,
   ITwitterOpportunity,
   ITwitterPublishResult,
   ITwitterSearchResult,
   ITwitterVoiceConfig,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

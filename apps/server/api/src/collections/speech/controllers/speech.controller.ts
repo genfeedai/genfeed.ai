@@ -17,7 +17,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

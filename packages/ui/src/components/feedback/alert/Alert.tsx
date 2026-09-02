@@ -1,4 +1,4 @@
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { Alert as PrimitiveAlert } from '@ui/primitives/alert';

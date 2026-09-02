@@ -3,7 +3,7 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';

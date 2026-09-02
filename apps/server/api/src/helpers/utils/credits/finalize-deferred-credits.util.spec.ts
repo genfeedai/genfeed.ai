@@ -1,5 +1,5 @@
-import { ActivitySource } from '@genfeedai/enums';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import { ActivitySource } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import type { Request } from 'express';
 
 import {

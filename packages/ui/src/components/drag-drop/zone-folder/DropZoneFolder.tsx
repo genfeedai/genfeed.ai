@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { FolderDropZoneProps } from '@genfeedai/props/content/folder-drop-zone.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';

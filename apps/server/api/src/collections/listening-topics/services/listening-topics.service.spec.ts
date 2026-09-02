@@ -7,7 +7,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ListeningSourcePlatform } from '@genfeedai/enums';
+import { ListeningSourcePlatform } from '@genfeedai/contracts';
 
 describe('ListeningTopicsService', () => {
   const listeningTopic = {

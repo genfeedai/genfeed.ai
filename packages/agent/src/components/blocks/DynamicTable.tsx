@@ -1,6 +1,9 @@
 'use client';
 
-import type { TableBlock, TableColumnConfig } from '@genfeedai/interfaces';
+import type {
+  TableBlock,
+  TableColumnConfig,
+} from '@genfeedai/contracts/interfaces';
 import {
   Table,
   TableBody,

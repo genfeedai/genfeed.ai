@@ -1,12 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IPostingSet,
   IPostingSetTarget,
   IPostingSignature,
   PostingSetReferenceState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   PostingSetPickerProps,

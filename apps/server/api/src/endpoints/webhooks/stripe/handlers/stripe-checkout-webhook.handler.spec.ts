@@ -17,12 +17,12 @@ import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';

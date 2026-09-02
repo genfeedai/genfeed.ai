@@ -5,7 +5,7 @@ import {
   CredentialPlatform,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,

@@ -2,7 +2,7 @@ import {
   AssetScope,
   SubscriptionCategory,
   SubscriptionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
@@ -10,7 +10,7 @@ import type {
   ISetting,
   ISubscription,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({
@@ -24,7 +24,7 @@ vi.mock('@genfeedai/client/models', () => ({
   },
 }));
 
-vi.mock('@genfeedai/interfaces', () => ({}));
+vi.mock('@genfeedai/contracts/interfaces', () => ({}));
 
 vi.mock('@models/auth/user.model', () => ({
   User: class User {

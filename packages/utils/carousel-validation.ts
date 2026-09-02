@@ -1,5 +1,8 @@
-import { CAROUSEL_LIMITS, type CarouselLimit } from '@genfeedai/constants';
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
+import {
+  CAROUSEL_LIMITS,
+  type CarouselLimit,
+} from '@genfeedai/contracts/constants';
 
 /**
  * Validates if the ingredient count is valid for carousels on the given platforms.

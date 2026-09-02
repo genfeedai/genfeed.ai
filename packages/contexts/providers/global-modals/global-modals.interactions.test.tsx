@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 'use client';
 
-import type { IngredientCategory } from '@genfeedai/enums';
+import type { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IAsset,
   ICredential,
   IIngredient,
   IMetadata,
   IPost,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
 import { act, render, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

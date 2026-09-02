@@ -13,7 +13,7 @@ import type {
   Platform,
   PostFormat,
   TagCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBot,
@@ -42,7 +42,7 @@ import type {
   ISound,
   ITag,
   IVideo,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';

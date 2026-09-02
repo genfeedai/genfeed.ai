@@ -1,7 +1,7 @@
 'use client';
 
-import { ReferralRewardStatus } from '@genfeedai/enums';
-import type { IReferralAdminReward } from '@genfeedai/interfaces';
+import { ReferralRewardStatus } from '@genfeedai/contracts';
+import type { IReferralAdminReward } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';

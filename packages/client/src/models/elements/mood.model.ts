@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IElementMood } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IElementMood } from '@genfeedai/contracts/interfaces';
 
 export class ElementMood extends BaseEntity implements IElementMood {
   public declare key: string;

@@ -1,13 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
+import type { QuickActionsSubmenuProps } from '@genfeedai/contracts/interfaces/ui/quick-actions-submenu.interface';
 import {
   BG_BLUR,
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
-import type { QuickActionsSubmenuProps } from '@genfeedai/interfaces/ui/quick-actions-submenu.interface';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';

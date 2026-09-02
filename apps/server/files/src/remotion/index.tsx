@@ -1,4 +1,4 @@
-import type { IEditorExportCompositionSnapshot } from '@genfeedai/interfaces';
+import type { IEditorExportCompositionSnapshot } from '@genfeedai/contracts/interfaces';
 import { Composition, registerRoot } from 'remotion';
 import {
   EditorComposition,

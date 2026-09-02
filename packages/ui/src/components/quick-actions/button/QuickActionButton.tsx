@@ -1,6 +1,6 @@
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { IQuickAction } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { QuickActionButtonProps } from '@genfeedai/props/content/quick-actions.props';
 import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';

@@ -1,4 +1,4 @@
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
 
 /**
  * Video + Music Orchestration Service
@@ -43,8 +43,8 @@ import {
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
-import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

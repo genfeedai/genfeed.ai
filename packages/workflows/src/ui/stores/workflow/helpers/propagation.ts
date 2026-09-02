@@ -12,7 +12,7 @@
  * - `outputImages` array is checked BEFORE `outputImage` (multi-output nodes use the array)
  */
 
-import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 import { createIdMap, createSourceMap } from '../../../lib';
 
 /**

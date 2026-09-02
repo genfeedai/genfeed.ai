@@ -3,7 +3,7 @@ import { CreativePatternsService } from '@api/collections/creative-patterns/crea
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { PatternType } from '@genfeedai/interfaces';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 
 @AutoSwagger()

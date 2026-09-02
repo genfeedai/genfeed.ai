@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export type WorkflowMediaKind = 'image' | 'video';

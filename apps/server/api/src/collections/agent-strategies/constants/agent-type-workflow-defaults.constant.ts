@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 
 /**
  * Default deterministic content workflow template per agent type.

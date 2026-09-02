@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-submission/use-prompt-bar-submission';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';

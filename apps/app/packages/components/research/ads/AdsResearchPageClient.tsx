@@ -1,14 +1,14 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   ViewType,
-} from '@genfeedai/enums';
-import type { AdsResearchPlatform } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AdsResearchPlatform } from '@genfeedai/contracts/interfaces';
 import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';

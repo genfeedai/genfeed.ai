@@ -1,6 +1,6 @@
 # Project Structure — Genfeed.ai
 
-**last_verified: 2026-09-02** · Auto-loaded every request — keep it short. `ls` gives you the
+**last_verified: 2026-09-03** · Auto-loaded every request — keep it short. `ls` gives you the
 full inventory; this file records only what `ls` cannot tell you.
 
 ## Top level
@@ -19,8 +19,14 @@ full inventory; this file records only what `ls` cannot tell you.
   The name "core" stays retired — see `rules/server_not_core.md`.
 - **`apps/server/{clips,images,videos,voices}/` are not services.** Clip/media code lives under
   API, files, and packages. Do not recreate those directories or `@clips`/`@images`/`@videos`/`@voices` aliases.
+- **`packages/contracts` (`@genfeedai/contracts`)** is the shared contracts workspace
+  (enums at `.`, plus `/constants`, `/interfaces`, `/types`, `/api-types`, `/queue`,
+  `/desktop`). `enums`, `constants`, `interfaces`, `types`, `api-types`,
+  `queue-contracts`, and `desktop-contracts` are **deleted**. `props` stays its own
+  workspace because it depends on client/serializers/services/models.
 - **`packages/workflows` is the only workflow package** (subpath exports `/contracts`, `/engine`,
-  `/generation`, `/nodes`, `/ui`). `packages/core`, `workflow-engine`, `workflow-saas`, and
+  `/generation`, `/nodes`, `/ui`). That `/contracts` subpath is workflow-engine contracts, not
+  `@genfeedai/contracts`. `packages/core`, `workflow-engine`, `workflow-saas`, and
   `workflow-ui` are **deleted**; stale `dist/`/`node_modules/` residue may linger locally — delete it.
 - **Billing is in-tree and AGPL** — `apps/server/api/src/collections/{subscriptions,user-subscriptions,subscription-attributions}/`,
   runtime-gated by `apps/server/api/src/common/subscriptions/billing.providers.ts`. No `ee/`,

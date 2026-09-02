@@ -1,5 +1,5 @@
 import type { IEvaluation } from '@genfeedai/client/models';
-import { IngredientCategory, Status } from '@genfeedai/enums';
+import { IngredientCategory, Status } from '@genfeedai/contracts';
 import { EvaluationsService } from '@genfeedai/services/ai/evaluations.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

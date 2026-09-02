@@ -5,7 +5,7 @@ import {
   ButtonVariant,
   ModalEnum,
   PostStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalPostRemixProps } from '@genfeedai/props/modals/modal-post-remix.props';

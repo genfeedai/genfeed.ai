@@ -1,7 +1,7 @@
 import {
   DistributionContentType,
   DistributionPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Distribution } from '@genfeedai/prisma';
 
 export type { Distribution } from '@genfeedai/prisma';

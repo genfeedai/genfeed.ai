@@ -1,4 +1,4 @@
-import { ContentCampaignStatus } from '@genfeedai/enums';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { campaignAttributes } from '@serializers/attributes/content/campaign.attributes';
 import { CampaignSerializer } from '@serializers/server/content/campaign.serializer';
 import { describe, expect, it } from 'vitest';

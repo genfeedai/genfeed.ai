@@ -1,6 +1,6 @@
 import type { ElementStyle } from '@api/collections/elements/styles/schemas/style.schema';
 import { BaseEntity } from '@api/entities/base.entity';
-import type { ModelCategory } from '@genfeedai/enums';
+import type { ModelCategory } from '@genfeedai/contracts';
 
 export class ElementStyleEntity extends BaseEntity implements ElementStyle {
   declare readonly organizationId: string;

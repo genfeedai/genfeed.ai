@@ -1,5 +1,5 @@
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import type { ListeningAnalysisResult } from '@genfeedai/interfaces';
+import type { ListeningAnalysisResult } from '@genfeedai/contracts/interfaces';
 import {
   ListeningSignalSerializer,
   ListeningThemeSerializer,

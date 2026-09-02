@@ -21,7 +21,7 @@ import {
   parseSubscriptionPlan,
   SubscriptionPlan,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
   parseIncludedMonthlyCredits,

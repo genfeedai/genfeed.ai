@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import { Checkbox } from '@ui/primitives/checkbox';

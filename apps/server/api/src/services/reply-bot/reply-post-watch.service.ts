@@ -21,7 +21,7 @@ import {
   ReplyBotPlatform,
   ReplyBotType,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type WatchFetchResult = ReplyPostWatchWorkflowInput & {

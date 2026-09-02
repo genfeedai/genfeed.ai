@@ -1,8 +1,8 @@
 'use client';
 
-import { getCurrentSocialWarmupBlueprint } from '@api-types/contracts/social-warmup-blueprint.contract';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { AccountHealthSummary } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';

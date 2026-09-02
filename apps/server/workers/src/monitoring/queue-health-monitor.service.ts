@@ -2,7 +2,7 @@ import {
   ALL_QUEUE_NAMES,
   hasQueueConsumer,
   type QueueName,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';

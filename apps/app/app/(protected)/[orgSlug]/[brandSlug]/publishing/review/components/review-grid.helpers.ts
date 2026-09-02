@@ -1,5 +1,5 @@
-import { BatchItemStatus } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import { BatchItemStatus } from '@genfeedai/contracts';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import {
   isApproved,
   isChangesRequested,

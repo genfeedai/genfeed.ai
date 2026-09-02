@@ -1,4 +1,4 @@
-import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import type { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 
 export interface ArticleEditorProps {
   articleId?: string;

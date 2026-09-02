@@ -4,6 +4,7 @@ import {
   PUBLISH_WEBHOOK_JOB_ID_PREFIX,
   WebhookDispatchService,
 } from '@api/services/webhook-client/webhook-dispatch.service';
+import { ReleaseStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
   classifyPublishWebhookError,
   createPublishWebhookEventId,
@@ -13,10 +14,9 @@ import {
   type PublishWebhookTarget,
   publishWebhookPayloadSchema,
   redactPublishWebhookText,
-} from '@api-types/contracts/publish-webhook-events.contract';
-import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
-import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/publish-webhook-events.contract';
+import { deriveReleaseStatusProjectionFromTargets } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,5 +1,9 @@
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+} from '@genfeedai/contracts';
 import type { IReplicateModel } from '@workers/interfaces/model-discovery.interface';
 import { ReplicateModelContractSyncService } from '@workers/services/replicate-model-contract-sync.service';
 

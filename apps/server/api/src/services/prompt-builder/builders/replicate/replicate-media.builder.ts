@@ -7,7 +7,7 @@ import type {
   TopazImageUpscaleInput,
   TopazVideoUpscaleInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 /**

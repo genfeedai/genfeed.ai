@@ -1,7 +1,7 @@
 'use client';
 
 import { authClient, useSession } from '@genfeedai/auth-client';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { VenetianMask } from 'lucide-react';

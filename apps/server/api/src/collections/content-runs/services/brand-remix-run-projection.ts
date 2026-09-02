@@ -6,14 +6,14 @@ import type {
   BrandRemixRunRecord,
   ResolvedBrandContext,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import { ContentRunStatus } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   BRAND_REMIX_RUN_VERSION,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
   brandRemixRunViewSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import { ContentRunStatus } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 
 export function projectBrandRemixRun(
   run: BrandRemixRunRecord,

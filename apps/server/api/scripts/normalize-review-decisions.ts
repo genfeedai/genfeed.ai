@@ -9,7 +9,7 @@
 
 import { createHash } from 'node:crypto';
 import process from 'node:process';
-import { parseReviewDecision, ReviewDecision } from '@genfeedai/enums';
+import { parseReviewDecision, ReviewDecision } from '@genfeedai/contracts';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,

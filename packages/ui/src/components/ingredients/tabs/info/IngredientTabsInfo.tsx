@@ -1,10 +1,10 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
-import type { IMetadata } from '@genfeedai/interfaces';
 import type { TabsIngredientInfoProps } from '@genfeedai/props/content/ingredient.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';

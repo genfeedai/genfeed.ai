@@ -1,7 +1,7 @@
 import {
   API_KEY_SCOPE_PRESETS,
   type ApiKeyScopePreset,
-} from '@genfeedai/constants/api-key-presets.constant';
+} from '@genfeedai/contracts/constants/api-key-presets.constant';
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';

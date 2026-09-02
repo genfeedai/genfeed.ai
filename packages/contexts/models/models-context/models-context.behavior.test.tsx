@@ -5,7 +5,7 @@ import {
   ModelsProvider,
   useModelsContext,
 } from '@genfeedai/contexts/models/models-context/models-context';
-import type { IModelsContextType } from '@genfeedai/interfaces/models/models-context.interface';
+import type { IModelsContextType } from '@genfeedai/contracts/interfaces/models/models-context.interface';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import { useElementsContext } from '@providers/elements/elements.context';
 import SoundsList from './sounds-list';
 

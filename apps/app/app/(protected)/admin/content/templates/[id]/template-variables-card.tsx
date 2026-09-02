@@ -1,7 +1,7 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
-import type { TemplateVariable } from '@genfeedai/interfaces/content/template-ui.interface';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { TemplateVariable } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { Code } from '@genfeedai/ui';
 import Badge from '@ui/display/badge/Badge';
 import { Text } from '@ui/typography/text';

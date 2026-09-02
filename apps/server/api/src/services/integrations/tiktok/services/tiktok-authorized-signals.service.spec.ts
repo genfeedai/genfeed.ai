@@ -11,12 +11,12 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type TikTokAuthorizedSignalEvidence,
   type TikTokAuthorizedSignalsSnapshot,
   tiktokAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/tiktok-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

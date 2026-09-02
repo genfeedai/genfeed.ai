@@ -3,7 +3,7 @@ import {
   EditorTrackType,
   EditorTransitionType,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   EDITOR_EXPORT_CONTRACT_VERSION,
   type IEditorClip,
@@ -15,7 +15,7 @@ import {
   type IEditorTrack,
   type IEditorTransition,
   type IValidatedEditorExportContract,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 interface EditorExportProjectInput {
   id?: unknown;

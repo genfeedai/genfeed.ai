@@ -1,4 +1,7 @@
-import { AGENT_CHAT_MODEL_KEYS, LLM_DEFAULTS } from '@genfeedai/constants';
+import {
+  AGENT_CHAT_MODEL_KEYS,
+  LLM_DEFAULTS,
+} from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';

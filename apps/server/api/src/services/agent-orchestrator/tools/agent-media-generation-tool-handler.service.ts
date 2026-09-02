@@ -2,7 +2,7 @@ import { AgentMediaAssetGenerationService } from '@api/services/agent-orchestrat
 import { AgentMediaBatchGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaTextGenerationService } from '@api/services/agent-orchestrator/tools/agent-media-text-generation.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

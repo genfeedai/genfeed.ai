@@ -6,7 +6,7 @@ import {
   isReplicateVersionId,
 } from '@api/collections/models/utils/model-key.util';
 import { readRequestOrganizationId } from '@api/helpers/utils/request/read-request-organization-id.util';
-import type { ModelCategory } from '@genfeedai/enums';
+import type { ModelCategory } from '@genfeedai/contracts';
 import {
   type CanActivate,
   type ExecutionContext,

@@ -3,7 +3,10 @@ import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/a
 import { OutreachCampaignTargetOperationsService } from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { CampaignPlatform, CampaignTargetType } from '@genfeedai/enums';
+import type {
+  CampaignPlatform,
+  CampaignTargetType,
+} from '@genfeedai/contracts';
 import {
   Body,
   Controller,

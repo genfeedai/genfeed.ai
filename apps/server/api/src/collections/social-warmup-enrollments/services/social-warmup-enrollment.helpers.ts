@@ -4,14 +4,14 @@ import {
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ISocialWarmupEnrollmentDocument,
   ISocialWarmupEventRecord,
   ISocialWarmupSignalRecord,
   SocialWarmupAccountAge,
   SocialWarmupReconnect,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const NATIVE_ACCOUNT_AGE_KEY = 'native-account-age';

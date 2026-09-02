@@ -1,6 +1,6 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
-import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import { ArticleScope, ArticleStatus } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

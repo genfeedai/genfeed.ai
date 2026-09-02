@@ -6,7 +6,7 @@ import {
   type CastCameraMovement,
   type CastPromptFamily,
   type CastPromptNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import { useTranslations } from 'next-intl';

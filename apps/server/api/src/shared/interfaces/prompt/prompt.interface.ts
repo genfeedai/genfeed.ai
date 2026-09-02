@@ -1,4 +1,4 @@
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 
 export interface IAccountData {
   label: string;

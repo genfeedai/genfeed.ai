@@ -1,4 +1,4 @@
-import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
+import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

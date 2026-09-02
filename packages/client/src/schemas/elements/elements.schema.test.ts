@@ -8,8 +8,8 @@ import {
   getElementSchema,
 } from '@genfeedai/client/schemas/elements/element.schema';
 import { modelSchema } from '@genfeedai/client/schemas/elements/model.schema';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('element schemas', () => {

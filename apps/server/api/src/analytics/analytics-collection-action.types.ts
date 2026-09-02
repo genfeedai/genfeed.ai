@@ -1,4 +1,4 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
+import type { CredentialPlatform } from '@genfeedai/contracts';
 
 export type AnalyticsCollectionPost = {
   brandId: string;

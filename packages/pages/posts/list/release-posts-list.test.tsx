@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { CredentialPlatform, PageScope, ReleaseStatus } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import {
+  CredentialPlatform,
+  PageScope,
+  ReleaseStatus,
+} from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

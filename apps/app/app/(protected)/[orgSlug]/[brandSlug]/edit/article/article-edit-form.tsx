@@ -1,6 +1,6 @@
 'use client';
 
-import { ArticleCategory } from '@genfeedai/enums';
+import { ArticleCategory } from '@genfeedai/contracts';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';

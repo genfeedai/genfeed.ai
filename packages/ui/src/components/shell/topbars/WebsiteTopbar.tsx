@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';

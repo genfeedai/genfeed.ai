@@ -16,7 +16,7 @@ import { PublicMediaService } from '@api/endpoints/public/services/public-media.
 import type {
   IMediaProvenanceManifest,
   IPublicMediaRouteReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 

@@ -3,7 +3,7 @@ import type {
   AvatarProvider,
   PersonaStatus,
   VoiceProvider,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export class PersonaEntity extends BaseEntity {
   declare readonly userId: string;

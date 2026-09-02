@@ -4,15 +4,15 @@ import {
   IngredientCategory,
   IngredientFormat,
   RouterPriority,
-} from '@genfeedai/enums';
-import type { IIngredient, IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import type {
   AvatarGenerationPayload,
   BaseGenerationPayload,
   ImageGenerationPayload,
   MusicGenerationPayload,
   VideoGenerationPayload,
-} from '@genfeedai/interfaces/content/generation-payload.interface';
+} from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
 
 /**
  * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's

@@ -1,4 +1,4 @@
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope } from '@genfeedai/contracts';
 
 export const MANAGED_API_KEY_LABEL = 'Managed Credits Key';
 

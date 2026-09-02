@@ -1,4 +1,4 @@
-packages: @genfeedai/enums @genfeedai/interfaces @genfeedai/queue-contracts @genfeedai/serializers
+packages: @genfeedai/contracts @genfeedai/contracts/interfaces @genfeedai/contracts/queue @genfeedai/serializers
 
 Add a canonical action-origin taxonomy and expose trusted origin, actor, and
 API-key references on activity records. Queue contracts now retain the

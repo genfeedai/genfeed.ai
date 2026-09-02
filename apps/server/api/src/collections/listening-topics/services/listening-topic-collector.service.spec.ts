@@ -10,7 +10,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ListeningEvidenceType,
   ListeningSourcePlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 const context = {
   brandId: 'brand-1',

@@ -1,8 +1,8 @@
 'use client';
 
 import type { InviteMemberSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
-import type { IRole } from '@genfeedai/interfaces';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import type { IRole } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

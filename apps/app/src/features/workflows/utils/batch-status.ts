@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 /** Workflow batches use the canonical WorkflowExecution lifecycle. */
 const TERMINAL_BATCH_STATUSES: ReadonlySet<WorkflowExecutionStatus> = new Set([

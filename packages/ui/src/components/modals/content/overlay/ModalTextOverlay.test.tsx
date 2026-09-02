@@ -1,4 +1,4 @@
-import type { IVideo } from '@genfeedai/interfaces';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';

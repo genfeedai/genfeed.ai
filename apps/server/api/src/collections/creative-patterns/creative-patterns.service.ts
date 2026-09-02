@@ -4,7 +4,7 @@ import type {
 } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { PatternType } from '@genfeedai/interfaces';
+import type { PatternType } from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 

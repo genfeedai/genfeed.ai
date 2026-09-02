@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from './analytics-events';
 import { createEditorWorkflowRunTracker } from './workflow-run-tracker';

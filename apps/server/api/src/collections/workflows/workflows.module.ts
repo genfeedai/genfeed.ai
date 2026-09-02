@@ -105,7 +105,7 @@ import { PaidCreativeResearchModule } from '@api/services/paid-creative-research
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { SharedModule } from '@api/shared/shared.module';
-import { HEYGEN_POLL_QUEUE } from '@genfeedai/queue-contracts';
+import { HEYGEN_POLL_QUEUE } from '@genfeedai/contracts/queue';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';

@@ -1,5 +1,5 @@
-import { PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PlatformTabBar from '@web-components/content/tab-bar/PlatformTabBar';
 import { describe, expect, it, vi } from 'vitest';

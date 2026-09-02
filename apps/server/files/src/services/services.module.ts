@@ -14,7 +14,7 @@ import { UploadModule } from '@files/services/upload/upload.module';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpModule } from '@files/services/ytdlp/ytdlp.module';
-import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/queue-contracts';
+import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 

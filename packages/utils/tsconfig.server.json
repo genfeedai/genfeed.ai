@@ -6,8 +6,10 @@
     "noEmit": false,
     "outDir": "./dist/server",
     "paths": {
-      "@genfeedai/interfaces": ["../interfaces/dist/index.d.ts"],
-      "@genfeedai/interfaces/*": ["../interfaces/dist/*"]
+      "@genfeedai/contracts/interfaces": [
+        "../contracts/dist/interfaces/index.d.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": ["../contracts/dist/interfaces/*"]
     },
     "rootDir": "."
   },

@@ -1,4 +1,4 @@
-import type { IArticle } from '@genfeedai/interfaces';
+import type { IArticle } from '@genfeedai/contracts/interfaces';
 import type { ProfileArticlesProps } from '@props/content/profile.props';
 import Image from 'next/image';
 import Link from 'next/link';

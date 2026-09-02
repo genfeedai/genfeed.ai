@@ -1,4 +1,4 @@
-import type { IntegrationPlatform } from '@genfeedai/enums';
+import type { IntegrationPlatform } from '@genfeedai/contracts';
 import { normalizeIntegration, normalizeIntegrations } from './bot-normalize';
 import type { WorkflowDefinition } from './bot-workflow';
 import type { OrgIntegration } from './types';

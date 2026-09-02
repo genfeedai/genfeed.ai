@@ -6,8 +6,8 @@ import {
   ActivitySource,
   SubscriptionPlan,
   SubscriptionStatus,
-} from '@genfeedai/enums';
-import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts';
+import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,20 +1,23 @@
 'use client';
 
-import {
-  type BrandRemixDraftEdits,
-  type BrandRemixReference,
-  type BrandRemixRunView,
-  generationFidelityModeValues,
-  generationReferenceRoleValues,
-} from '@api-types/contracts';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { AgentArtifactReference, IAvatar } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  type BrandRemixDraftEdits,
+  type BrandRemixReference,
+  type BrandRemixRunView,
+  generationFidelityModeValues,
+  generationReferenceRoleValues,
+} from '@genfeedai/contracts/api-types/contracts';
+import type {
+  AgentArtifactReference,
+  IAvatar,
+} from '@genfeedai/contracts/interfaces';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';

@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown, ChevronUp, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';

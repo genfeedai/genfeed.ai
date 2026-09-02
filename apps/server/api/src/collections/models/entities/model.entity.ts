@@ -1,5 +1,9 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import {
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+} from '@genfeedai/contracts';
 
 export class ModelEntity extends BaseEntity {
   declare readonly organizationId: string | null;

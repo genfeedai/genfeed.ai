@@ -1,5 +1,5 @@
-import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { PostStatus, TargetExecutionState } from '@genfeedai/contracts';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { resolveAccountLabel } from './account-label.util';
 

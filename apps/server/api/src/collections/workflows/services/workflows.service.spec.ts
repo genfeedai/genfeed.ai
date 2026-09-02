@@ -4,7 +4,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const emptyModuleRef = { get: vi.fn(() => undefined) };

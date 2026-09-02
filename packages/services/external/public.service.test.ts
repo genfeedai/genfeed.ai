@@ -1,4 +1,4 @@
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { Post } from '@genfeedai/models/content/post.model';

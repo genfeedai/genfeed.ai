@@ -5,7 +5,7 @@ import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
   LOWEST_COST_IMAGE_MODEL_KEY,
   LOWEST_COST_VIDEO_MODEL_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 import { SelfHostedSeedService } from './self-hosted-seed.service';

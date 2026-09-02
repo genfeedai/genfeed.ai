@@ -5,8 +5,8 @@ import type {
   ServerPosts,
   ServerSocialAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
 import { AnalyticsSocialCollectionService } from './analytics-social-collection.service';
 
 function createHarness() {

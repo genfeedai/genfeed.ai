@@ -3,7 +3,7 @@ import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingString,
-} from '@genfeedai/api-types/contracts';
+} from '@genfeedai/contracts/api-types/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

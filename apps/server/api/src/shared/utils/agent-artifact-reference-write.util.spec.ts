@@ -1,5 +1,5 @@
 import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 function makeReference(index: number): AgentArtifactReference {

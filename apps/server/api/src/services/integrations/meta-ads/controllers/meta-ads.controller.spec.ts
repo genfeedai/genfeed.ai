@@ -9,7 +9,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MetaAdsController } from '@api/services/integrations/meta-ads/controllers/meta-ads.controller';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

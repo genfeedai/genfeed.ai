@@ -3,7 +3,7 @@ import type {
   AdsChannel,
   AdsResearchPlatform,
   SavedAdSource,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 

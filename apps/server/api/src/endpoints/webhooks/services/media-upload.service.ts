@@ -4,7 +4,7 @@ import {
   categoryToPlural,
   FileInputType,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

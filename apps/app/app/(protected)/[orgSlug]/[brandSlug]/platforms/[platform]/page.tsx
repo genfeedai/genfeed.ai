@@ -1,4 +1,4 @@
-import { formatPlatformLabel, parsePlatform } from '@genfeedai/enums';
+import { formatPlatformLabel, parsePlatform } from '@genfeedai/contracts';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import type { BrandPlatformHomePageProps } from '@props/pages/page.props';
 import { notFound } from 'next/navigation';

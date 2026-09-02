@@ -1,4 +1,4 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelector';
 import { describe, expect, it, vi } from 'vitest';

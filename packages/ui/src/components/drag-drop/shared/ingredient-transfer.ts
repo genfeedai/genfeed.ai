@@ -1,6 +1,6 @@
 'use client';
 
-import type { IFolder, IIngredient } from '@genfeedai/interfaces';
+import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 
 export const INGREDIENT_TRANSFER_MIME = 'application/x-genfeed-ingredient';
 

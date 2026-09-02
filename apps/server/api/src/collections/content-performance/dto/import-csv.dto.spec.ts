@@ -3,7 +3,7 @@ import {
   ImportCsvDto,
 } from '@api/collections/content-performance/dto/import-csv.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';

@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/client/schemas/management/api-key.schema';
 import { tagSchema } from '@genfeedai/client/schemas/management/tag.schema';
 import { watchlistSchema } from '@genfeedai/client/schemas/management/watchlist.schema';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('management schemas', () => {

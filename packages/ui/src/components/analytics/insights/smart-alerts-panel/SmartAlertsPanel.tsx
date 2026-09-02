@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SmartAlertsPanelProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';

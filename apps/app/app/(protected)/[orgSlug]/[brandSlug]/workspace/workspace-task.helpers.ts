@@ -1,6 +1,6 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { ReviewDecision } from '@genfeedai/enums';
-import type { VideoContinuityQaReport } from '@genfeedai/interfaces';
+import type { ReviewDecision } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { VideoContinuityQaReport } from '@genfeedai/contracts/interfaces';
 import {
   isTaskInWorkspaceInboxQueue,
   isUnreadWorkspaceInboxTask,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { UseVisiblePollingOptions } from '@genfeedai/interfaces';
+import type { UseVisiblePollingOptions } from '@genfeedai/contracts/interfaces';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import { useEffect, useRef } from 'react';
 

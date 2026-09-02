@@ -7,7 +7,10 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SocialSourcePlatform, SourcePostActionType } from '@genfeedai/enums';
+import {
+  SocialSourcePlatform,
+  SourcePostActionType,
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('SourcePostsService', () => {

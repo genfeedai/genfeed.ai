@@ -6,7 +6,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
 import type { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import type { IResizeBodyParams } from '@genfeedai/interfaces';
+import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';

@@ -1,15 +1,15 @@
 'use client';
 
 import {
-  LIBRARY_CANVAS_FEATURE_FLAG,
-  type LibraryViewMode,
-} from '@genfeedai/constants';
-import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   ViewType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  LIBRARY_CANVAS_FEATURE_FLAG,
+  type LibraryViewMode,
+} from '@genfeedai/contracts/constants';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { LibraryBrowserToolbarProps } from '@props/pages/library-browser.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';

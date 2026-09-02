@@ -1,4 +1,4 @@
-import type { IngredientStatus } from '@genfeedai/enums';
+import type { IngredientStatus } from '@genfeedai/contracts';
 import { get } from './client';
 import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
 

@@ -1,16 +1,16 @@
-import { mapPostStatusToCanonicalWrite } from '@api-types/contracts/scheduler.contract';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   PageScope,
   type PostStatus,
   type PostVisibility,
   type TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { mapPostStatusToCanonicalWrite } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type {
   IPaginatedResponse,
   IPost,
   IQueryParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import type { OrganizationsService } from '@services/organization/organizations.service';

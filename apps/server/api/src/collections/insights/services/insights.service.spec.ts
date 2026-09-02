@@ -3,7 +3,7 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockInsightDelegate = {

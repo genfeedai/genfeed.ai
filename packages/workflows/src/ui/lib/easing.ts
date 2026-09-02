@@ -1,4 +1,4 @@
-import type { CubicBezier, EasingPreset } from '@genfeedai/types';
+import type { CubicBezier, EasingPreset } from '@genfeedai/contracts/types';
 
 // =============================================================================
 // TYPES

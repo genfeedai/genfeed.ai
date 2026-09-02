@@ -1,7 +1,7 @@
 import { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { MemberRole } from '@genfeedai/enums';
+import { MemberRole } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

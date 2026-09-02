@@ -3,8 +3,8 @@ import type {
   ClipRunModes,
   ClipRunStep,
 } from '@genfeedai/agent/models/clip-run-card.model';
-import { ButtonVariant } from '@genfeedai/enums';
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, ExternalLink, Film, TriangleAlert } from 'lucide-react';
 import type { ReactElement } from 'react';

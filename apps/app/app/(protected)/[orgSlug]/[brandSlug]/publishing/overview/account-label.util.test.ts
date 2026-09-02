@@ -1,4 +1,4 @@
-import type { ICredential } from '@genfeedai/interfaces';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import { resolveAccountLabel } from './account-label.util';
 

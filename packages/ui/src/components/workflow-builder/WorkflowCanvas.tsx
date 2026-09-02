@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowNodeData } from '@genfeedai/interfaces/automation/workflow-builder.interface';
+import type { WorkflowNodeData } from '@genfeedai/contracts/interfaces/automation/workflow-builder.interface';
 import type { WorkflowCanvasProps } from '@genfeedai/props/automation/workflow-builder.props';
 import { FlowCanvas } from '@ui/flows';
 import AINode from '@ui/workflow-builder/nodes/AINode';

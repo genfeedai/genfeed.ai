@@ -16,7 +16,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

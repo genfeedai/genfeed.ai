@@ -1,4 +1,4 @@
-import type { WorkspaceShellOverlayRegistration } from '@genfeedai/interfaces';
+import type { WorkspaceShellOverlayRegistration } from '@genfeedai/contracts/interfaces';
 import type { WorkspaceShellState } from '@/lib/workspace-shell/workspace-shell-location';
 
 type WorkspaceShellOverlayTelemetryClass =

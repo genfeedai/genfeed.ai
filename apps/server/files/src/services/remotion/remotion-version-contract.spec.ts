@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
 import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 const specDirectory = path.dirname(fileURLToPath(import.meta.url));

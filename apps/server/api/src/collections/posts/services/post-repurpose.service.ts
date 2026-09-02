@@ -11,25 +11,25 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  type ChannelTargetValidationResult,
-  getChannelCapability,
-  resolveChannelStatusIssue,
-  resolveChannelTargetSettings,
-  validateChannelTargetSettings,
-} from '@api-types/contracts/channel-capabilities.contract';
-import {
-  type ChannelRepurposeAdjustment,
-  type ChannelRepurposeMedia,
-  getChannelTextPolicy,
-  repurposePostContent,
-} from '@api-types/contracts/channel-repurpose.contract';
-import {
   ContentIntelligencePlatform,
   IngredientCategory,
   Platform,
   PostRepurposeMode,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  type ChannelTargetValidationResult,
+  getChannelCapability,
+  resolveChannelStatusIssue,
+  resolveChannelTargetSettings,
+  validateChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  type ChannelRepurposeAdjustment,
+  type ChannelRepurposeMedia,
+  getChannelTextPolicy,
+  repurposePostContent,
+} from '@genfeedai/contracts/api-types/contracts/channel-repurpose.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadGatewayException,

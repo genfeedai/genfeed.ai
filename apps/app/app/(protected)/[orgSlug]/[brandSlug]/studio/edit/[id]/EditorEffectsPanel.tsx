@@ -5,8 +5,11 @@ import {
   ButtonVariant,
   EditorEffectType,
   EditorTrackType,
-} from '@genfeedai/enums';
-import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IEditorEffect,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { type JSX, useCallback, useState } from 'react';

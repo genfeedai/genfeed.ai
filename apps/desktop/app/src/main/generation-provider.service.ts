@@ -5,7 +5,7 @@ import type {
   IDesktopGenerationProviderConfig,
   IDesktopGenerationProviderPublicConfig,
   IDesktopGenerationProviderTestResult,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import { sleep } from '@genfeedai/helpers';
 import type { DesktopConfigService } from './config.service';
 

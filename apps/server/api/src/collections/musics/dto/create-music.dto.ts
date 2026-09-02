@@ -1,6 +1,6 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

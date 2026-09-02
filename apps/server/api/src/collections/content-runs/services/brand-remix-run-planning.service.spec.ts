@@ -2,8 +2,8 @@ import { BrandRemixRunPlanningService } from '@api/collections/content-runs/serv
 import type { ResolvedBrandContext } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { BrandRemixDraft } from '@api-types/contracts/brand-remix-run.contract';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { BrandRemixDraft } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import { MusicSourceType } from '@genfeedai/enums';
+import { MusicSourceType } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import { createMusicSourceExecutor } from './music-source-executor';

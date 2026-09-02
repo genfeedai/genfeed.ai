@@ -31,8 +31,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { MemberRole } from '@genfeedai/enums';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import { MemberRole } from '@genfeedai/contracts';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import {
   MemberInvitationSerializer,
   MemberSerializer,

@@ -1,7 +1,7 @@
 import {
   AGENT_ARTIFACT_SERIALIZER_BY_KIND,
   type AgentArtifactReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   Task,
   TaskLinkedEntityModel,

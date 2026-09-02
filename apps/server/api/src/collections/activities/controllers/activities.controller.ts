@@ -23,7 +23,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ActivitySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

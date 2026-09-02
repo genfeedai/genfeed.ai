@@ -1,7 +1,7 @@
 import {
   LIFECYCLE_SYSTEM_EMAILS,
   type LifecycleSystemEmailDefinition,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

@@ -1,5 +1,5 @@
-import { PricingType } from '@genfeedai/enums';
-import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
+import { PricingType } from '@genfeedai/contracts';
+import type { CreditsPricingMetadata } from '@genfeedai/contracts/interfaces';
 
 import { applyMargin, getRuntimeMarginMultiplier } from './plans-pricing';
 

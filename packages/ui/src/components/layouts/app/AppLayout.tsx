@@ -1,7 +1,7 @@
 'use client';
 
 import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';

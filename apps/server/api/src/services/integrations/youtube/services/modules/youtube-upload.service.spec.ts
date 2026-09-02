@@ -4,7 +4,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import { PostStatus, PostVisibility } from '@genfeedai/enums';
+import { PostStatus, PostVisibility } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

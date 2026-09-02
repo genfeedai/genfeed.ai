@@ -17,7 +17,7 @@ import {
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface DiscoverTargetsOptions {

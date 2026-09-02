@@ -15,7 +15,7 @@ import { ManagedInferenceRuntimeService } from '@api/services/integrations/manag
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

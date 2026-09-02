@@ -1,4 +1,4 @@
-import { AgentType } from '@genfeedai/enums';
+import { AgentType } from '@genfeedai/contracts';
 
 export const ORCHESTRATOR_AGENT_TYPE = 'orchestrator' as AgentType;
 

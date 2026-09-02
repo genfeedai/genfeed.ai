@@ -29,15 +29,18 @@ import {
   RouterPriority,
   Status,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
   type OnboardingJourneyMissionId,
   resolveMissionCtaHref,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -6,7 +6,7 @@ import {
   IngredientCategory,
   ModelCategory,
   TagCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';

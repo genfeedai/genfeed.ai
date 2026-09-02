@@ -5,7 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { PersonasController } from '@api/collections/personas/controllers/personas.controller';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { PersonaStatus } from '@genfeedai/enums';
+import { PersonaStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';

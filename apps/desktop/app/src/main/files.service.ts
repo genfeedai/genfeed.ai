@@ -4,8 +4,8 @@ import path from 'node:path';
 import type {
   DesktopAssetUploadPolicy,
   IDesktopAsset,
-} from '@genfeedai/desktop-contracts';
-import { buildDesktopAssetUrl } from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
+import { buildDesktopAssetUrl } from '@genfeedai/contracts/desktop';
 import {
   buildWorkspaceAssetsDir,
   resolvePathInsideRoot,

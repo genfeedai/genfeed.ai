@@ -23,11 +23,11 @@ import {
   MetadataExtension,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ITextOverlayBodyParams,
   ITrimVideoBodyParams,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

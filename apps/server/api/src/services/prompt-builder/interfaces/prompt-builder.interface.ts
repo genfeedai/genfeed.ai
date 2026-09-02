@@ -1,6 +1,6 @@
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import type { ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/contracts';
 
 /**
  * Base interface for all prompt builders

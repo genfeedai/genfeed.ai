@@ -1,4 +1,4 @@
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import PostCard from '@web-components/content/post-card/PostCard';
 import type { ComponentProps } from 'react';

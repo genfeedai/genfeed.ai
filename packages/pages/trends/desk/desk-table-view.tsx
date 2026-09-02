@@ -6,8 +6,8 @@ import {
   ButtonVariant,
   SocialSourcePlatform,
   SourcePostActionType,
-} from '@genfeedai/enums';
-import type { ISourcePost, ITrendVideo } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';

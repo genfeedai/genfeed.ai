@@ -2,7 +2,7 @@ import { pathToFileURL } from 'node:url';
 import {
   DESKTOP_ASSET_PROTOCOL_SCHEME,
   parseDesktopAssetUrl,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import { net, protocol } from 'electron';
 import type { DesktopFilesService } from './files.service';
 

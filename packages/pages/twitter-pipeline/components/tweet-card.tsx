@@ -1,7 +1,7 @@
 'use client';
 
-import { CardVariant } from '@genfeedai/enums';
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import { CardVariant } from '@genfeedai/contracts';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { BadgeCheck, Heart, MessageCircle, RefreshCw } from 'lucide-react';
 

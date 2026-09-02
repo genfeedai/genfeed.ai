@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';

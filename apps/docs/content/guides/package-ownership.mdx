@@ -10,7 +10,7 @@ This document defines where `@genfeedai/*` packages live and how publishing is s
 
 Genfeed.ai is a single TypeScript monorepo at [`genfeedai/genfeed.ai`](https://github.com/genfeedai/genfeed.ai). All `@genfeedai/*` packages are owned there — there are no separate per-package repositories.
 
-- **Shared packages** live under `packages/*` (for example `packages/types`, `packages/serializers`, `packages/cli`).
+- **Shared packages** live under `packages/*` (for example `packages/contracts`, `packages/serializers`, `packages/cli`).
 - **Backend services** live under `apps/server/*` and **frontends** under `apps/*`. These are applications, not published packages.
 - The repository default license is AGPL-3.0-or-later, but package-specific
   license notices can apply instead.
@@ -19,7 +19,7 @@ Genfeed.ai is a single TypeScript monorepo at [`genfeedai/genfeed.ai`](https://g
 
 The `packages/` workspace is the canonical source for the shared `@genfeedai/*` packages, including:
 
-- `@genfeedai/types`
+- `@genfeedai/contracts`
 - `@genfeedai/pricing`
 - `@genfeedai/workflows`
 - `@genfeedai/serializers`

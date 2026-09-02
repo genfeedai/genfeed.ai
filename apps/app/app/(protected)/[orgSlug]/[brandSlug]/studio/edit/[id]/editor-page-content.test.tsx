@@ -3,7 +3,7 @@ import {
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   act,
   fireEvent,

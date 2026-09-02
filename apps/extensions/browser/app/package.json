@@ -2,9 +2,7 @@
   "author": "vincent@genfeed.ai",
   "dependencies": {
     "@genfeedai/auth-client": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/next-config": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
@@ -14,7 +12,8 @@
     "plasmo": "0.90.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "zustand": "5.0.15"
+    "zustand": "5.0.15",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed.ai - Generate (good) AI content for your business",
   "devDependencies": {

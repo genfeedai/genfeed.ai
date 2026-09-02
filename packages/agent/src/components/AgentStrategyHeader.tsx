@@ -1,7 +1,7 @@
 import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement, RefObject } from 'react';
 

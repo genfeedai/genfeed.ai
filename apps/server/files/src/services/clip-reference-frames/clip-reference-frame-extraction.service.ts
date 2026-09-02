@@ -2,14 +2,14 @@ import path from 'node:path';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
-import { normalizeClipReferenceTimestamps } from '@genfeedai/helpers';
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameCandidate,
   type ClipReferenceFrameDiagnostic,
   type ClipReferenceFrameExtractionInput,
   type ClipReferenceFrameSet,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { normalizeClipReferenceTimestamps } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

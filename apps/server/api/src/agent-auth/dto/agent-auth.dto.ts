@@ -1,4 +1,4 @@
-import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/constants';
+import { SELF_SERVICE_API_KEY_SCOPES } from '@genfeedai/contracts/constants';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,

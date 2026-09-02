@@ -1,5 +1,5 @@
-import type { ActivitySource } from '@genfeedai/enums';
-import { CreditReservationStatus } from '@genfeedai/enums';
+import type { ActivitySource } from '@genfeedai/contracts';
+import { CreditReservationStatus } from '@genfeedai/contracts';
 import type {
   IAddCreditsOptions,
   ICreditReservation,
@@ -11,7 +11,7 @@ import type {
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

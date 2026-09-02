@@ -1,5 +1,5 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import { CalendarSlotState, PostCategory } from '@genfeedai/enums';
+import { CalendarSlotState, PostCategory } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { playwrightApiEndpoint } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';

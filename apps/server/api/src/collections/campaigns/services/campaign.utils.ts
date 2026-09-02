@@ -4,11 +4,11 @@ import {
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
   type TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ICampaign,
   ICampaignLifecycleItemOutcome,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
 
 /**

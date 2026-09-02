@@ -5,8 +5,8 @@ import {
   ButtonVariant,
   formatEnumLabel,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import Card from '@ui/card/Card';

@@ -5,7 +5,7 @@ import {
   Platform,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   getPostLifecycleOptions,
   getPostVisibilityOptions,

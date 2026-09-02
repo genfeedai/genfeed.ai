@@ -6,12 +6,12 @@ import {
 } from '@contexts/analytics/analytics-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentChatStore } from '@genfeedai/agent';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AnalyticsQueryFilterKey,
   AnalyticsQueryReference,
-} from '@genfeedai/interfaces';
-import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import { formatApiDate } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

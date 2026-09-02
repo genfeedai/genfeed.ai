@@ -1,4 +1,4 @@
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import ModalArticle from '@ui/modals/content/article/ModalArticle';
 import type { ReactNode } from 'react';

@@ -9,7 +9,7 @@ import {
   IngredientStatus,
   MetadataExtension,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   ExecutableNode,
   ExecutionContext,

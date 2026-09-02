@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

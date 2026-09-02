@@ -1,5 +1,5 @@
 import { isAsciiWordCharacter } from '@api/shared/utils/string/linear-string.util';
-import type { SortObject } from '@genfeedai/interfaces';
+import type { SortObject } from '@genfeedai/contracts/interfaces';
 
 function getDefaultSort(): SortObject {
   return { createdAt: -1 };

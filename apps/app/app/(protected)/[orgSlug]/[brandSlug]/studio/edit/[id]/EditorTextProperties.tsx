@@ -1,7 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IEditorClip, IEditorTextOverlay } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  IEditorClip,
+  IEditorTextOverlay,
+} from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { ColorInput } from '@ui/primitives/color-input';
 import {

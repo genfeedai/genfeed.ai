@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAgentChatStore } from '@genfeedai/agent';
-import type { IBatchItem } from '@genfeedai/interfaces';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';

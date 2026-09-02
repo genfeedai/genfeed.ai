@@ -3,7 +3,7 @@ import type { OpenRouterPlugin } from '@api/services/integrations/openrouter/dto
 import type {
   AgentRoutingPolicy,
   AgentRoutingPolicyReason,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const EXPLICIT_WEB_SEARCH_PATTERN =
   /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;

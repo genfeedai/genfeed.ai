@@ -1,4 +1,7 @@
-import type { IIngredient, IngredientTimeGroup } from '@genfeedai/interfaces';
+import type {
+  IIngredient,
+  IngredientTimeGroup,
+} from '@genfeedai/contracts/interfaces';
 import {
   format,
   isThisMonth,

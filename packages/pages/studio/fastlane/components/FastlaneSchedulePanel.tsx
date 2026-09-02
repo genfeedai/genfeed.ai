@@ -1,12 +1,12 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, parsePlatform } from '@genfeedai/enums';
-import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
+import { ButtonSize, ButtonVariant, parsePlatform } from '@genfeedai/contracts';
 import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
   ICredential,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import DateTimePicker from '@ui/primitives/date-time-picker';

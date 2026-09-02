@@ -1,6 +1,6 @@
 import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { IngredientGenerationCancellationService } from './ingredient-generation-cancellation.service';
 

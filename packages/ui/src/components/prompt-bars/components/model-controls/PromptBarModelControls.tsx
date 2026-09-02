@@ -1,12 +1,12 @@
 'use client';
 
-import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
+import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { isAspectRatioSupported } from '@genfeedai/helpers/aspect-ratio.helper';
 import {
   filterModelsByAspectRatio,
   getAspectRatioForFormat,
 } from '@genfeedai/helpers/generation-controls.helper';
-import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarModelControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import {

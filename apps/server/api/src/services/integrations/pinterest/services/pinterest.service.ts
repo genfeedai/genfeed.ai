@@ -3,7 +3,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

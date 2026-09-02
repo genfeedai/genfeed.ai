@@ -1,6 +1,6 @@
-import type { ReviewDecision } from '@genfeedai/enums';
-import type { ICredential, IPost } from '@genfeedai/interfaces';
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import type { ReviewDecision } from '@genfeedai/contracts';
+import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
+import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 
 export interface PostReviewSummary {
   generationId?: string;

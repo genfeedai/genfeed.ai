@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { Platform } from '@genfeedai/enums';
+import type { Platform } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import {

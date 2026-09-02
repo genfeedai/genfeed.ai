@@ -1,4 +1,4 @@
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

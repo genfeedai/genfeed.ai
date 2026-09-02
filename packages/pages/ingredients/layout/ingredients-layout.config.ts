@@ -1,5 +1,5 @@
-import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
-import type { IFieldOption } from '@genfeedai/interfaces';
+import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
+import type { IFieldOption } from '@genfeedai/contracts/interfaces';
 
 export type IngredientsVisibleFilters = {
   search?: boolean;

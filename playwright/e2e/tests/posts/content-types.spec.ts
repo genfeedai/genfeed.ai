@@ -1,4 +1,4 @@
-import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, LEGACY_APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
   mockPostsList,

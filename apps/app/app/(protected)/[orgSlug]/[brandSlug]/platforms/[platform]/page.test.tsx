@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import BrandPlatformHomeRoute from './page';

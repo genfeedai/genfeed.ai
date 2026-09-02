@@ -1,4 +1,4 @@
-import { IngredientFormat, Platform } from '@genfeedai/enums';
+import { IngredientFormat, Platform } from '@genfeedai/contracts';
 import {
   FIRST_COMMENT_PLACEHOLDER,
   GROK_FEEDBACK_QUESTIONS,

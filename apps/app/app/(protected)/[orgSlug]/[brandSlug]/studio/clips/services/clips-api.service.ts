@@ -6,7 +6,7 @@ import type {
   ClipReferenceFrameSet,
   HookClipApprovalAction,
   HookClipApprovalStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type {
   ClipProjectSummary,
   ClipResult,

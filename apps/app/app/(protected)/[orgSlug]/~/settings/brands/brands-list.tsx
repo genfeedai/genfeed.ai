@@ -1,9 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
-import type { IQueryParams } from '@genfeedai/interfaces';
+import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

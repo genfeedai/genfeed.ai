@@ -3,7 +3,7 @@ import type {
   ComfyUIHistoryResponse,
   ComfyUIPrompt,
   ComfyUIQueuePromptResponse,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 
 export interface ComfyUIClientOptions {
   /** Polling interval in ms when waiting for completion */

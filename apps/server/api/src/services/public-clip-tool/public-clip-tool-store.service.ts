@@ -5,7 +5,7 @@ import type {
   IPublicYoutubeClipPreview,
   IPublicYoutubeTranscriptSegment,
   PublicYoutubeClipToolStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {

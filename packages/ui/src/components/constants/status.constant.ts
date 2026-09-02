@@ -3,7 +3,7 @@ import {
   IngredientStatus,
   PostStatus,
   StatusDomain,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface StatusMeta {
   label: string;

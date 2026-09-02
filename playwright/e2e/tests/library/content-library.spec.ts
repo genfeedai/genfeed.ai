@@ -1,5 +1,5 @@
 import { brandPath } from '@e2e/utils/app-chrome';
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   mockActiveSubscription,
   mockLibraryData,

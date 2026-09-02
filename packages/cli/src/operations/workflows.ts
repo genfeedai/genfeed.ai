@@ -1,4 +1,4 @@
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import {
   createWorkflowExecution,
   getWorkflow,

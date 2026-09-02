@@ -1,8 +1,11 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import type {
+  IStreakCalendarResponse,
+  IStreakSummary,
+} from '@genfeedai/contracts/types';
 import { StreaksService } from '@genfeedai/services/engagement/streaks.service';
-import type { IStreakCalendarResponse, IStreakSummary } from '@genfeedai/types';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';

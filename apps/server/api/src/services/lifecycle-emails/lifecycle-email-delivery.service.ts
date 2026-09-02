@@ -6,15 +6,15 @@ import {
   type ServerNotifications,
   type ServerPrisma,
 } from '@api/server.dependencies';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types';
 import {
   buildLifecycleSystemEmailAction,
   getLifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
-} from '@genfeedai/constants';
-import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { LifecycleEmailWorkflowInput } from '@genfeedai/contracts/interfaces';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,

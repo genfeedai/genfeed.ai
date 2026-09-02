@@ -29,7 +29,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type {
   ILibrarySummary,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';

@@ -5,8 +5,8 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
-import { BotStatus } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import { BotStatus } from '@genfeedai/contracts';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

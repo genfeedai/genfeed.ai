@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ReferralRewardStatus } from '@genfeedai/enums';
+import { ReferralRewardStatus } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ReferralsService } from '@services/billing/referrals.service';

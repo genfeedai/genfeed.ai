@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { IGIF } from '@genfeedai/interfaces';
+import type { IGIF } from '@genfeedai/contracts/interfaces';
 
 export class GIF extends Ingredient implements IGIF {
   public declare duration?: number;

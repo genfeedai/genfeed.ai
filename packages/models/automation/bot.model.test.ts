@@ -14,7 +14,7 @@ import {
   BotLivestreamMessageType,
   BotLivestreamTargetAudience,
   BotPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Bot } from '@models/automation/bot.model';
 
 describe('Bot', () => {

@@ -1,6 +1,6 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { IVideo } from '@genfeedai/interfaces';
-import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
+import type { MasonryActionStates } from '@genfeedai/contracts/interfaces/hooks/hooks.interface';
 import { render, screen } from '@testing-library/react';
 import MasonryVideoActionsBar from '@ui/masonry/video/MasonryVideoActionsBar';
 import { describe, expect, it, vi } from 'vitest';

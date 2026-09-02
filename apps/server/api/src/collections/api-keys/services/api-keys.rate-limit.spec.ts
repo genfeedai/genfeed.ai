@@ -1,6 +1,6 @@
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { vi } from 'vitest';
 
 // Togglable deployment mode drives both the per-tier (cloud) and per-key

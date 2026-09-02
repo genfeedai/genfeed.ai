@@ -1,5 +1,5 @@
 import { Ingredient } from '@genfeedai/client/models';
-import type { IVoice } from '@genfeedai/interfaces';
+import type { IVoice } from '@genfeedai/contracts/interfaces';
 
 export class Voice extends Ingredient implements IVoice {
   public declare duration?: number;

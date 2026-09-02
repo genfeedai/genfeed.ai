@@ -1,7 +1,7 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { formatPlatformLabel } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { formatPlatformLabel } from '@genfeedai/contracts';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
 import type { PostsFilterProps } from '@genfeedai/props/components/posts-filter.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 

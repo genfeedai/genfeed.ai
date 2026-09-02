@@ -1,7 +1,7 @@
 'use client';
 
-import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
-import type { DateRange } from '@genfeedai/interfaces';
+import { AnalyticsMetric, PageScope } from '@genfeedai/contracts';
+import type { DateRange } from '@genfeedai/contracts/interfaces';
 import {
   AnalyticsService,
   type IBrandWithStats,

@@ -2,7 +2,7 @@ import {
   DEFAULT_THEME,
   resolveThemePreference,
   type ThemePreference,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import {
   EXTENSION_SETTINGS_STORAGE_KEY,
   readStoredTheme,

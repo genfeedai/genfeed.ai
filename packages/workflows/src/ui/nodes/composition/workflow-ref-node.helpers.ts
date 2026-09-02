@@ -1,4 +1,4 @@
-import type { WorkflowInterface } from '@genfeedai/types';
+import type { WorkflowInterface } from '@genfeedai/contracts/types';
 import { getWorkflowLogger } from '../../stores/executionLogger';
 
 export interface ReferencableWorkflow {

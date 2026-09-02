@@ -5,9 +5,9 @@ import {
   soundElementSchema,
 } from '@genfeedai/client/schemas';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
-import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/enums';
+import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/contracts';
+import type { ISound } from '@genfeedai/contracts/interfaces';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { ISound } from '@genfeedai/interfaces';
 import type { ModalSoundProps } from '@genfeedai/props/modals/modal.props';
 import { SoundsService } from '@genfeedai/services/elements/sounds.service';
 import ModalActions from '@ui/modals/actions/ModalActions';

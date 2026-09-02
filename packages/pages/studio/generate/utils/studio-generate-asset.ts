@@ -1,5 +1,8 @@
-import { type IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import {
+  type IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateJob,
   StudioGenerateType,

@@ -1,6 +1,6 @@
 import { Training as BaseTraining } from '@genfeedai/client/models';
-import { IngredientCategory } from '@genfeedai/enums';
-import type { IImage, ITraining } from '@genfeedai/interfaces';
+import { IngredientCategory } from '@genfeedai/contracts';
+import type { IImage, ITraining } from '@genfeedai/contracts/interfaces';
 import { Image } from '@models/ingredients/image.model';
 
 export class Training extends BaseTraining {

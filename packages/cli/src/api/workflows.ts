@@ -1,4 +1,4 @@
-import type { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import type { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { get, post } from './client';
 import {
   flattenCollection,

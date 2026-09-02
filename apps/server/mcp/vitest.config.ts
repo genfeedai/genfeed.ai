@@ -21,24 +21,24 @@ export default defineConfig({
       { find: '@', replacement: path.resolve(mcpDir, './src') },
       { find: '@config', replacement: path.resolve(mcpDir, './src/config') },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: path.resolve(
           mcpDir,
-          '../../../packages/constants/src/index.ts',
+          '../../../packages/contracts/src/constants/index.ts',
         ),
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: path.resolve(
           mcpDir,
-          '../../../packages/enums/src/index.ts',
+          '../../../packages/contracts/src/enums/index.ts',
         ),
       },
       {
-        find: '@genfeedai/interfaces',
+        find: '@genfeedai/contracts/interfaces',
         replacement: path.resolve(
           mcpDir,
-          '../../../packages/interfaces/src/index.ts',
+          '../../../packages/contracts/src/interfaces/index.ts',
         ),
       },
       {

@@ -7,7 +7,7 @@ import type {
   InstagramInspirationSignals,
   InstagramInspirationSort,
   InstagramRemixMode,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const MAX_SEEDS = 5;
 const CAPTION_SNIPPET_LENGTH = 160;

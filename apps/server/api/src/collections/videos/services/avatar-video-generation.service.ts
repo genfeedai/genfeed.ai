@@ -27,10 +27,6 @@ import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/constants';
-import {
   ActivitySource,
   ByokProvider,
   IngredientCategory,
@@ -39,7 +35,11 @@ import {
   VoiceProvider,
   WebSocketEventStatus,
   WebSocketEventType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  AVATAR_GENERATION_CREDIT_COST,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

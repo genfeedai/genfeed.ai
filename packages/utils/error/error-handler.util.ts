@@ -1,4 +1,4 @@
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { AxiosError } from 'axios';

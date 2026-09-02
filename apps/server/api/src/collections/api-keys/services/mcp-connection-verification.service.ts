@@ -4,11 +4,11 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type {
   ConnectGenfeedVerificationFailureResult,
   ConnectGenfeedVerificationResult,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

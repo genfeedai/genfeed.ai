@@ -22,16 +22,16 @@ import {
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  CredentialPlatform,
+  TargetExecutionState,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalsSnapshot,
   type TwitterOwnedPostSignal,
   twitterAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/twitter-authorized-signals.contract';
-import {
-  CredentialPlatform,
-  TargetExecutionState,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 import { parseGrantedOAuthScopes } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

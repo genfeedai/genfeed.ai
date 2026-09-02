@@ -1,4 +1,4 @@
-import { NodeStatusEnum } from '@genfeedai/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { useWorkflowStore } from '../../workflow/workflowStore';
 import type { Job, useExecutionStore } from '../executionStore';
 import { getOutputUpdate } from './outputHelpers';

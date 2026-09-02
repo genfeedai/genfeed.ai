@@ -7,15 +7,15 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivityKey } from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
+import { ActivityKey } from '@genfeedai/contracts';
 import {
   IStreakCalendarResponse,
   type IStreakMilestoneDefinition,
   type IStreakMilestoneState,
   type IStreakSummary,
   STREAK_MILESTONES,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { IBotActivityStats } from '@genfeedai/interfaces';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IBotActivityStats } from '@genfeedai/contracts/interfaces';
 import { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
 import { BotActivitySerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

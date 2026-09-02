@@ -2,8 +2,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   ViewType,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
 import { act, fireEvent, render, screen } from '@testing-library/react';

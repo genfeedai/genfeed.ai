@@ -597,7 +597,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const { openModal } = await import(
         '@genfeedai/helpers/ui/modal/modal.helper'
       );
-      const { ModalEnum } = await import('@genfeedai/enums');
+      const { ModalEnum } = await import('@genfeedai/contracts');
       const previousWindow = (globalThis as { window?: unknown }).window;
       (globalThis as { window?: unknown }).window = {};
       Object.defineProperty(EnvironmentService, 'isProduction', {

@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Task } from '@services/management/tasks.service';
 import { Sheet, SheetContent } from '@ui/primitives/sheet';
 import { useMemo } from 'react';

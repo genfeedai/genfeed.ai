@@ -1,5 +1,5 @@
 import { PostAnalyticsProjection } from '@api/collections/posts/services/post-analytics.projection';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 
 const projection = new PostAnalyticsProjection();
 

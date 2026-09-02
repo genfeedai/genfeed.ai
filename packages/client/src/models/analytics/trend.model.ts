@@ -1,4 +1,4 @@
-import type { ITrend } from '@genfeedai/interfaces';
+import type { ITrend } from '@genfeedai/contracts/interfaces';
 
 export class Trend implements ITrend {
   public declare platform: string;

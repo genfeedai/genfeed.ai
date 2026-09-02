@@ -1,7 +1,7 @@
 import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
 import type { AgentToolCall } from '@genfeedai/agent/models/agent-chat.model';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 import { getAgentToolLabel } from './agent-tool-call-display.helpers';

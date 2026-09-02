@@ -13,7 +13,7 @@ import { scopedWhere } from '@api/index';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type NormalizedAdPerformanceRecord,
   normalizeGoogleAdsCampaignMetricsRecord,

@@ -25,7 +25,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   OrganizationOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { OrganizationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

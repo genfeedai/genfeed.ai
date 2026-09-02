@@ -1,7 +1,7 @@
 'use client';
 
-import { LIBRARY_ASSET_QUERY_KEY } from '@genfeedai/constants';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { LIBRARY_ASSET_QUERY_KEY } from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +29,7 @@ interface UseIngredientDeepLinkProps {
  * reload does not fight the user. Share links are built by
  * `createLibraryAssetRoute`, not by copying the address bar.
  *
- * @see packages/constants/src/library-asset-routes.constant.ts
+ * @see packages/contracts/src/constants/library-asset-routes.constant.ts
  */
 export function useIngredientDeepLink({
   ingredients,

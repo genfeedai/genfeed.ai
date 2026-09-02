@@ -1,4 +1,4 @@
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';

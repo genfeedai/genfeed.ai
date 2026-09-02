@@ -1,4 +1,4 @@
-import type { DropdownDirection } from '@genfeedai/enums';
+import type { DropdownDirection } from '@genfeedai/contracts';
 
 export interface PromptDropdownProps {
   promptText: string | null | undefined;

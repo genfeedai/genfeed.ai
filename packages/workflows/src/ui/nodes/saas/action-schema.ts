@@ -5,7 +5,7 @@ import type {
 import type {
   VisualHandleDefinition,
   VisualNodeDefinition,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 
 export interface ActionSchemaProperty {
   anyOf?: ActionSchemaProperty[];

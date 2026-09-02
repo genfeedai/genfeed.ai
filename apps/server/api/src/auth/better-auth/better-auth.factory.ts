@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { type DashOptions, dash } from '@better-auth/infra';
-import { PlatformRole } from '@genfeedai/enums';
-import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
+import { PlatformRole } from '@genfeedai/contracts';
+import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/contracts/interfaces';
 import {
   APIError,
   type BetterAuthOptions,

@@ -1,12 +1,12 @@
 'use client';
 
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import type { FieldErrors } from 'react-hook-form';

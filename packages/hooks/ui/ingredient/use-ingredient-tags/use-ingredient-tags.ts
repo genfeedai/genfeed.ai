@@ -1,4 +1,4 @@
-import type { IIngredient, ITag } from '@genfeedai/interfaces';
+import type { IIngredient, ITag } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';

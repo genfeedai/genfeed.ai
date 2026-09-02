@@ -1,5 +1,9 @@
-import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+import type {
+  NodeType,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { createIdMap } from '../lib/lookups';

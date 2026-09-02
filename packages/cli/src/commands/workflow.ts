@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';

@@ -7,12 +7,15 @@ import { SourceCollectorService } from '@api/services/source-collector/source-co
 import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
-import { ListeningEvidenceType, SocialSourcePlatform } from '@genfeedai/enums';
+import {
+  ListeningEvidenceType,
+  SocialSourcePlatform,
+} from '@genfeedai/contracts';
 import type {
   IListeningScope,
   ListeningTopicCollectionState,
-} from '@genfeedai/interfaces';
-import { LISTENING_CONTRACT_VERSION } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { LISTENING_CONTRACT_VERSION } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 const LISTENING_SOURCE_COLLECTION_CONCURRENCY = 3;

@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ActiveRunsPanel from './ActiveRunsPanel';

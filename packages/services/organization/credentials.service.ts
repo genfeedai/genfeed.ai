@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   AccountHealthSummary,
   AccountPublishingContext,
@@ -9,8 +9,8 @@ import type {
   INextPostingSlot,
   IPublishingProviderReadiness,
   ManualAccountHealthOverrideRequest,
-} from '@genfeedai/interfaces';
-import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { QuotaStatus } from '@genfeedai/contracts/interfaces/organization/quota-status.interface';
 import {
   Credential,
   CredentialInstagram,

@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

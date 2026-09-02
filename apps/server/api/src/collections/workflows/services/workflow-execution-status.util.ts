@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 /**
  * Maps engine node status strings (often lowercase) onto Prisma-aligned

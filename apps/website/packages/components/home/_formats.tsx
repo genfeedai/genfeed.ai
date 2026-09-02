@@ -1,4 +1,4 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { OutputFormat } from '@props/website/home.props';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';

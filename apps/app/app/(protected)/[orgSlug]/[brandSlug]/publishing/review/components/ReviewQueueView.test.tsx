@@ -1,6 +1,6 @@
-import { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/contracts';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
-import type { IBatchSummary } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import { getBatchOptionLabel } from './ReviewQueueView';

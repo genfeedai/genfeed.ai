@@ -15,7 +15,7 @@ import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
+import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/contracts';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // locale.helper.ts reads next/headers, which cannot run under vitest. Only the
-// request accessors are mocked — the real allowlist from @genfeedai/constants
+// request accessors are mocked — the real allowlist from @genfeedai/contracts/constants
 // is exercised so a locale added there is genuinely covered here.
 
 vi.mock('next/headers', () => ({

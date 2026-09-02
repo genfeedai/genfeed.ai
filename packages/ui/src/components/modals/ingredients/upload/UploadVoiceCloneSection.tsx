@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, VoiceProvider } from '@genfeedai/enums';
+import { ButtonVariant, VoiceProvider } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';

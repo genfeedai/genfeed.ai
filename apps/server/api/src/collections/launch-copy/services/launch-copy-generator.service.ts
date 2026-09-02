@@ -5,8 +5,8 @@ import type {
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterChatCompletionParams } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

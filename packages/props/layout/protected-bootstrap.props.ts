@@ -3,9 +3,9 @@ import type {
   IFleetCapabilities,
   IOrganizationSetting,
   IUser,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import type { IStreakSummary } from '@genfeedai/contracts/types';
 import type { AccessBootstrapState } from '@genfeedai/services/auth/auth.service';
-import type { IStreakSummary } from '@genfeedai/types';
 import type { LayoutProps } from '@props/layout/layout.props';
 
 export interface ProtectedBootstrapData {

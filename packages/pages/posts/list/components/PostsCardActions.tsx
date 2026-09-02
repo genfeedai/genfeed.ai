@@ -1,7 +1,7 @@
 'use client';
 
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { PostCardAction } from '@pages/posts/list/components/PostsGrid';
 import { postCardIcons } from '@pages/posts/list/components/posts-grid.helpers';
 

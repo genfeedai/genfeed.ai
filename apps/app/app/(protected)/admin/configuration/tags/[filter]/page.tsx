@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import type { TagsFilterPageProps } from '@props/pages/page.props';
 import { Suspense } from 'react';
 import TagsPage from './tags-page';

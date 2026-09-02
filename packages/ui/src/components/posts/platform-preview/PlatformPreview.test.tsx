@@ -1,9 +1,9 @@
+import { CredentialPlatform, IngredientCategory } from '@genfeedai/contracts';
 import {
   type ChannelCapability,
   getChannelCapability,
-} from '@api-types/contracts';
-import { CredentialPlatform, IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';

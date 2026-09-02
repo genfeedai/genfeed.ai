@@ -5,7 +5,7 @@ import type {
   KlingQualityMode,
   MotionControlMode,
   MotionControlNodeData,
-} from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   CircleAlert,

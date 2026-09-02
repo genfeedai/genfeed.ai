@@ -1,5 +1,5 @@
-import { PUBLISHING_POSTS_QUERY_KEYS } from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/contracts';
+import { PUBLISHING_POSTS_QUERY_KEYS } from '@genfeedai/contracts/constants';
 
 /**
  * The rail's segmented control values. `all` clears both lifecycle query

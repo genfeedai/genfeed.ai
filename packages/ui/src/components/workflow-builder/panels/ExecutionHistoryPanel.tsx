@@ -7,7 +7,7 @@ import {
   ComponentSize,
   formatEnumLabel,
   WorkflowExecutionStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';

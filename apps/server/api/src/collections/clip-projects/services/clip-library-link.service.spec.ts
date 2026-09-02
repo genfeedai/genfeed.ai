@@ -11,8 +11,8 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-} from '@genfeedai/enums';
-import { clipResultGenerationSource } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { clipResultGenerationSource } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 function makeClip(

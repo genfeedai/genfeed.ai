@@ -1,6 +1,6 @@
 'use client';
 
-import { Timeframe, TrendDirection } from '@genfeedai/enums';
+import { Timeframe, TrendDirection } from '@genfeedai/contracts';
 import {
   formatCompactNumberIntl,
   formatPercentage,

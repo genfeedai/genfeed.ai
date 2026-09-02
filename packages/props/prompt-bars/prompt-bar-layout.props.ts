@@ -3,8 +3,8 @@ import type {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-} from '@genfeedai/enums';
-import type { IAsset, IImage } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type { FormEvent, MutableRefObject, ReactNode, RefObject } from 'react';

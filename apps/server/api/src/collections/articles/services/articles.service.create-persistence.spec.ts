@@ -20,7 +20,7 @@ import { ArticleVersionService } from '@api/collections/articles/services/articl
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@api/helpers/utils/article-filter/article-filter.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import { ArticleCategory, ArticleStatus } from '@genfeedai/contracts';
 import { getModelMeta } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,6 +1,6 @@
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
-import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
+import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/contracts/constants';
 
 /**
  * Daily Trends Digest — a predetermined, per-org workflow.

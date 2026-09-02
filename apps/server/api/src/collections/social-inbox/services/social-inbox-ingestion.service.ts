@@ -31,7 +31,7 @@ import {
   PostStatus,
   SocialConversationType,
   SocialMessageType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

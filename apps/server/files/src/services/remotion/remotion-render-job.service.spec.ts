@@ -10,8 +10,8 @@ import { BRANDED_AVATAR_RENDER_FIXTURE } from '@files/services/remotion/fixtures
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { EditorRenderCancelledError } from '@files/services/remotion/remotion-renderer.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
-import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
-import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
 import type { Job } from 'bullmq';
 
 describe('RemotionRenderJobService', () => {

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import {
+  ModelCategory,
+  ModelProvider,
+  RouterPriority,
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
@@ -246,7 +250,7 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 }));
 
 import { buildDefaultAgentGenerationSetupValues } from '@genfeedai/agent/utils/agent-generation-setup.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   buildAgentGenerationSetupScope,
   setGenerationSetupField,

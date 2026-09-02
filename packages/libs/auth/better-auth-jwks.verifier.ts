@@ -1,7 +1,7 @@
 import type {
   IBetterAuthJwksVerifierOptions,
   IBetterAuthVerifiedClaims,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 /**

@@ -5,7 +5,7 @@ import type {
   AgentPublishTargetProposal,
   AgentUiAction,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { PostVisibility } from '@genfeedai/enums';
+import { PostVisibility } from '@genfeedai/contracts';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

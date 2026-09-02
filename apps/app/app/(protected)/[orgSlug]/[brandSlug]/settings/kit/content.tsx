@@ -1,6 +1,6 @@
 'use client';
 
-import { AssetCategory } from '@genfeedai/enums';
+import { AssetCategory } from '@genfeedai/contracts';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandKitReviewCard from '@pages/brands/components/brand-kit/BrandKitReviewCard';
 import BrandDetailManualKitCard from '@pages/brands/components/sidebar/BrandDetailManualKitCard';

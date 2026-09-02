@@ -1,4 +1,4 @@
-import type { HandleDefinition, HandleType } from '@genfeedai/types';
+import type { HandleDefinition, HandleType } from '@genfeedai/contracts/types';
 
 /**
  * Schema fields that should be exposed as connectable handles.

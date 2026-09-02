@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import * as QuickActionsConfig from '@ui/quick-actions/config/quick-actions.config';
 import { describe, expect, it, vi } from 'vitest';
 

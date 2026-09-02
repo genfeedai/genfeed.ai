@@ -1,7 +1,7 @@
 'use client';
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { IngredientCategory, ModalEnum } from '@genfeedai/enums';
+import { IngredientCategory, ModalEnum } from '@genfeedai/contracts';
 import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';

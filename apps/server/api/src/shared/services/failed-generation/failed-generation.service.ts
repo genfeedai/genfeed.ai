@@ -6,7 +6,7 @@ import {
   ActivityKey,
   ActivitySource,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 export interface FailedGenerationOptions {

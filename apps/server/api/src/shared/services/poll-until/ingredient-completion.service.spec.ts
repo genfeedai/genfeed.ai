@@ -5,7 +5,7 @@ import {
   PollTimeoutException,
 } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

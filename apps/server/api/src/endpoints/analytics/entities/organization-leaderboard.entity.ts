@@ -2,7 +2,7 @@ import type {
   IBrandWithStats,
   IOrganizationWithStats,
   IOrgLeaderboardItem,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class OrgLeaderboardItemEntity implements IOrgLeaderboardItem {
   declare readonly rank: number;

@@ -14,11 +14,11 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/service
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { AvatarSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

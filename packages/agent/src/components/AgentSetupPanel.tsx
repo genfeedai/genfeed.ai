@@ -2,7 +2,7 @@
 
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';

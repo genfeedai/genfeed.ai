@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 
 /**
  * `workflow_executions.status` is a Prisma `WorkflowExecutionStatus` column, so

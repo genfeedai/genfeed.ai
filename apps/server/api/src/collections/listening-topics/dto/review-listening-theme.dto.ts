@@ -1,4 +1,4 @@
-import type { ReviewListeningThemeState } from '@genfeedai/interfaces';
+import type { ReviewListeningThemeState } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
 

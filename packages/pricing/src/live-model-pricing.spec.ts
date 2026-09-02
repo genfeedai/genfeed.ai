@@ -1,4 +1,4 @@
-import { PricingType } from '@genfeedai/enums';
+import { PricingType } from '@genfeedai/contracts';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   billCreditsFromProviderCost,

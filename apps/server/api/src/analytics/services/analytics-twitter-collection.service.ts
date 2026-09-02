@@ -6,12 +6,12 @@ import {
   type ServerPostAnalytics,
   type ServerTwitterAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {

@@ -1,6 +1,6 @@
 import { ArgilService } from '@api/services/integrations/argil/services/argil.service';
 import { ArgilWebhookTokenService } from '@api/services/integrations/argil/services/argil-webhook-token.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { of } from 'rxjs';
 
 describe('ArgilService', () => {

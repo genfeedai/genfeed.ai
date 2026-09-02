@@ -1,16 +1,16 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { IngredientCategory } from '@genfeedai/enums';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   IFontFamily,
   IModel,
   IPreset,
   ITag,
   ITraining,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { ModelsService } from '@genfeedai/services/ai/models.service';
 import { TrainingsService } from '@genfeedai/services/ai/trainings.service';

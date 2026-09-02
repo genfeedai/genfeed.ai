@@ -1,8 +1,8 @@
 'use client';
 
-import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
+import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
-import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';

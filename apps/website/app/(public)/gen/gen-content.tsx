@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { XTwitterIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import Card from '@ui/card/Card';

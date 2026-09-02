@@ -1,4 +1,4 @@
-import type { NodeType } from '@genfeedai/types';
+import type { NodeType } from '@genfeedai/contracts/types';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
 import { getLayoutedNodes } from '../lib/autoLayout';

@@ -1,11 +1,11 @@
-import type { SocialMessageWorkflowTriggerStatus } from '@genfeedai/enums';
+import type { SocialMessageWorkflowTriggerStatus } from '@genfeedai/contracts';
 import type {
   SocialActionProvenance,
   SocialMessage,
   SocialMessageDirection,
   SocialMessageType,
   SocialPlatform,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class SocialMessageModel implements SocialMessage {
   id!: string;

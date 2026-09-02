@@ -19,7 +19,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   IngredientSerializer,
   MetadataSerializer,

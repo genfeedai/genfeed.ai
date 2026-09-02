@@ -1,5 +1,5 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { ArticleStatus } from '@genfeedai/enums';
+import { ArticleStatus } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 /**

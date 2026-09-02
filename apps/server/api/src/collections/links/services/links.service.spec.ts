@@ -1,6 +1,6 @@
 import { LinksService } from '@api/collections/links/services/links.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,5 +1,5 @@
-import { RouterPriority } from '@genfeedai/enums';
-import type { StudioLookAssetType } from '@genfeedai/interfaces';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { StudioLookAssetType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {

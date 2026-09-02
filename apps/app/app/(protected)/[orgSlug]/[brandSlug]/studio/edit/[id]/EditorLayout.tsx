@@ -1,5 +1,8 @@
-import type { IngredientFormat } from '@genfeedai/enums';
-import type { IEditorProject, IEditorTrack } from '@genfeedai/interfaces';
+import type { IngredientFormat } from '@genfeedai/contracts';
+import type {
+  IEditorProject,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import type { RefObject } from 'react';
 import EditorEffectsPanel from './EditorEffectsPanel';
 import EditorPreview, { type EditorPreviewRef } from './EditorPreview';

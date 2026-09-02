@@ -9,7 +9,7 @@ import type {
   TaskDecompositionInput,
   TaskDecompositionResult,
 } from '@api/services/task-orchestration/interfaces/task-decomposition.interface';
-import type { AgentType } from '@genfeedai/enums';
+import type { AgentType } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

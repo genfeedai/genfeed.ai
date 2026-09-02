@@ -1,9 +1,9 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   GALLERY_DEFAULT_SORT,
   GALLERY_DEFAULT_STATUSES,
-} from '@genfeedai/constants/gallery.constant';
-import type { IQueryParams } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants/gallery.constant';
+import type { IQueryParams } from '@genfeedai/contracts/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { PublicService } from '@genfeedai/services/external/public.service';
 import { useAbortEffect } from '@hooks/utils/use-abort-effect/use-abort-effect';

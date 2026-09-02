@@ -1,7 +1,7 @@
 import type {
   CanonicalAssetSelection,
   IIngredient,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 interface CanonicalAssetSelectionScope {
   brandId?: string;

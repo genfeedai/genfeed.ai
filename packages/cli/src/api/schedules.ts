@@ -1,4 +1,4 @@
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { get, patch, post } from './client';
 import {
   flattenCollection,

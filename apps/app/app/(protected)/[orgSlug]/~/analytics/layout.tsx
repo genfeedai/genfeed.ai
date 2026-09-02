@@ -4,7 +4,7 @@ import {
   AnalyticsProvider,
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorBoundary } from '@ui/error';

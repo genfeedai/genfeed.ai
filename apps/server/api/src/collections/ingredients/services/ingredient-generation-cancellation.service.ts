@@ -7,7 +7,7 @@ import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

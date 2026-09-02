@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { FastlaneAssetItem } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { FastlaneAssetItem } from '@genfeedai/contracts/interfaces';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { useEffect, useState } from 'react';

@@ -29,7 +29,7 @@ export interface IngredientMetadataDocument {
 
 /**
  * Prisma is canonical for every persisted field on this row shape, `scope`
- * included. The domain `AssetScope` from `@genfeedai/enums` is a nominal TS
+ * included. The domain `AssetScope` from `@genfeedai/contracts` is a nominal TS
  * enum, so using it here made `IngredientEntity` (all-Prisma) unassignable to
  * `IngredientDocument` even though both carry the identical SCREAMING_SNAKE
  * labels. `Ingredient['scope']` keeps the two sides one type; app-facing

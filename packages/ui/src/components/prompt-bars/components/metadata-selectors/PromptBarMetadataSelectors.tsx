@@ -1,6 +1,6 @@
 'use client';
 
-import { ModelCategory, Platform } from '@genfeedai/enums';
+import { ModelCategory, Platform } from '@genfeedai/contracts';
 import type {
   IElementCamera,
   IElementCameraMovement,
@@ -11,7 +11,7 @@ import type {
   IElementStyle,
   IFontFamily,
   IPreset,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { PromptBarMetadataSelectorsProps } from '@genfeedai/props/prompt-bars/prompt-bar-metadata-selectors.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import {

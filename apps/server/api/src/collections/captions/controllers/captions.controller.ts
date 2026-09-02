@@ -18,11 +18,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { CaptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

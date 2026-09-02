@@ -1,5 +1,5 @@
-import type { BrandRemixRunView } from '@genfeedai/api-types/contracts';
-import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import type { Page, Route } from '@playwright/test';
 import { mockReviewQueue } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';

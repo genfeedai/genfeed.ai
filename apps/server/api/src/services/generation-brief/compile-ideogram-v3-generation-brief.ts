@@ -19,23 +19,23 @@ import {
   selectImageGenerationBriefReferences,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
+import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { generationFidelityPolicies } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
   GenerationBriefOmittedSignal,
   IdeogramV3Dispatch,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   IDEOGRAM_V3_IMAGE_COMPILER_ID,
   IDEOGRAM_V3_IMAGE_COMPILER_VERSION,
   ideogramV3DispatchSchema,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   IDEOGRAM_V3_BALANCED_CAPABILITY_PROFILE,
   IDEOGRAM_V3_QUALITY_CAPABILITY_PROFILE,
   IDEOGRAM_V3_TURBO_CAPABILITY_PROFILE,
-} from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 
 const IDEOGRAM_V3_MODEL_LABEL = 'Ideogram V3';
 const IDEOGRAM_V3_IMPLICIT_OUTPUT_FORMAT = 'png';

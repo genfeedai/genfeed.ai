@@ -1,5 +1,5 @@
-import { AnalyticsMetric } from '@genfeedai/enums';
-import type { IAnalytics } from '@genfeedai/interfaces';
+import { AnalyticsMetric } from '@genfeedai/contracts';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import type { IOrgLeaderboardItem } from '@genfeedai/services/analytics/analytics.service';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

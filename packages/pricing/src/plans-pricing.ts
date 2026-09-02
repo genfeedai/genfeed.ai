@@ -28,7 +28,7 @@ import type {
   CreditPackTier,
   ServiceOfferingProps,
   TrainingPackageProps,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type { CreditPackTier, ServiceOfferingProps, TrainingPackageProps };
 

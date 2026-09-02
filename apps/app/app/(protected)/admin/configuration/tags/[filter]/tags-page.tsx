@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { ContentProps } from '@props/layout/content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';

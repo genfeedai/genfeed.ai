@@ -1,7 +1,7 @@
 import type {
   AccountHealthSignals,
   AccountHealthThresholds,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsObject, IsOptional } from 'class-validator';
 

@@ -42,7 +42,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-// Mock Button — avoids deep @genfeedai/enums + CVA dependency chain
+// Mock Button — avoids deep @genfeedai/contracts + CVA dependency chain
 vi.mock('../../../primitives/button', () => ({
   Button: ({
     children,
@@ -123,15 +123,15 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   ),
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { ICON: 'icon', SM: 'sm', DEFAULT: 'default' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));
 
-// Mock the route builders — avoids pulling the full @genfeedai/constants barrel
+// Mock the route builders — avoids pulling the full @genfeedai/contracts/constants barrel
 // (carousel.constant.ts needs the real CredentialPlatform enum, which is not in
-// the @genfeedai/enums mock above). Mirrors packages/constants/src/routes.constant.ts.
-vi.mock('@genfeedai/constants', () => {
+// the @genfeedai/contracts mock above). Mirrors packages/contracts/src/constants/routes.constant.ts.
+vi.mock('@genfeedai/contracts/constants', () => {
   const normalize = (routePath: string) =>
     routePath.length === 0 || routePath === '/'
       ? ''

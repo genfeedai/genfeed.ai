@@ -1,3 +1,8 @@
+import type {
+  CostBreakdown,
+  NodeCostEstimate,
+  WorkflowNode,
+} from '@genfeedai/contracts/types';
 import {
   DEFAULT_VIDEO_DURATION,
   IMAGE_NODE_TYPES,
@@ -6,11 +11,6 @@ import {
   TOPAZ_NODE_TYPES,
   VIDEO_NODE_TYPES,
 } from '@genfeedai/pricing';
-import type {
-  CostBreakdown,
-  NodeCostEstimate,
-  WorkflowNode,
-} from '@genfeedai/types';
 
 export type { CostBreakdown, NodeCostEstimate };
 

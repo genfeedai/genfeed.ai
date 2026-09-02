@@ -8,7 +8,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post plus real enum

@@ -5,7 +5,7 @@ import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/aut
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';

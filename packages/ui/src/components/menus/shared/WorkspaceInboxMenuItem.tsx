@@ -1,7 +1,7 @@
 'use client';
 
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { useWorkspaceInboxCount } from '@genfeedai/hooks/data/tasks/use-workspace-inbox-count';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 
 import MenuItem from '@ui/menus/item/MenuItem';
 

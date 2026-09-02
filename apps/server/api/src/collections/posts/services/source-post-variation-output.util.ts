@@ -1,5 +1,5 @@
-import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { parseTweet } from 'twitter-text';
 
 export type VariationRejectionReason =

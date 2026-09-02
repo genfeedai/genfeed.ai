@@ -29,9 +29,9 @@ jobs:
           - packages/agent
           - packages/client
           - packages/config
-          - packages/constants
+          - packages/contracts/src/constants
           - packages/contexts
-          - packages/enums
+          - packages/contracts/src/enums
           - packages/helpers
           - packages/integrations
           - packages/models
@@ -56,7 +56,7 @@ jobs:
 
       - name: Run coverage
         id: coverage
-        # Prefer the workspace test script so packages/enums and friends stay
+        # Prefer the workspace test script so packages/contracts/src/enums and friends stay
         # on the same entrypoint as package CI (#1829).
         run: |
           set -euo pipefail

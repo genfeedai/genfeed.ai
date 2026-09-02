@@ -1,5 +1,8 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { SocialConversationStatus, SocialMessageType } from '@genfeedai/enums';
+import {
+  SocialConversationStatus,
+  SocialMessageType,
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,

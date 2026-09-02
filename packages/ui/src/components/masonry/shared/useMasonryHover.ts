@@ -1,5 +1,5 @@
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MouseEvent } from 'react';

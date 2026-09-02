@@ -1,8 +1,8 @@
+import { Platform } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import { Platform } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import {
   buildPlatformHomeDestinations,

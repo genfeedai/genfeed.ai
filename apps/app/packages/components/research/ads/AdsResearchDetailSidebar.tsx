@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   AdPack,
   AdsChannel,
@@ -9,7 +9,7 @@ import type {
   AdsResearchItem,
   AdsResearchPlatform,
   CampaignLaunchPrep,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import Badge from '@ui/display/badge/Badge';

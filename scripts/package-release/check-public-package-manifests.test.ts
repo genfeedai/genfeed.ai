@@ -74,7 +74,7 @@ describe('check-public-package-manifests', () => {
     });
 
     expect(checkPublicPackageManifests({ root }).violations).toContain(
-      'packages/enums/package.json: license must be an explicit supported SPDX identifier (AGPL-3.0, AGPL-3.0-or-later, MIT)',
+      'packages/contracts/src/enums/package.json: license must be an explicit supported SPDX identifier (AGPL-3.0, AGPL-3.0-or-later, MIT)',
     );
   });
 

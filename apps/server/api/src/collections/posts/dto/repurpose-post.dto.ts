@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { Platform, PostRepurposeMode } from '@genfeedai/enums';
+import { Platform, PostRepurposeMode } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 

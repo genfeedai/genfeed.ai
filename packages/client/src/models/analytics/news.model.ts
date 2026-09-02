@@ -1,4 +1,4 @@
-import type { INews } from '@genfeedai/interfaces';
+import type { INews } from '@genfeedai/contracts/interfaces';
 
 export class News implements INews {
   public declare id: string;

@@ -1,6 +1,6 @@
 import { RetiredWorkflowExecutionError } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

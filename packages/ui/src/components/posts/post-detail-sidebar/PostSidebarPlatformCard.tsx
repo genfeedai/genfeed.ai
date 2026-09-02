@@ -1,6 +1,8 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ICredential, IPost } from '@genfeedai/contracts/interfaces';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   FacebookIcon,
   InstagramIcon,
@@ -10,8 +12,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { ICredential, IPost } from '@genfeedai/interfaces';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { ExternalLink } from 'lucide-react';

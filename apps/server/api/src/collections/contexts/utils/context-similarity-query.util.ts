@@ -1,4 +1,4 @@
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 
 export function similarityToCosineDistance(minSimilarity: number): number {

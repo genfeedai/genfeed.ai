@@ -1,4 +1,4 @@
-import type { VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/contracts';
 import type { ExternalVoice } from '@genfeedai/models/elements/external-voice.model';
 import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';

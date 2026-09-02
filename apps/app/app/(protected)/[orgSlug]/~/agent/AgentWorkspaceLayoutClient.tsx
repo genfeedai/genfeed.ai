@@ -17,8 +17,8 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {

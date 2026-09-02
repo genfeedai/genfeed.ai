@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import type {
   IDesktopEnvironment,
   IDesktopSession,
-} from '@genfeedai/desktop-contracts';
-import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { app, type BrowserWindow } from 'electron';
 import {
   resolveBundledAppUrl,

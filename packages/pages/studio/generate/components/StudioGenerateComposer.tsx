@@ -1,23 +1,23 @@
 'use client';
 
 import {
+  ButtonSize,
+  ButtonVariant,
+  type RouterPriority,
+} from '@genfeedai/contracts';
+import {
   hasEndFrame,
   hasVideoReferences,
   MODEL_KEYS,
   requiresFirstFrame,
-} from '@genfeedai/constants';
-import {
-  ButtonSize,
-  ButtonVariant,
-  type RouterPriority,
-} from '@genfeedai/enums';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
-import type { IStudioLook } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/constants';
+import type { IStudioLook } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationSetupFieldKey,
   GenerationSetupValues,
-} from '@genfeedai/interfaces/studio/generation-setup.interface';
+} from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';

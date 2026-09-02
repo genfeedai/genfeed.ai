@@ -1,8 +1,8 @@
 'use client';
 
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
-import type { IUser } from '@genfeedai/interfaces';
 import { User } from '@genfeedai/models/auth/user.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { AuthService } from '@genfeedai/services/auth/auth.service';

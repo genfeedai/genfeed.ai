@@ -1,4 +1,4 @@
-import type { ModalEnum } from '@genfeedai/enums';
+import type { ModalEnum } from '@genfeedai/contracts';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useCallback, useState } from 'react';
 

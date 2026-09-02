@@ -5,7 +5,7 @@ import {
   ReplyBotActionType,
   ReplyBotPlatform,
   ReplyBotType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   hasFormErrors,
   parseFormErrors,

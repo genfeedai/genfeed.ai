@@ -1,4 +1,4 @@
-import { QualityTier } from '@genfeedai/enums';
+import { QualityTier } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import ModelSelectorQualityBar from '@ui/dropdowns/model-selector/ModelSelectorQualityBar';
 import { describe, expect, it } from 'vitest';

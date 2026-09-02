@@ -1,5 +1,5 @@
 import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
-import type { IBrandAgentConfig } from '@genfeedai/interfaces';
+import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 
 const profile: IBrandAgentConfig = {
   prompting: {

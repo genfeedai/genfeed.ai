@@ -2,7 +2,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import {
   WEBHOOK_CLIENT_QUEUE,
   type WebhookJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { BadRequestException } from '@nestjs/common';

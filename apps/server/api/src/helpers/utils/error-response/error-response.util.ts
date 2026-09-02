@@ -1,5 +1,5 @@
 import type { IApiError } from '@api/shared/interfaces/error/error.interface';
-import { ErrorCode } from '@genfeedai/enums';
+import { ErrorCode } from '@genfeedai/contracts';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 

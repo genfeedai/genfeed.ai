@@ -47,12 +47,12 @@ import {
   ActionOrigin,
   type RouterPriority,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AgentToolResult,
   ValidatedAgentScope,
-} from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 

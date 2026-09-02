@@ -11,7 +11,7 @@ import { LinksService } from '@api/collections/links/services/links.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AssetScope } from '@genfeedai/enums';
+import { AssetScope } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

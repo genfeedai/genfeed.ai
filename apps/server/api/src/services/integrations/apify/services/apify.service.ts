@@ -21,7 +21,7 @@ import { ApifyRedditService } from '@api/services/integrations/apify/services/mo
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

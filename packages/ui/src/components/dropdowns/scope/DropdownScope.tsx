@@ -1,9 +1,9 @@
 'use client';
 
-import { AssetScope, ButtonVariant } from '@genfeedai/enums';
+import { AssetScope, ButtonVariant } from '@genfeedai/contracts';
+import type { IArticle, IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import type { IArticle, IIngredient } from '@genfeedai/interfaces';
 import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';

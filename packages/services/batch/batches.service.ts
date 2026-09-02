@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { BatchStatus } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import { BatchStatus } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

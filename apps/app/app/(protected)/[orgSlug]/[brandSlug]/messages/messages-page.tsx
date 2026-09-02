@@ -2,7 +2,6 @@
 
 import { useAgentChatStore } from '@genfeedai/agent';
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
-import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandEntityId } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
@@ -10,11 +9,12 @@ import {
   ButtonVariant,
   Platform,
   SocialConversationType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   SocialAutomationState,
   SocialConversationStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

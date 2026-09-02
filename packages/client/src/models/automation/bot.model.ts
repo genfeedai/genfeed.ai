@@ -4,7 +4,7 @@ import type {
   BotPlatform,
   BotScope,
   BotStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IBot,
   IBotLivestreamSettings,
@@ -13,7 +13,7 @@ import type {
   IEngagementBotSettings,
   IMonitoringBotSettings,
   IPublishingBotSettings,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Bot extends BaseEntity implements IBot {
   public declare label: string;

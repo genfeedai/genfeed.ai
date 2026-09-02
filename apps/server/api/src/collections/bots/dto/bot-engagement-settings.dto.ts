@@ -1,4 +1,4 @@
-import { EngagementAction } from '@genfeedai/enums';
+import { EngagementAction } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMinSize,

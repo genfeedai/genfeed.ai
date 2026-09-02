@@ -9,7 +9,7 @@ import {
   CredentialPlatform,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 const NOW = new Date('2026-07-13T22:00:00.000Z');
 

@@ -11,7 +11,7 @@ import {
   GetTrendingSoundsDto,
   GetViralVideosDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
-import { Timeframe } from '@genfeedai/enums';
+import { Timeframe } from '@genfeedai/contracts';
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 

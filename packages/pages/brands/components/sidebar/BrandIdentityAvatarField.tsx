@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAvatar } from '@genfeedai/interfaces';
+import type { IAvatar } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
 import {

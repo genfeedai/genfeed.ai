@@ -1,4 +1,4 @@
-import type { AgentDashboardOperation } from '@genfeedai/interfaces';
+import type { AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
 
 export const AGENT_THREAD_EVENT_TYPES = [
   'thread.turn_requested',

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IFolder } from '@genfeedai/interfaces';
+import type { IFolder } from '@genfeedai/contracts/interfaces';
 import type { ContentProps } from '@props/layout/content.props';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';

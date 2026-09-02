@@ -2,7 +2,7 @@ import {
   AGENT_DASHBOARD_STORAGE_KEY,
   useAgentDashboardStore,
 } from '@genfeedai/agent/stores/agent-dashboard.store';
-import type { AgentUIBlock } from '@genfeedai/interfaces';
+import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 function makeMetricCard(id: string, value = 1): AgentUIBlock {

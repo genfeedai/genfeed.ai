@@ -11,7 +11,7 @@ import type {
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
-import type { OrganizationCategory } from '@genfeedai/enums';
+import type { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

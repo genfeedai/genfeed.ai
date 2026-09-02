@@ -10,13 +10,7 @@ import type {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { FontFamily } from '@genfeedai/enums';
-import {
-  type BrandKitSourceBrand,
-  buildBrandKitDraftFromBrand,
-  buildBrandKitDraftFromManualInput,
-  buildBrandKitDraftFromWebsiteScrape,
-} from '@genfeedai/helpers';
+import { FontFamily } from '@genfeedai/contracts';
 import type {
   BrandKitFieldKey,
   IBrandKitApplyResult,
@@ -24,8 +18,14 @@ import type {
   IBrandKitDraft,
   IExtractedSocialLinks,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
-import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { BRAND_KIT_FIELD_OWNERSHIP } from '@genfeedai/contracts/interfaces';
+import {
+  type BrandKitSourceBrand,
+  buildBrandKitDraftFromBrand,
+  buildBrandKitDraftFromManualInput,
+  buildBrandKitDraftFromWebsiteScrape,
+} from '@genfeedai/helpers';
 import { Prisma } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

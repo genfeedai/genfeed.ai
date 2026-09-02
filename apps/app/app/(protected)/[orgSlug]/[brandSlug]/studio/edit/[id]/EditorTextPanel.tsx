@@ -1,7 +1,10 @@
 'use client';
 
-import { EditorTrackType } from '@genfeedai/enums';
-import type { IEditorTextOverlay, IEditorTrack } from '@genfeedai/interfaces';
+import { EditorTrackType } from '@genfeedai/contracts';
+import type {
+  IEditorTextOverlay,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import { useCallback, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import EditorTextPanelHeader from './EditorTextPanelHeader';

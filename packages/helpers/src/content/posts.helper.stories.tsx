@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import * as PostsHelper from '@helpers/content/posts.helper';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Tabs from '@ui/navigation/tabs/Tabs';

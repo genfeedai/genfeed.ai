@@ -2,7 +2,7 @@ import type {
   BrandInterviewAnswerType,
   BrandInterviewGroup,
   IBrandInterviewQuestion,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export const BRAND_INTERVIEW_CREDIT_COST = 10;
 

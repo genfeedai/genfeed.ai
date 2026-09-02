@@ -3,13 +3,6 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
-  APP_ROUTES,
-  createArtifactEditorRoute,
-  createBrandAppRoute,
-  ITEMS_PER_PAGE,
-  PUBLISHING_POSTS_QUERY_KEYS,
-} from '@genfeedai/constants';
-import {
   ModelCategory,
   PageScope,
   type Platform,
@@ -18,9 +11,20 @@ import {
   TargetExecutionState,
   ViewType,
   WebSocketEventStatus,
-} from '@genfeedai/enums';
-import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+  createBrandAppRoute,
+  ITEMS_PER_PAGE,
+  PUBLISHING_POSTS_QUERY_KEYS,
+} from '@genfeedai/contracts/constants';
+import type {
+  IIngredient,
+  IPost,
+  IPreset,
+} from '@genfeedai/contracts/interfaces';
+import type { IFiltersState } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import {
   getPublishingPostHref,
   normalizePostsPlatform,

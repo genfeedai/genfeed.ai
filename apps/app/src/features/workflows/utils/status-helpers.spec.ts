@@ -1,4 +1,7 @@
-import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowLifecycle,
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   formatLifecycleLabel,

@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, IngredientFormat } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientFormat,
+} from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import {
   Select,

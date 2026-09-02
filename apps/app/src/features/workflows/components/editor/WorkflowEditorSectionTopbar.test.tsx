@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { WorkflowLifecycle } from '@genfeedai/enums';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';

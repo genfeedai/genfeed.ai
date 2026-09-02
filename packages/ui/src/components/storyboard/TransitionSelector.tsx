@@ -1,6 +1,6 @@
 'use client';
 
-import { VideoTransition } from '@genfeedai/enums';
+import { VideoTransition } from '@genfeedai/contracts';
 import type { TransitionSelectorProps } from '@genfeedai/props/studio/storyboard.props';
 import type { DropdownFieldOption } from '@ui/primitives/dropdown-field';
 import FormDropdown from '@ui/primitives/dropdown-field';

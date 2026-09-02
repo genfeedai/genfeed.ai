@@ -1,5 +1,5 @@
-import { PLATFORM_COLORS } from '@genfeedai/constants';
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
+import { PLATFORM_COLORS } from '@genfeedai/contracts/constants';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import TagBadge from '@ui/tags/badge/TagBadge';
 import { useState } from 'react';

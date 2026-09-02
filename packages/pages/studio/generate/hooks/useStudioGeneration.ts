@@ -1,12 +1,12 @@
 'use client';
 
-import { IngredientStatus } from '@genfeedai/enums';
-import type { IImage, IModel, IVideo } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { IImage, IModel, IVideo } from '@genfeedai/contracts/interfaces';
 import type {
   GenerationResponse,
   SocketResult,
-} from '@genfeedai/interfaces/content/generation-payload.interface';
-import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
+import type { AssetQueryService } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type {

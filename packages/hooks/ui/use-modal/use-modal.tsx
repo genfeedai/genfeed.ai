@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModalEnum } from '@genfeedai/enums';
+import type { ModalEnum } from '@genfeedai/contracts';
 import {
   closeModal,
   isModalOpen,

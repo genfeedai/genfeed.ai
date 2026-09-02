@@ -18,7 +18,7 @@ import type {
   IWarmupAccountDiagnosticStep,
   IWarmupAccountDiagnostics,
   IWarmupInvitation,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   OrganizationCategory,
   type Prisma,

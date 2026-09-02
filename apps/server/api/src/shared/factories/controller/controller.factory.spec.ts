@@ -3,7 +3,7 @@ import {
   createCRUDModule,
   createExtendedController,
 } from '@api/shared/factories/controller/controller.factory';
-import type { IJsonApiSerializer } from '@genfeedai/interfaces';
+import type { IJsonApiSerializer } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 class Widget {}

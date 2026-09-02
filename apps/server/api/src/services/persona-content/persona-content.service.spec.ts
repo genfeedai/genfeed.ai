@@ -10,7 +10,7 @@ import type {
   GenerateVoiceInput,
 } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
-import { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
+import { AvatarProvider, VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

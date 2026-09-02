@@ -1,5 +1,5 @@
-import { CredentialPlatform, Platform } from '@genfeedai/enums';
-import type { ICredential } from '@genfeedai/interfaces';
+import { CredentialPlatform, Platform } from '@genfeedai/contracts';
+import type { ICredential } from '@genfeedai/contracts/interfaces';
 
 export const PLATFORM_TO_CREDENTIAL_MAP: Partial<
   Record<Platform, CredentialPlatform>

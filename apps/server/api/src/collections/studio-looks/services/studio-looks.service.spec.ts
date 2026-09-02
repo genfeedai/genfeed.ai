@@ -8,7 +8,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

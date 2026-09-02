@@ -22,34 +22,34 @@ import {
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
-import type { LinkedinAuthorizedSignalsSnapshot } from '@api-types/contracts/linkedin-authorized-signals.contract';
-import {
-  getCurrentSocialWarmupBlueprint,
-  resolveSocialWarmupBlueprint,
-  type SocialWarmupBlueprint,
-} from '@api-types/contracts/social-warmup-blueprint.contract';
-import { getSocialWarmupEnrollmentRefusal } from '@api-types/contracts/social-warmup-capability.contract';
-import {
-  evaluateSocialWarmupJourney,
-  SOCIAL_WARMUP_TELEMETRY_EVENT,
-  sanitizeSocialWarmupTelemetry,
-} from '@api-types/contracts/social-warmup-journey.contract';
-import type { TikTokAuthorizedSignalsSnapshot } from '@api-types/contracts/tiktok-authorized-signals.contract';
-import type { TwitterAuthorizedSignalsSnapshot } from '@api-types/contracts/twitter-authorized-signals.contract';
-import type { YoutubeAuthorizedSignalsSnapshot } from '@api-types/contracts/youtube-authorized-signals.contract';
 import {
   parsePlatform,
   SocialWarmupEnrollmentState,
   SocialWarmupEventAction,
   SocialWarmupSignalSource,
   SocialWarmupSignalStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { InstagramAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/instagram-authorized-signals.contract';
+import type { LinkedinAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/linkedin-authorized-signals.contract';
+import {
+  getCurrentSocialWarmupBlueprint,
+  resolveSocialWarmupBlueprint,
+  type SocialWarmupBlueprint,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import { getSocialWarmupEnrollmentRefusal } from '@genfeedai/contracts/api-types/contracts/social-warmup-capability.contract';
+import {
+  evaluateSocialWarmupJourney,
+  SOCIAL_WARMUP_TELEMETRY_EVENT,
+  sanitizeSocialWarmupTelemetry,
+} from '@genfeedai/contracts/api-types/contracts/social-warmup-journey.contract';
+import type { TikTokAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
+import type { TwitterAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
+import type { YoutubeAuthorizedSignalsSnapshot } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 import type {
   SocialWarmupEventProvenance,
   SocialWarmupScope,
   SyncSocialWarmupPlatformSnapshotInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';

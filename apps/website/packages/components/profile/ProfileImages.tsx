@@ -1,6 +1,6 @@
 'use client';
 
-import type { IImage } from '@genfeedai/interfaces';
+import type { IImage } from '@genfeedai/contracts/interfaces';
 import type { ProfileImagesProps } from '@props/content/profile.props';
 import Masonry from '@ui/display/masonry/Masonry';
 import { LazyMasonryImage } from '@ui/lazy/masonry/LazyMasonry';

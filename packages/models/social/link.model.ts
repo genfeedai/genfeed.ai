@@ -1,5 +1,5 @@
 import { Link as BaseLink } from '@genfeedai/client/models';
-import type { ILink } from '@genfeedai/interfaces';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import { Brand } from '@models/organization/brand.model';
 
 export class Link extends BaseLink {

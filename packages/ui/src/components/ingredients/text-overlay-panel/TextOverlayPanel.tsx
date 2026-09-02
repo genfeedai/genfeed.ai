@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { VideoTextOverlayPanelProps } from '@genfeedai/props/content/ingredient.props';
 import { logger } from '@genfeedai/services/core/logger.service';

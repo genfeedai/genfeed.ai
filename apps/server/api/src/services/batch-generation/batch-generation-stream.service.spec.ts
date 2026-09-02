@@ -1,5 +1,5 @@
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

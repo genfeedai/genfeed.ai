@@ -4,7 +4,7 @@ import { OutreachCampaignDmConfigDto } from '@api/collections/outreach-campaigns
 import { OutreachCampaignRateLimitsDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-rate-limits.dto';
 import { OutreachCampaignScheduleDto } from '@api/collections/outreach-campaigns/dto/outreach-campaign-schedule.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

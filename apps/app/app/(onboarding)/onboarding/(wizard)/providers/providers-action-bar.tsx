@@ -1,8 +1,8 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { OnboardingAccessMode } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { OnboardingAccessMode } from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { ArrowLeft, Sparkles } from 'lucide-react';

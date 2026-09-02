@@ -1,4 +1,4 @@
-import { SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

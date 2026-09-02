@@ -12,7 +12,7 @@ const config = createWebpackConfig({
 
 config.resolve.alias['@api-types'] = path.resolve(
   __dirname,
-  '../../../packages/api-types/src',
+  '../../../packages/contracts/src/api-types',
 );
 
 module.exports = config;

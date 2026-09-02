@@ -25,20 +25,20 @@ import {
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { postExecutionStateReadFilter } from '@api-types/contracts';
-import {
-  resolveChannelTargetSettings,
-  type ValidateChannelTargetSettingsInput,
-  validateChannelTargetSettings,
-} from '@api-types/contracts/channel-capabilities.contract';
-import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
   PostCategory,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
+import {
+  resolveChannelTargetSettings,
+  type ValidateChannelTargetSettingsInput,
+  validateChannelTargetSettings,
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

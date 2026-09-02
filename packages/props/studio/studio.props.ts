@@ -3,7 +3,7 @@ import type {
   AssetScope,
   ComponentSize,
   IngredientCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -18,7 +18,7 @@ import type {
   ITag,
   ITraining,
   ITrainingConfig,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { FormEvent, ReactNode, RefObject } from 'react';
 
 export interface StudioLayoutProps {

@@ -1,7 +1,7 @@
 import { Evaluation } from '@genfeedai/client/models';
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { EvaluationType, IngredientCategory } from '@genfeedai/enums';
-import type { IEvaluationTrend } from '@genfeedai/interfaces';
+import type { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IEvaluationTrend } from '@genfeedai/contracts/interfaces';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import {
   BaseService,

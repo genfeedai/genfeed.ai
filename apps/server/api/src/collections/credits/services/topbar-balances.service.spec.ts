@@ -1,7 +1,7 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { ByokService } from '@api/services/byok/byok.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';

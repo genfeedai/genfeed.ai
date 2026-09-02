@@ -8,7 +8,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  *
  * `@genfeedai/actions` is mocked so the guard sees a controllable registry;
  * `AgentToolName` (used by classify for the agent-executor branch) resolves
- * from the real `@genfeedai/interfaces` alias.
+ * from the real `@genfeedai/contracts/interfaces` alias.
  */
 
 const mockState = vi.hoisted(() => ({

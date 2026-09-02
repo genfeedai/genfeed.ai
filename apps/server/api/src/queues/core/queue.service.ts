@@ -3,7 +3,7 @@ import {
   QueueDegradationReason,
   type QueueDispatchResult,
   QueueDispatchStatus,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { isInProcessRedis } from '@libs/redis/redis-driver';

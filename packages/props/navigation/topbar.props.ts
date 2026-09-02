@@ -1,4 +1,4 @@
-import type { AppContext } from '@genfeedai/interfaces';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
 
 export interface TopbarProps {
   showMountCheck?: boolean;

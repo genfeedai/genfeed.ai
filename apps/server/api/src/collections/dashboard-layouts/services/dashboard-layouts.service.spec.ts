@@ -4,7 +4,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
-import type { PersistedDashboardLayoutDocument } from '@genfeedai/interfaces';
+import type { PersistedDashboardLayoutDocument } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -4,7 +4,7 @@ import {
   useAgentChatInput,
 } from '@genfeedai/agent/components/useAgentChatInput';
 import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { TextSelection } from '@tiptap/pm/state';
 import type { ReactNode } from 'react';

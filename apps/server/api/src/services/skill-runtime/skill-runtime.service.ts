@@ -11,7 +11,7 @@ import {
 import type {
   ResolveActiveSkillsContext,
   ResolvedRuntimeSkill,
-} from '@genfeedai/interfaces/ai';
+} from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

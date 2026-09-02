@@ -1,5 +1,5 @@
-import { IngredientStatus, RouterPriority } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { IngredientStatus, RouterPriority } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

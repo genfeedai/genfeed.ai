@@ -30,7 +30,7 @@ import {
   PromptStatus,
   PromptTemplateKey,
   Status,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

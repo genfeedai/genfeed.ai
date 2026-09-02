@@ -1,4 +1,4 @@
-import type { IMetadata } from '@genfeedai/interfaces';
+import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import type React from 'react';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPrompt } from '@genfeedai/interfaces';
+import type { IPrompt } from '@genfeedai/contracts/interfaces';
 import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
 import Card from '@ui/card/Card';
 

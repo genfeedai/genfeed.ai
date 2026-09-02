@@ -64,8 +64,8 @@ vi.mock('next-intl', () => ({
 
 // Spread the real module: a bare object drops every other enum, so any new
 // import in the render tree (CredentialPlatform, etc.) fails module resolution.
-vi.mock('@genfeedai/enums', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/enums')>();
+vi.mock('@genfeedai/contracts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/contracts')>();
 
   return {
     ...actual,

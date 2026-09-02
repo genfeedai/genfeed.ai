@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Image from 'next/image';
 

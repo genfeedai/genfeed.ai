@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { VoiceCloneStatus } from '@genfeedai/enums';
+import { VoiceCloneStatus } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,

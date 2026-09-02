@@ -1,4 +1,4 @@
-import type { WorkflowNodeData } from '@genfeedai/types';
+import type { WorkflowNodeData } from '@genfeedai/contracts/types';
 import { useCallback, useRef, useState } from 'react';
 import { getImageDimensions, getVideoMetadata } from '../lib/media';
 import { useWorkflowUIConfig } from '../provider/WorkflowUIProvider';

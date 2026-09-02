@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { NotificationChannel, ReviewGateStatus } from '@genfeedai/enums';
+import { NotificationChannel, ReviewGateStatus } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

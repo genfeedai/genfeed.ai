@@ -4,7 +4,7 @@ import { BotMonitoringSettingsDto } from '@api/collections/bots/dto/bot-monitori
 import { BotPublishingSettingsDto } from '@api/collections/bots/dto/bot-publishing-settings.dto';
 import { BotSettingsDto } from '@api/collections/bots/dto/bot-settings.dto';
 import { BotTargetDto } from '@api/collections/bots/dto/bot-target.dto';
-import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
+import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

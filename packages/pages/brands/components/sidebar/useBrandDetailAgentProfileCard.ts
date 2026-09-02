@@ -1,11 +1,11 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory } from '@genfeedai/contracts';
 import type {
   IBrandAgentPlatformOverride,
   IBrandAgentStrategy,
   IBrandAgentVoice,
   IGeneratedBrandProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';

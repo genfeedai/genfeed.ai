@@ -4,7 +4,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 

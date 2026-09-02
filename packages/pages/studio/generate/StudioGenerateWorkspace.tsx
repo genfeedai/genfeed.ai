@@ -7,16 +7,16 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
+import { AlertCategory, ComponentSize, ViewType } from '@genfeedai/contracts';
 import {
   getModelMaxVideoReferences,
   hasEndFrame,
   hasInterpolation,
   hasVideoReferences,
   MODEL_KEYS,
-} from '@genfeedai/constants';
-import { AlertCategory, ComponentSize, ViewType } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
-import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/contracts/constants';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { StudioGenerateJob } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   StudioGenerateComposerProps,

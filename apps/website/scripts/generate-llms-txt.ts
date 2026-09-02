@@ -15,9 +15,9 @@ import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
 import { products } from '@data/products.data';
 import { useCases } from '@data/use-cases.data';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants/model-capabilities.constant';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants/model-capabilities.constant';
 import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
 
 const BASE_URL = 'https://genfeed.ai';

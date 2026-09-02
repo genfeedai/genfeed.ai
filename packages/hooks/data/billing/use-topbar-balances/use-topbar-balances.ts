@@ -6,7 +6,7 @@ import type {
   ITopbarBalanceSegment,
   TopbarBalancesSnapshot,
   UseTopbarBalancesReturn,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { CreditsService } from '@genfeedai/services/billing/credits.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

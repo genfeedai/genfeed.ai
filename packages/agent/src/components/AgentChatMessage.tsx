@@ -20,7 +20,7 @@ import {
   hasProductResultCard,
   shouldRenderCompletionSummary,
 } from '@genfeedai/agent/utils/should-render-completion-summary';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';

@@ -1,11 +1,11 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';

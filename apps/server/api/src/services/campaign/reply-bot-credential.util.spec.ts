@@ -2,7 +2,7 @@ import {
   readReplyBotCredentialId,
   toReplyBotCredentialData,
 } from '@api/services/campaign/reply-bot-credential.util';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyBotPlatform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('toReplyBotCredentialData', () => {

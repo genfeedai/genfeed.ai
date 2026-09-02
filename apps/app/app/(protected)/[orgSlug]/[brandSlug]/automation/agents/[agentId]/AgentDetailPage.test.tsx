@@ -1,4 +1,4 @@
-import { AgentAutonomyMode } from '@genfeedai/enums';
+import { AgentAutonomyMode } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import AgentDetailPage from './AgentDetailPage';

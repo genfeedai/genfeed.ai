@@ -1,4 +1,4 @@
-import type { BrandKitAssetRole } from '@genfeedai/interfaces';
+import type { BrandKitAssetRole } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

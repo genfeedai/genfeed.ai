@@ -2,7 +2,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   normalizePersonaHandle,
   PERSONA_HANDLE_PATTERN,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsString, Matches, MinLength } from 'class-validator';

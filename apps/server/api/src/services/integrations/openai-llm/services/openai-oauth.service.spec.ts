@@ -6,7 +6,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

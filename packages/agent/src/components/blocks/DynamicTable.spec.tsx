@@ -1,5 +1,5 @@
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
-import type { TableBlock } from '@genfeedai/interfaces';
+import type { TableBlock } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

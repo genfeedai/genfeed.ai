@@ -7,12 +7,12 @@ import {
 } from '@api/services/batch-generation/batch-generation.types';
 import { fromPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BatchItemStatus } from '@genfeedai/enums';
+import { BatchItemStatus } from '@genfeedai/contracts';
 import type {
   IBatchReviewEvent,
   IBatchReviewEventReviewer,
   IBatchSummary,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { serializeBatchItemAssignee } from '@genfeedai/serializers';
 import { Injectable } from '@nestjs/common';
 

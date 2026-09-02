@@ -3,8 +3,8 @@ import {
   IngredientStatus,
   LibraryShelf,
   QualityStatus,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import { getIngredientShelf } from './ingredient-shelf.util';

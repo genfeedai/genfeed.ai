@@ -1,4 +1,4 @@
-import type { PromptFormat, PromptJsonValue } from '@genfeedai/types';
+import type { PromptFormat, PromptJsonValue } from '@genfeedai/contracts/types';
 import type { PromptConstructorJsonPayload } from '../../../contracts/prompt-constructor';
 
 export const PROMPT_FORMAT_TEXT = 'text' as const satisfies PromptFormat;

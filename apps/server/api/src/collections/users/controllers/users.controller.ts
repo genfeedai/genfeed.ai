@@ -25,11 +25,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
+} from '@genfeedai/contracts/interfaces/billing';
 import { UserSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,

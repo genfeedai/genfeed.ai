@@ -97,7 +97,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     const queueNames = readRepo(
-      'packages/queue-contracts/src/queue-names.constant.ts',
+      'packages/contracts/src/queue/queue-names.constant.ts',
     );
     const processors = readSourceOf('ProcessorsModule', {
       root: WORKERS_SRC,

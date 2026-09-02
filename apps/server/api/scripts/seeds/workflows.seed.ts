@@ -19,9 +19,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { isEntityId } from '@api-types/helpers/entity-id';
+import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
-import { WorkflowTrigger } from '@genfeedai/enums';
+import { WorkflowTrigger } from '@genfeedai/contracts';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import { PrismaClient } from '@genfeedai/prisma';
 import {
   createPrismaPgConfig,
@@ -29,7 +30,6 @@ import {
 } from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { createVersionedWorkflow } from '@api/collections/workflows/workflow-version-definition';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;

@@ -1,6 +1,7 @@
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
-import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
+import { ModelCategory } from '@genfeedai/contracts';
+import type { GenerationBriefExemptionReason } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_IMAGE_COMPILER_ID,
   FLUX_1_1_PRO_IMAGE_COMPILER_VERSION,
@@ -34,7 +35,7 @@ import {
   SEEDREAM_4_IMAGE_COMPILER_VERSION,
   SEEDREAM_5_PRO_IMAGE_COMPILER_ID,
   SEEDREAM_5_PRO_IMAGE_COMPILER_VERSION,
-} from '@api-types/contracts/generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_CAPABILITY_PROFILE_ID,
   FLUX_1_1_PRO_CAPABILITY_PROFILE_VERSION,
@@ -106,9 +107,11 @@ import {
   SEEDREAM_5_PRO_CAPABILITY_PROFILE_ID,
   SEEDREAM_5_PRO_CAPABILITY_PROFILE_VERSION,
   SEEDREAM_5_PRO_MODEL_KEY,
-} from '@api-types/contracts/generation-capability-profile.contract';
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
+import {
+  MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 const IMAGE_MODEL_KEYS = Object.entries(MODEL_OUTPUT_CAPABILITIES)

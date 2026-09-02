@@ -1,6 +1,6 @@
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
-import type { AgentType } from '@genfeedai/enums';
+import type { AgentType } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 export interface AgentProfileResolutionContext {

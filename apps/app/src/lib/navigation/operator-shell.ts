@@ -1,6 +1,6 @@
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
-import type { AgentConversationRoute } from '@genfeedai/interfaces';
+import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentConversationRoute } from '@genfeedai/contracts/interfaces';
 import type { Task } from '@services/management/tasks.service';
 
 export type TaskLaunchMode =

@@ -1,4 +1,4 @@
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory } from '@genfeedai/contracts';
 import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import { render, screen, waitFor } from '@testing-library/react';

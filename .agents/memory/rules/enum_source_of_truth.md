@@ -9,7 +9,7 @@ last_verified: 2026-08-20
 
 ## Why
 
-Two parallel spellings for the same status (`pending` in `@genfeedai/enums` vs
+Two parallel spellings for the same status (`pending` in `@genfeedai/contracts` vs
 `PENDING` in Postgres/`@genfeedai/prisma`) forced `status: BatchStatus.X as never`
 writes. TypeScript was silent; Prisma rejected at runtime
 (`Invalid value for argument status. Expected BatchStatus`). That class of bug
@@ -17,7 +17,7 @@ is not acceptable.
 
 ## Canonical rule
 
-1. **Persisted as a Prisma enum** → domain enum values in `@genfeedai/enums`
+1. **Persisted as a Prisma enum** → domain enum values in `@genfeedai/contracts`
    **must equal** the Prisma/Postgres labels **exactly** (SCREAMING_SNAKE).
    Prefer one shared name set (`PENDING`, `PROCESSING`, …). Rename domain
    aliases (`GENERATING` → `PROCESSING`) rather than mapping forever.
@@ -63,7 +63,7 @@ banned kinds.
 ## How to add a status value
 
 1. Add to `packages/prisma/prisma/schema.prisma` enum + migration.
-2. Mirror the same label in `@genfeedai/enums` (or re-export if dependency
+2. Mirror the same label in `@genfeedai/contracts` (or re-export if dependency
    direction allows later).
 3. Update serializers, clients, and tests to the new member — no `as never`.
 
@@ -95,7 +95,7 @@ intentional exception **`DEVTO`** not `DEV_TO`).
 import {
   toPrismaCredentialPlatform,
   fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 // credential find / create / update
 platform: toPrismaCredentialPlatform(platform) // → 'INSTAGRAM' | undefined
@@ -113,18 +113,18 @@ platform: fromPrismaCredentialPlatform(credential.platform) // → Platform.INST
 - “Re-harmonize” String columns (`posts.platform`, `PostStatus`, `TaskStatus`,
   `WorkflowStatus`) into SCREAMING to match credentials — that is the wrong fix.
 
-Implementation: `packages/enums/src/platform-prisma.mapper.ts`.
-Tests: `packages/enums/__tests__/platform-prisma.mapper.test.ts`.
+Implementation: `packages/contracts/src/enums/platform-prisma.mapper.ts`.
+Tests: `packages/contracts/__tests__/enums/platform-prisma.mapper.test.ts`.
 
 ## Status (2026-08-07)
 
 All shared-name domain enums that back a Prisma **column** are SCREAMING_SNAKE
-and include every Prisma label as a value. Guard: `packages/enums/__tests__/prisma-parity.enum.test.ts`.
+and include every Prisma label as a value. Guard: `packages/contracts/__tests__/enums/prisma-parity.enum.test.ts`.
 
 **No Prisma enum has lowercase labels.** `BrandInterviewStatus` was the last one
 (`in_progress` / `completed` / `abandoned`); it was renamed to SCREAMING via
 `ALTER TYPE ... RENAME VALUE` and given a matching domain enum in
-`@genfeedai/enums`. Nothing in the schema may reintroduce lowercase Prisma
+`@genfeedai/contracts`. Nothing in the schema may reintroduce lowercase Prisma
 labels — the parity ratchet fails on them.
 
 Still intentional exceptions (see matrix above):

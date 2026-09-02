@@ -10,7 +10,7 @@ import {
   SocialMessageType,
   SocialReplyCampaignRecipientStatus,
   SocialReplyCampaignStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 type StoreCampaign = Record<string, unknown> & {

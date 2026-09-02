@@ -1,7 +1,7 @@
 import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Sparkles, X } from 'lucide-react';

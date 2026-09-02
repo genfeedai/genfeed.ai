@@ -4,7 +4,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import {
   WEBHOOK_CLIENT_QUEUE,
   WebhookJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';

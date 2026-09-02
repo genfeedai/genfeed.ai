@@ -17,7 +17,7 @@ import type {
   FileProcessingJob,
   FileQueueService,
 } from '@api/services/files-microservice/queue/file-queue.service';
-import { Status, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { Status, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';

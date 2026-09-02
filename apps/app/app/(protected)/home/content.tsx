@@ -1,8 +1,11 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+} from '@genfeedai/contracts/constants';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';

@@ -2,7 +2,7 @@ import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
   ICredential,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface FastlaneSchedulePanelOnScheduleParams {
   assets: FastlaneAssetItem[];

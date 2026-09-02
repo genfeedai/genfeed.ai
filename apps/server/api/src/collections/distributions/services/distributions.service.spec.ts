@@ -1,6 +1,6 @@
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
+import { DistributionPlatform, PublishStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

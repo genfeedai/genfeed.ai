@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 import { AGENT_SLASH_COMMANDS } from './agent-slash-commands.constant';
 import {

@@ -1,8 +1,8 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant, ReleaseStatus } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant, ReleaseStatus } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

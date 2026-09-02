@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowNodeStatus } from '@genfeedai/enums';
+import type { WorkflowNodeStatus } from '@genfeedai/contracts';
 import {
   AlertCircleIcon,
   CheckIcon,

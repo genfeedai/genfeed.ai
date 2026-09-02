@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

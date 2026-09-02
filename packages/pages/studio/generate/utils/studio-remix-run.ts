@@ -2,8 +2,8 @@ import type {
   BrandRemixDraft,
   BrandRemixDraftEdits,
   BrandRemixRunView,
-} from '@api-types/contracts';
-import { pairedBrandRemixIdentitySchema } from '@api-types/contracts';
+} from '@genfeedai/contracts/api-types/contracts';
+import { pairedBrandRemixIdentitySchema } from '@genfeedai/contracts/api-types/contracts';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,

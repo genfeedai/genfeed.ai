@@ -1,5 +1,5 @@
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import type { AdsAdapterContext } from '@genfeedai/interfaces';
+import type { AdsAdapterContext } from '@genfeedai/contracts/interfaces';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { MetaAdsAdapter } from './meta-ads.adapter';

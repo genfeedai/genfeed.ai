@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 

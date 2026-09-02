@@ -7,7 +7,7 @@ import {
   BotInteractionType,
   BotResponseType,
   CredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';

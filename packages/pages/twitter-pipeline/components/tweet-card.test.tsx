@@ -1,4 +1,4 @@
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import TweetCard from '@pages/twitter-pipeline/components/tweet-card';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';

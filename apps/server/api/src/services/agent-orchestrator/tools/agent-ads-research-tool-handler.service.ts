@@ -10,14 +10,14 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { APP_ROUTES } from '@genfeedai/constants';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import type {
   AdsChannel,
   AdsResearchFilters,
   AdsResearchPlatform,
   AdsResearchSource,
-} from '@genfeedai/interfaces/integrations/ads-research.interface';
+} from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**

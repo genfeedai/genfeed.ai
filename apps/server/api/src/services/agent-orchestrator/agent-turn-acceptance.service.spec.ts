@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AgentTurnAcceptanceService,

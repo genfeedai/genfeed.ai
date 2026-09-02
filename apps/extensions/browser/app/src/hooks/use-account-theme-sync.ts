@@ -1,4 +1,4 @@
-import type { ThemePreference } from '@genfeedai/constants';
+import type { ThemePreference } from '@genfeedai/contracts/constants';
 import { useEffect, useRef } from 'react';
 import { themeSettingsService } from '~services/theme-settings.service';
 import { useSettingsStore } from '~store/use-settings-store';

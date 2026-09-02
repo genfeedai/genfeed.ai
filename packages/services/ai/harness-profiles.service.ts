@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ICreateHarnessProfilePayload,
   IHarnessProfile,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { HarnessProfile } from '@genfeedai/models/ai/harness-profile.model';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

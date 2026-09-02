@@ -1,7 +1,7 @@
 import { WorkflowExecutionProgressService } from '@api/collections/workflows/services/workflow-execution-progress.service';
 import { EVENT_TYPE_TO_NODE_TYPE } from '@api/collections/workflows/services/workflow-executor.constants';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import {
   type ExecutableNode,
   type ExecutableWorkflow,

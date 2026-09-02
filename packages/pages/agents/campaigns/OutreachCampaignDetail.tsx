@@ -1,10 +1,14 @@
 'use client';
 
 import {
+  ButtonVariant,
+  CampaignStatus,
+  CampaignType,
+} from '@genfeedai/contracts';
+import {
   evaluateOutreachCapability,
   isOutreachPairExecutable,
-} from '@api-types/contracts/outreach-capabilities.contract';
-import { ButtonVariant, CampaignStatus, CampaignType } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';

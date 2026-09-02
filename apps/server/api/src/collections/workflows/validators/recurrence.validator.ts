@@ -1,5 +1,5 @@
 import type { WorkflowRecurrence } from '@api/collections/workflows/schemas/workflow.schema';
-import { WorkflowRecurrenceType } from '@genfeedai/enums';
+import { WorkflowRecurrenceType } from '@genfeedai/contracts';
 
 export class RecurrenceValidator {
   /**

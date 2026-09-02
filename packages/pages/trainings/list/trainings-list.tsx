@@ -2,9 +2,9 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
-import type { ITraining } from '@genfeedai/interfaces';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
 import { hasTrainingAccess } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

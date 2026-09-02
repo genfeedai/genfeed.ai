@@ -1,4 +1,4 @@
-import { DropdownDirection } from '@genfeedai/enums';
+import { DropdownDirection } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Funnel as Filter } from 'lucide-react';

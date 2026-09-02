@@ -1,7 +1,10 @@
 'use client';
 
-import { EditorTrackType } from '@genfeedai/enums';
-import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
+import { EditorTrackType } from '@genfeedai/contracts';
+import type {
+  IEditorClip,
+  IEditorTrack,
+} from '@genfeedai/contracts/interfaces';
 import { buildEditorRenderStyle } from '@genfeedai/utils/media/editor-render-style.util';
 import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
 import { Player, type PlayerRef } from '@remotion/player';

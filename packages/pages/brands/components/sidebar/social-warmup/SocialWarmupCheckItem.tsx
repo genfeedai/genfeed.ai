@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { SocialWarmupCheckItemProps } from '@props/social/social-warmup-program.props';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';

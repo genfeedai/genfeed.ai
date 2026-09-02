@@ -7,7 +7,7 @@ import { VideosMergeController } from '@api/collections/videos/controllers/relat
 import type { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';

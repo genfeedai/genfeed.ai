@@ -18,7 +18,11 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import {
+  ApiKeyScope,
+  CredentialPlatform,
+  MemberRole,
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

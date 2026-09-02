@@ -1,8 +1,6 @@
 'use client';
 
-import { normalizePostingTimes } from '@api-types/contracts/credential-posting-times.contract';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES, createArtifactEditorRoute } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
@@ -12,13 +10,18 @@ import {
   PostRepurposeMode,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { normalizePostingTimes } from '@genfeedai/contracts/api-types/contracts/credential-posting-times.contract';
+import {
+  APP_ROUTES,
+  createArtifactEditorRoute,
+} from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   ICalendarSlot,
   IPostingCadence,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

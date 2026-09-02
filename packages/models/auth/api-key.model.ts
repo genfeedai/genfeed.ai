@@ -1,6 +1,12 @@
-import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
+import type {
+  IApiKey,
+  IApiKeyAttributes,
+} from '@genfeedai/contracts/interfaces';
 
-export type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
+export type {
+  IApiKey,
+  IApiKeyAttributes,
+} from '@genfeedai/contracts/interfaces';
 
 interface ApiKeyOrganizationReference {
   id: string;

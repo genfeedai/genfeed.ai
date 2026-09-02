@@ -9,8 +9,8 @@ import { BatchGenerationReviewService } from '@api/services/batch-generation/bat
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
-import { BatchStatus } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import { BatchStatus } from '@genfeedai/contracts';
+import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export type {

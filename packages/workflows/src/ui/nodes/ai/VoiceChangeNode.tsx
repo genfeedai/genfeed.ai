@@ -1,7 +1,7 @@
 'use client';
 
-import type { VoiceChangeNodeData } from '@genfeedai/types';
-import { NodeStatusEnum } from '@genfeedai/types';
+import type { VoiceChangeNodeData } from '@genfeedai/contracts/types';
+import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import {
   AudioLines,

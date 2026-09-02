@@ -1,4 +1,4 @@
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

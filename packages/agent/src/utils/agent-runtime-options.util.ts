@@ -4,7 +4,7 @@ import type {
   AgentRuntimeOption,
 } from '@genfeedai/agent/models/agent-runtime.model';
 import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 const LOCAL_HOSTNAMES = new Set(['127.0.0.1', '::1', 'localhost']);
 

@@ -2,7 +2,7 @@ import type {
   CreatePostingSetInput,
   IPostingSet,
   IPostingSignature,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export interface ExpandedPostingSetTarget {
   attachments?: Array<{

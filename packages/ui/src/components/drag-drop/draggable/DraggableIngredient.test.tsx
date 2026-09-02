@@ -1,4 +1,4 @@
-import type { IFolder, IIngredient } from '@genfeedai/interfaces';
+import type { IFolder, IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import { describe, expect, it, vi } from 'vitest';

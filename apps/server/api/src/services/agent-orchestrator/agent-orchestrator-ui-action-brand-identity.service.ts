@@ -13,12 +13,12 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import { AgentMessageRole } from '@genfeedai/enums';
+import { AgentMessageRole } from '@genfeedai/contracts';
 import {
   AgentToolName,
   type AgentToolResult,
   type ValidatedAgentScope,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   ConflictException,

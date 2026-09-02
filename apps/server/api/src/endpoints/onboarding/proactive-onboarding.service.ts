@@ -28,11 +28,11 @@ import { MasterPromptGeneratorService } from '@api/services/knowledge-base/maste
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/enums';
+import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/contracts';
 import type {
   IProactivePreparationStatus,
   IScrapedBrandData,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { type Lead, toPrismaJson } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

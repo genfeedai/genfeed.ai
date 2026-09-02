@@ -1,4 +1,4 @@
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bindScheduledPublishApproval,

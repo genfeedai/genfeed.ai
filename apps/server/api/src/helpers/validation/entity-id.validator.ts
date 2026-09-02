@@ -1,4 +1,4 @@
-import { isEntityId } from '@api-types/helpers/entity-id';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 import {
   buildMessage,
   ValidateBy,
@@ -7,7 +7,7 @@ import {
 
 export const IS_ENTITY_ID = 'isEntityId';
 
-export { isEntityId } from '@api-types/helpers/entity-id';
+export { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
 
 export function IsEntityId(
   validationOptions?: ValidationOptions,

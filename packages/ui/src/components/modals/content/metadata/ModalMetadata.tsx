@@ -7,7 +7,8 @@ import {
   AssetScope,
   ButtonVariant,
   ModalEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IMetadata } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -17,7 +18,6 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
-import type { IMetadata } from '@genfeedai/interfaces';
 import type { ModalMetadataProps } from '@genfeedai/props/modals/modal.props';
 import { FoldersService } from '@genfeedai/services/content/folders.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';

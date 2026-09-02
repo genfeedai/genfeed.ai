@@ -1,4 +1,4 @@
-import type { IDesktopAsset } from '@genfeedai/desktop-contracts';
+import type { IDesktopAsset } from '@genfeedai/contracts/desktop';
 import type { DesktopAsset } from '@genfeedai/desktop-prisma';
 
 export const toDesktopAsset = (row: DesktopAsset): IDesktopAsset => ({

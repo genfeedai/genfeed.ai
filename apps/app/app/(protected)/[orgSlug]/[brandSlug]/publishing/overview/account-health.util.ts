@@ -1,4 +1,4 @@
-import type { AccountHealthSummary } from '@genfeedai/interfaces';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { PublishingOverviewHealthRow } from '@props/publisher/publishing-overview.props';
 
 const RISK_RANK: Record<PublishingOverviewHealthRow['riskLevel'], number> = {

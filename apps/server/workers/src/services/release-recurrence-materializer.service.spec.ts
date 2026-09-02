@@ -3,7 +3,7 @@ import {
   PostFrequency,
   ReleaseStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
 describe('ReleaseRecurrenceMaterializerService', () => {

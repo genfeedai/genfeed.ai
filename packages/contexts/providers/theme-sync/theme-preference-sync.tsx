@@ -1,7 +1,10 @@
 'use client';
 
-import { isThemePreference, type ThemePreference } from '@genfeedai/constants';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import {
+  isThemePreference,
+  type ThemePreference,
+} from '@genfeedai/contracts/constants';
 import { useTheme } from 'next-themes';
 import { useEffect, useRef } from 'react';
 

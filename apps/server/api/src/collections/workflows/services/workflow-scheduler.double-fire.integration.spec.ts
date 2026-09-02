@@ -3,7 +3,7 @@ import {
   WorkflowExecutionQueueService,
   workflowSchedulerId,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { ActionOrigin } from '@genfeedai/enums';
+import { ActionOrigin } from '@genfeedai/contracts';
 import { Queue } from 'bullmq';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 

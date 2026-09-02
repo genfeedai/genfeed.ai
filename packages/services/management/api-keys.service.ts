@@ -2,12 +2,12 @@ import type {
   CreateApiKeySchema,
   UpdateApiKeySchema,
 } from '@genfeedai/client/schemas/management/api-key.schema';
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import { ApiKeyCategory } from '@genfeedai/enums';
+import { ApiKeyCategory } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ConnectGenfeedVerificationResult,
   VerifyConnectGenfeedPayload,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { ApiKeySerializer } from '@genfeedai/serializers';
 import {

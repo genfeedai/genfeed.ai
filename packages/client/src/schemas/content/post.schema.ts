@@ -3,7 +3,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { z } from 'zod';
 
 // Reusable post status enum for YouTube-compatible platforms

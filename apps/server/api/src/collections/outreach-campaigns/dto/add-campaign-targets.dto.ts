@@ -1,4 +1,4 @@
-import { CampaignTargetType } from '@genfeedai/enums';
+import { CampaignTargetType } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,

@@ -1,4 +1,4 @@
-import { ButtonVariant, CardEmptySize } from '@genfeedai/enums';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { EmptyState, EmptyStateCard } from '@ui/card/EmptyState';
 import { Inbox, Plus, Video } from 'lucide-react';

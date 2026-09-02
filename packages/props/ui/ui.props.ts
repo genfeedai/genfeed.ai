@@ -2,15 +2,15 @@ import type {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   BentoRowSpan,
   BentoSize,
   BentoSpan,
   BentoVariant,
   CardVariant,
-} from '@genfeedai/enums';
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
+} from '@genfeedai/contracts';
+import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 

@@ -3,16 +3,16 @@ import type {
   IngredientCategory,
   Platform,
   PostRepurposeMode,
-} from '@genfeedai/enums';
-import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
+} from '@genfeedai/contracts';
 import type {
   IAsset,
   IBrand,
   ICredential,
   IIngredient,
   IPost,
-} from '@genfeedai/interfaces';
-import type { UsePostModalOptions } from '@genfeedai/interfaces/hooks/use-publication-modal.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { UsePostModalOptions } from '@genfeedai/contracts/interfaces/hooks/use-publication-modal.interface';
+import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   ModalConfirmProps,

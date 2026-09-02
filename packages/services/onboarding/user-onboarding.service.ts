@@ -1,6 +1,6 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { OnboardingType } from '@genfeedai/enums';
-import type { IUser } from '@genfeedai/interfaces';
+import type { OnboardingType } from '@genfeedai/contracts';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

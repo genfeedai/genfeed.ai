@@ -2,7 +2,7 @@ import {
   KnowledgeBaseCategory,
   KnowledgeBaseScope,
   KnowledgeBaseStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { z } from 'zod';
 
 export const knowledgeBrandingSchema = z.object({

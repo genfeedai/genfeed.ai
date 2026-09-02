@@ -7,13 +7,13 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { CacheService } from '@api/services/cache/cache.service';
 import { requireExecutableOutreachPair } from '@api/services/campaign/outreach-capability.util';
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   CampaignPlatform,
   CampaignStatus,
   CampaignType,
-} from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
   BadRequestException,
   Inject,

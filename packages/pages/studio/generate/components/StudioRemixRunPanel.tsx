@@ -1,11 +1,11 @@
 'use client';
 
-import type { BrandRemixRunView } from '@api-types/contracts';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { resolvePairedRemixIdentity } from '@pages/studio/generate/utils/studio-remix-run';

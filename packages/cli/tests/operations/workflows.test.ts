@@ -1,4 +1,4 @@
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { ApiError } from '@genfeedai/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

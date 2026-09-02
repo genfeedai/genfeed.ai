@@ -5,15 +5,15 @@
  * NOTE: Different from Presets (saved PromptBar configurations).
  */
 
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   ITemplateFilter,
   ITemplateGenerationRequest,
   ITemplateGenerationResult,
   ITemplateSuggestion,
   ITemplateUsage,
-} from '@genfeedai/interfaces';
-import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { IContentTemplate } from '@genfeedai/contracts/interfaces/content/template-ui.interface';
 import { Template } from '@genfeedai/models/content/template.model';
 import { TemplateSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

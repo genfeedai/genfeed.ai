@@ -1,31 +1,3 @@
-import {
-  createTestBrand,
-  createTestCredential,
-  createTestOrganization,
-  generateIdString,
-} from '@api-test/e2e/e2e-test.utils';
-import type { TestDatabaseHelper } from '@api-test/e2e-test.module';
-import {
-  createTestDatabaseHelper,
-  E2ETestModule,
-} from '@api-test/e2e-test.module';
-import {
-  CredentialPlatform,
-  PostVisibility,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import {
-  AgentArtifactReferenceService,
-  AgentScopeContextService,
-  PostLifecycleService,
-  type PublishResult,
-  SERVER_TOKENS,
-} from '@api/index';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
@@ -46,7 +18,35 @@ import {
   type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import {
+  AgentArtifactReferenceService,
+  AgentScopeContextService,
+  PostLifecycleService,
+  type PublishResult,
+  SERVER_TOKENS,
+} from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  createTestBrand,
+  createTestCredential,
+  createTestOrganization,
+  generateIdString,
+} from '@api-test/e2e/e2e-test.utils';
+import type { TestDatabaseHelper } from '@api-test/e2e-test.module';
+import {
+  createTestDatabaseHelper,
+  E2ETestModule,
+} from '@api-test/e2e-test.module';
+import {
+  CredentialPlatform,
+  PostVisibility,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';

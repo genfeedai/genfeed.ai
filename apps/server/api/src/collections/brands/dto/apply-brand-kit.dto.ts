@@ -1,4 +1,4 @@
-import type { BrandKitFieldKey } from '@genfeedai/interfaces';
+import type { BrandKitFieldKey } from '@genfeedai/contracts/interfaces';
 import {
   IsBoolean,
   IsIn,

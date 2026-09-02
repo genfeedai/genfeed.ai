@@ -60,7 +60,7 @@ Use `isDeleted: boolean`. `updatedAt` becomes the deletion timestamp.
 
 ### NEVER Create Inline Interfaces
 
-All interfaces go in `packages/props/` (component props) or `packages/interfaces/` (state/helpers). NEVER declare interfaces inline in component files.
+All interfaces go in `packages/props/` (component props) or `packages/contracts/src/interfaces/` (state/helpers). NEVER declare interfaces inline in component files.
 
 ### Keep Compound Indexes In Prisma Schema Or Migrations
 

@@ -1,12 +1,12 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
     "@tanstack/react-query": "5.102.8",
     "@tiptap/core": "3.30.5",
     "lucide-react": "1.37.0",
     "next-intl": "4.14.1",
-    "react": "19.2.8"
+    "react": "19.2.8",
+    "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared page-level compositions for Genfeed applications",
   "devDependencies": {

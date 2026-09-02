@@ -1,6 +1,6 @@
 'use client';
 
-import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
+import { CampaignPlatform, CampaignType } from '@genfeedai/contracts';
 import {
   fromDateTimeLocalInput,
   TIMEZONES,

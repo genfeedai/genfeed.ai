@@ -10,8 +10,8 @@ import {
   IngredientFormat,
   PageScope,
   parseIngredientCategory,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import {
   isAvatarSourceImageIngredient,
   isAvatarVideoIngredient,

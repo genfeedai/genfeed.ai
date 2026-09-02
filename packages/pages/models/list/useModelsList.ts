@@ -1,16 +1,19 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   ModalEnum,
   ModelCategory,
   type ModelLifecycle,
   PageScope,
-} from '@genfeedai/enums';
-import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
+import type {
+  IModel,
+  IOrganizationSetting,
+} from '@genfeedai/contracts/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
+} from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Model } from '@models/ai/model.model';

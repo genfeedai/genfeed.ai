@@ -1,6 +1,6 @@
-import { ModalEnum } from '@genfeedai/enums';
+import { ModalEnum } from '@genfeedai/contracts';
+import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
 import { openModal as openModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
-import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import {
   clearErrorDebugInfo,
   setErrorDebugInfo,

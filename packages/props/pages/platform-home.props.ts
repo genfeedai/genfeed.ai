@@ -1,4 +1,4 @@
-import type { Platform } from '@genfeedai/enums';
+import type { Platform } from '@genfeedai/contracts';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 
 export interface PlatformHomeContentProps {

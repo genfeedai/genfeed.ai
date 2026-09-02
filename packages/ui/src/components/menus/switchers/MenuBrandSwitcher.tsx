@@ -1,9 +1,9 @@
 'use client';
 
-import { createBrandAppRoute } from '@genfeedai/constants';
 import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandSwitcherProps } from '@genfeedai/props/social/brand-switcher.props';

@@ -2,7 +2,7 @@ import {
   BotsLivestreamRuntimeService,
   type LivestreamPlatformState,
 } from '@api/collections/bots/services/bots-livestream-runtime.service';
-import { BotPlatform } from '@genfeedai/enums';
+import { BotPlatform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('BotsLivestreamRuntimeService', () => {

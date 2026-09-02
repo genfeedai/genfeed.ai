@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/enums';
+import { hasExplicitApiKeyAdminScope, MemberRole } from '@genfeedai/contracts';
 
 /**
  * API keys authenticate as the issuing user for tenancy, but they must not

@@ -1,5 +1,5 @@
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 
 describe('agent-final-content.util', () => {
   it('returns content when non-empty and no batch card', () => {

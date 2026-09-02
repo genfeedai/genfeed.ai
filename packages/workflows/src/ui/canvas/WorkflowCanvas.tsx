@@ -28,8 +28,8 @@ import type {
   VideoGenNodeData,
   WorkflowEdge,
   WorkflowNode,
-} from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
+} from '@genfeedai/contracts/types';
+import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import { CostModal } from '../components/CostModal';
 import { ContextMenu } from '../components/context-menu/ContextMenu';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';

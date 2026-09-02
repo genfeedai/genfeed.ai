@@ -11,7 +11,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { CredentialPlatform, SubscriptionTier } from '@genfeedai/enums';
+import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 
 const KEY =

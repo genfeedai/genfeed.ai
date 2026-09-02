@@ -1,4 +1,4 @@
-import { ActionOrigin } from '@genfeedai/enums';
+import { ActionOrigin } from '@genfeedai/contracts';
 import {
   getActionOriginContext,
   normalizeActionOrigin,

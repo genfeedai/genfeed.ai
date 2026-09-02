@@ -1,6 +1,6 @@
 'use client';
 
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
 import { ChevronDown, ChevronRight } from 'lucide-react';

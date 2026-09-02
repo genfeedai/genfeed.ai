@@ -3,7 +3,7 @@ import { runImageGenerationBrief } from '@api/services/generation-brief/run-imag
 import {
   FLUX_SCHNELL_MODEL_KEY,
   QWEN_IMAGE_MODEL_KEY,
-} from '@api-types/contracts/generation-capability-profile.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 

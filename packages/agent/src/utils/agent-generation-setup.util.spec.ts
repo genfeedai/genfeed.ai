@@ -1,5 +1,5 @@
-import { RouterPriority } from '@genfeedai/enums';
-import type { GenerationSetupValues } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import { RouterPriority } from '@genfeedai/contracts';
+import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_GENERATION_SETUP_TYPE_OPTIONS,

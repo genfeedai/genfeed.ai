@@ -5,8 +5,8 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient, IPost } from '@genfeedai/contracts/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

@@ -6,8 +6,8 @@ import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-previ
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

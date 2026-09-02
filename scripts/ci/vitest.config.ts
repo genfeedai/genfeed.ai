@@ -5,9 +5,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      '@genfeedai/enums': path.resolve(
+      '@genfeedai/contracts': path.resolve(
         import.meta.dirname,
-        '../../packages/enums/src/index.ts',
+        '../../packages/contracts/src/enums/index.ts',
       ),
     },
   },

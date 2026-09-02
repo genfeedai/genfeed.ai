@@ -1,4 +1,7 @@
-import type { AgentToolName, AgentToolResult } from '@genfeedai/interfaces';
+import type {
+  AgentToolName,
+  AgentToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
 import { getValidatedApiEndpoint } from '@services/trusted-origins';

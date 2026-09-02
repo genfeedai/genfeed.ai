@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { PostingSignaturesService } from '@services/content/posting-signatures.service';
 import { describe, expect, it, vi } from 'vitest';
 

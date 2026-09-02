@@ -5,7 +5,7 @@ import type {
   AdsResearchMetric,
   AdsResearchPlatform,
   AdsResearchTimeframe,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { UnifiedAdAccountOption } from '@services/ads/ads-research.service';
 import { Input } from '@ui/primitives/input';
 import {

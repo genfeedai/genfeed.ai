@@ -45,7 +45,6 @@ import {
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
   CredentialPlatform,
@@ -53,11 +52,12 @@ import {
   PostRepurposeMode,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

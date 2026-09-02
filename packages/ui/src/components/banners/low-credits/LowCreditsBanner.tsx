@@ -1,8 +1,8 @@
 'use client';
 
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';

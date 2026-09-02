@@ -1,4 +1,4 @@
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 
 const DEFAULT_API_URL = 'http://localhost:3010';

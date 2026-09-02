@@ -28,13 +28,13 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { ChannelTargetSettings } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

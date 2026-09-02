@@ -5,20 +5,23 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@genfeedai/constants',
-        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+        find: '@genfeedai/contracts/constants',
+        replacement: path.resolve(
+          __dirname,
+          '../contracts/src/constants/index.ts',
+        ),
       },
       {
         find: /^@genfeedai\/constants\/(.*)$/,
-        replacement: path.resolve(__dirname, '../constants/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/constants/$1'),
       },
       {
-        find: '@genfeedai/enums',
-        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+        find: '@genfeedai/contracts',
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,
-        replacement: path.resolve(__dirname, '../enums/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/enums/$1'),
       },
       {
         find: '@genfeedai/helpers',

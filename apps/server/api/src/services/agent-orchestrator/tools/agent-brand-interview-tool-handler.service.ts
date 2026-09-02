@@ -1,7 +1,10 @@
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+import type {
+  AgentToolResult,
+  AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
 /**

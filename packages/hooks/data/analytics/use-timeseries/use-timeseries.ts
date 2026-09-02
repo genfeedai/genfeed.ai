@@ -1,7 +1,10 @@
 'use client';
 
-import type { PageScope } from '@genfeedai/enums';
-import type { DateRange, ITimeSeriesApiDataPoint } from '@genfeedai/interfaces';
+import type { PageScope } from '@genfeedai/contracts';
+import type {
+  DateRange,
+  ITimeSeriesApiDataPoint,
+} from '@genfeedai/contracts/interfaces';
 import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
 import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import { logger } from '@genfeedai/services/core/logger.service';

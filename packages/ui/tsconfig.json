@@ -12,7 +12,7 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@api-types/*": ["../api-types/src/*"],
+      "@genfeedai/contracts/api-types/*": ["../contracts/src/api-types/*"],
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/config": ["../config/src/index.ts"],
@@ -60,13 +60,10 @@
       "path": "../config/tsconfig.json"
     },
     {
-      "path": "../enums/tsconfig.json"
+      "path": "../contracts/tsconfig.json"
     },
     {
       "path": "../helpers/tsconfig.json"
-    },
-    {
-      "path": "../interfaces/tsconfig.json"
     },
     {
       "path": "../pricing/tsconfig.json"

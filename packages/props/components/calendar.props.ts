@@ -1,4 +1,4 @@
-import type { IClockTime } from '@genfeedai/interfaces';
+import type { IClockTime } from '@genfeedai/contracts/interfaces';
 import type { ReactNode } from 'react';
 
 export interface CalendarItem {

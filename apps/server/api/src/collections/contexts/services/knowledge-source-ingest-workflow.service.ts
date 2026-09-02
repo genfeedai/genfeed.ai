@@ -12,7 +12,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import type {
   KnowledgeSourceBackfillWorkflowInput,
   KnowledgeSourceIngestWorkflowInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 @Injectable()

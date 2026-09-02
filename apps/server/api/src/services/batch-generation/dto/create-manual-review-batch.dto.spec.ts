@@ -1,6 +1,6 @@
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
-import type { IValidationErrorResponse } from '@genfeedai/interfaces';
+import type { IValidationErrorResponse } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 

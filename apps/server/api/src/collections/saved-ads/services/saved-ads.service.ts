@@ -7,12 +7,15 @@ import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credenti
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createConcurrencyLimit } from '@api/shared/utils/create-concurrency-limit.util';
-import { FileInputType, toPrismaCredentialPlatform } from '@genfeedai/enums';
+import {
+  FileInputType,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   SaveAdInput,
   UnsaveSavedAdInput,
   UpdateSavedAdNoteInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

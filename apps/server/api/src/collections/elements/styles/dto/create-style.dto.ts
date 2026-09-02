@@ -1,5 +1,5 @@
 import { ElementDto } from '@api/shared/dto/element/element.dto';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsEnum, IsOptional } from 'class-validator';
 

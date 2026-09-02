@@ -1,7 +1,7 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
-import type { IVideo } from '@genfeedai/interfaces';
+import { ModalEnum } from '@genfeedai/contracts';
+import type { IVideo } from '@genfeedai/contracts/interfaces';
 import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import Loading from '@ui/loading/default/Loading';

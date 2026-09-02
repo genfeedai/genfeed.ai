@@ -20,11 +20,11 @@ import type {
   ClipGenerationReference,
   ClipResultMode,
   SupportedAvatarVideoProviderName,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   DEFAULT_CLIP_REFERENCE_POLICY,
   DEFAULT_CLIP_RESULT_MODE,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface PrepareClipGenerationParams {

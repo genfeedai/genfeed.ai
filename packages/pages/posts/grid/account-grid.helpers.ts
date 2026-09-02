@@ -2,13 +2,13 @@ import {
   CredentialPlatform,
   parsePlatform,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   AccountHealthSummary,
   IChannelTarget,
   IClockTime,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { createDateFromTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import type {
   AccountGridLane,

@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { OutreachCampaignTargetsController } from '@api/collections/outreach-campaigns/controllers/outreach-campaign-targets.controller';
 import { OutreachCampaignTargetOperationsService } from '@api/collections/outreach-campaigns/services/outreach-campaign-target-operations.service';
-import { CampaignTargetType } from '@genfeedai/enums';
+import { CampaignTargetType } from '@genfeedai/contracts';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('OutreachCampaignTargetsController', () => {

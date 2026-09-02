@@ -1,7 +1,7 @@
 import type {
   PWAAppConfig,
   PWAAppNameKey,
-} from '@genfeedai/interfaces/pwa/pwa.interface';
+} from '@genfeedai/contracts/interfaces/pwa/pwa.interface';
 
 const PWA_THEME_DEFAULTS = {
   backgroundColor: '#1a1a2e',

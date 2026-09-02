@@ -1,12 +1,12 @@
 'use client';
 
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   InstagramIcon,
   TiktokIcon,
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
 import type { ProfileSocialLinksProps } from '@props/content/profile.props';
 

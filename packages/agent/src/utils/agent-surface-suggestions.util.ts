@@ -2,7 +2,7 @@ import type {
   BrandPromptIntent,
   IBrandAgentConfig,
   IBrandPromptSeed,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export type AgentPromptSurface =
   | 'analytics'

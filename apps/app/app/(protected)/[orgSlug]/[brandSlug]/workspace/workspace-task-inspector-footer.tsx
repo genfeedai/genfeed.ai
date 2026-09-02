@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Task } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';

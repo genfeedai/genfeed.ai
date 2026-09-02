@@ -1,4 +1,7 @@
-import { type IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
+import {
+  type IntegrationPlatform,
+  IntegrationStatus,
+} from '@genfeedai/contracts';
 import type { OrgIntegration } from './types';
 
 const INTEGRATION_STATUS_VALUES = new Set<string>(

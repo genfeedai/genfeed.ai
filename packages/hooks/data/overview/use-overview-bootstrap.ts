@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAnalytics } from '@genfeedai/interfaces';
+import type { IAnalytics } from '@genfeedai/contracts/interfaces';
 import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
 import {
   AuthService,

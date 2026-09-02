@@ -1,4 +1,4 @@
-import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 // @ts-expect-error storybook types not available
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommandPaletteView } from '@ui/command-palette/command-palette/CommandPaletteView';

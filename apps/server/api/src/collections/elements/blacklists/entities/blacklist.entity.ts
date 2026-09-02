@@ -1,5 +1,5 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { type ElementBlacklist } from '@genfeedai/prisma';
 
 export class ElementBlacklistEntity

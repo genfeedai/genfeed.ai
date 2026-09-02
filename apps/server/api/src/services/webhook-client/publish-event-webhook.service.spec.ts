@@ -1,10 +1,10 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TargetExecutionState } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/contracts';
 import {
   WEBHOOK_CLIENT_QUEUE,
   type WebhookJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';

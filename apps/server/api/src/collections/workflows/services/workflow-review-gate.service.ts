@@ -16,7 +16,7 @@ import {
   WorkflowExecutorDocumentService,
 } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import type {
   ExecutableWorkflow,
   ExecutionRunResult,

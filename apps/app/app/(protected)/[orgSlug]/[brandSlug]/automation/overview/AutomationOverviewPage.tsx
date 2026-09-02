@@ -1,8 +1,8 @@
 'use client';
 
-import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';

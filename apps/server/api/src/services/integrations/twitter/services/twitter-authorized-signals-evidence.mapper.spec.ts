@@ -1,10 +1,10 @@
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalsSnapshot,
   type TwitterOwnedPostSignal,
   twitterAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/twitter-authorized-signals.contract';
-import { CredentialPlatform } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/twitter-authorized-signals.contract';
 import {
   assembleTwitterAuthorizedSnapshot,
   buildDerivedPostEvidence,

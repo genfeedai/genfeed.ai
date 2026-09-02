@@ -1,5 +1,5 @@
-import { PageScope, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import { PageScope, PostStatus } from '@genfeedai/contracts';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 import { buildPostsCardActions } from './PostsCardActions';
 import { buildPostsTableActions } from './PostsTableActions';

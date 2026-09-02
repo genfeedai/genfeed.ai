@@ -5,7 +5,8 @@ import type { TrendNotificationCadence } from '@api/collections/workflows/templa
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';
+import { ParseMode, TrendNotificationFrequency } from '@genfeedai/contracts';
+import type { ITrendSummaryPayload } from '@genfeedai/contracts/interfaces';
 import {
   buildTrendDigestHtml,
   buildTrendDigestItems,
@@ -15,7 +16,6 @@ import {
   type RawTrendVideo,
   type TrendDigestItem,
 } from '@genfeedai/helpers';
-import type { ITrendSummaryPayload } from '@genfeedai/interfaces';
 import type { Setting } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

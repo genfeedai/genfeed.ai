@@ -1,4 +1,4 @@
-import { EngagementRuleState } from '@genfeedai/enums';
+import { EngagementRuleState } from '@genfeedai/contracts';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 
 describe('engagement failure messages', () => {

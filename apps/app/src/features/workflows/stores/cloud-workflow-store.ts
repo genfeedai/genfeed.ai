@@ -1,4 +1,4 @@
-import { WorkflowLifecycle } from '@genfeedai/enums';
+import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
 import { create } from 'zustand';

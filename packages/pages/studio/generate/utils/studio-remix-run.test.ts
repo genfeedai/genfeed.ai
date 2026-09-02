@@ -1,4 +1,4 @@
-import type { BrandRemixRunView } from '@api-types/contracts';
+import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import { describe, expect, it } from 'vitest';
 import {

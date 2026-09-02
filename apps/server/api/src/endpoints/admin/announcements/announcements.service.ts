@@ -11,7 +11,10 @@ import {
   type AnnouncementChannel,
   BroadcastAnnouncementDto,
 } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
-import { CredentialPlatform, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';

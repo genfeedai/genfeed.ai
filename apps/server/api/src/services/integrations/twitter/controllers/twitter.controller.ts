@@ -15,7 +15,7 @@ import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
   toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,

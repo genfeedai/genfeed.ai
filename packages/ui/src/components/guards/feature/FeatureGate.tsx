@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@genfeedai/hooks/feature-flags/provider';
 import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.props';

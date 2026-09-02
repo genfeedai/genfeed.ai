@@ -13,8 +13,8 @@ import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/uti
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { type AgentDashboardOperation } from '@genfeedai/interfaces';
+import { AgentMessageRole } from '@genfeedai/contracts';
+import { type AgentDashboardOperation } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()

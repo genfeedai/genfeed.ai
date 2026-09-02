@@ -1,6 +1,6 @@
 'use client';
 
-import type { VideoInputNodeData } from '@genfeedai/types';
+import type { VideoInputNodeData } from '@genfeedai/contracts/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, LoaderCircle, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';

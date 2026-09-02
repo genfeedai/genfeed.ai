@@ -1,4 +1,4 @@
-import { PlatformRole } from '@genfeedai/enums';
+import { PlatformRole } from '@genfeedai/contracts';
 
 export function isPlatformSuperAdmin(platformRole: unknown): boolean {
   return (

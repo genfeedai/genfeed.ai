@@ -1,7 +1,5 @@
 'use client';
 
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -12,7 +10,9 @@ import type {
   IElementScene,
   IElementStyle,
   ISound,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ElementsService } from '@genfeedai/services/elements/elements.service';

@@ -10,7 +10,7 @@ import {
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { MAX_PAGE_SIZE } from '@genfeedai/constants';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 

@@ -16,7 +16,7 @@ import { SocialInboxQueryService } from '@api/collections/social-inbox/services/
 import type {
   SocialInboxAgentContextRecord,
   SocialInboxReference,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 export type {

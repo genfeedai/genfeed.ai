@@ -63,7 +63,7 @@ import {
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { ArticleScope, WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

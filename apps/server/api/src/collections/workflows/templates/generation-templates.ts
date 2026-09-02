@@ -1,7 +1,7 @@
 import { AVATAR_UGC_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-workflow.template';
 import { AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-x-landscape-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
 export interface WorkflowTemplate {
   id: string;

@@ -22,7 +22,7 @@ import {
   ActivityKey,
   IngredientCategory,
   MetadataExtension,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';

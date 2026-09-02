@@ -3,8 +3,8 @@ import {
   ModelLifecycle,
   ModelProvider,
   RouterPriority,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';

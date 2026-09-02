@@ -1,6 +1,6 @@
 'use client';
 
-import { ViewType } from '@genfeedai/enums';
+import { ViewType } from '@genfeedai/contracts';
 import type { StudioGenerateResultsProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';

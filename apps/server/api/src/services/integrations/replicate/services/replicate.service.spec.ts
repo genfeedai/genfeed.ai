@@ -1,5 +1,5 @@
 import { isCloudDeployment } from '@genfeedai/config';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import Replicate from 'replicate';

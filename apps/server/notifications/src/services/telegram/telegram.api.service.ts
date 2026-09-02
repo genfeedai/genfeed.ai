@@ -1,4 +1,4 @@
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

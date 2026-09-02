@@ -1,4 +1,4 @@
-import type { IPostingSignature } from '@genfeedai/interfaces';
+import type { IPostingSignature } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import PostingSignaturePicker from './PostingSignaturePicker';

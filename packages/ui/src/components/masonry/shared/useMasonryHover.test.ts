@@ -1,4 +1,4 @@
-import type { IIngredient } from '@genfeedai/interfaces';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import type { MouseEvent } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

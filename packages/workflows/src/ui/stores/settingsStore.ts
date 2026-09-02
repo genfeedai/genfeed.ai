@@ -1,5 +1,5 @@
-import type { EdgeStyle, ProviderType } from '@genfeedai/types';
-import { ProviderTypeEnum } from '@genfeedai/types';
+import type { EdgeStyle, ProviderType } from '@genfeedai/contracts/types';
+import { ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { create } from 'zustand';
 import type { SettingsSyncService } from '../provider/types';
 import { getEdgeStyleMirror, setEdgeStylePreference } from './edgeStyleMirror';

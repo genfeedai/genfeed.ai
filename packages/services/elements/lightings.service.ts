@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ElementLighting } from '@genfeedai/models/elements/lighting.model';
 import { LightingSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

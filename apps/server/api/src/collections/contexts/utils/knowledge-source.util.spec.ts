@@ -5,7 +5,10 @@ import {
   upsertKnowledgeSource,
   writeKnowledgeSources,
 } from '@api/collections/contexts/utils/knowledge-source.util';
-import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
+import {
+  KnowledgeBaseCategory,
+  KnowledgeBaseStatus,
+} from '@genfeedai/contracts';
 
 describe('knowledge-source.util', () => {
   const source = {

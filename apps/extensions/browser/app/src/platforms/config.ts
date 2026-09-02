@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 
 // Platform configuration for multi-platform support

@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
-const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
+const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
+const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
 
 export default defineConfig({
   resolve: {
@@ -20,11 +20,11 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../client/src/$1'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: CONSTANTS_SRC,
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: ENUMS_SRC,
       },
       {
@@ -36,12 +36,12 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
-        find: '@genfeedai/interfaces',
-        replacement: path.resolve(__dirname, '../interfaces/src'),
+        find: '@genfeedai/contracts/interfaces',
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces'),
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
-        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
       },
       {
         find: '@genfeedai/services',

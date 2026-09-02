@@ -1,5 +1,5 @@
-import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import { Button } from '@ui/primitives/button';

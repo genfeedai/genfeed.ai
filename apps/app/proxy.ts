@@ -15,8 +15,8 @@ import {
   LEGACY_APP_ROUTES,
   ONBOARDING_STEPS,
   parseScopedAppPath,
-} from '@genfeedai/constants';
-import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/constants';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {

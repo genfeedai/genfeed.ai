@@ -1,7 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, SocialSourceType } from '@genfeedai/enums';
-import type { ISocialSource } from '@genfeedai/interfaces';
+import {
+  ButtonSize,
+  ButtonVariant,
+  SocialSourceType,
+} from '@genfeedai/contracts';
+import type { ISocialSource } from '@genfeedai/contracts/interfaces';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

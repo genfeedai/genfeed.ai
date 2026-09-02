@@ -1,6 +1,6 @@
 'use client';
 
-import type { IFolder } from '@genfeedai/interfaces';
+import type { IFolder } from '@genfeedai/contracts/interfaces';
 import type { Folder } from '@models/content/folder.model';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { Switch } from '@ui/primitives/switch';

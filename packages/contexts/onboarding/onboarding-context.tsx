@@ -1,19 +1,19 @@
 'use client';
 
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
-import type { OnboardingStepKey } from '@genfeedai/constants';
+import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import type { OnboardingStepKey } from '@genfeedai/contracts/constants';
 import {
   APP_ROUTES,
   ONBOARDING_STEP_LABELS,
   ONBOARDING_STEPS,
   resolveOnboardingContinueHref,
-} from '@genfeedai/constants';
-import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
-import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
-import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+} from '@genfeedai/contracts/constants';
+import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { IOnboardingContextValue } from '@genfeedai/interfaces';
 import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboarding-provider.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';

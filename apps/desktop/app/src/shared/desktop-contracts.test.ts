@@ -3,7 +3,7 @@ import {
   buildDesktopAssetUrl,
   DESKTOP_IPC_CHANNELS,
   parseDesktopAssetUrl,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import {
   buildWorkspaceAssetsDir,
   buildWorkspaceDraftsPath,

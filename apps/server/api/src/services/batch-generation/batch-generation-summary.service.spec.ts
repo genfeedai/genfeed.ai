@@ -4,7 +4,7 @@ import {
   BatchStatus,
   ContentFormat,
   ReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BatchGenerationSummaryService assignee projection', () => {

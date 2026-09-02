@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';

@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+import { ButtonVariant, type IngredientCategory } from '@genfeedai/contracts';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';

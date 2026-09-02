@@ -7,7 +7,7 @@ import { WorkflowNotificationOutboxService } from '@api/services/notifications/w
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { NOTIFICATION_DELIVERY_QUEUE } from '@genfeedai/queue-contracts';
+import { NOTIFICATION_DELIVERY_QUEUE } from '@genfeedai/contracts/queue';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerModule } from '@libs/logger/logger.module';

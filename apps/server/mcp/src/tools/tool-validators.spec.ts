@@ -3,7 +3,7 @@ import {
   PostStatus,
   PostVisibility,
   TargetExecutionState,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 import {

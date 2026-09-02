@@ -1,4 +1,4 @@
-import { Platform, Timeframe } from '@genfeedai/enums';
+import { Platform, Timeframe } from '@genfeedai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

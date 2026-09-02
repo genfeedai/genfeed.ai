@@ -60,8 +60,8 @@ import {
   ReplyTone,
   toPrismaCredentialPlatform,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';

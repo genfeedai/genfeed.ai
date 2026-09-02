@@ -1,7 +1,7 @@
 'use client';
 
-import type { ModelCategory } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import type { ModelCategory } from '@genfeedai/contracts';
+import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ModelsService } from '@services/ai/models.service';
 import { useEffect, useState } from 'react';

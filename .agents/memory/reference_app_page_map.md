@@ -15,7 +15,7 @@ is only a discovery subset.
 Source of truth:
 
 - Next App Router pages under `apps/app/app/**/page.tsx`
-- Route constants in `packages/constants/src/routes.constant.ts`
+- Route constants in `packages/contracts/src/constants/routes.constant.ts`
 - Executable protected-route classification in
   `apps/app/src/lib/workspace-shell/workspace-shell-registry.ts`
 - Protected/public page drift guard and public classification registry in

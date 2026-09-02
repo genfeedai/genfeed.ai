@@ -20,7 +20,7 @@ import {
   TwitterService,
 } from '@api/services/integrations/twitter/services/twitter.service';
 import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

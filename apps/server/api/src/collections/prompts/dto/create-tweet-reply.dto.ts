@@ -1,4 +1,4 @@
-import { ReplyLength, ReplyTone } from '@genfeedai/enums';
+import { ReplyLength, ReplyTone } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,

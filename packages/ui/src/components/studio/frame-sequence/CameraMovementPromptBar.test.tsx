@@ -1,4 +1,4 @@
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
+import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import { fireEvent, render, screen } from '@testing-library/react';
 import CameraMovementPromptBar from '@ui/studio/frame-sequence/CameraMovementPromptBar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

@@ -1,5 +1,5 @@
 import { BaseEntity } from '@api/entities/base.entity';
-import { VoteEntityModel } from '@genfeedai/enums';
+import { VoteEntityModel } from '@genfeedai/contracts';
 import { type Vote } from '@genfeedai/prisma';
 
 export class VoteEntity extends BaseEntity implements Vote {

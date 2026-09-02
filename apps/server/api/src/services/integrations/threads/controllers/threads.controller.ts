@@ -15,7 +15,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,

@@ -18,7 +18,7 @@ import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.service';
-import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
+import type { IAnalytics, IBrand } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 

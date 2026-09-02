@@ -54,8 +54,8 @@ import {
   PostCategory,
   PostStatus,
   TargetExecutionState,
-} from '@genfeedai/enums';
-import type { AccountPublishingContext } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

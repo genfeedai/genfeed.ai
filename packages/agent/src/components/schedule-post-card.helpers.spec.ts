@@ -1,4 +1,4 @@
-import { ReleaseAttachmentKind } from '@genfeedai/enums';
+import { ReleaseAttachmentKind } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   buildSignatureAttachments,

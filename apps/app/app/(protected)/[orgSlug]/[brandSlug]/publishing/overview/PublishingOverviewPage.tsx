@@ -1,11 +1,11 @@
 'use client';
 
+import { BatchItemStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
-} from '@genfeedai/constants';
-import { BatchItemStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
+} from '@genfeedai/contracts/constants';
+import type { OverviewCard } from '@genfeedai/contracts/interfaces/ui/overview-card.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isBrandResourceReady,

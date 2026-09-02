@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { IBusinessAnalytics } from '@services/analytics/analytics.service';

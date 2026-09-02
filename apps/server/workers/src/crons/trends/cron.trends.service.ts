@@ -17,7 +17,7 @@ import {
 import {
   fromPrismaCredentialPlatform,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

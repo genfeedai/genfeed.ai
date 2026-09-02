@@ -1,13 +1,13 @@
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import type { JobConfig } from '@files/shared/interfaces/job-config.interface';
 import { BaseQueueService } from '@files/shared/services/base-queue/base-queue.service';
-import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/contracts/interfaces';
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
   type FileJobType as JobType,
   FILE_QUEUE_NAMES as QUEUE_NAMES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';

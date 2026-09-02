@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IPostPlatformConfig } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Sparkles } from 'lucide-react';

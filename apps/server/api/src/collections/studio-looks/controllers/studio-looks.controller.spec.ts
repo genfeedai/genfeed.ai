@@ -2,7 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { StudioLooksController } from '@api/collections/studio-looks/controllers/studio-looks.controller';
 import { StudioLooksQueryDto } from '@api/collections/studio-looks/dto/studio-looks-query.dto';
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
-import { RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

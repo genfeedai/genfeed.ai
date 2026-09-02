@@ -7,7 +7,7 @@ import {
   DEFAULT_CLIP_RESULT_MODE,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,

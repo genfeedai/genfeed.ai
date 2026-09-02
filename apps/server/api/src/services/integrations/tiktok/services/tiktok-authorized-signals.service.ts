@@ -18,13 +18,13 @@ import {
   parseTikTokGrantedScopes,
 } from '@api/services/integrations/tiktok/utils/tiktok-error.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import {
   type TikTokAuthorizedSignalEvidence,
   type TikTokAuthorizedSignalReason,
   type TikTokAuthorizedSignalsSnapshot,
   tiktokAuthorizedSignalsSnapshotSchema,
-} from '@api-types/contracts/tiktok-authorized-signals.contract';
-import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/tiktok-authorized-signals.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';

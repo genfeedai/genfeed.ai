@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import type {
   Brand,
   Organization,

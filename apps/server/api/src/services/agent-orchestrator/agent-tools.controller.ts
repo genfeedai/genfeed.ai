@@ -10,7 +10,7 @@ import {
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolByName } from '@genfeedai/actions';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

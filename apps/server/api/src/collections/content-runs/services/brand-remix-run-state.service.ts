@@ -11,16 +11,16 @@ import {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ContentRunStatus,
+  IngredientStatus,
+  PersistedReviewDecision,
+} from '@genfeedai/contracts';
+import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,
   type BrandRemixRunView,
   brandRemixRunConfigSchema,
-} from '@api-types/contracts/brand-remix-run.contract';
-import {
-  ContentRunStatus,
-  IngredientStatus,
-  PersistedReviewDecision,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()

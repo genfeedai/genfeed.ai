@@ -1,12 +1,12 @@
 'use client';
 
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
   BrandRemixSourceSelector,
-} from '@api-types/contracts';
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ContentRunsService } from '@services/content/content-runs.service';

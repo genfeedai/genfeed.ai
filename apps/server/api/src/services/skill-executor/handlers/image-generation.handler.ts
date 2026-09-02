@@ -10,8 +10,8 @@ import type {
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
-import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { ByokProvider, ImageTaskModel } from '@genfeedai/contracts';
+import type { ByokResolutionResult } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**

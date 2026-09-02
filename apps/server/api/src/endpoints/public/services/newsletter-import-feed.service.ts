@@ -1,11 +1,11 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { sanitizeHtml } from '@genfeedai/helpers';
 import type {
   NewsletterFeedBrand,
   NewsletterImportRecord,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { sanitizeHtml } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 import { marked } from 'marked';

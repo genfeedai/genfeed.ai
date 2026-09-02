@@ -1,5 +1,5 @@
 import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
-import { OnboardingType } from '@genfeedai/enums';
+import { OnboardingType } from '@genfeedai/contracts';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsArray,

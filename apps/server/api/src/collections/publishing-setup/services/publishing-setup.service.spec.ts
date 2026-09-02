@@ -3,7 +3,7 @@ import { PublishingProviderSetupService } from '@api/collections/publishing-setu
 import { PublishingSetupService } from '@api/collections/publishing-setup/services/publishing-setup.service';
 import type { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { IPublishingSetupCheck } from '@genfeedai/interfaces';
+import type { IPublishingSetupCheck } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 

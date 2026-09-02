@@ -1,6 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { AssetCategory, AssetParent } from '@genfeedai/enums';
-import type { IAsset, IUser } from '@genfeedai/interfaces';
+import type { AssetCategory, AssetParent } from '@genfeedai/contracts';
+import type { IAsset, IUser } from '@genfeedai/contracts/interfaces';
 
 export class Asset extends BaseEntity implements IAsset {
   public declare userId: string;

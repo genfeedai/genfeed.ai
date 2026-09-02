@@ -13,13 +13,13 @@ import {
   PLACEHOLDER_BRAND_DESCRIPTION,
 } from '@api/services/signup-prefill/utils/brand-system-prompt.util';
 import { buildSignupHarnessProfile } from '@api/services/signup-prefill/utils/harness-seed.util';
-import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import type {
   IBrandVoiceAnalysis,
   IExtractedBrandData,
   IScrapedBrandData,
   SignupPrefillWorkflowInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

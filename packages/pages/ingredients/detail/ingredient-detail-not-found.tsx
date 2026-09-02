@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';

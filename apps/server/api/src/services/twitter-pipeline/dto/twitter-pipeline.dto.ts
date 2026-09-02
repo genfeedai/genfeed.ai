@@ -1,7 +1,7 @@
 import type {
   ITwitterSearchResult,
   ITwitterVoiceConfig,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   IsArray,
   IsEnum,

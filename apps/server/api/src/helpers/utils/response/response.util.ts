@@ -2,7 +2,7 @@ import type {
   IJsonApiSerializer,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 

@@ -4,7 +4,7 @@ import { AgentMemoryCaptureService } from '@api/collections/agent-memories/servi
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,7 +1,7 @@
 'use client';
 
-import type { WorkflowExecutionStatus } from '@genfeedai/enums';
-import { ButtonVariant } from '@genfeedai/enums';
+import type { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';

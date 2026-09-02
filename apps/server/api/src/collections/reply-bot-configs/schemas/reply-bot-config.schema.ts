@@ -3,7 +3,7 @@ import type {
   ReplyBotType,
   ReplyLength,
   ReplyTone,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ReplyBotConfig } from '@genfeedai/prisma';
 
 export type { ReplyBotConfig } from '@genfeedai/prisma';

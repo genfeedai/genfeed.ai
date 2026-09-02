@@ -2,9 +2,9 @@ import '@testing-library/jest-dom/vitest';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { IWorkflowExecution } from '@genfeedai/interfaces';
-import type { WorkflowExecutionStats } from '@genfeedai/types';
+} from '@genfeedai/contracts';
+import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

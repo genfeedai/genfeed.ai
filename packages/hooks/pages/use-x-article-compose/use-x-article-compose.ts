@@ -1,7 +1,7 @@
 'use client';
 
+import type { IXArticleMetadata } from '@genfeedai/contracts/interfaces';
 import { sanitizeHtml } from '@genfeedai/helpers';
-import type { IXArticleMetadata } from '@genfeedai/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';

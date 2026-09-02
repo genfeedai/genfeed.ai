@@ -6,7 +6,7 @@ import type {
 } from '@api/collections/agent-publish-audits/schemas/agent-publish-audit.schema';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { parseAgentPublishDecision } from '@genfeedai/enums';
+import { parseAgentPublishDecision } from '@genfeedai/contracts';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type StoredAgentPublishAuditRow = {

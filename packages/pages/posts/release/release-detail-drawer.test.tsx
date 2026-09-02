@@ -4,8 +4,11 @@ import {
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
-} from '@genfeedai/enums';
-import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type {
+  IChannelTarget,
+  IReleaseGroup,
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';

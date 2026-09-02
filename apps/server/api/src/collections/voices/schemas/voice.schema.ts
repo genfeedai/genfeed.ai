@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/contracts';
 import type { Ingredient } from '@genfeedai/prisma';
 
 export interface VoiceDocument extends Ingredient {

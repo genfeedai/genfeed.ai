@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@genfeedai/interfaces';
+import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 export interface SchedulePostCardTarget {
   credentialId?: string;

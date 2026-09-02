@@ -1,4 +1,8 @@
-import type { ICreatePrompt, IPrompt, IQueryPrompts } from '@genfeedai/types';
+import type {
+  ICreatePrompt,
+  IPrompt,
+  IQueryPrompts,
+} from '@genfeedai/contracts/types';
 import { apiClient } from './client';
 
 /**

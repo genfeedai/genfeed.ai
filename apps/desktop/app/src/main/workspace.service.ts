@@ -7,7 +7,7 @@ import type {
   IDesktopWorkspaceCloudLink,
   IDesktopWorkspaceCloudLinkInput,
   IDesktopWorkspaceFile,
-} from '@genfeedai/desktop-contracts';
+} from '@genfeedai/contracts/desktop';
 import {
   buildWorkspaceMetadataDir,
   DEFAULT_MAX_INDEXED_FILES,

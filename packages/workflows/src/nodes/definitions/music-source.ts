@@ -5,7 +5,7 @@
  * Supports trending sounds, curated library, user uploads, and AI generation.
  */
 
-import { MusicSourceType } from '@genfeedai/enums';
+import { MusicSourceType } from '@genfeedai/contracts';
 import type { BaseTrendNodeData } from './trend-shared';
 
 export interface MusicSourceNodeData extends BaseTrendNodeData {

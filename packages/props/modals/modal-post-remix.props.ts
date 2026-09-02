@@ -1,4 +1,4 @@
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/contracts/interfaces';
 
 export interface ModalPostRemixProps {
   post: IPost;

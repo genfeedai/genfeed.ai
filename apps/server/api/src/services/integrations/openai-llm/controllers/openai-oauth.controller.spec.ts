@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenAiOAuthController } from '@api/services/integrations/openai-llm/controllers/openai-oauth.controller';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ByokProvider } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';

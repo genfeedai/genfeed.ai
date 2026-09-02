@@ -9,13 +9,13 @@ import {
   ModalEnum,
   PageScope,
   Platform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import type { IBrand, IWatchlist } from '@genfeedai/contracts/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
 } from '@genfeedai/helpers/ui/form-error/form-error.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
-import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
 import type { ModalWatchlistProps } from '@genfeedai/props/components/modal-watchlist.props';
 import { WatchlistService } from '@genfeedai/services/analytics/watchlist.service';
 import Alert from '@ui/feedback/alert/Alert';

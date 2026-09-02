@@ -1,7 +1,7 @@
 import {
   listExecutableOutreachCampaignTypes,
   listExecutableOutreachPlatforms,
-} from '@api-types/contracts/outreach-capabilities.contract';
+} from '@genfeedai/contracts/api-types/contracts/outreach-capabilities.contract';
 import { describe, expect, it } from 'vitest';
 import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools';
 

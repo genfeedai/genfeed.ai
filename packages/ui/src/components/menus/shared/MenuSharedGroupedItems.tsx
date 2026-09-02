@@ -1,6 +1,6 @@
 'use client';
 
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import MenuItem from '@ui/menus/item/MenuItem';
 import CollapsibleGroup from './CollapsibleGroup';
 import DrillDownGroupRow from './DrillDownGroupRow';

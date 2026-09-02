@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   AdWatchedAdvertiser,
   AdWatchlistPlatform,
   AdWatchlistPlatformReadiness,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';

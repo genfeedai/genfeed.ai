@@ -18,13 +18,13 @@ import {
   resolveLockedGenerationType,
   type ThreadGenerationType,
 } from '@api/services/agent-orchestrator/utils/thread-generation-type.util';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/contracts';
 import type {
   AgentClipRunIdentity,
   AgentNextStepOption,
   AgentToolResult,
   AgentUiActionCta,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 
 interface AgentBrandsServiceLike {

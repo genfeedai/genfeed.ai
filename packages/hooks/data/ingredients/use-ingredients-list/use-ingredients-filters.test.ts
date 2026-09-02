@@ -2,7 +2,7 @@ import {
   IngredientCategory,
   IngredientFormat,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   isIngredientFormat,
   useIngredientsFilters,

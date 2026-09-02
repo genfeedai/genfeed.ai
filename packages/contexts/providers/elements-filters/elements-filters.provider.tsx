@@ -1,7 +1,7 @@
 'use client';
 
-import type { IFilterContextValue } from '@genfeedai/interfaces/providers/providers.interface';
-import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
+import type { IFilterContextValue } from '@genfeedai/contracts/interfaces/providers/providers.interface';
+import type { IFilters } from '@genfeedai/contracts/interfaces/utils/filters.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';

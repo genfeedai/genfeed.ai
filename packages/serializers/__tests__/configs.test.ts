@@ -1,4 +1,4 @@
-import { AssetScope, Platform } from '@genfeedai/enums';
+import { AssetScope, Platform } from '@genfeedai/contracts';
 import { articleAttributes } from '@serializers/attributes/content/article.attributes';
 import { postAttributes } from '@serializers/attributes/content/post.attributes';
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';

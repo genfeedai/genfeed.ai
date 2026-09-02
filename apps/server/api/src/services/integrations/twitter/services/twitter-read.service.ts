@@ -1,4 +1,4 @@
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
+import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { TwitterApi } from 'twitter-api-v2';

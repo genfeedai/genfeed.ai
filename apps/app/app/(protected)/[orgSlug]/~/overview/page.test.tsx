@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { redirect } from 'next/navigation';
 import { describe, expect, it, vi } from 'vitest';

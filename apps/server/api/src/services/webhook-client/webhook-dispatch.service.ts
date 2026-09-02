@@ -5,24 +5,24 @@ import {
   createSampleGenerationWebhookPayload,
   GENERATION_WEBHOOK_EVENT_TYPES,
   type GenerationWebhookEventType,
-} from '@api-types/contracts/generation-webhook-events.contract';
-import { createSamplePublishWebhookPayload } from '@api-types/contracts/publish-webhook-events.contract';
+} from '@genfeedai/contracts/api-types/contracts/generation-webhook-events.contract';
+import { createSamplePublishWebhookPayload } from '@genfeedai/contracts/api-types/contracts/publish-webhook-events.contract';
 import {
   isOrganizationWebhookEventEnabled,
   isOrganizationWebhookEventType,
   type OrganizationWebhookEventType,
-} from '@api-types/contracts/webhook-events.contract';
-import { redactWebhookText } from '@api-types/contracts/webhook-events.shared';
+} from '@genfeedai/contracts/api-types/contracts/webhook-events.contract';
+import { redactWebhookText } from '@genfeedai/contracts/api-types/contracts/webhook-events.shared';
 import {
   createSampleWorkflowWebhookPayload,
   WORKFLOW_WEBHOOK_EVENT_TYPES,
   type WorkflowWebhookEventType,
-} from '@api-types/contracts/workflow-webhook-events.contract';
-import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/api-types/contracts/workflow-webhook-events.contract';
+import type { IWebhookDeliveryStatus } from '@genfeedai/contracts/interfaces';
 import {
   WEBHOOK_CLIENT_QUEUE,
   type WebhookJobData,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';

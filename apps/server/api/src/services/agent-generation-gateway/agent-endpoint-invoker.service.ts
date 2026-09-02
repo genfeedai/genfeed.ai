@@ -16,7 +16,7 @@ import type {
   AgentEndpointRequest,
 } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { CreditsConfig } from '@genfeedai/interfaces';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { ForbiddenException, Injectable, type Type } from '@nestjs/common';
 
 /**

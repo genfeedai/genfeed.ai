@@ -1,4 +1,4 @@
-import type { AssetScope } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/contracts';
 
 export type ScopeSelectorVariant = 'default' | 'panel';
 

@@ -26,7 +26,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type {
   AgentClipRunIdentity,
   AgentClipRunIdentityField,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';

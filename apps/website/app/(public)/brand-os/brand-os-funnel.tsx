@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IBrandOsPreview } from '@genfeedai/interfaces';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IBrandOsPreview } from '@genfeedai/contracts/interfaces';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';

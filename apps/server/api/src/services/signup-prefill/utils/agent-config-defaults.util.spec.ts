@@ -1,6 +1,6 @@
 import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
-import { Platform } from '@genfeedai/enums';
-import type { IScrapedBrandData } from '@genfeedai/interfaces';
+import { Platform } from '@genfeedai/contracts';
+import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 import {

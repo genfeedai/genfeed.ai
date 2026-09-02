@@ -1,5 +1,5 @@
-import type { ModelUseCase, ProviderType } from '@genfeedai/types';
-import { ModelUseCaseEnum, ProviderTypeEnum } from '@genfeedai/types';
+import type { ModelUseCase, ProviderType } from '@genfeedai/contracts/types';
+import { ModelUseCaseEnum, ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { Layers, Palette, Repeat, Sparkles, User, ZoomIn } from 'lucide-react';
 
 export const PROVIDER_COLORS: Record<ProviderType, string> = {

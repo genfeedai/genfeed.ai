@@ -1,13 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   BrandInterviewAnswerValue,
   BrandInterviewGroup,
   IBrandInterviewQuestion,
   IBrandInterviewStep,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import { personalizeBrandInterviewExamples } from '@genfeedai/helpers';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';

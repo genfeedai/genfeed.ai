@@ -5,7 +5,7 @@ import {
   ModalEnum,
   QualityTier,
   SubscriptionTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

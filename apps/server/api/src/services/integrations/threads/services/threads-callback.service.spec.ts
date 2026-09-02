@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ThreadsCallbackService } from '@api/services/integrations/threads/services/threads-callback.service';
 import { verifyThreadsDeletionReceipt } from '@api/services/integrations/threads/services/threads-callback-signature.util';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import {
   ServiceUnavailableException,
   UnauthorizedException,

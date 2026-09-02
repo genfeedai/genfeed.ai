@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { KPISectionProps } from '@genfeedai/props/ui/kpi/kpi-section.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';

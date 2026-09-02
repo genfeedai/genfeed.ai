@@ -1,5 +1,5 @@
 import { JsonPromptBuilder } from '@api/services/prompt-builder/utils/json-prompt.util';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('JsonPromptBuilder', () => {

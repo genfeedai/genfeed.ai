@@ -13,7 +13,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
-import { ContentPlanStatus } from '@genfeedai/enums';
+import { ContentPlanStatus } from '@genfeedai/contracts';
 import {
   Prisma,
   type ContentPlan as PrismaContentPlan,

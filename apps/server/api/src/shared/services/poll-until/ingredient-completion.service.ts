@@ -1,8 +1,8 @@
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
-import { IngredientStatus } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import { IngredientStatus } from '@genfeedai/contracts';
+import type { PopulateOption } from '@genfeedai/contracts/interfaces';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 /** Statuses that end an ingredient's generation, success or failure. */

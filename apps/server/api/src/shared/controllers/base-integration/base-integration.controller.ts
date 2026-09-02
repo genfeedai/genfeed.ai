@@ -3,7 +3,7 @@ import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.inter
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ConnectCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus } from '@nestjs/common';

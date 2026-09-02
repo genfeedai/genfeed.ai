@@ -4,7 +4,7 @@ import {
   formatEnumLabel,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import type { Ingredient } from '@models/content/ingredient.model';

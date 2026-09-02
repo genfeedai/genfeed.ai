@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import * as Sentry from '@sentry/nextjs';
 import { Button } from '@ui/primitives/button';
 import { ThemeDocumentBootstrapScript } from '@ui/theme/ThemeBootstrapScript';

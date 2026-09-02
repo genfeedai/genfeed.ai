@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';

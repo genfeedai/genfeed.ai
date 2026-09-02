@@ -1,7 +1,7 @@
 import type {
   PWAAppConfig,
   PWAAppNameKey,
-} from '@genfeedai/interfaces/pwa/pwa.interface';
+} from '@genfeedai/contracts/interfaces/pwa/pwa.interface';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies - inline the data in the factory to avoid TDZ hoisting issues

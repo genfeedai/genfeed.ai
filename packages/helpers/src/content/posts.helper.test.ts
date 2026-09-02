@@ -1,5 +1,5 @@
-import { createPublishingPostsFilterRoute } from '@genfeedai/constants';
-import { Platform, PostStatus } from '@genfeedai/enums';
+import { Platform, PostStatus } from '@genfeedai/contracts';
+import { createPublishingPostsFilterRoute } from '@genfeedai/contracts/constants';
 import * as PostsHelper from '@helpers/content/posts.helper';
 import { describe, expect, it } from 'vitest';
 

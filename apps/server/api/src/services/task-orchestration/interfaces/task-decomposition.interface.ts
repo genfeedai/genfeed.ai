@@ -1,4 +1,4 @@
-import type { AgentType } from '@genfeedai/enums';
+import type { AgentType } from '@genfeedai/contracts';
 
 /**
  * A single subtask produced by the decomposition LLM.

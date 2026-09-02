@@ -1,7 +1,7 @@
 'use client';
 
-import type { ITraining } from '@genfeedai/interfaces';
-import type { TrainingContextType } from '@genfeedai/interfaces/training/training-context.interface';
+import type { ITraining } from '@genfeedai/contracts/interfaces';
+import type { TrainingContextType } from '@genfeedai/contracts/interfaces/training/training-context.interface';
 import { createContext, type ReactNode, use, useMemo } from 'react';
 
 const TrainingContext = createContext<TrainingContextType | undefined>(

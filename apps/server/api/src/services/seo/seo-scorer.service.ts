@@ -8,7 +8,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

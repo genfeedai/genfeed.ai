@@ -10,8 +10,8 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/interfaces/ai/harness-pack-registry.interface": [
-        "../interfaces/src/ai/harness-pack-registry.interface.ts"
+      "@genfeedai/contracts/interfaces/ai/harness-pack-registry.interface": [
+        "../contracts/src/interfaces/ai/harness-pack-registry.interface.ts"
       ]
     },
     "resolveJsonModule": true,

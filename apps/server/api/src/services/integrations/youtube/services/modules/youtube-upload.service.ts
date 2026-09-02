@@ -8,13 +8,13 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import { PostVisibility } from '@genfeedai/contracts';
 import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,
   readChannelSettingString,
-} from '@api-types/contracts/channel-capabilities.contract';
-import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
-import { PostVisibility } from '@genfeedai/enums';
+} from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

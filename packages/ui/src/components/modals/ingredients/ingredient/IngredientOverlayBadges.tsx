@@ -1,5 +1,5 @@
-import { formatEnumLabel } from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+import { formatEnumLabel } from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 
 type Props = {
   ingredient: IIngredient;

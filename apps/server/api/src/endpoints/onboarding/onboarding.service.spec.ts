@@ -30,7 +30,7 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { OrganizationCategory } from '@genfeedai/enums';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 

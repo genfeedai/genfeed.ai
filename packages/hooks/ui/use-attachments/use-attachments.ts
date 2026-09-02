@@ -1,4 +1,4 @@
-import { UploadStatus } from '@genfeedai/enums';
+import { UploadStatus } from '@genfeedai/contracts';
 import type {
   AttachmentItem,
   ChatAttachment,

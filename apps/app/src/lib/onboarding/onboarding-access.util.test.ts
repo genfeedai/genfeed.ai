@@ -1,4 +1,4 @@
-import type { ISetting } from '@genfeedai/interfaces';
+import type { ISetting } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   buildGenfeedCloudSignupUrl,

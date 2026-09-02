@@ -1,4 +1,4 @@
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { getIngredientExtension } from '@utils/media/ingredient-type.util';
 import { saveAs } from 'file-saver';
 

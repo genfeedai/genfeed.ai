@@ -1,4 +1,4 @@
-import type { ContentPlanStatus } from '@genfeedai/enums';
+import type { ContentPlanStatus } from '@genfeedai/contracts';
 import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
 
 export type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';

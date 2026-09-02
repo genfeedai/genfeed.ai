@@ -3,7 +3,7 @@ import type {
   SystemWorkflowActionRequest,
   SystemWorkflowProvenance,
 } from '@api/collections/workflows/system-workflow-runner.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 
 export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
 

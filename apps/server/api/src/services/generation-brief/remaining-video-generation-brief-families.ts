@@ -14,12 +14,12 @@ import {
   VEO_VIDEO_COMPILER_ID,
   VIDU_VIDEO_COMPILER_ID,
   WAN_VIDEO_COMPILER_ID,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   buildRemainingVideoCapabilityProfile,
   type RemainingVideoCapabilityProfile,
-} from '@api-types/contracts/video-generation-capability-profile-remaining.contract';
-import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/constants';
+} from '@genfeedai/contracts/api-types/contracts/video-generation-capability-profile-remaining.contract';
+import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 
 export interface RemainingVideoFamilyDispatchSpec {

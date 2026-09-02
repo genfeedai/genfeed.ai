@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
+import { DESKTOP_IPC_CHANNELS } from '@genfeedai/contracts/desktop';
 import type { BrowserWindow } from 'electron';
 import {
   type ElectronMenuItem,

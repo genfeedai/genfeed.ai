@@ -1,7 +1,7 @@
 'use client';
 
-import { ModalEnum } from '@genfeedai/enums';
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
+import { ModalEnum } from '@genfeedai/contracts';
+import type { IOrganizationSetting } from '@genfeedai/contracts/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { EditSettingModal } from '@protected/organization/components/edit-setting-modal';
 import { SettingRow } from '@protected/organization/components/setting-row';

@@ -17,12 +17,20 @@
     "outDir": "./dist",
     "paths": {
       "@/*": ["./src/*"],
-      "@api-types/*": ["../../../../../packages/api-types/src/*"],
-      "@genfeedai-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "../../../../../packages/contracts/src/api-types/*"
+      ],
+      "@genfeedai/contracts/types/*": [
+        "../../../packages/contracts/src/types/*"
+      ],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
-      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/contracts/interfaces": [
+        "../../../packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "../../../packages/contracts/src/interfaces/*"
+      ],
       "@genfeedai/ui/*": ["../../../../packages/ui/src/*"],
       "@commands/*": ["./src/commands/*"],
       "@services/*": ["./src/services/*"],

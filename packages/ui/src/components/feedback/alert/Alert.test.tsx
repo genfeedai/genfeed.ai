@@ -1,4 +1,4 @@
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Alert from '@ui/feedback/alert/Alert';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,17 +1,17 @@
 import {
-  APP_ROUTES,
-  createPlatformHomeRoute,
-  createPublishingPostsFilterRoute,
-  withPlatformQuery,
-} from '@genfeedai/constants';
-import {
   formatPlatformLabel,
   isTwitchPlatform,
   isTwitterPlatform,
   isYouTubePlatform,
   Platform,
   parsePlatform,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createPlatformHomeRoute,
+  createPublishingPostsFilterRoute,
+  withPlatformQuery,
+} from '@genfeedai/contracts/constants';
 import type {
   PlatformConnectionHealth,
   PlatformHomeConnection,

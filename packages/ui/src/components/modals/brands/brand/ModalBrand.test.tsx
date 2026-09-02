@@ -1,5 +1,5 @@
-import { LinkCategory, ModalEnum } from '@genfeedai/enums';
-import type { ILink } from '@genfeedai/interfaces';
+import { LinkCategory, ModalEnum } from '@genfeedai/contracts';
+import type { ILink } from '@genfeedai/contracts/interfaces';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';

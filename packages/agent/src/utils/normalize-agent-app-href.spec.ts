@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { describe, expect, it } from 'vitest';
 import { normalizeAgentAppHref } from './normalize-agent-app-href';

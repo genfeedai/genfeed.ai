@@ -14,7 +14,7 @@ import {
   ModelCategory,
   PromptCategory,
   RouterPriority,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';

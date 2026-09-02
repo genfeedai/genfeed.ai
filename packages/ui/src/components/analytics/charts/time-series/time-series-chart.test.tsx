@@ -1,4 +1,4 @@
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { TimeSeriesChart } from '@ui/analytics/charts/time-series/time-series-chart';
 import { describe, expect, it, vi } from 'vitest';

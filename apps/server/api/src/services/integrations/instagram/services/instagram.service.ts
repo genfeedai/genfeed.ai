@@ -7,11 +7,7 @@ import {
   getInstagramErrorCode,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
-import {
-  buildGrantedScopesCredentialPatch,
-  readOAuthTokenScopeField,
-} from '@genfeedai/helpers';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import type {
   InstagramAccountDetails,
   InstagramConversationThread,
@@ -23,7 +19,11 @@ import type {
   InstagramMediaComment,
   InstagramPageResponse,
   InstagramTrendingHashtag,
-} from '@genfeedai/interfaces/integrations/instagram.interface';
+} from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
+import {
+  buildGrantedScopesCredentialPatch,
+  readOAuthTokenScopeField,
+} from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

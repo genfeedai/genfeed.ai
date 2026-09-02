@@ -42,7 +42,10 @@ describe('integration documentation coverage', () => {
 
   it('documents every organization BYOK provider key', () => {
     const enumSource = fs.readFileSync(
-      path.join(repositoryRoot, 'packages/enums/src/byok-provider.enum.ts'),
+      path.join(
+        repositoryRoot,
+        'packages/contracts/src/enums/byok-provider.enum.ts',
+      ),
       'utf8',
     );
     const providerKeys = [...enumSource.matchAll(/= '([^']+)'/g)].map(

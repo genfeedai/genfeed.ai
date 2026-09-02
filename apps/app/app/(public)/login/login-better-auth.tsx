@@ -2,8 +2,8 @@
 
 import { getSession, signIn } from '@genfeedai/auth-client';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import Alert from '@ui/feedback/alert/Alert';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';

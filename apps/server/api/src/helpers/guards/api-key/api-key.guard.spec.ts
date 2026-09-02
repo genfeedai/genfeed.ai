@@ -1,6 +1,6 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
-import { ActionOrigin } from '@genfeedai/enums';
+import { ActionOrigin } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,

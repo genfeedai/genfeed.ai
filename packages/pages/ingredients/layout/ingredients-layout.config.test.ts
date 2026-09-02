@@ -1,4 +1,4 @@
-import type { IFieldOption } from '@genfeedai/interfaces';
+import type { IFieldOption } from '@genfeedai/contracts/interfaces';
 import { INGREDIENT_CONFIGS } from '@pages/ingredients/layout/ingredients-layout.config';
 import { describe, expect, it } from 'vitest';
 

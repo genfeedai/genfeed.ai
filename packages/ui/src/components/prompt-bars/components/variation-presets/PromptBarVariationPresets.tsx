@@ -1,7 +1,7 @@
 'use client';
 
-import { VARIATION_PROMPT_PRESETS } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { VARIATION_PROMPT_PRESETS } from '@genfeedai/contracts/constants';
 import type { PromptBarVariationPresetsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { Button } from '@ui/primitives/button';
 import { memo } from 'react';

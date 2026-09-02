@@ -3,7 +3,7 @@ import {
   isSupportedLocale,
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_COOKIE_NAME,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 
 /**
  * Client half of the locale cookie contract. `locale.helper.ts` owns the server

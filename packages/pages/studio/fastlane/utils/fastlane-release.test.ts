@@ -1,4 +1,4 @@
-import { PostVisibility, ReleaseStatus } from '@genfeedai/enums';
+import { PostVisibility, ReleaseStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import type { FastlaneAssetItem, FastlaneScheduleTarget } from '../types';
 import { buildFastlaneReleaseInput } from './fastlane-release';

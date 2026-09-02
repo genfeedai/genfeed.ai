@@ -1,4 +1,4 @@
-import type { IAsset, IIngredient } from '@genfeedai/interfaces';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 
 import type { LibraryArtifactReference } from '@/features/library-remix/library-remix-reference';
 

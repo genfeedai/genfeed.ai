@@ -1,7 +1,7 @@
 import type {
   ContentPlanItemStatus,
   ContentPlanItemType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { ContentPlanItem as PrismaContentPlanItem } from '@genfeedai/prisma';
 
 export type { ContentPlanItem as PrismaContentPlanItem } from '@genfeedai/prisma';

@@ -1,7 +1,7 @@
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionRunnerService } from '@api/collections/workflows/services/workflow-execution-runner.service';
 import type { DelayResumeJobData } from '@api/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a running execution (#4307)', () => {

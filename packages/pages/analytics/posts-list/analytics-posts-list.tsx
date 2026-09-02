@@ -1,7 +1,11 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { AnalyticsMetric, ButtonVariant, PageScope } from '@genfeedai/enums';
+import {
+  AnalyticsMetric,
+  ButtonVariant,
+  PageScope,
+} from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';

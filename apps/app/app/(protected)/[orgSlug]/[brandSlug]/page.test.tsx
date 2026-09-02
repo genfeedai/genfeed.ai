@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { describe, expect, it } from 'vitest';
 

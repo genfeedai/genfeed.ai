@@ -1,4 +1,4 @@
-import type { IPrompt } from '@genfeedai/types';
+import type { IPrompt } from '@genfeedai/contracts/types';
 import {
   afterEach,
   beforeEach,

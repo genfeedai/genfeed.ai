@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { IBillingAccount } from '@genfeedai/interfaces';
+import type { IBillingAccount } from '@genfeedai/contracts/interfaces';
 import { BillingAccountsService } from '@genfeedai/services/billing/billing-accounts.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';

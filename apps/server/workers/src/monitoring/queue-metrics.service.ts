@@ -3,7 +3,7 @@ import {
   type MetricDatum,
   PutMetricDataCommand,
 } from '@aws-sdk/client-cloudwatch';
-import { ALL_QUEUE_NAMES, hasQueueConsumer } from '@genfeedai/queue-contracts';
+import { ALL_QUEUE_NAMES, hasQueueConsumer } from '@genfeedai/contracts/queue';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';

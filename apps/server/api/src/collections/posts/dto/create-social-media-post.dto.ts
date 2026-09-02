@@ -1,5 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { MediaCategory, Platform } from '@genfeedai/enums';
+import { MediaCategory, Platform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,

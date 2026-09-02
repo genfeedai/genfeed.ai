@@ -11,7 +11,7 @@ import type {
   IPublishingProviderSetupSignals,
   IPublishingSetupCheck,
   PublishingSetupCheckStatus,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 

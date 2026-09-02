@@ -4,7 +4,7 @@ import type {
   IPromptParserOptions,
   IPromptParserResult,
 } from '@api/shared/interfaces/prompt/prompt.interface';
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 
 export class PromptParser {

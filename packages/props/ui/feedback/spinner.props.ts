@@ -1,4 +1,4 @@
-import type { ComponentSize } from '@genfeedai/enums';
+import type { ComponentSize } from '@genfeedai/contracts';
 import type { ComponentPropsWithoutRef } from 'react';
 
 export interface SpinnerProps

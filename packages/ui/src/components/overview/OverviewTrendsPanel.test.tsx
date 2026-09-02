@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import type { ButtonVariant } from '@genfeedai/enums';
+import type { ButtonVariant } from '@genfeedai/contracts';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';

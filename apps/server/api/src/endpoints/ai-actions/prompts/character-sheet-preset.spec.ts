@@ -1,4 +1,4 @@
-import { PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { composeCharacterSheetPrompt } from './character-sheet-preset';
 

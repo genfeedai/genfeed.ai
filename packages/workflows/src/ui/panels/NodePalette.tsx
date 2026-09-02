@@ -1,6 +1,9 @@
 'use client';
 
-import { getNodesByCategory, type NodeCategory } from '@genfeedai/types';
+import {
+  getNodesByCategory,
+  type NodeCategory,
+} from '@genfeedai/contracts/types';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,

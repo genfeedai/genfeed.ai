@@ -24,10 +24,10 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { DEFAULT_THEME } from '@genfeedai/constants';
-import { MemberRole, OrganizationCategory } from '@genfeedai/enums';
+import { MemberRole, OrganizationCategory } from '@genfeedai/contracts';
+import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@genfeedai/services/engagement/streak-events';

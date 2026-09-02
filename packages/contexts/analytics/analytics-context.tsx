@@ -4,9 +4,9 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   AnalyticsQueryFilterKey,
   AnalyticsQueryFilters,
-} from '@genfeedai/interfaces';
-import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analytics-context.interface';
-import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
+} from '@genfeedai/contracts/interfaces';
+import type { AnalyticsContextType } from '@genfeedai/contracts/interfaces/analytics/analytics-context.interface';
+import type { DateRange } from '@genfeedai/contracts/interfaces/utils/date.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { subDays } from 'date-fns';
 import {

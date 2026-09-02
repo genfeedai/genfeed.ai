@@ -1,7 +1,7 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';

@@ -7,7 +7,7 @@ import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workfl
 import type {
   HandleDefinition,
   NodeDefinition as ModernNodeDefinition,
-} from '@genfeedai/types/nodes';
+} from '@genfeedai/contracts/types/nodes';
 import {
   type CatalogNodeDefinition,
   getWorkflowActionIdForNodeType,

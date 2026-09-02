@@ -6,7 +6,7 @@ import {
 import {
   FILE_JOB_PRIORITY as JOB_PRIORITY,
   FILE_JOB_TYPES as JOB_TYPES,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import type { Job, Queue } from 'bullmq';
 
 interface TestJobData extends BaseJobDataWithPriority {

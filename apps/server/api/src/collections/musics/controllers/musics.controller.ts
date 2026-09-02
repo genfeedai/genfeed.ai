@@ -21,12 +21,12 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { AggregatePaginateResult } from '@api/shared/controllers/base-crud/base-crud.types';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   PopulateOption,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -2,8 +2,8 @@ import type { ArticleDocument } from '@api/collections/articles/schemas/article.
 import type { PersistGeneratedArticleParams } from '@api/collections/articles/services/articles-content.types';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
-import { ArticleStatus, TagCategory } from '@genfeedai/enums';
-import type { ArticleCreatePayload } from '@genfeedai/interfaces/content/article.interface';
+import { ArticleStatus, TagCategory } from '@genfeedai/contracts';
+import type { ArticleCreatePayload } from '@genfeedai/contracts/interfaces/content/article.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

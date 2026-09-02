@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
+import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import type {
   RssFeedItem,
   RssInputNodeData,

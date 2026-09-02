@@ -1,4 +1,4 @@
-import type { TrainingLayoutProps } from '@genfeedai/interfaces/training-layout.interface';
+import type { TrainingLayoutProps } from '@genfeedai/contracts/interfaces/training-layout.interface';
 import { Suspense } from 'react';
 import TrainingDetail from './training-detail';
 

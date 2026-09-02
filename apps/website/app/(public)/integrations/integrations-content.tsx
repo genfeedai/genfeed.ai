@@ -1,7 +1,8 @@
 'use client';
 
 import { integrations } from '@data/integrations.data';
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize } from '@genfeedai/contracts';
+import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   DiscordIcon,
   FacebookIcon,
@@ -24,7 +25,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';

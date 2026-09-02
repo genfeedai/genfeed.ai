@@ -4,7 +4,7 @@ import {
   ComponentSize,
   LIBRARY_SHELF_LABELS,
   LibraryShelf,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IngredientInspectorRailProps } from '@genfeedai/props/content/ingredient.props';
 import { getIngredientPreviewUrl } from '@genfeedai/utils/media/ingredient-preview.util';

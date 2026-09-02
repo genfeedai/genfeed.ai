@@ -1,5 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import type { StudioLookAssetType } from '@genfeedai/interfaces';
+import type { StudioLookAssetType } from '@genfeedai/contracts/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
 

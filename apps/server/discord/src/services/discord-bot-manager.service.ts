@@ -1,5 +1,5 @@
 import { ConfigService } from '@discord/config/config.service';
-import { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
   BaseBotManager,
   type BotHttpAdapter,

@@ -7,7 +7,7 @@ import {
   useCurrentUser,
   useOptionalUser,
 } from '@genfeedai/contexts/user/user-context/user-context';
-import type { IUser } from '@genfeedai/interfaces';
+import type { IUser } from '@genfeedai/contracts/interfaces';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

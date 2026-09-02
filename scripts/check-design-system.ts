@@ -9,7 +9,7 @@ import {
 import path from 'node:path';
 import ts from 'typescript';
 
-import { PLATFORM_COLORS } from '../packages/constants/src/platform-colors';
+import { PLATFORM_COLORS } from '../packages/contracts/src/constants/platform-colors';
 import { semanticColorTokens } from '../packages/ui/src/core/colors';
 import {
   elevationTokens,

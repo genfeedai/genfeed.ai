@@ -8,7 +8,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import type { SystemWorkflowGraphDefinition } from '@api/collections/workflows/system-workflow-runner.service';
 import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';

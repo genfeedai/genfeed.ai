@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

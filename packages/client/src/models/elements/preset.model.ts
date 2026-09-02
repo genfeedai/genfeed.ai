@@ -1,6 +1,14 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
-import type { IBrand, IOrganization, IPreset } from '@genfeedai/interfaces';
+import type {
+  ModelCategory,
+  ModelProvider,
+  Platform,
+} from '@genfeedai/contracts';
+import type {
+  IBrand,
+  IOrganization,
+  IPreset,
+} from '@genfeedai/contracts/interfaces';
 
 export class Preset extends BaseEntity implements IPreset {
   public declare organization?: IOrganization | string;

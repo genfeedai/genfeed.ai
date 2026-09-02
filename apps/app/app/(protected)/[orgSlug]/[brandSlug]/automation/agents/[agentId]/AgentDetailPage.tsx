@@ -1,12 +1,12 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
   AgentType,
   ButtonSize,
   ButtonVariant,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   LinkedinIcon,
   XTwitterIcon,

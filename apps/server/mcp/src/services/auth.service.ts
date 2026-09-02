@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   hasExplicitApiKeyAdminScope,
   MCP_ACTION_ORIGIN_PROOF_HEADER,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';

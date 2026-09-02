@@ -17,11 +17,11 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import {
   SocialReplyCampaignRecipientSerializer,
   SocialReplyCampaignSerializer,

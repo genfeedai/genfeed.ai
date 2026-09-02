@@ -1,10 +1,10 @@
-import type { WatchlistPlatform } from '@genfeedai/enums';
+import type { WatchlistPlatform } from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
   IUser,
   IWatchlist,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 export class Watchlist implements IWatchlist {
   public id!: string;

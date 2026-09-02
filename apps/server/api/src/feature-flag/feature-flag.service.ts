@@ -1,7 +1,7 @@
 import type { FeatureFlagAttributes } from '@api/feature-flag/feature-flag.types';
 import { PostHogFeatureFlagEvaluator } from '@api/feature-flag/posthog-feature-flag.evaluator';
 import { isSaaS } from '@genfeedai/config/deployment';
-import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
+import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';

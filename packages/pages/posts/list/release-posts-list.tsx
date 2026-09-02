@@ -2,21 +2,21 @@
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import {
-  APP_ROUTES,
-  ITEMS_PER_PAGE,
-  PUBLISHING_POSTS_QUERY_KEYS,
-  type PublishingPostsViewMode,
-  parsePublishingPostsViewMode,
-} from '@genfeedai/constants';
-import {
   PageScope,
   type PostCategory,
   PostStatus,
   type TargetExecutionState,
   TargetExecutionState as TargetState,
   ViewType,
-} from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  ITEMS_PER_PAGE,
+  PUBLISHING_POSTS_QUERY_KEYS,
+  type PublishingPostsViewMode,
+  parsePublishingPostsViewMode,
+} from '@genfeedai/contracts/constants';
+import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

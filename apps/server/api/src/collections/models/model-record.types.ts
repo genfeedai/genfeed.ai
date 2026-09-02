@@ -1,4 +1,4 @@
-import type { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type { Model as PrismaModel } from '@genfeedai/prisma';
 
 export type ServerModelDimensions = {

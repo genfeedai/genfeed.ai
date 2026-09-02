@@ -5,8 +5,8 @@ import type {
   ServerPostAnalytics,
   ServerTwitterAnalytics,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/enums';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
+import { CredentialPlatform } from '@genfeedai/contracts';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { AnalyticsTwitterCollectionService } from './analytics-twitter-collection.service';
 

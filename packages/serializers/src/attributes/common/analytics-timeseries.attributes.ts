@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform } from '@genfeedai/contracts';
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const analyticsTimeSeriesAttributes = createEntityAttributes([

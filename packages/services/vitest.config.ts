@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
 const CONFIG_SRC = path.resolve(__dirname, '../config/src');
-const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
-const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
+const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
+const API_TYPES_SRC = path.resolve(__dirname, '../contracts/src/api-types');
 
 export default defineConfig({
   resolve: {
@@ -36,11 +36,11 @@ export default defineConfig({
         replacement: path.resolve(CONFIG_SRC, '$1'),
       },
       {
-        find: '@genfeedai/constants',
+        find: '@genfeedai/contracts/constants',
         replacement: CONSTANTS_SRC,
       },
       {
-        find: '@genfeedai/enums',
+        find: '@genfeedai/contracts',
         replacement: ENUMS_SRC,
       },
       {
@@ -64,12 +64,12 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
-        find: '@genfeedai/interfaces',
-        replacement: path.resolve(__dirname, '../interfaces/src'),
+        find: '@genfeedai/contracts/interfaces',
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces'),
       },
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
-        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+        replacement: path.resolve(__dirname, '../contracts/src/interfaces/$1'),
       },
       {
         find: '@genfeedai/pricing',
@@ -92,8 +92,8 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../props/$1'),
       },
       {
-        find: '@genfeedai/types',
-        replacement: path.resolve(__dirname, '../types/src'),
+        find: '@genfeedai/contracts/types',
+        replacement: path.resolve(__dirname, '../contracts/src/types'),
       },
       {
         find: '@genfeedai/utils',

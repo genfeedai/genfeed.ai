@@ -1,4 +1,4 @@
-import type { GroupColor, NodeGroup } from '@genfeedai/types';
+import type { GroupColor, NodeGroup } from '@genfeedai/contracts/types';
 import type { StateCreator } from 'zustand';
 import { findGroupContainingNodeId, mergeIds, removeIds } from '../../../lib';
 import { generateId } from '../helpers/nodeHelpers';

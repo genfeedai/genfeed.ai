@@ -4,7 +4,7 @@ import {
   DEFAULT_THEME,
   isThemePreference,
   THEME_STORAGE_KEY,
-} from '@genfeedai/constants';
+} from '@genfeedai/contracts/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { makeQueryClient } from '@ui/providers/query-client';

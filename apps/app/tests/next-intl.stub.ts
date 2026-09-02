@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE } from '@genfeedai/constants';
+import { DEFAULT_LOCALE } from '@genfeedai/contracts/constants';
 import {
   createTranslateFromCatalog,
   type MessageCatalog,

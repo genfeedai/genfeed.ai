@@ -1,4 +1,4 @@
-import type { IBatchItem } from '@genfeedai/interfaces';
+import type { IBatchItem } from '@genfeedai/contracts/interfaces';
 
 import type { ReviewPanelItem } from './review-panel.types';
 

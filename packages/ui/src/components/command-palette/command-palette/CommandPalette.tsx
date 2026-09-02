@@ -1,8 +1,8 @@
 'use client';
 
+import type { ICommandPaletteProps } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-command-palette';
 import { useCommandPaletteDialog } from '@genfeedai/hooks/ui/use-command-palette-dialog/use-command-palette-dialog';
-import type { ICommandPaletteProps } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteView } from '@ui/command-palette/command-palette/CommandPaletteView';
 import { type ReactElement, useCallback, useRef } from 'react';
 

@@ -1,4 +1,4 @@
-import { GenerationType } from '@genfeedai/enums';
+import { GenerationType } from '@genfeedai/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from './analytics-events';
 

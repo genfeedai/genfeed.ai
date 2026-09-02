@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { Editor } from '@tiptap/core';
 import { EditorContent } from '@tiptap/react';
 import { Button } from '@ui/primitives/button';

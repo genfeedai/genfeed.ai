@@ -206,7 +206,7 @@ export function buildFfmpegConcatDemuxerList(videoUrls: string[]): string {
  * Concatenates ordered clip-chain segments with FFmpeg (concat demuxer / filter).
  *
  * Node Type: videoStitch
- * Definition: @genfeedai/types videoStitch registry entry
+ * Definition: @genfeedai/contracts/types videoStitch registry entry
  */
 export class VideoStitchExecutor extends BaseExecutor {
   readonly nodeType = 'videoStitch';

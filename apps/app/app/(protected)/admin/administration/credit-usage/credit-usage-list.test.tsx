@@ -1,7 +1,7 @@
-import type { IOrganizationCreditUsage } from '@genfeedai/interfaces';
+import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import CreditUsageList from './credit-usage-list';
 

@@ -15,7 +15,7 @@ import {
   CampaignType,
   ReplyBotPlatform,
   SocialContentType,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

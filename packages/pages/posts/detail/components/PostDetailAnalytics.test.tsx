@@ -1,4 +1,4 @@
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import type { AnalyticsStat } from '@genfeedai/contracts/interfaces/analytics/analytics-ui.interface';
 import PostDetailAnalytics from '@pages/posts/detail/components/PostDetailAnalytics';
 import { render, screen } from '@testing-library/react';
 import { Eye, Heart } from 'lucide-react';

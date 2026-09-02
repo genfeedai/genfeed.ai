@@ -1,7 +1,7 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
-import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { Kbd } from '@genfeedai/ui';
 import MenuItem from '@ui/menus/item/MenuItem';

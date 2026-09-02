@@ -3,7 +3,7 @@ import {
   DEFAULT_QUEUE,
   hasQueueConsumer,
   type QueueName,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/contracts/queue';
 import type { Job } from 'bullmq';
 
 export interface DefaultQueueDrainArgs {

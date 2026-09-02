@@ -1,4 +1,4 @@
-import type { PageScope } from '@genfeedai/enums';
+import type { PageScope } from '@genfeedai/contracts';
 
 export interface ContentProps {
   scope:

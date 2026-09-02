@@ -20,7 +20,7 @@ import {
   MetadataExtension,
   MusicSourceType,
   TransformationCategory,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import {
   createVideoQaExecutor,
   createVideoStitchExecutor,

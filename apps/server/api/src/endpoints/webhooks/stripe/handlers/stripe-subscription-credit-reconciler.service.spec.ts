@@ -2,8 +2,8 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
-import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
+import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

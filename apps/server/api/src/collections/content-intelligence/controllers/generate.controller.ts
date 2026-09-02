@@ -4,7 +4,7 @@ import { ContentGeneratorService } from '@api/collections/content-intelligence/s
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { GeneratedContentSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post, Req } from '@nestjs/common';

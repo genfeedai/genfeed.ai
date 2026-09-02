@@ -1,4 +1,4 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
@@ -8,12 +8,14 @@ import {
   normalizeAspectRatioForModel,
 } from '@helpers/aspect-ratio.helper';
 
-vi.mock('@genfeedai/constants', async () => {
+vi.mock('@genfeedai/contracts/constants', async () => {
   const [actual, enums] = await Promise.all([
-    vi.importActual<typeof import('@genfeedai/constants')>(
-      '@genfeedai/constants',
+    vi.importActual<typeof import('@genfeedai/contracts/constants')>(
+      '@genfeedai/contracts/constants',
     ),
-    vi.importActual<typeof import('@genfeedai/enums')>('@genfeedai/enums'),
+    vi.importActual<typeof import('@genfeedai/contracts')>(
+      '@genfeedai/contracts',
+    ),
   ]);
   return {
     ...actual,

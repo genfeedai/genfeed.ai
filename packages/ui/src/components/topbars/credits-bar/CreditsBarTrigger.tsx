@@ -1,9 +1,9 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import type { ITopbarBalanceSegment } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { ITopbarBalanceSegment } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import {

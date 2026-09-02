@@ -1,4 +1,4 @@
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import { PublicService } from '@services/external/public.service';

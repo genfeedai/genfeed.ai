@@ -1,8 +1,8 @@
+import { PromptCategory } from '@genfeedai/contracts';
 import {
   MODEL_OUTPUT_CAPABILITIES,
   type ModelCapabilityCategory,
-} from '@genfeedai/constants';
-import { PromptCategory } from '@genfeedai/enums';
+} from '@genfeedai/contracts/constants';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type {
   UsePromptBarEnhancementOptions,

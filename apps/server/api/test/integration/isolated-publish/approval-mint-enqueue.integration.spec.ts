@@ -2,7 +2,7 @@
  * Isolated-DB proof that the product write path mints a version-bound
  * publish approval and enqueues only when the slot is due now (#3838).
  */
-import { CredentialPlatform, ReleaseStatus } from '@genfeedai/enums';
+import { CredentialPlatform, ReleaseStatus } from '@genfeedai/contracts';
 import {
   createDraftRelease,
   createIsolatedPublishHarness,

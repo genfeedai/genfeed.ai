@@ -1,12 +1,12 @@
 import type { ScrapedPost } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
   ContentPatternType,
   CreatorAnalysisStatus,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────

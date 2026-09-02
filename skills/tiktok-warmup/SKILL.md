@@ -11,7 +11,7 @@ metadata:
 
 Help creators follow a conservative 5–7 day launch routine for a new or newly repurposed TikTok account. The routine is advisory: TikTok does not publish an official warm-up program or expose a hidden account “trust score.” Never promise reach, diagnose a “shadowban” from low views, or imply that Genfeed can read private watch, like, save, follow, comment, or For You feed history.
 
-The canonical structured definition is `social-warmup.tiktok@1` in `packages/api-types/src/contracts/social-warmup-blueprint.contract.ts`. This skill is the long-form product guidance. Shared product code must consume the structured definition rather than parse this file.
+The canonical structured definition is `social-warmup.tiktok@1` in `packages/contracts/src/api-types/contracts/social-warmup-blueprint.contract.ts`. This skill is the long-form product guidance. Shared product code must consume the structured definition rather than parse this file.
 
 ## Evidence and observation boundaries
 

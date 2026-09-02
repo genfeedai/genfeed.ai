@@ -16,7 +16,11 @@ import {
   promptAvatarSchema,
   promptTextareaSchema,
 } from '@genfeedai/client/schemas/content/prompt.schema';
-import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetScope,
+} from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('content schemas', () => {

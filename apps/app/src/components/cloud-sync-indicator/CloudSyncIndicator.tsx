@@ -5,8 +5,8 @@ import {
   isDesktopClient,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/contracts';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {

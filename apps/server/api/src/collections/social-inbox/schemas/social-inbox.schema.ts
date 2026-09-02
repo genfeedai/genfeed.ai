@@ -4,7 +4,7 @@ import type {
   SocialConversationType as SocialConversationTypeEnum,
   SocialMessageDirection as SocialMessageDirectionEnum,
   SocialMessageType as SocialMessageTypeEnum,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type {
   SocialConversation as PrismaSocialConversation,
   SocialMessage as PrismaSocialMessage,

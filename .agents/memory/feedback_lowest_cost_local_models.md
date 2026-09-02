@@ -18,7 +18,7 @@ type: feedback
 
 **How to apply:**
 
-- Keys live in `packages/constants/src/lowest-cost-models.constant.ts`.
+- Keys live in `packages/contracts/src/constants/lowest-cost-models.constant.ts`.
 - `shouldUseLowestCostModelDefaults({ isCloud, nodeEnv })` is true unless `isCloud && nodeEnv === 'production'`. Cloud staging and an unset `NODE_ENV` use the cheapest keys.
 - `getModelCatalogForDeployment(false)` remaps `isDefault` onto those keys; the model catalog seed writes that list off cloud production.
 - Frontend `EnvironmentService.MODELS_DEFAULT` and empty-registry router fallbacks use the same keys.

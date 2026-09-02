@@ -1,4 +1,4 @@
-import type { FastlaneAssetItem } from '@genfeedai/interfaces';
+import type { FastlaneAssetItem } from '@genfeedai/contracts/interfaces';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -3,16 +3,16 @@ import { PublishingProviderSetupService } from '@api/collections/publishing-setu
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { getDeployment } from '@genfeedai/config';
-import {
-  classifyPublishingSetupChecklistState,
-  sanitizePublishingDiagnostics,
-} from '@genfeedai/helpers';
 import type {
   IPublishingSetupCheck,
   IPublishingSetupChecklist,
   IPublishingSetupDiagnosticsExport,
   PublishingDiagnosticSeverity,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
+import {
+  classifyPublishingSetupChecklistState,
+  sanitizePublishingDiagnostics,
+} from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

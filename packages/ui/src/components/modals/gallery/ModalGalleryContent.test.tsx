@@ -1,5 +1,10 @@
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
-import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/contracts';
+import type {
+  IAsset,
+  IImage,
+  IMusic,
+  IVideo,
+} from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalGalleryContent from '@ui/modals/gallery/ModalGalleryContent';
 import type { PropsWithChildren } from 'react';

@@ -6,7 +6,7 @@ import {
   LIBRARY_SHELF_LABELS,
   LibraryPlace,
   PageScope,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 import type { LibraryBrowserProps } from '@props/pages/library-browser.props';
 import Container from '@ui/layout/container/Container';
 import { Library } from 'lucide-react';

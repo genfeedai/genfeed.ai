@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { PageScope } from '@genfeedai/enums';
+import { PageScope } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,

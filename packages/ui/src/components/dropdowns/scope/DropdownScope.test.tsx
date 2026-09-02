@@ -2,8 +2,8 @@ import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-} from '@genfeedai/enums';
-import type { IIngredient } from '@genfeedai/interfaces';
+} from '@genfeedai/contracts';
+import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
 import { render } from '@testing-library/react';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';

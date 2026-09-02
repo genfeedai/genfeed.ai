@@ -63,14 +63,18 @@ describe('coverage workspaces', () => {
     writeManifest(rootDir, 'package.json', {
       scripts: { 'test:e2e:coverage': 'playwright test' },
     });
-    writeManifest(rootDir, 'packages/enums/package.json', {
+    writeManifest(rootDir, 'packages/contracts/src/enums/package.json', {
       scripts: {},
     });
 
     expect(
-      validateCoverageWorkspaceScripts(rootDir, ['packages/enums'], []),
+      validateCoverageWorkspaceScripts(
+        rootDir,
+        ['packages/contracts/src/enums'],
+        [],
+      ),
     ).toEqual([
-      'packages/enums/package.json must declare a non-empty scripts.test command that does not suppress failures.',
+      'packages/contracts/src/enums/package.json must declare a non-empty scripts.test command that does not suppress failures.',
     ]);
   });
 
@@ -113,22 +117,24 @@ describe('coverage workspaces', () => {
 
   it('requires explicit exclusions to be reasoned and issue-tracked', () => {
     const rootDir = createFixture();
-    writeManifest(rootDir, 'packages/enums/package.json', { scripts: {} });
+    writeManifest(rootDir, 'packages/contracts/src/enums/package.json', {
+      scripts: {},
+    });
 
     expect(
       validateCoverageWorkspaceScripts(
         rootDir,
-        ['packages/enums'],
+        ['packages/contracts/src/enums'],
         [
           {
-            path: 'packages/enums',
+            path: 'packages/contracts/src/enums',
             reason: ' ',
             trackingIssue: 0,
           },
         ],
       ),
     ).toEqual([
-      'packages/enums coverage exclusion must have a reason and positive tracking issue.',
+      'packages/contracts/src/enums coverage exclusion must have a reason and positive tracking issue.',
     ]);
   });
 });

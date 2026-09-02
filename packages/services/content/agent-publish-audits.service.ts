@@ -1,8 +1,8 @@
-import { API_ENDPOINTS } from '@genfeedai/constants';
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   CreateAgentPublishAuditInput,
   UpdateAgentPublishAuditInput,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import { AgentPublishAudit } from '@genfeedai/models/content/agent-publish-audit.model';
 import { AgentPublishAuditSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';

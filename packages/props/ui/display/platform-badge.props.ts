@@ -1,4 +1,4 @@
-import type { ComponentSize } from '@genfeedai/enums';
+import type { ComponentSize } from '@genfeedai/contracts';
 
 export interface PlatformBadgeProps {
   platform: string;

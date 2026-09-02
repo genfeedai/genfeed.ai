@@ -2,7 +2,7 @@ import type {
   AccountHealthSummary,
   IChannelTarget,
   IReleaseGroup,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 import type { TargetPreviewCredential } from '@props/ui/previews.props';
 
 export type AccountGridLaneKind = 'cards' | 'grid' | 'landscape' | 'portrait';

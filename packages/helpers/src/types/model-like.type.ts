@@ -2,7 +2,7 @@ import type {
   ModelCategory,
   ModelProvider,
   QualityTier,
-} from '@genfeedai/enums';
+} from '@genfeedai/contracts';
 
 export interface ModelLike {
   aspectRatios?: readonly string[];

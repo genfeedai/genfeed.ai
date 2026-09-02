@@ -1,6 +1,6 @@
 'use client';
 
-import type { IStreakCalendarDay } from '@genfeedai/types';
+import type { IStreakCalendarDay } from '@genfeedai/contracts/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 

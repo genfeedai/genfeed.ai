@@ -1,7 +1,7 @@
 import type {
   ConnectGenfeedClient,
   ConnectGenfeedInstructions,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/contracts/interfaces';
 
 const ENVIRONMENT_VARIABLE = 'GENFEED_API_KEY';
 

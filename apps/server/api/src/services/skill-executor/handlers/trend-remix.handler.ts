@@ -5,7 +5,7 @@ import {
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

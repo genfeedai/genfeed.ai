@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { ActionOrigin, type ActionOriginContext } from '@genfeedai/enums';
+import { ActionOrigin, type ActionOriginContext } from '@genfeedai/contracts';
 
 const storage = new AsyncLocalStorage<ActionOriginContext>();
 

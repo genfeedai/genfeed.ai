@@ -1,4 +1,5 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize } from '@genfeedai/contracts';
+import type { IPlatformBadgeConfig } from '@genfeedai/contracts/interfaces/ui/platform-badge-config.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   DevIcon,
@@ -21,7 +22,6 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
 import type { PlatformBadgeProps } from '@genfeedai/props/ui/display/platform-badge.props';
 import { Newspaper, Star } from 'lucide-react';
 

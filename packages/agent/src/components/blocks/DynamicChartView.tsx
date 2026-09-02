@@ -1,6 +1,9 @@
 'use client';
 
-import type { ChartBlock, ChartSeriesConfig } from '@genfeedai/interfaces';
+import type {
+  ChartBlock,
+  ChartSeriesConfig,
+} from '@genfeedai/contracts/interfaces';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useMemo } from 'react';
 import {
