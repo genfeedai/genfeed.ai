@@ -110,6 +110,54 @@ describe('CombinedAuthGuard', () => {
     expect(guard).toBeDefined();
   });
 
+  it('rejects a gf_ key presented in the query string even on a public route', async () => {
+    reflector.getAllAndOverride.mockReturnValue(true);
+    const mockRequest = {
+      headers: {},
+      query: { api_key: 'gf_live_should-not-be-here' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a gf_ key presented as a path segment', async () => {
+    const mockRequest = {
+      headers: { authorization: 'Bearer jwt_token_here' },
+      path: '/v1/gf_test_abc/posts',
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('allows a public webhook token query that is not a gf_ key', async () => {
+    reflector.getAllAndOverride.mockReturnValue(true);
+    const mockRequest = {
+      headers: {},
+      path: '/webhooks/heygen',
+      query: { token: 'vendor-shared-secret' },
+    };
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      mockRequest,
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
   it('allows public routes without invoking auth guards', async () => {
     reflector.getAllAndOverride.mockReturnValue(true);
     const mockRequest = { headers: {} };

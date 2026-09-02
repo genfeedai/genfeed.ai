@@ -1,3 +1,7 @@
+import {
+  requestPresentsApiKeyInUrl,
+  URL_API_CREDENTIAL_REJECTION,
+} from '@libs/auth/url-credentials';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
@@ -25,6 +29,13 @@ export class McpAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const response = context.switchToHttp().getResponse();
+
+    if (requestPresentsApiKeyInUrl(request)) {
+      throw new UnauthorizedException(URL_API_CREDENTIAL_REJECTION);
+    }
+
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -34,8 +45,6 @@ export class McpAuthGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const response = context.switchToHttp().getResponse();
     const authHeader = request.headers.authorization;
     const token = this.authService.extractBearerToken(authHeader);
 

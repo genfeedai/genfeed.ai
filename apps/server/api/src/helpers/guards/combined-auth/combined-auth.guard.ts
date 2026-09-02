@@ -16,6 +16,10 @@ import type {
   Organization,
   User as PrismaUser,
 } from '@genfeedai/prisma';
+import {
+  requestPresentsApiKeyInUrl,
+  URL_API_CREDENTIAL_REJECTION,
+} from '@libs/auth/url-credentials';
 import { isPublicRoute } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -231,15 +235,24 @@ export class CombinedAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<{
+      headers: { authorization?: string };
+      originalUrl?: string;
+      params?: Record<string, unknown>;
+      path?: string;
+      query?: Record<string, unknown>;
+      url?: string;
+      user?: AuthenticatedUser;
+    }>();
+
+    if (requestPresentsApiKeyInUrl(request)) {
+      throw new UnauthorizedException(URL_API_CREDENTIAL_REJECTION);
+    }
+
     // 1. Public routes bypass all auth
     if (isPublicRoute(this.reflector, context)) {
       return true;
     }
-
-    const request = context.switchToHttp().getRequest<{
-      headers: { authorization?: string };
-      user?: AuthenticatedUser;
-    }>();
 
     // 2. LOCAL mode: skip all auth and inject a default local identity
     if (isSelfHostedDeployment() && !isBetterAuthEnabled()) {

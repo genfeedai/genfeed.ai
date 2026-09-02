@@ -1,3 +1,4 @@
+import { URL_API_CREDENTIAL_REJECTION } from '@libs/auth/url-credentials';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { AuthService } from '@mcp/services/auth.service';
@@ -82,6 +83,29 @@ describe('McpAuthGuard', () => {
   });
 
   describe('canActivate', () => {
+    it('rejects a gf_ key presented in the query string', async () => {
+      mockReflector.getAllAndOverride.mockReturnValue(false);
+      const context = {
+        getClass: vi.fn(),
+        getHandler: vi.fn(),
+        switchToHttp: vi.fn().mockReturnValue({
+          getRequest: vi.fn().mockReturnValue({
+            headers: { authorization: 'Bearer valid-token' },
+            query: { access_token: 'gf_live_abc' },
+          }),
+          getResponse: vi.fn().mockReturnValue(mockResponse),
+        }),
+      } as unknown as ExecutionContext;
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        URL_API_CREDENTIAL_REJECTION,
+      );
+      expect(mockAuthService.authenticateRequest).not.toHaveBeenCalled();
+    });
+
     it('should allow access to public routes', async () => {
       mockReflector.getAllAndOverride.mockReturnValue(true);
       const context = createMockExecutionContext();

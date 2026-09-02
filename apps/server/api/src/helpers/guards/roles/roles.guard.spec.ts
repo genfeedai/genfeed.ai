@@ -1,6 +1,7 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import {
   type ExecutionContext,
@@ -417,5 +418,43 @@ describe('RolesGuard', () => {
       expect.objectContaining({ userId }),
       expect.any(Array),
     );
+  });
+
+  it('does not grant org-admin to an owner-issued API key without an admin scope', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue([
+      MemberRole.ADMIN,
+      MemberRole.OWNER,
+    ]);
+    mockMembersService.findOne.mockResolvedValue({
+      role: { key: MemberRole.OWNER },
+    });
+
+    const context = createContext({
+      isApiKey: true,
+      organizationId: TOKEN_ORGANIZATION_ID,
+      scopes: [ApiKeyScope.VIDEOS_READ],
+      userId: USER_ID,
+    });
+
+    await expectForbidden(guard.canActivate(context));
+  });
+
+  it('grants org-admin only when the API key has an explicit admin scope', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue([
+      MemberRole.ADMIN,
+      MemberRole.OWNER,
+    ]);
+    mockMembersService.findOne.mockResolvedValue({
+      role: { key: MemberRole.OWNER },
+    });
+
+    const context = createContext({
+      isApiKey: true,
+      organizationId: TOKEN_ORGANIZATION_ID,
+      scopes: [ApiKeyScope.ADMIN],
+      userId: USER_ID,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
   });
 });
