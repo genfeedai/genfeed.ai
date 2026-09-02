@@ -911,6 +911,30 @@
         "views": "{count} views"
       },
       "rank": "Rank #{rank}"
+    },
+    "desk": {
+      "title": "Discovery",
+      "subtitle": "Signal Desk — every trend, followed post, and viral video, ready to remix.",
+      "searchPlaceholder": "Search the Desk",
+      "signalsLoading": "Loading",
+      "signalsCount": "{count} signals",
+      "viewToggle": {
+        "desk": "Desk",
+        "lightTable": "Light table"
+      },
+      "errors": {
+        "loadTitle": "Failed to load the Desk",
+        "loadDescription": "Retry to fetch the latest discovery signal.",
+        "retry": "Retry",
+        "remixUnavailable": "Remix is not available for this item."
+      },
+      "loading": "Loading the Desk…",
+      "selectionBar": {
+        "count": "{count} selected",
+        "remix": "Remix {count}",
+        "clear": "Clear",
+        "skippedRemix": "{count} items skipped — remix is not available for them."
+      }
     }
   },
   "referrals": {
