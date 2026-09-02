@@ -106,30 +106,39 @@ describe('Analytics split-controller HTTP contract', () => {
   });
 
   it.each([
-    ['findAll', ['analytics', 'super-admin'], 'analytics:super-admin:user-1'],
+    [
+      'findAll',
+      ['analytics', 'super-admin'],
+      'analytics:super-admin:superadmin:all',
+      { id: 'user-1', isSuperAdmin: true },
+    ],
     [
       'getOrganizationsLeaderboard',
       ['analytics', 'super-admin', 'leaderboard'],
-      'analytics:leaderboard:2025-01-01:2025-01-31:views:25',
+      'analytics:leaderboard:superadmin:all:2025-01-01:2025-01-31:views:25',
+      { id: 'user-1', isSuperAdmin: true },
     ],
     [
       'getOrganizationsWithStats',
       ['analytics', 'super-admin', 'organizations'],
-      'analytics:orgs:2025-01-01:2025-01-31:2:25:views',
+      'analytics:orgs:superadmin:all:2025-01-01:2025-01-31:2:25:views',
+      { id: 'user-1', isSuperAdmin: true },
     ],
     [
       'getBrandsLeaderboard',
       ['analytics', 'brands-leaderboard'],
-      'analytics:brands-leaderboard:user-1:2025-01-01:2025-01-31:views:25',
+      'analytics:brands-leaderboard:customer:org-1:2025-01-01:2025-01-31:views:25',
+      { id: 'user-1', organizationId: 'org-1' },
     ],
     [
       'getBrandsWithStats',
       ['analytics', 'brands'],
-      'analytics:brands:user-1:2025-01-01:2025-01-31:2:25:views',
+      'analytics:brands:customer:org-1:2025-01-01:2025-01-31:2:25:views',
+      { id: 'user-1', organizationId: 'org-1' },
     ],
   ] as const)(
-    'preserves cache metadata for %s',
-    (methodName, tags, expectedKey) => {
+    'scopes cache metadata for %s by privilege and organization',
+    (methodName, tags, expectedKey, user) => {
       const handler = Reflect.get(
         AnalyticsAdminController.prototype,
         methodName,
@@ -137,7 +146,11 @@ describe('Analytics split-controller HTTP contract', () => {
       const cache = Reflect.getMetadata('cache', handler) as {
         keyGenerator: (request: {
           query: Record<string, string>;
-          user: { id: string };
+          user: {
+            id: string;
+            isSuperAdmin?: boolean;
+            organizationId?: string;
+          };
         }) => string;
         tags: readonly string[];
         ttl: number;
@@ -154,7 +167,82 @@ describe('Analytics split-controller HTTP contract', () => {
             sort: 'views',
             startDate: '2025-01-01',
           },
-          user: { id: 'user-1' },
+          user,
+        }),
+      ).toBe(expectedKey);
+    },
+  );
+
+  it('isolates superadmin brand cache entries from customer keys', () => {
+    const handler = Reflect.get(
+      AnalyticsAdminController.prototype,
+      'getBrandsLeaderboard',
+    ) as object;
+    const cache = Reflect.getMetadata('cache', handler) as {
+      keyGenerator: (request: {
+        query: Record<string, string>;
+        user: { id: string; isSuperAdmin?: boolean; organizationId?: string };
+      }) => string;
+    };
+
+    expect(
+      cache.keyGenerator({
+        query: {
+          endDate: '2025-01-31',
+          limit: '25',
+          sort: 'views',
+          startDate: '2025-01-01',
+        },
+        user: {
+          id: 'user-1',
+          isSuperAdmin: true,
+          organizationId: 'org-1',
+        },
+      }),
+    ).toBe(
+      'analytics:brands-leaderboard:superadmin:all:2025-01-01:2025-01-31:views:25',
+    );
+  });
+
+  it.each([
+    [
+      'getOverview',
+      'analytics:overview:customer:org-1:2025-01-01:2025-01-31:brand-1',
+    ],
+    [
+      'getPlatformComparison',
+      'analytics:platforms:customer:org-1:2025-01-01:2025-01-31:brand-1',
+    ],
+    [
+      'getGrowthTrends',
+      'analytics:growth:customer:org-1:2025-01-01:2025-01-31:views:brand-1',
+    ],
+    [
+      'getEngagement',
+      'analytics:engagement:customer:org-1:2025-01-01:2025-01-31:brand-1:',
+    ],
+  ] as const)(
+    'scopes customer %s cache keys by organization and privilege',
+    (methodName, expectedKey) => {
+      const handler = Reflect.get(
+        AnalyticsController.prototype,
+        methodName,
+      ) as object;
+      const cache = Reflect.getMetadata('cache', handler) as {
+        keyGenerator: (request: {
+          query: Record<string, string>;
+          user: { organizationId?: string };
+        }) => string;
+      };
+
+      expect(
+        cache.keyGenerator({
+          query: {
+            brandId: 'brand-1',
+            endDate: '2025-01-31',
+            startDate: '2025-01-01',
+          },
+          user: { organizationId: 'org-1' },
         }),
       ).toBe(expectedKey);
     },

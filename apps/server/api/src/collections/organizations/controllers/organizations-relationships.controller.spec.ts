@@ -22,10 +22,11 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
+import { ANALYTICS_TENANT_FORBIDDEN } from '@api/endpoints/analytics/analytics-tenant-scope';
 
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { ForbiddenException, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -42,10 +43,18 @@ describe('OrganizationsRelationshipsController', () => {
 
   const mockServices = {
     analyticsAggregationService: {
+      assertBrandInScope: vi.fn().mockResolvedValue(undefined),
       getOverviewMetrics: vi.fn().mockResolvedValue({
         totalPosts: 0,
         totalViews: 0,
       }),
+      getPlatformAnalytics: vi.fn().mockResolvedValue({
+        totalPosts: 0,
+        totalViews: 0,
+      }),
+      getPlatformComparison: vi.fn().mockResolvedValue([]),
+      getTimeSeriesDataWithPlatforms: vi.fn().mockResolvedValue([]),
+      getTopPerformingContent: vi.fn().mockResolvedValue([]),
     },
     credentialsService: {
       findAll: vi
@@ -179,12 +188,87 @@ describe('OrganizationsRelationshipsController', () => {
         {} as unknown as Request,
         'clorganizationrel0000000001',
         {},
+        mockUser,
       );
 
       expect(
         mockServices.analyticsAggregationService.getOverviewMetrics,
       ).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('analytics tenant isolation', () => {
+    const request = {} as unknown as Request;
+    const organizationId = 'clorganizationrel0000000001';
+
+    it('rejects another organization without aggregating', async () => {
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findAnalytics(
+          request,
+          'clorganizationforeign00000001',
+          {},
+          mockUser,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(
+        mockServices.analyticsAggregationService.getOverviewMetrics,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a brand that does not belong to the authorized organization', async () => {
+      mockServices.analyticsAggregationService.assertBrandInScope.mockRejectedValueOnce(
+        new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN),
+      );
+
+      await expect(
+        controller.findAnalytics(
+          request,
+          organizationId,
+          { brandId: 'brand-foreign' },
+          mockUser,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(
+        mockServices.analyticsAggregationService.getOverviewMetrics,
+      ).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'findAnalyticsTimeSeries',
+      'findAnalyticsPlatforms',
+      'findAnalyticsTopContent',
+    ] as const)(
+      'authorizes %s before reading analytics',
+      async (methodName) => {
+        mockServices.membersService.findOne.mockResolvedValueOnce(null);
+        mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+        await expect(
+          controller[methodName](request, organizationId, {}, mockUser),
+        ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      },
+    );
+
+    it('authorizes platform analytics before reading', async () => {
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findPlatformAnalytics(
+          request,
+          organizationId,
+          'instagram',
+          {},
+          mockUser,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(
+        mockServices.analyticsAggregationService.getPlatformAnalytics,
+      ).not.toHaveBeenCalled();
     });
   });
 });

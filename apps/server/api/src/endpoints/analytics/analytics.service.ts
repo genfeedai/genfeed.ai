@@ -4,6 +4,7 @@ import {
   type RawAnalyticsRow,
   type ViralHooksResult,
 } from '@api/endpoints/analytics/analytics-response.projection';
+import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -29,6 +30,17 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     logger: LoggerService,
   ) {
     super(prisma, 'analytic', logger, configService);
+  }
+
+  public async assertBrandInScope(
+    brandId: string | undefined,
+    organizationId: string | undefined,
+  ): Promise<void> {
+    await assertAnalyticsBrandInScope(
+      (where) => this.prisma.brand.findFirst({ select: { id: true }, where }),
+      brandId,
+      organizationId,
+    );
   }
 
   private postAnalyticsTextColumn(
@@ -397,6 +409,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     startDateStr?: string,
     endDateStr?: string,
     brandId?: string,
+    organizationId?: string,
   ): Promise<unknown> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
@@ -406,6 +419,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const brandFilter = this.postAnalyticsOptionalTextFilter(
       'brandId',
       brandId,
+    );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
     );
 
     const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
@@ -422,6 +439,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
+        ${orgFilter}
       GROUP BY "platform"
       ORDER BY SUM("totalViews") DESC
     `;
@@ -441,6 +459,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       | AnalyticsMetric.ENGAGEMENT
       | AnalyticsMetric.POSTS = AnalyticsMetric.VIEWS,
     brandId?: string,
+    organizationId?: string,
   ): Promise<unknown> {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       DateRangeUtil.parseDateRange(startDateStr, endDateStr);
@@ -449,16 +468,22 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       'brandId',
       brandId,
     );
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+    );
 
     const currentResults = await this.fetchGrowthCurrent(
       startDate,
       endDate,
       brandFilter,
+      orgFilter,
     );
     const previous = await this.fetchGrowthPrevious(
       previousStartDate,
       previousEndDate,
       brandFilter,
+      orgFilter,
     );
 
     return {
@@ -477,8 +502,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     startDate: Date,
     endDate: Date,
     brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
   ): Promise<RawAnalyticsRow[]> {
-    // Current period: group by day
     const currentResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
@@ -492,6 +517,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM "post_analytics"
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
+        ${orgFilter}
       GROUP BY TO_CHAR("date", 'YYYY-MM-DD')
       ORDER BY day ASC
     `;
@@ -503,8 +529,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     previousStartDate: Date,
     previousEndDate: Date,
     brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
   ): Promise<RawAnalyticsRow> {
-    // Previous period: aggregate totals
     const previousResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         SUM("totalComments") AS total_comments,
@@ -516,6 +542,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       FROM "post_analytics"
       WHERE "date" >= ${previousStartDate} AND "date" <= ${previousEndDate}
         ${brandFilter}
+        ${orgFilter}
     `;
 
     return (
@@ -539,6 +566,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDateStr?: string,
     brandId?: string,
     platform?: CredentialPlatform,
+    organizationId?: string,
   ): Promise<unknown> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
@@ -550,6 +578,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       brandId,
     );
     const platformFilter = this.postAnalyticsOptionalPlatformFilter(platform);
+    const orgFilter = this.postAnalyticsOptionalTextFilter(
+      'organizationId',
+      organizationId,
+    );
 
     const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
@@ -561,6 +593,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       WHERE "date" >= ${startDate} AND "date" <= ${endDate}
         ${brandFilter}
         ${platformFilter}
+        ${orgFilter}
     `;
 
     return analyticsResponseProjection.buildEngagementBreakdown(results[0]);

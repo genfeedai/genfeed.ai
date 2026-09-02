@@ -2,6 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
+import {
+  buildAnalyticsCacheKey,
+  resolveAnalyticsTenantScope,
+  throwAnalyticsTenantForbidden,
+} from '@api/endpoints/analytics/analytics-tenant-scope';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AnalyticsDateRangeDto,
@@ -58,18 +63,11 @@ import type {
 export class AnalyticsController {
   private readonly constructorName: string = String(this.constructor.name);
 
-  private getScopedOrganizationId(user: User): string | undefined {
-    if (getIsSuperAdmin(user)) {
-      return undefined;
-    }
-
-    if (!user.organizationId) {
-      throw new ForbiddenException(
-        'You must be part of an organization to access analytics',
-      );
-    }
-
-    return user.organizationId;
+  private getScopedOrganizationId(
+    user: User,
+    request?: ExpressRequest,
+  ): string | undefined {
+    return resolveAnalyticsTenantScope(user, request).organizationId;
   }
 
   constructor(
@@ -103,7 +101,7 @@ export class AnalyticsController {
   @Get('business')
   @RolesDecorator('superadmin')
   @Cache({
-    keyGenerator: () => 'analytics:business',
+    keyGenerator: (req) => buildAnalyticsCacheKey('business', req),
     tags: ['analytics', 'business'],
     ttl: 300,
   })
@@ -127,23 +125,18 @@ export class AnalyticsController {
     let targetOrganizationId: string | undefined;
 
     if (getIsSuperAdmin(user)) {
-      // Superadmins can export all data or filter by specific org
       targetOrganizationId = query.organizationId || undefined;
     } else {
-      // Non-superadmins can only export their own organization's data
       if (!user.organizationId) {
         throw new ForbiddenException(
           'You must be part of an organization to export data',
         );
       }
-      // If they try to export another org's data, deny access
       if (
         query.organizationId &&
         query.organizationId !== user.organizationId
       ) {
-        throw new ForbiddenException(
-          'You can only export data for your own organization',
-        );
+        throwAnalyticsTenantForbidden();
       }
       targetOrganizationId = user.organizationId;
     }
@@ -162,6 +155,11 @@ export class AnalyticsController {
       isSuperAdmin: getIsSuperAdmin(user),
       organizationId: targetOrganizationId,
     });
+
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      targetOrganizationId,
+    );
 
     const data = await this.analyticsExportService.exportData(
       exportFormat,
@@ -252,9 +250,12 @@ export class AnalyticsController {
   @Get('timeseries')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:timeseries:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || ''}:${req.query?.endDate || ''}`,
+      buildAnalyticsCacheKey('timeseries', req, [
+        req.query?.startDate || '',
+        req.query?.endDate || '',
+      ]),
     tags: ['analytics', 'timeseries'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getTimeSeries(
     @CurrentUser() user: User,
@@ -263,7 +264,7 @@ export class AnalyticsController {
     @Query('endDate') endDate?: string,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
 
     // Default dates if not provided (7 days, ending yesterday)
     let finalStartDate = startDate;
@@ -306,9 +307,13 @@ export class AnalyticsController {
   @Get('overview')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:overview:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}`,
+      buildAnalyticsCacheKey('overview', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.brandId || '',
+      ]),
     tags: ['analytics', 'overview'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getOverview(
     @CurrentUser() user: User,
@@ -316,8 +321,12 @@ export class AnalyticsController {
     @Query() query: AnalyticsDateRangeDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getOverview(
       query.startDate,
@@ -331,9 +340,16 @@ export class AnalyticsController {
   @Get('top')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:top:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.limit || '10'}:${req.query?.brandId || ''}:${req.query?.platform || ''}`,
+      buildAnalyticsCacheKey('top', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.metric || 'views',
+        req.query?.limit || '10',
+        req.query?.brandId || '',
+        req.query?.platform || '',
+      ]),
     tags: ['analytics', 'top-content'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getTopContent(
     @CurrentUser() user: User,
@@ -341,8 +357,12 @@ export class AnalyticsController {
     @Query() query: TopContentQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getTopContent(
       query.startDate,
@@ -359,21 +379,32 @@ export class AnalyticsController {
   @Get('platforms')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:platforms:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}`,
+      buildAnalyticsCacheKey('platforms', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.brandId || '',
+      ]),
     tags: ['analytics', 'platforms'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getPlatformComparison(
+    @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: AnalyticsDateRangeDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getPlatformComparison(
       query.startDate,
       query.endDate,
       query.brandId,
+      organizationId,
     );
     return serializeSingle(req, AnalyticsPlatformSerializer, data);
   }
@@ -381,22 +412,34 @@ export class AnalyticsController {
   @Get('growth')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:growth:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.brandId || ''}`,
+      buildAnalyticsCacheKey('growth', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.metric || 'views',
+        req.query?.brandId || '',
+      ]),
     tags: ['analytics', 'growth'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getGrowthTrends(
+    @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: GrowthQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getGrowthTrends(
       query.startDate,
       query.endDate,
       query.metric,
       query.brandId,
+      organizationId,
     );
     return serializeSingle(req, AnalyticsGrowthSerializer, data);
   }
@@ -404,22 +447,34 @@ export class AnalyticsController {
   @Get('engagement')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:engagement:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}:${req.query?.platform || ''}`,
+      buildAnalyticsCacheKey('engagement', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.brandId || '',
+        req.query?.platform || '',
+      ]),
     tags: ['analytics', 'engagement'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getEngagement(
+    @CurrentUser() user: User,
     @Req() req: ExpressRequest,
     @Query() query: AnalyticsFilterQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getEngagementBreakdown(
       query.startDate,
       query.endDate,
       query.brandId,
       query.platform as CredentialPlatform,
+      organizationId,
     );
     return serializeSingle(req, AnalyticsEngagementSerializer, data);
   }
@@ -427,9 +482,13 @@ export class AnalyticsController {
   @Get('hooks')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:hooks:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}`,
+      buildAnalyticsCacheKey('hooks', req, [
+        req.query?.startDate || 'default',
+        req.query?.endDate || 'default',
+        req.query?.brandId || '',
+      ]),
     tags: ['analytics', 'hooks'],
-    ttl: 300, // Cache for 5 minutes
+    ttl: 300,
   })
   async getViralHooks(
     @CurrentUser() user: User,
@@ -437,8 +496,12 @@ export class AnalyticsController {
     @Query() query: ViralHooksQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
+    const organizationId = this.getScopedOrganizationId(user, req);
     this.loggerService.log(url, { query });
+    await this.analyticsService.assertBrandInScope(
+      query.brandId,
+      organizationId,
+    );
 
     const data = await this.analyticsService.getViralHooks(
       query.startDate,

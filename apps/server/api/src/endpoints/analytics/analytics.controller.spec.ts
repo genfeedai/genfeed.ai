@@ -1,6 +1,7 @@
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
+import { ANALYTICS_TENANT_FORBIDDEN } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AnalyticsDateRangeDto,
@@ -16,6 +17,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {
   Request as ExpressRequest,
@@ -65,6 +67,7 @@ describe('AnalyticsController', () => {
     } as unknown as vi.Mocked<LoggerService>;
 
     analyticsService = {
+      assertBrandInScope: vi.fn().mockResolvedValue(undefined),
       getEngagementBreakdown: vi.fn(),
       getGrowthTrends: vi.fn(),
       getOverview: vi.fn(),
@@ -310,12 +313,17 @@ describe('AnalyticsController', () => {
         startDate: '2025-01-01',
       } as unknown as AnalyticsDateRangeDto;
 
-      const result = await controller.getPlatformComparison(mockRequest, query);
+      const result = await controller.getPlatformComparison(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      );
 
       expect(analyticsService.getPlatformComparison).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         'brand_1',
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -330,13 +338,18 @@ describe('AnalyticsController', () => {
         startDate: '2025-01-01',
       } as unknown as GrowthQueryDto;
 
-      const result = await controller.getGrowthTrends(mockRequest, query);
+      const result = await controller.getGrowthTrends(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      );
 
       expect(analyticsService.getGrowthTrends).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         'views',
         'brand_1',
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -353,13 +366,18 @@ describe('AnalyticsController', () => {
         startDate: '2025-01-01',
       } as unknown as AnalyticsFilterQueryDto;
 
-      const result = await controller.getEngagement(mockRequest, query);
+      const result = await controller.getEngagement(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      );
 
       expect(analyticsService.getEngagementBreakdown).toHaveBeenCalledWith(
         '2025-01-01',
         '2025-01-31',
         'brand_1',
         'twitter',
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -428,6 +446,92 @@ describe('AnalyticsController', () => {
         'brand_1',
         'org-own',
       );
+    });
+  });
+
+  describe('tenant isolation', () => {
+    const member = {
+      id: 'user_456',
+      isSuperAdmin: false,
+      organizationId: 'org-own',
+    } as never;
+    const query = {
+      brandId: 'brand_1',
+      endDate: '2025-01-31',
+      startDate: '2025-01-01',
+    };
+
+    it('scopes platform, growth, and engagement reads to the session organization', async () => {
+      analyticsService.getPlatformComparison.mockResolvedValueOnce({
+        platforms: [],
+      });
+      analyticsService.getGrowthTrends.mockResolvedValueOnce({ total: 0 });
+      analyticsService.getEngagementBreakdown.mockResolvedValueOnce({
+        rows: [],
+      });
+
+      await controller.getPlatformComparison(
+        member,
+        mockRequest,
+        query as unknown as AnalyticsDateRangeDto,
+      );
+      await controller.getGrowthTrends(member, mockRequest, {
+        ...query,
+        metric: 'views',
+      } as unknown as GrowthQueryDto);
+      await controller.getEngagement(member, mockRequest, {
+        ...query,
+        platform: 'twitter',
+      } as unknown as AnalyticsFilterQueryDto);
+
+      expect(analyticsService.getPlatformComparison).toHaveBeenCalledWith(
+        '2025-01-01',
+        '2025-01-31',
+        'brand_1',
+        'org-own',
+      );
+      expect(analyticsService.getGrowthTrends).toHaveBeenCalledWith(
+        '2025-01-01',
+        '2025-01-31',
+        'views',
+        'brand_1',
+        'org-own',
+      );
+      expect(analyticsService.getEngagementBreakdown).toHaveBeenCalledWith(
+        '2025-01-01',
+        '2025-01-31',
+        'brand_1',
+        'twitter',
+        'org-own',
+      );
+    });
+
+    it('rejects a brand outside the authorized organization before aggregation', async () => {
+      analyticsService.assertBrandInScope.mockRejectedValueOnce(
+        new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN),
+      );
+
+      await expect(
+        controller.getOverview(
+          member,
+          mockRequest,
+          query as unknown as AnalyticsDateRangeDto,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(analyticsService.getOverview).not.toHaveBeenCalled();
+    });
+
+    it('rejects a foreign organization export without revealing the target', async () => {
+      await expect(
+        controller.exportData(
+          member,
+          {
+            organizationId: 'org-foreign',
+          } as never,
+          mockResponse,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(analyticsExportService.exportData).not.toHaveBeenCalled();
     });
   });
 });

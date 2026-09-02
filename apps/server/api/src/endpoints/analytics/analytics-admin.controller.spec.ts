@@ -12,6 +12,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics-admin-summary.service';
+import { ANALYTICS_MISSING_ORGANIZATION_MESSAGE } from '@api/endpoints/analytics/analytics-tenant-scope';
 import {
   AdminBrandsQueryDto,
   AdminOrgsQueryDto,
@@ -186,9 +187,7 @@ describe('AnalyticsAdminController', () => {
     await expect(
       controller.getBrandsLeaderboard({ id: 'user-3' } as User, request, query),
     ).rejects.toEqual(
-      new ForbiddenException(
-        'You must be part of an organization to access analytics',
-      ),
+      new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE),
     );
     expect(leaderboardService.getBrandsLeaderboard).not.toHaveBeenCalled();
   });

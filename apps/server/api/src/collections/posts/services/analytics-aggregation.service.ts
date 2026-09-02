@@ -20,6 +20,7 @@ import type {
 } from '@api/collections/posts/services/analytics-aggregation.types';
 import { PostAnalyticsProjection } from '@api/collections/posts/services/post-analytics.projection';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -53,6 +54,17 @@ export class AnalyticsAggregationService {
     private readonly prisma: PrismaService,
     private readonly postsService: PostsService,
   ) {}
+
+  public async assertBrandInScope(
+    brandId: string | undefined,
+    organizationId: string | undefined,
+  ): Promise<void> {
+    await assertAnalyticsBrandInScope(
+      (where) => this.prisma.brand.findFirst({ select: { id: true }, where }),
+      brandId,
+      organizationId,
+    );
+  }
 
   private buildBrandSqlPredicate(brandId?: string): Prisma.Sql {
     return brandId ? Prisma.sql`AND "brandId" = ${brandId}` : Prisma.empty;
