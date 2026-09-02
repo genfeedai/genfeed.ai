@@ -616,6 +616,7 @@ describe('WorkflowExecutorService', () => {
     const result = await service.executeManualWorkflowDocument(
       {
         config: {},
+        currentVersion: currentVersion({ nodes: [] }),
         edges: [],
         id: 'system-workflow-mirror',
         inputVariables: [],
