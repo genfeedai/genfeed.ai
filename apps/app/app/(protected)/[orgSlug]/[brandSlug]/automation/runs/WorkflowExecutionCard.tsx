@@ -58,7 +58,7 @@ export default function WorkflowExecutionCard({
     execution.status === WorkflowExecutionStatus.RUNNING;
   const actionIds = Array.from(
     new Set(
-      execution.nodeResults
+      (execution.nodeResults ?? [])
         .map((result) => result.actionId)
         .filter((actionId): actionId is string => Boolean(actionId)),
     ),

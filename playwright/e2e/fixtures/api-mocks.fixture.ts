@@ -2265,7 +2265,23 @@ export async function mockWorkflowTemplates(
     }
     if (route.request().method() === 'GET') {
       await route.fulfill({
-        body: JSON.stringify({ data: [] }),
+        body: JSON.stringify({
+          data: workflowTemplates.map((template) => ({
+            canonicalId: template.id,
+            category: template.category,
+            changeSummary: '',
+            description: template.description,
+            family: template.category,
+            icon: template.icon,
+            installable: true,
+            installed: false,
+            installedWorkflowId: null,
+            isScheduleEnabled: false,
+            label: template.name,
+            sourceIssue: 0,
+            version: 1,
+          })),
+        }),
         contentType: 'application/json',
         status: 200,
       });

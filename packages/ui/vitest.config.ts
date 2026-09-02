@@ -425,5 +425,15 @@ export default defineConfig({
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
     testTimeout: 30_000,
+    // Memory hygiene: the forks pool reuses one worker across every file,
+    // and isolate:true does not reclaim retained React/DOM trees. Without
+    // this the CI Test Packages job OOMs after the suite (~3.8 GB, #4337
+    // maxWorkers=2 was not enough). Match apps/app.
+    clearMocks: true,
+    fileParallelism: false,
+    maxWorkers: 1,
+    pool: 'forks',
+    unstubEnvs: true,
+    unstubGlobals: true,
   },
 });
