@@ -1,4 +1,4 @@
-import { PageScope, PostStatus } from '@genfeedai/enums';
+import { PageScope, Platform, PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import PostDetail from '@pages/posts/detail/post-detail';
 import { render, screen } from '@testing-library/react';
@@ -44,6 +44,10 @@ vi.mock('@ui/posts/post-detail-sidebar/PostDetailSidebar', () => ({
 
 vi.mock('@ui/posts/engagement-preview/EngagementPreview', () => ({
   default: () => <div data-testid="engagement-preview" />,
+}));
+
+vi.mock('@ui/previews/TargetPreview', () => ({
+  default: () => <div data-testid="target-preview" />,
 }));
 
 function buildPost(overrides: Partial<IPost> = {}): IPost {
@@ -267,5 +271,23 @@ describe('PostDetail', () => {
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.queryByTestId('engagement-preview')).not.toBeInTheDocument();
+  });
+
+  it('does not render a live preview when the post has no resolved platform', () => {
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
+  });
+
+  it('renders a live preview once the post has a resolved platform', () => {
+    mockUsePostDetail.mockReturnValue(
+      buildHookData({
+        post: buildPost({ platform: Platform.TWITTER }),
+      }),
+    );
+
+    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
+
+    expect(screen.getByTestId('target-preview')).toBeInTheDocument();
   });
 });

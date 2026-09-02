@@ -1174,7 +1174,7 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'automation',
-        sectionLabel: undefined,
+        sectionLabel: 'Automation',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
@@ -1206,7 +1206,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/studio/storyboard', 'studio', 'Studio'],
     ['/org-123/brand-123/library', 'library', 'Library'],
     ['/org-123/brand-123/analytics', 'analytics', 'Analytics'],
-    ['/org-123/brand-123/automation/workflows', 'automation', undefined],
+    ['/org-123/brand-123/automation/workflows', 'automation', 'Automation'],
     ['/org-123/brand-123/publishing/remix', 'publishing', 'Publishing'],
   ])(
     'keeps the %s app-switcher surface on its own module nav',

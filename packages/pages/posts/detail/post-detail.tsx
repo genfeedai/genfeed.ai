@@ -12,6 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
+import { buildPostTargetPreview } from '@pages/posts/detail/post-detail-preview.helpers';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
 import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
@@ -19,6 +20,7 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
+import TargetPreview from '@ui/previews/TargetPreview';
 import {
   buildSourcePostVariationsHref,
   isSourcePostVariationPlatform,
@@ -252,6 +254,11 @@ export default function PostDetail({
     if (!post) {
       return null;
     }
+    const targetPreview = buildPostTargetPreview(
+      post,
+      descriptionDraft,
+      credential,
+    );
     return (
       <div className="space-y-3">
         <PostDetailSidebar
@@ -270,12 +277,14 @@ export default function PostDetail({
           onPublishViaTikTokApp={handlePublishViaTikTokApp}
           onScoreSeo={handleScoreSeo}
         />
+        {targetPreview ? <TargetPreview {...targetPreview} /> : null}
         {!isPublished ? <EngagementPreview post={post} /> : null}
       </div>
     );
   }, [
     analyticsStats,
     credential,
+    descriptionDraft,
     handleScheduleChange,
     handleScheduleSave,
     handlePublishNow,

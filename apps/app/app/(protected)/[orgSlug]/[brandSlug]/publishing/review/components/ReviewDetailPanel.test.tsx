@@ -19,6 +19,13 @@ vi.mock('next/image', () => ({
   }: MockImageProps) => <img {...props} alt={props.alt ?? ''} />,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('./ReviewDetailPanelAside', () => ({
   default: function MockReviewDetailPanelAside() {
     return <div data-testid="review-detail-panel-aside" />;
@@ -66,25 +73,24 @@ describe('ReviewDetailPanel', () => {
       mediaUrl: 'https://cdn.example.com/media.jpg',
     });
 
-    // Outer section ("Platform preview") plus the platform-specific article.
+    expect(screen.getByText('Preview')).toBeInTheDocument();
     expect(
-      screen.getAllByLabelText(/platform preview$/i).length,
-    ).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Ship the review rail')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('platform-preview-media-item-1-media'),
+      screen.getByLabelText('twitter platform preview'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Ship the review rail')).toBeInTheDocument();
+    expect(screen.getByTestId('preview-media')).toBeInTheDocument();
   });
 
-  it('falls back to the approximate preview when no platform is stored', () => {
+  it('skips the platform renderer when no platform is stored', () => {
     renderPanel({
       ...baseItem,
       platform: undefined,
     });
 
+    expect(screen.getByText('Preview')).toBeInTheDocument();
     expect(
-      screen.getAllByText('Approximate preview').length,
-    ).toBeGreaterThanOrEqual(1);
+      screen.queryByLabelText(/platform preview$/i),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('No media on this draft yet')).toBeInTheDocument();
   });
 });

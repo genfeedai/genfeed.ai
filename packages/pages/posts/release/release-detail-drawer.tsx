@@ -34,6 +34,7 @@ import {
 import type { ReleaseDetailDrawerProps } from '@props/publisher/release-calendar.props';
 import { logger } from '@services/core/logger.service';
 import { CredentialsService } from '@services/organization/credentials.service';
+import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -44,7 +45,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import { ExternalLink, Repeat2 } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -98,11 +99,14 @@ function TargetHistory({
 }: {
   target: IChannelTarget;
 }): React.JSX.Element {
+  const translate = useTranslations('pages.publishing.release');
   const entries = targetHistory(target);
 
   if (entries.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">No execution history yet.</p>
+      <p className="text-xs text-muted-foreground">
+        {translate('noExecutionHistory')}
+      </p>
     );
   }
 
@@ -133,10 +137,11 @@ export default function ReleaseDetailDrawer({
   reconnectHref,
   release,
 }: ReleaseDetailDrawerProps): React.JSX.Element {
-  const translate = useTranslations('pages.posts.release');
+  const translate = useTranslations('pages.publishing.release');
   const { getToken } = useAuthIdentity();
   const [releaseDate, setReleaseDate] = useState('');
   const [targetDates, setTargetDates] = useState<Record<string, string>>({});
+  const [previewTargetId, setPreviewTargetId] = useState<string | null>(null);
   const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
     [],
   );
@@ -150,6 +155,7 @@ export default function ReleaseDetailDrawer({
         : '',
     );
     setTargetDates(seedTargetDates(release));
+    setPreviewTargetId(null);
   }, [release]);
 
   // The drawer owns its own account-health lookup so every caller (calendar,
@@ -213,7 +219,7 @@ export default function ReleaseDetailDrawer({
         <div className="border-b border-border bg-background/95 px-6 pb-5 pt-6 backdrop-blur">
           <SheetHeader className="space-y-3 text-left">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Post</Badge>
+              <Badge variant="outline">{translate('badgePost')}</Badge>
               {statusBadge ? (
                 <Badge variant={badgeVariantForTone(statusBadge.tone)}>
                   {statusBadge.label}
@@ -241,7 +247,9 @@ export default function ReleaseDetailDrawer({
 
           {release ? (
             <section className="space-y-3">
-              <h3 className="font-medium text-foreground">Schedule</h3>
+              <h3 className="font-medium text-foreground">
+                {translate('schedule')}
+              </h3>
               <div className="flex flex-wrap items-end gap-3">
                 <Input
                   className="max-w-xs"
@@ -271,8 +279,7 @@ export default function ReleaseDetailDrawer({
               </div>
               {!canRescheduleRelease ? (
                 <p className="text-xs text-muted-foreground">
-                  This post can no longer be moved — one or more targets have
-                  already published or been cancelled.
+                  {translate('rescheduleLocked')}
                 </p>
               ) : null}
             </section>
@@ -280,7 +287,9 @@ export default function ReleaseDetailDrawer({
 
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="font-medium text-foreground">Targets</h3>
+              <h3 className="font-medium text-foreground">
+                {translate('targets')}
+              </h3>
               {onAddChannel && targets.length > 0 ? (
                 <Button
                   size={ButtonSize.SM}
@@ -295,7 +304,7 @@ export default function ReleaseDetailDrawer({
             </div>
             {targets.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                This post has no channel targets.
+                {translate('noTargets')}
               </p>
             ) : (
               targets.map((target) => {
@@ -310,6 +319,7 @@ export default function ReleaseDetailDrawer({
                 const rescheduleAction = targetRescheduleAction(target.id);
                 const retryAction = targetRetryAction(target.id);
                 const inputLabel = `${targetLabel(target)} time`;
+                const isPreviewOpen = previewTargetId === target.id;
                 const needsReconnect = isCredentialAtRisk(
                   accountHealth,
                   target.credentialId,
@@ -332,7 +342,35 @@ export default function ReleaseDetailDrawer({
                         {validation.label}
                       </Badge>
                       <Badge variant="secondary">{target.source}</Badge>
+                      <Button
+                        ariaLabel={`${isPreviewOpen ? 'Hide' : 'Preview'} ${targetLabel(target)} target`}
+                        className="ml-auto"
+                        icon={
+                          isPreviewOpen ? (
+                            <EyeOff className="size-3.5" />
+                          ) : (
+                            <Eye className="size-3.5" />
+                          )
+                        }
+                        label={isPreviewOpen ? 'Hide preview' : 'Preview'}
+                        onClick={() =>
+                          setPreviewTargetId(isPreviewOpen ? null : target.id)
+                        }
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.SECONDARY}
+                      />
                     </div>
+
+                    {isPreviewOpen && release ? (
+                      <TargetPreview
+                        className="max-w-sm"
+                        credential={
+                          target.credential ?? { platform: target.platform }
+                        }
+                        release={release}
+                        target={target}
+                      />
+                    ) : null}
 
                     {target.validationIssues.length > 0 ? (
                       <ol className="space-y-1 text-xs text-muted-foreground">
@@ -345,7 +383,7 @@ export default function ReleaseDetailDrawer({
                     {isBlocked ? (
                       <div className="border border-warning/40 bg-warning/10 p-3 text-xs">
                         <p className="font-medium text-foreground">
-                          Publishing setup is blocking this channel
+                          {translate('readinessBlocked')}
                         </p>
                         {target.readiness?.requiredAction ? (
                           <p className="mt-1 text-muted-foreground">
@@ -368,7 +406,9 @@ export default function ReleaseDetailDrawer({
                           variant={ButtonVariant.SECONDARY}
                         >
                           <Link href={reconnectHref}>
-                            Reconnect {targetLabel(target)}
+                            {translate('actions.reconnect', {
+                              target: targetLabel(target),
+                            })}
                           </Link>
                         </Button>
                       </div>
@@ -476,7 +516,9 @@ export default function ReleaseDetailDrawer({
           </section>
 
           <section className="space-y-3">
-            <h3 className="font-medium text-foreground">Analytics</h3>
+            <h3 className="font-medium text-foreground">
+              {translate('analytics.title')}
+            </h3>
             <ReleaseAnalyticsTable comparison={release?.analyticsComparison} />
           </section>
         </div>

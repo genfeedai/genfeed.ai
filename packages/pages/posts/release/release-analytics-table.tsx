@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import { useTranslations } from 'next-intl';
 
 /**
  * Collection state of the comparison as a whole. Kept visible next to the table
@@ -62,13 +63,16 @@ function formatMetric(
 export default function ReleaseAnalyticsTable({
   comparison,
 }: ReleaseAnalyticsTableProps): React.JSX.Element {
+  const translate = useTranslations('pages.publishing.release');
+
   if (!comparison || comparison.targets.length === 0) {
     return (
       <div className="bg-muted/35 p-6 shadow-sm">
-        <h3 className="font-medium text-foreground">No target analytics yet</h3>
+        <h3 className="font-medium text-foreground">
+          {translate('analytics.emptyTitle')}
+        </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Metrics appear after a published target has a collected analytics
-          snapshot.
+          {translate('analytics.emptyDescription')}
         </p>
       </div>
     );
@@ -82,12 +86,12 @@ export default function ReleaseAnalyticsTable({
       <div className="overflow-x-auto bg-card shadow-sm ring-1 ring-border/60">
         <Table className="w-full border-collapse text-sm">
           <TableCaption className="sr-only">
-            Normalized analytics metrics by channel target
+            {translate('analytics.caption')}
           </TableCaption>
           <TableHeader className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <TableRow>
               <TableHead scope="col" className="px-4 py-3 font-medium">
-                Target
+                {translate('analytics.target')}
               </TableHead>
               {comparison.metricDefinitions.map((metric) => (
                 <TableHead
@@ -99,7 +103,7 @@ export default function ReleaseAnalyticsTable({
                 </TableHead>
               ))}
               <TableHead scope="col" className="px-4 py-3 font-medium">
-                Evidence
+                {translate('analytics.evidence')}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -127,7 +131,9 @@ export default function ReleaseAnalyticsTable({
                     </span>
                     {target.snapshotIdentity ? (
                       <time dateTime={target.snapshotIdentity.updatedAt}>
-                        Snapshot {target.snapshotIdentity.snapshotDate}
+                        {translate('analytics.snapshot', {
+                          date: target.snapshotIdentity.snapshotDate,
+                        })}
                       </time>
                     ) : null}
                     {target.collection.error ? (
