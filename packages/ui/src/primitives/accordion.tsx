@@ -1,10 +1,10 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
 import { useMounted } from '../lib/hooks';
-import { cn } from '../lib/utils';
 
 function Accordion({
   ref,

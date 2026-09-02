@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import { NodeResizer } from '@xyflow/react';
 import type { ComponentProps, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 import { Badge } from '../primitives/badge';
 
 export type FlowNodeTone =

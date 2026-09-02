@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type {
   ComponentProps,
   ComponentType,
@@ -8,7 +9,6 @@ import type {
 } from 'react';
 import { createContext, useContext, useId, useMemo } from 'react';
 import { ResponsiveContainer } from 'recharts';
-import { cn } from '../lib/utils';
 
 export type ChartSeriesConfig = {
   color?: string;

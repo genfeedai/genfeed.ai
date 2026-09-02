@@ -78,7 +78,7 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@components/lazy/LazyModal', () => ({
+vi.mock('@components/lazy/lazy-modal.admin', () => ({
   LazyModalSubscription: () => null,
 }));
 

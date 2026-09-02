@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as ProgressPrimitive from '@radix-ui/react-progress';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 function Progress({
   ref,

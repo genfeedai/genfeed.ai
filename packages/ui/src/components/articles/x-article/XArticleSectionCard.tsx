@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { sanitizeHtml } from '@genfeedai/helpers';
 import type { XArticleSectionCardProps } from '@genfeedai/props/content/x-article.props';
 import { Blockquote } from '@genfeedai/ui';
-import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import parse from 'html-react-parser';

@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { cva } from 'class-variance-authority';
 import { Check, ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
@@ -14,7 +15,6 @@ import {
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 import { useController } from 'react-hook-form';
-import { cn } from '../lib/utils';
 import {
   fieldControlClassName,
   fieldControlPopoverClassName,

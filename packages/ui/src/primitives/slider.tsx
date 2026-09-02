@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 function Slider({
   ref,

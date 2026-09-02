@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
 import { Button } from '@ui/primitives/button';
-import type { PromptBarSuggestionItem } from '@ui/prompt-bars/types/prompt-bar-suggestion-item';
 import { memo, type ReactElement } from 'react';
 
 interface PromptBarSuggestionsProps {

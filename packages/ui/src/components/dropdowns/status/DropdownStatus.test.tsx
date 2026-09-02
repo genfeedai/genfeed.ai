@@ -48,33 +48,6 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/dropdowns/base/DropdownBase', () => ({
-  Dropdown: ({
-    trigger,
-    children,
-  }: {
-    trigger: ReactNode;
-    children: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="dropdown-trigger">{trigger}</div>
-      <div data-testid="dropdown-content">{children}</div>
-    </div>
-  ),
-  default: ({
-    trigger,
-    children,
-  }: {
-    trigger: ReactNode;
-    children: ReactNode;
-  }) => (
-    <div>
-      <div data-testid="dropdown-trigger">{trigger}</div>
-      <div data-testid="dropdown-content">{children}</div>
-    </div>
-  ),
-}));
-
 vi.mock('@ui/primitives/dropdown', () => ({
   Dropdown: ({
     trigger,

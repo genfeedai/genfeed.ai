@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import { ChevronLeft, ChevronRight, Ellipsis } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { cn } from '../lib/utils';
 import type { ButtonProps } from './button';
 import { buttonVariants } from './button.variants';
 

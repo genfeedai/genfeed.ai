@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import {
   cloneElement,
   isValidElement,
@@ -5,7 +6,6 @@ import {
   type ReactNode,
   useId,
 } from 'react';
-import { cn } from '../lib/utils';
 import { Label } from './label';
 
 export interface FieldElementProps {

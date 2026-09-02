@@ -110,6 +110,8 @@ export {
 export const semanticColorRoleList: readonly SemanticColorRole[] =
   semanticColorRoles;
 
+// Utilities
+export { cn } from '@genfeedai/helpers';
 // Shared UI components (Paperclip design system)
 export { ActivityRow } from './dashboard/ActivityRow';
 export { Identity } from './identity/Identity';
@@ -117,8 +119,6 @@ export { IssueRow } from './issues/IssueRow';
 export { PriorityIcon } from './issues/PriorityIcon';
 export { StatusIcon } from './issues/StatusIcon';
 export { useMounted } from './lib/hooks';
-// Utilities
-export { cn } from './lib/utils';
 export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
 // Compound Modal
 export { Modal } from './modals/compound/modal.compound';

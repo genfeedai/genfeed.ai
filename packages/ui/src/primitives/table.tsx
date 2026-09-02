@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers';
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 
 function Table({
   ref,

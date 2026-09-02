@@ -1,5 +1,6 @@
 'use client';
 
+import { sanitizeHtml } from '@genfeedai/helpers';
 import type { IXArticleMetadata } from '@genfeedai/interfaces';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
@@ -7,7 +8,6 @@ import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useState } from 'react';

@@ -1,8 +1,8 @@
 'use client';
 
 import type { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import type { ReactNode } from 'react';
-import { cn } from '../lib/utils';
 import { Badge } from './badge';
 import { Button } from './button';
 import { SimpleTooltip } from './tooltip';

@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -18,7 +19,6 @@ import type {
   UseFormRegisterReturn,
 } from 'react-hook-form';
 import { useController } from 'react-hook-form';
-import { cn } from '../lib/utils';
 
 export interface TextareaProps<T extends FieldValues = FieldValues>
   extends Omit<

@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import type { ComponentPropsWithRef, ReactElement } from 'react';
-import { cn } from '../lib/utils';
 
 const TooltipProvider: typeof TooltipPrimitive.Provider =
   TooltipPrimitive.Provider;

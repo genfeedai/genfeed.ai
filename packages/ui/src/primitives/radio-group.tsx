@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { Circle } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 function RadioGroup({
   ref,

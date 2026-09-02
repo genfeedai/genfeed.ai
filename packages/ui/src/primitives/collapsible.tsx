@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as CollapsiblePrimitive from '@radix-ui/react-collapsible';
 import { ChevronDown } from 'lucide-react';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 
 const Collapsible: typeof CollapsiblePrimitive.Root = CollapsiblePrimitive.Root;
 

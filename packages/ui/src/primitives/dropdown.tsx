@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import {
   cloneElement,
   isValidElement,
@@ -15,7 +16,6 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '../lib/utils';
 import { Button } from './button';
 import {
   DropdownMenu,

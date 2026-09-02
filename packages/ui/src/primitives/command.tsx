@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type { DialogProps } from '@radix-ui/react-dialog';
 import { Command as CommandPrimitive } from 'cmdk';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 import { Dialog, DialogContent } from './dialog';
 
 function Command({

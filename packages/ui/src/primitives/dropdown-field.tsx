@@ -1,6 +1,7 @@
 'use client';
 
 import { type ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -10,7 +11,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { cn } from '../lib/utils';
 import { getBadgeVariant } from './dropdown-field.helpers';
 import DropdownOptionItem from './dropdown-field-option-item';
 import DropdownSearchBar from './dropdown-field-search-bar';

@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import * as SwitchPrimitives from '@radix-ui/react-switch';
 import type {
   ChangeEvent,
@@ -5,7 +6,6 @@ import type {
   ReactElement,
   ReactNode,
 } from 'react';
-import { cn } from '../lib/utils';
 
 type SwitchBaseProps = Omit<
   ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>,

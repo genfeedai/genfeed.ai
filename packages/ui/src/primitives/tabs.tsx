@@ -1,8 +1,8 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import type { ComponentPropsWithRef } from 'react';
-import { cn } from '../lib/utils';
 import { getTabsListClassName, getTabsTriggerClassName } from './tabs.styles';
 
 const Tabs: typeof TabsPrimitive.Root = TabsPrimitive.Root;

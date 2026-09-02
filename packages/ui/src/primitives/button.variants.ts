@@ -1,6 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import { cva } from 'class-variance-authority';
-import { cn } from '../lib/utils';
 
 export type ButtonVariantConfig = {
   nativeVariant: 'default' | 'secondary' | 'destructive' | 'ghost' | 'link';

@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers';
 import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
 
 export interface LinkCardProps {
   className?: string;

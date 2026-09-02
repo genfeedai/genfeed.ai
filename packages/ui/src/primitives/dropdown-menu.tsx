@@ -1,9 +1,9 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Minus } from 'lucide-react';
 import type { ComponentPropsWithRef, HTMLAttributes } from 'react';
-import { cn } from '../lib/utils';
 import { overlayMenuSurfaceClassName } from './field-control';
 
 const DropdownMenu: typeof DropdownMenuPrimitive.Root =

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '../lib/utils';
+import { cn } from '@genfeedai/helpers';
 import { Button } from './button';
 import type { DropdownFieldTab } from './dropdown-field';
 

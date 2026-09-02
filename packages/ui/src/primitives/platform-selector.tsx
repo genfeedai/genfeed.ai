@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers';
 import {
   FacebookIcon,
   InstagramIcon,
@@ -12,8 +13,6 @@ import {
 import type { ICredential } from '@genfeedai/interfaces';
 import { Star } from 'lucide-react';
 import type { ComponentType, ReactElement } from 'react';
-
-import { cn } from '../lib/utils';
 import { Button } from './button';
 
 type IconComponent = ComponentType<{ className?: string }>;

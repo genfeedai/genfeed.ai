@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers';
 import type {
   ChangeEvent,
   FocusEvent,
@@ -12,7 +13,6 @@ import {
   type Path,
   useController,
 } from 'react-hook-form';
-import { cn } from '../lib/utils';
 import {
   fieldControlClassName,
   fieldControlInputClassName,

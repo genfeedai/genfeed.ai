@@ -1,7 +1,7 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers';
 import type * as React from 'react';
-import { cn } from '@/lib/utils';
 
 /**
  * shadcn-API surface that shares the canonical card chrome from

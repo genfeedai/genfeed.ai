@@ -1,6 +1,6 @@
+import { cn } from '@genfeedai/helpers';
 import type { VariantProps } from 'class-variance-authority';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
-import { cn } from '../lib/utils';
 import { badgeVariants } from './badge.variants';
 
 export interface BadgeProps
