@@ -161,39 +161,12 @@ export const APP_ROUTES = {
   },
   DISCOVERY: {
     ADS: '/discovery/ads',
-    ADS_GOOGLE: '/discovery/ads/google',
-    ADS_META: '/discovery/ads/meta',
-    ADS_TIKTOK: '/discovery/ads/tiktok',
-    ADS_X: '/discovery/ads/x',
-    /**
-     * @deprecated Use OVERVIEW. Bare `/discovery/discovery` permanently redirects
-     * to `/discovery/overview` (same pattern as workspace/analytics/automation).
-     */
-    DISCOVERY: '/discovery/discovery',
-    FOLLOWING: '/discovery/following',
     /**
      * Canonical Discovery home. Bare ROOT permanently redirects here so Overview
      * is a complete path (same pattern as workspace/overview).
      */
     OVERVIEW: '/discovery/overview',
-    /**
-     * Platform feeds. Served by the dynamic `/discovery/[platform]` route, but
-     * enumerated here because they are real menu destinations — same reason
-     * `ADS_*` are spelled out rather than built from a segment.
-     */
-    PLATFORM_INSTAGRAM: '/discovery/instagram',
-    PLATFORM_LINKEDIN: '/discovery/linkedin',
-    PLATFORM_PINTEREST: '/discovery/pinterest',
-    PLATFORM_REDDIT: '/discovery/reddit',
-    PLATFORM_TIKTOK: '/discovery/tiktok',
-    PLATFORM_TWITTER: '/discovery/twitter',
-    PLATFORM_YOUTUBE: '/discovery/youtube',
     ROOT: '/discovery',
-    /**
-     * @deprecated Same TrendsList as OVERVIEW. Permanently redirects to
-     * `/discovery/overview` — keep for deep-link compatibility only.
-     */
-    SOCIALS: '/discovery/socials',
   },
   /**
    * Legacy long-form editor aliases retained for existing deep links. New

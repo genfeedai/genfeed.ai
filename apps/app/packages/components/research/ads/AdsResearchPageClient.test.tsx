@@ -236,11 +236,17 @@ vi.mock('@ui/layout/container/Container', () => ({
   default: ({
     children,
     description,
+    headerTabs,
     label,
     right,
   }: {
     children: ReactNode;
     description?: string;
+    headerTabs?: {
+      activeTab?: string;
+      items?: Array<{ id: string; label: string }>;
+      onTabChange?: (tabId: string) => void;
+    };
     label?: string;
     right?: ReactNode;
   }) => (
@@ -249,6 +255,20 @@ vi.mock('@ui/layout/container/Container', () => ({
         <h1>{label}</h1>
         {description ? <p>{description}</p> : null}
         {right}
+        {headerTabs?.items ? (
+          <nav>
+            {headerTabs.items.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                aria-pressed={headerTabs.activeTab === tab.id}
+                onClick={() => headerTabs.onTabChange?.(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        ) : null}
       </header>
       <div>{children}</div>
     </section>
@@ -569,7 +589,6 @@ describe('AdsResearchPageClient', () => {
     expect(screen.getByText('Google lead gen winner')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
-    expect(screen.getByText('Platform')).toBeInTheDocument();
     expect(screen.getByText('Metric')).toBeInTheDocument();
     expect(screen.getByText('Timeframe')).toBeInTheDocument();
 
@@ -658,12 +677,12 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('opens a typed prefilled brief and a non-publishing launch plan for selected connected ads', async () => {
-    render(<AdsResearchPageClient initialPlatform="google" />);
+    render(<AdsResearchPageClient />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Google + YouTube' }));
     fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     expect(screen.getByText('Google Channel')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('MCC / manager ID')).toBeInTheDocument();
-    expect(screen.queryByText('Platform')).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -711,7 +730,7 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('opens a public ad remix from its performance record id', () => {
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -729,9 +748,7 @@ describe('AdsResearchPageClient', () => {
   });
 
   it('saves from a card and remixes a saved match by durable snapshot id', () => {
-    const { rerender } = render(
-      <AdsResearchPageClient initialPlatform="meta" />,
-    );
+    const { rerender } = render(<AdsResearchPageClient />);
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Save Meta hook story' }),
@@ -768,7 +785,7 @@ describe('AdsResearchPageClient', () => {
         videoUrls: [],
       },
     ];
-    rerender(<AdsResearchPageClient initialPlatform="meta" />);
+    rerender(<AdsResearchPageClient />);
     fireEvent.click(
       screen.getByRole('button', {
         name: /^Select Meta hook story for research context$/i,
@@ -808,7 +825,7 @@ describe('AdsResearchPageClient', () => {
         videoUrls: [],
       },
     ];
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
     fireEvent.click(
       screen.getByRole('button', {
         name: /^Select Meta hook story for research context$/i,
@@ -829,7 +846,7 @@ describe('AdsResearchPageClient', () => {
 
   it('catches a rejected save mutation inside the detail surface', async () => {
     saveSavedAdsMock.mockRejectedValueOnce(new Error('save failed'));
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
     fireEvent.click(
       screen.getByRole('button', {
         name: /^Select Meta hook story for research context$/i,
@@ -846,7 +863,7 @@ describe('AdsResearchPageClient', () => {
       ...resultsState,
       publicAds: [{ ...publicAd, savedAdId: 'stale-saved-id' }],
     };
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Unsave Meta hook story' }),
@@ -984,7 +1001,7 @@ describe('AdsResearchPageClient', () => {
       },
     ];
 
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
     fireEvent.click(
       screen.getByRole('button', { name: 'Save Meta hook story' }),
     );
@@ -997,7 +1014,7 @@ describe('AdsResearchPageClient', () => {
 
   it('shows an unavailable error when the remix provider is missing', () => {
     remixAvailability.isAvailable = false;
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -1086,7 +1103,7 @@ describe('AdsResearchPageClient', () => {
   it('shows an unavailable detail state after a selected ad disappears', () => {
     useQueryStates[2].data = null;
     useQueryStates[2].isLoading = false;
-    render(<AdsResearchPageClient initialPlatform="meta" />);
+    render(<AdsResearchPageClient />);
 
     fireEvent.click(
       screen.getByRole('button', {

@@ -9,6 +9,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
+import { getTrendRemixAvailability } from '@pages/trends/shared/remix-availability';
 import type {
   TrendContentItem,
   TrendItem,
@@ -31,7 +32,6 @@ import {
   buildSourcePostVariationsHref,
   buildTrendSourceAgentHref,
   buildTrendSourcePrompt,
-  isSourcePostVariationPlatform,
 } from '@utils/url/desktop-loop-url.util';
 import {
   ClipboardList,
@@ -47,12 +47,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
-
-const PREFILLED_ORGANIC_REMIX_PLATFORMS = new Set([
-  'instagram',
-  'tiktok',
-  'youtube',
-]);
 
 function getViralityVariant(
   score: number,
@@ -110,12 +104,12 @@ export default function TrendContentCard({
   finding,
   isSelected = false,
   item,
-  onSelect,
+  onSelectAction,
 }: {
   finding?: AuthorizedResearchFinding;
   isSelected?: boolean;
   item: TrendContentItem;
-  onSelect?: (finding: AuthorizedResearchFinding) => void;
+  onSelectAction?: (finding: AuthorizedResearchFinding) => void;
 }) {
   const translate = useTranslations('common.trends.card');
   const brandId = useBrandId();
@@ -170,23 +164,13 @@ export default function TrendContentCard({
       ),
     [href, item.platform, item.sourceReferenceId, item.trendId],
   );
-  const isPrefilledRemixPlatform = PREFILLED_ORGANIC_REMIX_PLATFORMS.has(
-    item.platform,
-  );
   const hasDurableSourceReference = Boolean(item.sourceReferenceId);
-  const opensPrefilledRemix =
-    isPrefilledRemixPlatform &&
-    hasDurableSourceReference &&
-    Boolean(remixSurface);
-  const opensLegacyRemix =
-    hasDurableSourceReference &&
-    isSourcePostVariationPlatform(item.platform) &&
-    !opensPrefilledRemix;
-  const isRemixUnavailable =
-    isPrefilledRemixPlatform &&
-    hasDurableSourceReference &&
-    !remixSurface &&
-    !opensLegacyRemix;
+  const { isRemixUnavailable, opensLegacyRemix, opensPrefilledRemix } =
+    getTrendRemixAvailability(
+      item.platform,
+      hasDurableSourceReference,
+      Boolean(remixSurface),
+    );
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
@@ -369,11 +353,11 @@ export default function TrendContentCard({
               variant={ButtonVariant.SECONDARY}
             />
           ) : null}
-          {finding && onSelect ? (
+          {finding && onSelectAction ? (
             <Button
               aria-pressed={isSelected}
               label={isSelected ? 'Selected' : 'Use as context'}
-              onClick={() => onSelect(finding)}
+              onClick={() => onSelectAction(finding)}
               size={ButtonSize.SM}
               variant={
                 isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST

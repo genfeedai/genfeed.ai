@@ -2,68 +2,61 @@ import { describe, expect, it } from 'vitest';
 import { DISCOVERY_MENU_ITEMS } from './discovery-menu-items.config';
 
 describe('DISCOVERY_MENU_ITEMS', () => {
-  it('renders Discovery peers then platform feeds (no Socials peer)', () => {
+  it('renders exactly Overview, Following, Ads', () => {
     expect(DISCOVERY_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Following',
       'Ads',
-      'X',
-      'Instagram',
-      'YouTube',
-      'TikTok',
-      'LinkedIn',
-      'Reddit',
-      'Pinterest',
     ]);
-  });
-
-  it('keeps Following and Ads above the Platforms group', () => {
-    const labels = DISCOVERY_MENU_ITEMS.map((item) => item.label);
-    expect(labels.indexOf('Following')).toBeLessThan(labels.indexOf('X'));
-    expect(labels.indexOf('Ads')).toBeLessThan(labels.indexOf('X'));
-    expect(labels.indexOf('Following')).toBeLessThan(labels.indexOf('Ads'));
-  });
-
-  it('groups platform feeds under Platforms', () => {
-    const platforms = DISCOVERY_MENU_ITEMS.filter(
-      (item) => item.group === 'Platforms',
-    );
-
-    expect(platforms.map((item) => item.href)).toEqual([
-      '/discovery/twitter',
-      '/discovery/instagram',
-      '/discovery/youtube',
-      '/discovery/tiktok',
-      '/discovery/linkedin',
-      '/discovery/reddit',
-      '/discovery/pinterest',
-    ]);
-    expect(platforms[0]?.isCollapsible).toBe(true);
-  });
-
-  it('treats retired /discovery/socials as an Overview matchPath', () => {
-    const overview = DISCOVERY_MENU_ITEMS.find(
-      (item) => item.label === 'Overview',
-    );
-    const following = DISCOVERY_MENU_ITEMS.find(
-      (item) => item.label === 'Following',
-    );
-
-    expect(overview?.matchPaths ?? []).toContain('/discovery/socials');
-    expect(following?.href).toBe('/discovery/following');
-    expect(overview?.matchPaths ?? []).not.toContain('/discovery/following');
   });
 
   it('uses /discovery/overview as the home href (not /discovery/discovery)', () => {
     expect(DISCOVERY_MENU_ITEMS[0]?.href).toBe('/discovery/overview');
   });
 
-  it('keeps Workspace and Messages routes out of the Discovery sidebar', () => {
+  it('treats Following as a query-param variant of Overview, not its own route', () => {
+    const following = DISCOVERY_MENU_ITEMS.find(
+      (item) => item.label === 'Following',
+    );
+
+    expect(following?.href).toBe('/discovery/overview?source=following');
+    expect(following?.matchSearchParams).toEqual({ source: 'following' });
+    expect(following?.matchPaths).toEqual(['/discovery/overview']);
+  });
+
+  it('only marks Overview active when the source query param is absent', () => {
+    const overview = DISCOVERY_MENU_ITEMS.find(
+      (item) => item.label === 'Overview',
+    );
+
+    expect(overview?.matchSearchParams).toEqual({ source: null });
+  });
+
+  it('has no Platforms group', () => {
+    const platforms = DISCOVERY_MENU_ITEMS.filter(
+      (item) => item.group === 'Platforms',
+    );
+
+    expect(platforms).toEqual([]);
+  });
+
+  it('scopes Ads matchPaths to the single consolidated ads route', () => {
+    const ads = DISCOVERY_MENU_ITEMS.find((item) => item.label === 'Ads');
+
+    expect(ads?.href).toBe('/discovery/ads');
+    expect(ads?.matchPaths).toEqual(['/discovery/ads']);
+  });
+
+  it('keeps Workspace, Messages, and retired Discovery routes out of the sidebar', () => {
     const hrefs = DISCOVERY_MENU_ITEMS.map((item) => item.href);
 
     expect(hrefs).not.toContain('/workspace');
     expect(hrefs).not.toContain('/messages');
     expect(hrefs).not.toContain('/discovery/socials');
+    expect(hrefs).not.toContain('/discovery/discovery');
+    expect(hrefs).not.toContain('/discovery/following');
+    expect(hrefs).not.toContain('/discovery/twitter');
+    expect(hrefs).not.toContain('/discovery/instagram');
   });
 
   it('has no duplicate hrefs', () => {
@@ -73,5 +66,14 @@ describe('DISCOVERY_MENU_ITEMS', () => {
     const unique = new Set(hrefs);
 
     expect(hrefs.length).toBe(unique.size);
+  });
+
+  it('all items have required fields: label, href, outline, solid', () => {
+    for (const item of DISCOVERY_MENU_ITEMS) {
+      expect(item.label).toBeTruthy();
+      expect(item.href).toBeTruthy();
+      expect(item.outline).toBeDefined();
+      expect(item.solid).toBeDefined();
+    }
   });
 });
